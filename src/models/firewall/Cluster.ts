@@ -29,6 +29,7 @@ import { Interface } from '../../models/interface/Interface';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
 import Query from '../../database/Query';
+import interfaces_Data from '../data/data_interface';
 
 const tableName: string = 'cluster';
 
@@ -72,7 +73,7 @@ export class Cluster extends Model {
   }
 
   //Get All clusters
-  public static getClusterCloud(req): Promise<Array<Cluster>> {
+  public static getClusterCloud(req): Promise<Array<Cluster> | null> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.* FROM ${tableName} T 
                 INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
@@ -85,7 +86,12 @@ export class Cluster extends Model {
   }
 
   //Get FULL cluster by  id
-  public static getCluster(req): Promise<void> {
+  public static getCluster(req): Promise<
+    Cluster & {
+      nodes: any;
+      interfaces: Array<interfaces_Data>;
+    }
+  > {
     return new Promise((resolve, reject) => {
       const sql =
         'SELECT * FROM ' +
@@ -94,51 +100,57 @@ export class Cluster extends Model {
         req.dbCon.escape(req.body.cluster) +
         ' AND fwcloud=' +
         req.dbCon.escape(req.body.fwcloud);
-      req.dbCon.query(sql, (error, row) => {
-        if (error) return reject(error);
-        if (row && row.length > 0) {
-          const dataCluster = row[0];
-          //SEARCH FIREWALL NODES
-          Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
-            if (error) return reject(error);
-            //get data
-            if (dataFw && dataFw.length > 0) {
-              dataCluster.nodes = dataFw;
-              //SEARCH INTERFACES FW-MASTER
-              Firewall.getFirewallClusterMaster(
-                req.session.user_id,
-                req.body.cluster,
-                (error, dataFwM) => {
-                  if (error) return reject(error);
-                  if (dataFwM && dataFwM.length > 0) {
-                    const idFwMaster = dataFwM[0].id;
-                    Interface.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
-                      if (error) return reject(error);
-                      if (dataI && dataI.length > 0) {
-                        dataCluster.interfaces = dataI;
-                      } else dataCluster.interfaces = [];
-                      resolve(dataCluster);
-                    });
-                  } else resolve(dataCluster);
-                },
-              );
-            } else {
-              dataCluster.nodes = [];
-              resolve(dataCluster);
-            }
-          });
-        } else resolve();
-      });
+      req.dbCon.query(
+        sql,
+        (error, row: Array<Cluster & { nodes: any; interfaces: Array<interfaces_Data> }>) => {
+          if (error) return reject(error);
+          if (row && row.length > 0) {
+            const dataCluster = row[0];
+            //SEARCH FIREWALL NODES
+            Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
+              if (error) return reject(error);
+              //get data
+              if (dataFw && dataFw.length > 0) {
+                dataCluster.nodes = dataFw;
+                //SEARCH INTERFACES FW-MASTER
+                Firewall.getFirewallClusterMaster(
+                  req.session.user_id,
+                  req.body.cluster,
+                  (error, dataFwM) => {
+                    if (error) return reject(error);
+                    if (dataFwM && dataFwM.length > 0) {
+                      const idFwMaster = dataFwM[0].id;
+                      Interface.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
+                        if (error) return reject(error);
+                        if (dataI && dataI.length > 0) {
+                          dataCluster.interfaces = dataI;
+                        } else dataCluster.interfaces = [];
+                        resolve(dataCluster);
+                      });
+                    } else resolve(dataCluster);
+                  },
+                );
+              } else {
+                dataCluster.nodes = [];
+                resolve(dataCluster);
+              }
+            });
+          } else resolve(null);
+        },
+      );
     });
   }
 
   //Get clusters by name
-  public static getClusterName = (name: string, callback: Function) => {
+  public static getClusterName = (
+    name: string,
+    callback: (error: Error | null, row: Array<Cluster> | null) => void,
+  ) => {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
         'SELECT * FROM ' + tableName + ' WHERE name like  "%' + connection.escape(name) + '%"';
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<Cluster>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -150,10 +162,14 @@ export class Cluster extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        connection.query(`INSERT INTO ${tableName} SET ?`, clusterData, (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        });
+        connection.query(
+          `INSERT INTO ${tableName} SET ?`,
+          clusterData,
+          (error, result: { insertId: number }) => {
+            if (error) return reject(error);
+            resolve(result.insertId);
+          },
+        );
       });
     });
   }
@@ -181,7 +197,7 @@ export class Cluster extends Model {
     id: number,
     iduser: number,
     fwcloud: number,
-    callback: Function,
+    callback: (error: Error | null, result: { result: boolean } | null) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -194,7 +210,7 @@ export class Cluster extends Model {
         ' WHERE T.id = ' +
         connection.escape(id);
       logger().debug('SQL DELETE CLUSTER: ', sqlExists);
-      connection.query(sqlExists, (error, row) => {
+      connection.query(sqlExists, (error, row: Array<Cluster & { idnode: number }>) => {
         //If exists Id from cluster to remove
         if (row.length > 0) {
           const dataNode = {

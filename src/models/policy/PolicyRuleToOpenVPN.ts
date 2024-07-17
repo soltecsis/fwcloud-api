@@ -78,7 +78,7 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   //Add new policy_r__openvpn
-  public static insertInRule(req) {
+  public static insertInRule(req): Promise<number> {
     return new Promise(async (resolve, reject) => {
       const policyOpenvpn = {
         rule: req.body.rule,
@@ -86,10 +86,14 @@ export class PolicyRuleToOpenVPN extends Model {
         position: req.body.position,
         position_order: req.body.position_order,
       };
-      req.dbCon.query(`insert into ${tableName} set ?`, policyOpenvpn, async (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `insert into ${tableName} set ?`,
+        policyOpenvpn,
+        async (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
@@ -361,11 +365,7 @@ export class PolicyRuleToOpenVPN extends Model {
           }> = [];
           try {
             for (const row of rows) {
-              const data: any = await this.getConfigsUnderOpenvpnPrefix(
-                dbCon,
-                row.openvpn,
-                row.name,
-              );
+              const data = await this.getConfigsUnderOpenvpnPrefix(dbCon, row.openvpn, row.name);
               // We are the last OpenVPN client config in the prefix used in and openvpn server and in a rule.
               if (data.length === 1 && data[0].id === openvpn) result.push(row);
             }

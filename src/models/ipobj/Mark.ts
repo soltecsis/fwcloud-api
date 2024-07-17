@@ -79,11 +79,11 @@ export class Mark extends Model {
   }
 
   // Verify if the iptables mark exists for the indicated fwcloud.
-  public static existsMark(dbCon: Query, fwcloud: number, code: number) {
+  public static existsMark(dbCon: Query, fwcloud: number, code: number): Promise<number> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE code=${code} AND fwcloud=${fwcloud}`,
-        (error, result) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           resolve(result.length > 0 ? result[0].id : 0);
         },
@@ -100,10 +100,14 @@ export class Mark extends Model {
         name: req.body.name,
         comment: req.body.comment,
       };
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, markData, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        markData,
+        (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
@@ -129,9 +133,9 @@ export class Mark extends Model {
     });
   }
 
-  public static getMark(dbCon: Query, mark: number) {
+  public static getMark(dbCon: Query, mark: number): Promise<Mark> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`select * from ${tableName} WHERE id=${mark}`, (error, result) => {
+      dbCon.query(`select * from ${tableName} WHERE id=${mark}`, (error, result: Array<Mark>) => {
         if (error) return reject(error);
         if (result.length !== 1) return reject(fwcError.NOT_FOUND);
         resolve(result[0]);
@@ -139,7 +143,26 @@ export class Mark extends Model {
     });
   }
 
-  public static searchMarkInRule(dbCon: Query, fwcloud: number, mark: number) {
+  public static searchMarkInRule(
+    dbCon: Query,
+    fwcloud: number,
+    mark: number,
+  ): Promise<
+    Array<{
+      rule: number;
+      firewall: number;
+      firewall_id: number;
+      firewall_name: string;
+      obj_id: number;
+      obj_name: string;
+      rule_id: number;
+      rule_type: number;
+      obj_type_id: number;
+      rule_type_name: string;
+      cluster_id: number;
+      cluster_name: string;
+    }>
+  > {
     return new Promise((resolve, reject) => {
       const sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
 	        M.id obj_id, M.name obj_name,
@@ -151,10 +174,29 @@ export class Mark extends Model {
 			inner join firewall FW on FW.id=R.firewall
 	        inner join policy_type PT on PT.id=R.type
 			where FW.fwcloud=${fwcloud} and R.mark=${mark}`;
-      dbCon.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error,
+          rows: Array<{
+            rule: number;
+            firewall: number;
+            firewall_id: number;
+            firewall_name: string;
+            obj_id: number;
+            obj_name: string;
+            rule_id: number;
+            rule_type: number;
+            obj_type_id: number;
+            rule_type_name: string;
+            cluster_id: number;
+            cluster_name: string;
+          }>,
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 

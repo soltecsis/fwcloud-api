@@ -138,7 +138,11 @@ export class PolicyGroup extends Model {
   }
 
   //Get policy_g by  id and firewall
-  public static getPolicy_g(idfirewall: number, id: number, callback: Function) {
+  public static getPolicy_g(
+    idfirewall: number,
+    id: number,
+    callback: (error: Error | null, data: Array<PolicyGroup> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -148,7 +152,7 @@ export class PolicyGroup extends Model {
         connection.escape(id) +
         ' AND firewall=' +
         connection.escape(idfirewall);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<PolicyGroup>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -156,7 +160,10 @@ export class PolicyGroup extends Model {
   }
 
   //Add new policy_g from user
-  public static insertPolicy_g(policy_gData: PolicyGroup, callback: Function) {
+  public static insertPolicy_g(
+    policy_gData: PolicyGroup,
+    callback: (error: Error | null, data: { insertId: number } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
@@ -167,7 +174,7 @@ export class PolicyGroup extends Model {
         ' AND firewall=' +
         connection.escape(policy_gData.firewall);
 
-      connection.query(sqlExists, (error, row) => {
+      connection.query(sqlExists, (error, row: Array<PolicyGroup>) => {
         if (row && row.length > 0) {
           logger().debug('GRUPO Existente: ' + policy_gData.id);
           callback(null, { insertId: policy_gData.id });
@@ -181,7 +188,7 @@ export class PolicyGroup extends Model {
             connection.escape(policy_gData.name) +
             ', comment=' +
             connection.escape(policy_gData.comment);
-          connection.query(sqlInsert, (error, result) => {
+          connection.query(sqlInsert, (error, result: { insertId: number }) => {
             if (error) {
               callback(error, null);
             } else {
@@ -196,7 +203,10 @@ export class PolicyGroup extends Model {
   }
 
   //Update policy_g from user
-  public static updatePolicy_g(policy_gData: PolicyGroup, callback: Function) {
+  public static updatePolicy_g(
+    policy_gData: PolicyGroup,
+    callback: (error: Error | null, data: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -225,7 +235,10 @@ export class PolicyGroup extends Model {
   }
 
   //Update policy_g NAME
-  public static updatePolicy_g_name(policy_gData: PolicyGroup, callback: Function) {
+  public static updatePolicy_g_name(
+    policy_gData: PolicyGroup,
+    callback: (error: Error | null, data: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -252,7 +265,7 @@ export class PolicyGroup extends Model {
     firewall: number,
     id: number,
     style: number,
-    callback: Function,
+    callback: (error: Error | null, data: { result: boolean } | null) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -268,7 +281,7 @@ export class PolicyGroup extends Model {
         connection.escape(id) +
         ' and firewall=' +
         connection.escape(firewall);
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error, result: { affectedRows: number }) => {
         if (error) {
           logger().error(error);
           callback(error, null);
@@ -283,7 +296,11 @@ export class PolicyGroup extends Model {
 
   //Remove policy_g with id to remove
   //FALTA BORRADO EN CASCADA
-  public static deletePolicy_g(idfirewall: number, id: number, callback: Function) {
+  public static deletePolicy_g(
+    idfirewall: number,
+    id: number,
+    callback: (error: Error | null, data: { result: boolean; msg?: string } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
@@ -293,7 +310,7 @@ export class PolicyGroup extends Model {
         connection.escape(id) +
         ' AND firewall=' +
         connection.escape(idfirewall);
-      connection.query(sqlExists, (error, row) => {
+      connection.query(sqlExists, (error, row: Array<PolicyGroup>) => {
         //If exists Id from policy_g to remove
         if (row) {
           db.get((error, connection) => {
@@ -314,7 +331,7 @@ export class PolicyGroup extends Model {
   }
 
   //Clone policy groups
-  public static clonePolicyGroups(idFirewall: number, idNewFirewall: number) {
+  public static clonePolicyGroups(idFirewall: number, idNewFirewall: number): Promise<void[]> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -327,19 +344,41 @@ export class PolicyGroup extends Model {
           tableName +
           ' where firewall=' +
           connection.escape(idFirewall);
-        connection.query(sql, (error, rows) => {
-          if (error) return reject(error);
+        connection.query(
+          sql,
+          (
+            error,
+            rows: Array<{
+              newfirewall: number;
+              id: number;
+              firewall: number;
+              name: string;
+              comment: string;
+              idgroup: number;
+              groupstyle: string;
+            }>,
+          ) => {
+            if (error) return reject(error);
 
-          //Bucle for each policy group.
-          Promise.all(rows.map((data) => this.cloneGroup(data)))
-            .then((data) => resolve(data))
-            .catch((error) => reject(error));
-        });
+            //Bucle for each policy group.
+            Promise.all(rows.map((data) => this.cloneGroup(data)))
+              .then((data) => resolve(data))
+              .catch((error) => reject(error));
+          },
+        );
       });
     });
   }
 
-  public static cloneGroup(rowData): Promise<void> {
+  public static cloneGroup(rowData: {
+    newfirewall: number;
+    id: number;
+    firewall: number;
+    name: string;
+    comment: string;
+    idgroup: number;
+    groupstyle: string;
+  }): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -359,7 +398,7 @@ export class PolicyGroup extends Model {
           ',' +
           connection.escape(rowData.groupstyle) +
           ')';
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error, result: { insertId: number }) => {
           if (error) return reject(error);
 
           sql =

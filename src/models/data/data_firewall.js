@@ -44,6 +44,7 @@ function firewalls_Data(data) {
   this.options = data.options;
   this.compiled_at = data.compiled_at;
   this.installed_at = data.installed_at;
+  this.plugins = data.plugins;
 }
 
 //Export the object

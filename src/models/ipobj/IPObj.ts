@@ -47,10 +47,11 @@ import Query from '../../database/Query';
 const ip = require('ip');
 const asyncMod = require('async');
 const host_Data = require('../../models/data/data_ipobj_host');
-const interface_Data = require('../../models/data/data_interface');
+import interface_Data from '../../models/data/data_interface';
 const ipobj_Data = require('../../models/data/data_ipobj');
 const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
+import ipobjs_Data from '../data/data_ipobj';
 
 const tableName: string = 'ipobj';
 
@@ -348,11 +349,7 @@ export class IPObj extends Model {
               }
             } else if (position_ipobj.type === 'I') {
               //SEARCH INTERFACE DATA
-              Interface.getInterfaceFullPro(
-                position_ipobj.firewall,
-                position_ipobj.fwcloud,
-                position_ipobj.ipobj,
-              )
+              Interface.getInterfaceFullPro(position_ipobj.fwcloud, position_ipobj.ipobj)
                 .then((dataInt) => {
                   logger().debug(
                     '------- > ENCONTRADA INTERFACE: ' +
@@ -640,7 +637,9 @@ export class IPObj extends Model {
    *
    * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
    * */
-  public static getAllIpobjsInterfacePro(data) {
+  public static getAllIpobjsInterfacePro(
+    data: Interface & { fwcloud: number; id_node: number; id_parent_node: number },
+  ): Promise<interface_Data> {
     const fwcloud = data.fwcloud;
 
     return new Promise((resolve, reject) => {
@@ -663,15 +662,21 @@ export class IPObj extends Model {
           ' ORDER BY I.id';
         //logger().debug("getAllIpobjsInterfacePro -> ", sql);
         const _interface = new interface_Data(data);
-        connection.query(sql, (error: Error, rows) => {
-          if (error) return reject(error);
-          Promise.all(rows.map((data) => this.getIpobjData(data)))
-            .then((ipobjs) => {
-              _interface.ipobjs = ipobjs;
-              resolve(_interface);
-            })
-            .catch(() => resolve(null));
-        });
+        connection.query(
+          sql,
+          (
+            error: Error,
+            rows: Array<IPObj & { ipobj: number; id_node: number; id_parent_node: number }>,
+          ) => {
+            if (error) return reject(error);
+            Promise.all(rows.map((data) => this.getIpobjData(data)))
+              .then((ipobjs) => {
+                _interface.ipobjs = ipobjs;
+                resolve(_interface);
+              })
+              .catch(() => resolve(null));
+          },
+        );
       });
     });
   }
@@ -729,17 +734,19 @@ export class IPObj extends Model {
     });
   }
 
-  public static cloneIpobj(ipobjDataclone) {
+  public static cloneIpobj(
+    ipobjDataclone: IPObj & { newinterface: number; org_name: string; clon_name: string },
+  ): Promise<{ id_org: any; id_clon: number }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
 
         const ipobjData = {
           id: null,
-          fwcloud: ipobjDataclone.fwcloud,
+          fwcloud: ipobjDataclone.fwCloud,
           interface: ipobjDataclone.newinterface,
           name: ipobjDataclone.name,
-          type: ipobjDataclone.type,
+          type: ipobjDataclone.ipObjType,
           protocol: ipobjDataclone.protocol,
           address: ipobjDataclone.address,
           netmask: ipobjDataclone.netmask,
@@ -758,10 +765,14 @@ export class IPObj extends Model {
           options: ipobjDataclone.options,
           comment: ipobjDataclone.comment,
         };
-        connection.query('INSERT INTO ' + tableName + ' SET ?', [ipobjData], (error, result) => {
-          if (error) return reject(error);
-          resolve({ id_org: ipobjDataclone.id, id_clon: result.insertId });
-        });
+        connection.query(
+          'INSERT INTO ' + tableName + ' SET ?',
+          [ipobjData],
+          (error, result: { insertId: number }) => {
+            if (error) return reject(error);
+            resolve({ id_org: ipobjDataclone.id, id_clon: result.insertId });
+          },
+        );
       });
     });
   }

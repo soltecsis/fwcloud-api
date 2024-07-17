@@ -113,7 +113,23 @@ export class IPObjToIPObjGroup extends Model {
   }
 
   //check if IPOBJ Exists in GROUP
-  public static searchIpobjInGroup(ipobj: number, type: number, fwcloud: number) {
+  public static searchIpobjInGroup(
+    ipobj: number,
+    type: number,
+    fwcloud: number,
+  ): Promise<
+    Array<{
+      obj_id: number;
+      obj_name: string;
+      obj_type_id: number;
+      obj_type_name: string;
+      cloud_id: number;
+      cloud_name: string;
+      group_id: number;
+      group_name: string;
+      group_type: string;
+    }>
+  > {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -125,16 +141,48 @@ export class IPObjToIPObjGroup extends Model {
                     inner join ipobj_type T on T.id=I.type
                     left join fwcloud C on C.id=I.fwcloud
                     WHERE I.id=${ipobj} AND I.type=${type} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
-        connection.query(sql, (error, rows) => {
-          if (error) return reject(error);
-          resolve(rows);
-        });
+        connection.query(
+          sql,
+          (
+            error,
+            rows: Array<{
+              obj_id: number;
+              obj_name: string;
+              obj_type_id: number;
+              obj_type_name: string;
+              cloud_id: number;
+              cloud_name: string;
+              group_id: number;
+              group_name: string;
+              group_type: string;
+            }>,
+          ) => {
+            if (error) return reject(error);
+            resolve(rows);
+          },
+        );
       });
     });
   }
 
   //check if addr host exists in a group
-  public static searchAddrHostInGroup(dbCon: Query, fwcloud: number, host: number) {
+  public static searchAddrHostInGroup(
+    dbCon: Query,
+    fwcloud: number,
+    host: number,
+  ): Promise<
+    Array<{
+      obj_id: number;
+      obj_name: string;
+      obj_type_id: number;
+      obj_type_name: string;
+      cloud_id: number;
+      cloud_name: string;
+      group_id: number;
+      group_name: string;
+      group_type: string;
+    }>
+  > {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
                 C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type
@@ -145,10 +193,26 @@ export class IPObjToIPObjGroup extends Model {
                 inner join fwcloud C on C.id=I.fwcloud
                 inner join interface__ipobj II on II.interface=I.interface
                 WHERE II.ipobj=${host} AND I.type=5 AND I.fwcloud=${fwcloud}`;
-      dbCon.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error,
+          rows: Array<{
+            obj_id: number;
+            obj_name: string;
+            obj_type_id: number;
+            obj_type_name: string;
+            cloud_id: number;
+            cloud_name: string;
+            group_id: number;
+            group_name: string;
+            group_type: string;
+          }>,
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 }

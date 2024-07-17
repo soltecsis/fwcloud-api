@@ -49,7 +49,7 @@ router.put('/fw/all/get', async (req, res) => {
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
 router.put('/fw/full/get', (req, res) => {
-  Interface.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
+  Interface.getInterfacesFull(req.body.fwcloud, (error, data) => {
     if (error) {
       logger().error('Error getting firewall interfaces and its ipobjs: ' + JSON.stringify(error));
       return res.status(400).json(error);

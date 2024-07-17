@@ -40,6 +40,7 @@ import { PolicyRuleToOpenVPN } from './PolicyRuleToOpenVPN';
 import { IPObjTypeToPolicyPosition } from '../ipobj/IPObjTypeToPolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
 import Query from '../../database/Query';
+import { Err } from 'joi';
 
 const tableName: string = 'policy_position';
 
@@ -165,22 +166,30 @@ export class PolicyPosition extends Model {
   }
 
   //Get All policy_position
-  public static getPolicy_positions(callback: Function) {
+  public static getPolicy_positions(
+    callback: (error: Error | null, result: Array<PolicyPosition>) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query('SELECT * FROM ' + tableName + ' ORDER BY position_order', (error, rows) => {
-        if (error) callback(error, null);
-        else callback(null, rows);
-      });
+      connection.query(
+        'SELECT * FROM ' + tableName + ' ORDER BY position_order',
+        (error, rows: Array<PolicyPosition>) => {
+          if (error) callback(error, null);
+          else callback(null, rows);
+        },
+      );
     });
   }
 
   //Get policy_position by type
-  public static getPolicyPositionsByType(dbCon: Query, type: number) {
+  public static getPolicyPositionsByType(
+    dbCon: Query,
+    type: number,
+  ): Promise<Array<PolicyPosition>> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT * FROM ${tableName} WHERE policy_type=${type} ORDER BY position_order`,
-        (error, result) => {
+        (error, result: Array<PolicyPosition>) => {
           if (error) return reject(error);
           resolve(result);
         },
@@ -189,13 +198,17 @@ export class PolicyPosition extends Model {
   }
 
   //Get policy_position by  type
-  public static checkPolicyRulePosition(dbCon: Query, rule: number, position: number) {
+  public static checkPolicyRulePosition(
+    dbCon: Query,
+    rule: number,
+    position: number,
+  ): Promise<boolean> {
     return new Promise((resolve, reject) => {
       const sql = `select PP.id from ${tableName} PP
                 inner join policy_r R on R.type=PP.policy_type
                 where R.id=${rule} and PP.id=${position}`;
 
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
         resolve(result.length === 1 ? true : false);
       });
@@ -229,11 +242,14 @@ export class PolicyPosition extends Model {
   }
 
   //Get policy_position by  id
-  public static getPolicy_position(id: number, callback: Function) {
+  public static getPolicy_position(
+    id: number,
+    callback: (error: Error | null, result: Array<PolicyPosition> | number) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<PolicyPosition>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -241,13 +257,13 @@ export class PolicyPosition extends Model {
   }
 
   //Add new policy_position
-  public static insertPolicy_position(policy_positionData, callback: Function) {
+  public static insertPolicy_position(policy_positionData: PolicyPosition, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
         'INSERT INTO ' + tableName + ' SET ?',
         policy_positionData,
-        (error, result) => {
+        (error, result: { insertId: number }) => {
           if (error) {
             callback(error, null);
           } else {
@@ -260,7 +276,10 @@ export class PolicyPosition extends Model {
   }
 
   //Update policy_position
-  public static updatePolicy_position(policy_positionData, callback: Function) {
+  public static updatePolicy_position(
+    policy_positionData: PolicyPosition,
+    callback: (error: Error | null, result: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -270,7 +289,7 @@ export class PolicyPosition extends Model {
         connection.escape(policy_positionData.name) +
         ', ' +
         'policy_type = ' +
-        connection.escape(policy_positionData.poicy_type) +
+        connection.escape(policy_positionData.policyTypeId) +
         ', ' +
         'position_order = ' +
         connection.escape(policy_positionData.position_order) +
@@ -292,11 +311,14 @@ export class PolicyPosition extends Model {
   }
 
   //Remove policy_position with id to remove
-  public static deletePolicy_position(id: number, callback: Function) {
+  public static deletePolicy_position(
+    id: number,
+    callback: (error: Error | null, result: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-      connection.query(sqlExists, (error, row) => {
+      connection.query(sqlExists, (error, row: Array<PolicyPosition>) => {
         //If exists Id from policy_position to remove
         if (row) {
           db.get((error, connection) => {

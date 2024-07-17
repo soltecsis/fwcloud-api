@@ -27,7 +27,7 @@ import { FwCloud } from '../../fwcloud/FwCloud';
 import { User } from '../../user/User';
 import { Crt } from './Crt';
 const config = require('../../../config/config');
-const fwcError = require('../../../utils/error_table');
+import fwcError from '../../../utils/error_table';
 import { spawn } from 'child-process-promise';
 import * as readline from 'readline';
 import * as fs from 'fs';

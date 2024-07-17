@@ -27,6 +27,7 @@ function policy_position_ipobjs_data(data, order, type) {
   this.position_order = order;
   this.fwcloud = data.fwcloud;
   this.comment = data.comment;
+  this.ipobjs = data.ipobjs;
 
   if (type === 'O') {
     this.type = data.type;

@@ -3,6 +3,7 @@ import { app } from '../../fonaments/abstract-application';
 import { Service } from '../../fonaments/services/service';
 import { Tree } from '../tree/Tree';
 import { Cluster } from './Cluster';
+import { Firewall } from './Firewall';
 import { FirewallService } from './firewall.service';
 
 export class ClusterService extends Service {
@@ -11,7 +12,7 @@ export class ClusterService extends Service {
       //BUCLE de FIREWALL en CLUSTER
       let sql = `SELECT ${userId} as iduser, F.* FROM firewall F
                 WHERE F.cluster=${clusterId} AND F.fwcloud=${fwcloudId} ORDER BY fwmaster desc`;
-      db.getQuery().query(sql, async (error, fws) => {
+      db.getQuery().query(sql, async (error, fws: Array<{ iduser: number } & Firewall>) => {
         if (error) return reject(error);
 
         try {

@@ -27,6 +27,8 @@ import { IPObj } from '../ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
 import { Interface } from './Interface';
 import Query from '../../database/Query';
+import { Err } from 'joi';
+import ipobjs_Data from '../data/data_ipobj';
 
 const tableName: string = 'interface__ipobj';
 
@@ -70,7 +72,10 @@ export class InterfaceIPObj extends Model {
   }
 
   //Get All interface__ipobj by interface
-  public static getInterface__ipobjs_interface(_interface: number, callback: Function) {
+  public static getInterface__ipobjs_interface(
+    _interface: number,
+    callback: (error: Error | null, rows: Array<InterfaceIPObj> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -79,7 +84,7 @@ export class InterfaceIPObj extends Model {
         ' WHERE interface=' +
         connection.escape(_interface) +
         ' ORDER BY interface_order';
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<InterfaceIPObj>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -87,7 +92,10 @@ export class InterfaceIPObj extends Model {
   }
 
   //Get All interface__ipobj by ipobj
-  public static getInterface__ipobjs_ipobj(ipobj: number, callback: Function) {
+  public static getInterface__ipobjs_ipobj(
+    ipobj: number,
+    callback: (error: Error | null, rows: Array<InterfaceIPObj> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -96,7 +104,7 @@ export class InterfaceIPObj extends Model {
         ' WHERE ipobj=' +
         connection.escape(ipobj) +
         ' ORDER BY interface_order';
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<InterfaceIPObj>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -104,7 +112,11 @@ export class InterfaceIPObj extends Model {
   }
 
   //Get interface__ipobj by interface and ipobj
-  public static getInterface__ipobj(_interface: number, ipobj: number, callback: Function) {
+  public static getInterface__ipobj(
+    _interface: number,
+    ipobj: number,
+    callback: (error: Error | null, rows: Array<InterfaceIPObj> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -114,7 +126,7 @@ export class InterfaceIPObj extends Model {
         connection.escape(_interface) +
         ' AND ipobj=' +
         connection.escape(ipobj);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<InterfaceIPObj>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -122,7 +134,23 @@ export class InterfaceIPObj extends Model {
   }
 
   //Search Interface in hosts
-  public static getInterface__ipobj_hosts(_interface: number, fwcloud: number) {
+  public static getInterface__ipobj_hosts(
+    _interface: number,
+    fwcloud: number,
+  ): Promise<
+    Array<{
+      obj_id: number;
+      obj_name: string;
+      obj_type_id: number;
+      obj_type_name: string;
+      cloud_id: number;
+      cloud_name: string;
+      host_id: number;
+      host_name: string;
+      host_type: number;
+      host_type_name: string;
+    }>
+  > {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -140,21 +168,42 @@ export class InterfaceIPObj extends Model {
           ' AND (H.fwcloud=' +
           fwcloud +
           ' OR H.fwcloud is NULL) ORDER BY interface_order';
-        connection.query(sql, (error, rows) => {
-          if (error) return reject(error);
-          resolve(rows);
-        });
+        connection.query(
+          sql,
+          (
+            error,
+            rows: Array<{
+              obj_id: number;
+              obj_name: string;
+              obj_type_id: number;
+              obj_type_name: string;
+              cloud_id: number;
+              cloud_name: string;
+              host_id: number;
+              host_name: string;
+              host_type: number;
+              host_type_name: string;
+            }>,
+          ) => {
+            if (error) return reject(error);
+            resolve(rows);
+          },
+        );
       });
     });
   }
 
   //Add new interface__ipobj
-  public static insertInterface__ipobj(dbCon: Query, interface__ipobjData) {
+  public static insertInterface__ipobj(dbCon: Query, interface__ipobjData: ipobjs_Data) {
     return new Promise((resolve, reject) => {
-      dbCon.query(`INSERT INTO ${tableName} SET ?`, interface__ipobjData, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.affectedRows > 0 ? result.insertId : null);
-      });
+      dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        interface__ipobjData,
+        (error, result: { affectedRows: number; insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.affectedRows > 0 ? result.insertId : null);
+        },
+      );
     });
   }
 
@@ -163,7 +212,7 @@ export class InterfaceIPObj extends Model {
     get_interface: number,
     get_ipobj: number,
     get_interface_order: number,
-    interface__ipobjData,
+    interface__ipobjData: any,
     callback: Function,
   ) {
     await this.OrderList(interface__ipobjData.interface_order, get_interface, get_interface_order);
@@ -201,7 +250,7 @@ export class InterfaceIPObj extends Model {
   public static async updateInterface__ipobj_order(
     new_order: number,
     interface__ipobjData,
-    callback: Function,
+    callback: (error: Error | null, result: { result: boolean }) => void,
   ) {
     await this.OrderList(
       new_order,
@@ -233,7 +282,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //UPDATE HOST IF IPOBJ IS UNDER
-  public static UpdateHOST(_interface: number) {
+  public static UpdateHOST(_interface: number): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
@@ -244,7 +293,7 @@ export class InterfaceIPObj extends Model {
           ' WHERE I.interface = ' +
           connection.escape(_interface);
         logger().debug(sql);
-        connection.query(sql, async (error, result) => {
+        connection.query(sql, async (error, result: { affectedRows: number }) => {
           if (error) {
             logger().debug(error);
             reject(error);

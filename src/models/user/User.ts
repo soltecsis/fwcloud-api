@@ -38,7 +38,7 @@ import { Customer } from './Customer';
 import { Tfa } from './Tfa';
 import Query from '../../database/Query';
 
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 const bcrypt = require('bcryptjs');
 
@@ -381,7 +381,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,
-        (error: Error, result) => {
+        (error: Error, result: { insertId: number }) => {
           if (error) return reject(error);
           resolve(result.insertId);
         },

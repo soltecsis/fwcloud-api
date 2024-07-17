@@ -339,12 +339,12 @@ export class FwCloud extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFwclouds(dbCon: Query, user: number) {
+  public static getFwclouds(dbCon: Query, user: number): Promise<Array<FwCloud>> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT distinctrow C.* FROM ${tableName} C
 				INNER JOIN user__fwcloud U ON C.id=U.fwcloud
 				WHERE U.user=${user} ORDER BY C.name`;
-      dbCon.query(sql, (error: Error, rows) => {
+      dbCon.query(sql, (error: Error, rows: Array<FwCloud>) => {
         if (error) return reject(error);
         resolve(rows);
       });
@@ -375,7 +375,11 @@ export class FwCloud extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFwcloud(iduser: number, fwcloud: number, callback: Function) {
+  public static getFwcloud(
+    iduser: number,
+    fwcloud: number,
+    callback: (error: Error | null, row: Array<FwCloud> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -388,7 +392,7 @@ export class FwCloud extends Model {
         connection.escape(iduser) +
         ' AND C.id=' +
         connection.escape(fwcloud);
-      connection.query(sql, (error: Error, row) => {
+      connection.query(sql, (error, row: Array<FwCloud>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -409,7 +413,16 @@ export class FwCloud extends Model {
    * @return {Boolean} Returns `LOCKED STATUS`
    *
    */
-  public static getFwcloudAccess(iduser: number, fwcloud: number) {
+  public static getFwcloudAccess(
+    iduser: number,
+    fwcloud: number,
+  ): Promise<{
+    access: boolean;
+    locked: boolean | string;
+    mylock: boolean;
+    locked_at: Date | string;
+    locked_by: number | string;
+  }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
@@ -422,7 +435,7 @@ export class FwCloud extends Model {
           connection.escape(iduser) +
           ' AND C.id=' +
           connection.escape(fwcloud);
-        connection.query(sql, (error, row) => {
+        connection.query(sql, (error, row: Array<FwCloud>) => {
           if (error) reject(false);
           else if (row && row.length > 0) {
             //logger().debug(row[0]);
@@ -482,7 +495,7 @@ export class FwCloud extends Model {
    * @return {Boolean} Returns `RESULT UNLOCKED`
    *
    */
-  public static checkFwcloudLockTimeout(timeout: number) {
+  public static checkFwcloudLockTimeout(timeout: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
@@ -491,7 +504,7 @@ export class FwCloud extends Model {
           tableName +
           ' C WHERE C.locked=1 HAVING dif>' +
           timeout;
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error, rows: Array<{ dif: any } & FwCloud>) => {
           if (error) reject(false);
           else if (rows && rows.length > 0) {
             //UNLOCK ALL
@@ -558,12 +571,12 @@ export class FwCloud extends Model {
       req.dbCon.query(
         `INSERT INTO ${tableName} SET ?`,
         fwcloudData,
-        async (error: Error, result) => {
+        async (error: Error, result: { insertId: number }) => {
           if (error) return reject(error);
 
           const fwcloud = result.insertId;
           try {
-            const admins: any = await User.getAllAdminUserIds(req);
+            const admins = await User.getAllAdminUserIds(req);
             for (const admin of admins) {
               await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
             }
@@ -602,7 +615,11 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static updateFwcloudLock(fwcloudData) {
+  public static updateFwcloudLock(fwcloudData: {
+    iduser: number;
+    fwcloud: number;
+    locked: number;
+  }): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       const locked = 1;
       db.get((error: Error, connection) => {
@@ -619,7 +636,7 @@ export class FwCloud extends Model {
           connection.escape(fwcloudData.iduser) +
           ')) ';
 
-        connection.query(sqlExists, (error, row) => {
+        connection.query(sqlExists, (error, row: Array<{ id: number }>) => {
           if (row && row.length > 0) {
             //Check if there are FWCloud with Access and Edit permissions
             const sqlExists =
@@ -631,7 +648,7 @@ export class FwCloud extends Model {
               ' WHERE C.id = ' +
               connection.escape(fwcloudData.fwcloud);
             logger().debug(sqlExists);
-            connection.query(sqlExists, (error, row) => {
+            connection.query(sqlExists, (error, row: Array<{ id: number }>) => {
               if (row && row.length > 0) {
                 const sql =
                   'UPDATE ' +
@@ -691,7 +708,10 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static updateFwcloudUnlock(fwcloudData) {
+  public static updateFwcloudUnlock(fwcloudData: {
+    iduser: number;
+    id: number;
+  }): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       const locked = 0;
       db.get((error, connection) => {
@@ -705,7 +725,7 @@ export class FwCloud extends Model {
           ' AND (locked=1 AND locked_by=' +
           connection.escape(fwcloudData.iduser) +
           ') ';
-        connection.query(sqlExists, (error, row) => {
+        connection.query(sqlExists, (error, row: Array<{ id: number }>) => {
           //If exists Id from fwcloud to remove
           if (row && row.length > 0) {
             const sql =
