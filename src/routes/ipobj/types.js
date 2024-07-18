@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 var express = require('express');
 var router = express.Router();
 import { IPObjType } from '../../models/ipobj/IPObjType';
@@ -29,30 +28,27 @@ const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_types */
 router.get('/', (req, res) => {
-	IPObjType.getIpobj_types((error, data) => {
-		if (error) {
+  IPObjType.getIpobj_types((error, data) => {
+    if (error) {
       logger().error('Error getting all ipobj_types: ' + JSON.stringify(error));
       return res.status(400).json(error);
     }
 
-		if (data && data.length > 0)
-			res.status(200).json(data);
-		else
-			res.status(204).end();
-	});
+    if (data && data.length > 0) res.status(200).json(data);
+    else res.status(204).end();
+  });
 });
 
 /* Get  ipobj_type by id */
 router.put('/get', async (req, res) => {
-	try {
-		const data = await IPObjType.getIpobj_type(req, req.body.id);		
-    if (data && data.length > 0)
-      res.status(200).json(data);
+  try {
+    const data = await IPObjType.getIpobj_type(req, req.body.id);
+    if (data && data.length > 0) res.status(200).json(data);
     else {
       logger().error('Error finding ipobj_types: ' + JSON.stringify(fwcError.NOT_FOUND));
       res.status(400).json(fwcError.NOT_FOUND);
     }
-	} catch(error) {
+  } catch (error) {
     logger().error('Error getting all ipobj_types: ' + JSON.stringify(error));
     res.status(400).json(error);
   }

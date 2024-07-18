@@ -54,12 +54,14 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Get All ipobj_type__policy_position
-  public static getIpobj_type__policy_positions = (callback: Function) => {
+  public static getIpobj_type__policy_positions = (
+    callback: (error: Error | null, rows: Array<{ type: number; position: number }>) => void,
+  ) => {
     db.get((error, connection) => {
       if (error) return callback(error, null);
       connection.query(
         `SELECT type,position FROM ${tableName} ORDER BY type,position`,
-        (error, rows) => {
+        (error, rows: Array<{ type: number; position: number }>) => {
           if (error) callback(error, null);
           else callback(null, rows);
         },
@@ -89,7 +91,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   //Add new ipobj_type__policy_position
   public static insertIpobj_type__policy_position(
     ipobj_type__policy_positionData,
-    callback: Function,
+    callback: (error: Error | null, result: { insertId: string }) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -111,7 +113,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   //Update ipobj_type__policy_position
   public static updateIpobj_type__policy_position(
     ipobj_type__policy_positionData,
-    callback: Function,
+    callback: (error: Error | null, result: { result: boolean }) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -139,7 +141,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   public static deleteIpobj_type__policy_position(
     type: number,
     position: number,
-    callback: Function,
+    callback: (error: Error | null, result: { result: boolean }) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -150,7 +152,7 @@ export class IPObjTypeToPolicyPosition extends Model {
         connection.escape(type) +
         ' position = ' +
         connection.escape(position);
-      connection.query(sqlExists, (error, row) => {
+      connection.query(sqlExists, (error, row: Array<IPObjTypeToPolicyPosition>) => {
         //If exists Id from ipobj_type__policy_position to remove
         if (row) {
           db.get((error, connection) => {

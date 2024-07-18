@@ -31,7 +31,7 @@ import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { Firewall } from '../firewall/Firewall';
 import { IPObj } from '../ipobj/IPObj';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 let dbCon: Query;
 let fwcloud: number;

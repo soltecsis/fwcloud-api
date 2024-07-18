@@ -29,6 +29,8 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
 import fwcError from '../../utils/error_table';
+import ipobjs_Data from '../data/data_ipobj';
+import firewalls_Data from '../data/data_firewall';
 const asyncMod = require('async');
 //const fwc_tree_node = require('./node.js');
 
@@ -43,6 +45,7 @@ export type TreeNode = {
   obj_type: number;
   fwcloud: number;
   children: TreeNode[];
+  address?: string;
 };
 
 export type OpenVPNNode = TreeNode & {
@@ -273,7 +276,7 @@ export class Tree extends Model {
       const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud  
                 from fwc_tree where fwcloud=${fwcloud} and id_parent is null and name='${treeType}'`;
 
-      dbCon.query(sql, async (error, nodes) => {
+      dbCon.query(sql, async (error, nodes: Array<TreeNode>) => {
         if (error) return reject(error);
         if (nodes.length === 0) return reject(new Error('Root node not found'));
 
@@ -373,21 +376,36 @@ export class Tree extends Model {
 
       const sql = `select id, ${fields} from ipobj where id in (${ids})`;
 
-      dbCon.query(sql, async (error, ipobjs) => {
-        if (error) return reject(error);
+      dbCon.query(
+        sql,
+        async (
+          error,
+          ipobjs: Array<{
+            id: number;
+            source_port_start?: number;
+            source_port_end?: number;
+            destination_port_start?: number;
+            destination_port_end?: number;
+            address?: string;
+            range_start?: string;
+            range_end?: string;
+          }>,
+        ) => {
+          if (error) return reject(error);
 
-        for (let i = 0; i < ipobjs.length; i++) {
-          const node: TreeNode = nodesMap.get(ipobjs[i].id);
-          delete ipobjs[i].id;
-          Object.assign(node, ipobjs[i]);
-        }
+          for (let i = 0; i < ipobjs.length; i++) {
+            const node: TreeNode = nodesMap.get(ipobjs[i].id);
+            delete ipobjs[i].id;
+            Object.assign(node, ipobjs[i]);
+          }
 
-        resolve();
-      });
+          resolve();
+        },
+      );
     });
   }
 
-  private static async addSearchInfoOpenVPN(node: OpenVPNNode): Promise<OpenVPNNode> {
+  private static async addSearchInfoOpenVPN(node: TreeNode): Promise<TreeNode> {
     const qb: SelectQueryBuilder<IPObj> = db
       .getSource()
       .manager.getRepository(IPObj)
@@ -408,7 +426,7 @@ export class Tree extends Model {
   }
 
   // Put STD folders first.
-  public static stdFoldersFirst(root_node): Promise<void> {
+  public static stdFoldersFirst(root_node: TreeNode): Promise<void> {
     return new Promise((resolve) => {
       // Put standard folders at the begining.
       for (const node1 of root_node.children) {
@@ -1660,7 +1678,7 @@ export class Tree extends Model {
           connection.escape(fwcloud) +
           ' order by T1.node_order';
         logger().debug(sql);
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error, rows: Array<Tree>) => {
           if (error) return AllDone(error, null);
 
           if (rows[0].node_type != 'FDF' && rows[0].node_type != 'FD')
@@ -1678,100 +1696,103 @@ export class Tree extends Model {
                 const sqlnodes =
                   'SELECT id,name,fwcloud FROM cluster WHERE id=' + connection.escape(idcluster);
                 //logger().debug(sqlnodes);
-                connection.query(sqlnodes, (error, rowsnodes) => {
-                  if (error) callback(error, null);
-                  else {
-                    if (rowsnodes) {
-                      asyncMod.forEachSeries(rowsnodes, (rnode, callback2) => {
-                        //Insertamos nodos Cluster
-                        const sqlinsert =
-                          'INSERT INTO ' +
-                          tableName +
-                          ' (name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-                          ' VALUES (' +
-                          connection.escape(rnode.name) +
-                          ',' +
-                          connection.escape(row.id) +
-                          ',"CL",' +
-                          connection.escape(rnode.id) +
-                          ',100,' +
-                          connection.escape(fwcloud) +
-                          ')';
-                        //logger().debug(sqlinsert);
-                        let parent_cluster;
-
-                        connection.query(sqlinsert, (error, result) => {
-                          if (error) {
-                            logger().debug(
-                              'ERROR CLUSTER INSERT : ' +
-                                rnode.id +
-                                ' - ' +
-                                rnode.name +
-                                ' -> ' +
-                                error,
-                            );
-                          } else {
-                            logger().debug(
-                              'INSERT CLUSTER OK NODE: ' +
-                                rnode.id +
-                                ' - ' +
-                                rnode.name +
-                                '  --> FWCTREE: ' +
-                                result.insertId,
-                            );
-                            parent_cluster = result.insertId;
-
-                            //update ALL FIREWALL NODES
-                            const sqlinsert =
-                              'UPDATE ' +
-                              tableName +
-                              ' SET id_parent=' +
-                              parent_cluster +
-                              ' WHERE id_parent=' +
-                              firewallNode;
-                            logger().debug(sqlinsert);
-                            connection.query(sqlinsert, (error) => {
-                              if (error) logger().debug('ERROR ALL NODES : ' + error);
-                            });
-                          }
-
-                          //Insertamos nodo NODE FIREWALLS
+                connection.query(
+                  sqlnodes,
+                  (error, rowsnodes: Array<{ id: number; name: string; cluster: number }>) => {
+                    if (error) callback(error, null);
+                    else {
+                      if (rowsnodes) {
+                        asyncMod.forEachSeries(rowsnodes, (rnode, callback2) => {
+                          //Insertamos nodos Cluster
                           const sqlinsert =
                             'INSERT INTO ' +
                             tableName +
-                            '(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
+                            ' (name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
                             ' VALUES (' +
-                            '"NODES",' +
-                            parent_cluster +
-                            ',"FCF",' +
-                            connection.escape(idfirewall) +
-                            ',null,' +
-                            connection.escape(rnode.fwcloud) +
+                            connection.escape(rnode.name) +
+                            ',' +
+                            connection.escape(row.id) +
+                            ',"CL",' +
+                            connection.escape(rnode.id) +
+                            ',100,' +
+                            connection.escape(fwcloud) +
                             ')';
-                          connection.query(sqlinsert, (error, result) => {
-                            if (error) logger().debug('ERROR RR : ' + error);
-                            else {
-                              const nodes_cluster = result.insertId;
-                              //update  FIREWALL NODE
+                          //logger().debug(sqlinsert);
+                          let parent_cluster;
+
+                          connection.query(sqlinsert, (error, result: { insertId: number }) => {
+                            if (error) {
+                              logger().debug(
+                                'ERROR CLUSTER INSERT : ' +
+                                  rnode.id +
+                                  ' - ' +
+                                  rnode.name +
+                                  ' -> ' +
+                                  error,
+                              );
+                            } else {
+                              logger().debug(
+                                'INSERT CLUSTER OK NODE: ' +
+                                  rnode.id +
+                                  ' - ' +
+                                  rnode.name +
+                                  '  --> FWCTREE: ' +
+                                  result.insertId,
+                              );
+                              parent_cluster = result.insertId;
+
+                              //update ALL FIREWALL NODES
                               const sqlinsert =
                                 'UPDATE ' +
                                 tableName +
                                 ' SET id_parent=' +
-                                nodes_cluster +
-                                ' WHERE id=' +
+                                parent_cluster +
+                                ' WHERE id_parent=' +
                                 firewallNode;
                               logger().debug(sqlinsert);
                               connection.query(sqlinsert, (error) => {
-                                if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
+                                if (error) logger().debug('ERROR ALL NODES : ' + error);
                               });
                             }
+
+                            //Insertamos nodo NODE FIREWALLS
+                            const sqlinsert =
+                              'INSERT INTO ' +
+                              tableName +
+                              '(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
+                              ' VALUES (' +
+                              '"NODES",' +
+                              parent_cluster +
+                              ',"FCF",' +
+                              connection.escape(idfirewall) +
+                              ',null,' +
+                              connection.escape(rnode.fwcloud) +
+                              ')';
+                            connection.query(sqlinsert, (error, result: { insertId: number }) => {
+                              if (error) logger().debug('ERROR RR : ' + error);
+                              else {
+                                const nodes_cluster = result.insertId;
+                                //update  FIREWALL NODE
+                                const sqlinsert =
+                                  'UPDATE ' +
+                                  tableName +
+                                  ' SET id_parent=' +
+                                  nodes_cluster +
+                                  ' WHERE id=' +
+                                  firewallNode;
+                                logger().debug(sqlinsert);
+                                connection.query(sqlinsert, (error) => {
+                                  if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
+                                });
+                              }
+                            });
                           });
+                          callback2();
                         });
-                        callback2();
-                      });
+                      }
                     }
-                  }
-                });
+                  },
+                );
                 callback();
               },
               function (err: Error) {
@@ -1810,7 +1831,7 @@ export class Tree extends Model {
           connection.escape(fwcloud) +
           ' order by T1.node_order';
 
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error, rows: Array<Tree>) => {
           if (error) return AllDone(error, null);
 
           if (rows[0].node_type != 'FDF' && rows[0].node_type != 'FD')
@@ -1832,7 +1853,7 @@ export class Tree extends Model {
               connection.escape(fwcloud) +
               ' AND id_obj=' +
               idcluster;
-            connection.query(sql, (error, rowsCL) => {
+            connection.query(sql, (error, rowsCL: Array<Tree>) => {
               if (error) {
                 AllDone(error, null);
               } else if (rowsCL && rowsCL.length > 0) {
@@ -1860,7 +1881,7 @@ export class Tree extends Model {
                   ' AND T1.fwcloud=' +
                   connection.escape(fwcloud);
                 logger().debug(sql);
-                connection.query(sql, (error, rowsN) => {
+                connection.query(sql, (error, rowsN: Array<Tree>) => {
                   if (error) {
                     AllDone(error, null);
                   } else if (rowsN && rowsN.length > 0) {
@@ -1930,7 +1951,7 @@ export class Tree extends Model {
     node_parent: number,
     node_order: number,
     node_type: string,
-    node_Data,
+    node_Data: any,
   ): Promise<number> {
     return new Promise((resolve, reject) => {
       const fwc_treeData = {
@@ -1944,23 +1965,30 @@ export class Tree extends Model {
       };
 
       // Firewall and host interfaces.
-      if ((node_Data.type === 10 || node_Data.type === 11) && node_Data.labelName)
-        fwc_treeData.name += ' [' + node_Data.labelName + ']';
+      if ((node_Data.type === 10 || node_Data.type === 11) && node_Data.label_name)
+        fwc_treeData.name += ' [' + node_Data.label_name + ']';
       // Interface address.
       if (node_Data.type === 5 && node_Data.interface)
         fwc_treeData.name += ' (' + node_Data.address + ')';
 
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, fwc_treeData, (error, result) => {
-        if (error) return reject(error);
-        void this.OrderList(node_order, req.body.fwcloud, node_parent, 999999, result.insertId);
-        //devolvemos la última id insertada
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        fwc_treeData,
+        (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          void this.OrderList(node_order, req.body.fwcloud, node_parent, 999999, result.insertId);
+          //devolvemos la última id insertada
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
   //Update NODE from user
-  public static updateFwc_Tree(nodeTreeData, callback: Function) {
+  public static updateFwc_Tree(
+    nodeTreeData: Tree,
+    callback: (error: Error, result: { result: boolean }) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -1983,7 +2011,11 @@ export class Tree extends Model {
   }
 
   //Update NODE from FIREWALL UPDATE
-  public static updateFwc_Tree_Firewall(dbCon: Query, fwcloud: number, FwData): Promise<void> {
+  public static updateFwc_Tree_Firewall(
+    dbCon: Query,
+    fwcloud: number,
+    FwData: firewalls_Data,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${dbCon.escape(FwData.name)}
 			WHERE id_obj=${FwData.id} AND fwcloud=${fwcloud} AND node_type='FW'`;
@@ -2007,18 +2039,18 @@ export class Tree extends Model {
   }
 
   //Update NODE from IPOBJ or INTERFACE UPDATE
-  public static updateFwc_Tree_OBJ(req, ipobjData): Promise<{ result: boolean }> {
+  public static updateFwc_Tree_OBJ(req, ipobjData: ipobjs_Data): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       let name = ipobjData.name;
       // Firewall and host interfaces.
-      if ((ipobjData.type === 10 || ipobjData.type === 11) && ipobjData.labelName)
-        name += ' [' + ipobjData.labelName + ']';
+      if ((ipobjData.type === 10 || ipobjData.type === 11) && ipobjData.label_name)
+        name += ' [' + ipobjData.label_name + ']';
       // Interface address.
       if (ipobjData.type === 5 && ipobjData.interface) name += ' (' + ipobjData.address + ')';
 
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(name)}
 			WHERE node_type NOT LIKE "F%" AND id_obj=${ipobjData.id} AND obj_type=${ipobjData.type} AND fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error, result: { affectedRows: number }) => {
         if (error) return reject(error);
 
         if (result.affectedRows > 0) resolve({ result: true });
@@ -2050,7 +2082,7 @@ export class Tree extends Model {
       if (error) callback(error, null);
       const sql =
         'SELECT id FROM  ' + tableName + '  where node_type="FW" AND id_obj = ' + idfirewall;
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<{ id: number }>) => {
         if (rows.length > 0) {
           ret = rows[0].id;
         } else {
@@ -2139,7 +2171,7 @@ export class Tree extends Model {
                 ' AND id_obj<>' +
                 id_obj_deleted +
                 ' order by id_parent, node_order';
-              dbCon.query(sqlNodes, (error, rowsnodes) => {
+              dbCon.query(sqlNodes, (error, rowsnodes: Array<Tree>) => {
                 if (error) return reject(error);
 
                 if (rowsnodes.length > 0) {
@@ -2181,7 +2213,11 @@ export class Tree extends Model {
     });
   }
   //Order Tree Node by IPOBJ
-  public static orderTreeNode(fwcloud: number, id_parent: number, callback: Function) {
+  public static orderTreeNode(
+    fwcloud: number,
+    id_parent: number,
+    callback: (error: Error | null, result: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlNodes =
@@ -2193,7 +2229,7 @@ export class Tree extends Model {
         connection.escape(id_parent) +
         '  order by node_order';
       logger().debug(sqlNodes);
-      connection.query(sqlNodes, (error, rowsnodes) => {
+      connection.query(sqlNodes, (error, rowsnodes: Array<Tree>) => {
         if (rowsnodes.length > 0) {
           let order = 0;
           asyncMod.map(

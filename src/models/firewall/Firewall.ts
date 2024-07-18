@@ -41,7 +41,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 const utilsModel = require('../../utils/utils.js');
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
-import { Tree } from '../tree/Tree';
+import { Tree, TreeNode } from '../tree/Tree';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Cluster } from './Cluster';
 import { DatabaseService } from '../../database/database.service';
@@ -763,7 +763,7 @@ export class Firewall extends Model {
   // Get the ID of all firewalls who's status field is not zero.
   public static getFirewallStatusNotZero(
     fwcloud: number,
-    data,
+    data: any,
   ): Promise<Array<{ id: number; cluster: number; status: number }>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {

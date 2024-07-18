@@ -29,7 +29,7 @@ import { RoutingRuleToMark } from '../routing/routing-rule/routing-rule-to-mark.
 import db from '../../database/database-manager';
 import Query from '../../database/Query';
 
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 const tableName: string = 'mark';
 
@@ -92,7 +92,7 @@ export class Mark extends Model {
   }
 
   // Add new iptables mark for the indicated fwcloud.
-  public static createMark(req) {
+  public static createMark(req): Promise<number> {
     return new Promise((resolve, reject) => {
       const markData = {
         fwcloud: req.body.fwcloud,

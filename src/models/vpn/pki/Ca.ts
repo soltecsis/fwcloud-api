@@ -32,6 +32,7 @@ import { spawn } from 'child-process-promise';
 import * as readline from 'readline';
 import * as fs from 'fs';
 import Query from '../../../database/Query';
+import { TreeNode } from '../../tree/Tree';
 
 const tableName: string = 'ca';
 
@@ -241,7 +242,7 @@ export class Ca extends Model {
   }
 
   // Get the ID of all CA who's status field is not zero.
-  public static getCAStatusNotZero(req, data) {
+  public static getCAStatusNotZero(req, data): Promise<TreeNode> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT id,status FROM ca WHERE status!=0 AND fwcloud=${req.body.fwcloud}`,

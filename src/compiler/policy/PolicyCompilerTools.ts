@@ -26,7 +26,7 @@ import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/Polic
 import { FireWallOptMask } from '../../models/firewall/Firewall';
 
 const ip = require('ip');
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 const shellescape = require('shell-escape');
 
 export const RuleActionsMap = new Map<string, number>([

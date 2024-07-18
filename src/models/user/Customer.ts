@@ -159,7 +159,7 @@ export class Customer extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from user where customer =${req.body.customer}`,
-        async (error: Error, result) => {
+        async (error: Error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
 
           if (result[0].n > 0) resolve({ result: true, restrictions: { CustomerHasUsers: true } });

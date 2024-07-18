@@ -21,7 +21,7 @@
 */
 
 const openpgp = require('openpgp');
-const fwcError = require('./error_table');
+import fwcError from './error_table';
 
 export class PgpHelper {
   private _publicKey: string;

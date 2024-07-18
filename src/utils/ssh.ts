@@ -20,13 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-const logger = require('../fonaments/abstract-application').logger;
+import { logger } from '../fonaments/abstract-application';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
-
+import { Client } from 'ssh2';
 export default class sshTools {
   public static uploadFile(SSHconn, srcFile: string, dstFile) {
-    const Client = require('ssh2').Client;
     const conn = new Client();
 
     logger().debug('SSH Upload File: ', srcFile, dstFile);

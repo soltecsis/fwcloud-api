@@ -26,7 +26,7 @@ import { Ca } from './Ca';
 import { OpenVPN } from '../openvpn/OpenVPN';
 import Query from '../../../database/Query';
 
-const fwcError = require('../../../utils/error_table');
+import fwcError from '../../../utils/error_table';
 
 const tableName: string = 'crt';
 

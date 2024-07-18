@@ -75,10 +75,14 @@ export class IPObjToIPObjGroup extends Model {
         ipobj_g: req.body.ipobj_g,
         ipobj: req.body.ipobj,
       };
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, ipobj__ipobjgData, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        ipobj__ipobjgData,
+        (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 

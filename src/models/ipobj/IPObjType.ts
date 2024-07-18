@@ -67,23 +67,31 @@ export class IPObjType extends Model {
   }
 
   //Get All ipobj_type
-  public static getIpobj_types(callback: Function) {
+  public static getIpobj_types(
+    callback: (error: Error | null, rows: Array<IPObjType> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query('SELECT * FROM ' + tableName + ' ORDER BY id', (error, rows) => {
-        if (error) callback(error, null);
-        else callback(null, rows);
-      });
+      connection.query(
+        'SELECT * FROM ' + tableName + ' ORDER BY id',
+        (error, rows: Array<IPObjType>) => {
+          if (error) callback(error, null);
+          else callback(null, rows);
+        },
+      );
     });
   }
 
   //Get ipobj_type by  id
-  public static getIpobj_type(req, id: number) {
+  public static getIpobj_type(req, id: number): Promise<Array<IPObjType>> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(`SELECT * FROM ${tableName} WHERE id=${id}`, (error, row) => {
-        if (error) return reject(error);
-        resolve(row);
-      });
+      req.dbCon.query(
+        `SELECT * FROM ${tableName} WHERE id=${id}`,
+        (error, row: Array<IPObjType>) => {
+          if (error) return reject(error);
+          resolve(row);
+        },
+      );
     });
   }
 }

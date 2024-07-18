@@ -26,7 +26,7 @@ import Model from '../../Model';
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Ca } from './Ca';
 import Query from '../../../database/Query';
-const fwcError = require('../../../utils/error_table');
+import fwcError from '../../../utils/error_table';
 
 const tableName: string = 'ca_prefix';
 
@@ -155,7 +155,7 @@ export class CaPrefix extends Model {
         await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
 
         // Generate all the CRT tree nodes under the CA node.
-        const crt_list: any = await Crt.getCRTlist(req.dbCon, ca);
+        const crt_list = await Crt.getCRTlist(req.dbCon, ca);
         for (const crt of crt_list)
           void Tree.newNode(
             req.dbCon,
@@ -168,7 +168,7 @@ export class CaPrefix extends Model {
           );
 
         // Create the nodes for all the prefixes.
-        const prefix_list: any = await this.getPrefixes(req.dbCon, ca);
+        const prefix_list = await this.getPrefixes(req.dbCon, ca);
         for (const prefix of prefix_list) {
           const id = await Tree.newNode(
             req.dbCon,

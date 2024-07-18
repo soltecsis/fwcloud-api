@@ -38,7 +38,7 @@ import {
 } from 'typeorm';
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
-import { Tree } from '../../../models/tree/Tree';
+import { Tree, TreeNode } from '../../../models/tree/Tree';
 import { Crt } from '../pki/Crt';
 import { OpenVPNOption } from './openvpn-option.model';
 import { IPObjGroup } from '../../ipobj/IPObjGroup';
@@ -164,10 +164,14 @@ export class OpenVPN extends Model {
         comment: req.body.comment,
         status: 1,
       };
-      req.dbCon.query(`insert into ${tableName} SET ?`, cfg, (error: Error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `insert into ${tableName} SET ?`,
+        cfg,
+        (error: Error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
@@ -365,7 +369,28 @@ export class OpenVPN extends Model {
   }
 
   // Get OpenVPN client configuration data.
-  public static getOpenvpnInfo(dbCon: Query, fwcloud: number, openvpn: number, type: number) {
+  public static getOpenvpnInfo(
+    dbCon: Query,
+    fwcloud: number,
+    openvpn: number,
+    type: number,
+  ): Promise<
+    Array<
+      OpenVPN & {
+        fwcloud: number;
+        firewall_id: number;
+        firewall_name: string;
+        cn: string;
+        CA_cn: string;
+        address: string;
+        cluster_id: number;
+        cluster_name: string;
+        openvpn_server_cn: string;
+        netmask: string;
+        type: number;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
@@ -378,13 +403,33 @@ export class OpenVPN extends Model {
                 inner join openvpn_opt OPT on OPT.openvpn=${openvpn}
                 inner join ipobj O on O.id=OPT.ipobj
                 where FW.fwcloud=${fwcloud} and VPN.id=${openvpn} ${type === 1 ? `and OPT.name='ifconfig-push'` : ``}`;
-      dbCon.query(sql, (error: Error, result) => {
-        if (error) return reject(error);
-        for (let i = 0; i < result.length; i++) {
-          result[i].type = type === 1 ? 311 : 312;
-        }
-        resolve(result);
-      });
+      dbCon.query(
+        sql,
+        (
+          error: Error,
+          result: Array<
+            OpenVPN & {
+              fwcloud: number;
+              firewall_id: number;
+              firewall_name: string;
+              cn: string;
+              CA_cn: string;
+              address: string;
+              cluster_id: number;
+              cluster_name: string;
+              openvpn_server_cn: string;
+              netmask: string;
+              type: number;
+            }
+          >,
+        ) => {
+          if (error) return reject(error);
+          for (let i = 0; i < result.length; i++) {
+            result[i].type = type === 1 ? 311 : 312;
+          }
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -873,7 +918,7 @@ export class OpenVPN extends Model {
   }
 
   // Get the ID of all OpenVPN configurations who's status field is not zero.
-  public static getOpenvpnStatusNotZero(req, data) {
+  public static getOpenvpnStatusNotZero(req, data): Promise<any> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id,VPN.status FROM openvpn VPN
                 INNER JOIN firewall FW on FW.id=VPN.firewall
@@ -908,7 +953,7 @@ export class OpenVPN extends Model {
   public static createOpenvpnServerInterface(req, cfg: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
+        let openvpn_opt = await this.getOptData(req.dbCon, cfg, 'dev');
         if (openvpn_opt) {
           const interface_name = openvpn_opt.arg;
 
@@ -955,14 +1000,14 @@ export class OpenVPN extends Model {
 
               // Create the network address for the new interface.
               openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
-              if (openvpn_opt && openvpn_opt.ipobj) {
+              if (openvpn_opt && openvpn_opt.ipObjId) {
                 // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(
+                const ipobj = await IPObj.getIpobjInfo(
                   req.dbCon,
                   req.body.fwcloud,
-                  openvpn_opt.ipobj,
+                  openvpn_opt.ipObjId,
                 );
-                if (ipobj.type === 7) {
+                if (ipobj.ipObjTypeId === 7) {
                   // Network
                   const net = ip.subnet(ipobj.address, ipobj.netmask);
 

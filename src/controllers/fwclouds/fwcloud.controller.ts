@@ -31,7 +31,7 @@ import { FwCloudPolicy } from '../../policies/fwcloud.policy';
 import { FwCloudControllerStoreDto } from './dtos/store.dto';
 import { FwCloudControllerUpdateDto } from './dtos/update.dto';
 
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 export class FwCloudController extends Controller {
   protected _fwCloudService: FwCloudService;

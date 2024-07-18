@@ -38,7 +38,7 @@ import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import Query from '../../database/Query';
 import { number } from 'joi';
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 const tableName: string = 'policy_r';
 

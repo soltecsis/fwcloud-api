@@ -30,7 +30,7 @@ import { KeepalivedRuleService } from '../system/keepalived/keepalived_r/keepali
 import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { DatabaseService } from '../../database/database.service';
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 const utilsModel = require('../../utils/utils.js');
 
 export type SSHConfig = {

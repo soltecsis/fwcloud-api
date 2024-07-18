@@ -23,7 +23,7 @@
 import Model from '../Model';
 import db from '../../database/database-manager';
 import Query from '../../database/Query';
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 const tableName: string = 'fwc_tree';
 

@@ -260,28 +260,46 @@ export class OpenVPNPrefix extends Model {
                 inner join ca CA on CA.id=CRT.ca
                 inner join firewall FW on FW.id=VPN.firewall 
                 where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
-      dbCon.query(sql, async (error: Error, result) => {
-        if (error) return reject(error);
-        if (result.length === 0) return reject(fwcError.NOT_FOUND);
+      dbCon.query(
+        sql,
+        async (
+          error: Error,
+          result: Array<
+            OpenVPNPrefix & {
+              firewall_id: number;
+              firewall_name: string;
+              cn: string;
+              ca_cn: string;
+              cluster_id: number;
+              cluster_name: string;
+              type: number;
+              openvpn_clients: Array<OpenVPN>;
+              openvpn: number;
+            }
+          >,
+        ) => {
+          if (error) return reject(error);
+          if (result.length === 0) return reject(fwcError.NOT_FOUND);
 
-        result[0].type = 401;
-        result[0].openvpn_clients = [];
-        try {
-          const openvpn_clients = await this.getOpenvpnClientesUnderPrefix(
-            dbCon,
-            result[0].openvpn,
-            result[0].name,
-          );
-          for (const openvpn_client of openvpn_clients)
-            result[0].openvpn_clients.push(
-              (await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, openvpn_client.id, 1))[0],
+          result[0].type = 401;
+          result[0].openvpn_clients = [];
+          try {
+            const openvpn_clients = await this.getOpenvpnClientesUnderPrefix(
+              dbCon,
+              result[0].openvpn,
+              result[0].name,
             );
-        } catch (error) {
-          return reject(error);
-        }
+            for (const openvpn_client of openvpn_clients)
+              result[0].openvpn_clients.push(
+                (await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, openvpn_client.id, 1))[0],
+              );
+          } catch (error) {
+            return reject(error);
+          }
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
     });
   }
 

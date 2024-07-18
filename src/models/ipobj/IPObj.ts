@@ -46,12 +46,13 @@ import Query from '../../database/Query';
 
 const ip = require('ip');
 const asyncMod = require('async');
-const host_Data = require('../../models/data/data_ipobj_host');
+import host_Data from '../../models/data/data_ipobj_host';
 import interface_Data from '../../models/data/data_interface';
 const ipobj_Data = require('../../models/data/data_ipobj');
 const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 import fwcError from '../../utils/error_table';
 import ipobjs_Data from '../data/data_ipobj';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 
 const tableName: string = 'ipobj';
 
@@ -211,22 +212,22 @@ export class IPObj extends Model {
    *
    * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
    * */
-  public static getIpobj(dbCon: Query, fwcloud: number, id: number) {
+  public static getIpobj(dbCon: Query, fwcloud: number, id: number): Promise<Array<IPObj>> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.* FROM ${tableName} I
 			WHERE I.id=${id} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
 
-      dbCon.query(sql, async (error: Error, rows) => {
+      dbCon.query(sql, async (error: Error, rows: Array<IPObj>) => {
         if (error) return reject(error);
 
         if (rows.length > 0) {
-          if (rows[0].type === 8) {
+          if (rows[0].ipObjTypeId === 8) {
             //CHECK IF IPOBJ IS a HOST
             this.getIpobj_Host_Full(fwcloud, id.toString(), (errorhost, datahost) => {
               if (errorhost) return reject(errorhost);
               resolve(datahost);
             });
-          } else if (rows[0].type === 5 && rows[0].interface != null) {
+          } else if (rows[0].ipObjTypeId === 5 && rows[0].interface != null) {
             // Address that is part of an interface.
             try {
               await this.addressParentsData(dbCon, rows[0]);
@@ -257,27 +258,41 @@ export class IPObj extends Model {
         ' left join ipobj OBJ on OBJ.id=II.ipobj' +
         ' where I.id=' +
         connection.escape(addr.interface);
-      connection.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        if (rows.length != 1) return reject(fwcError.NOT_FOUND);
+      connection.query(
+        sql,
+        (
+          error,
+          rows: Array<{
+            name: string;
+            firewall_id?: number;
+            firewall_name?: string;
+            cluster_id?: number;
+            cluster_name?: string;
+            host_id?: number;
+            host_name?: string;
+          }>,
+        ) => {
+          if (error) return reject(error);
+          if (rows.length != 1) return reject(fwcError.NOT_FOUND);
 
-        if (rows[0].cluster_id) {
-          addr.cluster_id = rows[0].cluster_id;
-          addr.cluster_name = rows[0].cluster_name;
-        }
-        if (rows[0].firewall_id) {
-          addr.firewall_id = rows[0].firewall_id;
-          addr.firewall_name = rows[0].firewall_name;
-        }
-        if (rows[0].host_id) {
-          addr.host_id = rows[0].host_id;
-          addr.host_name = rows[0].host_name;
-        }
-        addr.if_id = addr.interface;
-        addr.if_name = rows[0].name;
+          if (rows[0].cluster_id) {
+            addr.cluster_id = rows[0].cluster_id;
+            addr.cluster_name = rows[0].cluster_name;
+          }
+          if (rows[0].firewall_id) {
+            addr.firewall_id = rows[0].firewall_id;
+            addr.firewall_name = rows[0].firewall_name;
+          }
+          if (rows[0].host_id) {
+            addr.host_id = rows[0].host_id;
+            addr.host_name = rows[0].host_name;
+          }
+          addr.if_id = addr.interface;
+          addr.if_name = rows[0].name;
 
-        resolve(addr);
-      });
+          resolve(addr);
+        },
+      );
     });
   }
 
@@ -313,82 +328,85 @@ export class IPObj extends Model {
           ' OR I.fwcloud IS NULL)';
 
         logger().debug('getIpobjPro -> ', sql);
-        connection.query(sql, (error, row) => {
-          if (error) {
-            reject(error);
-          } else {
-            if (row.length > 0) {
-              //CHECK IF IPOBJ IS a HOST
-              if (row[0].type === 8) {
-                logger().debug('======== > ENCONTRADO HOST: ' + position_ipobj.ipobj);
-                //GET ALL HOST INTERFACES
-                Interface.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
-                  .then((interfacesHost) => {
-                    //RETURN IPOBJ HOST DATA
-                    const hostdata = new data_policy_position_ipobjs(
-                      row[0],
-                      position_ipobj.position_order,
-                      'O',
-                    );
-                    hostdata.interfaces = interfacesHost;
+        connection.query(
+          sql,
+          (error, row: Array<IPObj & { id_node: number; id_parent_node: number }>) => {
+            if (error) {
+              reject(error);
+            } else {
+              if (row.length > 0) {
+                //CHECK IF IPOBJ IS a HOST
+                if (row[0].ipObjTypeId === 8) {
+                  logger().debug('======== > ENCONTRADO HOST: ' + position_ipobj.ipobj);
+                  //GET ALL HOST INTERFACES
+                  Interface.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
+                    .then((interfacesHost) => {
+                      //RETURN IPOBJ HOST DATA
+                      const hostdata = new data_policy_position_ipobjs(
+                        row[0],
+                        position_ipobj.position_order,
+                        'O',
+                      );
+                      hostdata.interfaces = interfacesHost;
 
-                    resolve(hostdata);
+                      resolve(hostdata);
+                    })
+                    .catch(() => {
+                      resolve(void 0);
+                    });
+                } else {
+                  //RETURN IPOBJ DATA
+                  const ipobj = new data_policy_position_ipobjs(
+                    row[0],
+                    position_ipobj.position_order,
+                    'O',
+                  );
+                  //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                  resolve(ipobj);
+                }
+              } else if (position_ipobj.type === 'I') {
+                //SEARCH INTERFACE DATA
+                Interface.getInterfaceFullPro(position_ipobj.fwcloud, position_ipobj.ipobj)
+                  .then((dataInt) => {
+                    logger().debug(
+                      '------- > ENCONTRADA INTERFACE: ' +
+                        position_ipobj.ipobj +
+                        '  EN POSITION: ' +
+                        position_ipobj.position,
+                    );
+                    //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, 'I');
+                    //RETURN INTERFACE DATA
+                    resolve(dataInt);
+                  })
+                  .catch(() => resolve({}));
+              } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g > 0) {
+                logger().debug('======== > ENCONTRADO GROUP: ' + position_ipobj.ipobj_g);
+                //GET ALL GROUP's IPOBJS
+                IPObjGroup.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
+                  .then((ipobjsGroup) => {
+                    logger().debug(
+                      '-------------------------> FINAL de GROUP : ' +
+                        position_ipobj.ipobj_g +
+                        ' ----',
+                    );
+                    //RETURN IPOBJ GROUP DATA
+                    const groupdata = new data_policy_position_ipobjs(
+                      position_ipobj,
+                      position_ipobj.position_order,
+                      'G',
+                    );
+                    groupdata.ipobjs = ipobjsGroup;
+                    resolve(groupdata);
                   })
                   .catch(() => {
-                    resolve(void 0);
+                    resolve({});
                   });
               } else {
-                //RETURN IPOBJ DATA
-                const ipobj = new data_policy_position_ipobjs(
-                  row[0],
-                  position_ipobj.position_order,
-                  'O',
-                );
-                //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
-                resolve(ipobj);
+                resolve({});
               }
-            } else if (position_ipobj.type === 'I') {
-              //SEARCH INTERFACE DATA
-              Interface.getInterfaceFullPro(position_ipobj.fwcloud, position_ipobj.ipobj)
-                .then((dataInt) => {
-                  logger().debug(
-                    '------- > ENCONTRADA INTERFACE: ' +
-                      position_ipobj.ipobj +
-                      '  EN POSITION: ' +
-                      position_ipobj.position,
-                  );
-                  //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, 'I');
-                  //RETURN INTERFACE DATA
-                  resolve(dataInt);
-                })
-                .catch(() => resolve({}));
-            } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g > 0) {
-              logger().debug('======== > ENCONTRADO GROUP: ' + position_ipobj.ipobj_g);
-              //GET ALL GROUP's IPOBJS
-              IPObjGroup.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
-                .then((ipobjsGroup) => {
-                  logger().debug(
-                    '-------------------------> FINAL de GROUP : ' +
-                      position_ipobj.ipobj_g +
-                      ' ----',
-                  );
-                  //RETURN IPOBJ GROUP DATA
-                  const groupdata = new data_policy_position_ipobjs(
-                    position_ipobj,
-                    position_ipobj.position_order,
-                    'G',
-                  );
-                  groupdata.ipobjs = ipobjsGroup;
-                  resolve(groupdata);
-                })
-                .catch(() => {
-                  resolve({});
-                });
-            } else {
-              resolve({});
             }
-          }
-        });
+          },
+        );
       });
     });
   }
@@ -428,127 +446,130 @@ export class IPObj extends Model {
         ' OR G.fwcloud is null) ' +
         sqlId;
       logger().debug(sql);
-      connection.query(sql, (error, rows) => {
-        if (error) AllDone(error, null);
-        else if (rows.length > 0) {
-          host_cont = rows.length;
-          //const row = rows[0];
-          asyncMod.map(
-            rows,
-            (row, callback1: Function) => {
-              const host_node = new host_Data(row);
+      connection.query(
+        sql,
+        (error, rows: Array<IPObj & { id_node: number; id_parent_node: number }>) => {
+          if (error) AllDone(error, null);
+          else if (rows.length > 0) {
+            host_cont = rows.length;
+            //const row = rows[0];
+            asyncMod.map(
+              rows,
+              (row, callback1: Function) => {
+                const host_node = new host_Data(row);
 
-              logger().debug(' ---> DENTRO de HOST: ' + row.id + ' NAME: ' + row.name);
-              const idhost = row.id;
-              host_node.interfaces = [];
+                logger().debug(' ---> DENTRO de HOST: ' + row.id + ' NAME: ' + row.name);
+                const idhost = row.id;
+                host_node.interfaces = [];
 
-              //GET ALL HOST INTERFACES
-              Interface.getInterfacesHost(
-                idhost,
-                fwcloud,
-                (error: Error, data_interfaces: Array<Interface>) => {
-                  if (data_interfaces.length > 0) {
-                    interfaces_cont = data_interfaces.length;
+                //GET ALL HOST INTERFACES
+                Interface.getInterfacesHost(
+                  idhost,
+                  fwcloud,
+                  (error: Error, data_interfaces: Array<Interface>) => {
+                    if (data_interfaces.length > 0) {
+                      interfaces_cont = data_interfaces.length;
 
-                    asyncMod.map(
-                      data_interfaces,
-                      (data_interface: Interface, callback2: Function) => {
-                        //GET INTERFACES
-                        logger().debug(
-                          '--> DENTRO de INTERFACE id:' +
-                            data_interface.id +
-                            '  Name:' +
-                            data_interface.name +
-                            '  Type:' +
-                            data_interface.interface_type,
-                        );
+                      asyncMod.map(
+                        data_interfaces,
+                        (data_interface: Interface, callback2: Function) => {
+                          //GET INTERFACES
+                          logger().debug(
+                            '--> DENTRO de INTERFACE id:' +
+                              data_interface.id +
+                              '  Name:' +
+                              data_interface.name +
+                              '  Type:' +
+                              data_interface.interface_type,
+                          );
 
-                        const interface_node = new interface_Data(data_interface);
-                        const idinterface = data_interface.id;
+                          const interface_node = new interface_Data(data_interface);
+                          const idinterface = data_interface.id;
 
-                        interface_node.ipobjs = [];
+                          interface_node.ipobjs = [];
 
-                        //GET ALL INTERFACE OBJECTs
-                        this.getAllIpobjsInterface(
-                          fwcloud,
-                          idinterface,
-                          (error: Error, data_ipobjs) => {
-                            if (data_ipobjs.length > 0) {
-                              ipobjs_cont = data_ipobjs.length;
+                          //GET ALL INTERFACE OBJECTs
+                          this.getAllIpobjsInterface(
+                            fwcloud,
+                            idinterface,
+                            (error: Error, data_ipobjs) => {
+                              if (data_ipobjs.length > 0) {
+                                ipobjs_cont = data_ipobjs.length;
 
-                              asyncMod.map(
-                                data_ipobjs,
-                                (data_ipobj, callback2: Function) => {
-                                  //GET OBJECTS
-                                  logger().debug(
-                                    '--> DENTRO de OBJECT id:' +
-                                      data_ipobj.id +
-                                      '  Name:' +
-                                      data_ipobj.name +
-                                      '  Type:' +
-                                      data_ipobj.type,
-                                  );
+                                asyncMod.map(
+                                  data_ipobjs,
+                                  (data_ipobj, callback2: Function) => {
+                                    //GET OBJECTS
+                                    logger().debug(
+                                      '--> DENTRO de OBJECT id:' +
+                                        data_ipobj.id +
+                                        '  Name:' +
+                                        data_ipobj.name +
+                                        '  Type:' +
+                                        data_ipobj.type,
+                                    );
 
-                                  const ipobj_node = new ipobj_Data(data_ipobj);
-                                  //Añadimos ipobj a array Interfaces
-                                  interface_node.ipobjs.push(ipobj_node);
-                                  callback2();
-                                }, //Fin de bucle de IPOBJS
-                                function () {
-                                  if (interface_node.ipobjs.length >= ipobjs_cont) {
-                                    host_node.interfaces.push(interface_node);
-                                    if (host_node.interfaces.length >= interfaces_cont) {
-                                      hosts.push(host_node);
-                                      if (hosts.length >= host_cont) {
-                                        AllDone(null, hosts);
+                                    const ipobj_node = new ipobj_Data(data_ipobj);
+                                    //Añadimos ipobj a array Interfaces
+                                    interface_node.ipobjs.push(ipobj_node);
+                                    callback2();
+                                  }, //Fin de bucle de IPOBJS
+                                  function () {
+                                    if (interface_node.ipobjs.length >= ipobjs_cont) {
+                                      host_node.interfaces.push(interface_node);
+                                      if (host_node.interfaces.length >= interfaces_cont) {
+                                        hosts.push(host_node);
+                                        if (hosts.length >= host_cont) {
+                                          AllDone(null, hosts);
+                                        }
                                       }
                                     }
+                                  },
+                                );
+                              } else {
+                                host_node.interfaces.push(interface_node);
+                                if (host_node.interfaces.length >= interfaces_cont) {
+                                  hosts.push(host_node);
+                                  if (hosts.length >= host_cont) {
+                                    AllDone(null, hosts);
                                   }
-                                },
-                              );
-                            } else {
-                              host_node.interfaces.push(interface_node);
-                              if (host_node.interfaces.length >= interfaces_cont) {
-                                hosts.push(host_node);
-                                if (hosts.length >= host_cont) {
-                                  AllDone(null, hosts);
                                 }
                               }
-                            }
-                          },
-                        );
+                            },
+                          );
 
-                        callback2();
-                      }, //Fin de bucle de INTERFACES
-                      function () {
-                        //                                        if (host_node.interfaces.length >= interfaces_cont) {
-                        //                                            hosts.push(host_node);
-                        //                                            if (hosts.length >= host_cont) {
-                        //                                                AllDone(null, hosts);
-                        //                                            }
-                        //                                        }
-                      },
-                    );
-                  } else {
-                    hosts.push(host_node);
-                    if (hosts.length >= host_cont) {
-                      AllDone(null, hosts);
+                          callback2();
+                        }, //Fin de bucle de INTERFACES
+                        function () {
+                          //                                        if (host_node.interfaces.length >= interfaces_cont) {
+                          //                                            hosts.push(host_node);
+                          //                                            if (hosts.length >= host_cont) {
+                          //                                                AllDone(null, hosts);
+                          //                                            }
+                          //                                        }
+                        },
+                      );
+                    } else {
+                      hosts.push(host_node);
+                      if (hosts.length >= host_cont) {
+                        AllDone(null, hosts);
+                      }
                     }
-                  }
-                },
-              );
-              callback1();
-            }, //Fin de bucle de GROUPS
-            function () {
-              if (hosts.length >= host_cont) {
-                AllDone(null, hosts);
-              }
-            },
-          );
-        } else {
-          AllDone('', null);
-        }
-      });
+                  },
+                );
+                callback1();
+              }, //Fin de bucle de GROUPS
+              function () {
+                if (hosts.length >= host_cont) {
+                  AllDone(null, hosts);
+                }
+              },
+            );
+          } else {
+            AllDone('', null);
+          }
+        },
+      );
     });
   }
 
@@ -562,7 +583,11 @@ export class IPObj extends Model {
    *
    * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
    * */
-  public static getAllIpobjsGroup(fwcloud: number, idgroup: number, callback: Function) {
+  public static getAllIpobjsGroup(
+    fwcloud: number,
+    idgroup: number,
+    callback: (error: Error | null, rows: Array<IPObj>) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -583,7 +608,7 @@ export class IPObj extends Model {
       //	' WHERE G.ipobj_g=' + idgroup + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)' +
       //	' ORDER BY G.id_gi';
 
-      connection.query(sql, (error: Error, rows) => {
+      connection.query(sql, (error: Error, rows: Array<IPObj>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -600,7 +625,14 @@ export class IPObj extends Model {
    *
    * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
    * */
-  public static getAllIpobjsInterface(fwcloud: number, idinterface: number, callback: Function) {
+  public static getAllIpobjsInterface(
+    fwcloud: number,
+    idinterface: number,
+    callback: (
+      error: Error | null,
+      rows: Array<IPObj & { id_node: number; id_parent_node: number }>,
+    ) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -620,10 +652,13 @@ export class IPObj extends Model {
         ' ORDER BY I.id';
       logger().debug(sql);
 
-      connection.query(sql, (error, rows) => {
-        if (error) callback(error, null);
-        else callback(null, rows);
-      });
+      connection.query(
+        sql,
+        (error, rows: Array<IPObj & { id_node: number; id_parent_node: number }>) => {
+          if (error) callback(error, null);
+          else callback(null, rows);
+        },
+      );
     });
   }
 
@@ -688,7 +723,7 @@ export class IPObj extends Model {
     });
   }
 
-  public static getIpobjInfo(dbCon, fwcloud: number, ipobj: number) {
+  public static getIpobjInfo(dbCon: Query, fwcloud: number, ipobj: number) {
     return new Promise<IPObj>((resolve, reject) => {
       const sql = 'SELECT * FROM ipobj WHERE fwcloud=' + fwcloud + ' AND id=' + ipobj;
       dbCon.query(sql, (error, result: Array<IPObj>) => {
@@ -725,10 +760,14 @@ export class IPObj extends Model {
           if (error) return reject(error);
 
           ipobjData.id = result[0].id >= 100000 ? result[0].id + 1 : 100000;
-          dbCon.query(`INSERT INTO ${tableName} SET ?`, ipobjData, (error, result) => {
-            if (error) return reject(error);
-            resolve(result.insertId);
-          });
+          dbCon.query(
+            `INSERT INTO ${tableName} SET ?`,
+            ipobjData,
+            (error, result: { insertId: number }) => {
+              if (error) return reject(error);
+              resolve(result.insertId);
+            },
+          );
         },
       );
     });
@@ -792,7 +831,7 @@ export class IPObj extends Model {
    * #### JSON RESPONSE ERROR:
    *      {result: false}
    * */
-  public static updateIpobj(req, ipobjData): Promise<void> {
+  public static updateIpobj(req, ipobjData: ipobjs_Data): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
         'UPDATE ' +
@@ -895,11 +934,11 @@ export class IPObj extends Model {
    *
    *      {"result": false, "msg": "Restricted", "restrictions": data.search}
    * */
-  public static deleteIpobj(dbCon, fwcloud: number, id: number) {
+  public static deleteIpobj(dbCon: Query, fwcloud: number, id: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName}  WHERE id=${id} AND fwcloud=${fwcloud}`,
-        (error, result) => {
+        (error, result: { affectedRows: number }) => {
           if (error) return reject(error);
 
           if (result.affectedRows > 0) resolve({ result: true, msg: 'deleted' });
@@ -937,11 +976,17 @@ export class IPObj extends Model {
   }
 
   //DELETE ALL IPOBJ UNDER INTERFACE
-  public static deleteIpobjInterface(dbCon, _interface) {
+  public static deleteIpobjInterface(
+    dbCon: Query,
+    _interface: number,
+  ): Promise<{
+    result: boolean;
+    msg: string;
+  }> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE interface=${_interface}`,
-        (error: Error, result) => {
+        (error: Error, result: { affectedRows: number }) => {
           if (error) return reject(error);
 
           if (result.affectedRows > 0) resolve({ result: true, msg: 'deleted' });
@@ -952,7 +997,7 @@ export class IPObj extends Model {
   }
 
   //UPDATE HOST IF IPOBJ IS UNDER
-  public static UpdateHOST(id: number) {
+  public static UpdateHOST(id: number): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
@@ -965,7 +1010,7 @@ export class IPObj extends Model {
           ' WHERE O.id = ' +
           connection.escape(id);
         logger().debug(sql);
-        connection.query(sql, async (error, result) => {
+        connection.query(sql, async (error, result: { affectedRows: number }) => {
           if (error) {
             logger().debug(error);
             reject(error);
@@ -982,7 +1027,7 @@ export class IPObj extends Model {
   }
 
   //UPDATE INTEFACE IF IPOBJ IS UNDER
-  public static UpdateINTERFACE(id: number) {
+  public static UpdateINTERFACE(id: number): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
@@ -993,7 +1038,7 @@ export class IPObj extends Model {
           ' WHERE O.id = ' +
           connection.escape(id);
         logger().debug(sql);
-        connection.query(sql, async (error, result) => {
+        connection.query(sql, async (error, result: { affectedRows: number }) => {
           if (error) {
             logger().debug(error);
             reject(error);
@@ -1033,7 +1078,7 @@ export class IPObj extends Model {
     ipobj: number,
     type: number,
     fwcloud: number,
-    callback: Function,
+    callback: (error: Error | null, result: { result: boolean }) => void,
   ) {
     logger().debug(
       'CHECK DELETING FROM GROUP ipobj:' + ipobj + ' Type:' + type + '  fwcloud:' + fwcloud,
@@ -1051,7 +1096,7 @@ export class IPObj extends Model {
         ' AND I.fwcloud=' +
         connection.escape(fwcloud);
       logger().debug(sql);
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<{ n: number }>) => {
         if (!error) {
           if (rows.length > 0) {
             if (rows[0].n > 0) {
@@ -1477,7 +1522,22 @@ export class IPObj extends Model {
   }
 
   //check if IPOBJ exists in and OpenVPN configuration
-  public static searchIpobjInOpenvpn(ipobj, type, fwcloud) {
+  public static searchIpobjInOpenvpn(
+    ipobj: number,
+    type: number,
+    fwcloud: number,
+  ): Promise<
+    Array<
+      OpenVPN & {
+        cloud_id: number;
+        cloud_name: string;
+        firewall_id: number;
+        firewall_name: string;
+        cluster_id: number;
+        cluster_name: string;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1492,16 +1552,34 @@ export class IPObj extends Model {
 				INNER JOIN firewall F on F.id=VPN.firewall
 				inner join fwcloud C on C.id=F.fwcloud
 			 	WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
-        connection.query(sql, (error, rows) => {
-          if (error) return reject(error);
-          resolve(rows);
-        });
+        connection.query(
+          sql,
+          (
+            error,
+            rows: Array<
+              OpenVPN & {
+                cloud_id: number;
+                cloud_name: string;
+                firewall_id: number;
+                firewall_name: string;
+                cluster_id: number;
+                cluster_name: string;
+              }
+            >,
+          ) => {
+            if (error) return reject(error);
+            resolve(rows);
+          },
+        );
       });
     });
   }
 
   //check if IPOBJ exists in and OpenVPN configuration
-  public static addrInIfconfigPushOpenVPN(ipobj: number, fwcloud: number) {
+  public static addrInIfconfigPushOpenVPN(
+    ipobj: number,
+    fwcloud: number,
+  ): Promise<Array<{ id: number }>> {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) return reject(error);
@@ -1512,7 +1590,7 @@ export class IPObj extends Model {
                     INNER JOIN firewall F on F.id=VPN.firewall
                     inner JOIN fwcloud C on C.id=F.fwcloud
                     WHERE OPT.ipobj=${ipobj} AND OPT.name='ifconfig-push' AND C.id=${fwcloud}`;
-        connection.query(sql, (error: Error, rows) => {
+        connection.query(sql, (error: Error, rows: Array<{ id: number }>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -1525,7 +1603,18 @@ export class IPObj extends Model {
     _interface: number,
     fwcloud: number,
     diff_firewall: number,
-  ) {
+  ): Promise<
+    Array<
+      OpenVPN & {
+        cloud_id: number;
+        cloud_name: string;
+        firewall_id: number;
+        firewall_name: string;
+        cluster_id: number;
+        cluster_name: string;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1542,16 +1631,47 @@ export class IPObj extends Model {
 				WHERE OBJ.interface=${_interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
 				${diff_firewall ? `AND F.id<>${diff_firewall}` : ''}`;
 
-        connection.query(sql, (error: Error, rows) => {
-          if (error) return reject(error);
-          resolve(rows);
-        });
+        connection.query(
+          sql,
+          (
+            error: Error,
+            rows: Array<
+              OpenVPN & {
+                cloud_id: number;
+                cloud_name: string;
+                firewall_id: number;
+                firewall_name: string;
+                cluster_id: number;
+                cluster_name: string;
+              }
+            >,
+          ) => {
+            if (error) return reject(error);
+            resolve(rows);
+          },
+        );
       });
     });
   }
 
   //check if interface ipobj exists in and OpenVPN configuration
-  public static searchAddrHostInOpenvpn(dbCon: Query, fwcloud: number, host: number) {
+  public static searchAddrHostInOpenvpn(
+    dbCon: Query,
+    fwcloud: number,
+    host: number,
+  ): Promise<
+    Array<
+      OpenVPN & {
+        id: number;
+        cloud_id: number;
+        cloud_name: string;
+        firewall_id: number;
+        firewall_name: string;
+        cluster_id: number;
+        cluster_name: string;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.*, CRT.cn,
 			C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
@@ -1564,10 +1684,25 @@ export class IPObj extends Model {
 			INNER JOIN firewall F on F.id=VPN.firewall
 			inner join fwcloud C on C.id=F.fwcloud
 			WHERE II.ipobj=${host} AND F.fwcloud=${fwcloud}`;
-      dbCon.query(sql, (error: Error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error: Error,
+          rows: Array<
+            OpenVPN & {
+              cloud_id: number;
+              cloud_name: string;
+              firewall_id: number;
+              firewall_name: string;
+              cluster_id: number;
+              cluster_name: string;
+            }
+          >,
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 
@@ -1663,7 +1798,30 @@ export class IPObj extends Model {
       .getRawMany();
   }
 
-  public static searchLastInterfaceWithAddrInHostInRule(_interface: number, fwcloud: number) {
+  public static searchLastInterfaceWithAddrInHostInRule(
+    _interface: number,
+    fwcloud: number,
+  ): Promise<
+    Array<{
+      obj_id: number;
+      obj_name: string;
+      obj_type_id: number;
+      obj_type_name: string;
+      cloud_id: number;
+      cloud_name: string;
+      firewall_id: number;
+      firewall_name: string;
+      rule_id: number;
+      rule_order: number;
+      rule_type: number;
+      rule_type_name: string;
+      rule_position_id: number;
+      rule_position_name: string;
+      rule_comment: string;
+      cluster_id: number;
+      cluster_name: string;
+    }>
+  > {
     return new Promise((resolve, reject) => {
       db.get((error, dbCon) => {
         if (error) return reject(error);

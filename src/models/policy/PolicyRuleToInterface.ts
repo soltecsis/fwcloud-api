@@ -29,7 +29,7 @@ import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
 import Query from '../../database/Query';
 import { number, string } from 'joi';
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
 
 const asyncMod = require('async');
 
