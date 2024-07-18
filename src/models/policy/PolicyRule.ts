@@ -425,7 +425,7 @@ export class PolicyRule extends Model {
     >
   > {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT P.*, G.name as group_name, G.groupstyle as group_style, 
+      const sql = `SELECT P.*, P.type as policyTypeId, G.name as group_name, G.groupstyle as group_style, 
                 F.name as firewall_name, F.options as firewall_options,
                 IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code,
                 IF(P.mark>0, (select name from mark where id=P.mark), 0) as mark_name
@@ -455,7 +455,6 @@ export class PolicyRule extends Model {
         ) => {
           if (error) return reject(error);
           if (rulesData.length === 0) return resolve(null);
-
           try {
             // Positions will be always the same for all rules into the same policy type.
             const positions: PositionNode[] = await PolicyPosition.getRulePositions(
