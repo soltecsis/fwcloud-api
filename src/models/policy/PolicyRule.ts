@@ -39,6 +39,9 @@ import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import Query from '../../database/Query';
 import { number } from 'joi';
 import fwcError from '../../utils/error_table';
+import RequestData from '../data/RequestData';
+import { IPObj } from '../ipobj/IPObj';
+import { Interface } from 'readline';
 
 const tableName: string = 'policy_r';
 
@@ -180,7 +183,11 @@ export class PolicyRule extends Model {
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
-  private static clon_data: any;
+  private static clon_data: Array<{
+    id_org: number;
+    id_clon: number;
+    addr: Array<{ id_org: number; id_clon: number }>;
+  }> = [];
 
   public getTableName(): string {
     return tableName;
@@ -384,20 +391,24 @@ export class PolicyRule extends Model {
     sql: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(sql, async (error, data) => {
-        if (error) return reject(error);
+      dbCon.query(
+        sql,
+        async (error, data: Array<{ rule: number; position: number } & (IPObj | Interface)>) => {
+          if (error) return reject(error);
 
-        try {
-          for (let i = 0; i < data.length; i++) {
-            const ipobjs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
-            ipobjs?.push(data[i]);
+          try {
+            for (let i = 0; i < data.length; i++) {
+              const ipobjs: Array<{ rule: number; position: number } & (IPObj | Interface)> =
+                rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+              ipobjs?.push(data[i]);
+            }
+          } catch (error) {
+            return reject(error);
           }
-        } catch (error) {
-          return reject(error);
-        }
 
-        resolve();
-      });
+          resolve();
+        },
+      );
     });
   }
 
@@ -844,7 +855,11 @@ export class PolicyRule extends Model {
     dbCon: Query,
     idfirewall: number,
     idNewFirewall: number,
-    dataI: number,
+    dataI: Array<{
+      id_org: number;
+      id_clon: number;
+      addr: Array<{ id_org: number; id_clon: number }>;
+    }>,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.clon_data = dataI;
@@ -1429,7 +1444,7 @@ export class PolicyRule extends Model {
   }
 
   //Allow all positions of a rule that are empty.
-  public static allowEmptyRulePositions(req: any): Promise<void> {
+  public static allowEmptyRulePositions(req: RequestData): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         req.body.type = await this.getPolicyRuleType(

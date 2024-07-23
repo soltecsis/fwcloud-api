@@ -47,6 +47,8 @@ import { Mark } from '../ipobj/Mark';
 import { FSHelper } from '../../utils/fs-helper';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import Query from '../../database/Query';
+import { Tree } from '../tree/Tree';
+import RequestData from '../data/RequestData';
 
 const tableName: string = 'fwcloud';
 
@@ -142,15 +144,15 @@ export class FwCloud extends Model {
     const sqls: string[] = [];
     try {
       // Root nodes.
-      let nodes = await queryRunner.query(
+      let nodes: Array<Tree> = await queryRunner.query(
         `select id from fwc_tree where fwcloud=${this.id} and id_parent is null`,
       );
 
       // Next levels nodes.
       while (nodes.length > 0) {
-        sqls.unshift(`delete from fwc_tree where id in (${nodes.map((obj) => obj.id)})`);
+        sqls.unshift(`delete from fwc_tree where id in (${nodes.map((obj) => obj.id).toString()})`);
         nodes = await queryRunner.query(
-          `select id from fwc_tree where id_parent in (${nodes.map((obj) => obj.id)})`,
+          `select id from fwc_tree where id_parent in (${nodes.map((obj) => obj.id).toString()})`,
         );
       }
 
@@ -560,7 +562,7 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static insertFwcloud(req) {
+  public static insertFwcloud(req: RequestData) {
     return new Promise((resolve, reject) => {
       const fwcloudData = {
         name: req.body.name,

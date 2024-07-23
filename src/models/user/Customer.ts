@@ -24,6 +24,7 @@ import Model from '../Model';
 import { PrimaryGeneratedColumn, Column, Entity, OneToMany } from 'typeorm';
 import { User } from './User';
 import Query from '../../database/Query';
+import RequestData from '../data/RequestData';
 const tableName: string = 'customer';
 
 @Entity(tableName)
@@ -66,7 +67,7 @@ export class Customer extends Model {
   }
 
   //Add new customer
-  public static _insert(req): Promise<number> {
+  public static _insert(req: RequestData): Promise<number> {
     return new Promise(async (resolve, reject) => {
       //New object with customer data
       const customerData = {
@@ -116,7 +117,7 @@ export class Customer extends Model {
   };
 
   //Update customer
-  public static _update = (req): Promise<void> => {
+  public static _update = (req: RequestData): Promise<void> => {
     return new Promise<void>(async (resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
@@ -132,7 +133,7 @@ export class Customer extends Model {
   };
 
   //Update customer
-  public static get(req): Promise<Array<Customer>> {
+  public static get(req: RequestData): Promise<Array<Customer>> {
     return new Promise(async (resolve, reject) => {
       const sql = req.body.customer
         ? `select * from ${tableName} WHERE id=${req.body.customer}`
@@ -144,7 +145,7 @@ export class Customer extends Model {
     });
   }
 
-  public static _delete(req): Promise<void> {
+  public static _delete(req: RequestData): Promise<void> {
     return new Promise(async (resolve, reject) => {
       req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error: Error) => {
         if (error) return reject(error);
@@ -154,7 +155,7 @@ export class Customer extends Model {
   }
 
   public static searchUsers(
-    req,
+    req: RequestData,
   ): Promise<{ result: boolean; restrictions?: { CustomerHasUsers: boolean } }> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
@@ -170,7 +171,7 @@ export class Customer extends Model {
   }
 
   public static lastCustomer(
-    req,
+    req: RequestData,
   ): Promise<{ result: boolean; restrictions?: { LastCustomer: boolean } }> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(

@@ -27,6 +27,7 @@ import { OpenVPN } from '../openvpn/OpenVPN';
 import Query from '../../../database/Query';
 
 import fwcError from '../../../utils/error_table';
+import RequestData from '../../data/RequestData';
 
 const tableName: string = 'crt';
 
@@ -89,7 +90,7 @@ export class Crt extends Model {
   }
 
   // Insert new certificate in the database.
-  public static createCRT(req): Promise<number> {
+  public static createCRT(req: RequestData): Promise<number> {
     return new Promise((resolve, reject) => {
       const cert = {
         ca: req.body.ca,
@@ -106,7 +107,7 @@ export class Crt extends Model {
   }
 
   // Delete CRT.
-  public static deleteCRT(req): Promise<void> {
+  public static deleteCRT(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       // Verify that the CA can be deleted.
       req.dbCon.query(

@@ -333,10 +333,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             : this.eventEmitterWSClose.on('close', () => eventEmitter.emit('message', endMessage));
         })
         .catch((err) => {
-          eventEmitter.emit(
-            'message',
-            new ProgressPayload('error', false, 'Plugin action failed: ' + err.message),
-          );
+          if (err instanceof Error) {
+            eventEmitter.emit(
+              'message',
+              new ProgressPayload('error', false, 'Plugin action failed: ' + err.message),
+            );
+          }
         });
 
       return '';

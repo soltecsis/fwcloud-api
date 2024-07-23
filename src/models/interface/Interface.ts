@@ -23,7 +23,7 @@
 import Model from '../Model';
 import db from '../../database/database-manager';
 
-import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
+import { PolicyRuleToIPObj, PolicyRuleToIPObjData } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
@@ -41,6 +41,57 @@ import Query from '../../database/Query';
 import interfaces_Data from '../data/data_interface';
 import data_policy_position_ipobjs from '../../models/data/data_policy_position_ipobjs';
 import { Err } from 'joi';
+import RequestData from '../data/RequestData';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+
+interface SearchInterfaceUsage {
+  result?: boolean;
+  restrictions?: {
+    InterfaceInRules_I?: Array<PolicyRuleToIPObjData>;
+    InterfaceInRules_O?: Array<PolicyRuleToIPObjData>;
+    IpobjInterfaceInRule?: Array<PolicyRuleToIPObjData>;
+    IpobjInterfaceInGroup?: Array<PolicyRuleToIPObjData>;
+    IpobjInterfaceInOpenvpn?: Array<
+      OpenVPN & {
+        cloud_id: number;
+        cloud_name: string;
+        firewall_id: number;
+        firewall_name: string;
+        cluster_id: number;
+        cluster_name: string;
+      }
+    >;
+    InterfaceInFirewall?: Array<PolicyRuleToIPObjData>;
+    InterfaceInHost?: Array<PolicyRuleToIPObjData>;
+    LastInterfaceWithAddrInHostInRule?: Array<PolicyRuleToIPObjData>;
+    InterfaceInRoute?: Array<SearchRoute>;
+    IpobjInterfaceInRoute?: Array<SearchRoute>;
+    IpobjInterfaceInRoutingRule?: Array<SearchRoute>;
+    InterfaceInDhcpRule?: Array<
+      SearchRoute & {
+        dhcp_rule_id: number;
+        dhcp_rule_type: number;
+        interface_id: number;
+        interface_name: string;
+      }
+    >;
+    InterfaceInKeepalivedRule?: Array<
+      SearchRoute & {
+        keepalived_rule_id: number;
+        keepalived_rule_type: number;
+        interface_id: number;
+        interface_name: string;
+      }
+    >;
+  };
+}
+
+interface SearchRoute {
+  firewall_id: number;
+  firewall_name: string;
+  cluster_id: number;
+  cluster_name: string;
+}
 
 const tableName: string = 'interface';
 
@@ -121,7 +172,7 @@ export class Interface extends Model {
     dbCon: Query,
     fwcloud: number,
     firewall: number,
-  ): Promise<Array<any>> {
+  ): Promise<Array<Interface>> {
     return new Promise((resolve, reject) => {
       const sql = `select I.* from ${tableName} I
 				inner join firewall F on F.id=I.firewall
@@ -403,7 +454,7 @@ export class Interface extends Model {
   //Get data of interface
   public static getInterface_data(
     id: number,
-    type: number,
+    type: string,
     callback: (error: Error | null, row: Array<Interface> | null) => void,
   ) {
     db.get((error: Error, connection) => {
@@ -460,9 +511,11 @@ export class Interface extends Model {
   }
 
   /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
-  public static searchInterfaceUsageOutOfThisFirewall(req) {
+  public static searchInterfaceUsageOutOfThisFirewall(
+    req: RequestData,
+  ): Promise<SearchInterfaceUsage> {
     return new Promise(async (resolve, reject) => {
-      const answer: any = {};
+      const answer: SearchInterfaceUsage = {};
       answer.restrictions = {};
       answer.restrictions.InterfaceInRules_I = [];
       answer.restrictions.InterfaceInRules_O = [];
@@ -473,14 +526,10 @@ export class Interface extends Model {
       answer.restrictions.IpobjInterfaceInOpenvpn = [];
 
       try {
-        const interfaces: Array<any> = await this.getInterfaces(
-          req.dbCon,
-          req.body.fwcloud,
-          req.body.firewall,
-        );
+        const interfaces = await this.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
         for (const interfaz of interfaces) {
           // The last parameter of this functions indicates search out of hte indicated firewall.
-          const data: any = await this.searchInterfaceUsage(
+          const data = await this.searchInterfaceUsage(
             interfaz.id,
             interfaz.interface_type,
             req.body.fwcloud,
@@ -539,16 +588,16 @@ export class Interface extends Model {
   /* Search where is in RULES interface in OTHER FIREWALLS  */
   public static searchInterfaceUsage(
     id: number,
-    type: number,
+    type: string,
     fwcloud: number,
     diff_firewall: number,
-  ) {
+  ): Promise<SearchInterfaceUsage> {
     return new Promise((resolve, reject) => {
       //SEARCH INTERFACE DATA
       this.getInterface_data(id, type, async (error: Error, data) => {
         if (error) return reject(error);
 
-        const search: any = {};
+        const search: SearchInterfaceUsage = {};
         search.result = false;
         if (data && data.length > 0) {
           try {
@@ -659,7 +708,8 @@ export class Interface extends Model {
               await this.searchInterfaceInKeepalivedRule(id.toString(), fwcloud.toString());
 
             for (const key in search.restrictions) {
-              if (search.restrictions[key].length > 0) {
+              const restriction = search.restrictions[key];
+              if (Array.isArray(restriction) && restriction.length > 0) {
                 search.result = true;
                 break;
               }
@@ -675,7 +725,11 @@ export class Interface extends Model {
   }
 
   //Search Interfaces in Firewalls
-  public static searchInterfaceInFirewall(_interface: number, type: number, fwcloud: number) {
+  public static searchInterfaceInFirewall(
+    _interface: number,
+    type: string,
+    fwcloud: number,
+  ): Promise<Array<PolicyRuleToIPObjData>> {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) return reject(error);
@@ -694,7 +748,7 @@ export class Interface extends Model {
           type +
           ' AND F.fwcloud=' +
           fwcloud;
-        connection.query(sql, (error: Error, rows) => {
+        connection.query(sql, (error: Error, rows: Array<PolicyRuleToIPObjData>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -723,7 +777,19 @@ export class Interface extends Model {
     });
   }
 
-  public static async searchInterfaceInDhcpRule(id: string, fwcloud: string): Promise<any> {
+  public static async searchInterfaceInDhcpRule(
+    id: string,
+    fwcloud: string,
+  ): Promise<
+    Array<
+      SearchRoute & {
+        dhcp_rule_id: number;
+        dhcp_rule_type: number;
+        interface_id: number;
+        interface_name: string;
+      }
+    >
+  > {
     return await db
       .getSource()
       .manager.getRepository(DHCPRule)
@@ -746,7 +812,19 @@ export class Interface extends Model {
       .getRawMany();
   }
 
-  public static async searchInterfaceInKeepalivedRule(id: string, fwcloud: string) {
+  public static async searchInterfaceInKeepalivedRule(
+    id: string,
+    fwcloud: string,
+  ): Promise<
+    Array<
+      SearchRoute & {
+        keepalived_rule_id: number;
+        keepalived_rule_type: number;
+        interface_id: number;
+        interface_name: string;
+      }
+    >
+  > {
     return await db
       .getSource()
       .manager.getRepository(KeepalivedRule)
@@ -785,7 +863,7 @@ export class Interface extends Model {
   }
 
   public static createLoInterface(
-    dbCon: any,
+    dbCon: Query,
     fwcloud: number,
     firewall: number,
   ): Promise<{
@@ -985,7 +1063,9 @@ export class Interface extends Model {
     fwcloud: number,
     idfirewall: number,
     idNewfirewall: number,
-  ) {
+  ): Promise<
+    Array<{ id_org: number; id_clon: number; addr: Array<{ id_org: number; id_clon: number }> }>
+  > {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1021,7 +1101,11 @@ export class Interface extends Model {
 
   public static cloneInterface(
     rowData: Interface & { newfirewall: number; org_name: string; clon_name: string },
-  ) {
+  ): Promise<{
+    id_org: number;
+    id_clon: number;
+    addr: Array<{ id_org: number; id_clon: number }>;
+  }> {
     return new Promise((resolve, reject) => {
       db.get(async (error, dbCon) => {
         if (error) return reject(error);

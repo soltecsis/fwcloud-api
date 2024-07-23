@@ -13,7 +13,7 @@ export class Zip {
    */
   public static unzip(zipPath: string, destinationPath: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      yauzl.open(zipPath, { lazyEntries: true }, function (err: Error, zipfile: yauzl.ZipFile) {
+      yauzl.open(zipPath, { lazyEntries: true }, function (err, zipfile) {
         if (err) {
           return reject(err);
         }
@@ -23,9 +23,9 @@ export class Zip {
         }
 
         zipfile.on('entry', (entry: yauzl.Entry) => {
-          if (/\/$/.test(entry.fileName as string)) {
+          if (/\/$/.test(entry.fileName)) {
             // Entry is a directory as file names end with '/'.
-            FSHelper.mkdirSync(path.join(destinationPath, entry.fileName as string));
+            FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
             zipfile.readEntry();
           } else {
             // file entry
@@ -37,7 +37,7 @@ export class Zip {
                 zipfile.readEntry();
               });
               const ws: fs.WriteStream = fs.createWriteStream(
-                path.join(destinationPath, entry.fileName as string),
+                path.join(destinationPath, entry.fileName),
               );
               readStream.pipe(ws);
             });
@@ -77,7 +77,7 @@ export class Zip {
       });
 
       // good practice to catch warnings (ie stat failures and other non-blocking errors)
-      archive.on('warning', (error: any) => {
+      archive.on('warning', (error) => {
         if (error.code === 'ENOENT') {
           console.warn(error);
         } else {

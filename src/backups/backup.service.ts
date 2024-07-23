@@ -95,7 +95,7 @@ export class BackupService extends Service {
         const backups: Backup[] = await this.applyRetentionPolicy();
         logger().info(`BACKUPS removed: ${backups.length}`);
       } catch (error) {
-        logger().error('BACKUP job ERROR: ', error.message);
+        if (error instanceof Error) logger().error('BACKUP job ERROR: ', error.message);
       }
     });
     this._scheduledBackupRetentionJob.start();

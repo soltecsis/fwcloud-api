@@ -64,7 +64,7 @@ export class Authorization extends Middleware {
       }
       req.session.keepalive_ts = Date.now(); // Update keepalive timestamp.
 
-      const data: any = await User.getUserName(req.session.customer_id, req.session.username);
+      const data: User[] = await User.getUserName(req.session.customer_id, req.session.username);
       if (data.length === 0) {
         req.session.destroy(() => {});
         throw fwcError.SESSION_BAD;

@@ -70,7 +70,9 @@ export abstract class HTTPApplication extends AbstractApplication {
             */
       this._express.disable('etag');
     } catch (e) {
-      console.error('Aplication HTTP startup failed: ' + e.message);
+      if (e instanceof Error) {
+        console.error('Aplication HTTP startup failed: ' + e.message);
+      }
       process.exit(e);
     }
   }

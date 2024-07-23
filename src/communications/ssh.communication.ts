@@ -27,7 +27,7 @@ import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/
 import sshTools from '../utils/ssh';
 import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from './communication';
 const config = require('../config/config');
-const fwcError = require('../utils/error_table');
+import fwcError from '../utils/error_table';
 
 type SSHConnectionData = {
   host: string;

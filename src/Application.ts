@@ -86,8 +86,10 @@ export class Application extends HTTPApplication {
       await app.bootstrap();
       return app;
     } catch (e) {
-      console.error('Application can not start: ' + e.message);
-      console.error(e.stack);
+      if (e instanceof Error) {
+        console.error('Application can not start: ' + e.message);
+        console.error(e.stack);
+      }
       process.exit(1);
     }
   }

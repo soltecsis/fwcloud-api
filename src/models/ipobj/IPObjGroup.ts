@@ -24,7 +24,7 @@ import Model from '../Model';
 import db from '../../database/database-manager';
 import { IPObj } from './IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
-import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { OpenVPNPrefix, SearchGroupUsage } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import {
@@ -45,11 +45,12 @@ import { RouteToIPObjGroup } from '../routing/route/route-to-ipobj-group.model';
 import { RoutingRuleToIPObjGroup } from '../routing/routing-rule/routing-rule-to-ipobj-group.model';
 import Query from '../../database/Query';
 import { number } from 'joi';
-const asyncMod = require('async');
+import asyncMod from 'async';
 import ipobj_g_Data from '../data/data_ipobj_g';
 const ipobj_Data = require('../data/data_ipobj');
 
 import fwcError from '../../utils/error_table';
+import RequestData from '../data/RequestData';
 
 const tableName: string = 'ipobj_g';
 
@@ -376,7 +377,7 @@ export class IPObjGroup extends Model {
                               '  Name:' +
                               data_ipobj.name +
                               '  Type:' +
-                              data_ipobj.type,
+                              data_ipobj.ipObjTypeId,
                           );
 
                           const ipobj_node = new ipobj_Data(data_ipobj);
@@ -418,12 +419,17 @@ export class IPObjGroup extends Model {
     });
   }
 
-  public static searchGroupUsage(id: number, fwcloud: number) {
+  public static searchGroupUsage(id: number, fwcloud: number): Promise<SearchGroupUsage> {
     return new Promise(async (resolve, reject) => {
       try {
-        const search: any = {};
-        search.result = false;
-        search.restrictions = {};
+        const search: SearchGroupUsage = {
+          result: false,
+          restrictions: {
+            GroupInRule: [],
+            GroupInRoute: [],
+            GroupInRoutingRule: [],
+          },
+        };
         //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
         search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
         search.restrictions.GroupInRoute = await db
@@ -459,11 +465,12 @@ export class IPObjGroup extends Model {
           .getRawMany();
 
         for (const key in search.restrictions) {
-          if (search.restrictions[key].length > 0) {
+          if (Array.isArray(search.restrictions[key]) && search.restrictions[key].length > 0) {
             search.result = true;
             break;
           }
         }
+
         resolve(search);
       } catch (error) {
         reject(error);
@@ -502,7 +509,7 @@ export class IPObjGroup extends Model {
   }
 
   //Update ipobj_g
-  public static updateIpobj_g(req, ipobj_gData: IPObjGroup): Promise<void> {
+  public static updateIpobj_g(req: RequestData, ipobj_gData: IPObjGroup): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(ipobj_gData.name)}
             ,type=${ipobj_gData.type}

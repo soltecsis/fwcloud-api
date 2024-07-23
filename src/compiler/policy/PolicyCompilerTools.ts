@@ -25,9 +25,9 @@ import { AvailablePolicyCompilers } from './PolicyCompiler';
 import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
 import { FireWallOptMask } from '../../models/firewall/Firewall';
 
-const ip = require('ip');
+import ip from 'ip';
 import fwcError from '../../utils/error_table';
-const shellescape = require('shell-escape');
+import shellescape from 'shell-escape';
 
 export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT', 1],

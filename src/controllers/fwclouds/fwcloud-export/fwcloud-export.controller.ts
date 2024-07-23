@@ -34,7 +34,7 @@ import { Channel } from '../../../sockets/channels/channel';
 import { FwCloudExportControllerImportDto } from './dtos/import.dto';
 import db from '../../../database/database-manager';
 
-const fwcError = require('../../../utils/error_table');
+import fwcError from '../../../utils/error_table';
 
 export class FwCloudExportController extends Controller {
   protected _fwCloudExportService: FwCloudExportService;

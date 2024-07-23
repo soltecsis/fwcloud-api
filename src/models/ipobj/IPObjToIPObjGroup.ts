@@ -26,6 +26,7 @@ import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn } from 't
 import { IPObjGroup } from './IPObjGroup';
 import { IPObj } from './IPObj';
 import Query from '../../database/Query';
+import RequestData from '../data/RequestData';
 
 const tableName: string = 'ipobj__ipobjg';
 
@@ -69,7 +70,7 @@ export class IPObjToIPObjGroup extends Model {
   }
 
   //Add new ipobj__ipobjg
-  public static insertIpobj__ipobjg(req) {
+  public static insertIpobj__ipobjg(req: RequestData) {
     return new Promise((resolve, reject) => {
       const ipobj__ipobjgData = {
         ipobj_g: req.body.ipobj_g,

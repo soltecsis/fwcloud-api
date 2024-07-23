@@ -33,6 +33,7 @@ import { Communication } from '../communications/communication';
 import { AgentCommunication } from '../communications/agent.communication';
 import { IPObj } from '../models/ipobj/IPObj';
 import db from '../database/database-manager';
+import { FwCloudError } from '../fonaments/exceptions/error';
 const utilsModel = require('../utils/utils.js');
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -101,10 +102,12 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
           }
         }
       } catch (err) {
-        throw new HttpException(
-          `ERROR in iptables-save import (line: ${this.line + 1})${err.message ? ': ' + err.message : ''} `,
-          400,
-        );
+        if (err instanceof Error) {
+          throw new HttpException(
+            `ERROR in iptables-save import (line: ${this.line + 1})${err.message ? ': ' + err.message : ''} `,
+            400,
+          );
+        }
       }
     }
 

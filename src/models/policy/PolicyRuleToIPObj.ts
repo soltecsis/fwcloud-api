@@ -32,30 +32,31 @@ import { IPObj } from '../ipobj/IPObj';
 import Query from '../../database/Query';
 import f from 'session-file-store';
 import { object } from 'joi';
-const asyncMod = require('async');
+import asyncMod from 'async';
 import fwcError from '../../utils/error_table';
 import { Func } from 'mocha';
+import RequestData from '../data/RequestData';
 
 const tableModel: string = 'policy_r__ipobj';
 
 export interface PolicyRuleToIPObjData {
-  obj_id: number;
-  obj_name: string;
-  obj_type_id: number;
-  obj_type_name: string;
-  cloud_id: number;
-  cloud_name: string;
-  firewall_id: number;
-  firewall_name: string;
-  rule_id: number;
-  rule_order: number;
-  rule_type: number;
-  rule_type_name: string;
-  rule_position_id: number;
-  rule_position_name: string;
-  rule_comment: string;
-  cluster_id: number;
-  cluster_name: string;
+  obj_id?: number;
+  obj_name?: string;
+  obj_type_id?: number;
+  obj_type_name?: string;
+  cloud_id?: number;
+  cloud_name?: string;
+  firewall_id?: number;
+  firewall_name?: string;
+  rule_id?: number;
+  rule_order?: number;
+  rule_type?: number;
+  rule_type_name?: string;
+  rule_position_id?: number;
+  rule_position_name?: string;
+  rule_comment?: string;
+  cluster_id?: number;
+  cluster_name?: string;
 }
 
 @Entity(tableModel)
@@ -147,7 +148,10 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   //Get All policy_r__ipobj by Policy_r (rule) and position
-  public static getRuleIPObjsByPosition(rule: number, position: number) {
+  public static getRuleIPObjsByPosition(
+    rule: number,
+    position: number,
+  ): Promise<Array<PolicyRuleToIPObj>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -156,7 +160,7 @@ export class PolicyRuleToIPObj extends Model {
                     WHERE rule=${connection.escape(rule).toString()} AND position=${connection.escape(position).toString()}
                     ORDER BY position_order`;
 
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error, rows: Array<PolicyRuleToIPObj>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -397,7 +401,7 @@ export class PolicyRuleToIPObj extends Model {
   };
 
   // Verify that the object we are moving to the rule is not an empty object container.
-  public static emptyIpobjContainerToObjectPosition(req): Promise<boolean> {
+  public static emptyIpobjContainerToObjectPosition(req: RequestData): Promise<boolean> {
     return new Promise((resolve, reject) => {
       // First we need the object type and the content type of the rule position.
       const sql = `select content,
@@ -543,20 +547,20 @@ export class PolicyRuleToIPObj extends Model {
             ' AND I.firewall= ' +
             newfirewall;
           logger().debug('--------- >>>> SQL IPOBJ OTHER: ', sqlI);
-          connection.query(sqlI, (error, result) => {
+          connection.query(sqlI, (error, result: Array<{ id: number }>) => {
             if (result && result.length > 0) {
               p_ipobjData.ipobj = result[0].id;
-              this.cloneInsertPolicy_r__ipobj(p_ipobjData).then((resp: any) => {
+              this.cloneInsertPolicy_r__ipobj(p_ipobjData).then((resp) => {
                 resolve({ result: resp.result });
               });
             } else {
-              this.cloneInsertPolicy_r__ipobj(p_ipobjData).then((resp: any) => {
+              this.cloneInsertPolicy_r__ipobj(p_ipobjData).then((resp) => {
                 resolve({ result: resp.result });
               });
             }
           });
         } else {
-          this.cloneInsertPolicy_r__ipobj(p_ipobjData).then((resp: any) => {
+          this.cloneInsertPolicy_r__ipobj(p_ipobjData).then((resp) => {
             resolve({ result: resp.result });
           });
         }
@@ -564,14 +568,16 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
 
-  public static cloneInsertPolicy_r__ipobj(p_ipobjData) {
+  public static cloneInsertPolicy_r__ipobj(
+    p_ipobjData,
+  ): Promise<{ result: boolean; allowed?: number }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
         connection.query(
           'INSERT INTO ' + tableModel + ' SET ?',
           p_ipobjData,
-          async (error, result) => {
+          async (error, result: { affectedRows: number }) => {
             if (error) {
               logger().debug(error);
               resolve({ result: false, allowed: 1 });
@@ -671,7 +677,7 @@ export class PolicyRuleToIPObj extends Model {
                 connection.escape(position) +
                 ' AND interface=' +
                 connection.escape(_interface);
-              connection.query(sql, async (error, result) => {
+              connection.query(sql, async (error, result: { affectedRows: number }) => {
                 if (error) {
                   callback(error, null);
                 } else {
@@ -751,7 +757,7 @@ export class PolicyRuleToIPObj extends Model {
         connection.escape(position) +
         ' AND interface=' +
         connection.escape(_interface);
-      connection.query(sql, async (error, result) => {
+      connection.query(sql, async (error, result: { affectedRows: number }) => {
         if (error) {
           callback(error, null);
         } else {
@@ -799,7 +805,7 @@ export class PolicyRuleToIPObj extends Model {
                     WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
                     AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}
                     AND interface=${dbCon.escape(_interface)}`;
-        dbCon.query(sql, async (error, result) => {
+        dbCon.query(sql, async (error, result: { affectedRows: number }) => {
           if (error) return reject(error);
 
           if (result.affectedRows > 0) {
@@ -1076,15 +1082,15 @@ export class PolicyRuleToIPObj extends Model {
                   ' SET position_order=' +
                   order +
                   ' WHERE rule = ' +
-                  connection.escape(row.rule) +
+                  connection.escape(row.policyRuleId) +
                   ' AND ipobj=' +
-                  connection.escape(row.ipobj) +
+                  connection.escape(row.ipObjId) +
                   ' AND ipobj_g=' +
-                  connection.escape(row.ipobj_g) +
+                  connection.escape(row.ipObjGroupId) +
                   ' AND position=' +
-                  connection.escape(row.position) +
+                  connection.escape(row.policyPositionId) +
                   ' AND interface=' +
-                  connection.escape(row.interface);
+                  connection.escape(row.interfaceId);
                 //logger().debug(sql);
                 connection.query(sql, async (error) => {
                   if (error) {
@@ -1126,7 +1132,7 @@ export class PolicyRuleToIPObj extends Model {
           asyncMod.map(
             rows,
             (row, callback1: Function) => {
-              const position = row.position;
+              const position = row.policyPositionId;
               if (position !== prev_position) {
                 order = 1;
                 prev_position = position;
@@ -1138,15 +1144,15 @@ export class PolicyRuleToIPObj extends Model {
                   ' SET position_order=' +
                   order +
                   ' WHERE rule = ' +
-                  connection.escape(row.rule) +
+                  connection.escape(row.policyRuleId) +
                   ' AND ipobj=' +
-                  connection.escape(row.ipobj) +
+                  connection.escape(row.ipObjId) +
                   ' AND ipobj_g=' +
-                  connection.escape(row.ipobj_g) +
+                  connection.escape(row.ipObjGroupId) +
                   ' AND position=' +
-                  connection.escape(row.position) +
+                  connection.escape(row.policyPositionId) +
                   ' AND interface=' +
-                  connection.escape(row.interface);
+                  connection.escape(row.interfaceId);
                 //logger().debug(sql);
                 connection.query(sql, async (error) => {
                   if (error) {
@@ -1181,8 +1187,8 @@ export class PolicyRuleToIPObj extends Model {
           asyncMod.map(
             rows,
             (row, callback1: Function) => {
-              const position = row.position;
-              const rule = row.rule;
+              const position = row.policyPositionId;
+              const rule = row.policyRuleId;
               if (position !== prev_position || rule !== prev_rule) {
                 order = 1;
                 prev_rule = rule;
@@ -1195,15 +1201,15 @@ export class PolicyRuleToIPObj extends Model {
                   ' SET position_order=' +
                   order +
                   ' WHERE rule = ' +
-                  connection.escape(row.rule) +
+                  connection.escape(row.policyRuleId) +
                   ' AND ipobj=' +
-                  connection.escape(row.ipobj) +
+                  connection.escape(row.ipObjId) +
                   ' AND ipobj_g=' +
-                  connection.escape(row.ipobj_g) +
+                  connection.escape(row.ipObjGroupId) +
                   ' AND position=' +
-                  connection.escape(row.position) +
+                  connection.escape(row.policyPositionId) +
                   ' AND interface=' +
-                  connection.escape(row.interface);
+                  connection.escape(row.interfaceId);
                 //logger().debug(sql);
                 connection.query(sql, async (error) => {
                   if (error) {
@@ -1615,7 +1621,7 @@ export class PolicyRuleToIPObj extends Model {
   //check if INTERFACE Exists in any rule
   public static searchInterfaceInRule = (
     _interface: number,
-    type: number,
+    type: string,
     fwcloud: number,
     firewall: number,
     diff_firewall: number,
@@ -1649,7 +1655,11 @@ export class PolicyRuleToIPObj extends Model {
   };
 
   //check if IPOBJ Exists in GROUP and GROUP in any rule
-  public static searchIpobjInGroupInRule = (ipobj: number, type: number, fwcloud: number) => {
+  public static searchIpobjInGroupInRule = (
+    ipobj: number,
+    type: number,
+    fwcloud: number,
+  ): Promise<Array<PolicyRuleToIPObjData>> => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1984,7 +1994,7 @@ export class PolicyRuleToIPObj extends Model {
   //check if Exist IPOBJS under INTERFACES  IN RULES
   public static searchIpobjInterfaceInRule = (
     _interface: number,
-    type: number,
+    type: string,
     fwcloud: number,
     firewall: number,
     diff_firewall: number | string,
@@ -2025,7 +2035,7 @@ export class PolicyRuleToIPObj extends Model {
   //check if Exist IPOBJS under INTERFACES IN GROUPS
   public static searchIpobjInterfaceInGroup = (
     _interface: number,
-    type: number,
+    type: string,
   ): Promise<Array<PolicyRuleToIPObjData>> => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
@@ -2046,7 +2056,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   };
 
-  public static checkIpVersion(req) {
+  public static checkIpVersion(req: RequestData) {
     return new Promise(async (resolve, reject) => {
       let rule_ip_version: number;
       try {

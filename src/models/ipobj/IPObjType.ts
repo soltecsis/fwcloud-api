@@ -27,6 +27,7 @@ import { FwcTree } from '../tree/fwc-tree.model';
 import { IPObj } from './IPObj';
 import { PolicyPosition } from '../policy/PolicyPosition';
 import { IPObjTypeToPolicyPosition } from './IPObjTypeToPolicyPosition';
+import RequestData from '../data/RequestData';
 
 const tableName: string = 'ipobj_type';
 
@@ -83,7 +84,7 @@ export class IPObjType extends Model {
   }
 
   //Get ipobj_type by  id
-  public static getIpobj_type(req, id: number): Promise<Array<IPObjType>> {
+  public static getIpobj_type(req: RequestData, id: number): Promise<Array<IPObjType>> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT * FROM ${tableName} WHERE id=${id}`,

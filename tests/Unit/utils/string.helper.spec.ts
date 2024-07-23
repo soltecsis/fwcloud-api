@@ -46,6 +46,7 @@ describe(describeName('StringHelper Unit Tests'), () => {
     it('should generate a random string', () => {
       const result: string = StringHelper.randomize();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(result).to.be.string;
       expect(result).to.have.length(50);
       expect(StringHelper.randomize()).not.to.be.deep.eq(result);

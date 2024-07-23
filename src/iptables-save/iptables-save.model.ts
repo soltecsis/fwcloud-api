@@ -43,11 +43,13 @@ import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from 'moment';
 import { PolicyCompilerTools } from '../compiler/policy/PolicyCompilerTools';
 import db from '../database/database-manager';
+import ipobjs_Data from '../models/data/data_ipobj';
+import RequestData from '../models/data/RequestData';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
 export class IptablesSaveToFWCloud extends Service {
-  protected req: any;
+  protected req: RequestData;
   protected statefulFirewall: boolean;
   protected line: number;
   protected data: string[];
@@ -185,7 +187,7 @@ export class IptablesSaveToFWCloud extends Service {
       this.ruleTarget === 'ACCEPT' &&
       this.statefulFirewall != this.ruleWithStatus
     ) {
-      const ruleData: any = await PolicyRule.getPolicy_r(
+      const ruleData = await PolicyRule.getPolicy_r(
         this.req.dbCon,
         this.req.body.firewall,
         this.ruleId,
@@ -501,7 +503,7 @@ export class IptablesSaveToFWCloud extends Service {
   private async eatLOG(items: string[]): Promise<void> {
     // Enable rule logging.
     try {
-      const ruleData: any = await PolicyRule.getPolicy_r(
+      const ruleData = await PolicyRule.getPolicy_r(
         this.req.dbCon,
         this.req.body.firewall,
         this.ruleId,
@@ -719,7 +721,7 @@ export class IptablesSaveToFWCloud extends Service {
           this.req.dbCon,
           interfaceData,
         );
-        const fwcTreeNode: any = await Tree.getNodeUnderFirewall(
+        const fwcTreeNode = await Tree.getNodeUnderFirewall(
           this.req.dbCon,
           this.req.body.fwcloud,
           this.req.body.firewall,
@@ -795,10 +797,10 @@ export class IptablesSaveToFWCloud extends Service {
         ip_version: this.req.body.ip_version,
         comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`,
       };
-
+      const ipobj = ipobjs_Data(ipobjData);
       try {
-        ipobjData.id = addrId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
-        const fwcTreeNode: any =
+        ipobjData.id = addrId = await IPObj.insertIpobj(this.req.dbCon, ipobj);
+        const fwcTreeNode =
           mask === fullMask
             ? await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'Addresses', 'OIA')
             : await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'Networks', 'OIN');
@@ -819,7 +821,7 @@ export class IptablesSaveToFWCloud extends Service {
       await this.addIPObjToRulePosition(dir, addrId);
     } else {
       // Search if the address object is part of an OpenVPN ifconfig-push configuration option.
-      const result: any = await IPObj.addrInIfconfigPushOpenVPN(addrId, this.req.body.fwcloud);
+      const result = await IPObj.addrInIfconfigPushOpenVPN(addrId, this.req.body.fwcloud);
 
       // If it is, then add the OpenVPN config to the rule position instead of the address object.
       if (result.length && result.length > 0) {
@@ -873,9 +875,11 @@ export class IptablesSaveToFWCloud extends Service {
         comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`,
       };
 
+      const ipobj = ipobjs_Data(ipobjData);
+
       try {
-        ipobjData.id = iprangeId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
-        const fwcTreeNode: any = await Tree.getNodeByNameAndType(
+        ipobjData.id = iprangeId = await IPObj.insertIpobj(this.req.dbCon, ipobj);
+        const fwcTreeNode = await Tree.getNodeByNameAndType(
           this.req.body.fwcloud,
           'Address Ranges',
           'OIR',
@@ -985,9 +989,10 @@ export class IptablesSaveToFWCloud extends Service {
         comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`,
       };
 
+      const ipobj = ipobjs_Data(ipobjData);
       try {
-        ipobjData.id = portId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
-        const fwcTreeNode: any =
+        ipobjData.id = portId = await IPObj.insertIpobj(this.req.dbCon, ipobj);
+        const fwcTreeNode =
           this.ipProtocol === 'tcp'
             ? await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'TCP', 'SOT')
             : await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'UDP', 'SOU');
@@ -1042,13 +1047,11 @@ export class IptablesSaveToFWCloud extends Service {
         comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`,
       };
 
+      const ipobj = ipobjs_Data(ipobjData);
+
       try {
-        ipobjData.id = icmpId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
-        const fwcTreeNode: any = await Tree.getNodeByNameAndType(
-          this.req.body.fwcloud,
-          'ICMP',
-          'SOM',
-        );
+        ipobjData.id = icmpId = await IPObj.insertIpobj(this.req.dbCon, ipobj);
+        const fwcTreeNode = await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'ICMP', 'SOM');
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'SOM', ipobjData);
       } catch (err) {
         throw new Error(`Error creating ICMP object: ${JSON.stringify(err)}`);
@@ -1102,7 +1105,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   public async groupRulePositionItems(): Promise<void> {
     let i: number;
-    const groupsData: any = await IPObjGroup.getIpobjGroups(this.req.dbCon, this.req.body.fwcloud);
+    const groupsData = await IPObjGroup.getIpobjGroups(this.req.dbCon, this.req.body.fwcloud);
     const ipobjGroups = groupsData.map(({ id }) => {
       return id;
     });
@@ -1110,18 +1113,15 @@ export class IptablesSaveToFWCloud extends Service {
 
     // For all positions for which it is possible to group objects.
     for (const position of positionsList) {
-      const ipobjsData: any = await PolicyRuleToIPObj.getRuleIPObjsByPosition(
-        this.ruleId,
-        position,
-      );
+      const ipobjsData = await PolicyRuleToIPObj.getRuleIPObjsByPosition(this.ruleId, position);
       if (ipobjsData.length < 2) continue;
-      const ipobjsInRule = ipobjsData.map(({ ipobj }) => {
-        return ipobj;
+      const ipobjsInRule = ipobjsData.map(({ ipObjId }) => {
+        return ipObjId;
       });
 
       // For all existing IP objects groups.
       for (const group of ipobjGroups) {
-        const groupData: any = await IPObjGroup.getIpobj_g_Full(
+        const groupData = await IPObjGroup.getIpobj_g_Full(
           this.req.dbCon,
           this.req.body.fwcloud,
           group,
@@ -1168,7 +1168,7 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let data: any = await PolicyRule.getPolicyData(
+    let data = await PolicyRule.getPolicyData(
       'compiler',
       this.req.dbCon,
       this.req.body.fwcloud,
@@ -1239,7 +1239,7 @@ export class IptablesSaveToFWCloud extends Service {
     // If only differ in one position then current rule can be merged with the previous one.
     if (posDiffer.length === 1) {
       // Move items in the differing position from the new rule to the same position of the previous one.
-      const currPosObjs = currentRule.positions[posDiffer[0]].ipobjs;
+      const currPosObjs: any = currentRule.positions[posDiffer[0]].ipobjs;
       const position = currentRule.positions[posDiffer[0]].id;
       let allMoved = true;
 

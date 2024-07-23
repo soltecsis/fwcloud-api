@@ -28,11 +28,12 @@ import { User } from '../../user/User';
 import { Crt } from './Crt';
 const config = require('../../../config/config');
 import fwcError from '../../../utils/error_table';
-import { spawn } from 'child-process-promise';
+import { ChildProcessPromise, spawn, SpawnPromiseResult } from 'child-process-promise';
 import * as readline from 'readline';
 import * as fs from 'fs';
 import Query from '../../../database/Query';
 import { TreeNode } from '../../tree/Tree';
+import RequestData from '../../data/RequestData';
 
 const tableName: string = 'ca';
 
@@ -93,7 +94,7 @@ export class Ca extends Model {
   }
 
   // Insert new CA in the database.
-  public static createCA(req): Promise<number> {
+  public static createCA(req: RequestData): Promise<number> {
     return new Promise((resolve, reject) => {
       const ca = {
         fwcloud: req.body.fwcloud,
@@ -110,7 +111,7 @@ export class Ca extends Model {
   }
 
   // Delete CA.
-  public static deleteCA(req): Promise<void> {
+  public static deleteCA(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       // Verify that the CA can be deleted.
       req.dbCon.query(
@@ -144,7 +145,7 @@ export class Ca extends Model {
   /**
    * Store the CA and cert ids into the tree's nodes used for the OpenVPN configurations.
    */
-  public static storePkiInfo(req, tree): Promise<void> {
+  public static storePkiInfo(req: RequestData, tree): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
                 FROM crt CRT
@@ -161,7 +162,7 @@ export class Ca extends Model {
   }
 
   // Execute EASY-RSA command.
-  public static runEasyRsaCmd(req, easyrsaDataCmd: string) {
+  public static runEasyRsaCmd(req: RequestData, easyrsaDataCmd: string) {
     return new Promise((resolve, reject) => {
       const pki_dir =
         '--pki-dir=' + config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.caId;
@@ -189,7 +190,10 @@ export class Ca extends Model {
           if (!req.body.pass) argv.push('nopass');
           break;
       }
-      const promise = spawn(config.get('pki').easy_rsa_cmd, argv);
+      const promise: ChildProcessPromise<SpawnPromiseResult> = spawn(
+        config.get('pki').easy_rsa_cmd,
+        argv,
+      );
       //const childProcess = promise.childProcess;
 
       //if (!req.body.pass)
@@ -242,7 +246,7 @@ export class Ca extends Model {
   }
 
   // Get the ID of all CA who's status field is not zero.
-  public static getCAStatusNotZero(req, data): Promise<TreeNode> {
+  public static getCAStatusNotZero(req: RequestData, data): Promise<TreeNode> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT id,status FROM ca WHERE status!=0 AND fwcloud=${req.body.fwcloud}`,

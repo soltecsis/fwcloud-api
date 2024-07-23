@@ -26,6 +26,8 @@ import { PolicyPosition } from './PolicyPosition';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 import { PolicyRule } from './PolicyRule';
 import Query from '../../database/Query';
+import RequestData from '../data/RequestData';
+import { OpenVPNToIPObjGroupExporter } from '../../fwcloud-exporter/database-exporter/exporters/openvpn-to-ipobj-group.exporter';
 
 const tableName: string = 'policy_r__openvpn';
 
@@ -78,7 +80,7 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   //Add new policy_r__openvpn
-  public static insertInRule(req): Promise<number> {
+  public static insertInRule(req: RequestData): Promise<number> {
     return new Promise(async (resolve, reject) => {
       const policyOpenvpn = {
         rule: req.body.rule,
@@ -125,7 +127,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static moveToNewPosition(req): Promise<void> {
+  public static moveToNewPosition(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
@@ -136,7 +138,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static deleteFromRulePosition(req): Promise<void> {
+  public static deleteFromRulePosition(req: RequestData): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
       req.dbCon.query(sql, async (error) => {
@@ -172,7 +174,28 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnInRule(dbCon: Query, fwcloud: number, openvpn: number) {
+  public static searchOpenvpnInRule(
+    dbCon: Query,
+    fwcloud: number,
+    openvpn: number,
+  ): Promise<
+    Array<
+      PolicyRuleToOpenVPN & {
+        firewall_id: number;
+        firewall_name: string;
+        obj_id: number;
+        obj_name: string;
+        rule_id: number;
+        rule_type: number;
+        obj_type_id: number;
+        rule_type_name: string;
+        rule_position_id: number;
+        rule_position_name: string;
+        cluster_id: number;
+        cluster_name: string;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
                 O.openvpn obj_id, CRT.cn obj_name,
@@ -187,14 +210,49 @@ export class PolicyRuleToOpenVPN extends Model {
                 inner join openvpn VPN on VPN.id=O.openvpn
                 inner join crt CRT on CRT.id=VPN.crt
                 where FW.fwcloud=${fwcloud} and O.openvpn=${openvpn}`;
-      dbCon.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error,
+          rows: Array<
+            PolicyRuleToOpenVPN & {
+              firewall_id: number;
+              firewall_name: string;
+              obj_id: number;
+              obj_name: string;
+              rule_id: number;
+              rule_type: number;
+              obj_type_id: number;
+              rule_type_name: string;
+              rule_position_id: number;
+              rule_position_name: string;
+              cluster_id: number;
+              cluster_name: string;
+            }
+          >,
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 
-  public static searchOpenvpnInGroup(dbCon: Query, fwcloud: number, openvpn: number) {
+  public static searchOpenvpnInGroup(
+    dbCon: Query,
+    fwcloud: number,
+    openvpn: number,
+  ): Promise<
+    Array<
+      OpenVPNToIPObjGroupExporter & {
+        group_id: number;
+        group_name: string;
+        group_type: number;
+        obj_type_id: number;
+        obj_name: string;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
                 (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name
@@ -203,10 +261,24 @@ export class PolicyRuleToOpenVPN extends Model {
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ipobj_g G on G.id=P.ipobj_g
                 where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
-      dbCon.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error,
+          rows: Array<
+            OpenVPNToIPObjGroupExporter & {
+              group_id: number;
+              group_name: string;
+              group_type: number;
+              obj_type_id: number;
+              obj_name: string;
+            }
+          >,
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 

@@ -30,6 +30,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
 import Query from '../../database/Query';
 import interfaces_Data from '../data/data_interface';
+import RequestData from '../data/RequestData';
 
 const tableName: string = 'cluster';
 
@@ -73,7 +74,7 @@ export class Cluster extends Model {
   }
 
   //Get All clusters
-  public static getClusterCloud(req): Promise<Array<Cluster> | null> {
+  public static getClusterCloud(req: RequestData): Promise<Array<Cluster> | null> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.* FROM ${tableName} T 
                 INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
@@ -86,7 +87,7 @@ export class Cluster extends Model {
   }
 
   //Get FULL cluster by  id
-  public static getCluster(req): Promise<
+  public static getCluster(req: RequestData): Promise<
     Cluster & {
       nodes: any;
       interfaces: Array<interfaces_Data>;

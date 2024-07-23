@@ -44,7 +44,46 @@ import db from '../../../database/database-manager';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import { OpenVPNPrefixToIPObjGroupExporter } from '../../../fwcloud-exporter/database-exporter/exporters/openvpn-prefix-to-ipobj-group.exporter';
+import RequestData from '../../data/RequestData';
+import { PolicyRuleToIPObjData } from '../../policy/PolicyRuleToIPObj';
 
+interface SearchPrefix {
+  firewall_id: number;
+  firewall_name: string;
+  cluster_id: number;
+  cluster_name: string;
+}
+interface SearchPrefixUsage {
+  result: boolean;
+  restrictions: {
+    PrefixInRule?: Array<
+      PolicyRuleToOpenVPNPrefix & { firewall_id: number; firewall_name: string }
+    >;
+    PrefixInGroup?: Array<
+      OpenVPNPrefixToIPObjGroupExporter & {
+        group_id: number;
+        group_name: string;
+        group_type: number;
+        obj_type_id: number;
+        obj_name: string;
+      }
+    >;
+    PrefixInRoute?: Array<SearchPrefix>;
+    PrefixInGroupInRoute?: Array<SearchPrefix>;
+    PrefixInRoutingRule?: Array<SearchPrefix>;
+    PrefixInGroupInRoutingRule?: Array<SearchPrefix>;
+    PrefixInGroupInRule?: Array<PolicyRuleToIPObjData>;
+  };
+}
+
+export interface SearchGroupUsage {
+  result: boolean;
+  restrictions: {
+    GroupInRule: Array<PolicyRuleToIPObjData>;
+    GroupInRoute: Array<SearchPrefix>;
+    GroupInRoutingRule: Array<SearchPrefix>;
+  };
+}
 const tableName: string = 'openvpn_prefix';
 
 @Entity(tableName)
@@ -106,22 +145,26 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Add new prefix container.
-  public static createPrefix(req) {
+  public static createPrefix(req: RequestData): Promise<number> {
     return new Promise((resolve, reject) => {
       const prefixData = {
         id: null,
         name: req.body.name,
         openvpn: req.body.openvpn,
       };
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, prefixData, (error: Error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        prefixData,
+        (error: Error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
   // Modify a CRT Prefix container.
-  public static modifyPrefix(req): Promise<void> {
+  public static modifyPrefix(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`,
@@ -226,14 +269,14 @@ export class OpenVPNPrefix extends Model {
       try {
         const prefixMatch = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
         for (let i = 0; i < prefixMatch.length; i++) {
-          const search: any = await OpenVPNPrefix.searchPrefixUsage(
+          const search: SearchPrefixUsage = await OpenVPNPrefix.searchPrefixUsage(
             dbCon,
             fwcloud,
             prefixMatch[i].id,
             true,
           );
-          const PrefixInRule: any = search.restrictions.PrefixInRule;
-          const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
+          const PrefixInRule = search.restrictions.PrefixInRule;
+          const PrefixInGroupIpRule = search.restrictions.PrefixInGroupInRule;
 
           for (let j = 0; j < PrefixInRule.length; j++)
             await Firewall.updateFirewallStatus(fwcloud, PrefixInRule[j].firewall_id, '|3');
@@ -400,7 +443,7 @@ export class OpenVPNPrefix extends Model {
     });
   }
 
-  public static removePrefixFromGroup(req) {
+  public static removePrefixFromGroup(req: RequestData) {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM openvpn_prefix__ipobj_g WHERE prefix=${req.body.ipobj} AND ipobj_g=${req.body.ipobj_g}`;
       req.dbCon.query(sql, (error, result: { insertId: number }) => {
@@ -446,13 +489,15 @@ export class OpenVPNPrefix extends Model {
     fwcloud: number,
     prefix: number,
   ): Promise<
-    Array<OpenVPNPrefixToIPObjGroupExporter> & {
-      group_id: number;
-      group_name: string;
-      group_type: number;
-      obj_type_id: number;
-      obj_name: string;
-    }
+    Array<
+      OpenVPNPrefixToIPObjGroupExporter & {
+        group_id: number;
+        group_name: string;
+        group_type: number;
+        obj_type_id: number;
+        obj_name: string;
+      }
+    >
   > {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
@@ -465,13 +510,15 @@ export class OpenVPNPrefix extends Model {
         sql,
         (
           error,
-          rows: Array<OpenVPNPrefixToIPObjGroupExporter> & {
-            group_id: number;
-            group_name: string;
-            group_type: number;
-            obj_type_id: number;
-            obj_name: string;
-          },
+          rows: Array<
+            OpenVPNPrefixToIPObjGroupExporter & {
+              group_id: number;
+              group_name: string;
+              group_type: number;
+              obj_type_id: number;
+              obj_name: string;
+            }
+          >,
         ) => {
           if (error) return reject(error);
           resolve(rows);
@@ -485,12 +532,21 @@ export class OpenVPNPrefix extends Model {
     fwcloud: number,
     prefix: number,
     extendedSearch?: boolean,
-  ) {
+  ): Promise<SearchPrefixUsage> {
     return new Promise(async (resolve, reject) => {
       try {
-        const search: any = {};
-        search.result = false;
-        search.restrictions = {};
+        const search: SearchPrefixUsage = {
+          result: false,
+          restrictions: {
+            PrefixInRule: [],
+            PrefixInGroup: [],
+            PrefixInRoute: [],
+            PrefixInGroupInRoute: [],
+            PrefixInRoutingRule: [],
+            PrefixInGroupInRoutingRule: [],
+            PrefixInGroupInRule: [],
+          },
+        };
 
         /* Verify that the OpenVPN server prefix is not used in any
                     - Rule (table policy_r__openvpn_prefix)
@@ -515,7 +571,7 @@ export class OpenVPNPrefix extends Model {
           // Include the rules that use the groups in which the OpenVPN prefix is being used.
           search.restrictions.PrefixInGroupInRule = [];
           for (let i = 0; i < search.restrictions.PrefixInGroup.length; i++) {
-            const data: any = await IPObjGroup.searchGroupUsage(
+            const data = await IPObjGroup.searchGroupUsage(
               search.restrictions.PrefixInGroup[i].group_id,
               fwcloud,
             );
@@ -524,7 +580,8 @@ export class OpenVPNPrefix extends Model {
         }
 
         for (const key in search.restrictions) {
-          if (search.restrictions[key].length > 0) {
+          const restrictionArray = search.restrictions[key];
+          if (Array.isArray(restrictionArray) && restrictionArray.length > 0) {
             search.result = true;
             break;
           }
@@ -536,7 +593,10 @@ export class OpenVPNPrefix extends Model {
     });
   }
 
-  public static async searchPrefixInRoute(fwcloud: number, prefix: number): Promise<any> {
+  public static async searchPrefixInRoute(
+    fwcloud: number,
+    prefix: number,
+  ): Promise<Array<SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -556,7 +616,10 @@ export class OpenVPNPrefix extends Model {
       .getRawMany();
   }
 
-  public static async searchPrefixInRoutingRule(fwcloud: number, prefix: number): Promise<any> {
+  public static async searchPrefixInRoutingRule(
+    fwcloud: number,
+    prefix: number,
+  ): Promise<Array<SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)
@@ -576,7 +639,10 @@ export class OpenVPNPrefix extends Model {
       .getRawMany();
   }
 
-  public static async searchPrefixInGroupInRoute(fwcloud: number, prefix: number): Promise<any> {
+  public static async searchPrefixInGroupInRoute(
+    fwcloud: number,
+    prefix: number,
+  ): Promise<Array<SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -598,7 +664,7 @@ export class OpenVPNPrefix extends Model {
   public static async searchPrefixInGroupInRoutingRule(
     fwcloud: number,
     prefix: number,
-  ): Promise<any> {
+  ): Promise<Array<SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)
@@ -617,7 +683,7 @@ export class OpenVPNPrefix extends Model {
       .getRawMany();
   }
 
-  public static searchPrefixUsageOutOfThisFirewall(req) {
+  public static searchPrefixUsageOutOfThisFirewall(req: RequestData): Promise<SearchPrefixUsage> {
     return new Promise((resolve, reject) => {
       // First get all firewalls prefixes for OpenVPN configurations.
       const sql = `select P.id from ${tableName} P
@@ -627,16 +693,19 @@ export class OpenVPNPrefix extends Model {
       req.dbCon.query(sql, async (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
-        const answer: any = {};
-        answer.restrictions = {};
-        answer.restrictions.PrefixInRule = [];
-        answer.restrictions.PrefixInRoute = [];
-        answer.restrictions.PrefixInRoutingRule = [];
-        answer.restrictions.PrefixInGroup = [];
+        const answer: SearchPrefixUsage = {
+          result: false,
+          restrictions: {
+            PrefixInRule: [],
+            PrefixInRoute: [],
+            PrefixInRoutingRule: [],
+            PrefixInGroup: [],
+          },
+        };
 
         try {
           for (const prefix of result) {
-            const data: any = await this.searchPrefixUsage(req.dbCon, req.body.fwcloud, prefix.id);
+            const data = await this.searchPrefixUsage(req.dbCon, req.body.fwcloud, prefix.id);
             if (data.result) {
               answer.restrictions.PrefixInRule = answer.restrictions.PrefixInRule.concat(
                 data.restrictions.PrefixInRule,

@@ -39,8 +39,10 @@ import { Tfa } from './Tfa';
 import Query from '../../database/Query';
 
 import fwcError from '../../utils/error_table';
+import RequestData from '../data/RequestData';
+import { Request } from 'express';
 
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
 
 const tableName: string = 'user';
 
@@ -134,7 +136,7 @@ export class User extends Model {
     });
   }
 
-  public static getAllAdminUserIds(req): Promise<Array<{ id: number }>> {
+  public static getAllAdminUserIds(req: RequestData): Promise<Array<{ id: number }>> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select id from ${tableName} where role=1`,
@@ -147,7 +149,7 @@ export class User extends Model {
   }
 
   //Add new user
-  public static _insert(req) {
+  public static _insert(req: RequestData) {
     return new Promise((resolve, reject) => {
       //New object with customer data
       const salt = bcrypt.genSaltSync(10);
@@ -164,10 +166,14 @@ export class User extends Model {
       };
 
       try {
-        req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error: Error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        });
+        req.dbCon.query(
+          `INSERT INTO ${tableName} SET ?`,
+          userData,
+          (error: Error, result: { insertId: number }) => {
+            if (error) return reject(error);
+            resolve(result.insertId);
+          },
+        );
       } catch (error) {
         reject(error);
       }
@@ -226,7 +232,7 @@ export class User extends Model {
     });
   }
 
-  public static isAdmin(req): Promise<boolean> {
+  public static isAdmin(req: RequestData): Promise<boolean> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select role from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
@@ -240,7 +246,7 @@ export class User extends Model {
     });
   }
 
-  public static async isLoggedUserAdmin(req): Promise<boolean> {
+  public static async isLoggedUserAdmin(req: RequestData | Request): Promise<boolean> {
     return new Promise((resolve, reject) => {
       if (!req.session || !req.session.user_id) {
         reject(fwcError.NOT_FOUND);
@@ -258,7 +264,7 @@ export class User extends Model {
     });
   }
 
-  public static _update(req): Promise<void> {
+  public static _update(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       let crypt_pass = '';
       if (req.body.password) {
@@ -285,7 +291,7 @@ export class User extends Model {
     });
   }
 
-  public static changeLoggedUserPass(req): Promise<void> {
+  public static changeLoggedUserPass(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       const salt = bcrypt.genSaltSync(10);
       const crypt_pass = bcrypt.hashSync(
@@ -303,7 +309,7 @@ export class User extends Model {
     });
   }
 
-  public static get(req): Promise<
+  public static get(req: RequestData): Promise<
     Array<{
       id: number;
       customer: number;
@@ -345,7 +351,7 @@ export class User extends Model {
     });
   }
 
-  public static _delete(req): Promise<void> {
+  public static _delete(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error) => {
         if (error) return reject(error);
@@ -362,7 +368,7 @@ export class User extends Model {
   }
 
   public static lastAdminUser(
-    req,
+    req: RequestData,
   ): Promise<{ result: boolean; restrictions?: { LastAdminUser: boolean } }> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(

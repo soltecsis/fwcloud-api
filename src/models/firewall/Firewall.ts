@@ -49,7 +49,7 @@ import { app } from '../../fonaments/abstract-application';
 import * as path from 'path';
 
 const config = require('../../config/config');
-const firewall_Data = require('../../models/data/data_firewall');
+import firewall_Data from '../../models/data/data_firewall';
 import fwcError from '../../utils/error_table';
 
 import { RoutingTable } from '../routing/routing-table/routing-table.model';
@@ -71,6 +71,7 @@ import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import Query from '../../database/Query';
 import firewalls_Data from '../data/data_firewall';
+import RequestData from '../data/RequestData';
 
 const tableName: string = 'firewall';
 
@@ -115,6 +116,10 @@ export enum FireWallOptMask {
   FAIL2BAN_COMPAT = 0x0080,
 }
 
+interface searchFirewallRestrictions {
+  result?: boolean;
+  restrictions?: {};
+}
 @Entity(tableName)
 export class Firewall extends Model {
   @PrimaryGeneratedColumn()
@@ -379,7 +384,7 @@ export class Firewall extends Model {
    * @param {Function} callback    Function callback response
    *
    */
-  public static getFirewall(req) {
+  public static getFirewall(req: RequestData) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip, M.id as id_fwmaster
 				FROM ${tableName} T
@@ -437,7 +442,7 @@ export class Firewall extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFirewallCloud(req) {
+  public static getFirewallCloud(req: RequestData) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
 			FROM ${tableName} T INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
@@ -484,7 +489,7 @@ export class Firewall extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFirewallSSH(req) {
+  public static getFirewallSSH(req: RequestData) {
     return new Promise(async (resolve, reject) => {
       try {
         const data: any = await this.getFirewall(req);
@@ -579,7 +584,7 @@ export class Firewall extends Model {
   public static getFirewallCluster(
     iduser: number,
     idcluster: number,
-    callback: (error: Error | null, rows: any) => void,
+    callback: (error: Error | null, row: firewall_Data[]) => void,
   ) {
     db.get((error, connection) => {
       if (error) return callback(error, null);
@@ -612,7 +617,9 @@ export class Firewall extends Model {
     });
   }
 
-  private static getfirewallData(row) {
+  private static getfirewallData(
+    row: Firewall & { interface_name: string; ip_name: string; ip: string },
+  ): Promise<firewall_Data> {
     return new Promise((resolve) => {
       const firewall = new firewall_Data(row);
       resolve(firewall);
@@ -622,7 +629,10 @@ export class Firewall extends Model {
   public static getFirewallClusterMaster(
     iduser: number,
     idcluster: number,
-    callback: (error: Error | null, rows: any) => void,
+    callback: (
+      error: Error | null,
+      rows: Array<Firewall & { interface_name: string; ip_name: string; ip: string }> | null,
+    ) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -641,9 +651,9 @@ export class Firewall extends Model {
           if (error) callback(error, null);
           else {
             try {
-              const firewall_data: any = await Promise.all(
+              const firewall_data = (await Promise.all(
                 rows.map((data) => utilsModel.decryptFirewallData(data)),
-              );
+              )) as Array<Firewall & { interface_name: string; ip_name: string; ip: string }>;
               callback(null, firewall_data);
             } catch (error) {
               return callback(error, null);
@@ -1603,7 +1613,7 @@ export class Firewall extends Model {
     });
   }
 
-  public static getMasterFirewallId = (fwcloud, cluster) => {
+  public static getMasterFirewallId = (fwcloud: number, cluster: number): Promise<number> => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1625,10 +1635,10 @@ export class Firewall extends Model {
     });
   };
 
-  public static searchFirewallRestrictions = (req) => {
+  public static searchFirewallRestrictions = (req: RequestData) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const search: any = {};
+        const search: searchFirewallRestrictions = {};
         search.result = false;
         search.restrictions = {};
 
@@ -1646,16 +1656,17 @@ export class Firewall extends Model {
 						  	
 						  Verify too that these objects are not being used in any group.
 				*/
-        const r1: any = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
-        const r2: any = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
-        const r3: any = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
+        const r1 = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
+        const r2 = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
+        const r3 = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
         if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
         if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
         if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
 
         for (const key in search.restrictions) {
-          if (search.restrictions[key].length > 0) {
+          const restriction = search.restrictions[key];
+          if (Array.isArray(restriction) && restriction.length > 0) {
             search.result = true;
             break;
           }

@@ -88,8 +88,8 @@ export class IdManager {
                 .select(`MAX(${originalColumnName})`, 'id');
 
               // If the table is empty, the returned value is null. We set 0 because it will be incremented afterwards
-              const id = (await queryBuilder.execute())[0]['id'] || 0;
-
+              const result = (await queryBuilder.execute()) as Array<{ id: number }>;
+              const id = result && result.length > 0 ? result[0]['id'] : 0;
               ids[tableName] = {};
               ids[tableName][primaryKeyPropertyName] = id ? id + 1 : 1;
             }

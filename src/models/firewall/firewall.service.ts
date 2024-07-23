@@ -269,7 +269,7 @@ export class FirewallService extends Service {
 				INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.node_type="FW"
 				WHERE T.id=${firewallId} AND T.cluster=${clusterId}`;
 
-      db.getQuery().query(sqlExists, async (error, row) => {
+      db.getQuery().query(sqlExists, async (error, row: Array<Firewall & { idnode: number }>) => {
         if (error) return reject(error);
         if (row.length === 0) return reject(fwcError.NOT_FOUND);
 

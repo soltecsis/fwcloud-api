@@ -22,7 +22,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
       "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S04', NULL, 'Fixed IPs')",
     );
 
-    let nodes = await queryRunner.query(
+    let nodes = (await queryRunner.query(
       'SELECT `id`, `id_obj`, `node_type`, `fwcloud`\n' +
         'FROM `fwc_tree` t\n' +
         "WHERE `node_type` IN ('FW', 'CL')\n" +
@@ -34,15 +34,15 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         'AND NOT EXISTS (' +
         "SELECT 1 FROM `fwc_tree` c WHERE c.`id_parent` = t.`id` AND c.`node_type` = 'SYS'" +
         ');',
-    );
+    )) as { id: number; id_obj: number; node_type: string; fwcloud: number }[];
 
     for (const node of nodes) {
       let idObj = node.id_obj;
       if (node.node_type === 'CL') {
-        const masterFirewall = await queryRunner.query(
+        const masterFirewall = (await queryRunner.query(
           "SELECT `id` FROM `firewall` WHERE `fwmaster` = '1' AND `cluster` = ?",
           [node.id_obj],
-        );
+        )) as { id: number }[];
         if (masterFirewall.length > 0) {
           idObj = masterFirewall[0].id;
         }

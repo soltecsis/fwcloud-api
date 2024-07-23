@@ -29,6 +29,7 @@ import { Interface } from './Interface';
 import Query from '../../database/Query';
 import { Err } from 'joi';
 import ipobjs_Data from '../data/data_ipobj';
+import { PolicyRuleToIPObjData } from '../policy/PolicyRuleToIPObj';
 
 const tableName: string = 'interface__ipobj';
 
@@ -137,20 +138,7 @@ export class InterfaceIPObj extends Model {
   public static getInterface__ipobj_hosts(
     _interface: number,
     fwcloud: number,
-  ): Promise<
-    Array<{
-      obj_id: number;
-      obj_name: string;
-      obj_type_id: number;
-      obj_type_name: string;
-      cloud_id: number;
-      cloud_name: string;
-      host_id: number;
-      host_name: string;
-      host_type: number;
-      host_type_name: string;
-    }>
-  > {
+  ): Promise<Array<PolicyRuleToIPObjData>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -168,27 +156,10 @@ export class InterfaceIPObj extends Model {
           ' AND (H.fwcloud=' +
           fwcloud +
           ' OR H.fwcloud is NULL) ORDER BY interface_order';
-        connection.query(
-          sql,
-          (
-            error,
-            rows: Array<{
-              obj_id: number;
-              obj_name: string;
-              obj_type_id: number;
-              obj_type_name: string;
-              cloud_id: number;
-              cloud_name: string;
-              host_id: number;
-              host_name: string;
-              host_type: number;
-              host_type_name: string;
-            }>,
-          ) => {
-            if (error) return reject(error);
-            resolve(rows);
-          },
-        );
+        connection.query(sql, (error, rows: Array<PolicyRuleToIPObjData>) => {
+          if (error) return reject(error);
+          resolve(rows);
+        });
       });
     });
   }

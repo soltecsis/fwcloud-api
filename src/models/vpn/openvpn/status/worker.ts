@@ -49,11 +49,11 @@ async function iterate(application: Application): Promise<void> {
           const communication: AgentCommunication =
             (await firewall.getCommunication()) as AgentCommunication;
 
-          const statusOption: OpenVPNOption = (await OpenVPN.getOptData(
+          const statusOption: OpenVPNOption = await OpenVPN.getOptData(
             db.getQuery(),
             openvpn.id,
             'status',
-          )) as OpenVPNOption;
+          );
 
           if (statusOption) {
             const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(

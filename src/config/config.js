@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-const fs = require('fs');
 process.env.NODE_ENV !== 'test' ? require('dotenv').config() : true;
 const path = require('path');
 var convict = require('convict');

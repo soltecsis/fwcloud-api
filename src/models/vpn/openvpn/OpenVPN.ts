@@ -51,8 +51,83 @@ import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
 import Query from '../../../database/Query';
 import { StringifyOptions } from 'querystring';
-const fwcError = require('../../../utils/error_table');
-const ip = require('ip');
+import RequestData from '../../data/RequestData';
+import fwcError from '../../../utils/error_table';
+import ip from 'ip';
+import { OpenVPNToIPObjGroupExporter } from '../../../fwcloud-exporter/database-exporter/exporters/openvpn-to-ipobj-group.exporter';
+import { PolicyRuleToIPObjData } from '../../policy/PolicyRuleToIPObj';
+import { PolicyRuleToOpenVPNPrefix } from '../../policy/PolicyRuleToOpenVPNPrefix';
+import f from 'session-file-store';
+
+interface SearchOpenvpnUsage {
+  result: boolean;
+  restrictions: {
+    OpenvpnInRule?: Array<
+      PolicyRuleToOpenVPN & {
+        firewall_id: number;
+        firewall_name: string;
+        obj_id: number;
+        obj_name: string;
+        rule_id: number;
+        rule_type: number;
+        obj_type_id: number;
+        rule_type_name: string;
+        rule_position_id: number;
+        rule_position_name: string;
+        cluster_id: number;
+        cluster_name: string;
+      }
+    >;
+    OpenvpnInGroup?: Array<
+      OpenVPNToIPObjGroupExporter & {
+        group_id: number;
+        group_name: string;
+        group_type: number;
+        obj_type_id: number;
+        obj_name: string;
+      }
+    >;
+    LastOpenvpnInPrefixInRule?: Array<{
+      rule_id: number;
+      prefix: string;
+      openvpn: number;
+      name: string;
+      rule_type: number;
+      obj_type_id: number;
+      obj_name: string;
+      rule_type_name: string;
+      rule_position_id: number;
+      rule_position_name: string;
+      firewall_id: number;
+      firewall_name: string;
+      cluster_id: number;
+      cluster_name: string;
+    }>;
+    LastOpenvpnInPrefixInGroup?: Array<{
+      prefix: string;
+      openvpn: number;
+      name: string;
+      group_id: number;
+      group_name: string;
+    }>;
+    OpenVPNInRoute?: Array<SearchRoute>;
+    OpenVPNInGroupInRoute?: Array<SearchRoute>;
+    OpenVPNInRoutingRule?: Array<SearchRoute>;
+    OpenVPNInGroupInRoutingRule?: Array<SearchRoute>;
+    OpenvpnInGroupInRule?: Array<PolicyRuleToIPObjData>;
+    OpenvpnInPrefixInRule?: Array<
+      PolicyRuleToOpenVPNPrefix & { firewall_id: number; firewall_name: string }
+    >;
+    OpenvpnInPrefixInGroupInRule?: Array<PolicyRuleToIPObjData>;
+  };
+}
+
+interface SearchRoute {
+  firewall_id: number;
+  firewall_name: string;
+  cluster_id: number;
+  cluster_name: string;
+}
 
 const tableName: string = 'openvpn';
 
@@ -153,7 +228,7 @@ export class OpenVPN extends Model {
   }
 
   // Insert new OpenVPN configuration register in the database.
-  public static addCfg(req) {
+  public static addCfg(req: RequestData) {
     return new Promise<number>((resolve, reject) => {
       const cfg = {
         openvpn: req.body.openvpn,
@@ -175,7 +250,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static updateCfg(req): Promise<void> {
+  public static updateCfg(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET install_dir=${req.dbCon.escape(req.body.install_dir)},
                 install_name=${req.dbCon.escape(req.body.install_name)},
@@ -188,7 +263,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static addCfgOpt(req, opt: OpenVPNOption): Promise<void> {
+  public static addCfgOpt(req: RequestData, opt: OpenVPNOption): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query('insert into openvpn_opt SET ?', opt, (error: Error) => {
         if (error) return reject(error);
@@ -197,7 +272,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static delCfgOptAll(req): Promise<void> {
+  public static delCfgOptAll(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
       req.dbCon.query(sql, (error: Error) => {
@@ -269,7 +344,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getCfgId(req): Promise<number> {
+  public static getCfgId(req: RequestData): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `select id from ${tableName} where firewall=${req.body.firewall} and crt=${req.body.crt}`;
       req.dbCon.query(sql, (error: Error, result: Array<{ id: number }>) => {
@@ -279,21 +354,24 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getCfg(req): Promise<any> {
+  public static getCfg(req: RequestData): Promise<any> {
     return new Promise((resolve, reject) => {
       let sql = `select * from ${tableName} where id=${req.body.openvpn}`;
-      req.dbCon.query(sql, (error: Error, result) => {
-        if (error) return reject(error);
-
-        const data = result[0];
-        sql = 'select * from openvpn_opt where openvpn=' + req.body.openvpn;
-        req.dbCon.query(sql, (error: Error, result) => {
+      req.dbCon.query(
+        sql,
+        (error: Error, result: Array<OpenVPN & { options: Array<OpenVPNOption> }>) => {
           if (error) return reject(error);
 
-          data.options = result;
-          resolve(data);
-        });
-      });
+          const data = result[0];
+          sql = 'select * from openvpn_opt where openvpn=' + req.body.openvpn;
+          req.dbCon.query(sql, (error: Error, result: Array<OpenVPNOption>) => {
+            if (error) return reject(error);
+
+            data.options = result;
+            resolve(data);
+          });
+        },
+      );
     });
   }
 
@@ -553,13 +631,10 @@ export class OpenVPN extends Model {
                 // Now read the files data and put it into de config files.
                 if (dh_path)
                   // Configuración OpenVPN de servidor.
-                  ovpn_cfg += '\n<dh>\n' + ((await this.getCRTData(dh_path)) as string) + '</dh>\n';
-                ovpn_cfg +=
-                  '\n<ca>\n' + ((await this.getCRTData(ca_crt_path)) as string) + '</ca>\n';
-                ovpn_cfg +=
-                  '\n<cert>\n' + ((await this.getCRTData(crt_path)) as string) + '</cert>\n';
-                ovpn_cfg +=
-                  '\n<key>\n' + ((await this.getCRTData(key_path)) as string) + '</key>\n';
+                  ovpn_cfg += '\n<dh>\n' + (await this.getCRTData(dh_path)) + '</dh>\n';
+                ovpn_cfg += '\n<ca>\n' + (await this.getCRTData(ca_crt_path)) + '</ca>\n';
+                ovpn_cfg += '\n<cert>\n' + (await this.getCRTData(crt_path)) + '</cert>\n';
+                ovpn_cfg += '\n<key>\n' + (await this.getCRTData(key_path)) + '</key>\n';
 
                 resolve({ cfg: ovpn_cfg, ccd: ovpn_ccd });
               } catch (error) {
@@ -600,7 +675,11 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static updateOpenvpnStatusIPOBJ(req, ipobj: number, status_action: number): Promise<void> {
+  public static updateOpenvpnStatusIPOBJ(
+    req: RequestData,
+    ipobj: number,
+    status_action: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE openvpn VPN
                 INNER JOIN openvpn_opt OPT ON OPT.openvpn=VPN.id
@@ -614,7 +693,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static freeVpnIP(req): Promise<{ ip: any; netmask: string }> {
+  public static freeVpnIP(req: RequestData): Promise<{ ip: any; netmask: string }> {
     return new Promise((resolve, reject) => {
       // Search for the VPN LAN and mask.
       let sql = `select OBJ.address,OBJ.netmask from openvpn_opt OPT
@@ -633,8 +712,8 @@ export class OpenVPN extends Model {
             ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
             : ipobj.netmask;
         const net = ip.subnet(ipobj.address, netmask);
-        net.firstLong = ip.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
-        net.lastLong = ip.toLong(net.lastAddress);
+        const firstLong = ip.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
+        const lastLong = ip.toLong(net.lastAddress);
 
         // Obtain the VPN LAN used IPs.
         sql = `select OBJ.address from openvpn VPN
@@ -644,9 +723,9 @@ export class OpenVPN extends Model {
         req.dbCon.query(sql, (error: Error, result: Array<{ address: string }>) => {
           if (error) return reject(error);
 
-          let freeIPLong;
-          let found;
-          for (freeIPLong = net.firstLong; freeIPLong <= net.lastLong; freeIPLong++) {
+          let freeIPLong: number;
+          let found: number;
+          for (freeIPLong = firstLong; freeIPLong <= lastLong; freeIPLong++) {
             found = 0;
             for (const ipCli of result) {
               if (freeIPLong === ip.toLong(ipCli.address)) {
@@ -667,13 +746,24 @@ export class OpenVPN extends Model {
     fwcloud: number,
     openvpn: number,
     extendedSearch?: boolean,
-  ) {
+  ): Promise<SearchOpenvpnUsage> {
     return new Promise(async (resolve, reject) => {
       try {
-        const search: any = {};
-        search.result = false;
-        search.restrictions = {};
-
+        const search: SearchOpenvpnUsage = {
+          result: false,
+          restrictions: {
+            OpenvpnInRule: [],
+            OpenvpnInGroup: [],
+            LastOpenvpnInPrefixInRule: [],
+            LastOpenvpnInPrefixInGroup: [],
+            OpenvpnInGroupInRule: [],
+            OpenvpnInPrefixInGroupInRule: [],
+            OpenVPNInRoute: [],
+            OpenVPNInGroupInRoute: [],
+            OpenVPNInRoutingRule: [],
+            OpenVPNInGroupInRoutingRule: [],
+          },
+        };
         /* Verify that the OpenVPN configuration is not used in any
                     - Rule (table policy_r__openvpn)
                     - IPBOJ group.
@@ -710,7 +800,7 @@ export class OpenVPN extends Model {
           // Include the rules that use the groups in which the OpenVPN is being used.
           search.restrictions.OpenvpnInGroupInRule = [];
           for (let i = 0; i < search.restrictions.OpenvpnInGroup.length; i++) {
-            const data: any = await IPObjGroup.searchGroupUsage(
+            const data = await IPObjGroup.searchGroupUsage(
               search.restrictions.OpenvpnInGroup[i].group_id,
               fwcloud,
             );
@@ -723,7 +813,7 @@ export class OpenVPN extends Model {
           search.restrictions.OpenvpnInPrefixInRule = [];
           search.restrictions.OpenvpnInPrefixInGroupInRule = [];
           for (let i = 0; i < prefixes.length; i++) {
-            const data: any = await OpenVPNPrefix.searchPrefixUsage(
+            const data = await OpenVPNPrefix.searchPrefixUsage(
               dbCon,
               fwcloud,
               prefixes[i].id,
@@ -737,7 +827,8 @@ export class OpenVPN extends Model {
         }
 
         for (const key in search.restrictions) {
-          if (search.restrictions[key].length > 0) {
+          const restrictionArray = search.restrictions[key];
+          if (Array.isArray(restrictionArray) && restrictionArray.length > 0) {
             search.result = true;
             break;
           }
@@ -749,7 +840,10 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static async searchOpenVPNInRoute(fwcloud: number, openvpn: number): Promise<any> {
+  public static async searchOpenVPNInRoute(
+    fwcloud: number,
+    openvpn: number,
+  ): Promise<Array<SearchRoute>> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -769,7 +863,10 @@ export class OpenVPN extends Model {
       .getRawMany();
   }
 
-  public static async searchOpenVPNInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
+  public static async searchOpenVPNInRoutingRule(
+    fwcloud: number,
+    openvpn: number,
+  ): Promise<Array<SearchRoute>> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)
@@ -789,7 +886,10 @@ export class OpenVPN extends Model {
       .getRawMany();
   }
 
-  public static async searchOpenVPNInGroupInRoute(fwcloud: number, openvpn: number): Promise<any> {
+  public static async searchOpenVPNInGroupInRoute(
+    fwcloud: number,
+    openvpn: number,
+  ): Promise<Array<SearchRoute>> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -811,7 +911,7 @@ export class OpenVPN extends Model {
   public static async searchOpenVPNInGroupInRoutingRule(
     fwcloud: number,
     openvpn: number,
-  ): Promise<any> {
+  ): Promise<Array<SearchRoute>> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)
@@ -830,7 +930,7 @@ export class OpenVPN extends Model {
       .getRawMany();
   }
 
-  public static searchOpenvpnUsageOutOfThisFirewall(req) {
+  public static searchOpenvpnUsageOutOfThisFirewall(req: RequestData): Promise<SearchOpenvpnUsage> {
     return new Promise((resolve, reject) => {
       // First get all firewalls OpenVPN configurations.
       const sql = 'select id from openvpn where firewall=' + req.body.firewall;
@@ -838,20 +938,18 @@ export class OpenVPN extends Model {
       req.dbCon.query(sql, async (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
-        const answer: any = {};
-        answer.restrictions = {};
-        answer.restrictions.OpenvpnInRule = [];
-        answer.restrictions.OpenVPNInRoute = [];
-        answer.restrictions.OpenVPNInRoutingRule = [];
-        answer.restrictions.OpenvpnInGroup = [];
-
+        const answer: SearchOpenvpnUsage = {
+          result: false,
+          restrictions: {
+            OpenvpnInRule: [],
+            OpenVPNInRoute: [],
+            OpenVPNInRoutingRule: [],
+            OpenvpnInGroup: [],
+          },
+        };
         try {
           for (const openvpn of result) {
-            const data: any = await this.searchOpenvpnUsage(
-              req.dbCon,
-              req.body.fwcloud,
-              openvpn.id,
-            );
+            const data = await this.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, openvpn.id);
             if (data.result) {
               answer.restrictions.OpenvpnInRule = answer.restrictions.OpenvpnInRule.concat(
                 data.restrictions.OpenvpnInRule,
@@ -918,7 +1016,7 @@ export class OpenVPN extends Model {
   }
 
   // Get the ID of all OpenVPN configurations who's status field is not zero.
-  public static getOpenvpnStatusNotZero(req, data): Promise<any> {
+  public static getOpenvpnStatusNotZero(req: RequestData, data): Promise<any> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id,VPN.status FROM openvpn VPN
                 INNER JOIN firewall FW on FW.id=VPN.firewall
@@ -933,24 +1031,27 @@ export class OpenVPN extends Model {
 
   public static addToGroup(dbCon: Query, openvpn: number, ipobj_g: number): Promise<number> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`INSERT INTO openvpn__ipobj_g values(${openvpn},${ipobj_g})`, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      dbCon.query(
+        `INSERT INTO openvpn__ipobj_g values(${openvpn},${ipobj_g})`,
+        (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
-  public static removeFromGroup(req): Promise<number> {
+  public static removeFromGroup(req: RequestData): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND openvpn=${req.body.ipobj}`;
-      req.dbCon.query(sql, (error: Error, result) => {
+      req.dbCon.query(sql, (error: Error, result: { insertId: number }) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
     });
   }
 
-  public static createOpenvpnServerInterface(req, cfg: number): Promise<void> {
+  public static createOpenvpnServerInterface(req: RequestData, cfg: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         let openvpn_opt = await this.getOptData(req.dbCon, cfg, 'dev');
@@ -981,7 +1082,7 @@ export class OpenVPN extends Model {
 
           const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
           if (interfaceId) {
-            const interfaces_node: any = await Tree.getNodeUnderFirewall(
+            const interfaces_node = await Tree.getNodeUnderFirewall(
               req.dbCon,
               req.body.fwcloud,
               req.body.firewall,

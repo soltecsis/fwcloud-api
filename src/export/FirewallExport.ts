@@ -23,7 +23,10 @@
 import { RuleArgs } from 'joi';
 import db from '../database/database-manager';
 import Query from '../database/Query';
-const fwcError = require('../utils/error_table');
+import fwcError from '../utils/error_table';
+import { Firewall } from '../models/firewall/Firewall';
+import { IPObj } from '../models/ipobj/IPObj';
+import { Interface } from '../models/interface/Interface';
 
 export class FirewallExport {
   /**
@@ -36,29 +39,32 @@ export class FirewallExport {
         if (error) return reject(error);
 
         const sql = 'select * from firewall where id=' + connection.escape(id);
-        connection.query(sql, async (error, firewallData) => {
-          if (error) return reject(error);
-          if (firewallData.length !== 1) return reject(fwcError.NOT_FOUND);
+        connection.query(
+          sql,
+          async (error, firewallData: Array<Firewall & { interfaces: any; policy: any }>) => {
+            if (error) return reject(error);
+            if (firewallData.length !== 1) return reject(fwcError.NOT_FOUND);
 
-          try {
-            firewallData[0].interfaces = await this.exportInterfaces(connection, id);
-            firewallData[0].policy = await this.exportPolicy(connection, id);
-          } catch (error) {
-            reject(error);
-          }
+            try {
+              firewallData[0].interfaces = await this.exportInterfaces(connection, id);
+              firewallData[0].policy = await this.exportPolicy(connection, id);
+            } catch (error) {
+              reject(error);
+            }
 
-          resolve(firewallData[0]);
-        });
+            resolve(firewallData[0]);
+          },
+        );
       });
     });
   }
 
-  private static exportAddrs(row) {
+  private static exportAddrs(id: number): Promise<Array<IPObj>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        const sql = 'select * from ipobj where interface=' + connection.escape(row.id);
-        connection.query(sql, (error, rows) => {
+        const sql = 'select * from ipobj where interface=' + connection.escape(id);
+        connection.query(sql, (error, rows: Array<IPObj>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -66,14 +72,17 @@ export class FirewallExport {
     });
   }
 
-  private static exportInterfaces(connection: Query, id: number) {
+  private static exportInterfaces(
+    connection: Query,
+    id: number,
+  ): Promise<Array<Interface & { addresses: IPObj[] }>> {
     return new Promise((resolve, reject) => {
       const sql = 'select * from interface where firewall=' + connection.escape(id);
-      connection.query(sql, (error, interfaces) => {
+      connection.query(sql, (error, interfaces: Array<Interface & { addresses: IPObj[] }>) => {
         if (error) return reject(error);
 
         // The order is preserved regardless of what resolved first
-        Promise.all(interfaces.map((row) => this.exportAddrs(row)))
+        Promise.all(interfaces.map((row) => this.exportAddrs(row.id)))
           .then((addrs) => {
             for (let i = 0; i < interfaces.length; i++) interfaces[i].addresses = addrs[i];
             resolve(interfaces);

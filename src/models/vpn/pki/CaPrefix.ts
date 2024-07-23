@@ -27,6 +27,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 't
 import { Ca } from './Ca';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
+import RequestData from '../../data/RequestData';
 
 const tableName: string = 'ca_prefix';
 
@@ -52,7 +53,7 @@ export class CaPrefix extends Model {
   }
 
   // Validate new prefix container.
-  public static existsCrtPrefix(req): Promise<boolean> {
+  public static existsCrtPrefix(req: RequestData): Promise<boolean> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT id FROM ca_prefix WHERE ca=${req.body.ca} AND name=${req.dbCon.escape(req.body.name)}`,
@@ -143,7 +144,7 @@ export class CaPrefix extends Model {
   }
 
   // Apply CRT prefix to tree node.
-  public static applyCrtPrefixes(req, ca: number): Promise<void> {
+  public static applyCrtPrefixes(req: RequestData, ca: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         // Search for the CA node tree.
@@ -190,7 +191,7 @@ export class CaPrefix extends Model {
   }
 
   // Add new prefix container.
-  public static createCrtPrefix(req) {
+  public static createCrtPrefix(req: RequestData) {
     return new Promise((resolve, reject) => {
       const prefixData = {
         id: null,
@@ -209,7 +210,7 @@ export class CaPrefix extends Model {
   }
 
   // Modify a CRT Prefix container.
-  public static modifyCrtPrefix(req): Promise<void> {
+  public static modifyCrtPrefix(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `UPDATE ca_prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`,
@@ -222,7 +223,7 @@ export class CaPrefix extends Model {
   }
 
   // Delete CRT Prefix container.
-  public static deleteCrtPrefix(req): Promise<void> {
+  public static deleteCrtPrefix(req: RequestData): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(`DELETE from ca_prefix WHERE id=${req.body.prefix}`, (error) => {
         if (error) return reject(error);

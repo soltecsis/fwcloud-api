@@ -31,7 +31,8 @@ import Query from '../../database/Query';
 import { number, string } from 'joi';
 import fwcError from '../../utils/error_table';
 
-const asyncMod = require('async');
+import asyncMod from 'async';
+import { PolicyRuleToIPObjData } from './PolicyRuleToIPObj';
 
 const tableName: string = 'policy_r__interface';
 
@@ -550,11 +551,11 @@ export class PolicyRuleToInterface extends Model {
                   ' SET position_order=' +
                   order +
                   ' WHERE rule = ' +
-                  connection.escape(row.rule) +
+                  connection.escape(row.policyRuleId) +
                   ' AND position=' +
-                  connection.escape(row.position) +
+                  connection.escape(row.policyPositionId) +
                   ' AND interface=' +
-                  connection.escape(row.interface);
+                  connection.escape(row.interfaceId);
                 //logger().debug(sql);
                 connection.query(sql, async (error) => {
                   if (error) {
@@ -594,7 +595,7 @@ export class PolicyRuleToInterface extends Model {
           asyncMod.map(
             rows,
             (row, callback1: Function) => {
-              const position = row.position;
+              const position = row.policyPositionId;
               if (position !== prev_position) {
                 order = 1;
                 prev_position = position;
@@ -607,11 +608,11 @@ export class PolicyRuleToInterface extends Model {
                   ' SET position_order=' +
                   order +
                   ' WHERE rule = ' +
-                  connection.escape(row.rule) +
+                  connection.escape(row.policyRuleId) +
                   ' AND position=' +
-                  connection.escape(row.position) +
+                  connection.escape(row.policyPositionId) +
                   ' AND interface=' +
-                  connection.escape(row.interface);
+                  connection.escape(row.interfaceId);
                 //logger().debug(sql);
                 connection.query(sql, async (error) => {
                   if (error) {
@@ -647,8 +648,8 @@ export class PolicyRuleToInterface extends Model {
           asyncMod.map(
             rows,
             (row, callback1: Function) => {
-              const position = row.position;
-              const rule = row.rule;
+              const position = row.policyPositionId;
+              const rule = row.policyRuleId;
               if (position !== prev_position || rule !== prev_rule) {
                 order = 1;
                 prev_rule = rule;
@@ -662,11 +663,11 @@ export class PolicyRuleToInterface extends Model {
                   ' SET position_order=' +
                   order +
                   ' WHERE rule = ' +
-                  connection.escape(row.rule) +
+                  connection.escape(row.policyRuleId) +
                   ' AND position=' +
-                  connection.escape(row.position) +
+                  connection.escape(row.policyRuleId) +
                   ' AND interface=' +
-                  connection.escape(row.interface);
+                  connection.escape(row.interfaceId);
                 //logger().debug(sql);
                 connection.query(sql, async (error) => {
                   if (error) {
@@ -799,11 +800,11 @@ export class PolicyRuleToInterface extends Model {
   //search if INTERFACE Exists in any rule I POSITIONS
   public static SearchInterfaceInRules = (
     _interface: number,
-    type: number,
+    type: string,
     fwcloud: number,
     firewall: number,
     diff_firewall: number,
-  ) => {
+  ): Promise<Array<PolicyRuleToIPObjData>> => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -842,7 +843,7 @@ export class PolicyRuleToInterface extends Model {
           if (diff_firewall) sql += ` AND F.id<>${diff_firewall}`;
           else sql += ` AND F.id=${firewall}`;
         }
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error, rows: Array<PolicyRuleToIPObjData>) => {
           if (error) return reject(error);
           resolve(rows);
         });

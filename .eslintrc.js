@@ -44,7 +44,8 @@ module.exports = {
     //'no-useless-escape': 'off',
     '@typescript-eslint/restrict-plus-operands': 'off',
     //'@typescript-eslint/no-base-to-string': 'off', // finished
-    //'@typescript-eslint/restrict-template-expressions': 'off', // finished
+    '@typescript-eslint/restrict-template-expressions': 'off', // finished
+    '@typescript-eslint/no-base-to-string': 'off',
     //'no-empty': 'off', // finished
     //'no-constant-condition': 'off', // finished
     //'no-dupe-else-if': 'off',  // finished

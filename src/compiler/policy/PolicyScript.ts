@@ -55,7 +55,7 @@ export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
   private path: string;
-  private stream: any;
+  private stream: fs.WriteStream;
 
   constructor(
     private dbCon: Query,

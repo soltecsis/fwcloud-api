@@ -74,7 +74,7 @@ export class PgpHelper {
           encryptionKeys: publicKey,
         });
 
-        resolve(msgEncrypted.toString() as string);
+        resolve(JSON.stringify(msgEncrypted));
       } catch (error) {
         reject(error);
       }
@@ -95,7 +95,7 @@ export class PgpHelper {
           decryptionKeys: privateKey,
         });
 
-        resolve(msg.data.toString());
+        resolve(JSON.stringify(msg.data));
       } catch (error) {
         reject(error);
       }

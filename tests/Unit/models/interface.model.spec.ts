@@ -36,7 +36,7 @@ describe(Interface.name, () => {
       it('should detect usages', async () => {
         const whereUsed: any = await Interface.searchInterfaceUsage(
           fwcloudProduct.interfaces.get('firewall-interface1').id,
-          10,
+          '10',
           fwcloudProduct.fwcloud.id,
           null,
         );

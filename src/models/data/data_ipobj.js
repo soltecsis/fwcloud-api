@@ -47,6 +47,7 @@ function ipobjs_Data(data) {
   this.id_node = data.id_node;
   this.id_parent_node = data.id_parent_node;
   this.label_name = data.label_name;
+  return this;
 }
 //Export the object
 module.exports = ipobjs_Data;

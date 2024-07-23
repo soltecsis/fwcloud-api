@@ -66,7 +66,7 @@ export class StandardServicesAddCommand extends Command {
 
   private dataSource: DataSource;
 
-  private async getTreeNodes(): Promise<any> {
+  private async getTreeNodes(): Promise<Array<{ id: number }>> {
     const sql = `select SOON.id from fwc_tree SOON 
             inner join fwc_tree FATHER on SOON.id_parent=FATHER.id 
             where FATHER.name='TCP' and FATHER.node_type='SOT' 
@@ -82,7 +82,9 @@ export class StandardServicesAddCommand extends Command {
   private async addStandardTCPServices(): Promise<void> {
     for (const service of this.TCP_services) {
       // Make sure that the service doesn't exists.
-      const exists = await this.dataSource.query(`SELECT id from ipobj where id=${service.id}`);
+      const exists = (await this.dataSource.query(
+        `SELECT id from ipobj where id=${service.id}`,
+      )) as Array<{ id: number }>;
 
       // If service already exists, then don't create it.
       if (exists.length) {
@@ -102,7 +104,7 @@ export class StandardServicesAddCommand extends Command {
         // Make sure that we don't already have a node for this TCP service.
         let sql = `SELECT id from fwc_tree
                     where id_parent=${node.id} and id_obj=${service.id}`;
-        const exists = await this.dataSource.query(sql);
+        const exists = (await this.dataSource.query(sql)) as Array<{ id: number }>;
 
         // If the node for this service object already exists, then don't create it.
         if (exists.length) {

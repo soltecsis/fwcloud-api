@@ -5,6 +5,7 @@ import { OpenVPNPrefix } from './OpenVPNPrefix';
 import { FirewallService } from '../../firewall/firewall.service';
 import { FwcTree } from '../../tree/fwc-tree.model';
 import fwcError from '../../../utils/error_table';
+import RequestData from '../../data/RequestData';
 
 export class OpenVPNPrefixService extends Service {
   protected _firewallService: FirewallService;
@@ -15,7 +16,7 @@ export class OpenVPNPrefixService extends Service {
   }
 
   // Activate the compile/install flags of all the firewalls that use this OpenVPN prefix.
-  public async update(req): Promise<void> {
+  public async update(req: RequestData): Promise<void> {
     // Verify that the new prefix name doesn't already exists.
     req.body.ca = (req as any).prefix.ca;
 
@@ -70,14 +71,14 @@ export class OpenVPNPrefixService extends Service {
   protected updateAffectedFirewalls(fwcloudId: number, prefixId: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const search: any = await OpenVPNPrefix.searchPrefixUsage(
+        const search = await OpenVPNPrefix.searchPrefixUsage(
           db.getQuery(),
           fwcloudId,
           prefixId,
           true,
         );
-        const PrefixInRule: any = search.restrictions.PrefixInRule;
-        const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
+        const PrefixInRule = search.restrictions.PrefixInRule;
+        const PrefixInGroupIpRule = search.restrictions.PrefixInGroupInRule;
 
         for (let j = 0; j < PrefixInRule.length; j++)
           await Firewall.updateFirewallStatus(fwcloudId, PrefixInRule[j].firewall_id, '|3');

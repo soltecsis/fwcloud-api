@@ -32,6 +32,7 @@ import { Firewall } from '../firewall/Firewall';
 import { IPObj } from '../ipobj/IPObj';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import fwcError from '../../utils/error_table';
+import RequestData from '../data/RequestData';
 
 let dbCon: Query;
 let fwcloud: number;
@@ -67,7 +68,7 @@ export class Repair extends Model {
     return tableName;
   }
 
-  public static initData(req): Promise<void> {
+  public static initData(req: RequestData): Promise<void> {
     return new Promise(async (resolve) => {
       dbCon = req.dbCon;
       fwcloud = req.body.fwcloud;
@@ -279,7 +280,7 @@ export class Repair extends Model {
 
   // Regenerate firewalls tree.
   public static regenerateFirewallTree(
-    rootNode,
+    rootNode: Repair,
     firewall: Firewall,
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
