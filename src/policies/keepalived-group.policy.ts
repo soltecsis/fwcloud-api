@@ -72,7 +72,7 @@ export class KeepalivedGroupPolicy extends Policy {
     return new Promise<Authorization>((resolve, reject) => {
       try {
         if (user.role === 1) {
-          return Authorization.grant();
+          resolve(Authorization.grant());
         }
 
         const match = user.fwClouds.filter((fwcloud) => {
