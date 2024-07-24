@@ -339,7 +339,7 @@ export class OpenVPNService extends Service {
    * @returns
    */
   public async removeExpiredFiles(): Promise<number> {
-    return new Promise<number>(async (resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       try {
         //Create an array with all files their paths
         const allFiles: { file: string; path: string }[] = [];

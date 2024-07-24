@@ -23,7 +23,10 @@
 import Model from '../Model';
 import db from '../../database/database-manager';
 
-import { PolicyRuleToIPObj, PolicyRuleToIPObjData } from '../../models/policy/PolicyRuleToIPObj';
+import {
+  PolicyRuleToIPObj,
+  PolicyRuleToIPObjInRuleData,
+} from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
@@ -47,10 +50,10 @@ import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 interface SearchInterfaceUsage {
   result?: boolean;
   restrictions?: {
-    InterfaceInRules_I?: Array<PolicyRuleToIPObjData>;
-    InterfaceInRules_O?: Array<PolicyRuleToIPObjData>;
-    IpobjInterfaceInRule?: Array<PolicyRuleToIPObjData>;
-    IpobjInterfaceInGroup?: Array<PolicyRuleToIPObjData>;
+    InterfaceInRules_I?: Array<PolicyRuleToIPObjInRuleData>;
+    InterfaceInRules_O?: Array<PolicyRuleToIPObjInRuleData>;
+    IpobjInterfaceInRule?: Array<PolicyRuleToIPObjInRuleData>;
+    IpobjInterfaceInGroup?: Array<PolicyRuleToIPObjInRuleData>;
     IpobjInterfaceInOpenvpn?: Array<
       OpenVPN & {
         cloud_id: number;
@@ -61,9 +64,9 @@ interface SearchInterfaceUsage {
         cluster_name: string;
       }
     >;
-    InterfaceInFirewall?: Array<PolicyRuleToIPObjData>;
-    InterfaceInHost?: Array<PolicyRuleToIPObjData>;
-    LastInterfaceWithAddrInHostInRule?: Array<PolicyRuleToIPObjData>;
+    InterfaceInFirewall?: Array<PolicyRuleToIPObjInRuleData>;
+    InterfaceInHost?: Array<PolicyRuleToIPObjInRuleData>;
+    LastInterfaceWithAddrInHostInRule?: Array<PolicyRuleToIPObjInRuleData>;
     InterfaceInRoute?: Array<SearchRoute>;
     IpobjInterfaceInRoute?: Array<SearchRoute>;
     IpobjInterfaceInRoutingRule?: Array<SearchRoute>;
@@ -249,7 +252,10 @@ export class Interface extends Model {
   }
 
   //Get All interface by HOST and IPOBJECTS UNDER INTERFACES
-  public static getInterfacesHost_Full_Pro(idhost: number, fwcloud: number) {
+  public static getInterfacesHost_Full_Pro(
+    idhost: number,
+    fwcloud: number,
+  ): Promise<Array<data_policy_position_ipobjs>> {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) reject(error);
@@ -377,7 +383,7 @@ export class Interface extends Model {
 
   public static getInterfaceFullProData(
     data: Interface & { id_node: number; id_parent_node: number; fwcloud: number },
-  ): Promise<any> {
+  ): Promise<data_policy_position_ipobjs> {
     return new Promise((resolve, reject) => {
       this.getInterfaceFullPro(data.fwcloud, data.id)
         .then((dataI) => {
@@ -393,7 +399,7 @@ export class Interface extends Model {
   public static getInterfaceFullPro(
     fwcloud: number,
     id: number,
-  ): Promise<data_policy_position_ipobjs | {}> {
+  ): Promise<data_policy_position_ipobjs> {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) reject(error);
@@ -442,7 +448,7 @@ export class Interface extends Model {
                     });
                 })
                 .catch(() => {
-                  resolve({});
+                  resolve({} as data_policy_position_ipobjs);
                 });
             }
           },
@@ -729,7 +735,7 @@ export class Interface extends Model {
     _interface: number,
     type: string,
     fwcloud: number,
-  ): Promise<Array<PolicyRuleToIPObjData>> {
+  ): Promise<Array<PolicyRuleToIPObjInRuleData>> {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) return reject(error);
@@ -748,7 +754,7 @@ export class Interface extends Model {
           type +
           ' AND F.fwcloud=' +
           fwcloud;
-        connection.query(sql, (error: Error, rows: Array<PolicyRuleToIPObjData>) => {
+        connection.query(sql, (error: Error, rows: Array<PolicyRuleToIPObjInRuleData>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -761,7 +767,7 @@ export class Interface extends Model {
     fwcloud: number,
     firewall: number,
     ifName: string,
-  ): Promise<number | string> {
+  ): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.id from interface I
 			INNER JOIN ipobj_type T on T.id=I.interface_type
@@ -772,7 +778,7 @@ export class Interface extends Model {
       dbCon.query(sql, (error: Error, rows: Array<{ id: number }>) => {
         if (error) return reject(error);
 
-        resolve(rows.length === 0 ? '' : rows[0].id);
+        resolve(rows.length === 0 ? undefined : rows[0].id);
       });
     });
   }
@@ -1288,7 +1294,7 @@ export class Interface extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
-        async (error: Error) => {
+        (error: Error) => {
           if (error) return reject(error);
           resolve();
         },

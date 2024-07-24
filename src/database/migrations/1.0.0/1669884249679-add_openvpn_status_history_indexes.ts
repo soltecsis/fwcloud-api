@@ -2,7 +2,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addOpenvpnStatusHistoryIndexes1669884249679 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const result = await queryRunner.query('show create table openvpn_status_history');
+    const result: Array<{ 'Create Table': string }> = await queryRunner.query(
+      'show create table openvpn_status_history',
+    );
     const idx1 = 'IDX_d5f7fe1875fc92dba78c500371';
     const idx2 = 'IDX_adba662cf32738c010d418fda8';
 

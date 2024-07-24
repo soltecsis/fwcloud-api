@@ -26,6 +26,12 @@ import { NotFoundException } from '../fonaments/exceptions/not-found-exception';
 
 export class Throws404 extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    next(new NotFoundException(`[${req.method}]${req.path} not found.`));
+    return new Promise((resolve, reject) => {
+      try {
+        resolve(next(new NotFoundException(`[${req.method}]${req.path} not found.`)));
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 }

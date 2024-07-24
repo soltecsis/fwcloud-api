@@ -250,7 +250,7 @@ export class KeepalivedRuleService extends Service {
       .getOneOrFail();
 
     let lastPosition = 0;
-    [].concat(toRule.virtualIps).forEach((item) => {
+    [].concat(toRule.virtualIps).forEach((item: KeepalivedToIPObj) => {
       lastPosition < item.order ? (lastPosition = item.order) : null;
     });
 

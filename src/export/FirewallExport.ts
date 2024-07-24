@@ -27,6 +27,11 @@ import fwcError from '../utils/error_table';
 import { Firewall } from '../models/firewall/Firewall';
 import { IPObj } from '../models/ipobj/IPObj';
 import { Interface } from '../models/interface/Interface';
+import { PolicyRule } from '../models/policy/PolicyRule';
+import { interfaces } from 'mocha';
+import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
+import { PolicyRuleToIPObj } from '../models/policy/PolicyRuleToIPObj';
+import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 
 export class FirewallExport {
   /**
@@ -41,7 +46,28 @@ export class FirewallExport {
         const sql = 'select * from firewall where id=' + connection.escape(id);
         connection.query(
           sql,
-          async (error, firewallData: Array<Firewall & { interfaces: any; policy: any }>) => {
+          async (
+            error,
+            firewallData: Array<
+              Firewall & {
+                interfaces: Array<
+                  Interface & {
+                    addresses: IPObj[];
+                  }
+                >;
+                policy: Array<
+                  PolicyRule & {
+                    interfaces: PolicyRuleToInterface[];
+                    ipobjs: Array<
+                      PolicyRuleToIPObj & {
+                        data: Array<IPObj & IPObjGroup & Interface>;
+                      }
+                    >;
+                  }
+                >;
+              }
+            >,
+          ) => {
             if (error) return reject(error);
             if (firewallData.length !== 1) return reject(fwcError.NOT_FOUND);
 
@@ -92,12 +118,12 @@ export class FirewallExport {
     });
   }
 
-  private static exportRuleInterfaces(row) {
+  private static exportRuleInterfaces(id: number): Promise<Array<PolicyRuleToInterface>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        const sql = 'select * from policy_r__interface where rule=' + connection.escape(row.id);
-        connection.query(sql, (error, rows) => {
+        const sql = 'select * from policy_r__interface where rule=' + connection.escape(id);
+        connection.query(sql, (error, rows: Array<PolicyRuleToInterface>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -105,10 +131,12 @@ export class FirewallExport {
     });
   }
 
-  private static exportPolicyInterfaces(rules) {
+  private static exportPolicyInterfaces(
+    rules: Array<PolicyRule & { interfaces: PolicyRuleToInterface[] }>,
+  ): Promise<Array<PolicyRule & { interfaces: PolicyRuleToInterface[] }>> {
     return new Promise((resolve, reject) => {
       // The order is preserved regardless of what resolved first
-      Promise.all(rules.map((row) => this.exportRuleInterfaces(row)))
+      Promise.all(rules.map((row) => this.exportRuleInterfaces(row.id)))
         .then((ruleInterfaces) => {
           for (let i = 0; i < ruleInterfaces.length; i++) rules[i].interfaces = ruleInterfaces[i];
           resolve(rules);
@@ -117,18 +145,20 @@ export class FirewallExport {
     });
   }
 
-  private static exportRuleIpobjData(ruleIpobj) {
+  private static exportRuleIpobjData(
+    ruleIpobj: PolicyRuleToIPObj,
+  ): Promise<Array<IPObj & IPObjGroup & Interface>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
         let sql = '';
-        if (ruleIpobj.ipobj !== -1)
-          sql = 'select * from ipobj where id=' + connection.escape(ruleIpobj.ipobj);
-        else if (ruleIpobj.ipobj_g !== -1)
-          sql = 'select * from ipobj_g where id=' + connection.escape(ruleIpobj.ipobj_g);
-        else if (ruleIpobj.interface !== -1)
-          sql = 'select * from interface where id=' + connection.escape(ruleIpobj.interface);
-        connection.query(sql, (error, ipobjDetail) => {
+        if (ruleIpobj.ipObjId !== -1)
+          sql = 'select * from ipobj where id=' + connection.escape(ruleIpobj.ipObjId);
+        else if (ruleIpobj.ipObjGroupId !== -1)
+          sql = 'select * from ipobj_g where id=' + connection.escape(ruleIpobj.ipObjGroupId);
+        else if (ruleIpobj.interfaceId !== -1)
+          sql = 'select * from interface where id=' + connection.escape(ruleIpobj.interfaceId);
+        connection.query(sql, (error, ipobjDetail: Array<IPObj & IPObjGroup & Interface>) => {
           if (error) return reject(error);
           resolve(ipobjDetail);
         });
@@ -136,29 +166,47 @@ export class FirewallExport {
     });
   }
 
-  private static exportRuleIpobjs(row) {
+  private static exportRuleIpobjs(
+    id: number,
+  ): Promise<Array<PolicyRuleToIPObj & { data: Array<IPObj & IPObjGroup & Interface> }>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        const sql = 'select * from policy_r__ipobj where rule=' + connection.escape(row.id);
-        connection.query(sql, (error, ipobjs) => {
-          if (error) return reject(error);
+        const sql = 'select * from policy_r__ipobj where rule=' + connection.escape(id);
+        connection.query(
+          sql,
+          (
+            error,
+            ipobjs: Array<PolicyRuleToIPObj & { data: Array<IPObj & IPObjGroup & Interface> }>,
+          ) => {
+            if (error) return reject(error);
 
-          Promise.all(ipobjs.map((ruleIpobj) => this.exportRuleIpobjData(ruleIpobj)))
-            .then((ipobjsDetailed) => {
-              for (let i = 0; i < ipobjs.length; i++) ipobjs[i].data = ipobjsDetailed[i];
-              resolve(ipobjs);
-            })
-            .catch((error) => reject(error));
-        });
+            Promise.all(ipobjs.map((ruleIpobj) => this.exportRuleIpobjData(ruleIpobj)))
+              .then((ipobjsDetailed) => {
+                for (let i = 0; i < ipobjs.length; i++) ipobjs[i].data = ipobjsDetailed[i];
+                resolve(ipobjs);
+              })
+              .catch((error) => reject(error));
+          },
+        );
       });
     });
   }
 
-  private static exportPolicyIpobjs(rules) {
+  private static exportPolicyIpobjs(
+    rules: Array<
+      PolicyRule & {
+        ipobjs: Array<
+          PolicyRuleToIPObj & {
+            data: Array<IPObj & IPObjGroup & Interface>;
+          }
+        >;
+      }
+    >,
+  ) {
     return new Promise((resolve, reject) => {
       // The order is preserved regardless of what resolved first
-      Promise.all(rules.map((data) => this.exportRuleIpobjs(data)))
+      Promise.all(rules.map((data) => this.exportRuleIpobjs(data.id)))
         .then((ruleIpobjs) => {
           for (let i = 0; i < ruleIpobjs.length; i++) rules[i].ipobjs = ruleIpobjs[i];
           resolve(rules);
@@ -167,20 +215,49 @@ export class FirewallExport {
     });
   }
 
-  private static exportPolicy(connection: Query, id: number) {
+  private static exportPolicy(
+    connection: Query,
+    id: number,
+  ): Promise<
+    Array<
+      PolicyRule & {
+        interfaces: PolicyRuleToInterface[];
+        ipobjs: Array<
+          PolicyRuleToIPObj & {
+            data: Array<IPObj & IPObjGroup & Interface>;
+          }
+        >;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       const sql = 'select * from policy_r where firewall=' + connection.escape(id);
-      connection.query(sql, async (error, rules) => {
-        if (error) return reject(error);
+      connection.query(
+        sql,
+        async (
+          error,
+          rules: Array<
+            PolicyRule & {
+              interfaces: PolicyRuleToInterface[];
+              ipobjs: Array<
+                PolicyRuleToIPObj & {
+                  data: Array<IPObj & IPObjGroup & Interface>;
+                }
+              >;
+            }
+          >,
+        ) => {
+          if (error) return reject(error);
 
-        try {
-          await this.exportPolicyInterfaces(rules);
-          await this.exportPolicyIpobjs(rules);
-          resolve(rules);
-        } catch (error) {
-          reject(error);
-        }
-      });
+          try {
+            await this.exportPolicyInterfaces(rules);
+            await this.exportPolicyIpobjs(rules);
+            resolve(rules);
+          } catch (error) {
+            reject(error);
+          }
+        },
+      );
     });
   }
 }

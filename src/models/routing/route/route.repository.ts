@@ -119,33 +119,39 @@ export class RouteRepository extends Repository<Route> {
     affectedRoutes: Route[],
     destRoute: Route,
   ): Promise<Route[]> {
-    const destPosition: number = destRoute.route_order;
-    const movingIds: number[] = routes.map((route) => route.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition: number = destRoute.route_order;
+        const movingIds: number[] = routes.map((route) => route.id);
 
-    const currentPosition: number = routes[0].route_order;
-    const forward: boolean = currentPosition < destRoute.route_order;
+        const currentPosition: number = routes[0].route_order;
+        const forward: boolean = currentPosition < destRoute.route_order;
 
-    affectedRoutes.forEach((route) => {
-      if (movingIds.includes(route.id)) {
-        const offset: number = movingIds.indexOf(route.id);
-        route.route_order = destPosition + offset;
-        route.routeGroupId = destRoute.routeGroupId;
-      } else {
-        if (forward && route.route_order >= destRoute.route_order) {
-          route.route_order += routes.length;
-        }
+        affectedRoutes.forEach((route) => {
+          if (movingIds.includes(route.id)) {
+            const offset: number = movingIds.indexOf(route.id);
+            route.route_order = destPosition + offset;
+            route.routeGroupId = destRoute.routeGroupId;
+          } else {
+            if (forward && route.route_order >= destRoute.route_order) {
+              route.route_order += routes.length;
+            }
 
-        if (
-          !forward &&
-          route.route_order >= destRoute.route_order &&
-          route.route_order < routes[0].route_order
-        ) {
-          route.route_order += routes.length;
-        }
+            if (
+              !forward &&
+              route.route_order >= destRoute.route_order &&
+              route.route_order < routes[0].route_order
+            ) {
+              route.route_order += routes.length;
+            }
+          }
+        });
+
+        resolve(affectedRoutes);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRoutes;
   }
 
   protected async moveBelow(
@@ -153,33 +159,39 @@ export class RouteRepository extends Repository<Route> {
     affectedRoutes: Route[],
     destRoute: Route,
   ): Promise<Route[]> {
-    const destPosition: number = destRoute.route_order;
-    const movingIds: number[] = routes.map((route) => route.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition: number = destRoute.route_order;
+        const movingIds: number[] = routes.map((route) => route.id);
 
-    const currentPosition: number = routes[0].route_order;
-    const forward: boolean = currentPosition < destRoute.route_order;
+        const currentPosition: number = routes[0].route_order;
+        const forward: boolean = currentPosition < destRoute.route_order;
 
-    affectedRoutes.forEach((route) => {
-      if (movingIds.includes(route.id)) {
-        const offset: number = movingIds.indexOf(route.id);
-        route.route_order = destPosition + offset + 1;
-        route.routeGroupId = destRoute.routeGroupId;
-      } else {
-        if (forward && route.route_order > destRoute.route_order) {
-          route.route_order += routes.length;
-        }
+        affectedRoutes.forEach((route) => {
+          if (movingIds.includes(route.id)) {
+            const offset: number = movingIds.indexOf(route.id);
+            route.route_order = destPosition + offset + 1;
+            route.routeGroupId = destRoute.routeGroupId;
+          } else {
+            if (forward && route.route_order > destRoute.route_order) {
+              route.route_order += routes.length;
+            }
 
-        if (
-          !forward &&
-          route.route_order > destRoute.route_order &&
-          route.route_order < routes[0].route_order
-        ) {
-          route.route_order += routes.length;
-        }
+            if (
+              !forward &&
+              route.route_order > destRoute.route_order &&
+              route.route_order < routes[0].route_order
+            ) {
+              route.route_order += routes.length;
+            }
+          }
+        });
+
+        resolve(affectedRoutes);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRoutes;
   }
 
   async remove(entities: Route[], options?: RemoveOptions): Promise<Route[]>;

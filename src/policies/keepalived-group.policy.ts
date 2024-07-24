@@ -69,15 +69,21 @@ export class KeepalivedGroupPolicy extends Policy {
     user: User,
     firewall: Firewall,
   ): Promise<Authorization> {
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
+    return new Promise<Authorization>((resolve, reject) => {
+      try {
+        if (user.role === 1) {
+          return Authorization.grant();
+        }
 
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === firewall.fwCloud.id;
+        const match = user.fwClouds.filter((fwcloud) => {
+          return fwcloud.id === firewall.fwCloud.id;
+        });
+
+        resolve(match.length > 0 ? Authorization.grant() : Authorization.revoke());
+      } catch (e) {
+        reject(e);
+      }
     });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
   }
 
   protected static async getUser(id: number): Promise<User> {

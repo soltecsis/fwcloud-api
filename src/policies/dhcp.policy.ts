@@ -130,10 +130,16 @@ export class DhcpPolicy extends Policy {
   }
 
   private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {
-    const match: FwCloud[] = user.fwClouds.filter(
-      (fwcloud: FwCloud): boolean => fwcloud.id === fwCloudId,
-    );
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return new Promise((resolve, reject) => {
+      try {
+        const match: FwCloud[] = user.fwClouds.filter(
+          (fwcloud: FwCloud): boolean => fwcloud.id === fwCloudId,
+        );
+        resolve(match.length > 0 ? Authorization.grant() : Authorization.revoke());
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   private static getDhcpR(dhcpId: number): Promise<DHCPRule> {

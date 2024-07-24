@@ -80,7 +80,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
   //Add new policy_r__openvpn_prefix
   public static insertInRule = (req: RequestData): Promise<number> => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const policyPrefix = {
         rule: req.body.rule,
         prefix: req.body.prefix,
@@ -90,7 +90,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
       req.dbCon.query(
         `insert into ${tableName} set ?`,
         policyPrefix,
-        async (error, result: { insertId: number }) => {
+        (error, result: { insertId: number }) => {
           if (error) return reject(error);
           resolve(result.insertId);
         },
@@ -131,7 +131,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -139,9 +139,9 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   }
 
   public static deleteFromRulePosition(req: RequestData): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -149,8 +149,8 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   }
 
   public static deleteFromRule(dbCon: Query, rule: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error) => {
+    return new Promise((resolve, reject) => {
+      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -167,7 +167,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
       const sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
                 (SELECT ${new_rule}, prefix, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });

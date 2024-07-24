@@ -44,12 +44,11 @@ import moment from 'moment';
 import { PolicyCompilerTools } from '../compiler/policy/PolicyCompilerTools';
 import db from '../database/database-manager';
 import ipobjs_Data from '../models/data/data_ipobj';
-import RequestData from '../models/data/RequestData';
-const Joi = require('joi');
-const sharedSch = require('../middleware/joi_schemas/shared');
+import Joi from 'joi';
+import sharedSch from '../middleware/joi_schemas/shared';
 
 export class IptablesSaveToFWCloud extends Service {
-  protected req: RequestData;
+  protected req: Request;
   protected statefulFirewall: boolean;
   protected line: number;
   protected data: string[];
@@ -695,7 +694,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   private async eatInterface(dir: string, _interface: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    await sharedSch.name.validate(_interface);
+    sharedSch.name.validate(_interface);
 
     // Search to find out if it already exists.
     let interfaceId = await Interface.searchInterfaceInFirewallByName(
@@ -769,7 +768,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   private async eatAddr(dir: string, addr: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    await Joi.string()
+    Joi.string()
       .ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'required' })
       .validate(addr);
 
@@ -847,10 +846,10 @@ export class IptablesSaveToFWCloud extends Service {
     const ips = data.split('-');
 
     // IMPORTANT: Validate data before process it.
-    await Joi.string()
+    Joi.string()
       .ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' })
       .validate(ips[0]);
-    await Joi.string()
+    Joi.string()
       .ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' })
       .validate(ips[1]);
 
@@ -915,7 +914,7 @@ export class IptablesSaveToFWCloud extends Service {
       );
     } else {
       // IP protocol by name.
-      await Joi.string().port().validateAsync(protocol);
+      await Joi.string().validateAsync(protocol);
       protocolId = await IPObj.searchIPProtocolByName(
         this.req.dbCon,
         this.req.body.fwcloud,
@@ -1239,7 +1238,7 @@ export class IptablesSaveToFWCloud extends Service {
     // If only differ in one position then current rule can be merged with the previous one.
     if (posDiffer.length === 1) {
       // Move items in the differing position from the new rule to the same position of the previous one.
-      const currPosObjs: any = currentRule.positions[posDiffer[0]].ipobjs;
+      const currPosObjs = currentRule.positions[posDiffer[0]].ipobjs;
       const position = currentRule.positions[posDiffer[0]].id;
       let allMoved = true;
 
@@ -1269,7 +1268,7 @@ export class IptablesSaveToFWCloud extends Service {
           ...
           +-----+-----------------------+-----------------+
         */
-        if (obj.type >= 1 && obj.type <= 7) {
+        if (obj.ipObjTypeId >= 1 && obj.ipObjTypeId <= 7) {
           // Verify that object doesn't already exists in position.
           if (!(await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData)))
             await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(
@@ -1284,7 +1283,7 @@ export class IptablesSaveToFWCloud extends Service {
               position,
               99999,
             );
-        } else if (obj.type === 10) {
+        } else if (obj.ipObjTypeId === 10) {
           // INTERFACE FIREWALL
           // Verify that object doesn't already exists in position.
           if (

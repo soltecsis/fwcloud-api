@@ -69,7 +69,7 @@ export class Repair extends Model {
   }
 
   public static initData(req: RequestData): Promise<void> {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       dbCon = req.dbCon;
       fwcloud = req.body.fwcloud;
       resolve();

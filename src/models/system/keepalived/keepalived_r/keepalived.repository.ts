@@ -120,47 +120,53 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     affectedRules: KeepalivedRule[],
     destRule: KeepalivedRule,
   ): Promise<KeepalivedRule[]> {
-    const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
-    const currentPosition: number = rules[0].rule_order;
-    const forward: boolean = currentPosition < destRule.rule_order;
+        const currentPosition: number = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-    affectedRules.forEach((rule) => {
-      if (movingIds.includes(rule.id)) {
-        if (!destRule.groupId) {
-          const offset = movingIds.indexOf(rule.id);
-          rule.rule_order = destPosition + offset;
-          rule.groupId = destRule.groupId;
-        } else {
-          if (forward && rule.rule_order >= destRule.rule_order) {
-            rule.rule_order += rules.length;
+        affectedRules.forEach((rule) => {
+          if (movingIds.includes(rule.id)) {
+            if (!destRule.groupId) {
+              const offset = movingIds.indexOf(rule.id);
+              rule.rule_order = destPosition + offset;
+              rule.groupId = destRule.groupId;
+            } else {
+              if (forward && rule.rule_order >= destRule.rule_order) {
+                rule.rule_order += rules.length;
+              }
+
+              if (
+                !forward &&
+                rule.rule_order >= destRule.rule_order &&
+                rule.rule_order < rules[0].rule_order
+              ) {
+                rule.rule_order += rules.length;
+              }
+            }
+          } else {
+            if (forward && rule.rule_order >= destRule.rule_order) {
+              rule.rule_order += rules.length;
+            }
+
+            if (
+              !forward &&
+              rule.rule_order >= destRule.rule_order &&
+              rule.rule_order < rules[0].rule_order
+            ) {
+              rule.rule_order += rules.length;
+            }
           }
+        });
 
-          if (
-            !forward &&
-            rule.rule_order >= destRule.rule_order &&
-            rule.rule_order < rules[0].rule_order
-          ) {
-            rule.rule_order += rules.length;
-          }
-        }
-      } else {
-        if (forward && rule.rule_order >= destRule.rule_order) {
-          rule.rule_order += rules.length;
-        }
-
-        if (
-          !forward &&
-          rule.rule_order >= destRule.rule_order &&
-          rule.rule_order < rules[0].rule_order
-        ) {
-          rule.rule_order += rules.length;
-        }
+        resolve(affectedRules);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRules;
   }
 
   /**
@@ -176,41 +182,47 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     affectedRules: KeepalivedRule[],
     destRule: KeepalivedRule,
   ): Promise<KeepalivedRule[]> {
-    const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
-    const currentPosition: number = rules[0].rule_order;
-    const forward: boolean = currentPosition < destRule.rule_order;
+        const currentPosition: number = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-    affectedRules.forEach((rule) => {
-      if (movingIds.includes(rule.id)) {
-        if (!destRule.groupId) {
-          const offset: number = movingIds.indexOf(rule.id);
-          rule.rule_order = destPosition + offset + 1;
-          rule.groupId = destRule.groupId;
-        } else {
-          if (forward && rule.groupId == destRule.groupId) {
-            const offset: number = movingIds.indexOf(rule.id);
-            rule.rule_order = destPosition + offset + 1;
+        affectedRules.forEach((rule) => {
+          if (movingIds.includes(rule.id)) {
+            if (!destRule.groupId) {
+              const offset: number = movingIds.indexOf(rule.id);
+              rule.rule_order = destPosition + offset + 1;
+              rule.groupId = destRule.groupId;
+            } else {
+              if (forward && rule.groupId == destRule.groupId) {
+                const offset: number = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset + 1;
+              }
+              rule.groupId = destRule.groupId;
+            }
+          } else {
+            if (forward && rule.rule_order > destRule.rule_order) {
+              rule.rule_order += rules.length;
+            }
+
+            if (
+              !forward &&
+              rule.rule_order > destRule.rule_order &&
+              rule.rule_order < rules[0].rule_order
+            ) {
+              rule.rule_order += rules.length;
+            }
           }
-          rule.groupId = destRule.groupId;
-        }
-      } else {
-        if (forward && rule.rule_order > destRule.rule_order) {
-          rule.rule_order += rules.length;
-        }
+        });
 
-        if (
-          !forward &&
-          rule.rule_order > destRule.rule_order &&
-          rule.rule_order < rules[0].rule_order
-        ) {
-          rule.rule_order += rules.length;
-        }
+        resolve(affectedRules);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRules;
   }
 
   async remove(entities: KeepalivedRule[], options?: RemoveOptions): Promise<KeepalivedRule[]>;

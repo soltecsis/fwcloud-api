@@ -21,7 +21,10 @@
 */
 
 import db from '../../database/database-manager';
-import { PolicyRuleToIPObj, PolicyRuleToIPObjData } from '../../models/policy/PolicyRuleToIPObj';
+import {
+  PolicyRuleToIPObj,
+  PolicyRuleToIPObjInRuleData,
+} from '../../models/policy/PolicyRuleToIPObj';
 import { IPObjGroup } from './IPObjGroup';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
@@ -49,7 +52,7 @@ import asyncMod from 'async';
 import host_Data from '../../models/data/data_ipobj_host';
 import interface_Data from '../../models/data/data_interface';
 const ipobj_Data = require('../../models/data/data_ipobj');
-const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
+import data_policy_position_ipobjs from '../../models/data/data_policy_position_ipobjs';
 import fwcError from '../../utils/error_table';
 import ipobjs_Data from '../data/data_ipobj';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
@@ -59,7 +62,7 @@ import { PolicyRule } from '../policy/PolicyRule';
 interface SearchIpobjUsage {
   result?: boolean;
   restrictions?: {
-    IpobjInRule?: Array<PolicyRuleToIPObjData>;
+    IpobjInRule?: Array<PolicyRuleToIPObjInRuleData>;
     IpobjInGroup?: Array<{
       obj_id: number;
       obj_name: string;
@@ -71,7 +74,7 @@ interface SearchIpobjUsage {
       group_name: string;
       group_type: string;
     }>;
-    IpobjInGroupInRule?: Array<PolicyRuleToIPObjData>;
+    IpobjInGroupInRule?: Array<PolicyRuleToIPObjInRuleData>;
     IpobjInOpenVPN?: Array<
       OpenVPN & {
         cloud_id: number;
@@ -108,8 +111,8 @@ interface SearchIpobjUsage {
         frontendPort_name: string;
       } & SearchRoute
     >;
-    InterfaceHostInRule?: Array<PolicyRuleToIPObjData>;
-    AddrHostInRule?: Array<PolicyRuleToIPObjData>;
+    InterfaceHostInRule?: Array<PolicyRuleToIPObjInRuleData>;
+    AddrHostInRule?: Array<PolicyRuleToIPObjInRuleData>;
     AddrHostInGroup?: Array<{
       obj_id: number;
       obj_name: string;
@@ -158,8 +161,8 @@ interface SearchIpobjUsage {
       backend_port_id: number;
       backend_port_name: string;
     }>;
-    LastAddrInInterfaceInRule?: Array<PolicyRuleToIPObjData>;
-    LastAddrInHostInRule?: Array<PolicyRuleToIPObjData>;
+    LastAddrInInterfaceInRule?: Array<PolicyRuleToIPObjInRuleData>;
+    LastAddrInHostInRule?: Array<PolicyRuleToIPObjInRuleData>;
     LastAddrInGroupHostInRule?: Array<PolicyRule>;
     LastAddrInHostInRoute?: Array<Route>;
     LastAddrInHostInRoutingRule?: Array<RoutingRule>;
@@ -173,6 +176,16 @@ interface SearchRoute {
   firewall_name: string;
   cluster_id: number;
   cluster_name: string;
+}
+
+interface PositionIPOBjData {
+  fwcloud: number;
+  ipobj: number;
+  position_order: number;
+  position: number;
+  type: string;
+  ipobj_g: number;
+  newinterface: number;
 }
 
 const tableName: string = 'ipobj';
@@ -333,36 +346,84 @@ export class IPObj extends Model {
    *
    * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
    * */
-  public static getIpobj(dbCon: Query, fwcloud: number, id: number): Promise<Array<IPObj>> {
+  public static getIpobj(
+    dbCon: Query,
+    fwcloud: number,
+    id: number,
+  ): Promise<
+    Array<
+      IPObj & {
+        id_node?: number;
+        id_parent_node?: number;
+        cluster_id?: number;
+        cluster_name?: string;
+        firewall_id?: number;
+        firewall_name?: string;
+        host_id?: number;
+        host_name?: string;
+        if_id?: number;
+        if_name?: string;
+      }
+    >
+  > {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.* FROM ${tableName} I
 			WHERE I.id=${id} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
 
-      dbCon.query(sql, async (error: Error, rows: Array<IPObj>) => {
-        if (error) return reject(error);
-
-        if (rows.length > 0) {
-          if (rows[0].ipObjTypeId === 8) {
-            //CHECK IF IPOBJ IS a HOST
-            this.getIpobj_Host_Full(fwcloud, id.toString(), (errorhost, datahost) => {
-              if (errorhost) return reject(errorhost);
-              resolve(datahost);
-            });
-          } else if (rows[0].ipObjTypeId === 5 && rows[0].interface != null) {
-            // Address that is part of an interface.
-            try {
-              await this.addressParentsData(dbCon, rows[0]);
-              resolve(rows);
-            } catch (error) {
-              return reject(error);
+      dbCon.query(
+        sql,
+        async (
+          error: Error,
+          rows: Array<
+            IPObj & {
+              cluster_id: number;
+              cluster_name: string;
+              firewall_id: number;
+              firewall_name: string;
+              host_id: number;
+              host_name: string;
+              if_id: number;
+              if_name: string;
             }
+          >,
+        ) => {
+          if (error) return reject(error);
+
+          if (rows.length > 0) {
+            if (rows[0].ipObjTypeId === 8) {
+              //CHECK IF IPOBJ IS a HOST
+              this.getIpobj_Host_Full(fwcloud, id.toString(), (errorhost, datahost) => {
+                if (errorhost) return reject(errorhost);
+                resolve(datahost);
+              });
+            } else if (rows[0].ipObjTypeId === 5 && rows[0].interface != null) {
+              // Address that is part of an interface.
+              try {
+                await this.addressParentsData(dbCon, rows[0]);
+                resolve(rows);
+              } catch (error) {
+                return reject(error);
+              }
+            } else resolve(rows);
           } else resolve(rows);
-        } else resolve(rows);
-      });
+        },
+      );
     });
   }
 
-  public static addressParentsData(connection: Query, addr) {
+  public static addressParentsData(
+    connection: Query,
+    addr: IPObj & {
+      cluster_id: number;
+      cluster_name: string;
+      firewall_id: number;
+      firewall_name: string;
+      host_id: number;
+      host_name: string;
+      if_id: number;
+      if_name: string;
+    },
+  ) {
     return new Promise((resolve, reject) => {
       const sql =
         'select I.name' +
@@ -408,7 +469,7 @@ export class IPObj extends Model {
             addr.host_id = rows[0].host_id;
             addr.host_name = rows[0].host_name;
           }
-          addr.if_id = addr.interface;
+          addr.if_id = addr.interfaceId;
           addr.if_name = rows[0].name;
 
           resolve(addr);
@@ -427,7 +488,7 @@ export class IPObj extends Model {
    *
    * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
    * */
-  public static getIpobjPro(position_ipobj): Promise<any> {
+  public static getIpobjPro(position_ipobj: PositionIPOBjData): Promise<any> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -503,7 +564,10 @@ export class IPObj extends Model {
               } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g > 0) {
                 logger().debug('======== > ENCONTRADO GROUP: ' + position_ipobj.ipobj_g);
                 //GET ALL GROUP's IPOBJS
-                IPObjGroup.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
+                IPObjGroup.getIpobj_g_Full_Pro(
+                  position_ipobj.fwcloud,
+                  position_ipobj.ipobj_g.toString(),
+                )
                   .then((ipobjsGroup) => {
                     logger().debug(
                       '-------------------------> FINAL de GROUP : ' +
@@ -543,7 +607,14 @@ export class IPObj extends Model {
    *
    * @return {ROW} Returns ROW Data from Ipobj_Host/Interfaces/Ipobjs
    * */
-  public static getIpobj_Host_Full(fwcloud: number, id: string, AllDone: Function) {
+  public static getIpobj_Host_Full(
+    fwcloud: number,
+    id: string,
+    AllDone: (
+      err: Error | string | null,
+      data: Array<IPObj & { id_node: number; id_parent_node: number }>,
+    ) => void,
+  ) {
     const hosts = [];
     let host_cont = 0;
     let ipobjs_cont = 0;
@@ -1023,7 +1094,7 @@ export class IPObj extends Model {
         ipobjData.id +
         ' AND fwcloud=' +
         ipobjData.fwcloud;
-      req.dbCon.query(sql, async (error) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1129,7 +1200,7 @@ export class IPObj extends Model {
           ' WHERE O.id = ' +
           connection.escape(id);
         logger().debug(sql);
-        connection.query(sql, async (error, result: { affectedRows: number }) => {
+        connection.query(sql, (error, result: { affectedRows: number }) => {
           if (error) {
             logger().debug(error);
             reject(error);
@@ -1157,7 +1228,7 @@ export class IPObj extends Model {
           ' WHERE O.id = ' +
           connection.escape(id);
         logger().debug(sql);
-        connection.query(sql, async (error, result: { affectedRows: number }) => {
+        connection.query(sql, (error, result: { affectedRows: number }) => {
           if (error) {
             logger().debug(error);
             reject(error);
@@ -1990,7 +2061,7 @@ export class IPObj extends Model {
   public static searchLastInterfaceWithAddrInHostInRule(
     _interface: number,
     fwcloud: number,
-  ): Promise<Array<PolicyRuleToIPObjData>> {
+  ): Promise<Array<PolicyRuleToIPObjInRuleData>> {
     return new Promise((resolve, reject) => {
       db.get((error, dbCon) => {
         if (error) return reject(error);
@@ -2011,7 +2082,7 @@ export class IPObj extends Model {
 				inner join policy_type PT on PT.id=R.type				
 				where II.interface=${_interface} AND I.type=8 AND F.fwcloud=${fwcloud}`;
 
-        dbCon.query(sql, async (error: Error, rows: Array<PolicyRuleToIPObjData>) => {
+        dbCon.query(sql, async (error: Error, rows: Array<PolicyRuleToIPObjInRuleData>) => {
           if (error) return reject(error);
           if (rows.length === 0) return resolve(rows);
 

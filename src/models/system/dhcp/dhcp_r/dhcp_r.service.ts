@@ -262,7 +262,7 @@ export class DHCPRuleService extends Service {
 
     let lastPosition = 0;
 
-    [].concat(toRule.dhcpRuleToIPObjs).forEach((item) => {
+    [].concat(toRule.dhcpRuleToIPObjs).forEach((item: DHCPRuleToIPObj) => {
       lastPosition < item.order ? (lastPosition = item.order) : null;
     });
 
@@ -395,29 +395,35 @@ export class DHCPRuleService extends Service {
     path: Partial<IFindOneDHCPRulePath>,
     options: FindOneOptions<DHCPRule> = {},
   ): Promise<SelectQueryBuilder<DHCPRule>> {
-    const qb = this._repository.manager
-      .getRepository(DHCPRule)
-      .createQueryBuilder('dhcp')
-      .innerJoinAndSelect('dhcp.firewall', 'firewall')
-      .innerJoinAndSelect('firewall.fwCloud', 'fwcloud');
+    return new Promise((resolve, reject) => {
+      try {
+        const qb = this._repository.manager
+          .getRepository(DHCPRule)
+          .createQueryBuilder('dhcp')
+          .innerJoinAndSelect('dhcp.firewall', 'firewall')
+          .innerJoinAndSelect('firewall.fwCloud', 'fwcloud');
 
-    if (path.firewallId) {
-      qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-    }
+        if (path.firewallId) {
+          qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
 
-    if (path.fwcloudId) {
-      qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
-    }
+        if (path.fwcloudId) {
+          qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
 
-    if (path.id) {
-      qb.andWhere('dhcp.id = :id', { id: path.id });
-    }
+        if (path.id) {
+          qb.andWhere('dhcp.id = :id', { id: path.id });
+        }
 
-    Object.entries(options).forEach(([key, value]) => {
-      (qb as any)[key](value);
+        Object.entries(options).forEach(([key, value]) => {
+          (qb as any)[key](value);
+        });
+
+        resolve(qb);
+      } catch (e) {
+        reject(e);
+      }
     });
-
-    return qb;
   }
 
   public async getDHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler>(

@@ -37,15 +37,21 @@ export class HAProxyGroupPolicy extends Policy {
     user: User,
     firewall: Firewall,
   ): Promise<Authorization> {
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
+    return new Promise<Authorization>((resolve, reject) => {
+      try {
+        if (user.role === 1) {
+          return Authorization.grant();
+        }
 
-    const match: FwCloud[] = user.fwClouds.filter((fwCloud: FwCloud) => {
-      return fwCloud.id === firewall.fwCloud.id;
+        const match: FwCloud[] = user.fwClouds.filter((fwCloud: FwCloud) => {
+          return fwCloud.id === firewall.fwCloud.id;
+        });
+
+        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+      } catch (e) {
+        reject(e);
+      }
     });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
   }
 
   protected static async getUser(user: User): Promise<User> {

@@ -29,7 +29,7 @@ import { Interface } from './Interface';
 import Query from '../../database/Query';
 import { Err } from 'joi';
 import ipobjs_Data from '../data/data_ipobj';
-import { PolicyRuleToIPObjData } from '../policy/PolicyRuleToIPObj';
+import { PolicyRuleToIPObjInRuleData } from '../policy/PolicyRuleToIPObj';
 
 const tableName: string = 'interface__ipobj';
 
@@ -138,7 +138,7 @@ export class InterfaceIPObj extends Model {
   public static getInterface__ipobj_hosts(
     _interface: number,
     fwcloud: number,
-  ): Promise<Array<PolicyRuleToIPObjData>> {
+  ): Promise<Array<PolicyRuleToIPObjInRuleData>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -156,7 +156,7 @@ export class InterfaceIPObj extends Model {
           ' AND (H.fwcloud=' +
           fwcloud +
           ' OR H.fwcloud is NULL) ORDER BY interface_order';
-        connection.query(sql, (error, rows: Array<PolicyRuleToIPObjData>) => {
+        connection.query(sql, (error, rows: Array<PolicyRuleToIPObjInRuleData>) => {
           if (error) return reject(error);
           resolve(rows);
         });
@@ -264,7 +264,7 @@ export class InterfaceIPObj extends Model {
           ' WHERE I.interface = ' +
           connection.escape(_interface);
         logger().debug(sql);
-        connection.query(sql, async (error, result: { affectedRows: number }) => {
+        connection.query(sql, (error, result: { affectedRows: number }) => {
           if (error) {
             logger().debug(error);
             reject(error);

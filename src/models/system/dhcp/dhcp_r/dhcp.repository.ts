@@ -118,33 +118,39 @@ export class DHCPRepository extends Repository<DHCPRule> {
     affectedRules: DHCPRule[],
     destRule: DHCPRule,
   ): Promise<DHCPRule[]> {
-    const destPosition = destRule.rule_order;
-    const movingIds = rules.map((dhcp_r) => dhcp_r.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition = destRule.rule_order;
+        const movingIds = rules.map((dhcp_r) => dhcp_r.id);
 
-    const currentPosition = rules[0].rule_order;
-    const forward: boolean = currentPosition < destRule.rule_order;
+        const currentPosition = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-    affectedRules.forEach((rule) => {
-      if (movingIds.includes(rule.id)) {
-        const offset = movingIds.indexOf(rule.id);
-        rule.rule_order = destPosition + offset;
-        rule.groupId = destRule.groupId;
-      } else {
-        if (forward && rule.rule_order >= destRule.rule_order) {
-          rule.rule_order += rules.length;
-        }
+        affectedRules.forEach((rule) => {
+          if (movingIds.includes(rule.id)) {
+            const offset = movingIds.indexOf(rule.id);
+            rule.rule_order = destPosition + offset;
+            rule.groupId = destRule.groupId;
+          } else {
+            if (forward && rule.rule_order >= destRule.rule_order) {
+              rule.rule_order += rules.length;
+            }
 
-        if (
-          !forward &&
-          rule.rule_order >= destRule.rule_order &&
-          rule.rule_order < rules[0].rule_order
-        ) {
-          rule.rule_order += rules.length;
-        }
+            if (
+              !forward &&
+              rule.rule_order >= destRule.rule_order &&
+              rule.rule_order < rules[0].rule_order
+            ) {
+              rule.rule_order += rules.length;
+            }
+          }
+        });
+
+        resolve(affectedRules);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRules;
   }
 
   /**
@@ -160,41 +166,47 @@ export class DHCPRepository extends Repository<DHCPRule> {
     affectedRules: DHCPRule[],
     destRule: DHCPRule,
   ): Promise<DHCPRule[]> {
-    const destPosition = destRule.rule_order;
-    const movingIds = rules.map((dhcp_r) => dhcp_r.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition = destRule.rule_order;
+        const movingIds = rules.map((dhcp_r) => dhcp_r.id);
 
-    const currentPosition = rules[0].rule_order;
-    const forward: boolean = currentPosition < destRule.rule_order;
+        const currentPosition = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-    affectedRules.forEach((rule) => {
-      if (movingIds.includes(rule.id)) {
-        if (!destRule.groupId) {
-          const offset: number = movingIds.indexOf(rule.id);
-          rule.rule_order = destPosition + offset + 1;
-          rule.groupId = destRule.groupId;
-        } else {
-          if (forward && rule.groupId == destRule.groupId) {
-            const offset: number = movingIds.indexOf(rule.id);
-            rule.rule_order = destPosition + offset + 1;
+        affectedRules.forEach((rule) => {
+          if (movingIds.includes(rule.id)) {
+            if (!destRule.groupId) {
+              const offset: number = movingIds.indexOf(rule.id);
+              rule.rule_order = destPosition + offset + 1;
+              rule.groupId = destRule.groupId;
+            } else {
+              if (forward && rule.groupId == destRule.groupId) {
+                const offset: number = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset + 1;
+              }
+              rule.groupId = destRule.groupId;
+            }
+          } else {
+            if (forward && rule.rule_order > destRule.rule_order) {
+              rule.rule_order += rules.length;
+            }
+
+            if (
+              !forward &&
+              rule.rule_order > destRule.rule_order &&
+              rule.rule_order < rules[0].rule_order
+            ) {
+              rule.rule_order += rules.length;
+            }
           }
-          rule.groupId = destRule.groupId;
-        }
-      } else {
-        if (forward && rule.rule_order > destRule.rule_order) {
-          rule.rule_order += rules.length;
-        }
+        });
 
-        if (
-          !forward &&
-          rule.rule_order > destRule.rule_order &&
-          rule.rule_order < rules[0].rule_order
-        ) {
-          rule.rule_order += rules.length;
-        }
+        resolve(affectedRules);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRules;
   }
 
   async remove(entities: DHCPRule[], options?: RemoveOptions): Promise<DHCPRule[]>;

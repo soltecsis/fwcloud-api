@@ -26,11 +26,23 @@ import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class FwCloudPolicy extends Policy {
   static async store(user: User): Promise<Authorization> {
-    return user.role === 1 ? Authorization.grant() : Authorization.revoke();
+    return new Promise<Authorization>((resolve, reject) => {
+      try {
+        resolve(user.role === 1 ? Authorization.grant() : Authorization.revoke());
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   static async update(user: User): Promise<Authorization> {
-    return user.role === 1 ? Authorization.grant() : Authorization.revoke();
+    return new Promise<Authorization>((resolve, reject) => {
+      try {
+        resolve(user.role === 1 ? Authorization.grant() : Authorization.revoke());
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   static async colors(user: User, fwCloud: FwCloud): Promise<Authorization> {

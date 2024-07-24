@@ -604,9 +604,13 @@ export class Firewall extends Model {
           else {
             Promise.all(rows.map((data) => utilsModel.decryptFirewallData(data)))
               .then((data) => {
-                Promise.all(data.map((data) => this.getfirewallData(data))).then((dataF) => {
-                  callback(null, dataF);
-                });
+                Promise.all(data.map((data) => this.getfirewallData(data)))
+                  .then((dataF) => {
+                    callback(null, dataF);
+                  })
+                  .catch((e) => {
+                    callback(e, null);
+                  });
               })
               .catch((e) => {
                 callback(e, null);

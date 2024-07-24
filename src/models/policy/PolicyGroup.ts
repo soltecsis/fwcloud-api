@@ -408,7 +408,7 @@ export class PolicyGroup extends Model {
             connection.escape(rowData.id) +
             ' AND firewall=' +
             connection.escape(rowData.newfirewall);
-          connection.query(sql, async (error) => {
+          connection.query(sql, (error) => {
             if (error) return reject(error);
             resolve();
           });

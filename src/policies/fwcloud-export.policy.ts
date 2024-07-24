@@ -47,6 +47,12 @@ export class FwCloudExportPolicy extends Policy {
   }
 
   static async import(user: User): Promise<Authorization> {
-    return user.role === 1 ? Authorization.grant() : Authorization.revoke();
+    return new Promise<Authorization>((resolve, reject) => {
+      try {
+        resolve(user.role === 1 ? Authorization.grant() : Authorization.revoke());
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 }

@@ -135,40 +135,51 @@ export class RouteGroupService extends Service {
     path: Partial<IFindOneRouteGroupPath>,
     options: FindOneOptions<RouteGroup> | FindManyOptions<RouteGroup> = {},
   ): Promise<SelectQueryBuilder<RouteGroup>> {
-    const qb = this._repository.createQueryBuilder('group');
-    qb.innerJoin('group.firewall', 'firewall')
-      .innerJoin('firewall.fwCloud', 'fwcloud')
-      .leftJoinAndSelect('group.routes', 'route');
+    return new Promise((resolve, reject) => {
+      try {
+        const qb = this._repository.createQueryBuilder('group');
+        qb.innerJoin('group.firewall', 'firewall')
+          .innerJoin('firewall.fwCloud', 'fwcloud')
+          .leftJoinAndSelect('group.routes', 'route');
 
-    if (path.id) {
-      qb.where('group.id = :groupId', { groupId: path.id });
-    }
+        if (path.id) {
+          qb.where('group.id = :groupId', { groupId: path.id });
+        }
 
-    if (path.firewallId) {
-      qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
-    }
+        if (path.firewallId) {
+          qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
+        }
 
-    if (path.fwCloudId) {
-      qb.andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: path.fwCloudId });
-    }
+        if (path.fwCloudId) {
+          qb.andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: path.fwCloudId });
+        }
 
-    // Aplica las opciones adicionales que se pasaron a la función
-    Object.entries(options).forEach(([key, value]) => {
-      switch (key) {
-        case 'where':
-          qb.andWhere(
-            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
-          );
-          break;
-        case 'relations':
-          value.forEach((value: string) => {
-            qb.leftJoinAndSelect(`group.${value}`, `${value}`);
-          });
-          break;
-        default:
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+          switch (key) {
+            case 'where':
+              qb.andWhere(
+                value as
+                  | string
+                  | Brackets
+                  | ((qb: this) => string)
+                  | ObjectLiteral
+                  | ObjectLiteral[],
+              );
+              break;
+            case 'relations':
+              value.forEach((value: string) => {
+                qb.leftJoinAndSelect(`group.${value}`, `${value}`);
+              });
+              break;
+            default:
+          }
+        });
+
+        resolve(qb);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return qb;
   }
 }

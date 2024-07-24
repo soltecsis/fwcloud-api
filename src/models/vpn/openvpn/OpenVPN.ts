@@ -55,7 +55,7 @@ import RequestData from '../../data/RequestData';
 import fwcError from '../../../utils/error_table';
 import ip from 'ip';
 import { OpenVPNToIPObjGroupExporter } from '../../../fwcloud-exporter/database-exporter/exporters/openvpn-to-ipobj-group.exporter';
-import { PolicyRuleToIPObjData } from '../../policy/PolicyRuleToIPObj';
+import { PolicyRuleToIPObjInRuleData } from '../../policy/PolicyRuleToIPObj';
 import { PolicyRuleToOpenVPNPrefix } from '../../policy/PolicyRuleToOpenVPNPrefix';
 import f from 'session-file-store';
 
@@ -114,11 +114,11 @@ interface SearchOpenvpnUsage {
     OpenVPNInGroupInRoute?: Array<SearchRoute>;
     OpenVPNInRoutingRule?: Array<SearchRoute>;
     OpenVPNInGroupInRoutingRule?: Array<SearchRoute>;
-    OpenvpnInGroupInRule?: Array<PolicyRuleToIPObjData>;
+    OpenvpnInGroupInRule?: Array<PolicyRuleToIPObjInRuleData>;
     OpenvpnInPrefixInRule?: Array<
       PolicyRuleToOpenVPNPrefix & { firewall_id: number; firewall_name: string }
     >;
-    OpenvpnInPrefixInGroupInRule?: Array<PolicyRuleToIPObjData>;
+    OpenvpnInPrefixInGroupInRule?: Array<PolicyRuleToIPObjInRuleData>;
   };
 }
 
@@ -993,7 +993,7 @@ export class OpenVPN extends Model {
         const sql = `SELECT VPN.id FROM openvpn VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
                 WHERE FW.fwcloud=${fwcloud} AND VPN.openvpn=${openvpn}`;
-        dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
+        dbCon.query(sql, (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
 
           if (result.length > 0) resolve({ result: true, restrictions: { OpenvpnHasChild: true } });

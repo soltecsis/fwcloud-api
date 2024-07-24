@@ -68,7 +68,7 @@ export class Customer extends Model {
 
   //Add new customer
   public static _insert(req: RequestData): Promise<number> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       //New object with customer data
       const customerData = {
         id: req.body.customer,
@@ -91,7 +91,7 @@ export class Customer extends Model {
   }
 
   public static existsId = (dbCon: Query, customer: number): Promise<boolean> => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where id=${customer}`,
         (error, result: Array<{ id: number }>) => {
@@ -104,7 +104,7 @@ export class Customer extends Model {
   };
 
   public static existsName = (dbCon: Query, name: string): Promise<number | boolean> => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where name=${dbCon.escape(name)}`,
         (error, result: Array<{ id: number }>) => {
@@ -118,7 +118,7 @@ export class Customer extends Model {
 
   //Update customer
   public static _update = (req: RequestData): Promise<void> => {
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
                 addr=${req.dbCon.escape(req.body.addr)},
@@ -134,7 +134,7 @@ export class Customer extends Model {
 
   //Update customer
   public static get(req: RequestData): Promise<Array<Customer>> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = req.body.customer
         ? `select * from ${tableName} WHERE id=${req.body.customer}`
         : `select id,name from ${tableName}`;
@@ -146,7 +146,7 @@ export class Customer extends Model {
   }
 
   public static _delete(req: RequestData): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error: Error) => {
         if (error) return reject(error);
         resolve();
@@ -160,7 +160,7 @@ export class Customer extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from user where customer =${req.body.customer}`,
-        async (error: Error, result: Array<{ n: number }>) => {
+        (error: Error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
 
           if (result[0].n > 0) resolve({ result: true, restrictions: { CustomerHasUsers: true } });
@@ -176,7 +176,7 @@ export class Customer extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from ${tableName} where id!=${req.body.customer}`,
-        async (error: Error, result: Array<{ n: number }>) => {
+        (error: Error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
 
           if (result[0].n === 0) resolve({ result: true, restrictions: { LastCustomer: true } });

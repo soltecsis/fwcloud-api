@@ -45,7 +45,7 @@ import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import { OpenVPNPrefixToIPObjGroupExporter } from '../../../fwcloud-exporter/database-exporter/exporters/openvpn-prefix-to-ipobj-group.exporter';
 import RequestData from '../../data/RequestData';
-import { PolicyRuleToIPObjData } from '../../policy/PolicyRuleToIPObj';
+import { PolicyRuleToIPObjInRuleData } from '../../policy/PolicyRuleToIPObj';
 
 interface SearchPrefix {
   firewall_id: number;
@@ -72,14 +72,14 @@ interface SearchPrefixUsage {
     PrefixInGroupInRoute?: Array<SearchPrefix>;
     PrefixInRoutingRule?: Array<SearchPrefix>;
     PrefixInGroupInRoutingRule?: Array<SearchPrefix>;
-    PrefixInGroupInRule?: Array<PolicyRuleToIPObjData>;
+    PrefixInGroupInRule?: Array<PolicyRuleToIPObjInRuleData>;
   };
 }
 
 export interface SearchGroupUsage {
   result: boolean;
   restrictions: {
-    GroupInRule: Array<PolicyRuleToIPObjData>;
+    GroupInRule: Array<PolicyRuleToIPObjInRuleData>;
     GroupInRoute: Array<SearchPrefix>;
     GroupInRoutingRule: Array<SearchPrefix>;
   };

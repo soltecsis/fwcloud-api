@@ -57,14 +57,26 @@ class Session {
 
 export class SessionMiddleware extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    Session.getSession(this.app)(req, res, next);
+    return new Promise((resolve, reject) => {
+      try {
+        resolve(Session.getSession(this.app)(req, res, next));
+      } catch (e) {
+        reject(e);
+      }
+    });
     //next();
   }
 }
 
 export class SessionSocketMiddleware extends SocketMiddleware {
   public async handle(socket: Socket, next: NextFunction): Promise<void> {
-    Session.getSession(this.app)(socket.request as any, {} as any, next);
+    return new Promise((resolve, reject) => {
+      try {
+        resolve(Session.getSession(this.app)(socket.request as any, {} as any, next));
+      } catch (e) {
+        reject(e);
+      }
+    });
     //next();
   }
 }

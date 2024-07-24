@@ -32,7 +32,16 @@ import { number, string } from 'joi';
 import fwcError from '../../utils/error_table';
 
 import asyncMod from 'async';
-import { PolicyRuleToIPObjData } from './PolicyRuleToIPObj';
+import { PolicyRuleToIPObjInRuleData } from './PolicyRuleToIPObj';
+
+interface PolicyRuleToInterfaceData {
+  rule?: number;
+  interface?: number;
+  position?: number;
+  position_order?: number;
+  newrule?: number;
+  newInterface?: number;
+}
 
 const tableName: string = 'policy_r__interface';
 
@@ -139,7 +148,7 @@ export class PolicyRuleToInterface extends Model {
   //Add new policy_r__interface
   public static insertPolicy_r__interface(
     idfirewall: number,
-    policy_r__interfaceData,
+    policy_r__interfaceData: PolicyRuleToInterfaceData,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       //Check if IPOBJ TYPE is ALLOWED in this Position
@@ -183,7 +192,7 @@ export class PolicyRuleToInterface extends Model {
 
   //Clone policy_r__interface
   public static clonePolicy_r__interface(
-    policy_r__interfaceData,
+    policy_r__interfaceData: PolicyRuleToInterfaceData,
   ): Promise<{ result: boolean; allowed: string }> {
     return new Promise((resolve, reject) => {
       const p_interfaceData = {
@@ -198,7 +207,7 @@ export class PolicyRuleToInterface extends Model {
         connection.query(
           'INSERT INTO ' + tableName + ' SET ?',
           [p_interfaceData],
-          async (error, result: { affectedRows: number }) => {
+          (error, result: { affectedRows: number }) => {
             if (error) {
               reject(error);
             } else {
@@ -232,7 +241,7 @@ export class PolicyRuleToInterface extends Model {
       const sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -246,7 +255,7 @@ export class PolicyRuleToInterface extends Model {
     _interface: number,
     old_position: number,
     old_position_order: number,
-    policy_r__interfaceData,
+    policy_r__interfaceData: PolicyRuleToInterfaceData,
     callback: Function,
   ) {
     //Check if IPOBJ TYPE is ALLOWED in this Position
@@ -274,7 +283,7 @@ export class PolicyRuleToInterface extends Model {
                 ' AND  interface = ' +
                 policy_r__interfaceData.interface;
 
-              connection.query(sql, async (error, result: { affectedRows: number }) => {
+              connection.query(sql, (error, result: { affectedRows: number }) => {
                 if (error) {
                   callback(error, null);
                 } else {
@@ -325,7 +334,7 @@ export class PolicyRuleToInterface extends Model {
           const sql = `UPDATE ${tableName} SET position=${dbCon.escape(new_position)},
                     rule=${dbCon.escape(new_rule)}, position_order=${dbCon.escape(new_order)}
                     WHERE rule=${rule} AND interface=${_interface} AND position=${dbCon.escape(old_position)}`;
-          dbCon.query(sql, async (error, result: { affectedRows: number }) => {
+          dbCon.query(sql, (error, result: { affectedRows: number }) => {
             if (error) return reject(error);
             if (result.affectedRows > 0) {
               //Order New position
@@ -365,7 +374,7 @@ export class PolicyRuleToInterface extends Model {
         ' AND  interface = ' +
         _interface;
 
-      connection.query(sql, async (error) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -425,7 +434,7 @@ export class PolicyRuleToInterface extends Model {
           ' AND interface<>' +
           _interface;
         logger().debug(sql);
-        connection.query(sql, async (error, result) => {
+        connection.query(sql, (error, result) => {
           if (error) {
             reject(error);
           } else {
@@ -473,12 +482,12 @@ export class PolicyRuleToInterface extends Model {
       dbCon.query(sqlExists, (error, row: Array<PolicyRuleToInterface>) => {
         //If exists Id from policy_r__interface to remove
         if (row) {
-          db.get(async (error, connection) => {
+          db.get((error, connection) => {
             const sql = `DELETE FROM ${tableName}
                             WHERE rule=${connection.escape(rule).toString()} 
                             AND interface=${connection.escape(_interface).toString()} 
                             AND position=${connection.escape(position).toString()}`;
-            connection.query(sql, async (error, result: { affectedRows: number }) => {
+            connection.query(sql, (error, result: { affectedRows: number }) => {
               if (error) return reject(error);
               if (result.affectedRows > 0) {
                 void this.OrderList(999999, rule, position, old_order, _interface);
@@ -500,9 +509,9 @@ export class PolicyRuleToInterface extends Model {
         //If exists Id from policy_r__interface to remove
         if (row) {
           logger().debug('DELETING INTERFACES FROM RULE: ' + rule);
-          db.get(async (error, connection) => {
+          db.get((error, connection) => {
             const sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
-            connection.query(sql, async (error, result: { affectedRows: number }) => {
+            connection.query(sql, (error, result: { affectedRows: number }) => {
               if (error) {
                 logger().debug(error);
                 callback(error, null);
@@ -557,7 +566,7 @@ export class PolicyRuleToInterface extends Model {
                   ' AND interface=' +
                   connection.escape(row.interfaceId);
                 //logger().debug(sql);
-                connection.query(sql, async (error) => {
+                connection.query(sql, (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -614,7 +623,7 @@ export class PolicyRuleToInterface extends Model {
                   ' AND interface=' +
                   connection.escape(row.interfaceId);
                 //logger().debug(sql);
-                connection.query(sql, async (error) => {
+                connection.query(sql, (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -669,7 +678,7 @@ export class PolicyRuleToInterface extends Model {
                   ' AND interface=' +
                   connection.escape(row.interfaceId);
                 //logger().debug(sql);
-                connection.query(sql, async (error) => {
+                connection.query(sql, (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -804,7 +813,7 @@ export class PolicyRuleToInterface extends Model {
     fwcloud: number,
     firewall: number,
     diff_firewall: number,
-  ): Promise<Array<PolicyRuleToIPObjData>> => {
+  ): Promise<Array<PolicyRuleToIPObjInRuleData>> => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -843,7 +852,7 @@ export class PolicyRuleToInterface extends Model {
           if (diff_firewall) sql += ` AND F.id<>${diff_firewall}`;
           else sql += ` AND F.id=${firewall}`;
         }
-        connection.query(sql, (error, rows: Array<PolicyRuleToIPObjData>) => {
+        connection.query(sql, (error, rows: Array<PolicyRuleToIPObjInRuleData>) => {
           if (error) return reject(error);
           resolve(rows);
         });

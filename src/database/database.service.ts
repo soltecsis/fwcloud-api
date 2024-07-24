@@ -381,7 +381,7 @@ export class DatabaseService extends Service {
     dataSource = dataSource ? dataSource : this._dataSource;
     const queryRunner: QueryRunner = dataSource.createQueryRunner();
 
-    const result: Array<any> = await queryRunner.query(
+    const result: Array<{ table_name?: string; TABLE_NAME?: string }> = await queryRunner.query(
       'SELECT table_name FROM information_schema.tables WHERE table_schema=?',
       [this._config.name],
     );

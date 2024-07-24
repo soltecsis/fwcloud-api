@@ -28,6 +28,7 @@ import { PolicyRule } from './PolicyRule';
 import Query from '../../database/Query';
 import RequestData from '../data/RequestData';
 import { OpenVPNToIPObjGroupExporter } from '../../fwcloud-exporter/database-exporter/exporters/openvpn-to-ipobj-group.exporter';
+import { Request } from 'express';
 
 const tableName: string = 'policy_r__openvpn';
 
@@ -80,8 +81,8 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   //Add new policy_r__openvpn
-  public static insertInRule(req: RequestData): Promise<number> {
-    return new Promise(async (resolve, reject) => {
+  public static insertInRule(req: Request): Promise<number> {
+    return new Promise((resolve, reject) => {
       const policyOpenvpn = {
         rule: req.body.rule,
         openvpn: req.body.openvpn,
@@ -91,7 +92,7 @@ export class PolicyRuleToOpenVPN extends Model {
       req.dbCon.query(
         `insert into ${tableName} set ?`,
         policyOpenvpn,
-        async (error, result: { insertId: number }) => {
+        (error, result: { insertId: number }) => {
           if (error) return reject(error);
           resolve(result.insertId);
         },
@@ -131,7 +132,7 @@ export class PolicyRuleToOpenVPN extends Model {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -139,9 +140,9 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   public static deleteFromRulePosition(req: RequestData): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -149,8 +150,8 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   public static deleteFromRule(dbCon: Query, rule: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error) => {
+    return new Promise((resolve, reject) => {
+      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -167,7 +168,7 @@ export class PolicyRuleToOpenVPN extends Model {
       const sql = `INSERT INTO ${tableName} (rule, openvpn, position,position_order)
                 (SELECT ${new_rule}, openvpn, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -465,7 +466,7 @@ export class PolicyRuleToOpenVPN extends Model {
                 inner join policy_r R on R.id=P.rule
                 inner join firewall F on F.id=R.firewall
                 where F.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
-      dbCon.query(sql, async (error, result: Array<{ firewall: number; rule: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ firewall: number; rule: number }>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -485,7 +486,7 @@ export class PolicyRuleToOpenVPN extends Model {
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
-      dbCon.query(sql, async (error, result: Array<{ ipobj_g: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ ipobj_g: number }>) => {
         if (error) return reject(error);
         resolve(result);
       });

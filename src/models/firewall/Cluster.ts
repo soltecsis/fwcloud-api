@@ -32,6 +32,14 @@ import Query from '../../database/Query';
 import interfaces_Data from '../data/data_interface';
 import RequestData from '../data/RequestData';
 
+export interface ClusterData {
+  id?: number;
+  name?: string;
+  comment?: string;
+  fwcloud?: number;
+  plugins?: string;
+  options?: string;
+}
 const tableName: string = 'cluster';
 
 @Entity(tableName)
@@ -176,7 +184,11 @@ export class Cluster extends Model {
   }
 
   //Update cluster
-  public static updateCluster(dbCon: Query, fwcloud: number, clusterData): Promise<void> {
+  public static updateCluster(
+    dbCon: Query,
+    fwcloud: number,
+    clusterData: ClusterData,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}, plugins=${dbCon.escape(clusterData.plugins)}
                 WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;

@@ -41,6 +41,7 @@ import { IPObjTypeToPolicyPosition } from '../ipobj/IPObjTypeToPolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
 import Query from '../../database/Query';
 import { Err } from 'joi';
+import { IPObj } from '../ipobj/IPObj';
 
 const tableName: string = 'policy_position';
 
@@ -108,7 +109,7 @@ export type PositionNode = {
   fwcloud: number;
   firewall: number;
   rule: number;
-  ipobjs: [];
+  ipobjs: IPObj[];
 };
 
 @Entity(tableName)

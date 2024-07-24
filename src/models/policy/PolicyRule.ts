@@ -68,7 +68,7 @@ export const SpecialRuleToFireWallOptMask = new Map<SpecialPolicyRules, number>(
   [SpecialPolicyRules.FAIL2BAN, 0x0080],
 ]);
 
-type RulePosMap = Map<string, []>;
+type RulePosMap = Map<string, IPObj[]>;
 
 @Entity(tableName)
 export class PolicyRule extends Model {
@@ -393,13 +393,12 @@ export class PolicyRule extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         sql,
-        async (error, data: Array<{ rule: number; position: number } & (IPObj | Interface)>) => {
+        (error, data: Array<{ rule: number; position: number } & (IPObj | Interface)>) => {
           if (error) return reject(error);
 
           try {
             for (let i = 0; i < data.length; i++) {
-              const ipobjs: Array<{ rule: number; position: number } & (IPObj | Interface)> =
-                rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+              const ipobjs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
               ipobjs?.push(data[i]);
             }
           } catch (error) {
@@ -477,7 +476,7 @@ export class PolicyRule extends Model {
             );
 
             // Init the map for access the position objects array for each rule and position.
-            const rulePositionsMap: RulePosMap = new Map<string, []>();
+            const rulePositionsMap: RulePosMap = new Map<string, IPObj[]>();
             for (let i = 0; i < rulesData.length; i++) {
               if (rulesData[i].policyGroupId && ignoreGroupsData) continue;
 

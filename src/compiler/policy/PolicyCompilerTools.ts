@@ -28,6 +28,7 @@ import { FireWallOptMask } from '../../models/firewall/Firewall';
 import ip from 'ip';
 import fwcError from '../../utils/error_table';
 import shellescape from 'shell-escape';
+import { IPObj } from '../../models/ipobj/IPObj';
 
 export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT', 1],
@@ -79,9 +80,30 @@ type CompiledPosition = {
   items: string[];
 };
 
+interface RuleData {
+  comment: string;
+  style: string;
+  group_name: string;
+  group_style: string;
+  special: any;
+  run_before: any;
+  run_after: any;
+  type: number;
+  ip_version: 4 | 6;
+  positions: any[];
+  action: string;
+  options: number;
+  firewall_options: number;
+  id: string;
+  fw_apply_to: number;
+  firewall_name: string;
+  negate: string;
+  mark_code: string;
+}
+
 export abstract class PolicyCompilerTools {
   protected _compiler: AvailablePolicyCompilers;
-  protected _ruleData: any;
+  protected _ruleData: RuleData;
   protected _policyType: number;
   protected _cs: string;
   protected _cmd: string;
@@ -656,7 +678,7 @@ export abstract class PolicyCompilerTools {
     let src_position: number,
       dst_position: number,
       svc_position: number,
-      objs: any,
+      objs: any[],
       negated: boolean;
     let i: number, j: number, p: number;
 

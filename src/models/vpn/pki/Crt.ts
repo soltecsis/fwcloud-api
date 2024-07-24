@@ -162,7 +162,7 @@ export class Crt extends Model {
         INNER JOIN crt CRT ON CRT.id=VPN.crt
         INNER JOIN ca CA ON CA.id=CRT.ca
         WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
-      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { crtUsedInOpenvpn: true } });

@@ -268,7 +268,7 @@ export class Ca extends Model {
       const sql = `SELECT CRT.id FROM crt CRT
       INNER JOIN ca CA ON CA.id=CRT.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
-      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { caHasCertificates: true } });
@@ -286,7 +286,7 @@ export class Ca extends Model {
       const sql = `SELECT P.id FROM ca_prefix P
       INNER JOIN ca CA ON CA.id=P.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
-      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { caHasPrefixes: true } });

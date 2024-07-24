@@ -515,7 +515,7 @@ export class IPObjGroup extends Model {
             ,type=${ipobj_gData.type}
             ,comment=${req.dbCon.escape(ipobj_gData.comment)}
             WHERE id=${ipobj_gData.id} AND fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, async (error) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });

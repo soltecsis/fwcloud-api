@@ -24,7 +24,8 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
     stubGenerateCommand = sinon
       .stub(InstallerGenerator.prototype, 'generateExecutable' as keyof InstallerGenerator)
       .callsFake(() => {
-        return fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), '');
+        fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), '');
+        return fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'));
       });
   });
 
@@ -202,7 +203,8 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
       const stubSignCommand = sinon
         .stub(InstallerGenerator.prototype, 'signExecutable' as keyof InstallerGenerator)
         .callsFake(() => {
-          return fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), 'signed');
+          fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), 'signed');
+          return fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'));
         });
 
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
@@ -246,7 +248,8 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
       const stubSignCommand = sinon
         .stub(InstallerGenerator.prototype, 'signExecutable' as keyof InstallerGenerator)
         .callsFake(() => {
-          return fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), 'signed');
+          fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), 'signed');
+          return fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'));
         });
 
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);

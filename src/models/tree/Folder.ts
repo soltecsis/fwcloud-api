@@ -24,7 +24,17 @@ import Model from '../Model';
 import db from '../../database/database-manager';
 import Query from '../../database/Query';
 import fwcError from '../../utils/error_table';
+import { number } from 'joi';
 
+interface NodeData {
+  id: number;
+  name: string;
+  id_parent: number;
+  node_type: string;
+  obj_type: number;
+  id_obj: number;
+  fwcloud: number;
+}
 const tableName: string = 'fwc_tree';
 
 export class Folder extends Model {
@@ -33,7 +43,7 @@ export class Folder extends Model {
   }
 
   //Add new folder node
-  public static createFolderNode(nodeData): Promise<{ insertId: number }> {
+  public static createFolderNode(nodeData: NodeData): Promise<{ insertId: number }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);

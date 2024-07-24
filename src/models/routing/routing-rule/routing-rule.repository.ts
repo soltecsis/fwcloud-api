@@ -137,37 +137,43 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     affectedRules: RoutingRule[],
     destRule: RoutingRule,
   ): Promise<RoutingRule[]> {
-    const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map((rule) => rule.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map((rule) => rule.id);
 
-    const currentPosition: number = rules[0].rule_order;
-    const forward: boolean = currentPosition < destRule.rule_order;
+        const currentPosition: number = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-    affectedRules.forEach((rule) => {
-      if (movingIds.includes(rule.id)) {
-        if (!destRule.routingGroupId) {
-          const offset = movingIds.indexOf(rule.id);
-          rule.rule_order = destPosition + offset;
-          rule.routingGroupId = destRule.routingGroupId;
-        } else {
-          rule.routingGroupId = destRule.routingGroupId;
-        }
-      } else {
-        if (forward && rule.rule_order >= destRule.rule_order) {
-          rule.rule_order += rules.length;
-        }
+        affectedRules.forEach((rule) => {
+          if (movingIds.includes(rule.id)) {
+            if (!destRule.routingGroupId) {
+              const offset = movingIds.indexOf(rule.id);
+              rule.rule_order = destPosition + offset;
+              rule.routingGroupId = destRule.routingGroupId;
+            } else {
+              rule.routingGroupId = destRule.routingGroupId;
+            }
+          } else {
+            if (forward && rule.rule_order >= destRule.rule_order) {
+              rule.rule_order += rules.length;
+            }
 
-        if (
-          !forward &&
-          rule.rule_order >= destRule.rule_order &&
-          rule.rule_order < rules[0].rule_order
-        ) {
-          rule.rule_order += rules.length;
-        }
+            if (
+              !forward &&
+              rule.rule_order >= destRule.rule_order &&
+              rule.rule_order < rules[0].rule_order
+            ) {
+              rule.rule_order += rules.length;
+            }
+          }
+        });
+
+        resolve(affectedRules);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRules;
   }
 
   protected async moveBelow(
@@ -175,37 +181,43 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     affectedRules: RoutingRule[],
     destRule: RoutingRule,
   ): Promise<RoutingRule[]> {
-    const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map((rule) => rule.id);
+    return new Promise((resolve, reject) => {
+      try {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map((rule) => rule.id);
 
-    const currentPosition: number = rules[0].rule_order;
-    const forward: boolean = currentPosition < destRule.rule_order;
+        const currentPosition: number = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-    affectedRules.forEach((rule) => {
-      if (movingIds.includes(rule.id)) {
-        if (!destRule.routingGroupId) {
-          const offset: number = movingIds.indexOf(rule.id);
-          rule.rule_order = destPosition + offset + 1;
-          rule.routingGroupId = destRule.routingGroupId;
-        } else {
-          rule.routingGroupId = destRule.routingGroupId;
-        }
-      } else {
-        if (forward && rule.rule_order > destRule.rule_order) {
-          rule.rule_order += rules.length;
-        }
+        affectedRules.forEach((rule) => {
+          if (movingIds.includes(rule.id)) {
+            if (!destRule.routingGroupId) {
+              const offset: number = movingIds.indexOf(rule.id);
+              rule.rule_order = destPosition + offset + 1;
+              rule.routingGroupId = destRule.routingGroupId;
+            } else {
+              rule.routingGroupId = destRule.routingGroupId;
+            }
+          } else {
+            if (forward && rule.rule_order > destRule.rule_order) {
+              rule.rule_order += rules.length;
+            }
 
-        if (
-          !forward &&
-          rule.rule_order > destRule.rule_order &&
-          rule.rule_order < rules[0].rule_order
-        ) {
-          rule.rule_order += rules.length;
-        }
+            if (
+              !forward &&
+              rule.rule_order > destRule.rule_order &&
+              rule.rule_order < rules[0].rule_order
+            ) {
+              rule.rule_order += rules.length;
+            }
+          }
+        });
+
+        resolve(affectedRules);
+      } catch (e) {
+        reject(e);
       }
     });
-
-    return affectedRules;
   }
 
   /**

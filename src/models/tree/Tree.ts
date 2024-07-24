@@ -31,8 +31,8 @@ import { IPObj } from '../ipobj/IPObj';
 import fwcError from '../../utils/error_table';
 import ipobjs_Data from '../data/data_ipobj';
 import firewalls_Data from '../data/data_firewall';
-import RequestData from '../data/RequestData';
 import asyncMod from 'async';
+import { Request } from 'express';
 //const fwc_tree_node = require('./node.js');
 
 const tableName: string = 'fwc_tree';
@@ -76,6 +76,15 @@ type objectTree = {
   COUNTRIES: number;
 };
 
+interface NodeData {
+  name: string;
+  type: number;
+  id: number;
+  labelName?: string;
+  interface?: number;
+  address?: string;
+}
+
 export class Tree extends Model {
   @PrimaryGeneratedColumn()
   id: number;
@@ -106,7 +115,7 @@ export class Tree extends Model {
   }
 
   //Get fwcloud root node bye type.
-  public static getRootNodeByType(req: RequestData, type: string): Promise<nodeSearch> {
+  public static getRootNodeByType(req: Request, type: string): Promise<nodeSearch> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.*, P.order_mode FROM ${tableName} T
 			inner join fwcloud C on C.id=T.fwcloud
@@ -147,7 +156,7 @@ export class Tree extends Model {
     });
   }
 
-  public static hasChilds(req: RequestData, node_id: number): Promise<boolean> {
+  public static hasChilds(req: Request, node_id: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT count(*) AS n FROM ${tableName} WHERE id_parent=${node_id}`,
@@ -223,10 +232,10 @@ export class Tree extends Model {
     childrenArrayMap: ChildrenArrayMap,
     customOrder?: string[],
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = `select id from fwc_tree where fwcloud=${fwcloud} and node_type in (${nodeType.map((value) => `'${value}'`).join(', ')})`;
 
-      dbCon.query(sql, async (error, nodes: Array<{ id: number }>) => {
+      dbCon.query(sql, (error, nodes: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         switch (sortType) {
@@ -263,7 +272,7 @@ export class Tree extends Model {
       const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud
                 from fwc_tree where id_parent in (${nodes.map((node) => node.id).join(', ')}) order by ${orderBy}`;
 
-      dbCon.query(sql, async (error, nodes: TreeNode[]) => {
+      dbCon.query(sql, (error, nodes: TreeNode[]) => {
         if (error) return reject(error);
 
         resolve(nodes);
@@ -379,7 +388,7 @@ export class Tree extends Model {
 
       dbCon.query(
         sql,
-        async (
+        (
           error,
           ipobjs: Array<{
             id: number;
@@ -913,7 +922,7 @@ export class Tree extends Model {
       ipobj_type === 24 && node_type === 'COD'
         ? (sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})`)
         : (sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type);
-      dbCon.query(sql, async (error, result: Array<{ id: number; name: string }>) => {
+      dbCon.query(sql, (error, result: Array<{ id: number; name: string }>) => {
         if (error) return reject(error);
 
         try {
@@ -923,7 +932,7 @@ export class Tree extends Model {
             sql += `(${dbCon.escape(ipobj.name)},${node_id} ,${dbCon.escape(node_type)},${ipobj.id},${ipobj_type},NULL),`;
           }
           sql = sql.slice(0, -1);
-          dbCon.query(sql, async (error) => {
+          dbCon.query(sql, (error) => {
             if (error) return reject(error);
 
             resolve();
@@ -1699,11 +1708,14 @@ export class Tree extends Model {
                 //logger().debug(sqlnodes);
                 connection.query(
                   sqlnodes,
-                  (error, rowsnodes: Array<{ id: number; name: string; fwcloud: number }>) => {
+                  async (
+                    error,
+                    rowsnodes: Array<{ id: number; name: string; fwcloud: number }>,
+                  ) => {
                     if (error) callback(error, null);
                     else {
                       if (rowsnodes) {
-                        asyncMod.forEachSeries(rowsnodes, (rnode, callback2) => {
+                        await asyncMod.forEachSeries(rowsnodes, (rnode, callback2) => {
                           //Insertamos nodos Cluster
                           const sqlinsert =
                             'INSERT INTO ' +
@@ -1948,11 +1960,11 @@ export class Tree extends Model {
 
   //Add new NODE from IPOBJ or Interface
   public static insertFwc_TreeOBJ(
-    req: RequestData,
+    req: Request,
     node_parent: number,
     node_order: number,
     node_type: string,
-    node_Data: any,
+    node_Data: NodeData,
   ): Promise<number> {
     return new Promise((resolve, reject) => {
       const fwc_treeData = {
@@ -1966,8 +1978,8 @@ export class Tree extends Model {
       };
 
       // Firewall and host interfaces.
-      if ((node_Data.type === 10 || node_Data.type === 11) && node_Data.label_name)
-        fwc_treeData.name += ' [' + node_Data.label_name + ']';
+      if ((node_Data.type === 10 || node_Data.type === 11) && node_Data.labelName)
+        fwc_treeData.name += ' [' + node_Data.labelName + ']';
       // Interface address.
       if (node_Data.type === 5 && node_Data.interface)
         fwc_treeData.name += ' (' + node_Data.address + ')';
@@ -2028,7 +2040,11 @@ export class Tree extends Model {
   }
 
   //Update NODE from CLUSTER UPDATE
-  public static updateFwc_Tree_Cluster(dbCon: Query, fwcloud: number, Data): Promise<void> {
+  public static updateFwc_Tree_Cluster(
+    dbCon: Query,
+    fwcloud: number,
+    Data: { name: string; id: number },
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${dbCon.escape(Data.name)}
 			WHERE id_obj=${Data.id} AND fwcloud=${fwcloud} AND node_type='CL'`;
@@ -2041,7 +2057,7 @@ export class Tree extends Model {
 
   //Update NODE from IPOBJ or INTERFACE UPDATE
   public static updateFwc_Tree_OBJ(
-    req: RequestData,
+    req: Request,
     ipobjData: ipobjs_Data,
   ): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {

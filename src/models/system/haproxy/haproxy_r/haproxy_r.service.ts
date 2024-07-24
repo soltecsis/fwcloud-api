@@ -149,7 +149,7 @@ export class HAProxyRuleService extends Service {
       await this.validateBackendIps(haProxyRule.firewall, data);
       haProxyRule.backendIps = await Promise.all(
         data.backendIpsIds.map(
-          async (item) =>
+          (item) =>
             ({
               haproxyRuleId: haProxyRule.id,
               ipObjId: item.id,
@@ -287,7 +287,7 @@ export class HAProxyRuleService extends Service {
 
     let lastPosition = 0;
 
-    [].concat(toRule.backendIps).forEach((ipobj) => {
+    [].concat(toRule.backendIps).forEach((ipobj: HAProxyRuleToIPObj) => {
       lastPosition < ipobj.order ? (lastPosition = ipobj.order) : null;
     });
 

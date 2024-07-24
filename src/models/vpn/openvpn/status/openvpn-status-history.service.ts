@@ -54,8 +54,14 @@ export class OpenVPNStatusHistoryService extends Service {
   protected _repository: Repository<OpenVPNStatusHistory>;
 
   public async build(): Promise<Service> {
-    this._repository = db.getSource().manager.getRepository(OpenVPNStatusHistory);
-    return this;
+    return new Promise((resolve, reject) => {
+      try {
+        this._repository = db.getSource().manager.getRepository(OpenVPNStatusHistory);
+        resolve(this);
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   /**
