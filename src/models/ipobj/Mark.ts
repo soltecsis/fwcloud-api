@@ -227,7 +227,11 @@ export class Mark extends Model {
     });
   }
 
-  public static async searchMarkUsage(dbCon: Query, fwcloud: number, mark: number) {
+  public static async searchMarkUsage(
+    dbCon: Query,
+    fwcloud: number,
+    mark: number,
+  ): Promise<SearchMarkUsage> {
     const search: SearchMarkUsage = {
       result: false,
       restrictions: {
@@ -263,5 +267,6 @@ export class Mark extends Model {
         break;
       }
     }
+    return search;
   }
 }
