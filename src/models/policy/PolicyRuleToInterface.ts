@@ -157,7 +157,7 @@ export class PolicyRuleToInterface extends Model {
         policy_r__interfaceData.rule,
         policy_r__interfaceData.interface,
         policy_r__interfaceData.position,
-        (error, allowed: boolean) => {
+        (error, allowed) => {
           if (error) return reject(error);
           if (!allowed) return reject(fwcError.NOT_ALLOWED);
           db.get((error, connection) => {
@@ -165,20 +165,18 @@ export class PolicyRuleToInterface extends Model {
             connection.query(
               'INSERT INTO ' + tableName + ' SET ?',
               policy_r__interfaceData,
-              async (error, result: { affectedRows: number }) => {
+              (error, result: { affectedRows: number }) => {
                 if (error) return reject(error);
                 if (result.affectedRows > 0) {
-                  try {
-                    await this.OrderList(
-                      policy_r__interfaceData.position_order,
-                      policy_r__interfaceData.rule,
-                      policy_r__interfaceData.position,
-                      999999,
-                      policy_r__interfaceData.interface,
-                    );
-                  } catch (err) {
-                    return reject(err);
-                  }
+                  this.OrderList(
+                    policy_r__interfaceData.position_order,
+                    policy_r__interfaceData.rule,
+                    policy_r__interfaceData.position,
+                    999999,
+                    policy_r__interfaceData.interface,
+                  ).catch((error) => {
+                    return reject(error);
+                  });
 
                   resolve();
                 } else reject(fwcError.NOT_FOUND);
@@ -264,7 +262,7 @@ export class PolicyRuleToInterface extends Model {
       policy_r__interfaceData.rule,
       policy_r__interfaceData.interface,
       policy_r__interfaceData.position,
-      (error, data: boolean) => {
+      (error, data) => {
         if (error) {
           callback(error, null);
         } else {
@@ -451,7 +449,7 @@ export class PolicyRuleToInterface extends Model {
     rule: number,
     id: number,
     position: number,
-    callback: Function,
+    callback: (error: Error | null, allowed: number) => void,
   ) {
     db.get((error, connection) => {
       if (error) return callback(null, 0);

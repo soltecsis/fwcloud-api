@@ -144,50 +144,42 @@ export class CaPrefix extends Model {
   }
 
   // Apply CRT prefix to tree node.
-  public static applyCrtPrefixes(req: RequestData, ca: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Search for the CA node tree.
-        const node = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
-        if (node.length !== 1) throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
-        const node_id = node[0].id;
+  public static async applyCrtPrefixes(req: RequestData, ca: number): Promise<void> {
+    // Search for the CA node tree.
+    const node = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
+    if (node.length !== 1) throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
+    const node_id = node[0].id;
 
-        // Remove all nodes under the CA node.
-        await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
+    // Remove all nodes under the CA node.
+    await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
 
-        // Generate all the CRT tree nodes under the CA node.
-        const crt_list = await Crt.getCRTlist(req.dbCon, ca);
-        for (const crt of crt_list)
-          void Tree.newNode(
-            req.dbCon,
-            req.body.fwcloud,
-            crt.cn,
-            node_id,
-            'CRT',
-            crt.id,
-            crt.type === 1 ? 301 : 302,
-          );
+    // Generate all the CRT tree nodes under the CA node.
+    const crt_list = await Crt.getCRTlist(req.dbCon, ca);
+    for (const crt of crt_list)
+      await Tree.newNode(
+        req.dbCon,
+        req.body.fwcloud,
+        crt.cn,
+        node_id,
+        'CRT',
+        crt.id,
+        crt.type === 1 ? 301 : 302,
+      );
 
-        // Create the nodes for all the prefixes.
-        const prefix_list = await this.getPrefixes(req.dbCon, ca);
-        for (const prefix of prefix_list) {
-          const id = await Tree.newNode(
-            req.dbCon,
-            req.body.fwcloud,
-            prefix.name,
-            node_id,
-            'PRE',
-            prefix.id,
-            400,
-          );
-          await this.fillPrefixNodeCA(req.dbCon, req.body.fwcloud, ca, prefix.name, node_id, id);
-        }
-
-        resolve();
-      } catch (error) {
-        return reject(error);
-      }
-    });
+    // Create the nodes for all the prefixes.
+    const prefix_list = await this.getPrefixes(req.dbCon, ca);
+    for (const prefix of prefix_list) {
+      const id = await Tree.newNode(
+        req.dbCon,
+        req.body.fwcloud,
+        prefix.name,
+        node_id,
+        'PRE',
+        prefix.id,
+        400,
+      );
+      await this.fillPrefixNodeCA(req.dbCon, req.body.fwcloud, ca, prefix.name, node_id, id);
+    }
   }
 
   // Add new prefix container.

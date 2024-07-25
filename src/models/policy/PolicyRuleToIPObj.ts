@@ -494,10 +494,10 @@ export class PolicyRuleToIPObj extends Model {
             connection.query(
               `INSERT INTO ${tableModel} SET ?`,
               policy_r__ipobjData,
-              async (error, result: { affectedRows: number }) => {
+              (error, result: { affectedRows: number }) => {
                 if (error) return reject(error);
                 if (result.affectedRows > 0) {
-                  await this.OrderList(
+                  this.OrderList(
                     policy_r__ipobjData.position_order,
                     policy_r__ipobjData.rule,
                     policy_r__ipobjData.position,
@@ -505,7 +505,7 @@ export class PolicyRuleToIPObj extends Model {
                     policy_r__ipobjData.ipobj,
                     policy_r__ipobjData.ipobj_g,
                     policy_r__ipobjData.interface,
-                  );
+                  ).catch((error) => reject(error));
                   resolve();
                 } else reject(fwcError.NOT_ALLOWED);
               },
@@ -598,13 +598,13 @@ export class PolicyRuleToIPObj extends Model {
         connection.query(
           'INSERT INTO ' + tableModel + ' SET ?',
           p_ipobjData,
-          async (error, result: { affectedRows: number }) => {
+          (error, result: { affectedRows: number }) => {
             if (error) {
               logger().debug(error);
               resolve({ result: false, allowed: 1 });
             } else {
               if (result.affectedRows > 0) {
-                await this.OrderList(
+                this.OrderList(
                   p_ipobjData.position_order,
                   p_ipobjData.rule,
                   p_ipobjData.position,
@@ -612,8 +612,11 @@ export class PolicyRuleToIPObj extends Model {
                   p_ipobjData.ipobj,
                   p_ipobjData.ipobj_g,
                   p_ipobjData.interfaceId,
-                );
-                resolve({ result: true });
+                )
+                  .then(() => {
+                    resolve({ result: true });
+                  })
+                  .catch((error) => reject(error));
               } else {
                 resolve({ result: false });
               }
@@ -2085,70 +2088,55 @@ export class PolicyRuleToIPObj extends Model {
     });
   };
 
-  public static checkIpVersion(req: RequestData) {
-    return new Promise(async (resolve, reject) => {
-      let rule_ip_version: number;
-      try {
-        rule_ip_version = await PolicyRule.getPolicyRuleIPversion(
-          req.dbCon,
-          req.body.fwcloud,
-          req.body.firewall,
-          req.body.rule,
-        );
-      } catch (error) {
-        return reject(error);
+  public static async checkIpVersion(req: RequestData) {
+    const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(
+      req.dbCon,
+      req.body.fwcloud,
+      req.body.firewall,
+      req.body.rule,
+    );
+
+    if (req.body.ipobj > 0) {
+      // Verify the IP version of the IP object that we are moving.
+      req.dbCon.query(
+        `select ip_version,type from ipobj where id=${req.body.ipobj}`,
+        (error: Error, result: Array<{ ip_version: number; type: number }>) => {
+          if (error) throw error;
+          if (result.length !== 1) throw fwcError.NOT_FOUND;
+
+          const type = result[0].type;
+          if (type !== 5 && type !== 6 && type !== 7)
+            //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
+            return true;
+
+          if (result[0].ip_version === rule_ip_version) return true;
+          return false;
+        },
+      );
+    } else if (req.body.ipobj_g > 0) {
+      // Verify the IP version of the group that we are inserting in the rule.
+      const groupData = await IPObjGroup.getIpobj_g(req.dbCon, req.body.fwcloud, req.body.ipobj_g);
+
+      // If this is a services group, then we don't need to check the IP version.
+      if (groupData[0].type === 21) return true;
+
+      // If this is a continent group, then we don't need to check the IP version.
+      if (groupData[0].type === 23) return true;
+
+      const groupIPv: { ipv4: boolean; ipv6: boolean } = await IPObjGroup.groupIPVersion(
+        req.dbCon,
+        req.body.ipobj_g,
+      );
+
+      if (rule_ip_version === 4 && groupIPv.ipv4) {
+        return true;
       }
 
-      if (req.body.ipobj > 0) {
-        // Verify the IP version of the IP object that we are moving.
-        req.dbCon.query(
-          `select ip_version,type from ipobj where id=${req.body.ipobj}`,
-          (error: Error, result: Array<{ ip_version: number; type: number }>) => {
-            if (error) return reject(error);
-            if (result.length !== 1) return reject(fwcError.NOT_FOUND);
+      if (rule_ip_version === 6 && groupIPv.ipv6) {
+        return true;
+      }
 
-            const type = result[0].type;
-            if (type !== 5 && type !== 6 && type !== 7)
-              //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
-              return resolve(true);
-
-            if (result[0].ip_version === rule_ip_version) return resolve(true);
-            return resolve(false);
-          },
-        );
-      } else if (req.body.ipobj_g > 0) {
-        // Verify the IP version of the group that we are inserting in the rule.
-        try {
-          const groupData = await IPObjGroup.getIpobj_g(
-            req.dbCon,
-            req.body.fwcloud,
-            req.body.ipobj_g,
-          );
-
-          // If this is a services group, then we don't need to check the IP version.
-          if (groupData[0].type === 21) return resolve(true);
-
-          // If this is a continent group, then we don't need to check the IP version.
-          if (groupData[0].type === 23) return resolve(true);
-
-          const groupIPv: { ipv4: boolean; ipv6: boolean } = await IPObjGroup.groupIPVersion(
-            req.dbCon,
-            req.body.ipobj_g,
-          );
-
-          if (rule_ip_version === 4 && groupIPv.ipv4) {
-            return resolve(true);
-          }
-
-          if (rule_ip_version === 6 && groupIPv.ipv6) {
-            return resolve(true);
-          }
-
-          resolve(false);
-        } catch (error) {
-          return reject(error);
-        }
-      } else resolve(true);
-    });
+      return false;
+    } else return true;
   }
 }

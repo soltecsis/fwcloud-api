@@ -97,7 +97,7 @@ export class Zip {
         ? archive.file(workPath, { name: path.basename(workPath) })
         : archive.directory(workPath, false);
 
-      archive.finalize();
+      void archive.finalize();
     });
   }
 }

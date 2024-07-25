@@ -419,63 +419,57 @@ export class IPObjGroup extends Model {
     });
   }
 
-  public static searchGroupUsage(id: number, fwcloud: number): Promise<SearchGroupUsage> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const search: SearchGroupUsage = {
-          result: false,
-          restrictions: {
-            GroupInRule: [],
-            GroupInRoute: [],
-            GroupInRoutingRule: [],
-          },
-        };
-        //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-        search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-        search.restrictions.GroupInRoute = await db
-          .getSource()
-          .manager.getRepository(Route)
-          .createQueryBuilder('route')
-          .addSelect('firewall.id', 'firewall_id')
-          .addSelect('firewall.name', 'firewall_name')
-          .addSelect('cluster.id', 'cluster_id')
-          .addSelect('cluster.name', 'cluster_name')
-          .innerJoinAndSelect('route.routingTable', 'table')
-          .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
-          .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', { id: id })
-          .innerJoin('table.firewall', 'firewall')
-          .leftJoin('firewall.cluster', 'cluster')
-          .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
-          .getRawMany();
+  public static async searchGroupUsage(id: number, fwcloud: number): Promise<SearchGroupUsage> {
+    const search: SearchGroupUsage = {
+      result: false,
+      restrictions: {
+        GroupInRule: [],
+        GroupInRoute: [],
+        GroupInRoutingRule: [],
+      },
+    };
+    //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+    search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+    search.restrictions.GroupInRoute = await db
+      .getSource()
+      .manager.getRepository(Route)
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+      .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', { id: id })
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
+      .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
+      .getRawMany();
 
-        search.restrictions.GroupInRoutingRule = await db
-          .getSource()
-          .manager.getRepository(RoutingRule)
-          .createQueryBuilder('routing_rule')
-          .addSelect('firewall.id', 'firewall_id')
-          .addSelect('firewall.name', 'firewall_name')
-          .addSelect('cluster.id', 'cluster_id')
-          .addSelect('cluster.name', 'cluster_name')
-          .innerJoin('routing_rule.routingTable', 'table')
-          .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
-          .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', { id: id })
-          .innerJoin('table.firewall', 'firewall')
-          .leftJoin('firewall.cluster', 'cluster')
-          .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
-          .getRawMany();
+    search.restrictions.GroupInRoutingRule = await db
+      .getSource()
+      .manager.getRepository(RoutingRule)
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+      .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', { id: id })
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
+      .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
+      .getRawMany();
 
-        for (const key in search.restrictions) {
-          if (Array.isArray(search.restrictions[key]) && search.restrictions[key].length > 0) {
-            search.result = true;
-            break;
-          }
-        }
-
-        resolve(search);
-      } catch (error) {
-        reject(error);
+    for (const key in search.restrictions) {
+      if (Array.isArray(search.restrictions[key]) && search.restrictions[key].length > 0) {
+        search.result = true;
+        break;
       }
-    });
+    }
+
+    return search;
   }
 
   //Add new ipobj_g
@@ -523,27 +517,20 @@ export class IPObjGroup extends Model {
   }
 
   //Remove ipobj_g with id to remove
-  public static deleteIpobj_g(
+  public static async deleteIpobj_g(
     dbCon: Query,
     fwcloud: number,
     id: number,
     type: number,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      // FIRST DELETE CHILDREN
-      try {
-        await IPObjToIPObjGroup.deleteIpobj__ipobjgAll(dbCon, id);
-      } catch (error) {
-        return reject(error);
-      }
+    // FIRST DELETE CHILDREN
+    await IPObjToIPObjGroup.deleteIpobj__ipobjgAll(dbCon, id);
 
-      dbCon.query(
-        `DELETE FROM ${tableName} WHERE id=${id} AND fwcloud=${fwcloud} AND type=${type}`,
-        (error) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
-    });
+    dbCon.query(
+      `DELETE FROM ${tableName} WHERE id=${id} AND fwcloud=${fwcloud} AND type=${type}`,
+      (error) => {
+        if (error) throw error;
+      },
+    );
   }
 }

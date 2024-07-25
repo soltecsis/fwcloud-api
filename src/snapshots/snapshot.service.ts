@@ -36,14 +36,18 @@ export type SnapshotConfig = {
 export class SnapshotService extends Service {
   protected _config: SnapshotConfig;
 
-  public async build(): Promise<SnapshotService> {
-    this._config = this._app.config.get('snapshot');
-
-    if (!fs.existsSync(this._config.data_dir)) {
-      fs.mkdirSync(this._config.data_dir);
-    }
-
-    return this;
+  public build(): Promise<SnapshotService> {
+    return new Promise((resolve, reject) => {
+      try {
+        this._config = this._app.config.get('snapshot');
+        if (!fs.existsSync(this._config.data_dir)) {
+          fs.mkdirSync(this._config.data_dir);
+        }
+        resolve(this);
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   get config(): SnapshotConfig {

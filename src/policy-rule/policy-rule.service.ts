@@ -9,9 +9,14 @@ export class PolicyRuleService extends Service {
   protected _dbCon: DatabaseQuery.default;
 
   public async build(): Promise<Service> {
-    this._dbCon = db.getQuery();
-
-    return this;
+    return new Promise((resolve, reject) => {
+      try {
+        this._dbCon = db.getQuery();
+        resolve(this);
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   public async compile(

@@ -269,12 +269,16 @@ export class Snapshot implements Responsable {
    * @param snapshotData
    */
   public async update(snapshotData: { name: string; comment: string }): Promise<Snapshot> {
-    this._name = snapshotData.name;
-    this._comment = snapshotData.comment;
-
-    this.saveMetadataFile();
-
-    return this;
+    return new Promise((resolve, reject) => {
+      try {
+        this._name = snapshotData.name;
+        this._comment = snapshotData.comment;
+        this.saveMetadataFile();
+        resolve(this);
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   /**
@@ -469,16 +473,12 @@ export class Snapshot implements Responsable {
    * Resets the firewalls compilation & installation status
    */
   protected async resetCompiledStatus(): Promise<void> {
-    return new Promise<void>(async (resolve) => {
-      const fwcloud: FwCloud = await FwCloud.findOneOrFail({
-        where: { id: this._restoredFwCloud.id },
-        relations: ['clusters', 'firewalls'],
-      });
-
-      await this._firewallRepository.markAsUncompiled(fwcloud.firewalls);
-
-      return resolve();
+    const fwcloud: FwCloud = await FwCloud.findOneOrFail({
+      where: { id: this._restoredFwCloud.id },
+      relations: ['clusters', 'firewalls'],
     });
+
+    await this._firewallRepository.markAsUncompiled(fwcloud.firewalls);
   }
 
   protected async migrateSnapshots(oldFwCloud: FwCloud, newFwCloud: FwCloud): Promise<void> {

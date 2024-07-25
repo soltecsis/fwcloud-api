@@ -132,9 +132,14 @@ export class KeepalivedPolicy extends Policy {
   }
 
   private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {
-    const match = user.fwClouds.filter((fwcloud) => fwcloud.id === fwCloudId);
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return new Promise((resolve, reject) => {
+      try {
+        const match = user.fwClouds.filter((fwcloud) => fwcloud.id === fwCloudId);
+        resolve(match.length > 0 ? Authorization.grant() : Authorization.revoke());
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   private static getKeepalivedR(keepalivedId: number): Promise<KeepalivedRule> {

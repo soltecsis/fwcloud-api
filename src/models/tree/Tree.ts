@@ -707,207 +707,186 @@ export class Tree extends Model {
     });
   }
 
-  public static createObjectsTree(dbCon: Query, fwCloudId: number): Promise<objectTree> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const ids: objectTree = {
-          OBJECTS: null,
-          Addresses: null,
-          AddressesRanges: null,
-          Networks: null,
-          DNS: null,
-          Marks: null,
-          Groups: null,
-          COUNTRIES: null,
-        };
-        let id: number;
+  public static async createObjectsTree(dbCon: Query, fwCloudId: number): Promise<objectTree> {
+    const ids: objectTree = {
+      OBJECTS: null,
+      Addresses: null,
+      AddressesRanges: null,
+      Networks: null,
+      DNS: null,
+      Marks: null,
+      Groups: null,
+      COUNTRIES: null,
+    };
+    let id: number;
 
-        // OBJECTS
-        ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
+    try {
+      // OBJECTS
+      ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
 
-        // OBJECTS / Addresses
-        ids.Addresses = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Addresses',
-          ids.OBJECTS,
-          'OIA',
-          null,
-          5,
-        );
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Addresses, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
+      // OBJECTS / Addresses
+      ids.Addresses = await this.newNode(
+        dbCon,
+        fwCloudId,
+        'Addresses',
+        ids.OBJECTS,
+        'OIA',
+        null,
+        5,
+      );
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Addresses, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
 
-        // OBJECTS / Addresses Ranges
-        ids.AddressesRanges = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Address Ranges',
-          ids.OBJECTS,
-          'OIR',
-          null,
-          6,
-        );
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Standard',
-          ids.AddressesRanges,
-          'STD',
-          null,
-          null,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
+      // OBJECTS / Addresses Ranges
+      ids.AddressesRanges = await this.newNode(
+        dbCon,
+        fwCloudId,
+        'Address Ranges',
+        ids.OBJECTS,
+        'OIR',
+        null,
+        6,
+      );
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.AddressesRanges, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
 
-        // OBJECTS / Networks
-        ids.Networks = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Networks',
-          ids.OBJECTS,
-          'OIN',
-          null,
-          7,
-        );
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Networks, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
+      // OBJECTS / Networks
+      ids.Networks = await this.newNode(dbCon, fwCloudId, 'Networks', ids.OBJECTS, 'OIN', null, 7);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Networks, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
 
-        // OBJECTS / DNS
-        ids.DNS = await this.newNode(dbCon, fwCloudId, 'DNS', ids.OBJECTS, 'ONS', null, 9);
+      // OBJECTS / DNS
+      ids.DNS = await this.newNode(dbCon, fwCloudId, 'DNS', ids.OBJECTS, 'ONS', null, 9);
 
-        // OBJECTS / Hosts
-        await this.newNode(dbCon, fwCloudId, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
+      // OBJECTS / Hosts
+      await this.newNode(dbCon, fwCloudId, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
 
-        // OBJECTS / Marks
-        ids.Marks = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Iptables Marks',
-          ids.OBJECTS,
-          'MRK',
-          null,
-          30,
-        );
+      // OBJECTS / Marks
+      ids.Marks = await this.newNode(
+        dbCon,
+        fwCloudId,
+        'Iptables Marks',
+        ids.OBJECTS,
+        'MRK',
+        null,
+        30,
+      );
 
-        // OBJECTS / Groups
-        ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.OBJECTS, 'OIG', null, 20);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
-        await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
+      // OBJECTS / Groups
+      ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.OBJECTS, 'OIG', null, 20);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
+      await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
-        // COUNTRIES
-        ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, 'COUNTRIES', null, 'COF', null, null);
+      // COUNTRIES
+      ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, 'COUNTRIES', null, 'COF', null, null);
 
-        // COUNTRIES / AS
-        id = await this.newNode(dbCon, fwCloudId, 'AS', ids.COUNTRIES, 'CON', 6, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+      // COUNTRIES / AS
+      id = await this.newNode(dbCon, fwCloudId, 'AS', ids.COUNTRIES, 'CON', 6, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-        // COUNTRIES / EU
-        id = await this.newNode(dbCon, fwCloudId, 'EU', ids.COUNTRIES, 'CON', 7, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+      // COUNTRIES / EU
+      id = await this.newNode(dbCon, fwCloudId, 'EU', ids.COUNTRIES, 'CON', 7, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-        // CONTRIES / AF
-        id = await this.newNode(dbCon, fwCloudId, 'AF', ids.COUNTRIES, 'CON', 8, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+      // CONTRIES / AF
+      id = await this.newNode(dbCon, fwCloudId, 'AF', ids.COUNTRIES, 'CON', 8, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-        // COUNTRIES / OC
-        id = await this.newNode(dbCon, fwCloudId, 'OC', ids.COUNTRIES, 'CON', 9, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+      // COUNTRIES / OC
+      id = await this.newNode(dbCon, fwCloudId, 'OC', ids.COUNTRIES, 'CON', 9, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-        // COUNTRIES / NA
-        id = await this.newNode(dbCon, fwCloudId, 'NA', ids.COUNTRIES, 'CON', 10, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+      // COUNTRIES / NA
+      id = await this.newNode(dbCon, fwCloudId, 'NA', ids.COUNTRIES, 'CON', 10, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-        // COUNTRIES / AN
-        id = await this.newNode(dbCon, fwCloudId, 'AN', ids.COUNTRIES, 'CON', 11, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+      // COUNTRIES / AN
+      id = await this.newNode(dbCon, fwCloudId, 'AN', ids.COUNTRIES, 'CON', 11, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-        // COUNTRIES / SA
-        id = await this.newNode(dbCon, fwCloudId, 'SA', ids.COUNTRIES, 'CON', 12, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        resolve(ids);
-      } catch (error) {
-        return reject(error);
-      }
-    });
+      // COUNTRIES / SA
+      id = await this.newNode(dbCon, fwCloudId, 'SA', ids.COUNTRIES, 'CON', 12, 23);
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+    return ids;
   }
 
-  public static createServicesTree(dbCon: Query, fwCloudId: number) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const ids: {
-          SERVICES: number;
-          IP: number;
-          ICMP: number;
-          TCP: number;
-          UDP: number;
-          Groups: number;
-        } = {
-          SERVICES: null,
-          IP: null,
-          ICMP: null,
-          TCP: null,
-          UDP: null,
-          Groups: null,
-        };
-        let id: number;
+  public static async createServicesTree(dbCon: Query, fwCloudId: number) {
+    try {
+      const ids: {
+        SERVICES: number;
+        IP: number;
+        ICMP: number;
+        TCP: number;
+        UDP: number;
+        Groups: number;
+      } = {
+        SERVICES: null,
+        IP: null,
+        ICMP: null,
+        TCP: null,
+        UDP: null,
+        Groups: null,
+      };
+      let id: number;
 
-        // SERVICES
-        ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
+      // SERVICES
+      ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
 
-        // SERVICES / IP
-        ids.IP = await this.newNode(dbCon, fwCloudId, 'IP', ids.SERVICES, 'SOI', null, 1);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.IP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
+      // SERVICES / IP
+      ids.IP = await this.newNode(dbCon, fwCloudId, 'IP', ids.SERVICES, 'SOI', null, 1);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.IP, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
 
-        // SERVICES / ICMP
-        ids.ICMP = await this.newNode(dbCon, fwCloudId, 'ICMP', ids.SERVICES, 'SOM', null, 3);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.ICMP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
+      // SERVICES / ICMP
+      ids.ICMP = await this.newNode(dbCon, fwCloudId, 'ICMP', ids.SERVICES, 'SOM', null, 3);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.ICMP, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
 
-        // SERVICES / TCP
-        ids.TCP = await this.newNode(dbCon, fwCloudId, 'TCP', ids.SERVICES, 'SOT', null, 2);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.TCP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
+      // SERVICES / TCP
+      ids.TCP = await this.newNode(dbCon, fwCloudId, 'TCP', ids.SERVICES, 'SOT', null, 2);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.TCP, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
 
-        // SERVICES / UDP
-        ids.UDP = await this.newNode(dbCon, fwCloudId, 'UDP', ids.SERVICES, 'SOU', null, 4);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.UDP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
+      // SERVICES / UDP
+      ids.UDP = await this.newNode(dbCon, fwCloudId, 'UDP', ids.SERVICES, 'SOU', null, 4);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.UDP, 'STD', null, null);
+      await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
 
-        // SERVICES / Groups
-        ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.SERVICES, 'SOG', null, 21);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
-        await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
+      // SERVICES / Groups
+      ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.SERVICES, 'SOG', null, 21);
+      id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
+      await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
 
-        resolve(ids);
-      } catch (error) {
-        return reject(error);
-      }
-    });
+      return ids;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
-  public static createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
+  public static async createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
     const dbCon: Query = db.getQuery();
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        // FIREWALLS
-        await this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
+    try {
+      // FIREWALLS
+      await this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
 
-        // OBJECTS
-        await this.createObjectsTree(dbCon, fwCloud.id);
+      // OBJECTS
+      await this.createObjectsTree(dbCon, fwCloud.id);
 
-        // SERVICES
-        await this.createServicesTree(dbCon, fwCloud.id);
+      // SERVICES
+      await this.createServicesTree(dbCon, fwCloud.id);
 
-        // Creating root node for CA (Certification Authorities).
-        await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
-        resolve();
-      } catch (error) {
-        return reject(error);
-      }
-    });
+      // Creating root node for CA (Certification Authorities).
+      await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
   // Create tree with standard objects.
@@ -1225,73 +1204,38 @@ export class Tree extends Model {
   }
 
   //Generate the routing nodes.
-  public static routingTree(
+  public static async routingTree(
     connection: Query,
     fwcloud: number,
     firewall: number,
     node: number,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      let id3: number;
-      try {
-        const id2 = await this.newNode(connection, fwcloud, 'Routing', node, 'ROU', firewall, null);
-        await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewall, null);
-        id3 = await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', firewall, null);
-      } catch (error) {
-        return reject(error);
-      }
+    const id2 = await this.newNode(connection, fwcloud, 'Routing', node, 'ROU', firewall, null);
+    await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewall, null);
+    const id3 = await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', firewall, null);
 
-      const sql = `SELECT id,name FROM routing_table WHERE firewall=${firewall}`;
-      connection.query(sql, async (error, tables: Array<{ id: number; name: string }>) => {
-        if (error) return reject(error);
-        if (tables.length === 0) return resolve();
+    const sql = `SELECT id,name FROM routing_table WHERE firewall=${firewall}`;
+    connection.query(sql, async (error, tables: Array<{ id: number; name: string }>) => {
+      if (error) throw error;
+      if (tables.length === 0) return;
 
-        try {
-          for (const table of tables)
-            await this.newNode(connection, fwcloud, table.name, id3, 'RT', table.id, null);
-        } catch (error) {
-          return reject(error);
-        }
-        resolve();
-      });
+      for (const table of tables)
+        await this.newNode(connection, fwcloud, table.name, id3, 'RT', table.id, null);
     });
   }
 
   //Generate the system nodes.
-  public static systemTree(
+  public static async systemTree(
     connection: Query,
     fwcloud: number,
     firewall: number,
     node: number,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const idSystem = await this.newNode(
-          connection,
-          fwcloud,
-          'System',
-          node,
-          'SYS',
-          firewall,
-          null,
-        );
-        const idDHCP = await this.newNode(
-          connection,
-          fwcloud,
-          'DHCP',
-          idSystem,
-          'S01',
-          firewall,
-          null,
-        );
-        await this.newNode(connection, fwcloud, 'Fixed Ips', idDHCP, 'S04', firewall, null);
-        await this.newNode(connection, fwcloud, 'Keepalived', idSystem, 'S02', firewall, null);
-        await this.newNode(connection, fwcloud, 'HAProxy', idSystem, 'S03', firewall, null);
-        resolve();
-      } catch (error) {
-        return reject(error);
-      }
-    });
+    const idSystem = await this.newNode(connection, fwcloud, 'System', node, 'SYS', firewall, null);
+    const idDHCP = await this.newNode(connection, fwcloud, 'DHCP', idSystem, 'S01', firewall, null);
+    await this.newNode(connection, fwcloud, 'Fixed Ips', idDHCP, 'S04', firewall, null);
+    await this.newNode(connection, fwcloud, 'Keepalived', idSystem, 'S02', firewall, null);
+    await this.newNode(connection, fwcloud, 'HAProxy', idSystem, 'S03', firewall, null);
   }
 
   // //Generate the routing nodes.

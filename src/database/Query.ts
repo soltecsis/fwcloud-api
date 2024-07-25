@@ -37,6 +37,7 @@ export default class Query {
     callback: (err: Error, result: any) => void,
   ): void;
   public query(query: string, callback: (err: Error, result: any) => void): void;
+  public query(query: string, callback: (err: Error, result: any) => Promise<void>): void;
   public query(
     query: string,
     params: any = [],

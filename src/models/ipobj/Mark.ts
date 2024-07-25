@@ -227,48 +227,41 @@ export class Mark extends Model {
     });
   }
 
-  public static searchMarkUsage(dbCon: Query, fwcloud: number, mark: number) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const search: SearchMarkUsage = {
-          result: false,
-          restrictions: {
-            MarkInRule: [],
-            MarkInRoutingRule: [],
-          },
-        };
+  public static async searchMarkUsage(dbCon: Query, fwcloud: number, mark: number) {
+    const search: SearchMarkUsage = {
+      result: false,
+      restrictions: {
+        MarkInRule: [],
+        MarkInRoutingRule: [],
+      },
+    };
 
-        search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
+    search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
 
-        search.restrictions.MarkInRoutingRule = await db
-          .getSource()
-          .manager.getRepository(RoutingRule)
-          .createQueryBuilder('routing_rule')
-          .addSelect('firewall.id', 'firewall_id')
-          .addSelect('firewall.name', 'firewall_name')
-          .addSelect('cluster.id', 'cluster_id')
-          .addSelect('cluster.name', 'cluster_name')
-          .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')
-          .innerJoin('routingRuleToMarks.mark', 'mark', 'mark.id = :mark', {
-            mark: mark,
-          })
-          .innerJoin('routing_rule.routingTable', 'table')
-          .innerJoin('table.firewall', 'firewall')
-          .leftJoin('firewall.cluster', 'cluster')
-          .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
-          .getRawMany();
+    search.restrictions.MarkInRoutingRule = await db
+      .getSource()
+      .manager.getRepository(RoutingRule)
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')
+      .innerJoin('routingRuleToMarks.mark', 'mark', 'mark.id = :mark', {
+        mark: mark,
+      })
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
+      .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
+      .getRawMany();
 
-        for (const key in search.restrictions) {
-          const restrictionArray = search.restrictions[key];
-          if (Array.isArray(restrictionArray) && restrictionArray.length > 0) {
-            search.result = true;
-            break;
-          }
-        }
-        resolve(search);
-      } catch (error) {
-        reject(error);
+    for (const key in search.restrictions) {
+      const restrictionArray = search.restrictions[key];
+      if (Array.isArray(restrictionArray) && restrictionArray.length > 0) {
+        search.result = true;
+        break;
       }
-    });
+    }
   }
 }

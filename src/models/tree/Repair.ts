@@ -487,77 +487,67 @@ export class Repair extends Model {
   }
 
   // Verify that the nodes into de folders are valid.
-  public static checkNode(
+  public static async checkNode(
     node: { id: number; node_type: string; id_obj: number; obj_type: number },
     channel: EventEmitter = new EventEmitter(),
   ) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let sql = '';
-        if (node.node_type === 'FW') {
-          if (node.obj_type !== 0) {
-            // Verify that object type is correct.
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(
-                `Deleting node with bad obj_type: ${JSON.stringify(node)}\n`,
-              ),
-            );
-            await Tree.deleteFwc_TreeFullNode({
-              id: node.id,
-              fwcloud: fwcloud,
-            });
-            return resolve(false);
-          }
-          sql =
-            'SELECT id FROM firewall WHERE fwcloud=' +
-            dbCon.escape(fwcloud) +
-            ' AND id=' +
-            dbCon.escape(node.id_obj) +
-            ' AND cluster is null';
-        } else if (node.node_type === 'CL') {
-          if (node.obj_type !== 100) {
-            // Verify that object type is correct.
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(
-                `Deleting node with bad obj_type: ${JSON.stringify(node)}\n`,
-              ),
-            );
-            await Tree.deleteFwc_TreeFullNode({
-              id: node.id,
-              fwcloud: fwcloud,
-            });
-            return resolve(false);
-          }
-          sql =
-            'SELECT id FROM cluster WHERE fwcloud=' +
-            dbCon.escape(fwcloud) +
-            ' AND id=' +
-            dbCon.escape(node.id_obj);
-        } else return resolve(true);
-
-        // Check that referenced object exists.
-        dbCon.query(sql, async (error, rows: Array<{ id: number }>) => {
-          if (error) return reject(error);
-
-          if (rows.length !== 1) {
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(
-                `Referenced object not found. Deleting node: ${JSON.stringify(node)}\n`,
-              ),
-            );
-            await Tree.deleteFwc_TreeFullNode({
-              id: node.id,
-              fwcloud: fwcloud,
-            });
-            resolve(false);
-          } else resolve(true);
+    let sql = '';
+    if (node.node_type === 'FW') {
+      if (node.obj_type !== 0) {
+        // Verify that object type is correct.
+        channel.emit(
+          'message',
+          new ProgressNoticePayload(`Deleting node with bad obj_type: ${JSON.stringify(node)}\n`),
+        );
+        await Tree.deleteFwc_TreeFullNode({
+          id: node.id,
+          fwcloud: fwcloud,
         });
-      } catch (error) {
-        reject(error);
+        return false;
       }
+      sql =
+        'SELECT id FROM firewall WHERE fwcloud=' +
+        dbCon.escape(fwcloud) +
+        ' AND id=' +
+        dbCon.escape(node.id_obj) +
+        ' AND cluster is null';
+    } else if (node.node_type === 'CL') {
+      if (node.obj_type !== 100) {
+        // Verify that object type is correct.
+        channel.emit(
+          'message',
+          new ProgressNoticePayload(`Deleting node with bad obj_type: ${JSON.stringify(node)}\n`),
+        );
+        await Tree.deleteFwc_TreeFullNode({
+          id: node.id,
+          fwcloud: fwcloud,
+        });
+        return false;
+      }
+      sql =
+        'SELECT id FROM cluster WHERE fwcloud=' +
+        dbCon.escape(fwcloud) +
+        ' AND id=' +
+        dbCon.escape(node.id_obj);
+    } else return true;
+
+    // Check that referenced object exists.
+    dbCon.query(sql, async (error, rows: Array<{ id: number }>) => {
+      if (error) throw error;
+
+      if (rows.length !== 1) {
+        channel.emit(
+          'message',
+          new ProgressNoticePayload(
+            `Referenced object not found. Deleting node: ${JSON.stringify(node)}\n`,
+          ),
+        );
+        await Tree.deleteFwc_TreeFullNode({
+          id: node.id,
+          fwcloud: fwcloud,
+        });
+        return false;
+      } else return true;
     });
   }
 
@@ -620,27 +610,12 @@ export class Repair extends Model {
   }
 
   // Regenerate host tree.
-  public static regenerateHostTree(
+  public static async regenerateHostTree(
     hostsNode: { id: number },
     host: { id: number; name: string },
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const newId = await Tree.newNode(
-          dbCon,
-          fwcloud,
-          host.name,
-          hostsNode.id,
-          'OIH',
-          host.id,
-          8,
-        );
-        await Tree.interfacesTree(dbCon, fwcloud, newId, host.id, 'HOST');
-      } catch (error) {
-        reject(error);
-      }
-      resolve();
-    });
+    const newId = await Tree.newNode(dbCon, fwcloud, host.name, hostsNode.id, 'OIH', host.id, 8);
+    await Tree.interfacesTree(dbCon, fwcloud, newId, host.id, 'HOST');
   }
 
   // Verify that the host objects are correct.

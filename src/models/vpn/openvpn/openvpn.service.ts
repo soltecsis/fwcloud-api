@@ -427,19 +427,13 @@ export class OpenVPNService extends Service {
   protected async writeCustomizedConfig(
     custom_config: OpenVPNUpdateableConfig,
   ): Promise<OpenVPNUpdateableConfig> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        if (!fs.existsSync(this._config.history.data_dir)) {
-          await fs.mkdirp(this._config.history.data_dir);
-        }
+    if (!fs.existsSync(this._config.history.data_dir)) {
+      await fs.mkdirp(this._config.history.data_dir);
+    }
 
-        const openvpnConfigFile = path.join(this._config.history.data_dir, 'config.json');
-        await fs.writeFile(openvpnConfigFile, JSON.stringify(custom_config), 'utf8');
-        return resolve(custom_config);
-      } catch (error) {
-        reject(error);
-      }
-    });
+    const openvpnConfigFile = path.join(this._config.history.data_dir, 'config.json');
+    await fs.writeFile(openvpnConfigFile, JSON.stringify(custom_config), 'utf8');
+    return custom_config;
   }
 
   /**

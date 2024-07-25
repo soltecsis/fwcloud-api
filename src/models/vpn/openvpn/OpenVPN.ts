@@ -741,103 +741,94 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnUsage(
+  public static async searchOpenvpnUsage(
     dbCon: Query,
     fwcloud: number,
     openvpn: number,
     extendedSearch?: boolean,
   ): Promise<SearchOpenvpnUsage> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const search: SearchOpenvpnUsage = {
-          result: false,
-          restrictions: {
-            OpenvpnInRule: [],
-            OpenvpnInGroup: [],
-            LastOpenvpnInPrefixInRule: [],
-            LastOpenvpnInPrefixInGroup: [],
-            OpenvpnInGroupInRule: [],
-            OpenvpnInPrefixInGroupInRule: [],
-            OpenVPNInRoute: [],
-            OpenVPNInGroupInRoute: [],
-            OpenVPNInRoutingRule: [],
-            OpenVPNInGroupInRoutingRule: [],
-          },
-        };
-        /* Verify that the OpenVPN configuration is not used in any
+    const search: SearchOpenvpnUsage = {
+      result: false,
+      restrictions: {
+        OpenvpnInRule: [],
+        OpenvpnInGroup: [],
+        LastOpenvpnInPrefixInRule: [],
+        LastOpenvpnInPrefixInGroup: [],
+        OpenvpnInGroupInRule: [],
+        OpenvpnInPrefixInGroupInRule: [],
+        OpenVPNInRoute: [],
+        OpenVPNInGroupInRoute: [],
+        OpenVPNInRoutingRule: [],
+        OpenVPNInGroupInRoutingRule: [],
+      },
+    };
+    /* Verify that the OpenVPN configuration is not used in any
                     - Rule (table policy_r__openvpn)
                     - IPBOJ group.
                     - OpenVPN is the last in a CRT prefix used in a rule or group.
                 */
-        search.restrictions.OpenvpnInRule = await PolicyRuleToOpenVPN.searchOpenvpnInRule(
-          dbCon,
-          fwcloud,
-          openvpn,
-        );
-        search.restrictions.OpenvpnInGroup = await PolicyRuleToOpenVPN.searchOpenvpnInGroup(
-          dbCon,
-          fwcloud,
-          openvpn,
-        );
-        search.restrictions.LastOpenvpnInPrefixInRule =
-          await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn);
-        search.restrictions.LastOpenvpnInPrefixInGroup =
-          await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
+    search.restrictions.OpenvpnInRule = await PolicyRuleToOpenVPN.searchOpenvpnInRule(
+      dbCon,
+      fwcloud,
+      openvpn,
+    );
+    search.restrictions.OpenvpnInGroup = await PolicyRuleToOpenVPN.searchOpenvpnInGroup(
+      dbCon,
+      fwcloud,
+      openvpn,
+    );
+    search.restrictions.LastOpenvpnInPrefixInRule =
+      await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn);
+    search.restrictions.LastOpenvpnInPrefixInGroup =
+      await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
 
-        search.restrictions.OpenVPNInRoute = await this.searchOpenVPNInRoute(fwcloud, openvpn);
-        search.restrictions.OpenVPNInGroupInRoute = await this.searchOpenVPNInGroupInRoute(
+    search.restrictions.OpenVPNInRoute = await this.searchOpenVPNInRoute(fwcloud, openvpn);
+    search.restrictions.OpenVPNInGroupInRoute = await this.searchOpenVPNInGroupInRoute(
+      fwcloud,
+      openvpn,
+    );
+    search.restrictions.OpenVPNInRoutingRule = await this.searchOpenVPNInRoutingRule(
+      fwcloud,
+      openvpn,
+    );
+    search.restrictions.OpenVPNInGroupInRoutingRule = await this.searchOpenVPNInGroupInRoutingRule(
+      fwcloud,
+      openvpn,
+    );
+
+    if (extendedSearch) {
+      // Include the rules that use the groups in which the OpenVPN is being used.
+      search.restrictions.OpenvpnInGroupInRule = [];
+      for (let i = 0; i < search.restrictions.OpenvpnInGroup.length; i++) {
+        const data = await IPObjGroup.searchGroupUsage(
+          search.restrictions.OpenvpnInGroup[i].group_id,
           fwcloud,
-          openvpn,
         );
-        search.restrictions.OpenVPNInRoutingRule = await this.searchOpenVPNInRoutingRule(
-          fwcloud,
-          openvpn,
-        );
-        search.restrictions.OpenVPNInGroupInRoutingRule =
-          await this.searchOpenVPNInGroupInRoutingRule(fwcloud, openvpn);
-
-        if (extendedSearch) {
-          // Include the rules that use the groups in which the OpenVPN is being used.
-          search.restrictions.OpenvpnInGroupInRule = [];
-          for (let i = 0; i < search.restrictions.OpenvpnInGroup.length; i++) {
-            const data = await IPObjGroup.searchGroupUsage(
-              search.restrictions.OpenvpnInGroup[i].group_id,
-              fwcloud,
-            );
-            search.restrictions.OpenvpnInGroupInRule.push(...data.restrictions.GroupInRule);
-          }
-
-          // Include the rules that use prefixes in which the OpenVPN is being used, including the
-          // groups (used in rules) in which these prefixes are being used.
-          const prefixes = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
-          search.restrictions.OpenvpnInPrefixInRule = [];
-          search.restrictions.OpenvpnInPrefixInGroupInRule = [];
-          for (let i = 0; i < prefixes.length; i++) {
-            const data = await OpenVPNPrefix.searchPrefixUsage(
-              dbCon,
-              fwcloud,
-              prefixes[i].id,
-              true,
-            );
-            search.restrictions.OpenvpnInPrefixInRule.push(...data.restrictions.PrefixInRule);
-            search.restrictions.OpenvpnInPrefixInGroupInRule.push(
-              ...data.restrictions.PrefixInGroupInRule,
-            );
-          }
-        }
-
-        for (const key in search.restrictions) {
-          const restrictionArray = search.restrictions[key];
-          if (Array.isArray(restrictionArray) && restrictionArray.length > 0) {
-            search.result = true;
-            break;
-          }
-        }
-        resolve(search);
-      } catch (error) {
-        reject(error);
+        search.restrictions.OpenvpnInGroupInRule.push(...data.restrictions.GroupInRule);
       }
-    });
+
+      // Include the rules that use prefixes in which the OpenVPN is being used, including the
+      // groups (used in rules) in which these prefixes are being used.
+      const prefixes = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
+      search.restrictions.OpenvpnInPrefixInRule = [];
+      search.restrictions.OpenvpnInPrefixInGroupInRule = [];
+      for (let i = 0; i < prefixes.length; i++) {
+        const data = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefixes[i].id, true);
+        search.restrictions.OpenvpnInPrefixInRule.push(...data.restrictions.PrefixInRule);
+        search.restrictions.OpenvpnInPrefixInGroupInRule.push(
+          ...data.restrictions.PrefixInGroupInRule,
+        );
+      }
+    }
+
+    for (const key in search.restrictions) {
+      const restrictionArray = search.restrictions[key];
+      if (Array.isArray(restrictionArray) && restrictionArray.length > 0) {
+        search.result = true;
+        break;
+      }
+    }
+    return search;
   }
 
   public static async searchOpenVPNInRoute(
@@ -1051,112 +1042,104 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static createOpenvpnServerInterface(req: RequestData, cfg: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let openvpn_opt = await this.getOptData(req.dbCon, cfg, 'dev');
-        if (openvpn_opt) {
-          const interface_name = openvpn_opt.arg;
+  public static async createOpenvpnServerInterface(req: RequestData, cfg: number): Promise<void> {
+    let openvpn_opt = await this.getOptData(req.dbCon, cfg, 'dev');
+    if (openvpn_opt) {
+      const interface_name = openvpn_opt.arg;
 
-          // If we already have an interface with the same name then do nothing.
-          const interfaces = await Interface.getInterfaces(
+      // If we already have an interface with the same name then do nothing.
+      const interfaces = await Interface.getInterfaces(
+        req.dbCon,
+        req.body.fwcloud,
+        req.body.firewall,
+      );
+      for (const _interface of interfaces) {
+        if (_interface.name === interface_name) return;
+      }
+
+      // Create the OpenVPN server network interface.
+      const interfaceData = {
+        id: null,
+        firewall: req.body.firewall,
+        name: interface_name,
+        labelName: '',
+        type: 10,
+        interface_type: 10,
+        comment: '',
+        mac: '',
+      };
+
+      const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
+      if (interfaceId) {
+        const interfaces_node = await Tree.getNodeUnderFirewall(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.firewall,
+          'FDI',
+        );
+        if (interfaces_node) {
+          const nodeId = await Tree.newNode(
             req.dbCon,
             req.body.fwcloud,
-            req.body.firewall,
+            interface_name,
+            interfaces_node.id,
+            'IFF',
+            interfaceId,
+            10,
           );
-          for (const _interface of interfaces) {
-            if (_interface.name === interface_name) return resolve();
-          }
 
-          // Create the OpenVPN server network interface.
-          const interfaceData = {
-            id: null,
-            firewall: req.body.firewall,
-            name: interface_name,
-            labelName: '',
-            type: 10,
-            interface_type: 10,
-            comment: '',
-            mac: '',
-          };
-
-          const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
-          if (interfaceId) {
-            const interfaces_node = await Tree.getNodeUnderFirewall(
+          // Create the network address for the new interface.
+          openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
+          if (openvpn_opt && openvpn_opt.ipObjId) {
+            // Get the ipobj data.
+            const ipobj = await IPObj.getIpobjInfo(
               req.dbCon,
               req.body.fwcloud,
-              req.body.firewall,
-              'FDI',
+              openvpn_opt.ipObjId,
             );
-            if (interfaces_node) {
-              const nodeId = await Tree.newNode(
+            if (ipobj.ipObjTypeId === 7) {
+              // Network
+              const net = ip.subnet(ipobj.address, ipobj.netmask);
+
+              const ipobjData = {
+                id: null,
+                fwcloud: req.body.fwcloud,
+                interface: interfaceId,
+                name: interface_name,
+                type: 5,
+                protocol: null,
+                address: net.firstAddress,
+                netmask: ipobj.netmask,
+                diff_serv: null,
+                ip_version: 4,
+                icmp_code: null,
+                icmp_type: null,
+                tcp_flags_mask: null,
+                tcp_flags_settings: null,
+                range_start: null,
+                range_end: null,
+                source_port_start: 0,
+                source_port_end: 0,
+                destination_port_start: 0,
+                destination_port_end: 0,
+                options: null,
+              };
+
+              const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
+              await Tree.newNode(
                 req.dbCon,
                 req.body.fwcloud,
-                interface_name,
-                interfaces_node.id,
-                'IFF',
-                interfaceId,
-                10,
+                `${interface_name} (${net.firstAddress})`,
+                nodeId,
+                'OIA',
+                ipobjId,
+                5,
               );
-
-              // Create the network address for the new interface.
-              openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
-              if (openvpn_opt && openvpn_opt.ipObjId) {
-                // Get the ipobj data.
-                const ipobj = await IPObj.getIpobjInfo(
-                  req.dbCon,
-                  req.body.fwcloud,
-                  openvpn_opt.ipObjId,
-                );
-                if (ipobj.ipObjTypeId === 7) {
-                  // Network
-                  const net = ip.subnet(ipobj.address, ipobj.netmask);
-
-                  const ipobjData = {
-                    id: null,
-                    fwcloud: req.body.fwcloud,
-                    interface: interfaceId,
-                    name: interface_name,
-                    type: 5,
-                    protocol: null,
-                    address: net.firstAddress,
-                    netmask: ipobj.netmask,
-                    diff_serv: null,
-                    ip_version: 4,
-                    icmp_code: null,
-                    icmp_type: null,
-                    tcp_flags_mask: null,
-                    tcp_flags_settings: null,
-                    range_start: null,
-                    range_end: null,
-                    source_port_start: 0,
-                    source_port_end: 0,
-                    destination_port_start: 0,
-                    destination_port_end: 0,
-                    options: null,
-                  };
-
-                  const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
-                  await Tree.newNode(
-                    req.dbCon,
-                    req.body.fwcloud,
-                    `${interface_name} (${net.firstAddress})`,
-                    nodeId,
-                    'OIA',
-                    ipobjId,
-                    5,
-                  );
-                }
-              }
             }
           }
         }
-
-        resolve();
-      } catch (error) {
-        reject(error);
       }
-    });
+    }
   }
 
   //Move rules from one firewall to other.

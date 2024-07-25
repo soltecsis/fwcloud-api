@@ -565,7 +565,7 @@ export class PolicyRule extends Model {
 				inner join firewall F on F.id=R.firewall
 				WHERE F.fwcloud=${fwcloud} and R.firewall=${firewall} AND R.id=${rule}`;
 
-      dbCon.query(sql, async (error, result: Array<{ type: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ type: number }>) => {
         if (error) return reject(error);
         resolve(result[0].type);
       });
@@ -584,7 +584,7 @@ export class PolicyRule extends Model {
 				inner join firewall F on F.id=R.firewall
 				WHERE F.fwcloud=${fwcloud} and R.firewall=${firewall} AND R.id=${rule}`;
 
-      dbCon.query(sql, async (error, result: Array<{ type: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ type: number }>) => {
         if (error) return reject(error);
         if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
@@ -602,7 +602,7 @@ export class PolicyRule extends Model {
       const sql = `SELECT rule_order FROM ${tableName} 
 				WHERE firewall=${firewall} AND type=${type} ORDER BY rule_order desc limit 1`;
 
-      dbCon.query(sql, async (error, result: Array<{ rule_order: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ rule_order: number }>) => {
         if (error) return reject(error);
         resolve(result.length === 0 ? 1 : result[0].rule_order);
       });
@@ -679,156 +679,148 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static insertDefaultPolicy(
+  public static async insertDefaultPolicy(
     fwId: number,
     loInterfaceId: number,
     options: any,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      const policy_rData = {
-        id: null,
-        idgroup: null,
-        firewall: fwId,
-        rule_order: 1,
-        action: 2,
-        time_start: null,
-        time_end: null,
-        active: 1,
-        options: 0,
-        comment: '',
-        type: 0,
-        special: 0,
-        style: null,
-      };
+    const policy_rData = {
+      id: null,
+      idgroup: null,
+      firewall: fwId,
+      rule_order: 1,
+      action: 2,
+      time_start: null,
+      time_end: null,
+      active: 1,
+      options: 0,
+      comment: '',
+      type: 0,
+      special: 0,
+      style: null,
+    };
 
-      const policy_r__interfaceData = {
-        rule: null,
-        interface: loInterfaceId,
-        position: 20,
-        position_order: 1,
-      };
+    const policy_r__interfaceData = {
+      rule: null,
+      interface: loInterfaceId,
+      position: 20,
+      position_order: 1,
+    };
 
-      const policy_r__ipobjData = {
-        rule: null,
-        ipobj: -1,
-        ipobj_g: 5,
-        interface: -1,
-        position: 3,
-        position_order: 1,
-      };
+    const policy_r__ipobjData = {
+      rule: null,
+      ipobj: -1,
+      ipobj_g: 5,
+      interface: -1,
+      position: 3,
+      position_order: 1,
+    };
 
-      try {
-        /**************************************/
-        /* Generate the default INPUT policy. */
-        /**************************************/
-        policy_rData.action = 1;
+    /**************************************/
+    /* Generate the default INPUT policy. */
+    /**************************************/
+    policy_rData.action = 1;
 
-        if (options & FireWallOptMask.STATEFUL) {
-          // Statefull firewall
-          policy_rData.special = 1;
-          policy_rData.comment = 'Stateful firewall rule.';
-          policy_rData.type = 1; // INPUT IPv4
-          await this.insertPolicy_r(policy_rData);
-          policy_rData.type = 61; // INPUT IPv6
-          await this.insertPolicy_r(policy_rData);
-        }
+    if (options & FireWallOptMask.STATEFUL) {
+      // Statefull firewall
+      policy_rData.special = 1;
+      policy_rData.comment = 'Stateful firewall rule.';
+      policy_rData.type = 1; // INPUT IPv4
+      await this.insertPolicy_r(policy_rData);
+      policy_rData.type = 61; // INPUT IPv6
+      await this.insertPolicy_r(policy_rData);
+    }
 
-        if (loInterfaceId) {
-          // Allow all incoming traffic from self host.
-          policy_rData.special = 0;
-          policy_rData.rule_order = 2;
-          policy_rData.comment = 'Allow all incoming traffic from self host.';
-          policy_rData.type = 1; // INPUT IPv4
-          policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
-          policy_r__interfaceData.position = 20;
-          await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
-          policy_rData.type = 61; // INPUT IPv6
-          policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
-          policy_r__interfaceData.position = 51;
-          await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+    if (loInterfaceId) {
+      // Allow all incoming traffic from self host.
+      policy_rData.special = 0;
+      policy_rData.rule_order = 2;
+      policy_rData.comment = 'Allow all incoming traffic from self host.';
+      policy_rData.type = 1; // INPUT IPv4
+      policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
+      policy_r__interfaceData.position = 20;
+      await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+      policy_rData.type = 61; // INPUT IPv6
+      policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
+      policy_r__interfaceData.position = 51;
+      await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
-          // Allow useful ICMP traffic.
-          policy_rData.rule_order = 3;
-          policy_rData.comment = 'Allow useful ICMP.';
-          policy_rData.type = 1; // INPUT IPv4
-          policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
-          policy_r__ipobjData.position = 3;
-          await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-          policy_rData.type = 61; // INPUT IPv6
-          policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
-          policy_r__ipobjData.position = 39;
-          await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-        }
+      // Allow useful ICMP traffic.
+      policy_rData.rule_order = 3;
+      policy_rData.comment = 'Allow useful ICMP.';
+      policy_rData.type = 1; // INPUT IPv4
+      policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
+      policy_r__ipobjData.position = 3;
+      await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+      policy_rData.type = 61; // INPUT IPv6
+      policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
+      policy_r__ipobjData.position = 39;
+      await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+    }
 
-        // Now create the catch all rule.
-        policy_rData.action = 2;
-        policy_rData.rule_order = 4;
-        policy_rData.special = 2;
-        policy_rData.comment = 'Catch-all rule.';
-        policy_rData.type = 1; // INPUT IPv4
-        await this.insertPolicy_r(policy_rData);
-        policy_rData.type = 61; // INPUT IPv6
-        await this.insertPolicy_r(policy_rData);
-        /**************************************/
+    // Now create the catch all rule.
+    policy_rData.action = 2;
+    policy_rData.rule_order = 4;
+    policy_rData.special = 2;
+    policy_rData.comment = 'Catch-all rule.';
+    policy_rData.type = 1; // INPUT IPv4
+    await this.insertPolicy_r(policy_rData);
+    policy_rData.type = 61; // INPUT IPv6
+    await this.insertPolicy_r(policy_rData);
+    /**************************************/
 
-        /****************************************/
-        /* Generate the default FORWARD policy. */
-        /****************************************/
-        if (options & FireWallOptMask.STATEFUL) {
-          // Statefull firewall
-          policy_rData.special = 1;
-          policy_rData.rule_order = 1;
-          policy_rData.action = 1;
-          policy_rData.comment = 'Stateful firewall rule.';
-          policy_rData.type = 3; // FORWARD IPv4
-          await this.insertPolicy_r(policy_rData);
-          policy_rData.type = 63; // FORWARD IPv6
-          await this.insertPolicy_r(policy_rData);
-        }
+    /****************************************/
+    /* Generate the default FORWARD policy. */
+    /****************************************/
+    if (options & FireWallOptMask.STATEFUL) {
+      // Statefull firewall
+      policy_rData.special = 1;
+      policy_rData.rule_order = 1;
+      policy_rData.action = 1;
+      policy_rData.comment = 'Stateful firewall rule.';
+      policy_rData.type = 3; // FORWARD IPv4
+      await this.insertPolicy_r(policy_rData);
+      policy_rData.type = 63; // FORWARD IPv6
+      await this.insertPolicy_r(policy_rData);
+    }
 
-        policy_rData.special = 0;
-        policy_rData.rule_order = 2;
-        policy_rData.action = 2;
-        policy_rData.special = 2;
-        policy_rData.comment = 'Catch-all rule.';
-        policy_rData.type = 3; // FORWARD IPv4
-        await this.insertPolicy_r(policy_rData);
-        policy_rData.type = 63; // FORWARD IPv6
-        await this.insertPolicy_r(policy_rData);
-        /****************************************/
+    policy_rData.special = 0;
+    policy_rData.rule_order = 2;
+    policy_rData.action = 2;
+    policy_rData.special = 2;
+    policy_rData.comment = 'Catch-all rule.';
+    policy_rData.type = 3; // FORWARD IPv4
+    await this.insertPolicy_r(policy_rData);
+    policy_rData.type = 63; // FORWARD IPv6
+    await this.insertPolicy_r(policy_rData);
+    /****************************************/
 
-        /***************************************/
-        /* Generate the default OUTPUT policy. */
-        /***************************************/
-        policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
+    /***************************************/
+    /* Generate the default OUTPUT policy. */
+    /***************************************/
+    policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
 
-        if (options & FireWallOptMask.STATEFUL) {
-          // Statefull firewall
-          policy_rData.special = 1;
-          policy_rData.rule_order = 1;
-          policy_rData.comment = 'Stateful firewall rule.';
-          policy_rData.type = 2; // OUTPUT IPv4
-          await this.insertPolicy_r(policy_rData);
-          policy_rData.type = 62; // OUTPUT IPv6
-          await this.insertPolicy_r(policy_rData);
-        }
+    if (options & FireWallOptMask.STATEFUL) {
+      // Statefull firewall
+      policy_rData.special = 1;
+      policy_rData.rule_order = 1;
+      policy_rData.comment = 'Stateful firewall rule.';
+      policy_rData.type = 2; // OUTPUT IPv4
+      await this.insertPolicy_r(policy_rData);
+      policy_rData.type = 62; // OUTPUT IPv6
+      await this.insertPolicy_r(policy_rData);
+    }
 
-        policy_rData.special = 0;
-        policy_rData.rule_order = 2;
-        policy_rData.special = 2;
-        policy_rData.options = 2; // Make the default output rule stateless.
-        policy_rData.comment = 'Catch-all rule.';
-        policy_rData.type = 2; // OUTPUT IPv4
-        await this.insertPolicy_r(policy_rData);
-        policy_rData.type = 62; // OUTPUT IPv6
-        await this.insertPolicy_r(policy_rData);
-        /***************************************/
-
-        resolve();
-      } catch (error) {
-        return reject(error);
-      }
-    });
+    policy_rData.special = 0;
+    policy_rData.rule_order = 2;
+    policy_rData.special = 2;
+    policy_rData.options = 2; // Make the default output rule stateless.
+    policy_rData.comment = 'Catch-all rule.';
+    policy_rData.type = 2; // OUTPUT IPv4
+    await this.insertPolicy_r(policy_rData);
+    policy_rData.type = 62; // OUTPUT IPv6
+    await this.insertPolicy_r(policy_rData);
+    /***************************************/
   }
 
   //Add new policy_r from user
@@ -880,46 +872,35 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static clonePolicy(rowData: { newFirewall: number } & PolicyRule): Promise<void> {
-    return new Promise((resolve, reject) => {
-      db.get(async (error, dbCon) => {
-        if (error) return reject(error);
+  public static async clonePolicy(rowData: { newFirewall: number } & PolicyRule): Promise<void> {
+    const dbCon = db.getQuery();
 
-        //CREATE NEW POLICY
-        const policy_rData = {
-          id: null,
-          idgroup: rowData.policyGroupId,
-          firewall: rowData.newFirewall,
-          rule_order: rowData.rule_order,
-          action: rowData.action,
-          time_start: rowData.time_start,
-          time_end: rowData.time_end,
-          active: rowData.active,
-          options: rowData.options,
-          comment: rowData.comment,
-          type: rowData.policyTypeId,
-          style: rowData.style,
-          fw_apply_to: rowData.fw_apply_to,
-          negate: rowData.negate,
-          mark: rowData.mark,
-          special: rowData.special,
-          run_before: rowData.run_before,
-          run_after: rowData.run_after,
-        };
-
-        let newRule;
-        try {
-          newRule = await this.insertPolicy_r(policy_rData);
-          await this.clonePolicyIpobj(dbCon, rowData.newFirewall, rowData.id, newRule);
-          await this.clonePolicyInterface(dbCon, rowData.firewallId, rowData.id, newRule);
-          await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
-          await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
+    //CREATE NEW POLICY
+    const policy_rData = {
+      id: null,
+      idgroup: rowData.policyGroupId,
+      firewall: rowData.newFirewall,
+      rule_order: rowData.rule_order,
+      action: rowData.action,
+      time_start: rowData.time_start,
+      time_end: rowData.time_end,
+      active: rowData.active,
+      options: rowData.options,
+      comment: rowData.comment,
+      type: rowData.policyTypeId,
+      style: rowData.style,
+      fw_apply_to: rowData.fw_apply_to,
+      negate: rowData.negate,
+      mark: rowData.mark,
+      special: rowData.special,
+      run_before: rowData.run_before,
+      run_after: rowData.run_after,
+    };
+    const newRule = await this.insertPolicy_r(policy_rData);
+    await this.clonePolicyIpobj(dbCon, rowData.newFirewall, rowData.id, newRule);
+    await this.clonePolicyInterface(dbCon, rowData.firewallId, rowData.id, newRule);
+    await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
+    await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
   }
 
   public static clonePolicyIpobj(
@@ -1069,7 +1050,7 @@ export class PolicyRule extends Model {
         sql += 'run_after=' + dbCon.escape(policy_rData.run_after) + ',';
       sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
-      dbCon.query(sql, async (error) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1120,7 +1101,7 @@ export class PolicyRule extends Model {
             type +
             ' AND rule_order' +
             cond;
-          connection.query(sql, async (error) => {
+          connection.query(sql, (error) => {
             if (error) return reject(error);
             resolve(free_rule_order);
           });
@@ -1163,7 +1144,7 @@ export class PolicyRule extends Model {
               type +
               ' AND rule_order>' +
               result[0].rule_order;
-            connection.query(sql, async (error) => {
+            connection.query(sql, (error) => {
               if (error) return reject(error);
               resolve(free_rule_order);
             });
@@ -1190,7 +1171,7 @@ export class PolicyRule extends Model {
         type +
         ' AND rule_order>=' +
         rule_order;
-      dbCon.query(sql, async (error) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1210,7 +1191,7 @@ export class PolicyRule extends Model {
           ' WHERE (I.firewall=' +
           connection.escape(idfirewall) +
           ') ';
-        connection.query(sql, async (error, rows: Array<PolicyRule>) => {
+        connection.query(sql, (error, rows: Array<PolicyRule>) => {
           if (error) return reject(error);
           //Bucle por reglas
           Promise.all(rows.map((data) => this.deletePolicy_rPro(data)))
@@ -1285,7 +1266,7 @@ export class PolicyRule extends Model {
         tableName +
         ' SET fw_apply_to=null WHERE firewall=' +
         connection.escape(idfirewall);
-      connection.query(sql, async (error) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -1363,7 +1344,7 @@ export class PolicyRule extends Model {
               ' set fw_apply_to=NULL WHERE id=' +
               connection.escape(rowData.id);
 
-          connection.query(sql, async (error, rows1) => {
+          connection.query(sql, (error, rows1) => {
             if (error) return reject(error);
             resolve(rows1);
           });
@@ -1399,7 +1380,7 @@ export class PolicyRule extends Model {
         }
 
         sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-        dbCon.query(sql, async (error) => {
+        dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -1434,7 +1415,7 @@ export class PolicyRule extends Model {
           new_negate_position_list.length === 0 ? null : new_negate_position_list.join(' ');
 
         sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-        dbCon.query(sql, async (error) => {
+        dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -1443,34 +1424,26 @@ export class PolicyRule extends Model {
   }
 
   //Allow all positions of a rule that are empty.
-  public static allowEmptyRulePositions(req: RequestData): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        req.body.type = await this.getPolicyRuleType(
-          req.dbCon,
-          req.body.fwcloud,
-          req.body.firewall,
-          req.body.rule,
-        );
-        const data = await this.getPolicyData(
-          'grid',
-          req.dbCon,
-          req.body.fwcloud,
-          req.body.firewall,
-          req.body.type,
-          [req.body.rule],
-          null,
-        );
-        for (const pos of data[0].positions) {
-          if (pos.ipobjs.length === 0)
-            await this.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);
-        }
-      } catch (error) {
-        return reject(error);
-      }
-
-      resolve();
-    });
+  public static async allowEmptyRulePositions(req: RequestData): Promise<void> {
+    req.body.type = await this.getPolicyRuleType(
+      req.dbCon,
+      req.body.fwcloud,
+      req.body.firewall,
+      req.body.rule,
+    );
+    const data = await this.getPolicyData(
+      'grid',
+      req.dbCon,
+      req.body.fwcloud,
+      req.body.firewall,
+      req.body.type,
+      [req.body.rule],
+      null,
+    );
+    for (const pos of data[0].positions) {
+      if (pos.ipobjs.length === 0)
+        await this.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);
+    }
   }
 
   //Allow all positions of a rule that are empty.
@@ -1504,60 +1477,53 @@ export class PolicyRule extends Model {
   }
 
   // Check that the catch-all special rule exists. If not, create it.
-  public static checkCatchAllRules(dbCon: Query, firewall: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      const policy_rData = {
-        id: null,
-        idgroup: null,
-        firewall: firewall,
-        rule_order: null,
-        action: null,
-        time_start: null,
-        time_end: null,
-        active: 1,
-        options: 0,
-        comment: 'Catch-all rule.',
-        type: null,
-        special: SpecialPolicyRules.CATCHALL,
-        style: null,
-      };
+  public static async checkCatchAllRules(dbCon: Query, firewall: number): Promise<void> {
+    const policy_rData = {
+      id: null,
+      idgroup: null,
+      firewall: firewall,
+      rule_order: null,
+      action: null,
+      time_start: null,
+      time_end: null,
+      active: 1,
+      options: 0,
+      comment: 'Catch-all rule.',
+      type: null,
+      special: SpecialPolicyRules.CATCHALL,
+      style: null,
+    };
 
-      try {
-        for (policy_rData.type of [1, 2, 3, 61, 62, 63]) {
-          // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-          if (policy_rData.type === 2 || policy_rData.type === 62)
-            // OUTPUT chains for IPv4 and IPv6
-            policy_rData.action = 1; // ACCEPT
-          else policy_rData.action = 2; // DENY
-          policy_rData.rule_order = await this.getLastRuleOrder(dbCon, firewall, policy_rData.type);
-          const rule_id = await this.existsSpecialRule(
-            dbCon,
-            firewall,
-            SpecialPolicyRules.CATCHALL,
-            policy_rData.type,
-          );
+    for (policy_rData.type of [1, 2, 3, 61, 62, 63]) {
+      // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+      if (policy_rData.type === 2 || policy_rData.type === 62)
+        // OUTPUT chains for IPv4 and IPv6
+        policy_rData.action = 1; // ACCEPT
+      else policy_rData.action = 2; // DENY
+      policy_rData.rule_order = await this.getLastRuleOrder(dbCon, firewall, policy_rData.type);
+      const rule_id = await this.existsSpecialRule(
+        dbCon,
+        firewall,
+        SpecialPolicyRules.CATCHALL,
+        policy_rData.type,
+      );
 
-          if (!rule_id) {
-            // If catch-all special rule don't exists create it.
-            policy_rData.rule_order++;
-            await this.insertPolicy_r(policy_rData);
-          } else {
-            // If catch-all rule exists, verify that is the last one.
-            const rule_data = await this.getPolicy_r(dbCon, firewall, rule_id);
-            if (rule_data.rule_order < policy_rData.rule_order) {
-              // If it is not the last one, move to the last one position.
-              await this.updatePolicy_r(dbCon, {
-                id: rule_id,
-                rule_order: policy_rData.rule_order + 1,
-              });
-            }
-          }
+      if (!rule_id) {
+        // If catch-all special rule don't exists create it.
+        policy_rData.rule_order++;
+        await this.insertPolicy_r(policy_rData);
+      } else {
+        // If catch-all rule exists, verify that is the last one.
+        const rule_data = await this.getPolicy_r(dbCon, firewall, rule_id);
+        if (rule_data.rule_order < policy_rData.rule_order) {
+          // If it is not the last one, move to the last one position.
+          await this.updatePolicy_r(dbCon, {
+            id: rule_id,
+            rule_order: policy_rData.rule_order + 1,
+          });
         }
-      } catch (error) {
-        return reject(error);
       }
-      resolve();
-    });
+    }
   }
 
   // Returns true if firewall is not part of a cluster or if it is part of a cluster and it is the master node of the cluster.
@@ -1565,7 +1531,7 @@ export class PolicyRule extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`,
-        async (error, result: Array<{ id: number }>) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
 
           // No result means that the firewall is part of a cluster and it is not the master node.
@@ -1584,85 +1550,77 @@ export class PolicyRule extends Model {
   ): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ''} and special=${specialRule}`;
-      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
+      dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
         resolve(result.length > 0 ? result[0].id : 0);
       });
     });
   }
 
-  public static createSpecialRule(
+  public static async createSpecialRule(
     dbCon: Query,
     firewall: number,
     specialRule: SpecialPolicyRules,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      const policy_rData = {
-        id: null,
-        idgroup: null,
-        firewall: firewall,
-        rule_order: 1,
-        action: 1, // ACCEPT
-        time_start: null,
-        time_end: null,
-        active: 1,
-        options: 0,
-        comment: '',
-        type: 1,
-        special: specialRule,
-        style: null,
-        run_before: null,
-      };
+    const policy_rData = {
+      id: null,
+      idgroup: null,
+      firewall: firewall,
+      rule_order: 1,
+      action: 1, // ACCEPT
+      time_start: null,
+      time_end: null,
+      active: 1,
+      options: 0,
+      comment: '',
+      type: 1,
+      special: specialRule,
+      style: null,
+      run_before: null,
+    };
 
-      let policyType: number[] = [];
+    let policyType: number[] = [];
 
-      try {
-        switch (specialRule) {
-          case SpecialPolicyRules.STATEFUL:
-            policy_rData.comment = 'Stateful firewall rule.';
-            policyType = [
-              PolicyTypesMap.get('IPv4:INPUT'),
-              PolicyTypesMap.get('IPv4:OUTPUT'),
-              PolicyTypesMap.get('IPv4:FORWARD'),
-              PolicyTypesMap.get('IPv6:INPUT'),
-              PolicyTypesMap.get('IPv6:OUTPUT'),
-              PolicyTypesMap.get('IPv6:FORWARD'),
-            ];
-            break;
+    switch (specialRule) {
+      case SpecialPolicyRules.STATEFUL:
+        policy_rData.comment = 'Stateful firewall rule.';
+        policyType = [
+          PolicyTypesMap.get('IPv4:INPUT'),
+          PolicyTypesMap.get('IPv4:OUTPUT'),
+          PolicyTypesMap.get('IPv4:FORWARD'),
+          PolicyTypesMap.get('IPv6:INPUT'),
+          PolicyTypesMap.get('IPv6:OUTPUT'),
+          PolicyTypesMap.get('IPv6:FORWARD'),
+        ];
+        break;
 
-          case SpecialPolicyRules.DOCKER:
-            /* Do nothing, because the only solution for integrate Docker with FWCloud is disable the option
+      case SpecialPolicyRules.DOCKER:
+        /* Do nothing, because the only solution for integrate Docker with FWCloud is disable the option
                     that allows Docker to create IPTables rules. */
-            break;
+        break;
 
-          case SpecialPolicyRules.CROWDSEC:
-            policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
-            policy_rData.action = 2;
-            policyType = [
-              PolicyTypesMap.get('IPv4:INPUT'),
-              PolicyTypesMap.get('IPv4:FORWARD'),
-              PolicyTypesMap.get('IPv6:INPUT'),
-              PolicyTypesMap.get('IPv6:FORWARD'),
-            ];
-            break;
+      case SpecialPolicyRules.CROWDSEC:
+        policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
+        policy_rData.action = 2;
+        policyType = [
+          PolicyTypesMap.get('IPv4:INPUT'),
+          PolicyTypesMap.get('IPv4:FORWARD'),
+          PolicyTypesMap.get('IPv6:INPUT'),
+          PolicyTypesMap.get('IPv6:FORWARD'),
+        ];
+        break;
 
-          case SpecialPolicyRules.FAIL2BAN:
-            policy_rData.comment = 'Fail2Ban compatibility.';
-            policy_rData.run_before = 'systemctl restart fail2ban';
-            policyType = [PolicyTypesMap.get('IPv4:INPUT')];
-            break;
-        }
+      case SpecialPolicyRules.FAIL2BAN:
+        policy_rData.comment = 'Fail2Ban compatibility.';
+        policy_rData.run_before = 'systemctl restart fail2ban';
+        policyType = [PolicyTypesMap.get('IPv4:INPUT')];
+        break;
+    }
 
-        for (policy_rData.type of policyType) {
-          await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-          await this.insertPolicy_r(policy_rData);
-        }
-      } catch (error) {
-        return reject(error);
-      }
-
-      resolve();
-    });
+    for (policy_rData.type of policyType) {
+      await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+      await this.insertPolicy_r(policy_rData);
+    }
   }
 
   public static deleteSpecialRule(
@@ -1673,7 +1631,7 @@ export class PolicyRule extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from ${tableName} where firewall=${firewall} and special=${specialRule}`,
-        async (error) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -1681,55 +1639,44 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static checkSpecialRule(
+  public static async checkSpecialRule(
     dbCon: Query,
     firewall: number,
     options: number,
     specialRule: SpecialPolicyRules,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Special rule is enabled in the options flags.
-        if (options & SpecialRuleToFireWallOptMask.get(specialRule)) {
-          // Special rule already exists, then nothing to do.
-          if (await this.existsSpecialRule(dbCon, firewall, specialRule)) return resolve();
+    // Special rule is enabled in the options flags.
+    if (options & SpecialRuleToFireWallOptMask.get(specialRule)) {
+      // Special rule already exists, then nothing to do.
+      if (await this.existsSpecialRule(dbCon, firewall, specialRule)) return;
 
-          // If special rule is enabled and it doesn't exists, then create it.
-          await this.createSpecialRule(dbCon, firewall, specialRule);
-        } else {
-          // Special rule is not enabled, then make sure that it doesn't exists.
-          await this.deleteSpecialRule(dbCon, firewall, specialRule);
-        }
-      } catch (error) {
-        return reject(error);
-      }
-      resolve();
-    });
+      // If special rule is enabled and it doesn't exists, then create it.
+      await this.createSpecialRule(dbCon, firewall, specialRule);
+    } else {
+      // Special rule is not enabled, then make sure that it doesn't exists.
+      await this.deleteSpecialRule(dbCon, firewall, specialRule);
+    }
   }
 
-  public static checkSpecialRules(dbCon: Query, firewall: number, options: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,
-        // then nothing must be done.
-        if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall))) return resolve();
+  public static async checkSpecialRules(
+    dbCon: Query,
+    firewall: number,
+    options: number,
+  ): Promise<void> {
+    // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,
+    // then nothing must be done.
+    if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall))) return;
 
-        // All the firewalls must have the catch all rules.
-        await this.checkCatchAllRules(dbCon, firewall);
+    // All the firewalls must have the catch all rules.
+    await this.checkCatchAllRules(dbCon, firewall);
 
-        // If this a stateful firewall verify that the stateful special rules exists.
-        // Or remove them if this is not a stateful firewall.
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.STATEFUL);
+    // If this a stateful firewall verify that the stateful special rules exists.
+    // Or remove them if this is not a stateful firewall.
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.STATEFUL);
 
-        // Compatibility rules with other software solutions.
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.DOCKER);
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.CROWDSEC);
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.FAIL2BAN);
-      } catch (error) {
-        return reject(error);
-      }
-
-      resolve();
-    });
+    // Compatibility rules with other software solutions.
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.DOCKER);
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.CROWDSEC);
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.FAIL2BAN);
   }
 }

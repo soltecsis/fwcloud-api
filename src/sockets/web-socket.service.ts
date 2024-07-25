@@ -43,7 +43,13 @@ export class WebSocketService extends Service {
   protected _socketIO: io.Server;
 
   public async build(): Promise<WebSocketService> {
-    return this;
+    return new Promise((resolve, reject) => {
+      try {
+        resolve(this);
+      } catch (e) {
+        reject(e);
+      }
+    });
   }
 
   get channels(): Array<Channel> {
