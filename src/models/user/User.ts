@@ -383,7 +383,7 @@ export class User extends Model {
     });
   }
 
-  public static allowFwcloudAccess(dbCon: Query, user: number, fwcloud: number) {
+  public static allowFwcloudAccess(dbCon: Query, user: number, fwcloud: number): Promise<number> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,

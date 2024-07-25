@@ -16,24 +16,29 @@ export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
         validate(value: number[] | number, args: ValidationArguments) {
           value = Array.isArray(value) ? value : [value];
 
-          return new Promise<boolean>(async (resolve, reject) => {
-            const openvpns: OpenVPN[] = await db
-              .getSource()
+          return new Promise<boolean>((resolve, reject) => {
+            db.getSource()
               .manager.getRepository(OpenVPN)
               .find({
                 where: { id: In(value) },
+              })
+              .then((openvpns: OpenVPN[]) => {
+                if (openvpns.length === 0) return resolve(true);
+                for (let i = 0; i < openvpns.length; i++) {
+                  db.getSource()
+                    .manager.getRepository(Crt)
+                    .findOne({ where: { id: openvpns[i].crtId } })
+                    .then((crt: Crt) => {
+                      if (openvpns[i].parentId === null || crt.type !== 1) return resolve(false);
+                    })
+                    .catch((err) => {
+                      reject(err);
+                    });
+                }
+              })
+              .catch((err) => {
+                reject(err);
               });
-
-            if (openvpns.length === 0) return resolve(true);
-
-            for (let i = 0; i < openvpns.length; i++) {
-              const crt: Crt = await db
-                .getSource()
-                .manager.getRepository(Crt)
-                .findOne({ where: { id: openvpns[i].crtId } });
-
-              if (openvpns[i].parentId === null || crt.type !== 1) return resolve(false);
-            }
 
             return resolve(true);
           });

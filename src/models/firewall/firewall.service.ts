@@ -249,7 +249,7 @@ export class FirewallService extends Service {
       firewall.id.toString(),
     );
 
-    if (FSHelper.directoryExists(directoryPath)) {
+    if (await FSHelper.directoryExists(directoryPath)) {
       FSHelper.rmDirectorySync(directoryPath);
     }
 

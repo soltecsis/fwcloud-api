@@ -31,8 +31,10 @@ import { Validate } from '../decorators/validate.decorator';
 export class VersionController extends Controller {
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
-    const version: Version = app<Application>().version;
+    return new Promise((resolve) => {
+      const version: Version = app<Application>().version;
 
-    return ResponseBuilder.buildResponse().status(200).body(version);
+      resolve(ResponseBuilder.buildResponse().status(200).body(version));
+    });
   }
 }

@@ -107,13 +107,14 @@ export class FwCloudExport implements Responsable {
   }
 
   public static async load(exportPath: string): Promise<FwCloudExport> {
-    const fwCloudExport: FwCloudExport = new FwCloudExport(
-      path.basename(exportPath),
-      path.dirname(exportPath),
-    );
-    fwCloudExport._loaded = true;
-
-    return fwCloudExport;
+    return new Promise((resolve) => {
+      const fwCloudExport: FwCloudExport = new FwCloudExport(
+        path.basename(exportPath),
+        path.dirname(exportPath),
+      );
+      fwCloudExport._loaded = true;
+      resolve(fwCloudExport);
+    });
   }
 
   public static loadCompressed(compressedFilePath: string): Promise<FwCloudExport> {

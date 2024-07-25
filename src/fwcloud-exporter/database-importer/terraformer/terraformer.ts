@@ -61,10 +61,11 @@ export class Terraformer {
   }
 
   protected async getTerraformer(tableName: string): Promise<typeof TableTerraformer> {
-    if (tableName in TERRAFORMERS) {
-      return TERRAFORMERS[tableName];
-    }
-
-    return TableTerraformer;
+    return new Promise((resolve) => {
+      if (tableName in TERRAFORMERS) {
+        resolve(TERRAFORMERS[tableName]);
+      }
+      resolve(TableTerraformer);
+    });
   }
 }

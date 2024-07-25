@@ -26,6 +26,9 @@ import { Request, Response, NextFunction } from 'express';
 
 export class AccessControl extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    void accessCtrl.check(req, res, next);
+    return new Promise((resolve) => {
+      void accessCtrl.check(req, res, next);
+      resolve();
+    });
   }
 }

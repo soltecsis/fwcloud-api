@@ -26,11 +26,15 @@ export class Service {
   protected constructor(protected _app: AbstractApplication) {}
 
   public async build(): Promise<Service> {
-    return this;
+    return new Promise((resolve) => {
+      resolve(this);
+    });
   }
 
   public async close(): Promise<void> {
-    return;
+    return new Promise((resolve) => {
+      resolve();
+    });
   }
 
   static async make<T extends Service>(app: AbstractApplication): Promise<T> {

@@ -184,142 +184,133 @@ export class OpenVPNService extends Service {
         });
     }
     try {
-      return await tryAcquire(this._archiveMutex).runExclusive(() => {
-        return new Promise<number>(async (resolve, reject) => {
-          this._config = this.loadCustomizedConfig(
-            this._app.config.get('openvpn') as OpenVPNConfig,
-          );
+      return await tryAcquire(this._archiveMutex).runExclusive(async () => {
+        this._config = this.loadCustomizedConfig(this._app.config.get('openvpn') as OpenVPNConfig);
 
+        eventEmitter.emit('message', new ProgressInfoPayload('Starting OpenVPN history archiver'));
+        eventEmitter.emit('message', new ProgressNoticePayload('Checking expired history'));
+
+        const expirationInSeconds: number = this._config.history.archive_days * 24 * 60 * 60;
+        // If there isn't any row expired, then do nothing
+        if ((await getExpiredStatusHistoryQuery(expirationInSeconds).limit(1).getCount()) === 0) {
+          eventEmitter.emit('message', new ProgressNoticePayload('Nothing to archive'));
+          eventEmitter.emit('message', new ProgressPayload('end', false, ''));
+
+          return 0;
+        }
+
+        let count: number = 0;
+        const date: Date = new Date();
+        const yearDir: string = date.getFullYear().toString();
+        const monthSubDir: string = ('0' + (date.getMonth() + 1)).slice(-2);
+        const fileName: string = `openvpn_status_history-${date.getFullYear()}${('0' + (date.getMonth() + 1)).slice(-2)}${('0' + date.getDate()).slice(-2)}.sql`;
+
+        // If there is already a zipped file, then unzip it in order to write down new registers there
+        if (
+          await fs.pathExists(
+            `${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`,
+          )
+        ) {
           eventEmitter.emit(
             'message',
-            new ProgressInfoPayload('Starting OpenVPN history archiver'),
+            new ProgressNoticePayload('Decompressing existing zip file'),
           );
-          eventEmitter.emit('message', new ProgressNoticePayload('Checking expired history'));
 
-          const expirationInSeconds: number = this._config.history.archive_days * 24 * 60 * 60;
-          // If there isn't any row expired, then do nothing
-          if ((await getExpiredStatusHistoryQuery(expirationInSeconds).limit(1).getCount()) === 0) {
-            eventEmitter.emit('message', new ProgressNoticePayload('Nothing to archive'));
+          await Zip.unzip(
+            `${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`,
+            path.join(this._config.history.data_dir, yearDir, monthSubDir),
+          );
+          await fs.remove(
+            `${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`,
+          );
+        } else {
+          fs.mkdirpSync(path.join(this._config.history.data_dir, yearDir, monthSubDir));
+        }
+        // Could exists millions of registers. In order to avoid an high memory consumption
+        // we are going to process rows in batches of 2000 (that means create multiple INSERT INTO in the file).
+        // Notice mysql might limit the size of the queries thus is recommended create multiple "INSERT INTO" instead
+        // of just one really big INSERT INTO.
+
+        const expirationDate: Date = new Date(Date.now() - expirationInSeconds * 1000);
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(
+            `Archiving registers older than ${expirationDate.getFullYear().toString()}-${('0' + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`,
+          ),
+        );
+
+        const totalExpiredHistoryRows =
+          await getExpiredStatusHistoryQuery(expirationInSeconds).getCount();
+
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`),
+        );
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(
+            expirationInSeconds,
+          )
+            .limit(2000)
+            .getMany();
+          if (history.length <= 0) {
+            eventEmitter.emit('message', new ProgressNoticePayload('Compressing archive file'));
+            //When all expired registers have been processed, then zip the sql file
+            // and remove it
+            await Zip.zip(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
+            await fs.remove(
+              path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
+            );
+
             eventEmitter.emit('message', new ProgressPayload('end', false, ''));
 
-            return resolve(0);
+            return count;
           }
 
-          let count: number = 0;
-          const date: Date = new Date();
-          const yearDir: string = date.getFullYear().toString();
-          const monthSubDir: string = ('0' + (date.getMonth() + 1)).slice(-2);
-          const fileName: string = `openvpn_status_history-${date.getFullYear()}${('0' + (date.getMonth() + 1)).slice(-2)}${('0' + date.getDate()).slice(-2)}.sql`;
-
-          // If there is already a zipped file, then unzip it in order to write down new registers there
-          if (
-            await fs.pathExists(
-              `${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`,
-            )
-          ) {
-            eventEmitter.emit(
-              'message',
-              new ProgressNoticePayload('Decompressing existing zip file'),
-            );
-
-            await Zip.unzip(
-              `${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`,
-              path.join(this._config.history.data_dir, yearDir, monthSubDir),
-            );
-            await fs.remove(
-              `${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`,
-            );
-          } else {
-            fs.mkdirpSync(path.join(this._config.history.data_dir, yearDir, monthSubDir));
-          }
-          // Could exists millions of registers. In order to avoid an high memory consumption
-          // we are going to process rows in batches of 2000 (that means create multiple INSERT INTO in the file).
-          // Notice mysql might limit the size of the queries thus is recommended create multiple "INSERT INTO" instead
-          // of just one really big INSERT INTO.
-
-          const expirationDate: Date = new Date(Date.now() - expirationInSeconds * 1000);
-          eventEmitter.emit(
-            'message',
-            new ProgressNoticePayload(
-              `Archiving registers older than ${expirationDate.getFullYear().toString()}-${('0' + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`,
-            ),
-          );
-
-          const totalExpiredHistoryRows =
-            await getExpiredStatusHistoryQuery(expirationInSeconds).getCount();
+          count = count + history.length;
 
           eventEmitter.emit(
             'message',
-            new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`),
+            new ProgressNoticePayload(`Progress: ${count} of ${totalExpiredHistoryRows} registers`),
           );
-          // eslint-disable-next-line no-constant-condition
-          while (true) {
-            const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(
-              expirationInSeconds,
-            )
-              .limit(2000)
-              .getMany();
-            if (history.length <= 0) {
-              eventEmitter.emit('message', new ProgressNoticePayload('Compressing archive file'));
-              //When all expired registers have been processed, then zip the sql file
-              // and remove it
-              await Zip.zip(
-                path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
-              );
-              await fs.remove(
-                path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
-              );
 
-              eventEmitter.emit('message', new ProgressPayload('end', false, ''));
-
-              return resolve(count);
-            }
-
-            count = count + history.length;
-
-            eventEmitter.emit(
-              'message',
-              new ProgressNoticePayload(
-                `Progress: ${count} of ${totalExpiredHistoryRows} registers`,
-              ),
-            );
-
-            const table: string =
-              getMetadataArgsStorage().tables.filter(
-                (item) => item.target === OpenVPNStatusHistory,
-              )[0].name ?? OpenVPNStatusHistory.name;
-            const columns: ColumnMetadataArgs[] = getMetadataArgsStorage().columns.filter(
+          const table: string =
+            getMetadataArgsStorage().tables.filter(
               (item) => item.target === OpenVPNStatusHistory,
-            );
-            const insertColumnDef: string = columns
-              .map((item) => `\`${item.options.name ?? item.propertyName}\``)
-              .join(',');
-            const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map((item) => `(${columns.map((column) => (item[column.propertyName] ? `'${item[column.propertyName]}'` : 'NULL')).join(',')})`).join(',')};\n`;
+            )[0].name ?? OpenVPNStatusHistory.name;
+          const columns: ColumnMetadataArgs[] = getMetadataArgsStorage().columns.filter(
+            (item) => item.target === OpenVPNStatusHistory,
+          );
+          const insertColumnDef: string = columns
+            .map((item) => `\`${item.options.name ?? item.propertyName}\``)
+            .join(',');
+          const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map((item) => `(${columns.map((column) => (item[column.propertyName] ? `'${item[column.propertyName]}'` : 'NULL')).join(',')})`).join(',')};\n`;
 
-            const promise: Promise<void> = new Promise<void>((resolve, reject) => {
-              fs.writeFile(
-                path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
-                content,
-                { flag: 'a' },
-                async (err) => {
-                  if (err) {
-                    return reject(err);
-                  }
-                  try {
-                    await db
-                      .getSource()
-                      .manager.getRepository(OpenVPNStatusHistory)
-                      .delete(history.map((item) => item.id));
-                    return resolve();
-                  } catch (err) {
-                    return reject(err);
-                  }
-                },
-              );
-            });
-            await promise.catch((err) => reject(err));
-          }
-        });
+          const promise: Promise<void> = new Promise<void>((resolve, reject) => {
+            fs.writeFile(
+              path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
+              content,
+              { flag: 'a' },
+              (err) => {
+                if (err) {
+                  return reject(err);
+                }
+                db.getSource()
+                  .manager.getRepository(OpenVPNStatusHistory)
+                  .delete(history.map((item) => item.id))
+                  .then(() => {
+                    resolve();
+                  })
+                  .catch((err) => {
+                    reject(err);
+                  });
+              },
+            );
+          });
+          await promise.catch((err) => {
+            throw err;
+          });
+        }
       });
     } catch (err) {
       if (err === E_ALREADY_LOCKED) {

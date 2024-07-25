@@ -33,6 +33,8 @@ export abstract class ServiceProvider {
   public abstract register(serviceContainer: ServiceContainer): ServiceBound;
 
   public async bootstrap(app: AbstractApplication): Promise<void> {
-    return;
+    return new Promise((resolve) => {
+      resolve();
+    });
   }
 }

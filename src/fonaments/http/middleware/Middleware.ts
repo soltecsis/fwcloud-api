@@ -21,7 +21,7 @@
 */
 
 import { Application } from '../../../Application';
-import { Request, Response, NextFunction } from 'express';
+import e, { Request, Response, NextFunction } from 'express';
 import { HTTPApplication } from '../../http-application';
 
 export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;
@@ -42,8 +42,13 @@ export abstract class Middleware {
 
   public register(app: HTTPApplication) {
     this.app = app;
-    app.express.use(async (req: Request, res: Response, next: NextFunction) => {
-      await this.safeHandler(req, res, next);
+    app.express.use((req: Request, res: Response, next: NextFunction) => {
+      this.safeHandler(req, res, next)
+        .then(() => {})
+        .catch((e) => {
+          console.error(e);
+          next(e);
+        });
     });
   }
 }

@@ -26,6 +26,8 @@ import { Request, Response, NextFunction } from 'express';
 
 export class BodyParser extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    bodyParser.json({ limit: '2mb' })(req, res, next);
+    return new Promise(() => {
+      bodyParser.json({ limit: '2mb' })(req, res, next);
+    });
   }
 }

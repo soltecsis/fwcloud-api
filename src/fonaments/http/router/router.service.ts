@@ -35,6 +35,7 @@ import { getFWCloudMetadata } from '../../../metadata/metadata';
 import { HTTPApplication } from '../../http-application';
 import { ClassConstructor } from 'class-transformer';
 import { Routes } from '../../../routes/routes';
+import { resolve } from 'path';
 
 export type HttpMethod = 'ALL' | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
 export type ArgumentTypes<F extends (...args: any) => any> = F extends (...args: infer A) => any
@@ -61,16 +62,15 @@ export class RouterService extends Service {
   }
 
   public async build(): Promise<RouterService> {
-    this._list = [];
-
-    if (this._app instanceof HTTPApplication) {
-      this._express = this._app.express;
-      this._router = this._express;
-    }
-
-    _runningURLHelper = new URLHelper(this);
-
-    return this;
+    return new Promise((resolve) => {
+      this._list = [];
+      if (this._app instanceof HTTPApplication) {
+        this._express = this._app.express;
+        this._router = this._express;
+      }
+      _runningURLHelper = new URLHelper(this);
+      resolve(this);
+    });
   }
 
   public registerRoutes(): void {

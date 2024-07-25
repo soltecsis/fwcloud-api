@@ -541,45 +541,47 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
   private async eatCommentString(items: string[]): Promise<string> {
-    if (items.length === 0) throw new Error('Comment data not found');
+    return new Promise((resolve, reject) => {
+      if (items.length === 0) reject(new Error('Comment data not found'));
 
-    let comment: string;
-    let item = items[0];
-    let size = item.length;
+      let comment: string;
+      let item = items[0];
+      let size = item.length;
 
-    items.shift();
+      items.shift();
 
-    // Comment is a single word without double quotes.
-    if (item.charAt(0) !== '"') return item;
+      // Comment is a single word without double quotes.
+      if (item.charAt(0) !== '"') return item;
 
-    // Comment is surrounded by double quotes.
-    comment = item.substr(1); // Remove start double quote.
-    if (size > 1 && item.charAt(size - 1) === '"' && item.charAt(size - 2) !== '\\') {
-      // Comment is a single word surrounded by double quotes.
-    } else {
-      // Comment is a several items string surrounded by doble quotes.
-      let endFound = false;
+      // Comment is surrounded by double quotes.
+      comment = item.substr(1); // Remove start double quote.
+      if (size > 1 && item.charAt(size - 1) === '"' && item.charAt(size - 2) !== '\\') {
+        // Comment is a single word surrounded by double quotes.
+      } else {
+        // Comment is a several items string surrounded by doble quotes.
+        let endFound = false;
 
-      while (items.length > 0) {
-        item = items[0];
-        size = item.length;
+        while (items.length > 0) {
+          item = items[0];
+          size = item.length;
 
-        comment = `${comment} ${item}`;
-        items.shift();
+          comment = `${comment} ${item}`;
+          items.shift();
 
-        if (
-          item === '"' ||
-          (size > 1 && item.charAt(size - 1) === '"' && item.charAt(size - 2) !== '\\')
-        ) {
-          endFound = true;
-          break; // End of comment string.
+          if (
+            item === '"' ||
+            (size > 1 && item.charAt(size - 1) === '"' && item.charAt(size - 2) !== '\\')
+          ) {
+            endFound = true;
+            break; // End of comment string.
+          }
         }
+        if (!endFound) reject(new Error('End of rule comment not found'));
       }
-      if (!endFound) throw new Error('End of rule comment not found');
-    }
 
-    comment = comment.substr(0, comment.length - 1); // Remove end double quote.
-    return comment.replace(/\\"/g, '"');
+      comment = comment.substr(0, comment.length - 1); // Remove end double quote.
+      resolve(comment.replace(/\\"/g, '"'));
+    });
   }
 
   private async eatRuleComment(items: string[]): Promise<void> {
@@ -680,16 +682,18 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
   private async generateBitMask(data: string): Promise<number> {
-    if (data === 'NONE') return 0;
-    if (data === 'ALL') return 63;
+    return new Promise((resolve, reject) => {
+      if (data === 'NONE') return 0;
+      if (data === 'ALL') return 63;
 
-    let mask = 0;
-    const items = data.split(',');
-    for (const item of items) {
-      mask |= TcpFlags.get(item);
-    }
+      let mask = 0;
+      const items = data.split(',');
+      for (const item of items) {
+        mask |= TcpFlags.get(item);
+      }
 
-    return mask;
+      resolve(mask);
+    });
   }
 
   private async eatInterface(dir: string, _interface: string): Promise<void> {

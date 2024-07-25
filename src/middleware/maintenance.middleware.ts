@@ -25,14 +25,16 @@ import { Request, Response, NextFunction } from 'express';
 import { ServiceUnavailableException } from '../fonaments/exceptions/service-unavailable.exception';
 
 export class MaintenanceMiddleware extends Middleware {
-  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Ignore maintenance mode for PING API requests.
     // For example, if meanwhile we are running a backup the API receives a PING API call, it will
     // cause that FWCloud-UI shows an under maintenance message.
-    if (this.app.config.get('maintenance_mode') && req.url !== '/ping') {
-      return next(new ServiceUnavailableException());
-    }
+    return new Promise((resolve) => {
+      if (this.app.config.get('maintenance_mode') && req.url !== '/ping') {
+        next(new ServiceUnavailableException());
+      }
 
-    return next();
+      resolve(next());
+    });
   }
 }

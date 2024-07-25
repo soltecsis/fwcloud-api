@@ -44,8 +44,10 @@ export class CORS extends Middleware {
     this.app.express.use(cors(options));
   }
 
-  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    return;
+  public handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+    return new Promise((resolve) => {
+      resolve();
+    });
   }
 
   public isOriginAllowed(origin: string): boolean {

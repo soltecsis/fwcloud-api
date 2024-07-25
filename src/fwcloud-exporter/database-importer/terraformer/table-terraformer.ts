@@ -49,8 +49,10 @@ export class TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<TableTerraformer> {
-    const terraformer: TableTerraformer = new TableTerraformer(mapper, eventEmitter);
-    return terraformer;
+    return new Promise((resolve, reject) => {
+      const terraformer: TableTerraformer = new TableTerraformer(mapper, eventEmitter);
+      resolve(terraformer);
+    });
   }
 
   /**
@@ -82,56 +84,66 @@ export class TableTerraformer {
     entity: typeof Model,
     rows: Array<object>,
   ): Promise<Array<object>> {
-    const result: Array<object> = [];
+    return new Promise((resolve, reject) => {
+      const result: Array<object> = [];
 
-    let lastHeartbeat = new Date();
-    this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
+      let lastHeartbeat = new Date();
+      this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
 
-    for (let i = 0; i < rows.length; i++) {
-      const row: object = rows[i];
+      for (let i = 0; i < rows.length; i++) {
+        const row: object = rows[i];
 
-      for (const attributeName in row) {
-        if (this.hasCustomHandler(attributeName)) {
-          row[attributeName] = this._customHandlers[attributeName](mapper, row, row[attributeName]);
-        } else {
-          if (entity.isPrimaryKey(attributeName) && !entity.isForeignKey(attributeName)) {
-            if (entity.getPrimaryKey(attributeName).options.type === Number) {
-              // If the attribute is a primary key, it must be terraformed
-              row[attributeName] = mapper.getMappedId(tableName, attributeName, row[attributeName]);
-            }
-          }
-
-          if (entity.isForeignKey(attributeName)) {
-            //If the attribute is constrained by a foreign key, the attribute value must be terraformed
-            // based on the table which it references
-
-            const relation = entity.getRelationFromPropertyName(attributeName);
-            if (relation) {
-              const type: typeof Model = <typeof Model>(<any>relation.type)();
-              const relatedTableName: string = type._getTableName();
-              const primaryKey: ColumnMetadataArgs = type.getPrimaryKeys()[0];
-
-              if (type.getPrimaryKey(primaryKey.propertyName).options.type === Number) {
+        for (const attributeName in row) {
+          if (this.hasCustomHandler(attributeName)) {
+            row[attributeName] = this._customHandlers[attributeName](
+              mapper,
+              row,
+              row[attributeName],
+            );
+          } else {
+            if (entity.isPrimaryKey(attributeName) && !entity.isForeignKey(attributeName)) {
+              if (entity.getPrimaryKey(attributeName).options.type === Number) {
                 // If the attribute is a primary key, it must be terraformed
                 row[attributeName] = mapper.getMappedId(
-                  relatedTableName,
-                  primaryKey.propertyName,
+                  tableName,
+                  attributeName,
                   row[attributeName],
                 );
               }
             }
+
+            if (entity.isForeignKey(attributeName)) {
+              //If the attribute is constrained by a foreign key, the attribute value must be terraformed
+              // based on the table which it references
+
+              const relation = entity.getRelationFromPropertyName(attributeName);
+              if (relation) {
+                const type: typeof Model = <typeof Model>(<any>relation.type)();
+                const relatedTableName: string = type._getTableName();
+                const primaryKey: ColumnMetadataArgs = type.getPrimaryKeys()[0];
+
+                if (type.getPrimaryKey(primaryKey.propertyName).options.type === Number) {
+                  // If the attribute is a primary key, it must be terraformed
+                  row[attributeName] = mapper.getMappedId(
+                    relatedTableName,
+                    primaryKey.propertyName,
+                    row[attributeName],
+                  );
+                }
+              }
+            }
+          }
+
+          if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
+            lastHeartbeat = new Date();
+            this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
           }
         }
-
-        if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
-          lastHeartbeat = new Date();
-          this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
-        }
+        result.push(row);
       }
-      result.push(row);
-    }
 
-    return result;
+      resolve(result);
+    });
   }
 
   /**
@@ -148,16 +160,19 @@ export class TableTerraformer {
     tableName: string,
     rows: Array<object>,
   ): Promise<Array<object>> {
-    const result: Array<object> = [];
-    const joinTables: Array<JoinTableMetadataArgs> = getMetadataArgsStorage().joinTables.filter(
-      (item: JoinTableMetadataArgs) => {
-        return item.name === tableName;
-      },
-    );
+    return new Promise((resolve, reject) => {
+      const result: Array<object> = [];
+      const joinTables: Array<JoinTableMetadataArgs> = getMetadataArgsStorage().joinTables.filter(
+        (item: JoinTableMetadataArgs) => {
+          return item.name === tableName;
+        },
+      );
 
-    const joinTable: JoinTableMetadataArgs = joinTables.length > 0 ? joinTables[0] : null;
+      const joinTable: JoinTableMetadataArgs = joinTables.length > 0 ? joinTables[0] : null;
 
-    if (joinTable) {
+      if (!joinTable) {
+        reject(new Error('Join table metadata not found for ' + tableName));
+      }
       const target: typeof Model = <any>joinTable.target;
       const relation: RelationMetadataArgs = target.getRelationFromPropertyName(
         joinTable.propertyName,
@@ -198,10 +213,8 @@ export class TableTerraformer {
         result.push(row);
       }
 
-      return result;
-    }
-
-    throw new Error('Join table metadata not found for ' + tableName);
+      resolve(result);
+    });
   }
 
   /**

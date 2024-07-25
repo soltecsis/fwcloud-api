@@ -32,11 +32,12 @@ export class AuthorizationService extends Service {
   protected _next: NextFunction;
 
   public async build(): Promise<AuthorizationService> {
-    this._next = null;
-    this._req = null;
-    this._res = null;
-
-    return this;
+    return new Promise((resolve) => {
+      this._next = null;
+      this._req = null;
+      this._res = null;
+      resolve(this);
+    });
   }
 
   public bindExpressContext(req: Request, res: Response, next: NextFunction) {

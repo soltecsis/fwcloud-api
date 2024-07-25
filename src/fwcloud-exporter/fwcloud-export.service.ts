@@ -5,6 +5,7 @@ import { FwCloud } from '../models/fwcloud/FwCloud';
 import { User } from '../models/user/User';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressPayload } from '../sockets/messages/socket-message';
+import { resolve } from 'path';
 
 export type ExporterConfig = {
   data_dir: string;
@@ -17,15 +18,15 @@ export class FwCloudExportService extends Service {
   }
 
   public async build(): Promise<Service> {
-    if (!FSHelper.directoryExistsSync(this.config.data_dir)) {
-      FSHelper.mkdirSync(this.config.data_dir);
-    }
-
-    if (!FSHelper.directoryExistsSync(this.config.upload_dir)) {
-      FSHelper.mkdirSync(this.config.upload_dir);
-    }
-
-    return this;
+    return new Promise((resolve) => {
+      if (!FSHelper.directoryExistsSync(this.config.data_dir)) {
+        FSHelper.mkdirSync(this.config.data_dir);
+      }
+      if (!FSHelper.directoryExistsSync(this.config.upload_dir)) {
+        FSHelper.mkdirSync(this.config.upload_dir);
+      }
+      resolve(this);
+    });
   }
 
   public async create(

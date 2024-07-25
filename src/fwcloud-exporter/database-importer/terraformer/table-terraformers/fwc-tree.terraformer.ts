@@ -104,7 +104,9 @@ export class FwcTreeTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<FwcTreeTerraformer> {
-    return new FwcTreeTerraformer(mapper, eventEmitter);
+    return new Promise((resolve, reject) => {
+      resolve(new FwcTreeTerraformer(mapper, eventEmitter));
+    });
   }
 
   protected getCustomHandlers(): TerraformHandlerCollection {

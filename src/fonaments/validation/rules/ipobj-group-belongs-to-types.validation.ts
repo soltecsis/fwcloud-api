@@ -15,20 +15,23 @@ export function IpObjGroupBelongsToTypes(typeIds: number[], validationOptions?: 
         validate(value: number[] | number, args: ValidationArguments) {
           value = Array.isArray(value) ? value : [value];
 
-          return new Promise<boolean>(async (resolve, reject) => {
+          return new Promise<boolean>((resolve, reject) => {
             const validTypes: number[] = args.constraints[0];
-            const ipObjs: IPObjGroup[] = await db
-              .getSource()
+            db.getSource()
               .manager.getRepository(IPObjGroup)
               .find({
                 where: { id: In(value) },
+              })
+              .then((ipObjs: IPObjGroup[]) => {
+                const failed: IPObjGroup[] = ipObjs.filter(
+                  (group: IPObjGroup) => !validTypes.includes(group.type),
+                );
+
+                return resolve(failed.length === 0);
+              })
+              .catch((err) => {
+                reject(err);
               });
-
-            const failed: IPObjGroup[] = ipObjs.filter(
-              (group: IPObjGroup) => !validTypes.includes(group.type),
-            );
-
-            return resolve(failed.length === 0);
           });
         },
 

@@ -128,7 +128,7 @@ export class FwCloud extends Model {
   }
 
   @AfterInsert()
-  async createDataDirectories() {
+  createDataDirectories() {
     // Make sure that doesn't exists any data directory of the just created FWCloud.
     this.removeDataDirectories();
     fs.mkdirpSync(this.getPkiDirectoryPath());
@@ -573,15 +573,26 @@ export class FwCloud extends Model {
       req.dbCon.query(
         `INSERT INTO ${tableName} SET ?`,
         fwcloudData,
-        async (error: Error, result: { insertId: number }) => {
+        (error: Error, result: { insertId: number }) => {
           if (error) return reject(error);
 
           const fwcloud = result.insertId;
           try {
-            const admins = await User.getAllAdminUserIds(req);
-            for (const admin of admins) {
-              await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
-            }
+            User.getAllAdminUserIds(req)
+              .then((admins) => {
+                Promise.all(
+                  admins.map((admin) => User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud)),
+                )
+                  .then(() => {
+                    resolve(fwcloud);
+                  })
+                  .catch((err) => {
+                    reject(err);
+                  });
+              })
+              .catch((err) => {
+                reject(err);
+              });
             resolve(fwcloud);
           } catch (error) {
             reject(error);

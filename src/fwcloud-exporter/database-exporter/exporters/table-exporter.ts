@@ -32,7 +32,9 @@ export class TableExporter {
   }
 
   public async bootstrap(connection: Connection, fwCloudId: number): Promise<void> {
-    return;
+    return new Promise((resolve) => {
+      resolve();
+    });
   }
 
   public getTableName(): string {

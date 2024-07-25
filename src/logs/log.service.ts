@@ -30,31 +30,33 @@ export class LogService extends Service {
   protected _transports: TransportCollection = {};
 
   public async build(): Promise<LogService> {
-    this._config = this._app.config.get('log');
+    return new Promise((resolve, reject) => {
+      this._config = this._app.config.get('log');
 
-    if (!FSHelper.directoryExistsSync(this._config.directory)) {
-      FSHelper.mkdirSync(this._config.directory);
-    }
+      if (!FSHelper.directoryExistsSync(this._config.directory)) {
+        FSHelper.mkdirSync(this._config.directory);
+      }
 
-    this._loggers = {
-      default: winston.createLogger({
-        level: this._config.level,
-        levels: winston.config.npm.levels,
-        transports: this.getDefaultTransports(),
-      }),
-      http: winston.createLogger({
-        level: 'entry',
-        levels: { entry: 0 },
-        transports: this.getHttpTransports(),
-      }),
-      query: winston.createLogger({
-        level: 'info',
-        levels: winston.config.npm.levels,
-        transports: this.getQueryTransports(),
-      }),
-    };
+      this._loggers = {
+        default: winston.createLogger({
+          level: this._config.level,
+          levels: winston.config.npm.levels,
+          transports: this.getDefaultTransports(),
+        }),
+        http: winston.createLogger({
+          level: 'entry',
+          levels: { entry: 0 },
+          transports: this.getHttpTransports(),
+        }),
+        query: winston.createLogger({
+          level: 'info',
+          levels: winston.config.npm.levels,
+          transports: this.getQueryTransports(),
+        }),
+      };
 
-    return this;
+      resolve(this);
+    });
   }
 
   public getLogger(type: LoggerType = 'default'): winston.Logger {

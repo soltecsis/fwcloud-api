@@ -489,35 +489,29 @@ export class Firewall extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFirewallSSH(req: RequestData) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const data: any = await this.getFirewall(req);
+  public static async getFirewallSSH(req: RequestData) {
+    const data: any = await this.getFirewall(req);
 
-        // Obtain SSH connSettings for the firewall to which we want install the policy.
-        const SSHconn = {
-          host: data.ip,
-          port: data.install_port,
-          username: data.install_user,
-          password: data.install_pass,
-        };
+    // Obtain SSH connSettings for the firewall to which we want install the policy.
+    const SSHconn = {
+      host: data.ip,
+      port: data.install_port,
+      username: data.install_user,
+      password: data.install_pass,
+    };
 
-        // If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.
-        if (req.body.sshuser && req.body.sshpass) {
-          SSHconn.username = req.body.sshuser;
-          SSHconn.password = req.body.sshpass;
-        }
+    // If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.
+    if (req.body.sshuser && req.body.sshpass) {
+      SSHconn.username = req.body.sshuser;
+      SSHconn.password = req.body.sshpass;
+    }
 
-        // If we have no user or password for the ssh connection, then error.
-        if (!SSHconn.username || !SSHconn.password)
-          throw fwcError.other('User or password for the SSH connection not found');
+    // If we have no user or password for the ssh connection, then error.
+    if (!SSHconn.username || !SSHconn.password)
+      throw fwcError.other('User or password for the SSH connection not found');
 
-        data.SSHconn = SSHconn;
-        resolve(data);
-      } catch (error) {
-        reject(error);
-      }
-    });
+    data.SSHconn = SSHconn;
+    return data;
   }
 
   /**
@@ -1599,22 +1593,16 @@ export class Firewall extends Model {
     });
   }
 
-  public static getFirewallCompiler(
+  public static async getFirewallCompiler(
     fwcloud: number,
     firewall: number,
   ): Promise<AvailablePolicyCompilers> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
-        const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xf000;
+    // Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
+    const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xf000;
 
-        if (compilerNumber == 0x0000) resolve('IPTables');
-        else if (compilerNumber == 0x1000) resolve('NFTables');
-        else reject(fwcError.NOT_FOUND);
-      } catch (error) {
-        reject(error);
-      }
-    });
+    if (compilerNumber == 0x0000) return 'IPTables';
+    else if (compilerNumber == 0x1000) return 'NFTables';
+    else throw fwcError.NOT_FOUND;
   }
 
   public static getMasterFirewallId = (fwcloud: number, cluster: number): Promise<number> => {
@@ -1639,47 +1627,40 @@ export class Firewall extends Model {
     });
   };
 
-  public static searchFirewallRestrictions = (req: RequestData) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const search: searchFirewallRestrictions = {};
-        search.result = false;
-        search.restrictions = {};
+  public static async searchFirewallRestrictions(
+    req: RequestData,
+  ): Promise<searchFirewallRestrictions> {
+    const search: searchFirewallRestrictions = {};
+    search.result = false;
+    search.restrictions = {};
 
-        const orgFirewallId = req.body.firewall;
-        if (req.body.cluster)
-          req.body.firewall = await Firewall.getMasterFirewallId(
-            req.body.fwcloud,
-            req.body.cluster,
-          );
+    const orgFirewallId = req.body.firewall;
+    if (req.body.cluster)
+      req.body.firewall = await Firewall.getMasterFirewallId(req.body.fwcloud, req.body.cluster);
 
-        /* Verify that the nex firewall/cluster objets are not been used in any rule of other firewall:
+    /* Verify that the nex firewall/cluster objets are not been used in any rule of other firewall:
 					- Interfaces and address of interface.
 					- OpenVPN configuration.
 							  - OpenVPN prefix configuration.
 						  	
 						  Verify too that these objects are not being used in any group.
 				*/
-        const r1 = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
-        const r2 = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
-        const r3 = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
+    const r1 = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
+    const r2 = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
+    const r3 = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
-        if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
-        if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
-        if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
+    if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
+    if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
+    if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
 
-        for (const key in search.restrictions) {
-          const restriction = search.restrictions[key];
-          if (Array.isArray(restriction) && restriction.length > 0) {
-            search.result = true;
-            break;
-          }
-        }
-        if (req.body.cluster) req.body.firewall = orgFirewallId;
-        resolve(search);
-      } catch (error) {
-        reject(error);
+    for (const key in search.restrictions) {
+      const restriction = search.restrictions[key];
+      if (Array.isArray(restriction) && restriction.length > 0) {
+        search.result = true;
+        break;
       }
-    });
-  };
+    }
+    if (req.body.cluster) req.body.firewall = orgFirewallId;
+    return search;
+  }
 }

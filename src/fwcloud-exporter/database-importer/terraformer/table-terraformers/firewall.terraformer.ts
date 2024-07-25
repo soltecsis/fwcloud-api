@@ -9,8 +9,10 @@ export class FirewallTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<FirewallTerraformer> {
-    const terraformer: FirewallTerraformer = new FirewallTerraformer(mapper, eventEmitter);
-    return terraformer;
+    return new Promise((resolve, reject) => {
+      const terraformer: FirewallTerraformer = new FirewallTerraformer(mapper, eventEmitter);
+      resolve(terraformer);
+    });
   }
 
   /**
