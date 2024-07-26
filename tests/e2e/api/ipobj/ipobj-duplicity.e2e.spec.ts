@@ -64,7 +64,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
     ).store({ name: StringHelper.randomize(10) });
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     adminUserSessionId = generateSession(adminUser);
 
     for (const key in ipobjData) {

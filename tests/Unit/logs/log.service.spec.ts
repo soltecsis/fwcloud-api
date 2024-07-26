@@ -6,7 +6,7 @@ import { Application } from '../../../src/Application';
 describe(describeName('LogService Unit Tests'), () => {
   let app: Application;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     app = testSuite.app;
   });
 

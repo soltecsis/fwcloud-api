@@ -29,7 +29,7 @@ import { CORS } from '../../../src/middleware/cors.middleware';
 
 let app: Application;
 describe(describeName('CORSMiddleware E2E test'), () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     app = testSuite.app;
   });
 

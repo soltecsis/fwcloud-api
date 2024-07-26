@@ -197,13 +197,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCEPT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCEPT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -224,7 +224,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -247,7 +247,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -268,7 +268,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -291,13 +291,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with DROP action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('DROP');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -318,7 +318,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -341,7 +341,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -362,7 +362,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -385,13 +385,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with REJECT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('REJECT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -412,7 +412,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -435,7 +435,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -456,7 +456,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -479,13 +479,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCOUNTING action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCOUNTING');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -506,7 +506,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -529,7 +529,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -550,7 +550,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -580,13 +580,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCEPT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCEPT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -607,7 +607,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -630,7 +630,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -651,7 +651,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -674,13 +674,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with DROP action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('DROP');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -701,7 +701,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -724,7 +724,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -745,7 +745,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -768,13 +768,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with REJECT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('REJECT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -795,7 +795,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -818,7 +818,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -839,7 +839,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -862,13 +862,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCOUNTING action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCOUNTING');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -889,7 +889,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -912,7 +912,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -933,7 +933,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -963,13 +963,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCEPT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCEPT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -990,7 +990,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1013,7 +1013,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1034,7 +1034,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1057,13 +1057,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with DROP action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('DROP');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1084,7 +1084,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1107,7 +1107,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1128,7 +1128,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1151,13 +1151,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with REJECT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('REJECT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1178,7 +1178,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1201,7 +1201,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1222,7 +1222,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1245,13 +1245,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCOUNTING action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCOUNTING');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1272,7 +1272,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1295,7 +1295,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1316,7 +1316,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1346,13 +1346,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCEPT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCEPT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1373,7 +1373,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1396,7 +1396,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1417,7 +1417,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1440,13 +1440,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with DROP action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('DROP');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1467,7 +1467,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1490,7 +1490,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1511,7 +1511,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1534,13 +1534,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with REJECT action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('REJECT');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1561,7 +1561,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1584,7 +1584,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1605,7 +1605,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {
@@ -1628,13 +1628,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     });
 
     describe('Empty rule with ACCOUNTING action', () => {
-      before(async () => {
+      before(() => {
         ruleData.action = RuleActionsMap.get('ACCOUNTING');
       });
 
       describe('statefull', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x01;
           });
           it('in INPUT chain', async () => {
@@ -1655,7 +1655,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x05;
           });
           it('in INPUT chain', async () => {
@@ -1678,7 +1678,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
 
       describe('stateless', () => {
         describe('without log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x02;
           });
           it('in INPUT chain', async () => {
@@ -1699,7 +1699,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         });
 
         describe('with log', () => {
-          before(async () => {
+          before(() => {
             ruleData.options = 0x06;
           });
           it('in INPUT chain', async () => {

@@ -665,7 +665,7 @@ describe(RoutingRuleService.name, () => {
     });
 
     it('should fail if from is empty', async () => {
-      expect(
+      await expect(
         service.update(rule.id, {
           ipObjIds: [],
           ipObjGroupIds: [],

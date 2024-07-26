@@ -32,7 +32,7 @@ let policyRuleRepository: PolicyRuleRepository;
 let manager: EntityManager;
 
 describe(describeName('PolicyRuleRepository Unit tests'), () => {
-  before(async () => {
+  before(() => {
     manager = db.getSource().manager;
     policyRuleRepository = new PolicyRuleRepository(manager);
   });

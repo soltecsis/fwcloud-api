@@ -109,7 +109,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
     const cua1: colorUsage[] = [];
     const cua2: colorUsage[] = [];
 
-    beforeEach(async () => {
+    beforeEach(() => {
       let n: number;
 
       // Generate ramdon content colorsUsage arrays.

@@ -140,7 +140,7 @@ describe(DHCPRepository.name, () => {
 
     it('should not refresh orders after removing DHCPRule without group', async () => {
       dhcpRule.group = null;
-      dhcpRule.save();
+      await dhcpRule.save();
 
       const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 

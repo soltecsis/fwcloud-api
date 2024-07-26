@@ -244,7 +244,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
 
       beforeEach(async () => {
         historyService = await app.getService(OpenVPNStatusHistoryService.name);
-        historyService.create(serverOpenVPN.id, [
+        await historyService.create(serverOpenVPN.id, [
           {
             timestampInSeconds: 2,
             name: 'name',
@@ -330,7 +330,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
 
       beforeEach(async () => {
         historyService = await app.getService(OpenVPNStatusHistoryService.name);
-        historyService.create(serverOpenVPN.id, [
+        await historyService.create(serverOpenVPN.id, [
           {
             timestampInSeconds: 1,
             name: 'name',

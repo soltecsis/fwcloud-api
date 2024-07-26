@@ -32,7 +32,7 @@ describe(SSHCommunication.name, () => {
   let ssh: SSHCommunication;
   let app: Application;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     ssh = new SSHCommunication({
       host: 'host',
       port: 0,

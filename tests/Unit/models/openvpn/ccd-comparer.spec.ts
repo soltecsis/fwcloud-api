@@ -6,7 +6,7 @@ describe(CCDComparer.name + ' Unit Tests', () => {
   let local: CCDHash[];
   let remote: CCDHash[];
 
-  beforeEach(async () => {
+  beforeEach(() => {
     local = [
       { filename: 'onlylocal', hash: 'onlylocal' },
       { filename: 'synced', hash: 'synced' },

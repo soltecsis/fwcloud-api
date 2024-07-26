@@ -92,11 +92,11 @@ describe(HAProxyCompiler.name, () => {
       expect(compiler.compile([])).to.be.an('array').that.is.empty;
     });
 
-    it('should return an array with compiled data for an active rule', async (): Promise<void> => {
+    it('should return an array with compiled data for an active rule', () => {
       expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
     });
 
-    it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
+    it('should return an array with compiled data for an inactive rule', () => {
       rules.forEach((element) => {
         element.active = false;
       });
@@ -110,7 +110,7 @@ describe(HAProxyCompiler.name, () => {
       });
     });
 
-    it('should emit a progress event for each rule', async () => {
+    it('should emit a progress event for each rule', () => {
       const eventEmitter: EventEmitter = new EventEmitter();
 
       const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();

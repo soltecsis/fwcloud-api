@@ -103,7 +103,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
   });
 
   describe('OpenVPNArchiveController', () => {
-    describe('OpenVPNArchiveController@store', async () => {
+    describe('OpenVPNArchiveController@store', () => {
       it('guest user should not create a history VPN archiver', async () => {
         await request(app.express).post(_URL().getURL('openvpnarchives.store')).expect(401);
       });
@@ -126,6 +126,8 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
       });
 
       it('should throw an exception if process is locked', async () => {
+        //For testing purposes the promise is not awaited
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         openVPNService.archiveHistory();
 
         await request(app.express)
@@ -137,7 +139,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
   });
 
   describe('OpenVPNArchiveConfigController', () => {
-    describe('OpenVPNArchiveConfigController@show', async () => {
+    describe('OpenVPNArchiveConfigController@show', () => {
       it('guest user should not see history openVPN archiver config', async () => {
         await request(app.express).get(_URL().getURL('openvpnarchives.config.show')).expect(401);
       });
@@ -163,7 +165,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
       });
     });
 
-    describe('OpenVPNArchiveConfigController@update', async () => {
+    describe('OpenVPNArchiveConfigController@update', () => {
       it('guest user should not update history VPN archiver config', async () => {
         await request(app.express).put(_URL().getURL('openvpnarchives.config.update')).expect(401);
       });

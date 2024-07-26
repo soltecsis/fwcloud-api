@@ -8,7 +8,7 @@ describe(describeName('Channel Unit Tests'), () => {
   let channel: Channel;
   let listener: EventEmitter;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     listener = new EventEmitter();
     channel = new Channel(uuid.v1(), listener);
   });

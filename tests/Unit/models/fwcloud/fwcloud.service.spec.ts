@@ -34,7 +34,7 @@ let app: AbstractApplication;
 let service: FwCloudService;
 let manager: EntityManager;
 
-describe(describeName('FwCloudService Unit tests'), async () => {
+describe(describeName('FwCloudService Unit tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;

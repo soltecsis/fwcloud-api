@@ -46,7 +46,7 @@ describe(describeName('RouterService Unit tests'), () => {
   });
 
   describe('getRouteByName()', () => {
-    it('should return a route by its name', async () => {
+    it('should return a route by its name', () => {
       expect(service.findRouteByName('ping.pong').name).to.be.deep.equal('ping.pong');
     });
   });

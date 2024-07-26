@@ -28,7 +28,7 @@ import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import ip from 'ip';
 
-describe('Routing route compiler', async () => {
+describe('Routing route compiler', () => {
   let fwc: FwCloudProduct;
   let routingTableService: RoutingTableService;
 

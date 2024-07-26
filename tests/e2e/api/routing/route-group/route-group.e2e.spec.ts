@@ -246,7 +246,7 @@ describe(describeName('Route Group E2E Tests'), () => {
     describe('@create', () => {
       let data: Record<string, unknown>;
 
-      beforeEach(async () => {
+      beforeEach(() => {
         data = {
           name: Date.now().toString(),
           comment: Date.now().toString(),

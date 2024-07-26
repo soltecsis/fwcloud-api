@@ -155,157 +155,155 @@ export class PolicyScript {
   }
 
   public dump(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.stream = fs.createWriteStream(this.path);
       this.stream
-        .on('open', async () => {
-          try {
-            /* Generate the policy script. */
-            this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
-            this.stream.write(fs.readFileSync(config.get('policy').header_file, 'utf8'));
-            this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
-            await this.greetingMessage();
-            await this.dumpFirewallOptions();
-
-            this.stream.write('policy_load() {\n');
-
-            if (this.policyCompiler == 'NFTables') {
-              await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
-
-              this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
-              this.stream.write('# How do they interact?\n');
-              this.stream.write(
-                '#    nft       Empty     Accept  Accept      Block        Blank\n',
-              );
-              this.stream.write(
-                '#    iptables  Empty     Empty   Block       Accept       Accept\n',
-              );
-              this.stream.write(
-                '#    Results   Pass      Pass    Unreachable Unreachable  Pass \n',
-              );
-              this.stream.write(
-                '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
-              );
-              this.stream.write('iptables_default_filter_policy ACCEPT\n');
-            } else {
-              // IPTables compiler.
-              this.stream.write('\n# Default IPTables chains policy.\n');
-              this.stream.write('iptables_default_filter_policy DROP\n');
-            }
-
-            if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
-              await this.dumpMangeTableRules(); // Generate default rules for mangle table
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "***********************"\n');
-            this.stream.write('echo "* FILTER TABLE (IPv4) *"\n');
-            this.stream.write('echo "***********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv4):', true));
-            this.stream.write('\n\necho "INPUT CHAIN"\n');
-            this.stream.write('echo "-----------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "OUTPUT CHAIN"\n');
-            this.stream.write('echo "------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "FORWARD CHAIN"\n');
-            this.stream.write('echo "-------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "********************"\n');
-            this.stream.write('echo "* NAT TABLE (IPv4) *"\n');
-            this.stream.write('echo "********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv4):', true));
-            this.stream.write('\n\necho "SNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "DNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT'));
-
-            this.stream.write('\n\n');
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo\n');
-            this.stream.write('echo "***********************"\n');
-            this.stream.write('echo "* FILTER TABLE (IPv6) *"\n');
-            this.stream.write('echo "***********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload(''));
-            this.channel.emit('message', new ProgressNoticePayload(''));
-            this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv6):', true));
-            this.stream.write('\n\necho "INPUT CHAIN"\n');
-            this.stream.write('echo "-----------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "OUTPUT CHAIN"\n');
-            this.stream.write('echo "------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "FORWARD CHAIN"\n');
-            this.stream.write('echo "-------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "********************"\n');
-            this.stream.write('echo "* NAT TABLE (IPv6) *"\n');
-            this.stream.write('echo "********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv6):', true));
-            this.stream.write('\n\necho "SNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "DNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'));
-
-            this.stream.write('\n}\n\n');
-
-            await this.dumpRouting();
-
-            // Footer file.
-            this.stream.write(fs.readFileSync(config.get('policy').footer_file, 'utf8'));
-
-            /* Close stream. */
-            this.stream.end();
-
-            // Update firewall status flags.
-            await Firewall.updateFirewallStatus(this.fwcloud, this.firewall, '&~1');
-            // Update firewall compile date.
-            await Firewall.updateFirewallCompileDate(this.fwcloud, this.firewall);
-
-            this.channel.emit('message', new ProgressPayload('end', false, 'Compilation finished'));
-
-            //console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
-            //console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
-
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
+        .on('open', () => {
+          this.handleStreamOpen()
+            .then(() => {
+              return resolve();
+            })
+            .catch((error) => {
+              return reject(error);
+            });
         })
         .on('error', (error) => {
           return reject(error);
         });
     });
+  }
+
+  private async handleStreamOpen(): Promise<void> {
+    /* Generate the policy script. */
+    this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
+    this.stream.write(fs.readFileSync(config.get('policy').header_file, 'utf8'));
+    this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
+    await this.greetingMessage();
+    await this.dumpFirewallOptions();
+
+    this.stream.write('policy_load() {\n');
+
+    if (this.policyCompiler == 'NFTables') {
+      await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
+
+      this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
+      this.stream.write('# How do they interact?\n');
+      this.stream.write('#    nft       Empty     Accept  Accept      Block        Blank\n');
+      this.stream.write('#    iptables  Empty     Empty   Block       Accept       Accept\n');
+      this.stream.write('#    Results   Pass      Pass    Unreachable Unreachable  Pass \n');
+      this.stream.write(
+        '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
+      );
+      this.stream.write('iptables_default_filter_policy ACCEPT\n');
+    } else {
+      // IPTables compiler.
+      this.stream.write('\n# Default IPTables chains policy.\n');
+      this.stream.write('iptables_default_filter_policy DROP\n');
+    }
+
+    if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
+      await this.dumpMangeTableRules(); // Generate default rules for mangle table
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "***********************"\n');
+    this.stream.write('echo "* FILTER TABLE (IPv4) *"\n');
+    this.stream.write('echo "***********************"\n');
+    this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv4):', true));
+    this.stream.write('\n\necho "INPUT CHAIN"\n');
+    this.stream.write('echo "-----------"\n');
+    this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "OUTPUT CHAIN"\n');
+    this.stream.write('echo "------------"\n');
+    this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "FORWARD CHAIN"\n');
+    this.stream.write('echo "-------------"\n');
+    this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "********************"\n');
+    this.stream.write('echo "* NAT TABLE (IPv4) *"\n');
+    this.stream.write('echo "********************"\n');
+    this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv4):', true));
+    this.stream.write('\n\necho "SNAT"\n');
+    this.stream.write('echo "----"\n');
+    this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "DNAT"\n');
+    this.stream.write('echo "----"\n');
+    this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT'));
+
+    this.stream.write('\n\n');
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo\n');
+    this.stream.write('echo "***********************"\n');
+    this.stream.write('echo "* FILTER TABLE (IPv6) *"\n');
+    this.stream.write('echo "***********************"\n');
+    this.channel.emit('message', new ProgressNoticePayload(''));
+    this.channel.emit('message', new ProgressNoticePayload(''));
+    this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv6):', true));
+    this.stream.write('\n\necho "INPUT CHAIN"\n');
+    this.stream.write('echo "-----------"\n');
+    this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "OUTPUT CHAIN"\n');
+    this.stream.write('echo "------------"\n');
+    this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "FORWARD CHAIN"\n');
+    this.stream.write('echo "-------------"\n');
+    this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "********************"\n');
+    this.stream.write('echo "* NAT TABLE (IPv6) *"\n');
+    this.stream.write('echo "********************"\n');
+    this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv6):', true));
+    this.stream.write('\n\necho "SNAT"\n');
+    this.stream.write('echo "----"\n');
+    this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT'));
+
+    this.stream.write('\n\necho\n');
+    this.stream.write('echo "DNAT"\n');
+    this.stream.write('echo "----"\n');
+    this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
+    await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'));
+
+    this.stream.write('\n}\n\n');
+
+    await this.dumpRouting();
+
+    // Footer file.
+    this.stream.write(fs.readFileSync(config.get('policy').footer_file, 'utf8'));
+
+    /* Close stream. */
+    this.stream.end();
+
+    // Update firewall status flags.
+    await Firewall.updateFirewallStatus(this.fwcloud, this.firewall, '&~1');
+    // Update firewall compile date.
+    await Firewall.updateFirewallCompileDate(this.fwcloud, this.firewall);
+
+    this.channel.emit('message', new ProgressPayload('end', false, 'Compilation finished'));
+
+    //console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
+    //console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
   }
 
   private dumpNFTablesStd(): Promise<void> {

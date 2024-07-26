@@ -76,7 +76,7 @@ describe(HAProxyController.name, () => {
     );
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     sinon.restore();
   });
 

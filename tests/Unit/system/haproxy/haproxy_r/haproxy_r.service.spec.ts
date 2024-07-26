@@ -121,7 +121,7 @@ describe(HAProxyRuleService.name, () => {
         frontendPortId: 1,
       };
       const expected = manager.getRepository(HAProxyRule).create(data);
-      service['_repository'].getLastHAProxyRuleInFirewall = async () => null;
+      service['_repository'].getLastHAProxyRuleInFirewall = () => null;
       const getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
         .returns(null);

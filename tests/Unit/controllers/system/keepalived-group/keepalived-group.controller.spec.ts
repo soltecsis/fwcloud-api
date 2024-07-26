@@ -64,7 +64,7 @@ describe(KeepalivedGroupController.name, () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     sinon.restore();
   });
 

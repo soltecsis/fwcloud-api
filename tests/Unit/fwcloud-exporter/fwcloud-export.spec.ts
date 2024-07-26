@@ -38,7 +38,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
     user = await createUser({});
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     directory = path.join(playgroundPath, StringHelper.randomize(10));
   });
 

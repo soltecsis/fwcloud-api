@@ -30,7 +30,7 @@ import { DatabaseService } from '../../../src/database/database.service';
 describe(describeName('Application Unit Test'), () => {
   let app: Application;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     app = testSuite.app;
   });
 

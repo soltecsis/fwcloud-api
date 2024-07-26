@@ -27,8 +27,10 @@ export class CronService extends Service {
   protected _jobs: Array<CronJob> = [];
 
   public async build(): Promise<CronService> {
-    this._jobs = [];
-    return this;
+    return new Promise((resolve) => {
+      this._jobs = [];
+      resolve(this);
+    });
   }
 
   public addJob(cronTime: string, onTick: CronCommand<any, false>) {

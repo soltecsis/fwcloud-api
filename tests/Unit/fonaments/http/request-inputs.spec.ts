@@ -25,7 +25,7 @@ import { expect, describeName } from '../../../mocha/global-setup';
 
 describe(describeName('Request tests'), () => {
   describe('all()', () => {
-    it('All inputs from req.body should be listed in the inputs', async () => {
+    it('All inputs from req.body should be listed in the inputs', () => {
       const req: any = {
         body: {
           testInput: 'testInput',
@@ -42,7 +42,7 @@ describe(describeName('Request tests'), () => {
   });
 
   describe('has()', () => {
-    it('should return false if an input does not exist', async () => {
+    it('should return false if an input does not exist', () => {
       const req: any = {
         body: {},
         query: {},
@@ -53,7 +53,7 @@ describe(describeName('Request tests'), () => {
       expect(request.has('testInput2')).to.be.false;
     });
 
-    it('should return true if an input does exist', async () => {
+    it('should return true if an input does exist', () => {
       const req: any = {
         body: {
           testInput: 'testInput',
@@ -66,7 +66,7 @@ describe(describeName('Request tests'), () => {
       expect(request.has('testInput')).to.be.true;
     });
 
-    it('should return true if the query parameter exists', async () => {
+    it('should return true if the query parameter exists', () => {
       const req: any = {
         query: {
           testInput2: 'testInput2',
@@ -83,7 +83,7 @@ describe(describeName('Request tests'), () => {
   });
 
   describe('get()', () => {
-    it('should return the value if the input exists', async () => {
+    it('should return the value if the input exists', () => {
       const req: any = {
         body: {
           testInput: 'testInput',
@@ -96,7 +96,7 @@ describe(describeName('Request tests'), () => {
       expect(request.get('testInput')).to.be.deep.equal('testInput');
     });
 
-    it('should return undefined if the input does not exists', async () => {
+    it('should return undefined if the input does not exists', () => {
       const req: any = {
         body: {},
         query: {},
@@ -107,7 +107,7 @@ describe(describeName('Request tests'), () => {
       expect(request.get('testInput2')).to.be.undefined;
     });
 
-    it('should return a default value if the input does not exists and a default value is provided', async () => {
+    it('should return a default value if the input does not exists and a default value is provided', () => {
       const req: any = {
         body: {},
         query: {},

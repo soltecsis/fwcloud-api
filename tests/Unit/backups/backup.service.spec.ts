@@ -31,13 +31,13 @@ import { Zip } from '../../../src/utils/zip';
 
 let app: AbstractApplication;
 
-describe(describeName('BackupService Unit tests'), async () => {
-  beforeEach(async () => {
+describe(describeName('BackupService Unit tests'), () => {
+  beforeEach(() => {
     app = testSuite.app;
   });
 
   describe('Bootstrap', () => {
-    it('service is instantiated in during bootstrap process', async () => {
+    it('service is instantiated in during bootstrap process', () => {
       //One way to detect backup service has been instantiated (without calling it)
       // is checking whether backup directory has been created
       expect(fs.existsSync(app.config.get('backup').data_dir)).to.be.true;
@@ -136,7 +136,7 @@ describe(describeName('BackupService Unit tests'), async () => {
       });
     });
 
-    describe('export()', async () => {
+    describe('export()', () => {
       let backup: Backup;
 
       beforeEach(async () => {
@@ -150,7 +150,7 @@ describe(describeName('BackupService Unit tests'), async () => {
       });
     });
 
-    describe('import()', async () => {
+    describe('import()', () => {
       let zippedFilePath: string;
       let backup: Backup;
       beforeEach(async () => {

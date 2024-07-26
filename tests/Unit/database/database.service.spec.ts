@@ -34,10 +34,10 @@ describe(describeName('Database Service tests'), () => {
     databaseService = await app.getService<DatabaseService>(DatabaseService.name);
   });
 
-  describe('getAppliedMigrations()', async () => {
+  describe('getAppliedMigrations()', () => {
     let dataSource: DataSource;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       dataSource = databaseService.dataSource;
     });
 

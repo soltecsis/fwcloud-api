@@ -41,9 +41,11 @@ export class BackupConfigController extends Controller {
    */
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
-    const config: BackupUpdateableConfig = this._backupService.getCustomizedConfig();
+    return new Promise((resolve, reject) => {
+      const config: BackupUpdateableConfig = this._backupService.getCustomizedConfig();
 
-    return ResponseBuilder.buildResponse().status(200).body(config);
+      resolve(ResponseBuilder.buildResponse().status(200).body(config));
+    });
   }
 
   /**

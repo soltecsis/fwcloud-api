@@ -4,10 +4,10 @@ import { Zip } from '../../../src/utils/zip';
 import { FSHelper } from '../../../src/utils/fs-helper';
 import * as fs from 'fs-extra';
 
-describe(describeName('Zip Unit Tests'), async () => {
+describe(describeName('Zip Unit Tests'), () => {
   const pathToBeZipped: string = path.join(playgroundPath, 'to_zip');
 
-  beforeEach(async () => {
+  beforeEach(() => {
     FSHelper.mkdirSync(pathToBeZipped);
     fs.writeFileSync(path.join(pathToBeZipped, 'test.txt'), 'test');
   });
@@ -46,11 +46,12 @@ describe(describeName('Zip Unit Tests'), async () => {
       await Zip.zip(pathToBeZipped, pathZipped);
     });
 
-    it('should throw an exception if the zip file does not exist', async () => {
+    it('should throw an exception if the zip file does not exist', () => {
       const t = () => {
         return Zip.unzip(path.join(playgroundPath, 'invented.zip'), output);
       };
-
+      // For testing purposes, we don't need to await the promise
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       expect(t()).to.be.rejected;
     });
 

@@ -111,7 +111,7 @@ describe(KeepalivedRepository.name, () => {
   describe('move', () => {
     it('should move the rule to the specified position', async () => {
       keepalivedRule.group = null;
-      keepalivedRule.save();
+      await keepalivedRule.save();
 
       const moveAboveSpy = sinon.spy(repository, 'moveAbove' as keyof KeepalivedRepository);
 

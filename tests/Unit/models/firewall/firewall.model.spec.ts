@@ -25,7 +25,7 @@ describe(describeName('Firewall Model Unit Tests'), () => {
     let policyPath: string;
     let policyFilename: string;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       policyPath = testSuite.app.config.get('policy').data_dir;
       policyFilename = testSuite.app.config.get('policy').script_name;
     });
@@ -58,7 +58,7 @@ describe(describeName('Firewall Model Unit Tests'), () => {
       expect(firewall.getPolicyFilePath()).to.be.null;
     });
 
-    it('should return null if the firewall does not persisted', async () => {
+    it('should return null if the firewall does not persisted', () => {
       const firewall: Firewall = manager.getRepository(Firewall).create({
         name: StringHelper.randomize(10),
         fwCloudId: fwCloud.id,

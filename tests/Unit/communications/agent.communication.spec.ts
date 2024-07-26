@@ -30,7 +30,7 @@ import * as https from 'https';
 describe(AgentCommunication.name, () => {
   let agent: AgentCommunication;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     agent = new AgentCommunication({
       protocol: 'http',
       host: 'host',

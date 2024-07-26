@@ -106,7 +106,7 @@ before(async () => {
   await testSuite.resetDatabaseData();
 });
 
-beforeEach(async () => {
+beforeEach(() => {
   fse.removeSync(playgroundPath);
   fse.mkdirSync(playgroundPath);
   testSuite.app.generateDirectories();

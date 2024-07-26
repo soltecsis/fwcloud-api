@@ -31,7 +31,7 @@ describe(describeName('File Rule Unit Test'), () => {
   let rule: ValidatorConstraintInterface;
 
   describe('passes()', () => {
-    beforeEach(async () => {
+    beforeEach(() => {
       rule = new HasExtension();
     });
 

@@ -69,7 +69,7 @@ describe(DhcpGroupController.name, () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     sinon.restore();
   });
 

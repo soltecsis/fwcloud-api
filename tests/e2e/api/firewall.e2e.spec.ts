@@ -118,12 +118,12 @@ describe(describeName('Firewall E2E Tests'), () => {
   describe.skip('FirewallController@install', () => {
     let sshRunCommandStub: sinon.SinonStub;
     let sshUploadFileStub: sinon.SinonStub;
-    before(async () => {
+    before(() => {
       sshRunCommandStub = sinon.stub(sshTools, 'runCommand').resolves('done');
       sshUploadFileStub = sinon.stub(sshTools, 'uploadFile').resolves('done');
     });
 
-    after(async () => {
+    after(() => {
       sshRunCommandStub.restore();
       sshUploadFileStub.restore();
     });

@@ -197,7 +197,7 @@ describe('Routing table data fetch for compiler or grid', () => {
       );
     });
 
-    describe('Out of group', async () => {
+    describe('Out of group', () => {
       beforeEach(() => {
         items = routes[0].items;
         item = {

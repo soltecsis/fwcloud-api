@@ -131,7 +131,7 @@ describe(HAProxyRuleRepository.name, () => {
 
     it('should not refresh orders after removing rules withouth group', async () => {
       haproxyRule.group = null;
-      haproxyRule.save();
+      await haproxyRule.save();
 
       const refreshOrdersSpy = sinon.stub(
         repository,

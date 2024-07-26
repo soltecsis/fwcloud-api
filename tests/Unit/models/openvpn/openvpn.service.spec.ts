@@ -35,6 +35,7 @@ import {
 } from '../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
 import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
 import sinon from 'sinon';
+import Sinon from 'sinon';
 
 describe(describeName('OpenVPN Service Unit Tests'), () => {
   let app: AbstractApplication;
@@ -98,7 +99,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
   });
 
   describe('archiveHistory()', () => {
-    it('should create a backup directory', async () => {
+    it('should create a backup directory', () => {
       const directory = path.join(
         `${path.join(app.config.get('openvpn.history').data_dir, yearDir, monthSubDir)}`,
       );
@@ -106,7 +107,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
       expect(FSHelper.directoryExistsSync(directory)).to.be.true;
     });
 
-    it('should be created a zip file with data records file less than archive_days config', async () => {
+    it('should be created a zip file with data records file less than archive_days config', () => {
       expect(fs.existsSync(filePath)).to.be.true;
     });
 
@@ -153,7 +154,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
   describe('removeExpiredFiles()', () => {
     let clock;
-    before(async () => {
+    before(() => {
       const date = new Date();
       const futureDate = date.setFullYear(date.getFullYear() + 4);
       //Mock the clock timer to test because the method removeExpiredFiles() checks the birthTime of the files
@@ -164,7 +165,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
       });
     });
 
-    after(async () => {
+    after(() => {
       clock.restore();
     });
 
@@ -206,11 +207,11 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
       await openVPNService.updateArchiveConfig(custom_config);
     });
 
-    it('should be returned custom_config if config.json exists', async () => {
+    it('should be returned custom_config if config.json exists', () => {
       expect(openVPNService.getCustomizedConfig()).to.be.deep.equals(custom_config);
     });
 
-    it('should be returned base_config if config.json does not exist', async () => {
+    it('should be returned base_config if config.json does not exist', () => {
       fs.unlinkSync(path.join(app.config.get('openvpn.history').data_dir, 'config.json'));
 
       expect(openVPNService.getCustomizedConfig()).to.be.deep.equals({

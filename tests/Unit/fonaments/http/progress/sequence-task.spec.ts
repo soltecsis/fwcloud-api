@@ -28,7 +28,7 @@ import { Task } from '../../../../../src/fonaments/http/progress/task';
 let eventEmitter: EventEmitter;
 
 describe(describeName('Sequence Task tests'), () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     eventEmitter = new EventEmitter();
   });
 

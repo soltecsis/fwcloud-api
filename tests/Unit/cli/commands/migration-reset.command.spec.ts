@@ -30,7 +30,7 @@ import { runCLICommandIsolated } from '../../../utils/utils';
 describe(describeName('MigrationResetCommand tests'), () => {
   let app: Application;
 
-  before(async () => {
+  before(() => {
     app = testSuite.app;
   });
 

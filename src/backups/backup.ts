@@ -47,6 +47,7 @@ import { ProgressPayload } from '../sockets/messages/socket-message';
 import { E_ALREADY_LOCKED, Mutex, tryAcquire } from 'async-mutex';
 import { BackupService } from './backup.service';
 import db from '../database/database-manager';
+import { threadId } from 'worker_threads';
 
 export interface BackupMetadata {
   name: string;
@@ -181,25 +182,26 @@ export class Backup implements Responsable {
    *
    * @param backupPath Backup path
    */
-  async load(backupPath: string): Promise<Backup> {
-    if (fs.statSync(backupPath).isDirectory() && fs.statSync) {
-      const metadata: BackupMetadata = this.loadMetadataFromDirectory(backupPath);
-      this._date = moment(metadata.timestamp);
-      this._id = metadata.timestamp;
-      this._name = metadata.name;
-      this._comment = metadata.comment;
-      this._exists = true;
-      this._version = metadata.version;
-      this._imported = metadata.imported ?? false;
-      this._backupPath = path.isAbsolute(backupPath)
-        ? StringHelper.after(path.join(app().path, '/'), backupPath)
-        : backupPath;
-      this._dumpFilename = Backup.DUMP_FILENAME;
-      this._hash = metadata.hash ?? undefined;
-      return this;
-    }
-
-    throw new BackupNotFoundException(backupPath);
+  load(backupPath: string): Promise<Backup> {
+    return new Promise((resolve, reject) => {
+      if (fs.statSync(backupPath).isDirectory() && fs.statSync) {
+        const metadata: BackupMetadata = this.loadMetadataFromDirectory(backupPath);
+        this._date = moment(metadata.timestamp);
+        this._id = metadata.timestamp;
+        this._name = metadata.name;
+        this._comment = metadata.comment;
+        this._exists = true;
+        this._version = metadata.version;
+        this._imported = metadata.imported ?? false;
+        this._backupPath = path.isAbsolute(backupPath)
+          ? StringHelper.after(path.join(app().path, '/'), backupPath)
+          : backupPath;
+        this._dumpFilename = Backup.DUMP_FILENAME;
+        this._hash = metadata.hash ?? undefined;
+        resolve(this);
+      }
+      reject(new BackupNotFoundException(backupPath));
+    });
   }
 
   protected loadMetadataFromDirectory(directory: string): BackupMetadata {
@@ -334,12 +336,14 @@ export class Backup implements Responsable {
    * Destroys an existing backup
    */
   async destroy(): Promise<Backup> {
-    if (this._exists) {
-      fse.removeSync(this._backupPath);
-      this._exists = false;
-    }
+    return new Promise((resolve) => {
+      if (this._exists) {
+        fse.removeSync(this._backupPath);
+        this._exists = false;
+      }
 
-    return this;
+      resolve(this);
+    });
   }
 
   /**
@@ -391,33 +395,26 @@ export class Backup implements Responsable {
    * Compress the db.sql file
    */
   protected zipDbSql(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        await Zip.zip(path.join(this._backupPath, Backup.DUMP_FILENAME));
-        fs.unlinkSync(path.join(this._backupPath, Backup.DUMP_FILENAME));
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
+    return new Promise((resolve, reject) => {
+      Zip.zip(path.join(this._backupPath, Backup.DUMP_FILENAME))
+        .then(() => {
+          fs.unlinkSync(path.join(this._backupPath, Backup.DUMP_FILENAME));
+          resolve();
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
   }
 
   /**
    * Decompress the db.sql file
    */
-  protected unzipDbSql(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        if (fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))) {
-          const dir = path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`);
-          await Zip.unzip(dir, this.getTemporalyUnzipPath());
-        }
-
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
+  protected async unzipDbSql(): Promise<void> {
+    if (fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))) {
+      const dir = path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`);
+      await Zip.unzip(dir, this.getTemporalyUnzipPath());
+    }
   }
 
   protected getTemporalyUnzipPath(): string {
@@ -428,41 +425,33 @@ export class Backup implements Responsable {
    * Imports the database from a file
    */
   protected async importDatabase(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const databaseService: DatabaseService = await app().getService<DatabaseService>(
-          DatabaseService.name,
-        );
+    const databaseService: DatabaseService = await app().getService<DatabaseService>(
+      DatabaseService.name,
+    );
 
-        await databaseService.emptyDatabase();
-        if (!(await databaseService.isDatabaseEmpty()))
-          return reject(new RestoreBackupException('Database can not be wiped'));
+    await databaseService.emptyDatabase();
+    if (!(await databaseService.isDatabaseEmpty()))
+      throw new RestoreBackupException('Database can not be wiped');
 
-        //console.time("db import");
-        child_process.execSync(this.buildCmd('mysql', databaseService));
-        //console.timeEnd("db import");
+    //console.time("db import");
+    child_process.execSync(this.buildCmd('mysql', databaseService));
+    //console.timeEnd("db import");
 
-        //Change compilation status from firewalls
-        await this._firewallRepository.markAllAsUncompiled();
+    //Change compilation status from firewalls
+    await this._firewallRepository.markAllAsUncompiled();
 
-        //Make all VPNs pending of install.
-        await this._openvpnRepository.markAllAsUninstalled();
+    //Make all VPNs pending of install.
+    await this._openvpnRepository.markAllAsUninstalled();
 
-        if (!this.isHashCompatible()) {
-          await this._dataSource.manager.getRepository(Firewall).update(
-            {},
-            {
-              install_user: null,
-              install_pass: null,
-            },
-          );
-        }
-
-        resolve();
-      } catch (e) {
-        reject(e);
-      }
-    });
+    if (!this.isHashCompatible()) {
+      await this._dataSource.manager.getRepository(Firewall).update(
+        {},
+        {
+          install_user: null,
+          install_pass: null,
+        },
+      );
+    }
   }
 
   protected async runMigrations(): Promise<Migration[]> {

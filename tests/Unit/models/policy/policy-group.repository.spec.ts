@@ -32,7 +32,7 @@ let policyGroupRepository: PolicyGroupRepository;
 let manager: EntityManager;
 
 describe(describeName('PolicyGroupRepository tests'), () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     manager = db.getSource().manager;
     policyGroupRepository = new PolicyGroupRepository(manager);
   });

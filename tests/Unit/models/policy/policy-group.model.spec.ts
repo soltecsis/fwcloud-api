@@ -31,7 +31,7 @@ import db from '../../../../src/database/database-manager';
 let manager: EntityManager;
 
 describe(describeName('PolicyRule tests'), () => {
-  before(async () => {
+  before(() => {
     manager = db.getSource().manager;
   });
 

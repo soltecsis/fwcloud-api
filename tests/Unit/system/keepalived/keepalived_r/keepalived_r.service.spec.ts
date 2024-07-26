@@ -273,7 +273,8 @@ describe(KeepalivedRuleService.name, () => {
         to: 3,
         offset: Offset.Above,
       };
-
+      // For testing purposes, the promise is not awaited
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       expect(service.store(data)).to.be.rejectedWith('IP version mismatch');
     });
   });

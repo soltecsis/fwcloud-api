@@ -28,7 +28,7 @@ import sinon from 'sinon';
 let app: AbstractApplication;
 
 describe(describeName('HttpException Unit tests'), () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     app = testSuite.app;
   });
 

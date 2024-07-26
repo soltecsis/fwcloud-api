@@ -39,29 +39,37 @@ export class TfaController extends Controller {
   }
 
   @Validate(SetupTfaDto)
-  public async setup(req: Request): Promise<ResponseBuilder> {
-    const secret = speakeasy.generateSecret({
-      length: 10,
-      name: req.body.username,
-      issuer: 'FWCLOUD - SOLTECSIS',
+  public setup(req: Request): Promise<ResponseBuilder> {
+    return new Promise((resolve, reject) => {
+      const secret = speakeasy.generateSecret({
+        length: 10,
+        name: req.body.username,
+        issuer: 'FWCLOUD - SOLTECSIS',
+      });
+      const url = speakeasy.otpauthURL({
+        secret: secret.base32,
+        label: req.body.username,
+        issuer: 'FWCLOUD - SOLTECSIS',
+        encoding: 'base32',
+      });
+      QRCode.toDataURL(url, async (err, dataURL) => {
+        const tfa = {
+          secret: '',
+          tempSecret: secret.base32,
+          dataURL,
+          tfaURL: secret.otpauth_url,
+          userId: req.body.user,
+        };
+        await AuthService.UpdateTfa(
+          tfa.secret,
+          tfa.tempSecret,
+          tfa.dataURL,
+          tfa.tfaURL,
+          tfa.userId,
+        );
+      });
+      resolve(ResponseBuilder.buildResponse().status(200));
     });
-    const url = speakeasy.otpauthURL({
-      secret: secret.base32,
-      label: req.body.username,
-      issuer: 'FWCLOUD - SOLTECSIS',
-      encoding: 'base32',
-    });
-    QRCode.toDataURL(url, async (err, dataURL) => {
-      const tfa = {
-        secret: '',
-        tempSecret: secret.base32,
-        dataURL,
-        tfaURL: secret.otpauth_url,
-        userId: req.body.user,
-      };
-      await AuthService.UpdateTfa(tfa.secret, tfa.tempSecret, tfa.dataURL, tfa.tfaURL, tfa.userId);
-    });
-    return ResponseBuilder.buildResponse().status(200);
   }
 
   @Validate()

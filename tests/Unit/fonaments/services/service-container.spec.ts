@@ -28,7 +28,7 @@ import { testSuite, expect, describeName } from '../../../mocha/global-setup';
 import StringHelper from '../../../../src/utils/string.helper';
 
 let app: Application;
-before(async () => {
+before(() => {
   app = testSuite.app;
 });
 
@@ -38,7 +38,7 @@ class TestService extends Service {
 
 describe(describeName('Service container tests'), () => {
   describe('bind()', () => {
-    it('should include a service reference into the services array', async () => {
+    it('should include a service reference into the services array', () => {
       const sc = new ServiceContainer(app);
 
       sc.bind(TestService.name, null);

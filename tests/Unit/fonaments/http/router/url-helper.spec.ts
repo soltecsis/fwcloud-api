@@ -35,7 +35,7 @@ describe(describeName('URL tests'), () => {
   });
 
   describe('getRouteByName()', () => {
-    it('should return a route by its name', async () => {
+    it('should return a route by its name', () => {
       expect(routing.getURL('ping.pong')).to.be.deep.eq('/ping');
     });
   });

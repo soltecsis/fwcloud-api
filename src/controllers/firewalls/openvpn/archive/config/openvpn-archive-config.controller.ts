@@ -46,11 +46,15 @@ export class OpenVPNArchiveConfigController extends Controller {
    */
   @Validate()
   public async show(): Promise<ResponseBuilder> {
-    const config: OpenVPNUpdateableConfig = this._openvpnService.getCustomizedConfig();
+    return new Promise((resolve, reject) => {
+      const config: OpenVPNUpdateableConfig = this._openvpnService.getCustomizedConfig();
 
-    return ResponseBuilder.buildResponse().status(200).body({
-      archive_days: config.history.archive_days,
-      retention_days: config.history.retention_days,
+      resolve(
+        ResponseBuilder.buildResponse().status(200).body({
+          archive_days: config.history.archive_days,
+          retention_days: config.history.retention_days,
+        }),
+      );
     });
   }
 

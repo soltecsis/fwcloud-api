@@ -194,7 +194,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
         .false;
     });
 
-    it('should generate a sign executable', async () => {
+    it('should generate a sign executable', () => {
       // @ts-ignore
       const stubShouldSign = sinon
         .stub(InstallerGenerator.prototype, 'shouldSignExecutable')
@@ -241,7 +241,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
     //     stubSignCommand.restore();
     // });
 
-    it('should not sign the executable if generate() is called without sign flag', async () => {
+    it('should not sign the executable if generate() is called without sign flag', () => {
       // @ts-ignore
       sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
       //@ts-ignore

@@ -138,7 +138,7 @@ describe(describeName('Backup E2E tests'), () => {
       });
     });
 
-    describe('BackupController@store', async () => {
+    describe('BackupController@store', () => {
       it('guest user should not create a backup', async () => {
         await request(app.express).post(_URL().getURL('backups.store')).expect(401);
       });
@@ -161,7 +161,7 @@ describe(describeName('Backup E2E tests'), () => {
           })
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201)
-          .then(async (response) => {
+          .then((response) => {
             expect(response.body.data.comment).to.be.deep.equal('test comment');
           });
 
@@ -171,6 +171,8 @@ describe(describeName('Backup E2E tests'), () => {
       });
 
       it('should throw an exception if process is locked', (done) => {
+        //For testing purposes the promise is not awaited
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         backupService.create().then(() => done());
         request(app.express)
           .post(_URL().getURL('backups.store'))
@@ -183,7 +185,7 @@ describe(describeName('Backup E2E tests'), () => {
       });
     });
 
-    describe('BackupController@restore', async () => {
+    describe('BackupController@restore', () => {
       let backup: Backup;
 
       beforeEach(async () => {
@@ -224,7 +226,7 @@ describe(describeName('Backup E2E tests'), () => {
       });
     });
 
-    describe('BackupController@destroy', async () => {
+    describe('BackupController@destroy', () => {
       let backup: Backup;
 
       beforeEach(async () => {
@@ -259,7 +261,7 @@ describe(describeName('Backup E2E tests'), () => {
       });
     });
 
-    describe('BackupController@export', async () => {
+    describe('BackupController@export', () => {
       let backup: Backup;
 
       beforeEach(async () => {
@@ -288,7 +290,7 @@ describe(describeName('Backup E2E tests'), () => {
       });
     });
 
-    describe('BackupController@import', async () => {
+    describe('BackupController@import', () => {
       let backup: Backup;
       const zippedPath: string = path.join(playgroundPath, 'backup.zip');
 
@@ -323,7 +325,7 @@ describe(describeName('Backup E2E tests'), () => {
   });
 
   describe('BackupConfigController', () => {
-    describe('BackupConfigController@show', async () => {
+    describe('BackupConfigController@show', () => {
       it('guest user should not see backup config', async () => {
         await request(app.express).get(_URL().getURL('backups.config.show')).expect(401);
       });
@@ -350,7 +352,7 @@ describe(describeName('Backup E2E tests'), () => {
       });
     });
 
-    describe('BackupConfigController@update', async () => {
+    describe('BackupConfigController@update', () => {
       it('guest user should not update backup config', async () => {
         await request(app.express).put(_URL().getURL('backups.config.update')).expect(401);
       });

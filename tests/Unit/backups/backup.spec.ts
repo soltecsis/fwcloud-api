@@ -46,7 +46,7 @@ describe(describeName('Backup Unit tests'), () => {
   });
 
   describe('exists()', () => {
-    it('exists should return false if the backup is not persisted', async () => {
+    it('exists should return false if the backup is not persisted', () => {
       const backup: Backup = new Backup();
       expect(backup.exists()).to.be.false;
     });
@@ -73,6 +73,8 @@ describe(describeName('Backup Unit tests'), () => {
       const backup2: Backup = new Backup();
 
       const t = () => {
+        // For test puerposes, the promise is not awaited
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         backup2.create(service.config.data_dir).then(() => done());
         return backup.create(service.config.data_dir);
       };

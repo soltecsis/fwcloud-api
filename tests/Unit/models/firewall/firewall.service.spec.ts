@@ -147,12 +147,12 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
     let sshRunCommandStub: sinon.SinonStub;
     let sshUploadFileStub: sinon.SinonStub;
 
-    before(async () => {
+    before(() => {
       sshRunCommandStub = sinon.stub(sshTools, 'runCommand').resolves('done');
       sshUploadFileStub = sinon.stub(sshTools, 'uploadFile').resolves('done');
     });
 
-    after(async () => {
+    after(() => {
       sshRunCommandStub.restore();
       sshUploadFileStub.restore();
     });

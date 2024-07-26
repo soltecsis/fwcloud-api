@@ -28,7 +28,7 @@ import { _URL } from '../../../src/fonaments/http/router/router.service';
 let app: Application;
 
 describe(describeName('MaintenanceMiddleware E2E test'), () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     app = testSuite.app;
   });
 

@@ -8,7 +8,7 @@ import { Firewall } from '../../../src/models/firewall/Firewall';
 import * as path from 'path';
 import * as fs from 'fs';
 
-describe(describeName('PolicyRuleService Unit tests'), async () => {
+describe(describeName('PolicyRuleService Unit tests'), () => {
   let app: AbstractApplication;
   let fwcProduct: FwCloudProduct;
   let fwcloud: FwCloud;

@@ -79,7 +79,7 @@ describe(describeName('Snapshot E2E tests'), () => {
       });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     stubExportDatabase.restore();
   });
 
@@ -276,7 +276,7 @@ describe(describeName('Snapshot E2E tests'), () => {
           })
           .set('Cookie', attachSession(loggedUserSessionId))
           .expect(201)
-          .then(async (response) => {
+          .then((response) => {
             expect(response.body.data).to.haveOwnProperty('id');
             expect(response.body.data.comment).to.be.deep.eq('comment_test');
             expect(response.body.data.name).to.be.deep.eq('name_test');
@@ -292,7 +292,7 @@ describe(describeName('Snapshot E2E tests'), () => {
           })
           .set('Cookie', attachSession(adminUserSessionId))
           .expect(201)
-          .then(async (response) => {
+          .then((response) => {
             expect(response.body.data).to.haveOwnProperty('id');
             expect(response.body.data).not.to.be.null;
           });
@@ -434,7 +434,7 @@ describe(describeName('Snapshot E2E tests'), () => {
           )
           .set('Cookie', attachSession(loggedUserSessionId))
           .expect(200)
-          .then(async (response) => {
+          .then((response) => {
             expect(response.body.data.id).to.be.an('number');
             expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
           });
@@ -450,7 +450,7 @@ describe(describeName('Snapshot E2E tests'), () => {
           )
           .set('Cookie', attachSession(adminUserSessionId))
           .expect(200)
-          .then(async (response) => {
+          .then((response) => {
             expect(response.body.data.id).to.be.an('number');
             expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
           });
