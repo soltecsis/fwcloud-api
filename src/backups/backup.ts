@@ -47,7 +47,6 @@ import { ProgressPayload } from '../sockets/messages/socket-message';
 import { E_ALREADY_LOCKED, Mutex, tryAcquire } from 'async-mutex';
 import { BackupService } from './backup.service';
 import db from '../database/database-manager';
-import { threadId } from 'worker_threads';
 
 export interface BackupMetadata {
   name: string;

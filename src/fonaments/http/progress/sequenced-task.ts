@@ -48,17 +48,9 @@ export class SequencedTask extends Task {
     this._tasks.push(new SequencedTask(this._eventEmitter, fn));
   }
 
-  public run(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      for (let i = 0; i < this._tasks.length; i++) {
-        try {
-          await this._tasks[i].run();
-        } catch (e) {
-          return reject(e);
-        }
-      }
-
-      return resolve();
-    });
+  public async run(): Promise<void> {
+    for (let i = 0; i < this._tasks.length; i++) {
+      await this._tasks[i].run();
+    }
   }
 }

@@ -22,7 +22,7 @@
 
 export class FunctionHelper {
   //TODO: Look for a better way to check whether value is a callback instead of a class definition
-  public static isCallback(value: any): boolean {
+  public static isCallback(value: unknown): boolean {
     return typeof Object.getPrototypeOf(value) === 'undefined';
   }
 }

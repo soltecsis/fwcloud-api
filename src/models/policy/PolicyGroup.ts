@@ -37,7 +37,6 @@ import Model from '../Model';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
 import { logger } from '../../fonaments/abstract-application';
-import { Func } from 'mocha';
 import Query from '../../database/Query';
 
 const tableName = 'policy_g';

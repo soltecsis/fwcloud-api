@@ -375,10 +375,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         if (waiting_for_websocket_id) {
           //console.log('WebSocket id: %s', data);
           waiting_for_websocket_id = false;
-          resolve(`${data}`);
+          resolve(`${JSON.stringify(data)}`);
         } else {
           //console.log('Data: %s', data);
-          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
+          eventEmitter.emit(
+            'message',
+            new ProgressPayload('ssh_cmd_output', false, `${JSON.stringify(data)}`),
+          );
         }
       });
 
@@ -392,7 +395,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       ws.on('error', (err) => {
         clearTimeout(timer);
-        console.log(`WebSocket error: ${err}`);
+        console.log(`WebSocket error: ${err.toString()}`);
         ws.close();
         reject(err);
       });

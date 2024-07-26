@@ -28,6 +28,8 @@ import { Validate } from '../../decorators/validate.decorator';
 export class PingController extends Controller {
   @Validate()
   public async ping(request: Request): Promise<ResponseBuilder> {
-    return ResponseBuilder.buildResponse().status(200);
+    return new Promise((resolve) => {
+      resolve(ResponseBuilder.buildResponse().status(200));
+    });
   }
 }

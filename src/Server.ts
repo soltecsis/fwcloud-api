@@ -27,7 +27,6 @@ import * as fs from 'fs';
 import io from 'socket.io';
 import { ConfigurationErrorException } from './config/exceptions/configuration-error.exception';
 import { logger } from './fonaments/abstract-application';
-import convict from 'convict';
 
 export class Server {
   private _application: Application;

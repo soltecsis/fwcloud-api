@@ -402,7 +402,7 @@ export class OpenVPNService extends Service {
 
     if (fs.existsSync(openvpnConfigFile)) {
       const backupConfig: Partial<OpenVPNConfig> = JSON.parse(
-        fs.readFileSync(openvpnConfigFile, 'utf8') as string,
+        fs.readFileSync(openvpnConfigFile, 'utf8'),
       );
       config = ObjectHelpers.deepMerge<OpenVPNConfig>(config, backupConfig);
     }

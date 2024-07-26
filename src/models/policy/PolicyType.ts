@@ -67,22 +67,30 @@ export class PolicyType extends Model {
   }
 
   //Get All policy_type
-  public static getPolicy_types(callback: Function) {
+  public static getPolicy_types(
+    callback: (err: Error | null, rows: Array<PolicyType> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', (error, rows) => {
-        if (error) callback(error, null);
-        else callback(null, rows);
-      });
+      connection.query(
+        'SELECT * FROM ' + tableName + ' ORDER BY type_order',
+        (error, rows: Array<PolicyType>) => {
+          if (error) callback(error, null);
+          else callback(null, rows);
+        },
+      );
     });
   }
 
   //Get policy_type by  type
-  public static getPolicy_type(id: number, callback: Function) {
+  public static getPolicy_type(
+    id: number,
+    callback: (err: Error | null, rows: Array<PolicyType> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<PolicyType>) => {
         if (error) callback(error, null);
         else {
           callback(null, row);
@@ -92,11 +100,14 @@ export class PolicyType extends Model {
   }
 
   //Get policy_type by  type Letter
-  public static getPolicy_typeL(id: number, callback: Function) {
+  public static getPolicy_typeL(
+    id: number,
+    callback: (err: Error | null, rows: Array<PolicyType> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<PolicyType>) => {
         if (error) callback(error, null);
         else {
           callback(null, row);
@@ -106,7 +117,10 @@ export class PolicyType extends Model {
   }
 
   //Get policy_type by name
-  public static getPolicy_typeName(name: string, callback: Function) {
+  public static getPolicy_typeName(
+    name: string,
+    callback: (err: Error | null, rows: Array<PolicyType> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const namesql = '%' + name + '%';
@@ -116,7 +130,7 @@ export class PolicyType extends Model {
         ' WHERE name like  ' +
         connection.escape(namesql) +
         ' ORDER BY type_order';
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<PolicyType>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -124,7 +138,10 @@ export class PolicyType extends Model {
   }
 
   //Add new policy_type
-  public static insertPolicy_type(policy_typeData, callback: Function) {
+  public static insertPolicy_type(
+    policy_typeData,
+    callback: (err: Error | null, result: { insertId: number } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
@@ -143,7 +160,10 @@ export class PolicyType extends Model {
   }
 
   //Update policy_type
-  public static updatePolicy_type(policy_typeData, callback: Function) {
+  public static updatePolicy_type(
+    policy_typeData,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -172,11 +192,14 @@ export class PolicyType extends Model {
   }
 
   //Remove policy_type with type to remove
-  public static deletePolicy_type(type: string, callback: Function) {
+  public static deletePolicy_type(
+    type: string,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
-      connection.query(sqlExists, (error, row) => {
+      connection.query(sqlExists, (error, row: Array<PolicyType>) => {
         //If exists Id from policy_type to remove
         if (row) {
           db.get((error, connection) => {

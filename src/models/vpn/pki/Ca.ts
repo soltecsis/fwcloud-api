@@ -145,7 +145,10 @@ export class Ca extends Model {
   /**
    * Store the CA and cert ids into the tree's nodes used for the OpenVPN configurations.
    */
-  public static storePkiInfo(req: RequestData, tree): Promise<void> {
+  public static storePkiInfo(
+    req: RequestData,
+    tree: TreeNode & { openvpn_info: Array<{ id: number }> },
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
                 FROM crt CRT
@@ -246,7 +249,22 @@ export class Ca extends Model {
   }
 
   // Get the ID of all CA who's status field is not zero.
-  public static getCAStatusNotZero(req: RequestData, data): Promise<TreeNode> {
+  public static getCAStatusNotZero(
+    req: RequestData,
+    data: TreeNode & {
+      ca_status: Array<{
+        id: number;
+        status: number;
+      }>;
+    },
+  ): Promise<
+    TreeNode & {
+      ca_status: Array<{
+        id: number;
+        status: number;
+      }>;
+    }
+  > {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT id,status FROM ca WHERE status!=0 AND fwcloud=${req.body.fwcloud}`,

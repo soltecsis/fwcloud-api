@@ -21,7 +21,7 @@
 */
 
 import { Service } from '../fonaments/services/service';
-import { Request } from 'express';
+import { Request, RequestHandler } from 'express';
 import { PolicyRule } from '../models/policy/PolicyRule';
 import { Interface } from '../models/interface/Interface';
 import { Tree } from '../models/tree/Tree';
@@ -57,8 +57,8 @@ export class IptablesSaveToFWCloud extends Service {
   protected chain: string;
   private policyType: number;
   protected ipProtocol: string;
-  protected previousRuleId: any;
-  protected ruleId: any;
+  protected previousRuleId: number;
+  protected ruleId: number;
   protected ruleOrder: number;
   protected ruleTarget: string;
   protected ruleTargetSet: boolean;
@@ -906,7 +906,7 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let protocolId: any;
+    let protocolId: string;
 
     if (parseInt(protocol)) {
       // IP protocol by number.
@@ -929,7 +929,7 @@ export class IptablesSaveToFWCloud extends Service {
     if (protocolId === '') throw new Error(`IP protocol not found: ${protocol}`);
 
     // Add the protocol object to the rule position.
-    await this.addIPObjToRulePosition('-p', protocolId);
+    await this.addIPObjToRulePosition('-p', parseInt(protocolId));
   }
 
   private async eatPort(
@@ -965,7 +965,7 @@ export class IptablesSaveToFWCloud extends Service {
       return;
 
     // Search to find out if it already exists.
-    let portId: any = await IPObj.searchPort(
+    let portId = await IPObj.searchPort(
       this.req.dbCon,
       this.req.body.fwcloud,
       this.ipProtocol,
@@ -1030,12 +1030,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     // Search to find out if it already exists.
-    let icmpId: any = await IPObj.searchICMP(
-      this.req.dbCon,
-      this.req.body.fwcloud,
-      icmp[0],
-      icmp[1],
-    );
+    let icmpId = await IPObj.searchICMP(this.req.dbCon, this.req.body.fwcloud, icmp[0], icmp[1]);
 
     // If not found create it.
     if (!icmpId) {
@@ -1132,7 +1127,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (!groupData || !groupData[0] || !groupData[0].ipobjs || groupData[0].ipobjs.length < 2)
           continue;
         const ipobjsInGroup = groupData[0].ipobjs.map(({ id }) => {
-          return id;
+          return id as number;
         });
 
         // Check if all group objects exists in the rule position.

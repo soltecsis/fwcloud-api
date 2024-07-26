@@ -520,9 +520,9 @@ export class FwCloud extends Model {
                     ' BY TIMEOT INACTIVITY of ' +
                     row.dif +
                     '  Min LAST UPDATE: ' +
-                    row.updated_at +
+                    row.updated_at.toString() +
                     '  LAST LOCK: ' +
-                    row.locked_at +
+                    row.locked_at.toString() +
                     '  BY: ' +
                     row.locked_by,
                 );

@@ -53,7 +53,7 @@ export class BackupService extends Service {
 
   protected _backupMutex = new Mutex();
 
-  public get config(): any {
+  public get config() {
     return this._config;
   }
   public get mutex(): Mutex {
@@ -324,7 +324,7 @@ export class BackupService extends Service {
   }
 
   protected loadCustomizedConfig(base_config: any): any {
-    let config: any = base_config;
+    let config = base_config;
 
     const backupConfigFile: string = path.join(base_config.data_dir, base_config.config_file);
 

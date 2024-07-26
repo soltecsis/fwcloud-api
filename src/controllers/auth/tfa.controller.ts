@@ -40,7 +40,7 @@ export class TfaController extends Controller {
 
   @Validate(SetupTfaDto)
   public setup(req: Request): Promise<ResponseBuilder> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const secret = speakeasy.generateSecret({
         length: 10,
         name: req.body.username,

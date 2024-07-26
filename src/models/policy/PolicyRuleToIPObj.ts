@@ -30,11 +30,8 @@ import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
 import { IPObj } from '../ipobj/IPObj';
 import Query from '../../database/Query';
-import f from 'session-file-store';
-import { object } from 'joi';
 import asyncMod from 'async';
 import fwcError from '../../utils/error_table';
-import { Func } from 'mocha';
 import RequestData from '../data/RequestData';
 
 const tableModel: string = 'policy_r__ipobj';
@@ -140,7 +137,10 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   //Get All policy_r__ipobj by Policy_r (rule)
-  public static getPolicy_r__ipobjs(rule: number, callback: Function) {
+  public static getPolicy_r__ipobjs(
+    rule: number,
+    callback: (err: Error | null, rows: Array<PolicyRuleToIPObj> | null) => void,
+  ) {
     db.get((error: Error, connection: Query) => {
       if (error) callback(error, null);
 
@@ -151,7 +151,7 @@ export class PolicyRuleToIPObj extends Model {
         connection.escape(rule) +
         ' ORDER BY position_order';
 
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<PolicyRuleToIPObj>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -183,7 +183,7 @@ export class PolicyRuleToIPObj extends Model {
   public static getPolicy_r__ipobjs_position_data(
     rule: number,
     position: number,
-    callback: Function,
+    callback: (err: Error | null, rows: Array<PolicyRuleToIPObj> | null) => void,
   ) {
     db.get((error: Error, connection: Query) => {
       if (error) callback(error, null);
@@ -200,7 +200,7 @@ export class PolicyRuleToIPObj extends Model {
         connection.escape(position) +
         ' ORDER BY P.position_order';
       logger().debug(sql);
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<PolicyRuleToIPObj>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -214,7 +214,7 @@ export class PolicyRuleToIPObj extends Model {
     ipobj_g: number,
     _interface: number,
     position: number,
-    callback: Function,
+    callback: (err: Error | null, rows: Array<PolicyRuleToIPObj> | null) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -652,7 +652,7 @@ export class PolicyRuleToIPObj extends Model {
     position: number,
     position_order: number,
     policy_r__ipobjData: PolicyRuleToIPObjData,
-    callback: Function,
+    callback: (err: Error | null, res: { result: boolean; allowed: number } | null) => void,
   ) {
     //Check if IPOBJ TYPE is ALLOWED in this Position
     //checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
@@ -760,7 +760,7 @@ export class PolicyRuleToIPObj extends Model {
     position: number,
     position_order: number,
     new_order: number,
-    callback: Function,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -869,7 +869,7 @@ export class PolicyRuleToIPObj extends Model {
     ipobj_g: number,
     _interface: number,
   ) {
-    return new Promise<any>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let increment = '+1';
       let order1 = new_order;
       let order2 = old_order;
@@ -1105,7 +1105,7 @@ export class PolicyRuleToIPObj extends Model {
           let order = 0;
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               order++;
               db.get((error, connection) => {
                 const sql =
@@ -1163,7 +1163,7 @@ export class PolicyRuleToIPObj extends Model {
           let prev_position = 0;
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               const position = row.policyPositionId;
               if (position !== prev_position) {
                 order = 1;
@@ -1218,7 +1218,7 @@ export class PolicyRuleToIPObj extends Model {
           let prev_position = 0;
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               const position = row.policyPositionId;
               const rule = row.policyRuleId;
               if (position !== prev_position || rule !== prev_rule) {

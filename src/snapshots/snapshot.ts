@@ -232,9 +232,7 @@ export class Snapshot implements Responsable {
     const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
     const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
 
-    const snapshotMetadata: SnapshotMetadata = JSON.parse(
-      fs.readFileSync(metadataPath).toString() as string,
-    );
+    const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
     const dataContent: string = fs.readFileSync(dataPath).toString();
 
     this._id = parseInt(path.basename(snapshotPath));

@@ -24,7 +24,6 @@ import Model from '../Model';
 import db from '../../database/database-manager';
 import Query from '../../database/Query';
 import fwcError from '../../utils/error_table';
-import { number } from 'joi';
 
 interface NodeData {
   id: number;

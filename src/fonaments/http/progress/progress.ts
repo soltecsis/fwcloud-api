@@ -102,7 +102,7 @@ export class Progress {
   }
 
   public async run(): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       this.bindEvents();
 
       const heartbeatInterval: NodeJS.Timeout = setInterval(() => {
@@ -133,7 +133,7 @@ export class Progress {
       this._externalEmitter.emit('message', message);
     });
 
-    this._progressEvents.on('end', async () => {
+    this._progressEvents.on('end', () => {
       this._externalEmitter.emit('message', new EndProgressPayload(this));
     });
 

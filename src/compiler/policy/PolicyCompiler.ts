@@ -35,7 +35,7 @@ export class PolicyCompiler {
     rulesData: any,
     eventEmitter?: EventEmitter,
   ): Promise<RuleCompilationResult[]> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const result: RuleCompilationResult[] = [];
 

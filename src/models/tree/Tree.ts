@@ -33,6 +33,7 @@ import ipobjs_Data from '../data/data_ipobj';
 import firewalls_Data from '../data/data_firewall';
 import asyncMod from 'async';
 import { Request } from 'express';
+import RequestData from '../data/RequestData';
 //const fwc_tree_node = require('./node.js');
 
 const tableName: string = 'fwc_tree';
@@ -1619,7 +1620,7 @@ export class Tree extends Model {
         return AllDone(error, null);
       }
 
-      this.getFirewallNodeId(idfirewall, (datafw) => {
+      this.getFirewallNodeId(idfirewall, (error, datafw) => {
         const firewallNode = datafw;
 
         //Select Parent Node by id
@@ -1642,7 +1643,7 @@ export class Tree extends Model {
           if (rows) {
             asyncMod.forEachSeries(
               rows,
-              (row, callback: Function) => {
+              (row, callback: (error?: Error | null, result?: number) => void) => {
                 //logger().debug(row);
                 //logger().debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                 //const tree_node = new fwc_tree_node(row);
@@ -1685,7 +1686,7 @@ export class Tree extends Model {
                                   ' - ' +
                                   rnode.name +
                                   ' -> ' +
-                                  error,
+                                  error.toString(),
                               );
                             } else {
                               logger().debug(
@@ -1708,7 +1709,7 @@ export class Tree extends Model {
                                 firewallNode;
                               logger().debug(sqlinsert);
                               connection.query(sqlinsert, (error) => {
-                                if (error) logger().debug('ERROR ALL NODES : ' + error);
+                                if (error) logger().debug('ERROR ALL NODES : ' + error.toString());
                               });
                             }
 
@@ -1726,7 +1727,7 @@ export class Tree extends Model {
                               connection.escape(rnode.fwcloud) +
                               ')';
                             connection.query(sqlinsert, (error, result: { insertId: number }) => {
-                              if (error) logger().debug('ERROR RR : ' + error);
+                              if (error) logger().debug('ERROR RR : ' + error.toString());
                               else {
                                 const nodes_cluster = result.insertId;
                                 //update  FIREWALL NODE
@@ -1739,7 +1740,8 @@ export class Tree extends Model {
                                   firewallNode;
                                 logger().debug(sqlinsert);
                                 connection.query(sqlinsert, (error) => {
-                                  if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
+                                  if (error)
+                                    logger().debug('ERROR FIREWALL NODE : ' + error.toString());
                                 });
                               }
                             });
@@ -1769,14 +1771,14 @@ export class Tree extends Model {
     node_id: number,
     idcluster: number,
     idfirewall: number,
-    AllDone: Function,
+    AllDone: (error: any, result: { result: boolean } | null) => void,
   ): void {
     db.get((error, connection) => {
       if (error) {
         return AllDone(error, null);
       }
 
-      this.getFirewallNodeId(idfirewall, (datafw) => {
+      this.getFirewallNodeId(idfirewall, (error, datafw) => {
         const firewallNode = datafw;
         //Select Parent Node CLUSTERS
         const sql =
@@ -1826,7 +1828,7 @@ export class Tree extends Model {
                   clusterNode +
                   ' AND node_type<>"FCF"';
                 connection.query(sqlinsert, (error) => {
-                  if (error) logger().debug('ERROR ALL NODES : ' + error);
+                  if (error) logger().debug('ERROR ALL NODES : ' + error.toString());
                 });
 
                 //SEARCH node NODES
@@ -1852,7 +1854,7 @@ export class Tree extends Model {
                       clusterNode;
                     logger().debug(sqldel);
                     connection.query(sqldel, (error) => {
-                      if (error) logger().debug('ERROR FCF : ' + error);
+                      if (error) logger().debug('ERROR FCF : ' + error.toString());
                     });
                     //SEARCH IDNODE for FIREWALLS NODE
                     const sql =
@@ -1873,7 +1875,7 @@ export class Tree extends Model {
                         firewallNode;
                       logger().debug(sqlinsert);
                       connection.query(sqlinsert, (error) => {
-                        if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
+                        if (error) logger().debug('ERROR FIREWALL NODE : ' + error.toString());
                         else {
                           //Remove nodo Firewalls Slaves
                           const sqldel =
@@ -1884,7 +1886,7 @@ export class Tree extends Model {
                             idNodes;
                           logger().debug(sqldel);
                           connection.query(sqldel, (error) => {
-                            if (error) logger().debug('ERROR FW - FCF : ' + error);
+                            if (error) logger().debug('ERROR FW - FCF : ' + error.toString());
                             else {
                               AllDone(null, { result: true });
                             }
@@ -1904,7 +1906,7 @@ export class Tree extends Model {
 
   //Add new NODE from IPOBJ or Interface
   public static insertFwc_TreeOBJ(
-    req: Request,
+    req: any,
     node_parent: number,
     node_order: number,
     node_type: string,
@@ -2001,7 +2003,7 @@ export class Tree extends Model {
 
   //Update NODE from IPOBJ or INTERFACE UPDATE
   public static updateFwc_Tree_OBJ(
-    req: Request,
+    req: RequestData,
     ipobjData: ipobjs_Data,
   ): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
@@ -2040,7 +2042,10 @@ export class Tree extends Model {
     });
   }
 
-  private static getFirewallNodeId(idfirewall: number, callback: Function) {
+  private static getFirewallNodeId(
+    idfirewall: number,
+    callback: (error: Error | null, result: number | null) => void,
+  ) {
     let ret: number;
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -2052,7 +2057,7 @@ export class Tree extends Model {
         } else {
           ret = 0;
         }
-        callback(ret);
+        callback(null, ret);
       });
     });
   }
@@ -2123,7 +2128,7 @@ export class Tree extends Model {
         if (rows.length > 0) {
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               const id_parent = row.id_parent;
               const sqlNodes =
                 'SELECT * FROM ' +
@@ -2142,7 +2147,7 @@ export class Tree extends Model {
                   let order = 0;
                   asyncMod.map(
                     rowsnodes,
-                    (rowNode, callback2: Function) => {
+                    (rowNode, callback2: () => void) => {
                       order++;
                       const sql =
                         'UPDATE ' +
@@ -2198,7 +2203,7 @@ export class Tree extends Model {
           let order = 0;
           asyncMod.map(
             rowsnodes,
-            (rowNode, callback2: Function) => {
+            (rowNode, callback2: () => void) => {
               order++;
               const sql =
                 'UPDATE ' +

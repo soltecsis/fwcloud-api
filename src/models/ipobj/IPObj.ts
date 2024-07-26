@@ -2178,7 +2178,7 @@ export class IPObj extends Model {
     dbCon: Query,
     fwcloud: number,
     protocolNumber: number,
-  ): Promise<string | number> {
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocolNumber} and type=1`; // 1: IP
@@ -2186,7 +2186,7 @@ export class IPObj extends Model {
       dbCon.query(sql, (error, rows: Array<{ id: number }>) => {
         if (error) return reject(error);
 
-        resolve(rows.length === 0 ? '' : rows[0].id);
+        resolve(rows.length === 0 ? '' : rows[0].id.toString());
       });
     });
   }
@@ -2196,7 +2196,7 @@ export class IPObj extends Model {
     dbCon: Query,
     fwcloud: number,
     protocolName: string,
-  ): Promise<string | number> {
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND name=${dbCon.escape(protocolName)} and type=1`; // 1: IP
@@ -2204,7 +2204,7 @@ export class IPObj extends Model {
       dbCon.query(sql, (error, rows: Array<{ id: number }>) => {
         if (error) return reject(error);
 
-        resolve(rows.length === 0 ? '' : rows[0].id);
+        resolve(rows.length === 0 ? '' : rows[0].id.toString());
       });
     });
   }
@@ -2218,7 +2218,7 @@ export class IPObj extends Model {
     dstPorts: string[],
     tcpFlags: number,
     tcpFlagsSet: number,
-  ) {
+  ): Promise<number> {
     return new Promise((resolve, reject) => {
       let sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol === 'tcp' ? 6 : 17}

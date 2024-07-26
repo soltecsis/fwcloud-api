@@ -18,7 +18,7 @@ export class DatabaseLogger extends FileLogger {
       const sql =
         query +
         (parameters && parameters.length
-          ? ' -- PARAMETERS: ' + this.stringifyParams(parameters)
+          ? ' -- PARAMETERS: ' + this.stringifyParams(parameters).toString()
           : '');
       this.writeError([`[FAILED QUERY]: ${sql}`, `[QUERY ERROR]: ${error}`]);
     }

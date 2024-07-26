@@ -517,78 +517,66 @@ export class Interface extends Model {
   }
 
   /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
-  public static searchInterfaceUsageOutOfThisFirewall(
+  public static async searchInterfaceUsageOutOfThisFirewall(
     req: RequestData,
   ): Promise<SearchInterfaceUsage> {
-    return new Promise(async (resolve, reject) => {
-      const answer: SearchInterfaceUsage = {};
-      answer.restrictions = {};
-      answer.restrictions.InterfaceInRules_I = [];
-      answer.restrictions.InterfaceInRules_O = [];
-      answer.restrictions.IpobjInterfaceInRule = [];
-      answer.restrictions.IpobjInterfaceInRoute = [];
-      answer.restrictions.IpobjInterfaceInRoutingRule = [];
-      answer.restrictions.IpobjInterfaceInGroup = [];
-      answer.restrictions.IpobjInterfaceInOpenvpn = [];
+    const answer: SearchInterfaceUsage = {};
+    answer.restrictions = {};
+    answer.restrictions.InterfaceInRules_I = [];
+    answer.restrictions.InterfaceInRules_O = [];
+    answer.restrictions.IpobjInterfaceInRule = [];
+    answer.restrictions.IpobjInterfaceInRoute = [];
+    answer.restrictions.IpobjInterfaceInRoutingRule = [];
+    answer.restrictions.IpobjInterfaceInGroup = [];
+    answer.restrictions.IpobjInterfaceInOpenvpn = [];
 
-      try {
-        const interfaces = await this.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
-        for (const interfaz of interfaces) {
-          // The last parameter of this functions indicates search out of hte indicated firewall.
-          const data = await this.searchInterfaceUsage(
-            interfaz.id,
-            interfaz.interface_type,
-            req.body.fwcloud,
-            req.body.firewall,
-          );
-          if (data.result) {
-            answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(
-              data.restrictions.InterfaceInRules_I,
-            );
-            answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(
-              data.restrictions.InterfaceInRules_O,
-            );
-            answer.restrictions.IpobjInterfaceInRule =
-              answer.restrictions.IpobjInterfaceInRule.concat(
-                data.restrictions.IpobjInterfaceInRule,
-              );
-            answer.restrictions.IpobjInterfaceInRoute =
-              answer.restrictions.IpobjInterfaceInRoute.concat(
-                data.restrictions.IpobjInterfaceInRoute,
-              );
-            answer.restrictions.IpobjInterfaceInRoutingRule =
-              answer.restrictions.IpobjInterfaceInRoutingRule.concat(
-                data.restrictions.IpobjInterfaceInRoutingRule,
-              );
-            answer.restrictions.IpobjInterfaceInGroup =
-              answer.restrictions.IpobjInterfaceInGroup.concat(
-                data.restrictions.IpobjInterfaceInGroup,
-              );
-            answer.restrictions.IpobjInterfaceInOpenvpn =
-              answer.restrictions.IpobjInterfaceInOpenvpn.concat(
-                data.restrictions.IpobjInterfaceInOpenvpn,
-              );
-          }
-        }
-
-        // Remove items of this firewall.
-        answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.filter(
-          (item) => item.firewall_id != req.body.firewall,
+    const interfaces = await this.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
+    for (const interfaz of interfaces) {
+      // The last parameter of this functions indicates search out of hte indicated firewall.
+      const data = await this.searchInterfaceUsage(
+        interfaz.id,
+        interfaz.interface_type,
+        req.body.fwcloud,
+        req.body.firewall,
+      );
+      if (data.result) {
+        answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(
+          data.restrictions.InterfaceInRules_I,
+        );
+        answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(
+          data.restrictions.InterfaceInRules_O,
+        );
+        answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.concat(
+          data.restrictions.IpobjInterfaceInRule,
         );
         answer.restrictions.IpobjInterfaceInRoute =
-          answer.restrictions.IpobjInterfaceInRoute.filter(
-            (item) => item.firewall_id != req.body.firewall,
-          );
+          answer.restrictions.IpobjInterfaceInRoute.concat(data.restrictions.IpobjInterfaceInRoute);
         answer.restrictions.IpobjInterfaceInRoutingRule =
-          answer.restrictions.IpobjInterfaceInRoutingRule.filter(
-            (item) => item.firewall_id != req.body.firewall,
+          answer.restrictions.IpobjInterfaceInRoutingRule.concat(
+            data.restrictions.IpobjInterfaceInRoutingRule,
           );
-      } catch (error) {
-        return reject(error);
+        answer.restrictions.IpobjInterfaceInGroup =
+          answer.restrictions.IpobjInterfaceInGroup.concat(data.restrictions.IpobjInterfaceInGroup);
+        answer.restrictions.IpobjInterfaceInOpenvpn =
+          answer.restrictions.IpobjInterfaceInOpenvpn.concat(
+            data.restrictions.IpobjInterfaceInOpenvpn,
+          );
       }
+    }
 
-      resolve(answer);
-    });
+    // Remove items of this firewall.
+    answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.filter(
+      (item) => item.firewall_id != req.body.firewall,
+    );
+    answer.restrictions.IpobjInterfaceInRoute = answer.restrictions.IpobjInterfaceInRoute.filter(
+      (item) => item.firewall_id != req.body.firewall,
+    );
+    answer.restrictions.IpobjInterfaceInRoutingRule =
+      answer.restrictions.IpobjInterfaceInRoutingRule.filter(
+        (item) => item.firewall_id != req.body.firewall,
+      );
+
+    return answer;
   }
 
   /* Search where is in RULES interface in OTHER FIREWALLS  */
@@ -941,7 +929,7 @@ export class Interface extends Model {
     interfaceData: interfaces_Data,
     callback: (error: { data: string } | Error | null, result: { result: boolean } | null) => void,
   ) {
-    db.get(async (error, connection) => {
+    db.get((error, connection) => {
       if (error) {
         callback(error, null);
         return;
@@ -964,7 +952,7 @@ export class Interface extends Model {
         });
       };
 
-      await checkDhcpReferences()
+      checkDhcpReferences()
         .then((count: number) => {
           if (
             count > 0 &&
@@ -1021,7 +1009,7 @@ export class Interface extends Model {
         });
       };
 
-      await checkKeepalivedReferences()
+      checkKeepalivedReferences()
         .then((count: number) => {
           if (
             count > 0 &&

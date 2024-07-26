@@ -28,7 +28,6 @@ import { PolicyRule } from './PolicyRule';
 import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
 import Query from '../../database/Query';
-import { number, string } from 'joi';
 import fwcError from '../../utils/error_table';
 
 import asyncMod from 'async';
@@ -94,7 +93,10 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Get All policy_r__interface by policy_r
-  public static getPolicy_r__interfaces_rule(_interface: number, callback: Function) {
+  public static getPolicy_r__interfaces_rule(
+    _interface: number,
+    callback: (err: Error | null, rows: Array<PolicyRuleToInterface> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -111,7 +113,10 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Get All policy_r__interface by policy_r
-  public static getPolicy_r__interfaces_interface(rule: number, callback: Function) {
+  public static getPolicy_r__interfaces_interface(
+    rule: number,
+    callback: (err: Error | null, rows: Array<PolicyRuleToInterface> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -128,7 +133,11 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Get policy_r__interface by  rule and  interface
-  public static getPolicy_r__interface(_interface: number, rule: number, callback: Function) {
+  public static getPolicy_r__interface(
+    _interface: number,
+    rule: number,
+    callback: (err: Error | null, rows: Array<PolicyRuleToInterface> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -254,7 +263,7 @@ export class PolicyRuleToInterface extends Model {
     old_position: number,
     old_position_order: number,
     policy_r__interfaceData: PolicyRuleToInterfaceData,
-    callback: Function,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
   ) {
     //Check if IPOBJ TYPE is ALLOWED in this Position
     this.checkInterfacePosition(
@@ -355,7 +364,7 @@ export class PolicyRuleToInterface extends Model {
     position: number,
     old_order: number,
     new_order: number,
-    callback: Function,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
   ) {
     void this.OrderList(new_order, rule, position, old_order, _interface);
     db.get((error, connection) => {
@@ -499,7 +508,10 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Remove policy_r__interface with id to remove
-  public static deletePolicy_r__All(rule: number, callback: Function) {
+  public static deletePolicy_r__All(
+    rule: number,
+    callback: (err: Error | null, res: { result: boolean; msg?: string } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
@@ -530,7 +542,11 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderPolicyPosition(rule: number, position: number, callback: Function) {
+  public static orderPolicyPosition(
+    rule: number,
+    position: number,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
+  ) {
     logger().debug('DENTRO ORDER   Rule: ' + rule + '  Position: ' + position);
 
     db.get((error, connection) => {
@@ -549,7 +565,7 @@ export class PolicyRuleToInterface extends Model {
           let order = 0;
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               order++;
               db.get((error, connection) => {
                 const sql =
@@ -585,7 +601,10 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderPolicy(rule: number, callback: Function) {
+  public static orderPolicy(
+    rule: number,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule =
@@ -601,7 +620,7 @@ export class PolicyRuleToInterface extends Model {
           let prev_position = 0;
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               const position = row.policyPositionId;
               if (position !== prev_position) {
                 order = 1;
@@ -642,7 +661,9 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderAllPolicy(callback: Function) {
+  public static orderAllPolicy(
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule = 'SELECT * FROM ' + tableName + ' ORDER by rule,position, position_order';
@@ -654,7 +675,7 @@ export class PolicyRuleToInterface extends Model {
           let prev_position = 0;
           asyncMod.map(
             rows,
-            (row, callback1: Function) => {
+            (row, callback1: () => void) => {
               const position = row.policyPositionId;
               const rule = row.policyRuleId;
               if (position !== prev_position || rule !== prev_rule) {
@@ -702,7 +723,7 @@ export class PolicyRuleToInterface extends Model {
     _interface: number,
     type: number,
     fwcloud: number,
-    callback: Function,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
   ) {
     logger().debug(
       'CHECK DELETING interface I POSITIONS:' +
@@ -759,7 +780,7 @@ export class PolicyRuleToInterface extends Model {
   public static checkHostAllInterfacesInRule(
     ipobj_host: number,
     fwcloud: number,
-    callback: Function,
+    callback: (err: Error | null, res: { result: boolean } | null) => void,
   ) {
     logger().debug(
       'CHECK DELETING HOST ALL interfaces I POSITIONS:' + ipobj_host + '  fwcloud:' + fwcloud,

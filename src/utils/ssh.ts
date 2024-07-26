@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-const logger = require('../fonaments/abstract-application').logger;
+import { logger } from '../fonaments/abstract-application';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
 export default class sshTools {
-  public static uploadFile(SSHconn, srcFile: string, dstFile) {
+  public static uploadFile(SSHconn, srcFile: string, dstFile: string) {
     const Client = require('ssh2').Client;
     const conn = new Client();
 
@@ -101,7 +101,7 @@ export default class sshTools {
     });
   }
 
-  public static runCommand(SSHconn, cmd, eventEmitter?: EventEmitter): Promise<string> {
+  public static runCommand(SSHconn, cmd: string, eventEmitter?: EventEmitter): Promise<string> {
     const Client = require('ssh2').Client;
     const conn = new Client();
     let stdout_log = '';
