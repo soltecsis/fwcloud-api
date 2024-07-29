@@ -79,7 +79,7 @@ export type PolicyRuleData = PolicyRule & {
   positions?: PositionNode[];
   type?: number;
   ip_version?: 4 | 6;
-  comment?: string;
+  comment?: any;
   style?: string;
   special?: any;
   run_before?: string;
@@ -1259,7 +1259,15 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static cleanApplyTo(idfirewall: number, callback: Function) {
+  public static cleanApplyTo(
+    idfirewall: number,
+    callback: (
+      error: Error | null,
+      result?: {
+        result: boolean;
+      },
+    ) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error);
 
