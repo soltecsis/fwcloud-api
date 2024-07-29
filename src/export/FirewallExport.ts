@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { RuleArgs } from 'joi';
 import db from '../database/database-manager';
 import Query from '../database/Query';
 import fwcError from '../utils/error_table';
@@ -28,7 +27,6 @@ import { Firewall } from '../models/firewall/Firewall';
 import { IPObj } from '../models/ipobj/IPObj';
 import { Interface } from '../models/interface/Interface';
 import { PolicyRule } from '../models/policy/PolicyRule';
-import { interfaces } from 'mocha';
 import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../models/policy/PolicyRuleToIPObj';
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';

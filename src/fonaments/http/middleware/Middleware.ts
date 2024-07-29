@@ -21,7 +21,7 @@
 */
 
 import { Application } from '../../../Application';
-import e, { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { HTTPApplication } from '../../http-application';
 
 export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;

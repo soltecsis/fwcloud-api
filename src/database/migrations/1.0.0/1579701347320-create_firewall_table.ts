@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createFirewallTable1579701347320 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //firewall
     await queryRunner.createTable(
       new Table({
@@ -164,7 +164,7 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('firewall', true);
   }
 }

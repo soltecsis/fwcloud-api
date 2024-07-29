@@ -3,7 +3,7 @@
 import Query from '../../database/Query';
 import { User } from '../user/User';
 
-interface BodyType {
+export interface RequestBodyType {
   addr?: string;
   allowed_from?: string;
   ca?: number;
@@ -44,7 +44,7 @@ interface BodyType {
   user?: number;
   username?: string;
   web?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface SessionType {
@@ -60,22 +60,22 @@ interface SessionType {
 }
 
 interface RequestDataType {
-  body?: BodyType;
+  body?: RequestBodyType;
   dbCon?: Query;
   session?: SessionType;
   caId?: number;
-  params?: { [key: string]: any };
-  query?: { [key: string]: any };
+  params?: { [key: string]: unknown };
+  query?: { [key: string]: unknown };
 }
 
 class RequestData {
-  body?: BodyType;
+  body?: RequestBodyType;
   dbCon?: Query;
   session?: SessionType;
   caId?: number;
   inputs?: Map<string, string>;
-  params?: { [key: string]: any };
-  query?: { [key: string]: any };
+  params?: { [key: string]: unknown };
+  query?: { [key: string]: unknown };
 
   constructor(data: RequestDataType) {
     this.body = data.body;

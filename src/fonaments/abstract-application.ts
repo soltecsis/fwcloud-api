@@ -32,7 +32,6 @@ import { DatabaseService } from '../database/database.service';
 import { LogServiceProvider } from '../logs/log.provider';
 import { LoggerType, LogService } from '../logs/log.service';
 import winston from 'winston';
-import { Path } from 'glob';
 
 let _runningApplication: AbstractApplication = null;
 
@@ -63,7 +62,7 @@ export abstract class AbstractApplication {
       _runningApplication = this;
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
-      process.exit(e);
+      process.exit(e.message as string);
     }
   }
 

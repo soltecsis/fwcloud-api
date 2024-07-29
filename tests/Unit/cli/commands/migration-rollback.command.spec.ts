@@ -43,7 +43,9 @@ describe(describeName('MigrationRollbackCommand tests'), () => {
     await databaseService.runMigrations();
 
     let queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
-    const migration = await queryRunner.query('SELECT count(*) FROM migrations');
+    const migration = (await queryRunner.query('SELECT count(*) FROM migrations')) as Array<{
+      'count(*)': string;
+    }>;
     await queryRunner.release();
 
     await runCLICommandIsolated(testSuite, async () => {
@@ -60,9 +62,13 @@ describe(describeName('MigrationRollbackCommand tests'), () => {
     }
 
     queryRunner = databaseService.dataSource.createQueryRunner();
-    const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
+    const afterMigration = (await queryRunner.query('SELECT count(*) FROM migrations')) as Array<{
+      'count(*)': string;
+    }>;
     await queryRunner.release();
 
-    expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 3);
+    expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(
+      parseInt(migration[0]['count(*)']) - 3,
+    );
   });
 });

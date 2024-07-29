@@ -34,7 +34,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         'AND NOT EXISTS (' +
         "SELECT 1 FROM `fwc_tree` c WHERE c.`id_parent` = t.`id` AND c.`node_type` = 'SYS'" +
         ');',
-    )) as { id: number; id_obj: number; node_type: string; fwcloud: number }[];
+    )) as { id: number; id_obj: number; node_type?: string; fwcloud: number }[];
 
     for (const node of nodes) {
       let idObj = node.id_obj;
@@ -53,7 +53,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
       );
     }
 
-    nodes = await queryRunner.query(
+    nodes = (await queryRunner.query(
       'SELECT `id`, `id_obj` ,`fwcloud`\n' +
         'FROM `fwc_tree` t\n' +
         "WHERE `node_type` = 'SYS'\n" +
@@ -63,7 +63,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         '    WHERE c.`id_parent` = t.`id`\n' +
         "    AND c.`node_type` IN ('S01', 'S02', 'S03')\n" +
         ');',
-    );
+    )) as { id: number; id_obj: number; fwcloud: number }[];
 
     for (const node of nodes) {
       await queryRunner.query(
@@ -82,7 +82,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
       );
     }
 
-    nodes = await queryRunner.query(
+    nodes = (await queryRunner.query(
       'SELECT `id`, `id_obj`, `fwcloud`\n' +
         'FROM `fwc_tree` t\n' +
         "WHERE `node_type` = 'S01'\n" +
@@ -92,7 +92,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         '    WHERE c.`id_parent` = t.`id`\n' +
         "    AND c.`node_type` IN ('S04')\n" +
         ');',
-    );
+    )) as { id: number; id_obj: number; fwcloud: number }[];
 
     for (const node of nodes) {
       await queryRunner.query(

@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class routingFeature1619453385390 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     // New tree node types.
     await queryRunner.query(`INSERT INTO fwc_tree_node_types VALUES('ROU',NULL,'Routing',NULL,1)`);
     await queryRunner.query(
@@ -710,7 +710,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='ROU'`);
     await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='RTS'`);
     await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='RT'`);

@@ -22,12 +22,18 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
-import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
+import {
+  SpecialPolicyRules,
+  PolicyRuleOptMask,
+  PolicyRuleData,
+} from '../../models/policy/PolicyRule';
 import { FireWallOptMask } from '../../models/firewall/Firewall';
 
 import ip from 'ip';
 import fwcError from '../../utils/error_table';
 import shellescape from 'shell-escape';
+import { PositionNode } from '../../models/policy/PolicyPosition';
+import { IPObj } from '../../models/ipobj/IPObj';
 
 export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT', 1],
@@ -79,30 +85,30 @@ type CompiledPosition = {
   items: string[];
 };
 
-interface RuleData {
+export interface RuleData {
   comment: string;
   style: string;
   group_name: string;
   group_style: string;
   special: any;
-  run_before: any;
-  run_after: any;
-  type: number;
-  ip_version: 4 | 6;
-  positions: any[];
-  action: string;
+  run_before: string;
+  run_after: string;
+  type?: number;
+  ip_version?: 4 | 6;
+  positions: PositionNode[];
+  action: number;
   options: number;
   firewall_options: number;
-  id: string;
+  id: number;
   fw_apply_to: number;
   firewall_name: string;
   negate: string;
-  mark_code: string;
+  mark_code: number;
 }
 
 export abstract class PolicyCompilerTools {
   protected _compiler: AvailablePolicyCompilers;
-  protected _ruleData: RuleData;
+  protected _ruleData: PolicyRuleData;
   protected _policyType: number;
   protected _cs: string;
   protected _cmd: string;
@@ -346,25 +352,25 @@ export abstract class PolicyCompilerTools {
     return this._cs;
   }
 
-  private compileSrcDst(dir: 'SRC' | 'DST', sd: any, negate: boolean, ipv: 4 | 6): void {
+  private compileSrcDst(dir: 'SRC' | 'DST', sd: IPObj[], negate: boolean, ipv: 4 | 6): void {
     const cmpPos: CompiledPosition = { negate: negate, items: [] };
     const opt = `${this._compiler === 'NFTables' ? (ipv === 4 ? 'ip ' : 'ip6 ') : ''}${CompilerDir.get(`${this._compiler}:${dir}`)}`;
 
     for (let i = 0; i < sd.length; i++) {
-      if (sd[i].type === 9)
+      if (sd[i].ipObjTypeId === 9)
         // DNS
         cmpPos.items.push(`${opt} ${sd[i].name}`);
-      else if (sd[i].type === 24) {
+      else if (sd[i].ipObjTypeId === 24) {
         // Country
         if (this._compiler === 'IPTables')
           cmpPos.items.push(`-m geoip ${dir === 'SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`);
         else throw 'Country objects not supported yet for NFTables compiler';
       } else if (ipv === sd[i].ip_version) {
         // Only add this type of IP objects if they have the same IP version than the compiled rule.
-        if (sd[i].type === 5)
+        if (sd[i].ipObjTypeId === 5)
           // Address
           cmpPos.items.push(`${opt} ${sd[i].address}`);
-        else if (sd[i].type === 7) {
+        else if (sd[i].ipObjTypeId === 7) {
           // Network
           // We have two formats for the netmask (for example, 255.255.255.0 or /24).
           // IPTables support both formats, but NFTables only the CIDR format, for this reason we use only CIDR format.
@@ -374,7 +380,7 @@ export abstract class PolicyCompilerTools {
             const net = ip.subnet(sd[i].address, sd[i].netmask);
             cmpPos.items.push(`${opt} ${sd[i].address}/${net.subnetMaskLength}`);
           }
-        } else if (sd[i].type === 6) {
+        } else if (sd[i].ipObjTypeId === 6) {
           // Address range
           const range = `${sd[i].range_start}-${sd[i].range_end}`;
           if (this._compiler === 'IPTables')
@@ -389,7 +395,7 @@ export abstract class PolicyCompilerTools {
     if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
   }
 
-  private compileInterface(dir: 'IN' | 'OUT', ifs: any, negate: boolean): void {
+  private compileInterface(dir: 'IN' | 'OUT', ifs: IPObj[], negate: boolean): void {
     const cmpPos: CompiledPosition = { negate: negate, items: [] };
     const opt = CompilerDir.get(`${this._compiler}:${dir}`);
 
@@ -449,7 +455,7 @@ export abstract class PolicyCompilerTools {
     }
   }
 
-  private compileSvc(svc: any, negate: boolean, ipv: 4 | 6): void {
+  private compileSvc(svc: IPObj[], negate: boolean, ipv: 4 | 6): void {
     const cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';
@@ -677,7 +683,7 @@ export abstract class PolicyCompilerTools {
     let src_position: number,
       dst_position: number,
       svc_position: number,
-      objs: any[],
+      objs: IPObj[],
       negated: boolean;
     let i: number, j: number, p: number;
 
@@ -892,10 +898,7 @@ export abstract class PolicyCompilerTools {
 
   protected addMark(): void {
     // Accounting, logging and marking is not allowed with SNAT and DNAT chains.
-    if (
-      parseInt(this._ruleData.mark_code) !== 0 &&
-      this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')
-    ) {
+    if (this._ruleData.mark_code !== 0 && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
       let cs1: string;
       let cs2: string;
 

@@ -24,7 +24,7 @@ import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createIpobjTable1579701470388 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //interface__ipobj
     await queryRunner.createTable(
       new Table({
@@ -537,7 +537,7 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     let table: Table;
 
     await queryRunner.dropTable('ipobj_type__routing_position', true);

@@ -34,7 +34,7 @@ type SSHConnectionData = {
   port: number;
   username: string;
   password: string;
-  options: any;
+  options: number;
 };
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
@@ -76,7 +76,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       return 'DONE';
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      this.handleRequestException(error as Error, eventEmitter);
     }
   }
 
@@ -125,7 +125,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       return;
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      this.handleRequestException(error as Error, eventEmitter);
     }
   }
 
@@ -174,7 +174,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       return;
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      this.handleRequestException(error as Error, eventEmitter);
     }
   }
 
@@ -202,7 +202,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       return;
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      this.handleRequestException(error as Error, eventEmitter);
     }
   }
 
@@ -212,13 +212,13 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw fwcError.SSH_COMMUNICATION_DISABLE;
       }
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
-      const data: any = await sshTools.runCommand(this.connectionData, `${sudo} ip a`);
+      const data = await sshTools.runCommand(this.connectionData, `${sudo} ip a`);
 
       // Before answer, parse data to see if we have get a valid answer.
 
       return data;
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleRequestException(error as Error);
     }
   }
 
@@ -237,7 +237,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       return iptablesSaveOutput;
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleRequestException(error as Error);
     }
   }
 
@@ -270,7 +270,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
           hash: item.split(',')[1].replace('\r', ''),
         }));
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      this.handleRequestException(error as Error, eventEmitter);
     }
   }
 
@@ -291,7 +291,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
       }
       return lines.join('\n');
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleRequestException(error as Error);
     }
   }
 
@@ -321,7 +321,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       return response;
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      this.handleRequestException(error as Error, eventEmitter);
       return '';
     }
   }

@@ -129,7 +129,7 @@ export class PolicyScript {
 
   private async dumpCompilation(type: number): Promise<void> {
     // Compile all rules of the same type.
-    const rulesData: any = await PolicyRule.getPolicyData(
+    const rulesData = await PolicyRule.getPolicyData(
       'compiler',
       this.dbCon,
       this.fwcloud,

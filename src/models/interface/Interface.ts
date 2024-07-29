@@ -39,13 +39,12 @@ import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
 import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
 import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
-import { Func } from 'mocha';
 import Query from '../../database/Query';
 import interfaces_Data from '../data/data_interface';
 import data_policy_position_ipobjs from '../../models/data/data_policy_position_ipobjs';
-import { Err } from 'joi';
 import RequestData from '../data/RequestData';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { ArraySortOptions, Err } from 'joi';
 
 interface SearchInterfaceUsage {
   result?: boolean;
@@ -220,7 +219,7 @@ export class Interface extends Model {
             //Bucle por interfaces
             Promise.all(rows.map((data) => IPObj.getAllIpobjsInterfacePro(data)))
               .then((data) => callback(null, data))
-              .catch((e) => callback(e, null));
+              .catch((e) => callback(e as Error, null));
           }
         },
       );
@@ -228,7 +227,20 @@ export class Interface extends Model {
   }
 
   //Get All interface by HOST
-  public static getInterfacesHost(idhost: number, fwcloud: number, callback: Function): void {
+  public static getInterfacesHost(
+    idhost: number,
+    fwcloud: number,
+    callback: (
+      error: Error | null,
+      rows: Array<
+        Interface & {
+          id_node: number;
+          id_parent_node: number;
+          fwcloud: number;
+        }
+      > | null,
+    ) => void,
+  ): void {
     db.get((error: Error, connection) => {
       if (error) callback(error, null);
       //var sql = 'SELECT * FROM ' + tableName + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
@@ -244,10 +256,22 @@ export class Interface extends Model {
         connection.escape(idhost) +
         ')';
 
-      connection.query(sql, (error: Error, rows) => {
-        if (error) callback(error, null);
-        else callback(null, rows);
-      });
+      connection.query(
+        sql,
+        (
+          error: Error,
+          rows: Array<
+            Interface & {
+              id_node: number;
+              id_parent_node: number;
+              fwcloud: number;
+            }
+          >,
+        ) => {
+          if (error) callback(error, null);
+          else callback(null, rows);
+        },
+      );
     });
   }
 
@@ -298,7 +322,27 @@ export class Interface extends Model {
   }
 
   //Get interface by  id and interface
-  public static getInterfaceHost(idhost: number, fwcloud: number, id: number, callback: Function) {
+  public static getInterfaceHost(
+    idhost: number,
+    fwcloud: number,
+    id: number,
+    callback: (
+      error: Error | null,
+      row: Array<
+        Interface & {
+          id_node: number;
+          id_parent_node: number;
+          fwcloud: number;
+          firewall_id: number;
+          firewall_name: string;
+          cluster_id: number;
+          cluster_name: string;
+          host_id: number;
+          host_name: string;
+        }
+      > | null,
+    ) => void,
+  ) {
     db.get((error: Error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -321,12 +365,30 @@ export class Interface extends Model {
         connection.escape(id);
 
       //logger().debug("INTERFACE SQL: " + sql);
-      connection.query(sql, (error: Error, row) => {
-        if (error) {
-          logger().debug('ERROR getinterface: ', error, '\n', sql);
-          callback(error, null);
-        } else callback(null, row);
-      });
+      connection.query(
+        sql,
+        (
+          error: Error,
+          row: Array<
+            Interface & {
+              id_node: number;
+              id_parent_node: number;
+              fwcloud: number;
+              firewall_id: number;
+              firewall_name: string;
+              cluster_id: number;
+              cluster_name: string;
+              host_id: number;
+              host_name: string;
+            }
+          >,
+        ) => {
+          if (error) {
+            logger().debug('ERROR getinterface: ', error, '\n', sql);
+            callback(error, null);
+          } else callback(null, row);
+        },
+      );
     });
   }
 
@@ -461,10 +523,10 @@ export class Interface extends Model {
   public static getInterface_data(
     id: number,
     type: string,
-    callback: (error: Error | null, row: Array<Interface> | null) => void,
+    callback: (error: Error | null, row: Array<Interface> | null) => Promise<void>,
   ) {
     db.get((error: Error, connection) => {
-      if (error) callback(error, null);
+      if (error) void callback(error, null);
       const sql =
         'SELECT * FROM ' +
         tableName +
@@ -474,8 +536,8 @@ export class Interface extends Model {
         connection.escape(type);
 
       connection.query(sql, (error, row: Array<Interface>) => {
-        if (error || row.length === 0) callback(error, null);
-        else callback(null, row);
+        if (error || row.length === 0) void callback(error, null);
+        else void callback(null, row);
       });
     });
   }
@@ -1046,7 +1108,7 @@ export class Interface extends Model {
           }
         })
         .catch((error) => {
-          callback(error, null);
+          callback(error as Error, null);
         });
     });
   }

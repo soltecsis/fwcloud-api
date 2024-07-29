@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createInterfaceTable1579701419742 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //interface
     await queryRunner.createTable(
       new Table({
@@ -117,7 +117,7 @@ export class createInterfaceTable1579701419742 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('interface', true);
   }
 }

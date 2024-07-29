@@ -137,7 +137,9 @@ export class KeepalivedController extends Controller {
 
       return ResponseBuilder.buildResponse().status(201).body(keepalivedRule);
     } catch (error) {
-      return ResponseBuilder.buildResponse().status(422).body({ message: error.message });
+      return ResponseBuilder.buildResponse()
+        .status(422)
+        .body({ message: error.message as string });
     }
   }
 
@@ -183,7 +185,9 @@ export class KeepalivedController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(result);
     } catch (error) {
-      return ResponseBuilder.buildResponse().status(422).body({ message: error.message });
+      return ResponseBuilder.buildResponse()
+        .status(422)
+        .body({ message: error.message as string });
     }
   }
 
@@ -239,7 +243,7 @@ export class KeepalivedController extends Controller {
       .createQueryBuilder('rule')
       .innerJoin('rule.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .where('rule.id IN(:...ids)', { ids: req.inputs.get('rules') })
+      .where('rule.id IN(:...ids)', { ids: req.inputs.get<number>('rules') })
       .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
       .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
       .getMany();

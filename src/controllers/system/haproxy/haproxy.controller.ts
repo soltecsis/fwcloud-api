@@ -118,7 +118,9 @@ export class HAProxyController extends Controller {
 
       return ResponseBuilder.buildResponse().status(201).body(rule);
     } catch (err) {
-      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+      return ResponseBuilder.buildResponse()
+        .status(422)
+        .body({ message: err.message as string });
     }
   }
 
@@ -153,7 +155,9 @@ export class HAProxyController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(result);
     } catch (err) {
-      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+      return ResponseBuilder.buildResponse()
+        .status(422)
+        .body({ message: err.message as string });
     }
   }
 

@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createFwcTreeTable1579701360195 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //fwc_tree
     await queryRunner.createTable(
       new Table({
@@ -141,7 +141,7 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('fwc_tree_node_types', true);
     await queryRunner.dropTable('fwc_tree', true);
   }

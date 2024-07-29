@@ -30,6 +30,7 @@ import {
   RuleActionsMap,
   POLICY_TYPE,
   CompilerAction,
+  RuleCompilationResult,
 } from '../../../../src/compiler/policy/PolicyCompilerTools';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 import {
@@ -62,13 +63,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     ruleData.type = policyType;
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     const cmd = compiler === 'NFTables' ? '$NFT' : IPv === 'IPv4' ? '$IPTABLES' : '$IP6TABLES';
-    let result: any;
-    let error: any;
+    let result: RuleCompilationResult[];
+    let error: Error;
 
     family = IPv === 'IPv4' ? 'ip' : 'ip6';
 
     try {
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -79,7 +80,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
       );
       result = await PolicyCompiler.compile(compiler, rulesData);
     } catch (err) {
-      error = err;
+      error = err as Error;
     }
 
     if (policyType === PolicyTypesMap.get(`${IPv}:DNAT`)) {

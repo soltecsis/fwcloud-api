@@ -27,21 +27,25 @@ import * as sqlstring from 'sqlstring';
 export default class Query {
   public query(
     query: string,
-    params: Array<any>,
-    callback: (err: Error, result: any) => void,
+    params: Array<unknown>,
+    callback: (err: Error, result: unknown) => void,
   ): void;
-  public query(query: string, params: any, callback: (err: Error, result: any) => void): void;
+  public query(
+    query: string,
+    params: unknown,
+    callback: (err: Error, result: unknown) => void,
+  ): void;
   public query(
     query: string,
     params: Record<string, never>,
-    callback: (err: Error, result: any) => void,
+    callback: (err: Error, result: unknown) => void,
   ): void;
-  public query(query: string, callback: (err: Error, result: any) => void): void;
-  public query(query: string, callback: (err: Error, result: any) => Promise<void>): void;
+  public query(query: string, callback: (err: Error, result: unknown) => void): void;
+  public query(query: string, callback: (err: Error, result: unknown) => Promise<void>): void;
   public query(
     query: string,
     params: any = [],
-    callback?: (err: Error, result: any) => void,
+    callback?: (err: Error, result: unknown) => void,
   ): void {
     const queryRunner: QueryRunner = db.getQueryRunner();
 
@@ -66,11 +70,11 @@ export default class Query {
       });
   }
 
-  public escape(value: any): string {
+  public escape(value: unknown): string {
     return sqlstring.escape(value);
   }
 
-  public escapeId(value: any): string {
+  public escapeId(value: unknown): string {
     return sqlstring.escapeId(value);
   }
 }

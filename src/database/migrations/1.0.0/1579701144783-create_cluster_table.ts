@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createClusterTable1579701144783 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     // cluster
     await queryRunner.createTable(
       new Table({
@@ -83,7 +83,7 @@ export class createClusterTable1579701144783 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('cluster', true);
   }
 }

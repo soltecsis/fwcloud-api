@@ -217,7 +217,7 @@ export class RoutingRuleController extends Controller {
       .innerJoin('rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .where('rule.id IN (:...ids)', { ids: request.inputs.get('rules') })
+      .where('rule.id IN (:...ids)', { ids: request.inputs.get<number[]>('rules') })
       .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
       .andWhere('firewall.fwCloudId = :fwCloudId', {
         fwCloudId: this._fwCloud.id,
@@ -244,7 +244,7 @@ export class RoutingRuleController extends Controller {
       .innerJoin('rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .where('rule.id = :id', { id: request.inputs.get('fromId') })
+      .where('rule.id = :id', { id: request.inputs.get<number>('fromId') })
       .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
       .andWhere('firewall.fwCloudId = :fwCloudId', {
         fwCloudId: this._fwCloud.id,
@@ -258,7 +258,7 @@ export class RoutingRuleController extends Controller {
       .innerJoin('rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .where('rule.id = :id', { id: request.inputs.get('toId') })
+      .where('rule.id = :id', { id: request.inputs.get<number>('toId') })
       .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
       .andWhere('firewall.fwCloudId = :fwCloudId', {
         fwCloudId: this._fwCloud.id,

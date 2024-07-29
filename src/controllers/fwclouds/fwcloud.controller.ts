@@ -97,7 +97,7 @@ export class FwCloudController extends Controller {
 
   @Validate()
   public async getConfig(): Promise<ResponseBuilder> {
-    return new Promise((resolve, reject) => {
+    return new Promise(() => {
       let availablecommunications: string[] = ['agent'];
 
       if (this._app.config.get('firewall_communication').ssh_enable) {

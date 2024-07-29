@@ -32,6 +32,7 @@ import {
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import Query from '../../../../src/database/Query';
+import { RuleCompilationResult } from '../../../../src/compiler/policy/PolicyCompilerTools';
 
 describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () => {
   let fwcProduct: FwCloudProduct;
@@ -60,15 +61,15 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
 
   async function runTest(): Promise<void> {
     let rule: number;
-    let result: any;
-    let error: any;
+    let result: RuleCompilationResult[];
+    let error: Error;
 
     try {
       rule = await PolicyRule.insertPolicy_r(ruleData);
       if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
         await populateRule(rule, RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`), 50010); // 50010 = Standard VRRP IP
 
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcProduct.fwcloud.id,
@@ -79,7 +80,7 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
       );
       result = await PolicyCompiler.compile(compiler, rulesData);
     } catch (err) {
-      error = err;
+      error = err as Error;
     }
 
     const cs = `###########################\n# Hook script rule code:\n${cmd}\n###########################\n`;

@@ -44,6 +44,7 @@ import {
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { EntityManager } from 'typeorm';
 import Query from '../../../../src/database/Query';
+import { RuleCompilationResult } from '../../../../src/compiler/policy/PolicyCompilerTools';
 
 describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   let dbCon: Query;
@@ -78,8 +79,8 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   async function runTest(policyType: number, rulePosition: number, cs: string): Promise<void> {
     ruleData.type = policyType;
     const rule = await PolicyRule.insertPolicy_r(ruleData);
-    let result: any;
-    let error: any;
+    let result: RuleCompilationResult[];
+    let error: Error;
 
     if (!useGroup) {
       if (!usePrefix) {
@@ -133,7 +134,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     }
 
     try {
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -144,7 +145,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       );
       result = await PolicyCompiler.compile(compiler, rulesData);
     } catch (err) {
-      error = err;
+      error = err as Error;
     }
 
     if (

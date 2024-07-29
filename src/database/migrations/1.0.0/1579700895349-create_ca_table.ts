@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createCaTable1579700895349 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //ca
     await queryRunner.createTable(
       new Table({
@@ -134,7 +134,7 @@ export class createCaTable1579700895349 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('ca_prefix', true);
     await queryRunner.dropTable('ca', true);
   }

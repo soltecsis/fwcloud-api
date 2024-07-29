@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createUserTable1579701598735 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //user
     await queryRunner.createTable(
       new Table({
@@ -169,7 +169,7 @@ export class createUserTable1579701598735 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('user__fwcloud', true);
     await queryRunner.dropTable('user', true);
   }

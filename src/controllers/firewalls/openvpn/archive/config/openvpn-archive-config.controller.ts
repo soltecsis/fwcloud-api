@@ -46,7 +46,7 @@ export class OpenVPNArchiveConfigController extends Controller {
    */
   @Validate()
   public async show(): Promise<ResponseBuilder> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const config: OpenVPNUpdateableConfig = this._openvpnService.getCustomizedConfig();
 
       resolve(

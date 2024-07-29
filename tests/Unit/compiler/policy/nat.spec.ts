@@ -61,7 +61,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   async function runTest(posData: [number, number][], cs: string): Promise<void> {
     for (let i = 0; i < posData.length; i++) await populateRule(rule, posData[i][0], posData[i][1]);
 
-    const rulesData: any = await PolicyRule.getPolicyData(
+    const rulesData = await PolicyRule.getPolicyData(
       'compiler',
       dbCon,
       fwcloud,
@@ -117,10 +117,10 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),
         translatedService,
       );
-      let error: any;
+      let error: Error;
 
       try {
-        const rulesData: any = await PolicyRule.getPolicyData(
+        const rulesData = await PolicyRule.getPolicyData(
           'compiler',
           dbCon,
           fwcloud,
@@ -131,7 +131,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         );
         await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
-        error = err;
+        error = err as Error;
       }
 
       expect(error).to.eql({
@@ -150,10 +150,10 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),
         translatedService,
       );
-      let error: any;
+      let error: Error;
 
       try {
-        const rulesData: any = await PolicyRule.getPolicyData(
+        const rulesData = await PolicyRule.getPolicyData(
           'compiler',
           dbCon,
           fwcloud,
@@ -164,7 +164,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         );
         await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
-        error = err;
+        error = err as Error;
       }
 
       expect(error).to.eql({
@@ -190,10 +190,10 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),
         translatedService,
       );
-      let error: any;
+      let error: Error;
 
       try {
-        const rulesData: any = await PolicyRule.getPolicyData(
+        const rulesData = await PolicyRule.getPolicyData(
           'compiler',
           dbCon,
           fwcloud,
@@ -204,7 +204,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         );
         await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
-        error = err;
+        error = err as Error;
       }
 
       expect(error).to.eql({
@@ -223,10 +223,10 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),
         translatedService,
       );
-      let error: any;
+      let error: Error;
 
       try {
-        const rulesData: any = await PolicyRule.getPolicyData(
+        const rulesData = await PolicyRule.getPolicyData(
           'compiler',
           dbCon,
           fwcloud,
@@ -237,7 +237,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
         );
         await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
-        error = err;
+        error = err as Error;
       }
 
       expect(error).to.eql({

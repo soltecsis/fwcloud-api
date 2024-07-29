@@ -151,7 +151,9 @@ export class DhcpController extends Controller {
 
       return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
     } catch (err) {
-      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+      return ResponseBuilder.buildResponse()
+        .status(422)
+        .body({ message: err.message as string });
     }
   }
 
@@ -197,7 +199,9 @@ export class DhcpController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(result);
     } catch (err) {
-      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+      return ResponseBuilder.buildResponse()
+        .status(422)
+        .body({ message: err.message as string });
     }
   }
 
@@ -249,7 +253,7 @@ export class DhcpController extends Controller {
       .createQueryBuilder('rule')
       .innerJoin('rule.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwCloud')
-      .where('rule.id IN (:...ids)', { ids: req.inputs.get('rules') })
+      .where('rule.id IN (:...ids)', { ids: req.inputs.get<number[]>('rules') })
       .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
       .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: this._fwCloud.id })
       .getMany();

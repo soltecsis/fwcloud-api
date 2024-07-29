@@ -24,7 +24,7 @@ import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createFwcloudTable1579701392749 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //fwcloud
     await queryRunner.createTable(
       new Table({
@@ -143,7 +143,7 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     let table: Table;
 
     table = await queryRunner.getTable('fwc_tree');

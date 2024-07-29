@@ -94,7 +94,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('should accept 15 TCP ports per iptables command', async () => {
       await populateRule('TCP', 15);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -117,7 +117,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('16 TCP ports should be split in two iptables commands', async () => {
       await populateRule('TCP', 16);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -148,7 +148,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
         position: 3,
         position_order: 15,
       });
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -177,7 +177,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('should accept 15 TCP ports per iptables command', async () => {
       await populateRule('TCP', 15);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -200,7 +200,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('16 TCP ports should be split in two nftables commands', async () => {
       await populateRule('TCP', 16);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -231,7 +231,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
         position: 3,
         position_order: 15,
       });
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -260,7 +260,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('should accept 15 UDP ports per iptables command', async () => {
       await populateRule('UDP', 15);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -283,7 +283,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('16 UDP ports should be split in two iptables commands', async () => {
       await populateRule('UDP', 16);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -314,7 +314,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
         position: 3,
         position_order: 15,
       });
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -343,7 +343,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('should accept 15 UDP ports per iptables command', async () => {
       await populateRule('UDP', 15);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -366,7 +366,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
     it('16 UDP ports should be split in two nftables commands', async () => {
       await populateRule('UDP', 16);
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,
@@ -397,7 +397,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
         position: 3,
         position_order: 15,
       });
-      const rulesData: any = await PolicyRule.getPolicyData(
+      const rulesData = await PolicyRule.getPolicyData(
         'compiler',
         dbCon,
         fwcloud,

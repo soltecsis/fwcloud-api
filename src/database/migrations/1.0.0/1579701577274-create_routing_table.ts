@@ -24,7 +24,7 @@ import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createRoutingTable1579701577274 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //routing_g
     await queryRunner.createTable(
       new Table({
@@ -415,7 +415,7 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('routing_r__ipobj', true);
     await queryRunner.dropTable('routing_r__interface', true);
     await queryRunner.dropTable('routing_r', true);

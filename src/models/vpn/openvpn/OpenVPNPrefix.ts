@@ -68,10 +68,10 @@ interface SearchPrefixUsage {
         obj_name: string;
       }
     >;
-    PrefixInRoute?: Array<SearchPrefix>;
-    PrefixInGroupInRoute?: Array<SearchPrefix>;
-    PrefixInRoutingRule?: Array<SearchPrefix>;
-    PrefixInGroupInRoutingRule?: Array<SearchPrefix>;
+    PrefixInRoute?: Array<Route & SearchPrefix>;
+    PrefixInGroupInRoute?: Array<Route & SearchPrefix>;
+    PrefixInRoutingRule?: Array<RoutingRule & SearchPrefix>;
+    PrefixInGroupInRoutingRule?: Array<RoutingRule & SearchPrefix>;
     PrefixInGroupInRule?: Array<PolicyRuleToIPObjInRuleData>;
   };
 }
@@ -80,8 +80,8 @@ export interface SearchGroupUsage {
   result: boolean;
   restrictions: {
     GroupInRule: Array<PolicyRuleToIPObjInRuleData>;
-    GroupInRoute: Array<SearchPrefix>;
-    GroupInRoutingRule: Array<SearchPrefix>;
+    GroupInRoute: Array<Route & SearchPrefix>;
+    GroupInRoutingRule: Array<RoutingRule & SearchPrefix>;
   };
 }
 const tableName: string = 'openvpn_prefix';
@@ -573,7 +573,7 @@ export class OpenVPNPrefix extends Model {
   public static async searchPrefixInRoute(
     fwcloud: number,
     prefix: number,
-  ): Promise<Array<SearchPrefix>> {
+  ): Promise<Array<Route & SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -596,7 +596,7 @@ export class OpenVPNPrefix extends Model {
   public static async searchPrefixInRoutingRule(
     fwcloud: number,
     prefix: number,
-  ): Promise<Array<SearchPrefix>> {
+  ): Promise<Array<RoutingRule & SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)
@@ -619,7 +619,7 @@ export class OpenVPNPrefix extends Model {
   public static async searchPrefixInGroupInRoute(
     fwcloud: number,
     prefix: number,
-  ): Promise<Array<SearchPrefix>> {
+  ): Promise<Array<Route & SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -641,7 +641,7 @@ export class OpenVPNPrefix extends Model {
   public static async searchPrefixInGroupInRoutingRule(
     fwcloud: number,
     prefix: number,
-  ): Promise<Array<SearchPrefix>> {
+  ): Promise<Array<RoutingRule & SearchPrefix>> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)

@@ -20,11 +20,12 @@
 	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { PolicyRuleData } from '../../../models/policy/PolicyRule';
 import { PolicyTypesMap } from '../../../models/policy/PolicyType';
 import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class IPTablesCompiler extends PolicyCompilerTools {
-  constructor(ruleData: any) {
+  constructor(ruleData: PolicyRuleData) {
     super();
 
     this._compiler = 'IPTables';
@@ -66,7 +67,7 @@ export class IPTablesCompiler extends PolicyCompilerTools {
     this.compileRulePositions();
 
     // Generate the compilation string.
-    this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
+    this._cs = this.generateCompilationString(this._ruleData.id.toString(), this._cs);
 
     // If we are using UDP or TCP ports in translated service position for NAT rules,
     // make sure that we have only one -p flag per line into the compilation string.

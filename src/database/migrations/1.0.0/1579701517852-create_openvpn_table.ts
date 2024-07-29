@@ -23,7 +23,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createOpenvpnTable1579701517852 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //openvpn
     await queryRunner.createTable(
       new Table({
@@ -316,7 +316,7 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('openvpn_prefix__ipobj_g', true);
     await queryRunner.dropTable('openvpn_prefix', true);
     await queryRunner.dropTable('openvpn_opt', true);

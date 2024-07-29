@@ -9,6 +9,7 @@ import { User } from '../../../../src/models/user/User';
 import { createUser, generateSession, attachSession } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
+import { RequestBodyType } from '../../../../src/models/data/RequestData';
 
 describe(describeName('Ipobj duplicity E2E Tests'), () => {
   let app: Application;
@@ -16,7 +17,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
   let fwcTreeNode;
   let adminUser: User;
   let adminUserSessionId: string;
-  let requestData: any;
+  let requestData: RequestBodyType;
 
   const ipobjCreationSchema = {
     title: 'IPObj creation schema',
@@ -89,11 +90,11 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 
         requestData = {
           fwcloud: fwCloud.id,
-          type: ipobjData.type,
+          type: ipobjData.type as number,
           name: 'New Address',
           address: ipobjData.address,
           netmask: ipobjData.netmask,
-          ip_version: ipobjData.ip_version,
+          ip_version: ipobjData.ip_version as number,
           node_parent: fwcTreeNode.id,
           node_order: 1,
           node_type: 'OIA',

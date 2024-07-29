@@ -9,7 +9,12 @@ export class DatabaseLogger extends FileLogger {
   /**
    * Logs query that is failed.
    */
-  logQueryError(error: string, query: string, parameters?: any[], queryRunner?: QueryRunner): void {
+  logQueryError(
+    error: string,
+    query: string,
+    parameters?: unknown[],
+    queryRunner?: QueryRunner,
+  ): void {
     if (
       this._options === 'all' ||
       this._options === true ||

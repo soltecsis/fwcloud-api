@@ -82,7 +82,7 @@ export class SnapshotController extends Controller {
 
     const snapshot: Snapshot = await this._snapshotService.store(
       request.inputs.get('name'),
-      request.inputs.get('comment', null),
+      request.inputs.get<string>('comment', null),
       this._fwCloud,
       channel,
     );

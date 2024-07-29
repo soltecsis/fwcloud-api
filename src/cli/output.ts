@@ -23,7 +23,7 @@
 import chalk from 'chalk';
 
 export class Output {
-  protected _stdout;
+  protected _stdout: (message: string) => void;
 
   constructor(stdout = console.log) {
     this._stdout = stdout;

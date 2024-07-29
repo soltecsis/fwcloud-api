@@ -24,7 +24,7 @@ import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createPolicyTable1579701543732 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     //policy_c
     await queryRunner.createTable(
       new Table({
@@ -814,7 +814,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     let table: Table;
 
     table = await queryRunner.getTable('policy_r');

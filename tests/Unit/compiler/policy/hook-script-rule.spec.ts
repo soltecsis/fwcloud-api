@@ -23,6 +23,7 @@
 import { describeName, expect } from '../../../mocha/global-setup';
 import {
   PolicyRule,
+  PolicyRuleData,
   PolicyRuleOptMask,
   SpecialPolicyRules,
 } from '../../../../src/models/policy/PolicyRule';
@@ -71,7 +72,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
       await populateRule(rule, RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`), 50010); // 50010 = Standard VRRP IP
-    const rulesData: any = await PolicyRule.getPolicyData(
+    const rulesData = await PolicyRule.getPolicyData(
       'compiler',
       dbCon,
       fwcProduct.fwcloud.id,
