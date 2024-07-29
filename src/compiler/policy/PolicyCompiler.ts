@@ -25,7 +25,6 @@ import { NFTablesCompiler } from './nftables/nftables-compiler';
 import { RuleCompilationResult } from './PolicyCompilerTools';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
-import { PolicyRuleData } from '../../models/policy/PolicyRule';
 
 export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
@@ -33,7 +32,7 @@ export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
 export class PolicyCompiler {
   public static compile(
     compileFor: AvailablePolicyCompilers,
-    rulesData: Array<PolicyRuleData>,
+    rulesData: any,
     eventEmitter?: EventEmitter,
   ): Promise<RuleCompilationResult[]> {
     return new Promise((resolve, reject) => {
