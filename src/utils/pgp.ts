@@ -83,7 +83,6 @@ export class PgpHelper {
   }
 
   public decrypt(msgEncrypted: string): Promise<string> {
-    console.log('msgEncrypted', msgEncrypted);
     return new Promise(async (resolve, reject) => {
       try {
         const privateKeyObject = await openpgp.readPrivateKey({
