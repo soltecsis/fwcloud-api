@@ -123,81 +123,101 @@ export class KeepalivedRuleService extends Service {
       comment: data.comment,
     };
 
-    if (data.group) {
-      keepalivedRuleData.group = (await db
-        .getSource()
-        .manager.getRepository(KeepalivedGroup)
-        .findOneOrFail({ where: { id: data.group } })) as KeepalivedGroup;
-    }
-    if (data.interfaceId) {
-      const interfaceData = (await db
-        .getSource()
-        .manager.getRepository(Interface)
-        .findOneOrFail({ where: { id: data.interfaceId } })) as Interface;
-      if (!interfaceData.mac || interfaceData.mac === '') {
-        throw new Error('Interface mac is not defined');
+    try {
+      if (data.group) {
+        keepalivedRuleData.group = (await db
+          .getSource()
+          .manager.getRepository(KeepalivedGroup)
+          .findOneOrFail({ where: { id: data.group } })) as KeepalivedGroup;
       }
-      keepalivedRuleData.interface = interfaceData;
-    }
-    if (data.masterNodeId) {
-      keepalivedRuleData.masterNode = (await db
-        .getSource()
-        .manager.getRepository(Firewall)
-        .findOneOrFail({ where: { id: data.masterNodeId } })) as Firewall;
-    }
-    if (data.firewallId) {
-      keepalivedRuleData.firewall = (await db
-        .getSource()
-        .manager.getRepository(Firewall)
-        .findOneOrFail({ where: { id: data.firewallId } })) as Firewall;
-    }
-
-    const lastKeepalivedRule = (await this._repository.getLastKeepalivedRuleInFirewall(
-      data.firewallId,
-    )) as KeepalivedRule;
-    keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order
-      ? lastKeepalivedRule.rule_order + 1
-      : 1;
-    const persisted: Partial<KeepalivedRule> & KeepalivedRule =
-      await this._repository.save(keepalivedRuleData);
-
-    if (data.virtualIpsIds && data.virtualIpsIds.length > 0) {
-      persisted.virtualIps = data.virtualIpsIds.map(
-        (item) =>
-          ({
-            keepalivedId: persisted.id,
-            ipObjId: item.id,
-            order: item.order,
-          }) as unknown as KeepalivedToIPObj,
-      );
-
-      const hasMatchingIpVersion = persisted.virtualIps.some(
-        async (virtualIp) =>
-          (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj))
-            .ip_version ===
-          (
-            await db
-              .getSource()
-              .manager.getRepository(IPObj)
-              .findOneOrFail(persisted.virtualIps[0].ipObj)
-          ).ip_version,
-      );
-      if (!hasMatchingIpVersion) {
-        this._repository.remove(persisted);
-        throw new Error('IP version mismatch');
+      if (data.interfaceId) {
+        const interfaceData = (await db
+          .getSource()
+          .manager.getRepository(Interface)
+          .findOneOrFail({ where: { id: data.interfaceId } })) as Interface;
+        if (!interfaceData.mac || interfaceData.mac === '') {
+          throw new Error('Interface mac is not defined');
+        }
+        keepalivedRuleData.interface = interfaceData;
+      }
+      if (data.masterNodeId) {
+        keepalivedRuleData.masterNode = (await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: data.masterNodeId } })) as Firewall;
+      }
+      if (data.firewallId) {
+        keepalivedRuleData.firewall = (await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: data.firewallId } })) as Firewall;
       }
 
-      await this._repository.save(persisted);
-    }
+      const lastKeepalivedRule = (await this._repository.getLastKeepalivedRuleInFirewall(
+        data.firewallId,
+      )) as KeepalivedRule;
+      keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order
+        ? lastKeepalivedRule.rule_order + 1
+        : 1;
 
-    if (
-      Object.prototype.hasOwnProperty.call(data, 'to') &&
-      Object.prototype.hasOwnProperty.call(data, 'offset')
-    ) {
-      return (await this.move([persisted.id], data.to, data.offset))[0];
-    }
+      const persisted: Partial<KeepalivedRule> & KeepalivedRule =
+        await this._repository.save(keepalivedRuleData);
 
-    return persisted;
+      if (data.virtualIpsIds && data.virtualIpsIds.length > 0) {
+        persisted.virtualIps = data.virtualIpsIds.map(
+          (item) =>
+            ({
+              keepalivedId: persisted.id,
+              ipObjId: item.id,
+              order: item.order,
+            }) as unknown as KeepalivedToIPObj,
+        );
+
+        const hasMatchingIpVersion = await this.checkMatchingIpVersions(persisted.virtualIps);
+
+        if (!hasMatchingIpVersion) {
+          await this._repository.remove(persisted);
+          throw new Error('IP version mismatch');
+        }
+
+        await this._repository.save(persisted);
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(data, 'to') &&
+        Object.prototype.hasOwnProperty.call(data, 'offset')
+      ) {
+        return (await this.move([persisted.id], data.to, data.offset))[0];
+      }
+
+      return persisted;
+    } catch (error) {
+      console.error('Error in store method:', error.message);
+      throw error;
+    }
+  }
+  private async checkMatchingIpVersions(virtualIps: KeepalivedToIPObj[]): Promise<boolean> {
+    try {
+      const firstIpObj = await db
+        .getSource()
+        .manager.getRepository(IPObj)
+        .findOneOrFail({
+          where: { id: virtualIps[0].ipObjId },
+        });
+
+      return virtualIps.every(async (virtualIp) => {
+        const ipObj = await db
+          .getSource()
+          .manager.getRepository(IPObj)
+          .findOneOrFail({
+            where: { id: virtualIp.ipObjId },
+          });
+        return ipObj.ip_version === firstIpObj.ip_version;
+      });
+    } catch (error) {
+      console.error('Error checking IP versions:', error.message);
+      return false;
+    }
   }
 
   async copy(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {
