@@ -56,7 +56,7 @@ type ErrorWithCode = {
 } & Error;
 
 function errorHasCode(error: Error): error is ErrorWithCode {
-  return Object.prototype.hasOwnProperty.call(error, 'code');
+  return 'code' in error;
 }
 
 export abstract class Communication<ConnectionData> {

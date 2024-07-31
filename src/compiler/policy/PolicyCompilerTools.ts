@@ -28,6 +28,7 @@ import { FireWallOptMask } from '../../models/firewall/Firewall';
 import ip from 'ip';
 import fwcError from '../../utils/error_table';
 import shellescape from 'shell-escape';
+import { IPObj } from '../../models/ipobj/IPObj';
 
 export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT', 1],
@@ -449,7 +450,7 @@ export abstract class PolicyCompilerTools {
     }
   }
 
-  private compileSvc(svc: any, negate: boolean, ipv: 4 | 6): void {
+  private compileSvc(svc: IPObj[], negate: boolean, ipv: 4 | 6): void {
     const cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';

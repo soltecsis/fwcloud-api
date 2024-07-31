@@ -26,7 +26,7 @@ import { FireWallOptMask } from '../models/firewall/Firewall';
 import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
 import sshTools from '../utils/ssh';
 import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from './communication';
-const config = require('../config/config');
+import config from '../config/config';
 import fwcError from '../utils/error_table';
 
 type SSHConnectionData = {

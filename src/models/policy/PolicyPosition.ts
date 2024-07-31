@@ -40,7 +40,6 @@ import { PolicyRuleToOpenVPN } from './PolicyRuleToOpenVPN';
 import { IPObjTypeToPolicyPosition } from '../ipobj/IPObjTypeToPolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
 import Query from '../../database/Query';
-import { Err } from 'joi';
 import { IPObj } from '../ipobj/IPObj';
 
 const tableName: string = 'policy_position';
@@ -258,7 +257,10 @@ export class PolicyPosition extends Model {
   }
 
   //Add new policy_position
-  public static insertPolicy_position(policy_positionData: PolicyPosition, callback: Function) {
+  public static insertPolicy_position(
+    policy_positionData: PolicyPosition,
+    callback: (error: Error | null, result: { insertId: number } | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(

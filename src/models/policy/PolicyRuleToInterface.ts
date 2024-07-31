@@ -510,10 +510,10 @@ export class PolicyRuleToInterface extends Model {
   //Remove policy_r__interface with id to remove
   public static deletePolicy_r__All(
     rule: number,
-    callback: (err: Error | null, res: { result: boolean; msg?: string } | null) => void,
+    callback: (err: Error | null, res: { result: boolean; msg?: string } | null) => Promise<void>,
   ) {
     db.get((error, connection) => {
-      if (error) callback(error, null);
+      if (error) void callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
       connection.query(sqlExists, (error, row: Array<PolicyRuleToInterface>) => {
         //If exists Id from policy_r__interface to remove
@@ -524,18 +524,18 @@ export class PolicyRuleToInterface extends Model {
             connection.query(sql, (error, result: { affectedRows: number }) => {
               if (error) {
                 logger().debug(error);
-                callback(error, null);
+                void callback(error, null);
               } else {
                 if (result.affectedRows > 0) {
-                  callback(null, { result: true, msg: 'deleted' });
+                  void callback(null, { result: true, msg: 'deleted' });
                 } else {
-                  callback(null, { result: false });
+                  void callback(null, { result: false });
                 }
               }
             });
           });
         } else {
-          callback(null, { result: false });
+          void callback(null, { result: false });
         }
       });
     });

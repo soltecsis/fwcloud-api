@@ -44,7 +44,6 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { RouteToIPObjGroup } from '../routing/route/route-to-ipobj-group.model';
 import { RoutingRuleToIPObjGroup } from '../routing/routing-rule/routing-rule-to-ipobj-group.model';
 import Query from '../../database/Query';
-import { number } from 'joi';
 import asyncMod from 'async';
 import ipobj_g_Data from '../data/data_ipobj_g';
 const ipobj_Data = require('../data/data_ipobj');
@@ -356,7 +355,7 @@ export class IPObjGroup extends Model {
               //const row = rows[0];
               asyncMod.map(
                 rows,
-                (row, callback1: Function) => {
+                (row, callback1: () => void) => {
                   const group_node = new ipobj_g_Data(row);
 
                   logger().debug(' ---> DENTRO de GRUPO: ' + row.id + ' NAME: ' + row.name);

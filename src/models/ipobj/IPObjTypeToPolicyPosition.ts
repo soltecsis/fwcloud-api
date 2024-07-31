@@ -70,7 +70,11 @@ export class IPObjTypeToPolicyPosition extends Model {
   };
 
   //Get ipobj_type__policy_position by  id
-  public static getIpobj_type__policy_position(type: number, position: number, callback: Function) {
+  public static getIpobj_type__policy_position(
+    type: number,
+    position: number,
+    callback: (error: Error | null, row: Array<IPObjTypeToPolicyPosition> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -81,7 +85,7 @@ export class IPObjTypeToPolicyPosition extends Model {
         'AND  position = ' +
         connection.escape(position);
       logger().debug(sql);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error, row: Array<IPObjTypeToPolicyPosition>) => {
         if (error) callback(error, null);
         else callback(null, row);
       });

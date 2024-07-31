@@ -44,9 +44,8 @@ import interfaces_Data from '../data/data_interface';
 import data_policy_position_ipobjs from '../../models/data/data_policy_position_ipobjs';
 import RequestData from '../data/RequestData';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
-import { ArraySortOptions, Err } from 'joi';
 
-interface SearchInterfaceUsage {
+export interface SearchInterfaceUsage {
   result?: boolean;
   restrictions?: {
     InterfaceInRules_I?: Array<PolicyRuleToIPObjInRuleData>;
@@ -944,7 +943,7 @@ export class Interface extends Model {
       dbCon.query(
         'INSERT INTO ' + tableName + ' SET ?',
         interfaceData,
-        async (error: Error, result: { insertId: number }) => {
+        (error: Error, result: { insertId: number }) => {
           if (error) return reject(error);
 
           const interfaceId = result.insertId;
@@ -972,15 +971,24 @@ export class Interface extends Model {
             options: null,
             comment: 'IPv4 loopback interface address.',
           };
-          const ipv4Id = await IPObj.insertIpobj(dbCon, ipobjData);
 
-          ipobjData.address = '::1';
-          ipobjData.netmask = '/128';
-          ipobjData.ip_version = 6;
-          ipobjData.comment = 'IPv6 loopback interface address.';
-          const ipv6Id = await IPObj.insertIpobj(dbCon, ipobjData);
-
-          resolve({ ifId: interfaceId, ipv4Id: ipv4Id, ipv6Id: ipv6Id });
+          IPObj.insertIpobj(dbCon, ipobjData)
+            .then((ipv4Id) => {
+              ipobjData.address = '::1';
+              ipobjData.netmask = '/128';
+              ipobjData.ip_version = 6;
+              ipobjData.comment = 'IPv6 loopback interface address.';
+              IPObj.insertIpobj(dbCon, ipobjData)
+                .then((ipv6Id) => {
+                  resolve({ ifId: interfaceId, ipv4Id: ipv4Id, ipv6Id: ipv6Id });
+                })
+                .catch((error) => {
+                  reject(error);
+                });
+            })
+            .catch((error) => {
+              reject(error);
+            });
         },
       );
     });
@@ -1163,7 +1171,7 @@ export class Interface extends Model {
     addr: Array<{ id_org: number; id_clon: number }>;
   }> {
     return new Promise((resolve, reject) => {
-      db.get(async (error, dbCon) => {
+      db.get((error, dbCon) => {
         if (error) return reject(error);
 
         //CREATE NEW INTERFACE
@@ -1179,46 +1187,47 @@ export class Interface extends Model {
           mac: rowData.mac,
         };
         const id_org = rowData.id;
-        let id_clon: number;
-        try {
-          id_clon = await this.insertInterface(dbCon, interfaceData);
-        } catch (error) {
-          return reject(error);
-        }
+
+        this.insertInterface(dbCon, interfaceData)
+          .then((id_clon) => {
+            const sql =
+              'select ' +
+              id_clon +
+              ' as newinterface, O.*, ' +
+              dbCon.escape(rowData.org_name) +
+              ' as org_name,' +
+              dbCon.escape(rowData.clon_name) +
+              ' as clon_name' +
+              ' from ipobj O ' +
+              ' where O.interface=' +
+              dbCon.escape(rowData.id);
+            dbCon.query(
+              sql,
+              (
+                error,
+                rows: Array<IPObj & { newinterface: number; org_name: string; clon_name: string }>,
+              ) => {
+                if (error) return reject(error);
+
+                for (let i = 0; i < rows.length; i++) {
+                  if (rows[i].name.indexOf(rows[i].org_name + ':', 0) === 0)
+                    rows[i].name = rows[i].name.replace(
+                      new RegExp('^' + rows[i].org_name + ':'),
+                      rows[i].clon_name + ':',
+                    );
+                }
+                //Bucle por IPOBJS
+                Promise.all(rows.map((data) => IPObj.cloneIpobj(data)))
+                  .then((data) => resolve({ id_org: id_org, id_clon: id_clon, addr: data }))
+                  .catch((e) => reject(e));
+              },
+            );
+          })
+          .catch((error) => {
+            return reject(error);
+          });
 
         //SELECT ALL IPOBJ UNDER INTERFACE
-        const sql =
-          'select ' +
-          id_clon +
-          ' as newinterface, O.*, ' +
-          dbCon.escape(rowData.org_name) +
-          ' as org_name,' +
-          dbCon.escape(rowData.clon_name) +
-          ' as clon_name' +
-          ' from ipobj O ' +
-          ' where O.interface=' +
-          dbCon.escape(rowData.id);
-        dbCon.query(
-          sql,
-          (
-            error,
-            rows: Array<IPObj & { newinterface: number; org_name: string; clon_name: string }>,
-          ) => {
-            if (error) return reject(error);
-
-            for (let i = 0; i < rows.length; i++) {
-              if (rows[i].name.indexOf(rows[i].org_name + ':', 0) === 0)
-                rows[i].name = rows[i].name.replace(
-                  new RegExp('^' + rows[i].org_name + ':'),
-                  rows[i].clon_name + ':',
-                );
-            }
-            //Bucle por IPOBJS
-            Promise.all(rows.map((data) => IPObj.cloneIpobj(data)))
-              .then((data) => resolve({ id_org: id_org, id_clon: id_clon, addr: data }))
-              .catch((e) => reject(e));
-          },
-        );
       });
     });
   }

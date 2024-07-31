@@ -105,7 +105,7 @@ export class BackupService extends Service {
    * Returns all backups
    */
   public async getAll(): Promise<Array<Backup>> {
-    const dirs = [];
+    const dirs = Array<Backup>();
 
     const entires: Array<string> = fs.readdirSync(this.getBackupDirectory());
     for (const entry of entires) {

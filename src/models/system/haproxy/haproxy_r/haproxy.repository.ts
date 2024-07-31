@@ -30,7 +30,6 @@ import { Offset } from '../../../../offset';
 import { Firewall } from '../../../firewall/Firewall';
 import { Repository } from '../../../../database/repository';
 import db from '../../../../database/database-manager';
-import { resolveCaa } from 'dns';
 
 interface IFindManyHAProxyRPath {
   fwcloudId?: number;

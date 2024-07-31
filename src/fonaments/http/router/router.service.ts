@@ -35,7 +35,6 @@ import { getFWCloudMetadata } from '../../../metadata/metadata';
 import { HTTPApplication } from '../../http-application';
 import { ClassConstructor } from 'class-transformer';
 import { Routes } from '../../../routes/routes';
-import { resolve } from 'path';
 
 export type HttpMethod = 'ALL' | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
 export type ArgumentTypes<F extends (...args: any) => any> = F extends (...args: infer A) => any

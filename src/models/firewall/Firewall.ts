@@ -34,14 +34,14 @@ import {
   In,
 } from 'typeorm';
 
-import { Interface } from '../../models/interface/Interface';
-import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
-import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { Interface, SearchInterfaceUsage } from '../../models/interface/Interface';
+import { OpenVPNPrefix, SearchPrefixUsage } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { OpenVPN, SearchOpenvpnUsage } from '../../models/vpn/openvpn/OpenVPN';
 
 const utilsModel = require('../../utils/utils.js');
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
-import { Tree, TreeNode } from '../tree/Tree';
+import { Tree } from '../tree/Tree';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Cluster } from './Cluster';
 import { DatabaseService } from '../../database/database.service';
@@ -72,6 +72,7 @@ import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.m
 import Query from '../../database/Query';
 import firewalls_Data from '../data/data_firewall';
 import RequestData from '../data/RequestData';
+import ObjectHelpers from '../../utils/object-helpers';
 
 const tableName: string = 'firewall';
 
@@ -1632,7 +1633,7 @@ export class Firewall extends Model {
   ): Promise<searchFirewallRestrictions> {
     const search: searchFirewallRestrictions = {};
     search.result = false;
-    search.restrictions = {};
+    search.restrictions;
 
     const orgFirewallId = req.body.firewall;
     if (req.body.cluster)
@@ -1649,17 +1650,18 @@ export class Firewall extends Model {
     const r2 = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
     const r3 = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
-    if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
-    if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
-    if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
+    if (r1) search.restrictions = ObjectHelpers.merge(search.restrictions, r1.restrictions);
+    if (r2) search.restrictions = ObjectHelpers.merge(search.restrictions, r2.restrictions);
+    if (r3) search.restrictions = ObjectHelpers.merge(search.restrictions, r3.restrictions);
 
-    for (const key in search.restrictions) {
+    for (const key of Object.keys(search.restrictions)) {
       const restriction = search.restrictions[key];
       if (Array.isArray(restriction) && restriction.length > 0) {
         search.result = true;
         break;
       }
     }
+
     if (req.body.cluster) req.body.firewall = orgFirewallId;
     return search;
   }

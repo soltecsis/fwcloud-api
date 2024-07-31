@@ -38,7 +38,7 @@ import {
 } from 'typeorm';
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
-import { Tree, TreeNode } from '../../../models/tree/Tree';
+import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../pki/Crt';
 import { OpenVPNOption } from './openvpn-option.model';
 import { IPObjGroup } from '../../ipobj/IPObjGroup';
@@ -50,16 +50,14 @@ import { RoutingRuleToOpenVPN } from '../../routing/routing-rule/routing-rule-to
 import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
 import Query from '../../../database/Query';
-import { StringifyOptions } from 'querystring';
 import RequestData from '../../data/RequestData';
 import fwcError from '../../../utils/error_table';
 import ip from 'ip';
 import { OpenVPNToIPObjGroupExporter } from '../../../fwcloud-exporter/database-exporter/exporters/openvpn-to-ipobj-group.exporter';
 import { PolicyRuleToIPObjInRuleData } from '../../policy/PolicyRuleToIPObj';
 import { PolicyRuleToOpenVPNPrefix } from '../../policy/PolicyRuleToOpenVPNPrefix';
-import f from 'session-file-store';
 
-interface SearchOpenvpnUsage {
+export interface SearchOpenvpnUsage {
   result: boolean;
   restrictions: {
     OpenvpnInRule?: Array<

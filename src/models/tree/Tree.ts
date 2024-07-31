@@ -1613,7 +1613,7 @@ export class Tree extends Model {
     node_id: number,
     idcluster: number,
     idfirewall: number,
-    AllDone: Function,
+    AllDone: (error: Error | null, result: { result: boolean } | null) => void,
   ): void {
     db.get((error, connection) => {
       if (error) {

@@ -647,7 +647,7 @@ export class IPObj extends Model {
             //const row = rows[0];
             asyncMod.map(
               rows,
-              (row, callback1: Function) => {
+              (row, callback1: () => void) => {
                 const host_node = new host_Data(row);
 
                 logger().debug(' ---> DENTRO de HOST: ' + row.id + ' NAME: ' + row.name);
@@ -664,7 +664,7 @@ export class IPObj extends Model {
 
                       asyncMod.map(
                         data_interfaces,
-                        (data_interface: Interface, callback2: Function) => {
+                        (data_interface: Interface, callback2: () => void) => {
                           //GET INTERFACES
                           logger().debug(
                             '--> DENTRO de INTERFACE id:' +
@@ -690,7 +690,7 @@ export class IPObj extends Model {
 
                                 asyncMod.map(
                                   data_ipobjs,
-                                  (data_ipobj, callback2: Function) => {
+                                  (data_ipobj, callback2: () => void) => {
                                     //GET OBJECTS
                                     logger().debug(
                                       '--> DENTRO de OBJECT id:' +

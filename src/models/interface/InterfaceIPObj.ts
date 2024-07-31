@@ -27,7 +27,6 @@ import { IPObj } from '../ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
 import { Interface } from './Interface';
 import Query from '../../database/Query';
-import { Err } from 'joi';
 import ipobjs_Data from '../data/data_ipobj';
 import { PolicyRuleToIPObjInRuleData } from '../policy/PolicyRuleToIPObj';
 
@@ -184,7 +183,7 @@ export class InterfaceIPObj extends Model {
     get_ipobj: number,
     get_interface_order: number,
     interface__ipobjData: any,
-    callback: Function,
+    callback: (error: Error | null, result: { result: boolean } | null) => void,
   ) {
     await this.OrderList(interface__ipobjData.interface_order, get_interface, get_interface_order);
 

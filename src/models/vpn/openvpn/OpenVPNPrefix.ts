@@ -53,7 +53,7 @@ interface SearchPrefix {
   cluster_id: number;
   cluster_name: string;
 }
-interface SearchPrefixUsage {
+export interface SearchPrefixUsage {
   result: boolean;
   restrictions: {
     PrefixInRule?: Array<

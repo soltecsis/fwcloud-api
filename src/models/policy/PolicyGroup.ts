@@ -101,7 +101,10 @@ export class PolicyGroup extends Model {
   }
 
   //Get All policy_g by firewall
-  public static getPolicy_gs(idfirewall: number, callback: Function) {
+  public static getPolicy_gs(
+    idfirewall: number,
+    callback: (error: Error | null, data: Array<PolicyGroup> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -110,7 +113,7 @@ export class PolicyGroup extends Model {
         ' WHERE firewall=' +
         connection.escape(idfirewall) +
         ' ORDER BY id';
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<PolicyGroup>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -118,7 +121,11 @@ export class PolicyGroup extends Model {
   }
 
   //Get All policy_g by firewall and group father
-  public static getPolicy_gs_group(idfirewall: number, idgroup: number, callback: Function) {
+  public static getPolicy_gs_group(
+    idfirewall: number,
+    idgroup: number,
+    callback: (error: Error | null, data: Array<PolicyGroup> | null) => void,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -129,7 +136,7 @@ export class PolicyGroup extends Model {
         ' AND idgroup=' +
         connection.escape(idgroup) +
         ' ORDER BY id';
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<PolicyGroup>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });

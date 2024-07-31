@@ -49,8 +49,7 @@ import * as path from 'path';
 import { mkdirpSync } from 'fs-extra';
 import Query from '../../database/Query';
 
-const config = require('../../config/config');
-
+import config from '../../config/config';
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
@@ -129,7 +128,7 @@ export class PolicyScript {
 
   private async dumpCompilation(type: number): Promise<void> {
     // Compile all rules of the same type.
-    const rulesData: any = await PolicyRule.getPolicyData(
+    const rulesData = await PolicyRule.getPolicyData(
       'compiler',
       this.dbCon,
       this.fwcloud,

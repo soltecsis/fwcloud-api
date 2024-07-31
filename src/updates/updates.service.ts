@@ -42,7 +42,7 @@ export enum Apps {
 }
 
 export class UpdateService extends Service {
-  public async proxyUpdate(request: Request): Promise<any> {
+  public async proxyUpdate(request: Request): Promise<Versions> {
     const updaterURL = this._app.config.get('updater').url;
 
     /* ATENTION+: Only forward the cookie header to fwcloud-updater. 

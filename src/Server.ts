@@ -27,10 +27,12 @@ import * as fs from 'fs';
 import io from 'socket.io';
 import { ConfigurationErrorException } from './config/exceptions/configuration-error.exception';
 import { logger } from './fonaments/abstract-application';
+import convict from 'convict';
+import { ConfigType } from './config/configType';
 
 export class Server {
   private _application: Application;
-  private _config;
+  private _config: convict.Config<ConfigType>;
   private _server: https.Server | http.Server;
 
   constructor(app: Application) {
