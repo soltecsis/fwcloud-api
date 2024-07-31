@@ -49,7 +49,7 @@ export class TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<TableTerraformer> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const terraformer: TableTerraformer = new TableTerraformer(mapper, eventEmitter);
       resolve(terraformer);
     });
@@ -84,7 +84,7 @@ export class TableTerraformer {
     entity: typeof Model,
     rows: Array<object>,
   ): Promise<Array<object>> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const result: Array<object> = [];
 
       let lastHeartbeat = new Date();

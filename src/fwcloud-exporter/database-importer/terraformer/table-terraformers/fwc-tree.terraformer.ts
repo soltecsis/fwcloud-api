@@ -104,7 +104,7 @@ export class FwcTreeTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<FwcTreeTerraformer> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       resolve(new FwcTreeTerraformer(mapper, eventEmitter));
     });
   }
@@ -117,7 +117,7 @@ export class FwcTreeTerraformer extends TableTerraformer {
      * This custom handler gets the ipObjType referenced and based on the mapping localized in _typeToTableNameMapping,
      * it calls the mapper in order to get the terraformed id
      */
-    result['id_obj'] = (mapper: ImportMapping, row: any, value: any) => {
+    result['id_obj'] = (mapper: ImportMapping, row: any, value: number) => {
       if (
         'node_type' in row &&
         row.node_type !== null &&

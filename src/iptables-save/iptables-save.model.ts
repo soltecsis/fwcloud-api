@@ -682,7 +682,7 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
   private async generateBitMask(data: string): Promise<number> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (data === 'NONE') return 0;
       if (data === 'ALL') return 63;
 

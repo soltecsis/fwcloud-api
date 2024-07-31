@@ -30,7 +30,7 @@ export class IpObjGroupTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<IpObjGroupTerraformer> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(mapper, eventEmitter);
       resolve(terraformer);
     });

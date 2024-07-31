@@ -25,7 +25,7 @@ import { Request } from 'express';
 
 export class isLoggedIn extends Gate {
   public async grant(request: Request): Promise<boolean> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (request.session.user !== null || request.session.user !== undefined) {
         resolve(true);
       }

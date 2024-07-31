@@ -29,7 +29,7 @@ export class InstallerGenerator {
     this._outputPath = outputPath;
     this._configData = configData;
     this._osslsigncodePath =
-      app().config.get('openvpn.installer.osslsigncode.path') ?? this.guessOsslSignCodePath();
+      app().config.get('openvpn.installer.osslsigncode.path') || this.guessOsslSignCodePath();
   }
 
   public generate(sign: boolean = true): string {

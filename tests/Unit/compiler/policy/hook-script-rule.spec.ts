@@ -23,7 +23,6 @@
 import { describeName, expect } from '../../../mocha/global-setup';
 import {
   PolicyRule,
-  PolicyRuleData,
   PolicyRuleOptMask,
   SpecialPolicyRules,
 } from '../../../../src/models/policy/PolicyRule';

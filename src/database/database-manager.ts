@@ -21,7 +21,7 @@
 */
 
 import { DataSource, QueryRunner } from 'typeorm';
-import * as config from '../config/config';
+import config from '../config/config';
 import Query from './Query';
 import { AbstractApplication } from '../fonaments/abstract-application';
 import { DatabaseService } from './database.service';

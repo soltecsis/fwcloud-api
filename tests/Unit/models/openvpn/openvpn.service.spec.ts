@@ -35,7 +35,6 @@ import {
 } from '../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
 import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
 import sinon from 'sinon';
-import Sinon from 'sinon';
 
 describe(describeName('OpenVPN Service Unit Tests'), () => {
   let app: AbstractApplication;

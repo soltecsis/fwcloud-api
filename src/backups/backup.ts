@@ -47,6 +47,7 @@ import { ProgressPayload } from '../sockets/messages/socket-message';
 import { E_ALREADY_LOCKED, Mutex, tryAcquire } from 'async-mutex';
 import { BackupService } from './backup.service';
 import db from '../database/database-manager';
+import shellEscape from 'shell-escape';
 
 export interface BackupMetadata {
   name: string;
@@ -512,8 +513,7 @@ export class Backup implements Responsable {
           ));
     }
 
-    const shellescape = require('shell-escape');
-    process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0, 128);
+    process.env.MYSQL_PWD = shellEscape([dbConfig.pass]).substring(0, 128);
 
     const dir = cmd === 'mysqldump' ? '>' : '<';
     // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.

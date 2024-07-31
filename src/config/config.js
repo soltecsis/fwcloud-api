@@ -25,7 +25,6 @@ const path = require('path');
 var convict = require('convict');
 convict.addFormat(require('convict-format-with-moment').duration);
 
-// Define a schema
 const config = convict({
   env: {
     doc: 'The application environment.',
@@ -114,8 +113,8 @@ const config = convict({
     },
     whitelist: {
       doc: 'CORS (Cross-Origin Resource Sharing) withelist.',
-      format: String,
-      default: '',
+      format: Array,
+      default: [],
       env: 'CORS_WHITELIST',
     },
   },

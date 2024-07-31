@@ -68,13 +68,13 @@ export class Cluster extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.clusters)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.clusters)
   @JoinColumn({
     name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
-  @OneToMany((type) => Firewall, (firewall) => firewall.cluster)
+  @OneToMany(() => Firewall, (firewall) => firewall.cluster)
   firewalls: Array<Firewall>;
 
   public getTableName(): string {

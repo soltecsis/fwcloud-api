@@ -32,7 +32,7 @@ export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<PolicyRuleToIpObjTerraformer> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const terraformer: PolicyRuleToIpObjTerraformer = new PolicyRuleToIpObjTerraformer(
         mapper,
         eventEmitter,
