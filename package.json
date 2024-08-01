@@ -11,6 +11,7 @@
     "update-cert": "bin/update-cert.sh api",
     "clean": "rm -fr dist/",
     "build": "npm run clean && mkdir -p dist/src && cp -r src/views dist/src/views && node_modules/.bin/tsc",
+    "fresh_build_start": "clear && rm -rf node_modules package-lock.json && npm i && npm run build && npm run start",
     "watch": "npm run build -- -w",
     "fwcloud": "node --no-warnings dist/src/cli/cli.js",
     "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
@@ -20,7 +21,7 @@
     "lint": "eslint \"{src,app,lib,tests}/**/*.ts\"",
     "lint:check": "npm run lint",
     "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "archiver": "^7.0.1",
