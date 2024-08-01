@@ -337,7 +337,7 @@ export abstract class PolicyCompilerTools {
         // Country
         if (this._compiler === 'IPTables')
           cmpPos.items.push(`-m geoip ${dir === 'SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`);
-        else throw 'Country objects not supported yet for NFTables compiler';
+        else throw new Error('Country objects not supported yet for NFTables compiler');
       } else if (ipv === sd[i].ip_version) {
         // Only add this type of IP objects if they have the same IP version than the compiled rule.
         if (sd[i].type === 5)

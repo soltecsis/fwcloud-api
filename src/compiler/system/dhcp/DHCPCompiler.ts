@@ -107,10 +107,7 @@ export class DHCPCompiler {
       result.push({
         id: data[i].id,
         active: data[i].active,
-        cs:
-          data[i].active || data.length === 1
-            ? this.ruleCompile(data[i] as DHCPRulesData<DHCPRuleItemForCompiler>)
-            : '',
+        cs: data[i].active || data.length === 1 ? this.ruleCompile(data[i]) : '',
       });
     }
 

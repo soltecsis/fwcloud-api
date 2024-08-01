@@ -114,7 +114,6 @@ export class BackupService extends Service {
       if (fs.statSync(backupPath).isDirectory()) {
         try {
           dirs.push(await new Backup().load(backupPath));
-          // eslint-disable-next-line no-empty
         } catch (e) {
           // Ignore
         }

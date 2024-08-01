@@ -124,37 +124,37 @@ export class KeepalivedRuleService extends Service {
     };
 
     if (data.group) {
-      keepalivedRuleData.group = (await db
+      keepalivedRuleData.group = await db
         .getSource()
         .manager.getRepository(KeepalivedGroup)
-        .findOneOrFail({ where: { id: data.group } })) as KeepalivedGroup;
+        .findOneOrFail({ where: { id: data.group } });
     }
     if (data.interfaceId) {
-      const interfaceData = (await db
+      const interfaceData = await db
         .getSource()
         .manager.getRepository(Interface)
-        .findOneOrFail({ where: { id: data.interfaceId } })) as Interface;
+        .findOneOrFail({ where: { id: data.interfaceId } });
       if (!interfaceData.mac || interfaceData.mac === '') {
         throw new Error('Interface mac is not defined');
       }
       keepalivedRuleData.interface = interfaceData;
     }
     if (data.masterNodeId) {
-      keepalivedRuleData.masterNode = (await db
+      keepalivedRuleData.masterNode = await db
         .getSource()
         .manager.getRepository(Firewall)
-        .findOneOrFail({ where: { id: data.masterNodeId } })) as Firewall;
+        .findOneOrFail({ where: { id: data.masterNodeId } });
     }
     if (data.firewallId) {
-      keepalivedRuleData.firewall = (await db
+      keepalivedRuleData.firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
-        .findOneOrFail({ where: { id: data.firewallId } })) as Firewall;
+        .findOneOrFail({ where: { id: data.firewallId } });
     }
 
-    const lastKeepalivedRule = (await this._repository.getLastKeepalivedRuleInFirewall(
+    const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
       data.firewallId,
-    )) as KeepalivedRule;
+    );
     keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order
       ? lastKeepalivedRule.rule_order + 1
       : 1;
@@ -333,24 +333,24 @@ export class KeepalivedRuleService extends Service {
       for (const field of fieldsToUpdate) {
         if (data[field]) {
           if (field === 'interfaceId') {
-            const interfaceData = (await db
+            const interfaceData = await db
               .getSource()
               .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: data[field] } })) as Interface;
+              .findOneOrFail({ where: { id: data[field] } });
             if (!interfaceData.mac || interfaceData.mac === '') {
               throw new Error('Interface mac is not defined');
             }
             keepalivedRule[field.slice(0, -2)] = interfaceData;
           } else if (field === 'masterNodeId') {
-            keepalivedRule[field.slice(0, -2)] = (await db
+            keepalivedRule[field.slice(0, -2)] = await db
               .getSource()
               .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: data[field] } })) as Firewall;
+              .findOneOrFail({ where: { id: data[field] } });
           } else if (field === 'firewallId') {
-            keepalivedRule[field.slice(0, -2)] = (await db
+            keepalivedRule[field.slice(0, -2)] = await db
               .getSource()
               .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: data[field] } })) as Firewall;
+              .findOneOrFail({ where: { id: data[field] } });
           }
         }
       }
@@ -480,12 +480,12 @@ export class KeepalivedRuleService extends Service {
       );
     } else {
       const group: KeepalivedGroup = (
-        (await this._repository.findOne({
+        await this._repository.findOne({
           where: {
             id: ids[0],
           },
           relations: ['group'],
-        })) as KeepalivedRule
+        })
       ).group;
       if (data.group !== undefined && group && group.rules.length - ids.length < 1) {
         await this._groupService.remove({ id: group.id });

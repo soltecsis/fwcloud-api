@@ -232,7 +232,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         await this.refreshOrders(keepalivedRule.firewallId);
       }
     } else if (result && Array.isArray(result) && result.length > 0) {
-      const keepalivedRule = result[0] as KeepalivedRule;
+      const keepalivedRule = result[0];
       if (keepalivedRule.group) {
         await this.refreshOrders(keepalivedRule.firewallId);
       }

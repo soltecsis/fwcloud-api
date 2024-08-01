@@ -234,8 +234,7 @@ describe(KeepalivedRuleService.name, () => {
 
       expect(getLastKeepalivedRuleInFirewallStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
-      expect(moveRuleStub.calledOnceWith([expectedRule.id], data.to, data.offset as Offset)).to.be
-        .true;
+      expect(moveRuleStub.calledOnceWith([expectedRule.id], data.to, data.offset)).to.be.true;
       expect(result).to.deep.equal(expectedRule);
 
       getLastKeepalivedRuleInFirewallStub.restore();
