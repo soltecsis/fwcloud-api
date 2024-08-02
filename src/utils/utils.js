@@ -28,6 +28,8 @@ module.exports = utilsModel;
 import db from '../database/database-manager';
 import { Firewall } from '../models/firewall/Firewall';
 import { logger } from '../fonaments/abstract-application';
+import console from 'console';
+import { Buffer } from 'buffer';
 const config = require('../config/config');
 var crypto = require('crypto');
 const fs = require('fs');
@@ -99,50 +101,69 @@ utilsModel.checkFirewallAccessTree = (iduser, fwcloud, firewall) => {
 	});
 };
 
-utilsModel.encrypt = (text) =>  {
+utilsModel.encrypt = (text) => {
 	return new Promise((resolve, reject) => {
 		try {
-			var cipher = crypto.createCipher(config.get('crypt').algorithm, config.get('crypt').secret);
-			var crypted = cipher.update(text, 'utf8', 'hex');
-			crypted += cipher.final('hex');
-			resolve(crypted);
+			if (text) {
+				var cipher = crypto.createCipheriv(config.get('crypt').algorithm, config.get('crypt').secret);
+				var crypted = cipher.update(text, 'utf8', 'hex');
+				crypted += cipher.final('hex');
+				resolve(crypted);
+			} else {
+				resolve('');
+			}
 		} catch (e) {
 			resolve(text);
 		}
 	});
 };
 utilsModel.decrypt = (text) => {
-	var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
-	var dec = decipher.update(text, 'hex', 'utf8');
-	dec += decipher.final('utf8');
-	return dec;
+	try {
+		console.log('decrypting: ' + text);
+		if (text) {
+			var decipher = crypto.createDecipheriv(config.get('crypt').algorithm, config.get('crypt').secret);
+			var dec = decipher.update(text, 'hex', 'utf8');
+			dec += decipher.final('utf8');
+			return dec;
+		} else {
+			return '';
+		}
+	} catch (e) {
+		console.error("Error during decryption:", e);
+		return null;
+	}
 };
 
 utilsModel.decryptFirewallData = (data) => {
 	return new Promise((resolve, reject) => {
 		try {
-			logger().debug("DENTRO de decryptDataUserPass");
-			if (data.install_user !== null) {
-				logger().debug("DECRYPT USER: ", data.install_user);
-				var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
+			const algorithm = config.get('crypt').algorithm;
+			const secretKey = Buffer.from(config.get('crypt').secret, 'hex');
+			const iv = Buffer.from(config.get('crypt').iv,'hex');
+
+			if (data.install_user && data.install_user !== '') {
+				var decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
 				var decUser = decipher.update(data.install_user, 'hex', 'utf8');
 				decUser += decipher.final('utf8');
 				data.install_user = decUser;
 			}
-			if (data.install_pass !== null) {
-				logger().debug("DECRYPT PASS: ", data.install_pass);
-				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
+			if (data.install_pass && data.install_pass !== '') {
+				var decipherPass = crypto.createDecipheriv(algorithm, secretKey, iv);
 				var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
 				decPass += decipherPass.final('utf8');
 				data.install_pass = decPass;
 			}
-
-			if (data.install_apikey !== null) {
-				logger().debug("DECRYPT PASS: ", data.install_apikey);
-				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
-				var decPass = decipherPass.update(data.install_apikey, 'hex', 'utf8');
-				decPass += decipherPass.final('utf8');
-				data.install_apikey = decPass;
+			console.log("data.install_apikey",data.install_apikey);
+			console.log(data.install_apikey && data.install_apikey !== '')
+			if (data.install_apikey && data.install_apikey !== '') {
+				var decipherApikey = crypto.createDecipheriv(algorithm, secretKey, iv);
+				console.log("decipherApikey",decipherApikey);
+				var decApikey = decipherApikey.update(data.install_apikey, 'hex', 'utf8');
+				console.log("decApikey",decApikey);
+				decApikey += decipherApikey.final('utf8');
+				console.log("decApikey",decApikey);
+				data.install_apikey = decApikey;
+				console.log("data.install_apikey",data.install_apikey);
 			}
 
 			resolve(data);
@@ -151,7 +172,6 @@ utilsModel.decryptFirewallData = (data) => {
 		}
 	});
 };
-
 
 utilsModel.getDbConnection = () => {
 	return new Promise((resolve, reject) => {

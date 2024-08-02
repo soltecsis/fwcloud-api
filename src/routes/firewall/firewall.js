@@ -383,7 +383,7 @@ router.put('/get', async (req, res) => {
 			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
 			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
 			if (data.install_apikey !== null) data.install_apikey = await pgp.encrypt(data.install_apikey);
-
+			console.log(data)
 			res.status(200).json(data);
 		}
 		else
