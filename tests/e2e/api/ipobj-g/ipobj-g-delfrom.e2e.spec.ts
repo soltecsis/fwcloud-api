@@ -189,7 +189,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect((response.body as any).fwcErr).to.eq(5001);
+            expect(response.body.fwcErr).to.eq(5001);
           });
       });
     });
@@ -211,7 +211,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect((response.body as any).fwcErr).to.eq(5001);
+            expect(response.body.fwcErr).to.eq(5001);
           });
       });
     });
@@ -242,7 +242,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -262,7 +262,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -290,7 +290,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -310,7 +310,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -338,7 +338,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -358,7 +358,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -386,7 +386,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -406,7 +406,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -434,7 +434,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -454,7 +454,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -498,7 +498,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect((response.body as any).fwcErr).to.eq(5001);
+            expect(response.body.fwcErr).to.eq(5001);
           });
       });
     });
@@ -520,7 +520,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect((response.body as any).fwcErr).to.eq(5001);
+            expect(response.body.fwcErr).to.eq(5001);
           });
       });
     });
@@ -551,7 +551,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -571,7 +571,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -599,7 +599,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -619,7 +619,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -647,7 +647,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -667,7 +667,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -695,7 +695,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -715,7 +715,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -743,7 +743,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -763,7 +763,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -807,7 +807,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect((response.body as any).fwcErr).to.eq(5001);
+            expect(response.body.fwcErr).to.eq(5001);
           });
       });
     });
@@ -829,7 +829,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect((response.body as any).fwcErr).to.eq(5001);
+            expect(response.body.fwcErr).to.eq(5001);
           });
       });
     });
@@ -860,7 +860,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -880,7 +880,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -908,7 +908,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -928,7 +928,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -956,7 +956,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -976,7 +976,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1004,7 +1004,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -1024,7 +1024,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1052,7 +1052,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
 
@@ -1072,7 +1072,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1135,7 +1135,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1163,7 +1163,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1191,7 +1191,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1219,7 +1219,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
@@ -1247,7 +1247,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             .send(requestData)
             .expect(400)
             .then((response) => {
-              expect((response.body as any).fwcErr).to.eq(5001);
+              expect(response.body.fwcErr).to.eq(5001);
             });
         });
       });
