@@ -21,11 +21,12 @@
 */
 
 import { Middleware } from '../fonaments/http/middleware/Middleware';
-import fwcError from '../utils/error_table';
 import { User } from '../models/user/User';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../fonaments/abstract-application';
 import db from '../database/database-manager';
+
+const fwcError = require('../utils/error_table');
 
 export class Authorization extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction) {

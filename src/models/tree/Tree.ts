@@ -346,7 +346,7 @@ export class Tree extends Model {
         if (error) return reject(error);
 
         for (let i = 0; i < ipobjs.length; i++) {
-          const node: TreeNode = <TreeNode>nodesMap.get(ipobjs[i].id);
+          const node: TreeNode = nodesMap.get(ipobjs[i].id);
           delete ipobjs[i].id;
           Object.assign(node, ipobjs[i]);
         }

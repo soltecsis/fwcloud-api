@@ -177,7 +177,7 @@ export class ResponseBuilder {
 
       this._response.set(
         'Content-disposition',
-        'attachment; filename=' + this._attachment.filename ?? 'file.text',
+        'attachment; filename=' + (this._attachment.filename ?? 'file.text'),
       );
       this._response.set('Content-Type', 'text/plain');
 

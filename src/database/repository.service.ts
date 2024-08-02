@@ -32,7 +32,10 @@ import { PolicyGroupRepository } from '../repositories/PolicyGroupRepository';
 import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
 import { OpenVPNRepository } from '../models/vpn/openvpn/openvpn-repository';
 
-type RepositoryMapItem = { entityClass: Function; repository: Function };
+type RepositoryMapItem = {
+  entityClass: new (...args: any[]) => any;
+  repository: new (...args: any[]) => any;
+};
 export class RepositoryService extends Service {
   protected _databaseService: DatabaseService;
 
@@ -83,7 +86,7 @@ export class RepositoryService extends Service {
 
   protected getCustomRepositoryFor<Entity>(
     entityClass: ObjectType<Entity> | EntitySchema<Entity> | string,
-  ): Function {
+  ): new (...args: any[]) => any {
     const matches: Array<RepositoryMapItem> = this._customRepositories.filter(
       (item: RepositoryMapItem) => {
         return item.entityClass === entityClass;

@@ -248,7 +248,7 @@ export class OpenVPNService extends Service {
             'message',
             new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`),
           );
-          // eslint-disable-next-line no-constant-condition
+
           while (true) {
             const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(
               expirationInSeconds,
