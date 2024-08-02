@@ -48,7 +48,8 @@ export class PgpHelper {
         const { privateKey, publicKey } = await openpgp.generateKey({
           userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
           rsaBits: rsaBits,
-          format: 'binary', // Change the format to 'binary'
+          type: 'rsa',
+          format: 'armored', // Change the format to 'binary'
         });
 
         if (!publicKey || !privateKey) return reject(fwcError.PGP_KEYS_GEN);
@@ -74,7 +75,7 @@ export class PgpHelper {
           encryptionKeys: publicKey,
         });
 
-        resolve(msgEncrypted.toString());
+        resolve(msgEncrypted);
       } catch (error) {
         reject(error);
       }
@@ -84,19 +85,17 @@ export class PgpHelper {
   public decrypt(msgEncrypted: string): Promise<string> {
     return new Promise(async (resolve, reject) => {
       try {
-        const privateKey = await openpgp.decryptKey({
-          privateKey: await openpgp.readPrivateKey({
-            armoredKey: this._privateKey,
-          }),
+        const privateKeyObject = await openpgp.readPrivateKey({
+          armoredKey: this._privateKey,
         });
 
         const msg = await openpgp.decrypt({
           message: await openpgp.readMessage({ armoredMessage: msgEncrypted }),
-          decryptionKeys: privateKey,
+          decryptionKeys: privateKeyObject,
         });
-
-        resolve(msg.data.toString());
+        resolve(msg.data);
       } catch (error) {
+        console.error('Error decrypting message:', error);
         reject(error);
       }
     });
