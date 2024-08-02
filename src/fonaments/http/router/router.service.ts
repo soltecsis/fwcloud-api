@@ -23,7 +23,7 @@
 import express from 'express';
 import { Service } from '../../services/service';
 import { Request, Response, NextFunction } from 'express';
-import { RouteCollection as RouteDefinition, RouteCollectionable } from './route-collection';
+import { RouteCollection as RouteDefinition } from './route-collection';
 import { RouterParser } from './router-parser';
 import { Route } from './route';
 import { AuthorizationException } from '../../exceptions/authorization-exception';
@@ -33,7 +33,6 @@ import { Validator } from '../../validation/validator';
 import { HttpException } from '../../exceptions/http/http-exception';
 import { getFWCloudMetadata } from '../../../metadata/metadata';
 import { HTTPApplication } from '../../http-application';
-import { CLIApplication } from '../../cli-application';
 import { ClassConstructor } from 'class-transformer';
 import { Routes } from '../../../routes/routes';
 
