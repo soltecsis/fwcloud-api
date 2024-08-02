@@ -14,9 +14,8 @@ const compat = new FlatCompat({
     allConfig: js.configs.all
 });
 
-module.exports = [{
-    ignores: ["**/dist/", "**/node_modules/", "**/lib/"],
-}, ...compat.extends(
+module.exports = [
+    ...compat.extends(
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
@@ -27,21 +26,21 @@ module.exports = [{
         "@typescript-eslint": typescriptEslintPlugin,
         "prettier": prettier,
     },
-
+    
     languageOptions: {
         globals: {
             ...globals.node,
         },
-
+        
         parser: tsParser,
         ecmaVersion: 5,
         sourceType: "module",
-
+        
         parserOptions: {
             project: "tsconfig.json",
         },
     },
-
+    
     rules: {
         "prettier/prettier": "error",
         "@typescript-eslint/interface-name-prefix": "off",
@@ -68,6 +67,7 @@ module.exports = [{
         "@typescript-eslint/no-unsafe-member-access": "off",
         "@typescript-eslint/prefer-promise-reject-errors": "off",
         "@typescript-eslint/no-require-imports": "off",
-
+        
     },
+    ignores: ["**/dist/", "**/node_modules/", "**/lib/"],
 }];

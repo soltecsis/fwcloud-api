@@ -20,7 +20,7 @@
     "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\"",
     "lint": "eslint \"{src,app,lib,tests}/**/*.ts\"",
     "lint:check": "npm run lint",
-    "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix",
+    "lint:fix": "npm run lint -- --fix",
     "prepare": "husky"
   },
   "dependencies": {
