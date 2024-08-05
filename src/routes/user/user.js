@@ -70,16 +70,16 @@ var bcrypt = require('bcryptjs');
  *   "msg": "Bad username or password"
  * } 
 */
-router.post('/login',async (req, res) => {
+router.post('/login', async (req, res) => {
 	// In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password 
 	// fields are mandatory.
 	try {
 		const data = await User.getUserName(req.body.customer, req.body.username);
-		if (data.length===0) {
-			req.session.destroy(err => {});
+		if (data.length === 0) {
+			req.session.destroy(err => { });
 			throw fwcError.BAD_LOGIN;
 		}
-		
+
 		// Validate credentials.
 		/* WARNING: As recommended in the bcrypt manual:
 		Why is async mode recommended over sync mode?
@@ -89,28 +89,28 @@ router.post('/login',async (req, res) => {
 		will block the event loop and prevent your application from servicing any other
 		inbound requests or events.
 		*/
-		if (await bcrypt.compare(req.body.customer+req.body.username+req.body.password, data[0].password)) {
+		if (await bcrypt.compare(req.body.customer + req.body.username + req.body.password, data[0].password)) {
 			// Return authorization token.
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
-			req.session.admin_role = await User.isLoggedUserAdmin(req); 
+			req.session.admin_role = await User.isLoggedUserAdmin(req);
 			req.session.keepalive_ts = Date.now();
 
-			const pgp = new PgpHelper; 
+			const pgp = new PgpHelper;
 			await pgp.init(config.get('session').pgp_rsa_bits);
 			req.session.pgp = {
 				public: pgp.publicKey,
 				private: pgp.privateKey
 			};
-			
-			// Store the fwcloud-ui session public key.
-                        req.session.uiPublicKey = req.body.publicKey;
 
-			if(!req.session.tfa){
-				res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
+			// Store the fwcloud-ui session public key.
+			req.session.uiPublicKey = req.body.publicKey;
+
+			if (!req.session.tfa) {
+				res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey });
 			} else {
-				if(!req.headers['x-tfa']) {
+				if (!req.headers['x-tfa']) {
 					throw fwcError.BAD_LOGIN;
 				} else {
 
@@ -119,19 +119,19 @@ router.post('/login',async (req, res) => {
 						encoding: 'base32',
 						token: req.headers['x-tfa']
 					});
-					if(isVerified) {
-						res.status(200).json({"user":req.session.user_id,"role":data[0].role,"publicKey":pgp.publicKey,"tfa":req.session.tfa});
+					if (isVerified) {
+						res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey, "tfa": req.session.tfa });
 					} else {
 						throw fwcError.BAD_LOGIN;
 					}
 				}
 			}
 		} else {
-			req.session.destroy(err => {} );
+			req.session.destroy(err => { });
 			throw fwcError.BAD_LOGIN;
 		}
-	} catch(error) {
-		logger().error(`Login error${error.message ? `: ${error.message}`: '.'}`);
+	} catch (error) {
+		logger().error(`Login error${error.message ? `: ${error.message}` : '.'}`);
 		res.status(401).json(error);
 	}
 });
