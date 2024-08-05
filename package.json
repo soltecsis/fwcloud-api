@@ -20,8 +20,8 @@
     "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\"",
     "lint": "eslint \"{src,app,lib,tests}/**/*.ts\"",
     "lint:check": "npm run lint",
-    "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix",
-    "prepare": "husky install",
+    "lint:fix": "npm run lint -- --fix",
+    "prepare": "husky",
     "dev": "nodemon --watch src --exec \"npm run build && node dist/src/bin/fwcloud\""
   },
   "dependencies": {
@@ -99,9 +99,9 @@
     "globals": "^15.9.0",
     "husky": "^9.1.4",
     "lint-staged": "^15.2.7",
-    "mocha": "^10.6.0",
+    "mocha": "^10.7.0",
     "nodemon": "^3.1.4",
-    "prettier": "^3.3.2",
+    "prettier": "^3.3.3",
     "sinon": "18.0.0",
     "supertest": "7.0.0",
     "typescript": "^5.5.3"
