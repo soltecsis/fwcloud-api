@@ -25,7 +25,7 @@
 var duplicityCheck = {};
 //Export the object
 module.exports = duplicityCheck;
-import {subnet, cidrSubnet} from '../utils/ip-utils'
+import { IpUtils } from '../utils/ip-utils';
 
 const fwcError = require('../utils/error_table');
 
@@ -90,10 +90,10 @@ duplicityCheck.ipobj = (req, res, next) => {
 				if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
 					// We have two formats for the netmask (for example, 255.255.255.0 or /24).
 					// We have to check if the object already exist independently of the netmask format.
-					const net1 = (req.body.netmask[0]==='/') ? cidrSubnet(`${req.body.address}${req.body.netmask}`) : subnet(req.body.address, req.body.netmask);
+					const net1 = (req.body.netmask[0]==='/') ? IpUtils.cidrSubnet(`${req.body.address}${req.body.netmask}`) : IpUtils.subnet(req.body.address, req.body.netmask);
 					let net2 = {};
 					for (let row of rows) {
-						net2 = (row.netmask[0] === '/') ? cidrSubnet(`${row.address}${row.netmask}`) : subnet(row.address, row.netmask);
+						net2 = (row.netmask[0] === '/') ? IpUtils.cidrSubnet(`${row.address}${row.netmask}`) : IpUtils.subnet(row.address, row.netmask);
 						if (net1.subnetMaskLength===net2.subnetMaskLength)
 							throw fwcError.ALREADY_EXISTS;
 					}

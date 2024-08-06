@@ -24,7 +24,7 @@ import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
 import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
 import { FireWallOptMask } from '../../models/firewall/Firewall';
-import { subnet } from '../../utils/ip-utils';
+import { IpUtils } from '../../utils/ip-utils';
 
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -350,7 +350,7 @@ export abstract class PolicyCompilerTools {
           if (sd[i].netmask[0] === '/')
             cmpPos.items.push(`${opt} ${sd[i].address}${sd[i].netmask}`);
           else {
-            const net = subnet(sd[i].address, sd[i].netmask);
+            const net = IpUtils.subnet(sd[i].address, sd[i].netmask);
             cmpPos.items.push(`${opt} ${sd[i].address}/${net.subnetMaskLength}`);
           }
         } else if (sd[i].type === 6) {

@@ -25,7 +25,7 @@ import { RouteData } from '../../models/routing/routing-table/routing-table.serv
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import { RoutingRulesData } from '../../models/routing/routing-rule/routing-rule.service';
-import { subnet, toLong, fromLong } from '../../utils/ip-utils';
+import { IpUtils } from '../../utils/ip-utils';
 
 export type RoutingCompiled = {
   id: number;
@@ -121,7 +121,7 @@ export class RoutingCompiler {
           if (items[i].netmask[0] === '/')
             result.push(`${dir}${items[i].address}${items[i].netmask}`);
           else {
-            const net = subnet(items[i].address, items[i].netmask);
+            const net = IpUtils.subnet(items[i].address, items[i].netmask);
             result.push(`${dir}${items[i].address}/${net.subnetMaskLength}`);
           }
           break;
@@ -129,10 +129,10 @@ export class RoutingCompiler {
 
         case 6: {
           // ADDRESS RANGE
-          const firstLong = toLong(items[i].range_start);
-          const lastLong = toLong(items[i].range_end);
+          const firstLong = IpUtils.toLong(items[i].range_start);
+          const lastLong = IpUtils.toLong(items[i].range_end);
           for (let current = firstLong; current <= lastLong; current++)
-            result.push(`${dir}${fromLong(current)}`);
+            result.push(`${dir}${IpUtils.fromLong(current)}`);
           break;
         }
 
