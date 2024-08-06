@@ -42,8 +42,8 @@ import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_r-to-ipobj';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
+import { subnet, cidrSubnet } from '../../utils/ip-utils';
 
-const ip = require('ip');
 const asyncMod = require('async');
 const host_Data = require('../../models/data/data_ipobj_host');
 const interface_Data = require('../../models/data/data_interface');
@@ -1695,13 +1695,13 @@ export class IPObj extends Model {
 
         // We have two formats for the netmask (for example, 255.255.255.0 or /24).
         // We have to check if the object already exist independently of the netmask format.
-        const net1 = ip.cidrSubnet(`${addr}/${mask}`);
+        const net1 = cidrSubnet(`${addr}/${mask}`);
         let net2: any = {};
         for (const row of rows) {
           net2 =
             row.netmask[0] === '/'
-              ? ip.cidrSubnet(`${row.address}${row.netmask}`)
-              : ip.subnet(row.address, row.netmask);
+              ? cidrSubnet(`${row.address}${row.netmask}`)
+              : subnet(row.address, row.netmask);
           if (net1.subnetMaskLength === net2.subnetMaskLength) resolve(row.id);
         }
 

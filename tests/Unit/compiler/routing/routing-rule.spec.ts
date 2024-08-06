@@ -25,7 +25,7 @@ import { RoutingCompiled, RoutingCompiler } from '../../../../src/compiler/routi
 import { RoutingRuleItemForCompiler } from '../../../../src/models/routing/shared';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import ip from 'ip';
+import { subnet, toLong, fromLong } from '../../../../src/utils/ip-utils';
 import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
@@ -78,7 +78,7 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include network data', () => {
-      const net = ip.subnet(
+      const net = subnet(
         fwc.ipobjs.get('networkNoCIDR').address,
         fwc.ipobjs.get('networkNoCIDR').netmask,
       );
@@ -91,10 +91,10 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
@@ -130,7 +130,7 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include network data', () => {
-      const net = ip.subnet(
+      const net = subnet(
         fwc.ipobjs.get('networkNoCIDR').address,
         fwc.ipobjs.get('networkNoCIDR').netmask,
       );
@@ -145,10 +145,10 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${fromLong(current)} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
@@ -198,10 +198,10 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
@@ -241,10 +241,10 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${fromLong(current)} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
