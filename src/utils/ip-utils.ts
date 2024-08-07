@@ -1,7 +1,8 @@
 import ipaddr from 'ipaddr.js';
 
+type FamilyType = 'ipv4' | 'ipv6';
 export class IpUtils {
-  protected static toBuffer(ip: string, buff?: Buffer, offset: number = 0): Buffer {
+  public static toBuffer(ip: string, buff?: Buffer, offset: number = 0): Buffer {
     const address = ipaddr.parse(ip);
     const bytes = address.toByteArray();
     const result = buff || Buffer.alloc(offset + bytes.length);
@@ -13,7 +14,15 @@ export class IpUtils {
     return result;
   }
 
-  public static fromPrefixLen(prefixlen: number, family?: string): string {
+  public static fromPrefixLen(prefixlen: number, family?: FamilyType): string {
+    if (
+      isNaN(prefixlen) ||
+      prefixlen < 1 ||
+      prefixlen > 128 ||
+      (family === 'ipv4' && prefixlen > 32)
+    ) {
+      throw new Error('ipaddr: Invalid prefix');
+    }
     if (prefixlen > 32) {
       family = 'ipv6';
     } else {
@@ -37,12 +46,11 @@ export class IpUtils {
     return address.toString();
   }
 
-  protected static mask(addr: string, mask: string): string {
+  public static mask(addr: string, mask: string): string {
     const address = ipaddr.parse(addr);
     const netmask = ipaddr.parse(mask);
-
     if (address.kind() !== netmask.kind()) {
-      throw new Error('Address and mask must be of the same kind.');
+      throw new Error('ipaddr: address and mask must be of the same kind');
     }
 
     const addressBytes = address.toByteArray();
@@ -58,8 +66,10 @@ export class IpUtils {
   }
 
   public static subnet(addr: string, maskStr: string) {
+    if (!ipaddr.isValid(addr) || !ipaddr.isValid(maskStr)) {
+      throw new Error('ipaddr: invalid address or mask');
+    }
     const networkAddress = IpUtils.toLong(IpUtils.mask(addr, maskStr));
-
     const maskBuffer = IpUtils.toBuffer(maskStr);
     let maskLength = 0;
 
@@ -99,18 +109,21 @@ export class IpUtils {
   }
 
   public static cidrSubnet(cidrString: string) {
+    if (!ipaddr.isValidCIDR(cidrString)) {
+      throw new Error('ipaddr: invalid CIDR subnet');
+    }
     const cidrParts = cidrString.split('/');
 
     const addr = cidrParts[0];
-    if (cidrParts.length !== 2) {
-      throw new Error(`invalid CIDR subnet: ${addr}`);
-    }
 
     const mask = IpUtils.fromPrefixLen(parseInt(cidrParts[1], 10));
     return IpUtils.subnet(addr, mask);
   }
 
   public static toLong(ip: string): number {
+    if (!ipaddr.isValid(ip)) {
+      throw new Error('ipaddr: invalid IP address');
+    }
     let ipl = 0;
     ip.split('.').forEach((octet) => {
       ipl <<= 8;
@@ -120,6 +133,9 @@ export class IpUtils {
   }
 
   public static fromLong(ipl: number): string {
-    return `${ipl >>> 24}.${(ipl >> 16) & 255}.${(ipl >> 8) & 255}.${ipl & 255}`;
+    if (ipl < 0 || ipl > 4294967295) {
+      throw new Error('ipaddr: invalid integer');
+    }
+    return [(ipl >>> 24) & 0xff, (ipl >>> 16) & 0xff, (ipl >>> 8) & 0xff, ipl & 0xff].join('.');
   }
 }
