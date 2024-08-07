@@ -48,9 +48,9 @@ import { RouteToOpenVPN } from '../../routing/route/route-to-openvpn.model';
 import { RoutingRuleToOpenVPN } from '../../routing/routing-rule/routing-rule-to-openvpn.model';
 import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
+import { IpUtils } from '../../../utils/ip-utils';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
-const ip = require('ip');
 
 const tableName: string = 'openvpn';
 
@@ -448,7 +448,7 @@ export class OpenVPN extends Model {
                   // Network
                   const netmask =
                     ipobj.netmask[0] === '/'
-                      ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
+                      ? IpUtils.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
                       : ipobj.netmask;
                   cfg_line += ' ' + ipobj.address + ' ' + netmask;
                 } else if (ipobj.type === 5) {
@@ -538,11 +538,11 @@ export class OpenVPN extends Model {
         const ipobj = result[0];
         const netmask =
           ipobj.netmask[0] === '/'
-            ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
+            ? IpUtils.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
             : ipobj.netmask;
-        const net = ip.subnet(ipobj.address, netmask);
-        net.firstLong = ip.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
-        net.lastLong = ip.toLong(net.lastAddress);
+        const net = IpUtils.subnet(ipobj.address, netmask);
+        const firstLong = IpUtils.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
+        const lastLong = IpUtils.toLong(net.lastAddress);
 
         // Obtain the VPN LAN used IPs.
         sql = `select OBJ.address from openvpn VPN
@@ -554,15 +554,15 @@ export class OpenVPN extends Model {
 
           let freeIPLong;
           let found;
-          for (freeIPLong = net.firstLong; freeIPLong <= net.lastLong; freeIPLong++) {
+          for (freeIPLong = firstLong; freeIPLong <= lastLong; freeIPLong++) {
             found = 0;
             for (const ipCli of result) {
-              if (freeIPLong === ip.toLong(ipCli.address)) {
+              if (freeIPLong === IpUtils.toLong(ipCli.address)) {
                 found = 1;
                 break;
               }
             }
-            if (!found) return resolve({ ip: ip.fromLong(freeIPLong), netmask: netmask });
+            if (!found) return resolve({ ip: IpUtils.fromLong(freeIPLong), netmask: netmask });
           }
           reject(fwcError.other('There are no free VPN IPs'));
         });
@@ -915,7 +915,7 @@ export class OpenVPN extends Model {
                 );
                 if (ipobj.type === 7) {
                   // Network
-                  const net = ip.subnet(ipobj.address, ipobj.netmask);
+                  const net = IpUtils.subnet(ipobj.address, ipobj.netmask);
 
                   const ipobjData = {
                     id: null,

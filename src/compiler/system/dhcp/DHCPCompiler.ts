@@ -22,7 +22,7 @@
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { DHCPRulesData } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleItemForCompiler } from '../../../models/system/dhcp/shared';
-import ip from 'ip';
+import { IpUtils } from '../../../utils/ip-utils';
 import { ProgressNoticePayload } from '../../../sockets/messages/socket-message';
 
 export type DHCPCompiled = {
@@ -43,7 +43,7 @@ export class DHCPCompiler {
         cs += `subnet ${ruleData.network.address} netmask ${this.convertToNetmask(ruleData.network.netmask)} {\n`;
         cs += `\toption subnet-mask ${this.convertToNetmask(ruleData.network.netmask)};\n`;
         cs += `\toption routers ${ruleData.router.address};\n`;
-        cs += `\toption broadcast-address ${ip.subnet(ruleData.network.address, this.convertToNetmask(ruleData.network.netmask)).broadcastAddress};\n`;
+        cs += `\toption broadcast-address ${IpUtils.subnet(ruleData.network.address, this.convertToNetmask(ruleData.network.netmask)).broadcastAddress};\n`;
         if (ruleData.items && ruleData.items.length > 0) {
           cs += `\toption domain-name-servers `;
           for (let i: number = 0; i < ruleData.items.length - 1; i++) {
@@ -118,7 +118,7 @@ export class DHCPCompiler {
     if (mask.includes('.')) {
       return mask;
     } else if (mask.includes('/')) {
-      return ip.fromPrefixLen(parseInt(mask.split('/')[1], 10));
+      return IpUtils.fromPrefixLen(parseInt(mask.split('/')[1], 10));
     }
   }
 }

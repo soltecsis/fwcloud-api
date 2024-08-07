@@ -26,7 +26,7 @@ import { RoutingTableService } from '../../../../src/models/routing/routing-tabl
 import { RouteItemForCompiler } from '../../../../src/models/routing/shared';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import ip from 'ip';
+import { IpUtils } from '../../../../src/utils/ip-utils';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 
@@ -102,7 +102,7 @@ describe('Routing route compiler', async () => {
     });
 
     it('should include network data', () => {
-      const net = ip.subnet(
+      const net = IpUtils.subnet(
         fwc.ipobjs.get('networkNoCIDR').address,
         fwc.ipobjs.get('networkNoCIDR').netmask,
       );
@@ -115,10 +115,10 @@ describe('Routing route compiler', async () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
@@ -151,7 +151,7 @@ describe('Routing route compiler', async () => {
     });
 
     it('should include network data', () => {
-      const net = ip.subnet(
+      const net = IpUtils.subnet(
         fwc.ipobjs.get('networkNoCIDR').address,
         fwc.ipobjs.get('networkNoCIDR').netmask,
       );
@@ -166,10 +166,10 @@ describe('Routing route compiler', async () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
@@ -214,10 +214,10 @@ describe('Routing route compiler', async () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
@@ -254,10 +254,10 @@ describe('Routing route compiler', async () => {
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
