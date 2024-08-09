@@ -7,21 +7,17 @@ import { Tree } from '../../../../src/models/tree/Tree';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import StringHelper from '../../../../src/utils/string.helper';
 import { User } from '../../../../src/models/user/User';
-import { createUser, generateSession, attachSession, sleep } from '../../../utils/utils';
+import { createUser, generateSession, attachSession } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
-import fwc_tree_node = require('../../../../src/models/tree/node');
-import { FwcTree } from '../../../../src/models/tree/fwc-tree.model';
 import db from '../../../../src/database/database-manager';
 
 describe(describeName('Ipobj duplicity E2E Tests'), () => {
   let app: Application;
   let fwCloud: FwCloud;
-  let fwcTree: Tree;
   let fwcTreeNode;
   let adminUser: User;
   let adminUserSessionId: string;
   let regularUser: User;
-  let regularUserSessionId: string;
   let requestData: any;
 
   const ipobjCreationSchema = {
