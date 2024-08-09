@@ -91,7 +91,7 @@
     "busboy": "^1.6.0",
     "chai": "4.5.0",
     "chai-as-promised": "7.1.2",
-    "chai-json-schema": "^1.5.1",
+    "chai-json-schema-ajv": "^5.2.4",
     "cookie-signature": "1.2.1",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^9.1.0",
