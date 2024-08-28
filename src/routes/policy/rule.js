@@ -261,6 +261,7 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
+		console.log('MOVE: ', req.body);
 		let pasteOnRuleId = req.body.pasteOnRuleId;
 
 		// The rule over which we move cat rules can not be part of the moved rules.
@@ -402,19 +403,22 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			const policyGroupRepository = new PolicyGroupRepository(db.getSource().manager);
 			
 			if (pasteOffset != 0 && moveRule.idgroup) {
-				const policyGroup = await db.getSource().manager.getRepository(policyGroupRepository).findOne(moveRule.idgroup);
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}});
 				if (policyGroup) {
-					await db.getSource().manager.getRepository(policyGroupRepository).deleteIfEmpty(policyGroup);
+					await policyGroupRepository.deleteIfEmpty(policyGroup);
 				}
 			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
-				const policyGroup = await await db.getSource().manager.getRepository(policyGroupRepository).findOne(moveRule.idgroup, { relations: ['policyRules'] });
-				if (policyGroup.policyRules.length < 1) {
-					await db.getSource().manager.getRepository(policyGroupRepository).delete({ id: policyGroup.id });
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: ['policyRules'] });
+				if (policyGroup.policyRules && policyGroup.policyRules.length < 1) {
+					await policyGroupRepository.delete({ id: policyGroup.id });
 				}
 			}
 
 			resolve();
-		} catch (error) { return reject(error) }
+		} catch (error) { 
+			console.log('ERROR: ', error);
+			return reject(error)
+		}
 	});
 }
 
