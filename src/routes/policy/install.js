@@ -53,7 +53,7 @@ var router = express.Router();
  * @property PolicyScript
  * @type ../../models/compile/
  */
-import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
+import { Firewall } from '../../models/firewall/Firewall';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
@@ -65,7 +65,7 @@ import db from '../../database/database-manager';
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res, next) => {
   try {
-    const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail(req.body.firewall);
+    const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
     let nodeId = firewall.id;
     if (firewall.clusterId && firewall.clusterId > 0) {
       const masterNode = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')

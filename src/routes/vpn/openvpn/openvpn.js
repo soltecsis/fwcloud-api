@@ -312,7 +312,7 @@ router.put('/install', async(req, res, next) => {
 		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail(req.body.firewall);
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
 		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		
 		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
@@ -365,7 +365,7 @@ router.put('/install', async(req, res, next) => {
  */
 router.put('/uninstall', async(req, res, next) => {
 	try {
-		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail(req.body.firewall);
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
@@ -550,7 +550,7 @@ router.put('/status/get', async(req, res, next) => {
 
 		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
 			communication = new SSHCommunication({
-				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await db.getSource().manager.getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await db.getSource().manager.getRepository(IPObj).findOneOrFail({where: {id: firewall.install_ipobj}})).address,
 				port: Object.prototype.hasOwnProperty.call(req.body, "port") ? req.body.port : firewall.install_port,
 				username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? req.body.sshuser : utilsModel.decrypt(firewall.install_user),
 				password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? req.body.sshpass : utilsModel.decrypt(firewall.install_pass),

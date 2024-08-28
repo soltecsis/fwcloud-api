@@ -33,6 +33,7 @@ import { In } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
+import db from '../../database/database-manager';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -42,7 +43,7 @@ router.post("/",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	//Create New objet with data policy_r
-	var policy_rData = {
+	const policy_rData = {
 		id: null,
 		idgroup: req.body.idgroup,
 		firewall: req.body.firewall,
@@ -75,7 +76,7 @@ router.put('/',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	//Save data into object
-	var policy_rData = {
+	const policy_rData = {
 		id: req.body.rule,
 		idgroup: req.body.idgroup,
 		firewall: req.body.firewall,
@@ -202,8 +203,8 @@ async (req, res) => {
 router.put('/active',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
-	rules = await policyRuleRepository.find({
+	const policyRuleRepository = new PolicyRuleRepository(db.getSource().manager);
+	const rules = await policyRuleRepository.find({
 		where: {
 			id: In(req.body.rulesIds),
 			firewallId: req.body.firewall,
@@ -226,9 +227,9 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
-	var style = req.body.style;
-	var policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
+	const policyRuleRepository = new PolicyRuleRepository(db.getSource().manager);
+	const style = req.body.style;
+	const policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
 
 	try {
 		await policyRuleRepository.updateStyle(policyRules, style);
@@ -260,6 +261,7 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
+		console.log('MOVE: ', req.body);
 		let pasteOnRuleId = req.body.pasteOnRuleId;
 
 		// The rule over which we move cat rules can not be part of the moved rules.
@@ -389,7 +391,7 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				new_order = moveRule.rule_order;
 
 			//Update the moved rule data
-			var policy_rData = {
+			const policy_rData = {
 				id: rule,
 				idgroup: pasteOnRule.idgroup,
 				rule_order: new_order
@@ -398,20 +400,25 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 
 
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
+			const policyGroupRepository = new PolicyGroupRepository(db.getSource().manager);
+			
 			if (pasteOffset != 0 && moveRule.idgroup) {
-				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup);
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}});
 				if (policyGroup) {
-					await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
+					await policyGroupRepository.deleteIfEmpty(policyGroup);
 				}
 			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
-				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup, { relations: ['policyRules'] });
-				if (policyGroup.policyRules.length < 1) {
-					await getCustomRepository(PolicyGroupRepository).delete({ id: policyGroup.id });
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: ['policyRules'] });
+				if (policyGroup.policyRules && policyGroup.policyRules.length < 1) {
+					await policyGroupRepository.delete({ id: policyGroup.id });
 				}
 			}
 
 			resolve();
-		} catch (error) { return reject(error) }
+		} catch (error) { 
+			console.log('ERROR: ', error);
+			return reject(error)
+		}
 	});
 }
 
