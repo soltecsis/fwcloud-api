@@ -147,7 +147,7 @@ router.put("/rules/del", async (req, res) => {
 	try {
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
-		const policyGroup = await db.getSource().manager.getRepository(PolicyGroup).findOne(req.body.id);
+		const policyGroup = await db.getSource().manager.getRepository(PolicyGroup).findOne({where: {id: req.body.id}});
 		if (policyGroup) {
 			await new PolicyGroupRepository(db.getSource().manager).deleteIfEmpty(policyGroup);
 		}
@@ -170,7 +170,7 @@ async function removeRules(idfirewall, idgroup, rulesIds) {
 
 async function ruleRemove(ruleidfirewall, idgroup, rule) {
 	return new Promise(async (resolve, reject) => {
-		let policyRule = await db.getSource().manager.getRepository(PolicyRule).findOne(rule);
+		let policyRule = await db.getSource().manager.getRepository(PolicyRule).findOne({where: {id: rule}});
 		
 		if(policyRule) {
 			policyRule = await new PolicyRuleRepository(db.getSource().manager).assignToGroup(policyRule, null);
