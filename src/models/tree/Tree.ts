@@ -300,7 +300,6 @@ export class Tree extends Model {
 
           resolve(rootNode);
         } catch (error) {
-          console.log('ERROR DUMPTREE: ', error);
           reject(error);
         }
       });
