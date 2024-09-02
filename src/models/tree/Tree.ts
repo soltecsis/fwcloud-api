@@ -268,15 +268,15 @@ export class Tree extends Model {
               // Include data for OpenVpn Nodes Server
               if (nodes[i].node_type == 'OSR' || nodes[i].node_type == 'OCL') {
                 nodes[i] = await this.addSearchInfoOpenVPN(nodes[i]);
-              }
-
-              // Add the current node children array to the map.
+              } // Add the current node children array to the map.
               nodes[i].children = [];
               childrenArrayMap.set(nodes[i].id, nodes[i].children);
 
               // Add the current node to the children array of its parent node.
               const parentChildren: TreeNode[] = childrenArrayMap.get(nodes[i].pid);
-              parentChildren.push(nodes[i]);
+              if (parentChildren !== undefined) {
+                parentChildren.push(nodes[i]);
+              }
             }
           }
 
