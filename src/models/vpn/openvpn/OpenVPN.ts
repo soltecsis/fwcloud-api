@@ -625,22 +625,24 @@ export class OpenVPN extends Model {
             search.restrictions.OpenvpnInGroupInRule.push(...data.restrictions.GroupInRule);
           }
 
-          // Include the rules that use prefixes in which the OpenVPN is being used, including the
-          // groups (used in rules) in which these prefixes are being used.
-          const prefixes = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
-          search.restrictions.OpenvpnInPrefixInRule = [];
-          search.restrictions.OpenvpnInPrefixInGroupInRule = [];
-          for (let i = 0; i < prefixes.length; i++) {
-            const data: any = await OpenVPNPrefix.searchPrefixUsage(
-              dbCon,
-              fwcloud,
-              prefixes[i].id,
-              true,
-            );
-            search.restrictions.OpenvpnInPrefixInRule.push(...data.restrictions.PrefixInRule);
-            search.restrictions.OpenvpnInPrefixInGroupInRule.push(
-              ...data.restrictions.PrefixInGroupInRule,
-            );
+          if (search.restrictions.LastOpenvpnInPrefixInRule.length == 0) {
+            // Include the rules that use prefixes in which the OpenVPN is being used, including the
+            // groups (used in rules) in which these prefixes are being used.
+            const prefixes = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
+            search.restrictions.OpenvpnInPrefixInRule = [];
+            search.restrictions.OpenvpnInPrefixInGroupInRule = [];
+            for (let i = 0; i < prefixes.length; i++) {
+              const data: any = await OpenVPNPrefix.searchPrefixUsage(
+                dbCon,
+                fwcloud,
+                prefixes[i].id,
+                true,
+              );
+              search.restrictions.OpenvpnInPrefixInRule.push(...data.restrictions.PrefixInRule);
+              search.restrictions.OpenvpnInPrefixInGroupInRule.push(
+                ...data.restrictions.PrefixInGroupInRule,
+              );
+            }
           }
         }
 
