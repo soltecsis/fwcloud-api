@@ -195,8 +195,11 @@ export class OpenVPNPrefix extends Model {
 
         const matches: { id: number; name: string }[] = [];
         for (let i = 0; i < result.length; i++) {
-          const pattern = new RegExp('^' + result[i].name);
-          if (pattern.test(result[i].cn)) matches.push({ id: result[i].id, name: result[i].name });
+          const pattern = new RegExp('^' + result[i].name, 'i');
+
+          if (pattern.test(result[i].cn)) {
+            matches.push({ id: result[i].id, name: result[i].name });
+          }
         }
 
         resolve(matches);
