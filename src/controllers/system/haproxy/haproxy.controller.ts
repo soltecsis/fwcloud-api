@@ -184,14 +184,13 @@ export class HAProxyController extends Controller {
     const rules: HAProxyRule[] = await db
       .getSource()
       .manager.getRepository(HAProxyRule)
-      .find({
-        where: {
-          firewall: {
-            id: this._firewall.id,
-            fwCloudId: this._fwCloud.id,
-          },
-        },
-      });
+      .createQueryBuilder('rule')
+      .innerJoin('rule.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwCloud')
+      .where('rule.id IN (:...ids)', { ids: request.inputs.get('rules') })
+      .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
+      .andWhere('fwCloud.id = :fwcloudId', { fwcloudId: this._fwCloud.id })
+      .getMany();
 
     const result: HAProxyRule[] = await this._haproxyRuleService.move(
       rules.map((item) => item.id),
