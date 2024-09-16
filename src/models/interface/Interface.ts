@@ -1,23 +1,23 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-	https://soltecsis.com
-	info@soltecsis.com
+  Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  https://soltecsis.com
+  info@soltecsis.com
 
 
-	This file is part of FWCloud (https://fwcloud.net).
+  This file is part of FWCloud (https://fwcloud.net).
 
-	FWCloud is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Affero General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+  FWCloud is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-	FWCloud is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+  FWCloud is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Model from '../Model';
@@ -767,7 +767,7 @@ export class Interface extends Model {
         return;
       }
 
-      const checkDhcpReferences = async () => {
+      const checkDhcpReferences = (): Promise<number> => {
         return new Promise((resolve, reject) => {
           const dhcpCheckSql = 'SELECT COUNT(*) as count FROM dhcp_r WHERE interface = ?';
           connection.query(dhcpCheckSql, [interfaceData.id], (error, result) => {
@@ -780,52 +780,13 @@ export class Interface extends Model {
         });
       };
 
-      await checkDhcpReferences()
-        .then((count: number) => {
-          if (
-            count > 0 &&
-            (interfaceData.mac === null ||
-              interfaceData.mac === '' ||
-              interfaceData.mac === undefined)
-          ) {
-            const errorMessage = 'The interface cannot be updated. There are references in dhcp_r.';
-            callback({ data: errorMessage }, null);
-          } else {
-            const sql = `
-							UPDATE ${tableName}
-							SET name = ${connection.escape(interfaceData.name).toString()},
-								labelName = ${connection.escape(interfaceData.labelName).toString()},
-								type = ${connection.escape(interfaceData.type).toString()},
-								comment = ${connection.escape(interfaceData.comment).toString()},
-								mac = ${connection.escape(interfaceData.mac).toString()}
-							WHERE id = ${interfaceData.id}`;
-
-            logger().debug(sql);
-
-            connection.query(sql, (error, result) => {
-              if (error) {
-                callback(error, null);
-              } else {
-                if (result.affectedRows > 0) {
-                  callback(null, { result: true });
-                } else {
-                  callback(null, { result: false });
-                }
-              }
-            });
-          }
-        })
-        .catch((error) => {
-          callback(error, null);
-        });
-
-      const checkKeepalivedReferences = async () => {
+      const checkKeepalivedReferences = (): Promise<number> => {
         return new Promise((resolve, reject) => {
           const keepalivedCheckSql =
             'SELECT COUNT(*) as count FROM keepalived_r WHERE interface = ?';
           connection.query(keepalivedCheckSql, [interfaceData.id], (error, result) => {
             if (error) {
-              return reject(error);
+              reject(error);
             } else {
               resolve(result[0].count);
             }
@@ -833,45 +794,48 @@ export class Interface extends Model {
         });
       };
 
-      await checkKeepalivedReferences()
-        .then((count: number) => {
-          if (
-            count > 0 &&
-            (interfaceData.mac === null ||
-              interfaceData.mac === '' ||
-              interfaceData.mac === undefined)
-          ) {
-            const errorMessage =
-              'The interface cannot be updated. There are references in keepalice rules.';
-            callback(errorMessage, null);
-          } else {
-            const sql = `
-							UPDATE ${tableName}
-							SET name = ${connection.escape(interfaceData.name).toString()}, 
-								labelName = ${connection.escape(interfaceData.labelName).toString()},
-								type = ${connection.escape(interfaceData.type).toString()},
-								comment = ${connection.escape(interfaceData.comment).toString()},
-								mac = ${connection.escape(interfaceData.mac).toString()}
-							WHERE id = ${connection.escape(interfaceData.id).toString()}`;
+      try {
+        const [dhcpCount, keepalivedCount] = await Promise.all([
+          checkDhcpReferences(),
+          checkKeepalivedReferences(),
+        ]);
 
-            logger().debug(sql);
+        if (
+          (dhcpCount > 0 || keepalivedCount > 0) &&
+          (interfaceData.mac === null ||
+            interfaceData.mac === '' ||
+            interfaceData.mac === undefined)
+        ) {
+          const errorMessage =
+            'The interface cannot be updated. There are references in dhcp_r or keepalived_r.';
+          callback({ data: errorMessage }, null);
+        } else {
+          const sql = `
+            UPDATE ${tableName}
+            SET name = ${connection.escape(interfaceData.name).toString()},
+                labelName = ${connection.escape(interfaceData.labelName).toString()},
+                type = ${connection.escape(interfaceData.type).toString()},
+                comment = ${connection.escape(interfaceData.comment).toString()},
+                mac = ${connection.escape(interfaceData.mac).toString()}
+            WHERE id = ${connection.escape(interfaceData.id).toString()}`;
 
-            connection.query(sql, (error, result) => {
-              if (error) {
-                callback(error, null);
+          logger().debug(sql);
+
+          connection.query(sql, (error, result) => {
+            if (error) {
+              callback(error, null);
+            } else {
+              if (result.affectedRows > 0) {
+                callback(null, { result: true });
               } else {
-                if (result.affectedRows > 0) {
-                  callback(null, { result: true });
-                } else {
-                  callback(null, { result: false });
-                }
+                callback(null, { result: false });
               }
-            });
-          }
-        })
-        .catch((error) => {
-          callback(error, null);
-        });
+            }
+          });
+        }
+      } catch (error) {
+        callback(error, null);
+      }
     });
   }
 
