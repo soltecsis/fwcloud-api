@@ -1,6 +1,11 @@
 import { ValidationException } from '../exceptions/validation-exception';
-import { validate, validateSync, ValidationError } from 'class-validator';
-import { ClassConstructor, ClassTransformOptions, plainToClass } from 'class-transformer';
+import { validate, ValidationError } from 'class-validator';
+import {
+  ClassConstructor,
+  ClassTransformOptions,
+  instanceToPlain,
+  plainToClass,
+} from 'class-transformer';
 import { transformValidationErrorsToErrorBag } from './validation.helper';
 
 export type ErrorBag = { [input: string]: string[] };
@@ -13,7 +18,7 @@ export class Validator {
 
   public async validate(options?: ClassTransformOptions): Promise<void> {
     if (this._dto) {
-      const dtoInstance: object = plainToClass(this._dto, this._data, options);
+      const dtoInstance: object = plainToClass(this._dto, instanceToPlain(this._data), options);
       const errors: ValidationError[] = await validate(dtoInstance, {
         forbidUnknownValues: true,
         whitelist: true,
