@@ -61,7 +61,7 @@ export interface ICreateKeepalivedRule {
   group?: number;
   style?: string;
   firewallId?: number;
-  interfaceId?: number;
+  interfaceId?: { id: number; order: number };
   virtualIpsIds?: { id: number; order: number }[];
   masterNodeId?: number;
   cfg_text?: string;
@@ -75,9 +75,9 @@ export interface ICreateKeepalivedRule {
 export interface IUpdateKeepalivedRule {
   active?: boolean;
   style?: string;
-  virutalIpsIds?: { id: number; order: number }[];
+  virtualIpsIds?: { id: number; order: number }[];
   masterNodeId?: number;
-  interfaceId?: number;
+  interfaceId?: { id: number; order: number };
   cfg_text?: string;
   comment?: string;
   rule_order?: number;
@@ -133,7 +133,7 @@ export class KeepalivedRuleService extends Service {
       const interfaceData = await db
         .getSource()
         .manager.getRepository(Interface)
-        .findOneOrFail({ where: { id: data.interfaceId } });
+        .findOneOrFail({ where: { id: data.interfaceId.id } });
       if (!interfaceData.mac || interfaceData.mac === '') {
         throw new Error('Interface mac is not defined');
       }
@@ -173,13 +173,17 @@ export class KeepalivedRuleService extends Service {
 
       const hasMatchingIpVersion = persisted.virtualIps.some(
         async (virtualIp) =>
-          (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj))
-            .ip_version ===
           (
             await db
               .getSource()
               .manager.getRepository(IPObj)
-              .findOneOrFail(persisted.virtualIps[0].ipObj)
+              .findOneOrFail({ where: { id: virtualIp.ipObjId } })
+          ).ip_version ===
+          (
+            await db
+              .getSource()
+              .manager.getRepository(IPObj)
+              .findOneOrFail({ where: { id: persisted.virtualIps[0].ipObjId } })
           ).ip_version,
       );
       if (!hasMatchingIpVersion) {
@@ -315,13 +319,17 @@ export class KeepalivedRuleService extends Service {
       );
       const hasMatchingIpVersion = keepalivedRule.virtualIps.some(
         async (virtualIp) =>
-          (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj))
-            .ip_version ===
           (
             await db
               .getSource()
               .manager.getRepository(IPObj)
-              .findOneOrFail(keepalivedRule.virtualIps[0].ipObj)
+              .findOneOrFail({ where: { id: virtualIp.ipObjId } })
+          ).ip_version ===
+          (
+            await db
+              .getSource()
+              .manager.getRepository(IPObj)
+              .findOneOrFail({ where: { id: keepalivedRule.virtualIps[0].ipObjId } })
           ).ip_version,
       );
       if (!hasMatchingIpVersion) {
@@ -336,7 +344,7 @@ export class KeepalivedRuleService extends Service {
             const interfaceData = await db
               .getSource()
               .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: data[field] } });
+              .findOneOrFail({ where: { id: data[field].id } });
             if (!interfaceData.mac || interfaceData.mac === '') {
               throw new Error('Interface mac is not defined');
             }
@@ -476,7 +484,7 @@ export class KeepalivedRuleService extends Service {
         {
           id: In(ids),
         },
-        { ...data, group: { id: data.group } },
+        { ...data, interfaceId: data.interfaceId.id, group: { id: data.group } },
       );
     } else {
       const group: KeepalivedGroup = (
@@ -495,7 +503,7 @@ export class KeepalivedRuleService extends Service {
         {
           id: In(ids),
         },
-        { ...(data as QueryDeepPartialEntity<KeepalivedRule>) },
+        { ...(data as unknown as QueryDeepPartialEntity<KeepalivedRule>) },
       );
     }
 
@@ -539,13 +547,13 @@ export class KeepalivedRuleService extends Service {
   async validateVirtualIps(firewall: Firewall, data: IUpdateKeepalivedRule): Promise<void> {
     const errors: ErrorBag = {};
 
-    if (!data.virutalIpsIds || !data.virutalIpsIds.length) {
+    if (!data.virtualIpsIds || !data.virtualIpsIds.length) {
       return;
     }
 
     const virtualIps: IPObj[] = await this._ipobjRepository.find({
       where: {
-        id: In(data.virutalIpsIds.map((item) => item.id)),
+        id: In(data.virtualIpsIds.map((item) => item.id)),
         ipObjTypeId: 5, //ADDRESS
       },
       relations: ['fwCloud'],

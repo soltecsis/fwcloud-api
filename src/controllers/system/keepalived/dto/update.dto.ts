@@ -23,6 +23,7 @@ import {
   IsArray,
   Validate,
   ValidateNested,
+  IsObject,
 } from 'class-validator';
 import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
@@ -43,9 +44,11 @@ export class KeepalivedRuleUpdateDto {
   @IsOptional()
   style?: string;
 
-  @IsNumber()
+  @IsObject()
   @IsOptional()
-  interfaceId?: number;
+  @ValidateNested()
+  @Type(() => PositionalEntityDto)
+  interfaceId?: PositionalEntityDto;
 
   @IsArray()
   @IsOptional()

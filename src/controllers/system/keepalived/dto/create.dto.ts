@@ -23,6 +23,7 @@ import {
   IsEnum,
   IsArray,
   ValidateNested,
+  IsObject,
 } from 'class-validator';
 import { Offset } from '../../../../offset';
 import { Type } from 'class-transformer';
@@ -49,9 +50,11 @@ export class KeepalivedRuleCreateDto {
   @IsOptional()
   rule_type: number;
 
-  @IsNumber()
+  @IsObject()
   @IsOptional()
-  interfaceId?: number;
+  @ValidateNested()
+  @Type(() => PositionalEntityDto)
+  interfaceId?: PositionalEntityDto;
 
   @IsArray()
   @IsOptional()

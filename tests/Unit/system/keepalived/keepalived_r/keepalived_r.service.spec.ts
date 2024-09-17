@@ -154,7 +154,7 @@ describe(KeepalivedRuleService.name, () => {
         group: group.id,
         firewallId: firewall.id,
         rule_order: 1,
-        interfaceId: 1,
+        interfaceId: { id: 1, order: 1 },
         virtualIpsIds: [],
       };
 
@@ -168,7 +168,7 @@ describe(KeepalivedRuleService.name, () => {
         group: 0,
         firewallId: firewall.id,
         rule_order: 1,
-        interfaceId: 1,
+        interfaceId: { id: 1, order: 1 },
         virtualIpsIds: [],
       };
 
@@ -184,7 +184,7 @@ describe(KeepalivedRuleService.name, () => {
       const data: ICreateKeepalivedRule = {
         group: group.id,
         firewallId: firewall.id,
-        interfaceId: 1,
+        interfaceId: { id: 1, order: 1 },
         virtualIpsIds: [],
       };
 
@@ -210,7 +210,7 @@ describe(KeepalivedRuleService.name, () => {
         group: group.id,
         firewallId: firewall.id,
         rule_order: 1,
-        interfaceId: 1,
+        interfaceId: { id: 1, order: 1 },
         virtualIpsIds: [],
         to: 3,
         offset: Offset.Above,
@@ -265,7 +265,7 @@ describe(KeepalivedRuleService.name, () => {
         group: group.id,
         firewallId: firewall.id,
         rule_order: 1,
-        interfaceId: 1,
+        interfaceId: { id: 1, order: 1 },
         virtualIpsIds: [
           { id: virtualIp1.id, order: 1 },
           { id: virtualIp2.id, order: 2 },
