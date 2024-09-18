@@ -178,7 +178,6 @@ router.post("/", async (req, res) => {
 
 /* Update interface that exist */
 router.put('/', (req, res) => {
-	console.log('BODY', req.body);
 	const fwcloud = req.body.fwcloud;
 	//Save data into object
 	const interfaceData = {
