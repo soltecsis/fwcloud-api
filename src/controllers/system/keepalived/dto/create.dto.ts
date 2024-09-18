@@ -50,11 +50,9 @@ export class KeepalivedRuleCreateDto {
   @IsOptional()
   rule_type: number;
 
-  @IsObject()
+  @IsNumber()
   @IsOptional()
-  @ValidateNested()
-  @Type(() => PositionalEntityDto)
-  interfaceId?: PositionalEntityDto;
+  interfaceId?: number;
 
   @IsArray()
   @IsOptional()

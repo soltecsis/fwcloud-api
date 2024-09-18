@@ -44,11 +44,9 @@ export class KeepalivedRuleUpdateDto {
   @IsOptional()
   style?: string;
 
-  @IsObject()
+  @IsNumber()
   @IsOptional()
-  @ValidateNested()
-  @Type(() => PositionalEntityDto)
-  interfaceId?: PositionalEntityDto;
+  interfaceId?: number;
 
   @IsArray()
   @IsOptional()

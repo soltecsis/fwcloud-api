@@ -61,7 +61,7 @@ export interface ICreateKeepalivedRule {
   group?: number;
   style?: string;
   firewallId?: number;
-  interfaceId?: { id: number; order: number };
+  interfaceId?: number;
   virtualIpsIds?: { id: number; order: number }[];
   masterNodeId?: number;
   cfg_text?: string;
@@ -77,7 +77,7 @@ export interface IUpdateKeepalivedRule {
   style?: string;
   virtualIpsIds?: { id: number; order: number }[];
   masterNodeId?: number;
-  interfaceId?: { id: number; order: number };
+  interfaceId?: number;
   cfg_text?: string;
   comment?: string;
   rule_order?: number;
@@ -133,7 +133,7 @@ export class KeepalivedRuleService extends Service {
       const interfaceData = await db
         .getSource()
         .manager.getRepository(Interface)
-        .findOneOrFail({ where: { id: data.interfaceId.id } });
+        .findOneOrFail({ where: { id: data.interfaceId } });
       if (!interfaceData.mac || interfaceData.mac === '') {
         throw new Error('Interface mac is not defined');
       }
@@ -344,7 +344,7 @@ export class KeepalivedRuleService extends Service {
             const interfaceData = await db
               .getSource()
               .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: data[field].id } });
+              .findOneOrFail({ where: { id: data[field] } });
             if (!interfaceData.mac || interfaceData.mac === '') {
               throw new Error('Interface mac is not defined');
             }
@@ -484,7 +484,7 @@ export class KeepalivedRuleService extends Service {
         {
           id: In(ids),
         },
-        { ...data, interfaceId: data.interfaceId.id, group: { id: data.group } },
+        { ...data, interfaceId: data.interfaceId, group: { id: data.group } },
       );
     } else {
       const group: KeepalivedGroup = (
