@@ -98,7 +98,7 @@ schema.validate = req => {
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
-			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
+			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
 		} catch (error) { return reject(error) }
 	});

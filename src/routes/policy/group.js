@@ -26,9 +26,10 @@ var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { logger } from '../../fonaments/abstract-application';
-import { getCustomRepository, getRepository, In } from 'typeorm';
+import { In } from 'typeorm';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 import { PolicyGroupRepository } from "../../repositories/PolicyGroupRepository";
+import db from '../../database/database-manager';
 
 const fwcError = require('../../utils/error_table');
 
@@ -36,11 +37,11 @@ const fwcError = require('../../utils/error_table');
 router.post('/', async (req, res) => {
 	var body = req.body;
 
-	const policyGroupRepository = getRepository(PolicyGroup);
-	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
+	const policyGroupRepository = await db.getSource().manager.getRepository(PolicyGroup);
+	const policyRuleRepository = new PolicyRuleRepository(db.getSource().manager);
 
 	try {
-		policyGroup = policyGroupRepository.create({
+		var policyGroup = await policyGroupRepository.create({
 			name: body.name,
 			comment: body.comment,
 			firewallId: body.firewall
@@ -48,7 +49,7 @@ router.post('/', async (req, res) => {
 		policyGroup = await policyGroupRepository.save(policyGroup);
 
 		if (body.rulesIds.length > 0) {
-			const policyRules = await policyRuleRepository.find({where: {id: In(body.rulesIds)}});
+			const policyRules = await db.getSource().manager.getRepository(PolicyRule).find({where: {id: In(body.rulesIds)}});
 			policyRuleRepository.assignToGroup(policyRules, policyGroup);
 		}
 		res.status(200).json({ "insertId": policyGroup.id });
@@ -62,7 +63,7 @@ router.post('/', async (req, res) => {
 /* Update PolicyGroup that exist */
 router.put('/', async (req, res) => {
 	//Save data into object
-	var data = {
+	const data = {
 		id: req.body.id,
 		name: req.body.name,
 		firewall: req.body.firewall,
@@ -72,7 +73,7 @@ router.put('/', async (req, res) => {
 
 
 	try {
-		const policyGroup = await getRepository(PolicyGroup).update(data.id, {
+		await db.getSource().manager.getRepository(PolicyGroup).update(data.id, {
 			name: req.body.name,
 			firewall: req.body.firewall,
 			comment: req.body.comment,
@@ -88,17 +89,17 @@ router.put('/', async (req, res) => {
 
 /* Update Style PolicyGroup  */
 router.put('/style', async (req, res) => {
-	var data = { 
+	const data = { 
 		iduser: req.session.user_id, 
 		fwcloud: req.body.fwcloud, 
 		idfirewall: req.body.firewall
 	};
 
-	var style = req.body.style;
-	var groupIds = req.body.groupIds;
+	const style = req.body.style;
+	const groupIds = req.body.groupIds;
 
 	try {
-		await getRepository(PolicyGroup).update({firewallId: data.idfirewall, id: groupIds}, { groupstyle: style} );
+		await db.getSource().manager.getRepository(PolicyGroup).update({firewallId: data.idfirewall, id: groupIds}, { groupstyle: style} );
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error updating policy group style: ' + e.message);
@@ -110,10 +111,10 @@ router.put('/style', async (req, res) => {
 /* Update PolicyGruop Name  */
 router.put('/name', async (req, res) => {
 	//Save data into object
-	var data = { id: req.body.id, name: req.body.name };
+	const data = { id: req.body.id, name: req.body.name };
 
 	try {
-		await getRepository(PolicyGroup).update(data.id, {
+		await db.getSource().manager.getRepository(PolicyGroup).update(data.id, {
 			name: data.name
 		});
 		res.status(204).end();
@@ -126,15 +127,12 @@ router.put('/name', async (req, res) => {
 
 /* Remove PolicyGroup */
 router.put("/del", async (req, res) => {
-	var idfirewall = req.body.firewall;
-	var id = req.body.id;
-
-	logger().debug("Removed all Policy from Group " + id);
-	const policyGroup = await getRepository(PolicyGroup).findOne(id);
+	logger().debug("Removed all Policy from Group " + req.body.id);
+	const policyGroup = await db.getSource().manager.getRepository(PolicyGroup).find({where: {id: req.body.id}});	
 
 	try {
 		if (policyGroup) {
-			await getRepository(PolicyGroup).remove(policyGroup);
+			await db.getSource().manager.getRepository(PolicyGroup).remove(policyGroup);
 			res.status(204).end();
 		}
 	} catch(error) {
@@ -149,9 +147,9 @@ router.put("/rules/del", async (req, res) => {
 	try {
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
-		const policyGroup = await getRepository(PolicyGroup).findOne(req.body.id);
+		const policyGroup = await db.getSource().manager.getRepository(PolicyGroup).findOne({where: {id: req.body.id}});
 		if (policyGroup) {
-			await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
+			await new PolicyGroupRepository(db.getSource().manager).deleteIfEmpty(policyGroup);
 		}
 		res.status(204).end();
 	} catch (error) {
@@ -172,10 +170,10 @@ async function removeRules(idfirewall, idgroup, rulesIds) {
 
 async function ruleRemove(ruleidfirewall, idgroup, rule) {
 	return new Promise(async (resolve, reject) => {
-		let policyRule = await getRepository(PolicyRule).findOne(rule);
+		let policyRule = await db.getSource().manager.getRepository(PolicyRule).findOne({where: {id: rule}});
 		
 		if(policyRule) {
-			policyRule = await getCustomRepository(PolicyRuleRepository).assignToGroup(policyRule, null);
+			policyRule = await new PolicyRuleRepository(db.getSource().manager).assignToGroup(policyRule, null);
 			return resolve();
 		}
 	});

@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ['12', '14', '16']
+        node-version: ['16', '18', '20']
         database: [mysql, mysql8, mariadb]
         include:
           - database: mysql
@@ -78,6 +78,11 @@ jobs:
       run: echo 'column-statistics=0' | sudo tee -a /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
       run: npm install
+    - name: Run ESLint
+      if: matrix.node-version == '18' || matrix.node-version == '20'
+      run: npm run lint:check
+    - name: Run Prettier
+      run: npm run format:check
     - name: Build FWCloud
       run: npm run build --if-present
     - name: Run tests

@@ -20,81 +20,90 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from "class-validator"
-import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
-import { Offset } from "../../../../offset";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { IpObjBelongsToTypes } from '../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation';
+import { Offset } from '../../../../offset';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class RouteControllerStoreDto {
-    @IsNumber()
-    @IsOptional()
-    routeGroupId: number;
-    
-    @IsNumber()
-    @IpObjBelongsToTypes([
-        5, // ADDRESS
-    ])
-    gatewayId: number;
+  @IsNumber()
+  @IsOptional()
+  routeGroupId: number;
 
-    @IsNumber()
-    @IsOptional()
-    interfaceId: number;
-        
-    @IsBoolean()
-    @IsOptional()
-    active: boolean;
+  @IsNumber()
+  @IpObjBelongsToTypes([
+    5, // ADDRESS
+  ])
+  gatewayId: number;
 
-    @IsString()
-    @IsOptional()
-    comment: string;
+  @IsNumber()
+  @IsOptional()
+  interfaceId: number;
 
-    @IsString()
-    @IsOptional()
-    style: string;
+  @IsBoolean()
+  @IsOptional()
+  active: boolean;
 
-    @IsNumber()
-    @IsOptional()
-    firewallApplyToId?: number
+  @IsString()
+  @IsOptional()
+  comment: string;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjIds?: PositionalEntityDto[]
+  @IsString()
+  @IsOptional()
+  style: string;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjGroupIds?: PositionalEntityDto[]
+  @IsNumber()
+  @IsOptional()
+  firewallApplyToId?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    openVPNIds?: PositionalEntityDto[];
-    
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    openVPNPrefixIds?: PositionalEntityDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjIds?: PositionalEntityDto[];
 
-    @IsNumber()
-    @IsPositive()
-    @IsOptional()
-    to?: number;
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjGroupIds?: PositionalEntityDto[];
 
-    @IsEnum(Offset)
-    @IsOptional()
-    offset?: Offset;
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  openVPNIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  openVPNPrefixIds?: PositionalEntityDto[];
+
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  to?: number;
+
+  @IsEnum(Offset)
+  @IsOptional()
+  offset?: Offset;
 }

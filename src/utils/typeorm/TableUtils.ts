@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Table, TableForeignKey, AdvancedConsoleLogger } from "typeorm";
+import { Table, TableForeignKey, AdvancedConsoleLogger } from 'typeorm';
 
 export function findForeignKeyInTable(table: Table, column: string): TableForeignKey | null {
-    return table.foreignKeys.find(fk => fk.columnNames.indexOf(column) !== -1);
+  return table.foreignKeys.find((fk) => fk.columnNames.indexOf(column) !== -1);
 }

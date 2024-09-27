@@ -1,13 +1,13 @@
-import { IsNumber, IsOptional } from "class-validator";
+import { IsNumber, IsOptional } from 'class-validator';
 
 export class RouteMoveInterfaceDto {
-    @IsNumber()
-    fromId: number;
-    
-    @IsNumber()
-    toId: number;
+  @IsNumber()
+  fromId: number;
 
-    @IsNumber()
-    @IsOptional()
-    interfaceId?: number;
+  @IsNumber()
+  toId: number;
+
+  @IsNumber()
+  @IsOptional()
+  interfaceId?: number;
 }

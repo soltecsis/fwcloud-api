@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] -
+### Changed
+- Dependencies upgraded to the last version.
+- 'TypeORM' upgraded and made changes from last version (v0.3.20). 'SocketIO' upgraded as well.
+- Replaced 'ip' package by 'ipaddr.js' package. 
+- Replaced 'chalk' package by 'kleur' package.
+- Added 'husky' and 'lint-staged' to manage Prettier and ESlint before each commit.
+- ESLint and Prettier configured into the project and fixed errors afterwards.
+
+### Added
+- HAProxy service API calls and service compiler
+- KeepAlived service API calls and service compiler
+- DHCP service API calls and service compiler
+- Database migration for the KeepAlived service management.
+- Database migration for the HAProxy service management.
+- Database migration for the DHCP service management.
+- Added query data to get Agent host information.
+- HAProxy plugin.
+- Systemctl management API call.
+- Database migration for the DHCP service management.
+- In the firewalls/clusters tree new sort of nodes under a firewall or cluster node. 
+- Migrations are added to create the System nodes and their children: DHCP, Keepalived, and HAProxy.
+
+### Added
+- KeepAlived service API calls and service compiler
+- DHCP service API calls and service compiler
+- Database migration for the KeepAlived service management.
+- Database migration for the HAProxy service management.
+- Added query data to get Agent host information.
+- HAProxy plugin.
+- Systemctl management API call.
+- Database migration for the DHCP service management.
+- In the firewalls/clusters tree new sort of nodes under a firewall or cluster node. 
+- Migrations are added to create the System nodes and their children: DHCP, Keepalived, and HAProxy.
+
+### Changed
+- Optimize and reduce the time for the firewalls and clusters tree creation.
+
 ## [1.9.2] - 2023-06-07
 ### Added
 - `GET updates/type/pkg` API call. It will be used by FWCloud-UI to get the updates information in a FWCloud DEB/RPM packages based installation.

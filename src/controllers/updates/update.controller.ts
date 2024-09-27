@@ -20,50 +20,54 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { UpdateService, Versions, Apps } from "../../updates/updates.service";
-import { Validate } from "../../decorators/validate.decorator";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { app } from "../../fonaments/abstract-application";
+import { Controller } from '../../fonaments/http/controller';
+import { UpdateService, Versions, Apps } from '../../updates/updates.service';
+import { Validate } from '../../decorators/validate.decorator';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { app } from '../../fonaments/abstract-application';
 
 interface UpdatesInfo {
-    websrv: Versions;
-    ui: Versions;
-    api: Versions;
-    updater: Versions;
+  websrv: Versions;
+  ui: Versions;
+  api: Versions;
+  updater: Versions;
 }
 
 export class UpdateController extends Controller {
-    protected _updateUpdaterService: UpdateService;
+  protected _updateUpdaterService: UpdateService;
 
-    async make() {
-        this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
-    }
+  async make() {
+    this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
+  }
 
-    @Validate()
-    public async proxy(request: Request): Promise<ResponseBuilder> {
-        const data = await this._updateUpdaterService.proxyUpdate(request);
+  @Validate()
+  public async proxy(request: Request): Promise<ResponseBuilder> {
+    const data = await this._updateUpdaterService.proxyUpdate(request);
 
-        return data ? ResponseBuilder.buildResponse().status(200).body(data) : ResponseBuilder.buildResponse().status(200);
-    }
+    return data
+      ? ResponseBuilder.buildResponse().status(200).body(data)
+      : ResponseBuilder.buildResponse().status(200);
+  }
 
-    @Validate()
-    public async pkgInstallUpdatesData(request: Request): Promise<ResponseBuilder> {
-        const updatesInfo: UpdatesInfo = {
-            websrv: null,
-            ui: await this._updateUpdaterService.compareVersions(Apps.UI),
-            api: await this._updateUpdaterService.compareVersions(Apps.API),
-            updater: null
-          }
+  @Validate()
+  public async pkgInstallUpdatesData(request: Request): Promise<ResponseBuilder> {
+    const updatesInfo: UpdatesInfo = {
+      websrv: null,
+      ui: await this._updateUpdaterService.compareVersions(Apps.UI),
+      api: await this._updateUpdaterService.compareVersions(Apps.API),
+      updater: null,
+    };
 
-        return updatesInfo ? ResponseBuilder.buildResponse().status(200).body(updatesInfo) : ResponseBuilder.buildResponse().status(200);
-    }
+    return updatesInfo
+      ? ResponseBuilder.buildResponse().status(200).body(updatesInfo)
+      : ResponseBuilder.buildResponse().status(200);
+  }
 
-    @Validate()
-    public async update(): Promise<ResponseBuilder> {
-        await this._updateUpdaterService.runUpdate();
+  @Validate()
+  public async update(): Promise<ResponseBuilder> {
+    await this._updateUpdaterService.runUpdate();
 
-        return ResponseBuilder.buildResponse().status(200);
-    }
+    return ResponseBuilder.buildResponse().status(200);
+  }
 }

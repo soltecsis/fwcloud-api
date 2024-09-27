@@ -20,22 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../fonaments/abstract-application";
-import { ServiceBound, ServiceContainer } from "../../../fonaments/services/service-container";
-import { ServiceProvider } from "../../../fonaments/services/service-provider";
-import { RoutingRuleService } from "./routing-rule.service";
-
+import { AbstractApplication } from '../../../fonaments/abstract-application';
+import { ServiceBound, ServiceContainer } from '../../../fonaments/services/service-container';
+import { ServiceProvider } from '../../../fonaments/services/service-provider';
+import { RoutingRuleService } from './routing-rule.service';
 
 export class RoutingRuleServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(RoutingRuleService.name, async(app: AbstractApplication): Promise<RoutingRuleService> => {
-            return RoutingRuleService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      RoutingRuleService.name,
+      async (app: AbstractApplication): Promise<RoutingRuleService> => {
+        return RoutingRuleService.make(app);
+      },
+    );
+  }
 
-    public async bootstrap(app: AbstractApplication) {
-        await app.getService<RoutingRuleService>(RoutingRuleService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication) {
+    await app.getService<RoutingRuleService>(RoutingRuleService.name);
+  }
 }

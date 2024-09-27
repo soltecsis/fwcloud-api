@@ -20,56 +20,62 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { PolicyGroupRepository } from "../../../../src/repositories/PolicyGroupRepository";
-import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import sinon from "sinon";
-import { getRepository } from "typeorm";
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { PolicyGroupRepository } from '../../../../src/repositories/PolicyGroupRepository';
+import { PolicyGroup } from '../../../../src/models/policy/PolicyGroup';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import sinon from 'sinon';
+import { EntityManager } from 'typeorm';
+import db from '../../../../src/database/database-manager';
 
 let app: AbstractApplication;
+let manager: EntityManager;
 
 describe(describeName('PolicyRule tests'), () => {
-    
-    before(async () => {
-        app = testSuite.app;
+  before(async () => {
+    app = testSuite.app;
+    manager = db.getSource().manager;
+  });
+
+  describe('unassignPolicyRulesBeforeRemove()', () => {
+    it('should unassign all policy rules which belongs to the group', async () => {
+      const group: PolicyGroup = await PolicyGroup.save(
+        PolicyGroup.create({
+          name: 'test',
+          firewall: await Firewall.save(Firewall.create({ name: 'test' })),
+        }),
+      );
+
+      let rule: PolicyRule = await PolicyRule.save(
+        PolicyRule.create({
+          rule_order: 0,
+          action: 1,
+          policyGroup: group,
+        }),
+      );
+
+      await group.unassignPolicyRulesBeforeRemove();
+
+      rule = await PolicyRule.findOne({ where: { id: rule.id } });
+
+      expect(rule.policyGroupId).to.be.null;
     });
 
-    describe('unassignPolicyRulesBeforeRemove()', () => {
+    it('should be called before be removed', async () => {
+      const spy = sinon.spy(PolicyGroup.prototype, 'unassignPolicyRulesBeforeRemove');
 
-        it('should unassign all policy rules which belongs to the group', async () => {
-            let group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
-                name: 'test',
-                firewall: await Firewall.save(Firewall.create({ name: 'test' }))
-            }));
+      let group: PolicyGroup = await PolicyGroup.save(
+        PolicyGroup.create({
+          name: 'test',
+          firewall: await manager.getRepository(Firewall).save({ name: 'test' }),
+        }),
+      );
 
-            let rule: PolicyRule = await PolicyRule.save(PolicyRule.create({
-                rule_order: 0,
-                action: 1,
-                policyGroup: group
-            }));
+      group = await group.remove();
 
-            await group.unassignPolicyRulesBeforeRemove();
-
-            rule = await PolicyRule.findOne(rule.id);
-
-            expect(rule.policyGroupId).to.be.null;
-        });
-
-        it('should be called before be removed', async () => {
-            const spy = sinon.spy(PolicyGroup.prototype, "unassignPolicyRulesBeforeRemove");
-
-            let group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
-                name: 'test',
-                firewall: await getRepository(Firewall).save({ name: 'test' })
-            }));
-
-            group = await group.remove();
-
-            expect(spy.calledOnce).to.be.true;
-
-        });
+      expect(spy.calledOnce).to.be.true;
     });
+  });
 });

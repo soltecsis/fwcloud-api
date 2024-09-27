@@ -20,26 +20,30 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
-import { SelectQueryBuilder } from "typeorm";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { FwCloudExporter } from "./fwcloud.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
+import { SelectQueryBuilder } from 'typeorm';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { FwCloudExporter } from './fwcloud.exporter';
 
 export class IPObjGroupExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return IPObjGroup;
-    }
+  protected getEntity(): typeof Model {
+    return IPObjGroup;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where(`${alias}.id >= 100000`)
-        .andWhere(qb => {
-            const subquery = qb.subQuery().from(FwCloud, 'fwcloud').select('fwcloud.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where(`${alias}.id >= 100000`).andWhere((qb) => {
+      const subquery = qb.subQuery().from(FwCloud, 'fwcloud').select('fwcloud.id');
 
-            return `${alias}.fwcloud IN ` + new FwCloudExporter()
-                .getFilterBuilder(subquery, 'fwcloud', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.fwcloud IN ` +
+        new FwCloudExporter().getFilterBuilder(subquery, 'fwcloud', fwCloudId).getQuery()
+      );
+    });
+  }
 }

@@ -20,26 +20,30 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { Crt } from "../../../models/vpn/pki/Crt";
-import { SelectQueryBuilder } from "typeorm";
-import { Ca } from "../../../models/vpn/pki/Ca";
-import { CaExporter } from "./ca.exporter";
-
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import { SelectQueryBuilder } from 'typeorm';
+import { Ca } from '../../../models/vpn/pki/Ca';
+import { CaExporter } from './ca.exporter';
 
 export class CrtExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return Crt;
-    }
+  protected getEntity(): typeof Model {
+    return Crt;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(Ca, 'ca').select('ca.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb.subQuery().from(Ca, 'ca').select('ca.id');
 
-            return `${alias}.caId IN ` + new CaExporter()
-                .getFilterBuilder(subquery, 'ca', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.caId IN ` +
+        new CaExporter().getFilterBuilder(subquery, 'ca', fwCloudId).getQuery()
+      );
+    });
+  }
 }

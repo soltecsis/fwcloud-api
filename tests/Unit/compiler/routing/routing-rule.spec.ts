@@ -20,19 +20,21 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { before } from "mocha";
-import { RoutingCompiled, RoutingCompiler } from "../../../../src/compiler/routing/RoutingCompiler";
-import { RoutingRuleItemForCompiler } from "../../../../src/models/routing/shared";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import ip from 'ip';
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
+import { before } from 'mocha';
+import { RoutingCompiled, RoutingCompiler } from '../../../../src/compiler/routing/RoutingCompiler';
+import { RoutingRuleItemForCompiler } from '../../../../src/models/routing/shared';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import { IpUtils } from '../../../../src/utils/ip-utils';
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { EntityManager } from 'typeorm';
+import db from '../../../../src/database/database-manager';
 
 describe('Routing rule compiler', () => {
   let fwc: FwCloudProduct;
 
   let routingRuleService: RoutingRuleService;
-  let compiler: RoutingCompiler = new RoutingCompiler;
+  const compiler: RoutingCompiler = new RoutingCompiler();
   let compilation: RoutingCompiled[];
   let gw: string;
   let rtn: number; // Routing table number.
@@ -42,40 +44,57 @@ describe('Routing rule compiler', () => {
   let cs_end: string;
   const head = '$IP rule add from';
   let tail: string;
+  let manager: EntityManager;
 
   before(async () => {
+    manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    fwc = await (new FwCloudFactory()).make();
+    fwc = await new FwCloudFactory().make();
     gw = fwc.ipobjs.get('gateway').address;
     rtn = fwc.routingTable.number;
     tail = `table ${rtn}\n`;
     cs_start = `if [ "$HOSTNAME" = "${fwc.firewall.name}" ]; then\n`;
-    cs_end = '\nfi\n'
+    cs_end = '\nfi\n';
 
-    routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-    const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);            
-    compilation = compiler.compile('Rule',rules);
+    routingRuleService = await testSuite.app.getService<RoutingRuleService>(
+      RoutingRuleService.name,
+    );
+    const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+      'compiler',
+      fwc.fwcloud.id,
+      fwc.firewall.id,
+    );
+    compilation = compiler.compile('Rule', rules);
   });
 
   describe('Compilation of routing rule with objects', () => {
-    before(() => { cs = compilation[0].cs });
+    before(() => {
+      cs = compilation[0].cs;
+    });
 
     it('should include address data', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
     });
 
     it('should include network data', () => {
-      const net = ip.subnet(fwc.ipobjs.get('networkNoCIDR').address, fwc.ipobjs.get('networkNoCIDR').netmask);
-      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
-      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`);
+      const net = IpUtils.subnet(
+        fwc.ipobjs.get('networkNoCIDR').address,
+        fwc.ipobjs.get('networkNoCIDR').netmask,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`,
+      );
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
-      for(let current=firstLong; current<=lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
+      for (let current = firstLong; current <= lastLong; current++)
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
@@ -98,10 +117,11 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`$IP rule add fwmark ${fwc.mark.code} ${tail}`);
     });
   });
-
 
   describe('Compilation of routing rule with objects and with firewall apply to', () => {
-    before(() => { cs = compilation[3].cs });
+    before(() => {
+      cs = compilation[3].cs;
+    });
 
     it('should include address data', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
@@ -110,18 +130,25 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include network data', () => {
-      const net = ip.subnet(fwc.ipobjs.get('networkNoCIDR').address, fwc.ipobjs.get('networkNoCIDR').netmask);
-      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
-      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`);
+      const net = IpUtils.subnet(
+        fwc.ipobjs.get('networkNoCIDR').address,
+        fwc.ipobjs.get('networkNoCIDR').netmask,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`,
+      );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
-      for(let current=firstLong; current<=lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
+      for (let current = firstLong; current <= lastLong; current++)
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
@@ -155,23 +182,26 @@ describe('Routing rule compiler', () => {
     });
   });
 
-
   describe('Compilation of routing rule with objects group', () => {
-    before(() => { cs = compilation[1].cs });
+    before(() => {
+      cs = compilation[1].cs;
+    });
 
     it('should include address data', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
     });
 
     it('should include network data', () => {
-      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
+      );
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
-      for(let current=firstLong; current<=lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
+      for (let current = firstLong; current <= lastLong; current++)
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
     });
 
     it('should include host data', () => {
@@ -190,10 +220,11 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
     });
   });
-
 
   describe('Compilation of routing rule with objects group and firewall apply to', () => {
-    before(() => { cs = compilation[4].cs });
+    before(() => {
+      cs = compilation[4].cs;
+    });
 
     it('should include address data', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
@@ -202,16 +233,18 @@ describe('Routing rule compiler', () => {
     });
 
     it('should include network data', () => {
-      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
+      );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
     it('should include address range data', () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
-      for(let current=firstLong; current<=lastLong; current++)
-        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+      const firstLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = IpUtils.toLong(fwc.ipobjs.get('addressRange').range_end);
+      for (let current = firstLong; current <= lastLong; current++)
+        expect(cs).to.deep.include(`${head} ${IpUtils.fromLong(current)} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
@@ -238,26 +271,38 @@ describe('Routing rule compiler', () => {
       expect(cs.endsWith(cs_end)).to.be.true;
     });
   });
-
 
   describe('Compile only some routing rules', () => {
     it('should compile only routing rule 2', async () => {
-        const ids = [ fwc.routingRules.get('routing-rule-2').id ];
-        const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id, ids);            
-        const compilation = compiler.compile('Rule',rules);
+      const ids = [fwc.routingRules.get('routing-rule-2').id];
+      const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        ids,
+      );
+      const compilation = compiler.compile('Rule', rules);
 
-        expect(compilation.length).to.equal(1);
-        expect(compilation[0].id).to.equal(ids[0]);
+      expect(compilation.length).to.equal(1);
+      expect(compilation[0].id).to.equal(ids[0]);
     });
 
     it('should compile only routing rules 1 and 3', async () => {
-        const ids = [ fwc.routingRules.get('routing-rule-1').id, fwc.routingRules.get('routing-rule-3').id ];
-        const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id, ids);            
-        const compilation = compiler.compile('Rule',rules);
+      const ids = [
+        fwc.routingRules.get('routing-rule-1').id,
+        fwc.routingRules.get('routing-rule-3').id,
+      ];
+      const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        ids,
+      );
+      const compilation = compiler.compile('Rule', rules);
 
-        expect(compilation.length).to.equal(2);
-        expect(compilation[0].id).to.equal(ids[0]);
-        expect(compilation[1].id).to.equal(ids[1]);
+      expect(compilation.length).to.equal(2);
+      expect(compilation[0].id).to.equal(ids[0]);
+      expect(compilation[1].id).to.equal(ids[1]);
     });
   });
-})
+});

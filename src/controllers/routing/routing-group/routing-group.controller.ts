@@ -20,98 +20,120 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { RoutingGroupService } from "../../../models/routing/routing-group/routing-group.service";
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { RoutingGroupService } from '../../../models/routing/routing-group/routing-group.service';
 import { Request } from 'express';
-import { Validate } from "../../../decorators/validate.decorator";
-import { RoutingGroupPolicy } from "../../../policies/routing-group.policy";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { RoutingGroup } from "../../../models/routing/routing-group/routing-group.model";
-import { RoutingGroupControllerUpdateDto } from "./dtos/update.dto";
-import { RoutingGroupControllerCreateDto } from "./dtos/create.dto";
-import { getRepository } from "typeorm";
+import { Validate } from '../../../decorators/validate.decorator';
+import { RoutingGroupPolicy } from '../../../policies/routing-group.policy';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { RoutingGroup } from '../../../models/routing/routing-group/routing-group.model';
+import { RoutingGroupControllerUpdateDto } from './dtos/update.dto';
+import { RoutingGroupControllerCreateDto } from './dtos/create.dto';
+import db from '../../../database/database-manager';
 
 export class RoutingGroupController extends Controller {
-    protected _routingGroupService: RoutingGroupService;
+  protected _routingGroupService: RoutingGroupService;
 
-    protected _fwCloud: FwCloud;
-    protected _firewall: Firewall;
-    protected _routingGroup: RoutingGroup;
+  protected _fwCloud: FwCloud;
+  protected _firewall: Firewall;
+  protected _routingGroup: RoutingGroup;
 
-    public async make(request: Request): Promise<void> {
-        this._routingGroupService = await this._app.getService<RoutingGroupService>(RoutingGroupService.name);
-        
-        if (request.params.routingGroup) {
-            this._routingGroup = await getRepository(RoutingGroup).findOneOrFail(parseInt(request.params.routingGroup));
-        }
+  public async make(request: Request): Promise<void> {
+    this._routingGroupService = await this._app.getService<RoutingGroupService>(
+      RoutingGroupService.name,
+    );
 
-        //Get the firewall from the URL which contains the routing group 
-        const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
-        if (request.params.routingGroup) {
-            firewallQueryBuilder.innerJoin('firewall.routingGroups', 'group', 'group.id = :groupId', {groupId: parseInt(request.params.routingGroup)})
-        }
-        this._firewall = await firewallQueryBuilder.getOneOrFail();
-
-        //Get the fwcloud from the URL which contains the firewall
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
-            .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: this._firewall.id})
-            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)}).getOneOrFail();        
-    }
-
-    @Validate()
-    async index(request: Request): Promise<ResponseBuilder> {
-        (await RoutingGroupPolicy.index(this._firewall, request.session.user)).authorize();
-        
-        const groups: RoutingGroup[] = await this._routingGroupService.findManyInPath({
-            firewallId: this._firewall.id,
-            fwCloudId: this._fwCloud.id
+    if (request.params.routingGroup) {
+      this._routingGroup = await db
+        .getSource()
+        .manager.getRepository(RoutingGroup)
+        .findOneOrFail({
+          where: { id: parseInt(request.params.routingGroup) },
         });
-
-        return ResponseBuilder.buildResponse().status(200).body(groups); 
     }
 
-    @Validate()
-    async show(request: Request): Promise<ResponseBuilder> {
-        (await RoutingGroupPolicy.show(this._routingGroup, request.session.user)).authorize();
-
-        return ResponseBuilder.buildResponse().status(200).body(this._routingGroup);
+    //Get the firewall from the URL which contains the routing group
+    const firewallQueryBuilder = db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
+    if (request.params.routingGroup) {
+      firewallQueryBuilder.innerJoin('firewall.routingGroups', 'group', 'group.id = :groupId', {
+        groupId: parseInt(request.params.routingGroup),
+      });
     }
+    this._firewall = await firewallQueryBuilder.getOneOrFail();
 
-    @Validate(RoutingGroupControllerCreateDto)
-    async create(request: Request): Promise<ResponseBuilder> {
-        (await RoutingGroupPolicy.create(this._firewall, request.session.user)).authorize();
+    //Get the fwcloud from the URL which contains the firewall
+    this._fwCloud = await db
+      .getSource()
+      .manager.getRepository(FwCloud)
+      .createQueryBuilder('fwcloud')
+      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
+        firewallId: this._firewall.id,
+      })
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .getOneOrFail();
+  }
 
-        const group: RoutingGroup = await this._routingGroupService.create({
-            name: request.inputs.get('name'),
-            comment: request.inputs.get('comment'),
-            firewallId: this._firewall.id,
-            routingRules: request.inputs.get<number[]>('routingRules').map((id) => ({id}))
-        });
+  @Validate()
+  async index(request: Request): Promise<ResponseBuilder> {
+    (await RoutingGroupPolicy.index(this._firewall, request.session.user)).authorize();
 
-        return ResponseBuilder.buildResponse().status(201).body(group);
-    }
+    const groups: RoutingGroup[] = await this._routingGroupService.findManyInPath({
+      firewallId: this._firewall.id,
+      fwCloudId: this._fwCloud.id,
+    });
 
-    @Validate(RoutingGroupControllerUpdateDto)
-    async update(request: Request): Promise<ResponseBuilder> {
-        (await RoutingGroupPolicy.update(this._routingGroup, request.session.user)).authorize();
+    return ResponseBuilder.buildResponse().status(200).body(groups);
+  }
 
-        const updated: RoutingGroup = await this._routingGroupService.update(this._routingGroup.id, request.inputs.all())
+  @Validate()
+  async show(request: Request): Promise<ResponseBuilder> {
+    (await RoutingGroupPolicy.show(this._routingGroup, request.session.user)).authorize();
 
-        return ResponseBuilder.buildResponse().status(200).body(updated);
-    }
+    return ResponseBuilder.buildResponse().status(200).body(this._routingGroup);
+  }
 
-    @Validate()
-    async remove(request: Request): Promise<ResponseBuilder> {
-        (await RoutingGroupPolicy.remove(this._routingGroup, request.session.user)).authorize();
+  @Validate(RoutingGroupControllerCreateDto)
+  async create(request: Request): Promise<ResponseBuilder> {
+    (await RoutingGroupPolicy.create(this._firewall, request.session.user)).authorize();
 
-        const removedGroup: RoutingGroup = await this._routingGroupService.remove({
-            firewallId: this._firewall.id,
-            fwCloudId: this._fwCloud.id,
-            id: parseInt(request.params.routingGroup)
-        });
+    const group: RoutingGroup = await this._routingGroupService.create({
+      name: request.inputs.get('name'),
+      comment: request.inputs.get('comment'),
+      firewallId: this._firewall.id,
+      routingRules: request.inputs.get<number[]>('routingRules').map((id) => ({ id })),
+    });
 
-        return ResponseBuilder.buildResponse().status(200).body(removedGroup);
-    }
+    return ResponseBuilder.buildResponse().status(201).body(group);
+  }
+
+  @Validate(RoutingGroupControllerUpdateDto)
+  async update(request: Request): Promise<ResponseBuilder> {
+    (await RoutingGroupPolicy.update(this._routingGroup, request.session.user)).authorize();
+
+    const updated: RoutingGroup = await this._routingGroupService.update(
+      this._routingGroup.id,
+      request.inputs.all(),
+    );
+
+    return ResponseBuilder.buildResponse().status(200).body(updated);
+  }
+
+  @Validate()
+  async remove(request: Request): Promise<ResponseBuilder> {
+    (await RoutingGroupPolicy.remove(this._routingGroup, request.session.user)).authorize();
+
+    const removedGroup: RoutingGroup = await this._routingGroupService.remove({
+      firewallId: this._firewall.id,
+      fwCloudId: this._fwCloud.id,
+      id: parseInt(request.params.routingGroup),
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(removedGroup);
+  }
 }

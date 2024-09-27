@@ -20,73 +20,83 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../fonaments/services/service";
-import { DatabaseService } from "./database.service";
-import { getRepository, ObjectType, EntitySchema, Repository, getCustomRepository } from "typeorm";
-import { PolicyRule } from "../models/policy/PolicyRule";
-import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
-import { Firewall } from "../models/firewall/Firewall";
-import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { PolicyGroup } from "../models/policy/PolicyGroup";
-import { PolicyGroupRepository } from "../repositories/PolicyGroupRepository";
-import { deprecate } from "util";
-import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
-import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
+import { Service } from '../fonaments/services/service';
+import { DatabaseService } from './database.service';
+import { ObjectType, EntitySchema } from 'typeorm';
+import { PolicyRule } from '../models/policy/PolicyRule';
+import { PolicyRuleRepository } from '../models/policy/policy-rule.repository';
+import { Firewall } from '../models/firewall/Firewall';
+import { FirewallRepository } from '../models/firewall/firewall.repository';
+import { PolicyGroup } from '../models/policy/PolicyGroup';
+import { PolicyGroupRepository } from '../repositories/PolicyGroupRepository';
+import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
+import { OpenVPNRepository } from '../models/vpn/openvpn/openvpn-repository';
 
-type RepositoryMapItem = {"entityClass": Function, "repository": Function};
+type RepositoryMapItem = {
+  entityClass: new (...args: any[]) => any;
+  repository: new (...args: any[]) => any;
+};
 export class RepositoryService extends Service {
-    protected _databaseService: DatabaseService;
+  protected _databaseService: DatabaseService;
 
-    protected _customRepositories: Array<RepositoryMapItem> = [
-         {
-             "entityClass": PolicyRule,
-             "repository": PolicyRuleRepository
-         },
-         {
-             "entityClass": Firewall,
-             "repository": FirewallRepository
-         },
-         {
-             "entityClass": PolicyGroup,
-             "repository": PolicyGroupRepository
-         },
-         {
-            "entityClass": OpenVPN,
-            "repository": OpenVPNRepository
-        }
-   ]
+  protected _customRepositories: Array<RepositoryMapItem> = [
+    {
+      entityClass: PolicyRule,
+      repository: PolicyRuleRepository,
+    },
+    {
+      entityClass: Firewall,
+      repository: FirewallRepository,
+    },
+    {
+      entityClass: PolicyGroup,
+      repository: PolicyGroupRepository,
+    },
+    {
+      entityClass: OpenVPN,
+      repository: OpenVPNRepository,
+    },
+  ];
 
-    public async build(): Promise<RepositoryService> {
-        this._databaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        return this;
+  public async build(): Promise<RepositoryService> {
+    this._databaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
+    return this;
+  }
+
+  // public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): any {
+  //     return deprecate(() => {
+  //         if(this.hasCustomRepository(entityClass)) {
+  //             return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.dataSource.name);
+  //         }
+  //         return getRepository(entityClass, this._databaseService.dataSource.name);
+  //     }, 'Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead')();
+  // }
+
+  protected hasCustomRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string,
+  ): boolean {
+    const matches: Array<RepositoryMapItem> = this._customRepositories.filter(
+      (item: RepositoryMapItem) => {
+        return item.entityClass === entityClass;
+      },
+    );
+
+    return matches.length > 0;
+  }
+
+  protected getCustomRepositoryFor<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string,
+  ): new (...args: any[]) => any {
+    const matches: Array<RepositoryMapItem> = this._customRepositories.filter(
+      (item: RepositoryMapItem) => {
+        return item.entityClass === entityClass;
+      },
+    );
+
+    if (matches.length > 0) {
+      return matches[0].repository;
     }
 
-    public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): any {
-        return deprecate(() => {
-            if(this.hasCustomRepository(entityClass)) {
-                return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.connection.name);
-            }
-            return getRepository(entityClass, this._databaseService.connection.name);
-        }, 'Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead')();
-    }
-
-    protected hasCustomRepository<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string): boolean {
-        const matches: Array<RepositoryMapItem> = this._customRepositories.filter((item: RepositoryMapItem) => {
-            return item.entityClass === entityClass;
-        });
-
-        return matches.length > 0;
-    }
-
-    protected getCustomRepositoryFor<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string): Function {
-        const matches: Array<RepositoryMapItem> = this._customRepositories.filter((item: RepositoryMapItem) => {
-            return item.entityClass === entityClass;
-        });
-
-        if (matches.length > 0) {
-            return matches[0].repository;
-        }
-
-        return null;
-    }
+    return null;
+  }
 }

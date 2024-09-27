@@ -20,29 +20,31 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableTerraformer, TerraformHandlerCollection } from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { FwCloud } from "../../../../models/fwcloud/FwCloud";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { TableTerraformer, TerraformHandlerCollection } from '../table-terraformer';
+import { ImportMapping } from '../mapper/import-mapping';
+import { FwCloud } from '../../../../models/fwcloud/FwCloud';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export class IpObjGroupTerraformer extends TableTerraformer {
-    
-    public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<IpObjGroupTerraformer> {
-        const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(mapper, eventEmitter);
-        return terraformer;
-    }
-    
-    /**
-     * The 'fwCloudId' foreign key is missing thus, this handler
-     * maps the value as it was a foreign key
-     */
-    protected getCustomHandlers(): TerraformHandlerCollection {
-        const result = {};
+  public static async make(
+    mapper: ImportMapping,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<IpObjGroupTerraformer> {
+    const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(mapper, eventEmitter);
+    return terraformer;
+  }
 
-        result['fwCloudId'] = (mapper: ImportMapping, row: object, value: number) => {
-            return mapper.getMappedId(FwCloud._getTableName(), 'id', value);
-        };
+  /**
+   * The 'fwCloudId' foreign key is missing thus, this handler
+   * maps the value as it was a foreign key
+   */
+  protected getCustomHandlers(): TerraformHandlerCollection {
+    const result = {};
 
-        return result;
-    }
+    result['fwCloudId'] = (mapper: ImportMapping, row: object, value: number) => {
+      return mapper.getMappedId(FwCloud._getTableName(), 'id', value);
+    };
+
+    return result;
+  }
 }

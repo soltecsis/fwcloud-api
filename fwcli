@@ -22,14 +22,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-const chalk = require('chalk');
+const kleur = require('kleur');
 const fs = require('fs-extra');
 const path = require('path');
 const child_process = require('child_process');
 
 function error(message) {
     process.stderr.write("\n");
-    process.stderr.write(chalk.bgRed.bold.white(`${message}\n`));
+    process.stderr.write(kleur.bgRed().bold().white(`${message}\n`));
     process.stderr.write("\n");
 }
 

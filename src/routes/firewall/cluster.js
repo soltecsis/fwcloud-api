@@ -74,6 +74,8 @@ import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { ClusterService } from '../../models/firewall/cluster.service';
+import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
+import { KeepalivedRule } from '../../models/system/keepalived/keepalived_r/keepalived_r.model';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -492,7 +494,7 @@ router.put('/fwtocluster', async(req, res) => {
 			try {
 				await Firewall.updateFirewallCluster(firewallData);
 				await Firewall.updateFWMaster(iduser, fwcloud, clusterId, firewall, 1);
-				res.status(200).json(data);
+				res.status(200).json({"result": true, "insertId": clusterId });
 			} catch(error) { return res.status(400).json(error);} 
 		} else {
 			logger().error('Error updating firewall cluster: ' + JSON.stringify(error));
@@ -565,7 +567,7 @@ router.put('/clustertofw', async (req, res) => {
 router.put('/clone', async (req, res) => {
 	try {
 		let clusters = await Cluster.getClusterCloud(req)
-		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
+		if (clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters > 0) {
 			throw fwcError.LIMIT_CLUSTERS
 		}
 		var iduser = req.session.user_id;
@@ -586,7 +588,7 @@ router.put('/clone', async (req, res) => {
 			return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 		}
 
-		Firewall.getFirewallCluster(iduser, idCluster, async(error, firewallDataArry) => {
+		Firewall.getFirewallCluster(iduser, idCluster, async (error, firewallDataArry) => {
 			if (error) {
 				logger().error('Error getting firewall cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
 				return res.status(400).json(error);
@@ -618,6 +620,10 @@ router.put('/clone', async (req, res) => {
 							await Firewall.updateFWMaster(iduser, fwcloud, newClusterId, idNewFirewall, 1);
 							//CLONE INTERFACES
 							let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
+							// Clone DHCP rules.
+							await DHCPRule.cloneDHCP(oldFirewall, idNewFirewall);
+							// Clone Keepalived rules.
+							await KeepalivedRule.cloneKeepalived(oldFirewall, idNewFirewall);
 							await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 							await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							const firewallService = await app().getService(FirewallService.name);

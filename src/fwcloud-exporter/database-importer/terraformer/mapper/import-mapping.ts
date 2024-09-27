@@ -20,80 +20,85 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IdManager } from "./id-manager";
-import { ExporterResult } from "../../../database-exporter/exporter-result";
+import { IdManager } from './id-manager';
+import { ExporterResult } from '../../../database-exporter/exporter-result';
 
-export type IdMap = {old: any, new: any}
+export type IdMap = { old: any; new: any };
 
 export class ImportMapping {
-    _idManager: IdManager;
-    _data: ExporterResult;
+  _idManager: IdManager;
+  _data: ExporterResult;
 
-    constructor(idManager: IdManager, data: ExporterResult, public maps: Map<string, number> = new Map<string, number>()) {
-        this._idManager = idManager;
-        this._data = data;
+  constructor(
+    idManager: IdManager,
+    data: ExporterResult,
+    public maps: Map<string, number> = new Map<string, number>(),
+  ) {
+    this._idManager = idManager;
+    this._data = data;
+  }
+
+  /**
+   * Gets the mapped id if it exists or create a new map
+   *
+   * @param tableName
+   * @param propertyName
+   * @param old
+   */
+  public getMappedId(tableName: string, propertyName: string, old: number): number {
+    const key: string = this.generateKey(tableName, propertyName, old);
+    const newId: number = this.maps.get(key);
+
+    if (newId) {
+      return newId;
     }
 
-    /**
-     * Gets the mapped id if it exists or create a new map
-     * 
-     * @param tableName 
-     * @param propertyName 
-     * @param old 
-     */
-    public getMappedId(tableName: string, propertyName: string, old: number): number {
-        const key: string = this.generateKey(tableName, propertyName, old);
-        const newId: number = this.maps.get(key);
-
-        if (newId) {
-            return newId;
-        }
-
-        if (this.shouldGenerateNewId(tableName, propertyName, old)) {
-            return this.generateNewId(tableName, propertyName, old);
-        }
-
-        this.maps.set(key, old);
-        return old;
+    if (this.shouldGenerateNewId(tableName, propertyName, old)) {
+      return this.generateNewId(tableName, propertyName, old);
     }
 
-    /**
-     * Returns whether an id should be refreshed. Notice only exported ids must be refreshed
-     * 
-     * @param tableName 
-     * @param propertyName 
-     * @param value 
-     */
-    protected shouldGenerateNewId(tableName: string, propertyName: string, value: any): boolean {
-        const tableData: Array<object> = this._data.getTableResults(tableName);
-        if (tableData) {
-            return this._data.getTableResults(tableName).filter((item: object) => {
-                return item.hasOwnProperty(propertyName) && item[propertyName] === value;
-            }).length > 0;
-        }
+    this.maps.set(key, old);
+    return old;
+  }
 
-        return false;
-        
+  /**
+   * Returns whether an id should be refreshed. Notice only exported ids must be refreshed
+   *
+   * @param tableName
+   * @param propertyName
+   * @param value
+   */
+  protected shouldGenerateNewId(tableName: string, propertyName: string, value: any): boolean {
+    const tableData: Array<object> = this._data.getTableResults(tableName);
+    if (tableData) {
+      return (
+        this._data.getTableResults(tableName).filter((item: object) => {
+          return propertyName in item && item[propertyName] === value;
+        }).length > 0
+      );
     }
 
-    /**
-     * Makes a id mapping with the id returned by the id manager
-     * 
-     * @param tableName 
-     * @param propertyName 
-     * @param old 
-     */
-    protected generateNewId(tableName: string, propertyName: string, old: number): number {
-        let newId: number = this._idManager.getNewId(tableName, propertyName);
-        if (!newId) {
-            newId = old;
-        }
-        this.maps.set(this.generateKey(tableName, propertyName, old), newId);
+    return false;
+  }
 
-        return newId;
+  /**
+   * Makes a id mapping with the id returned by the id manager
+   *
+   * @param tableName
+   * @param propertyName
+   * @param old
+   */
+  protected generateNewId(tableName: string, propertyName: string, old: number): number {
+    let newId: number = this._idManager.getNewId(tableName, propertyName);
+    if (!newId) {
+      newId = old;
     }
+    this.maps.set(this.generateKey(tableName, propertyName, old), newId);
 
-    protected generateKey(tableName: string, propertyName: string, old: number): string {
-        return `${tableName}:${propertyName}:${old}`
-    }
+    return newId;
+  }
+
+  protected generateKey(tableName: string, propertyName: string, old: number): string {
+    return `${tableName}:${propertyName}:${old}`;
+  }
 }

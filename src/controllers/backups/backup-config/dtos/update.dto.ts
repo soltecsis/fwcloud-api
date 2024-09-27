@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsNumber, IsPositive, IsString, Min } from "class-validator";
+import { IsNumber, IsPositive, IsString, Min } from 'class-validator';
 
 export class BackupConfigControllerUpdateDto {
-    @IsString()
-    schedule: string;
+  @IsString()
+  schedule: string;
 
-    @IsNumber()
-    @Min(0)
-    max_days: number;
+  @IsNumber()
+  @Min(0)
+  max_days: number;
 
-    @IsNumber()
-    @Min(0)
-    max_copies: number;
+  @IsNumber()
+  @Min(0)
+  max_copies: number;
 }
