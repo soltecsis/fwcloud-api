@@ -1,6 +1,6 @@
 {
   "name": "FWCloud-API",
-  "version": "1.9.2",
+  "version": "2.0.1",
   "description": "FWCloud RESTful API.",
   "private": true,
   "scripts": {
