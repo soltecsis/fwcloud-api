@@ -18,7 +18,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Download FWCloud-API
         run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
@@ -31,11 +31,6 @@ jobs:
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
-
-          # It is necessary to remove the next two files. 
-          # If not, the rpm package generation procedure raises errors.
-          rm "./node_modules/figlet/importable-fonts/Patorjk's Cheese.js" 
-          rm "./node_modules/figlet/fonts/Patorjk's Cheese.flf"
           
       - name: Create ${{ env.TGZ }} file
         run: tar zcpf ${{ env.TGZ }} fwcloud
