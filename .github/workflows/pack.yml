@@ -18,7 +18,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Download FWCloud-API
         run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
