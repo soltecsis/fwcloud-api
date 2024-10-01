@@ -4,8 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.5] - 2024-10-01
+## [2.0.7] - 2024-10-01
 ### Fixed
+- Error: `/var/lib/dpkg/info/fwcloud-api.postinst: 139: [: Disabled: unexpected operator`.
 - Problem installing .deb package in Debian 12. Use `127.0.0.1` instead of `localhost` for the `DBHOST` variable in the `after-install.sh` script.
 
 
