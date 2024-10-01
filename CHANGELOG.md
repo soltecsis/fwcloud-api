@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.1] - 2024-09-29
+## [2.0.5] - 2024-10-01
+### Fixed
+- Problem installing .deb package in Debian 12. Use `127.0.0.1` instead of `localhost` for the `DBHOST` variable in the `after-install.sh` script.
+
+
+## [2.0.4] - 2024-09-29
 ### Added
 - CI scripts update.
 - HAProxy service API calls and service compiler.
