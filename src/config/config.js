@@ -68,7 +68,7 @@ const config = convict({
     ip: {
       doc: 'API IP address or hostname to bind.',
       format: String,
-      default: 'localhost',
+      default: '127.0.0.1',
       env: 'APISRV_IP'
     },
     port: {
@@ -180,7 +180,7 @@ const config = convict({
     host: {
       doc: 'Database host name or IP address.',
       format: String,
-      default: 'localhost',
+      default: '127.0.0.1',
       env: 'TYPEORM_HOST'
     },
     port: {
@@ -518,7 +518,7 @@ const config = convict({
     url: {
       doc: 'fwcloud-updater URL.',
       format: String,
-      default: 'https://localhost:3132',
+      default: 'https://127.0.0.1:3132',
       env: 'FWC_UPDATER_URL'
     },
   },
