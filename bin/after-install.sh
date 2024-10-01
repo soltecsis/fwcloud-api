@@ -51,7 +51,7 @@ if [ "$DBENGINE" = "MySQL" ]; then
 fi
 
 # Create the fwcloud database and access user.
-DBHOST="localhost"
+DBHOST="127.0.0.1"
 DBNAME="fwcloud"
 DBUSER="fwcdbusr"
 passGen 16
