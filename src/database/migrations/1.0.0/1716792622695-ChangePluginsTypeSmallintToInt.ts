@@ -36,6 +36,7 @@ export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInt
         name: 'plugins',
         type: newType,
         isNullable: false,
+        default: 0,
       }),
     );
   }
