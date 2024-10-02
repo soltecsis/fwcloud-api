@@ -2,14 +2,13 @@
     "compilerOptions": {
       "outDir": "dist",
       "allowJs": true,
-      "lib": [ "es2019" ],
-      "target": "es2019",
+      "lib": [ "ES2021" ],
+      "target": "ES2021",
       "sourceMap": true,
-      "module": "commonjs",
+      "module": "CommonJS",
       "moduleResolution": "node",
       "resolveJsonModule": true,
       "esModuleInterop": true,
-      "noImplicitUseStrict": true,
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "types": [
@@ -18,6 +17,8 @@
     },
     "include": [
       "./src/**/*",
+      "src/types/**/*",
       "./tests/**/*"
-    ]
+    ],
+    "exclude": ["node_modules"]
   }

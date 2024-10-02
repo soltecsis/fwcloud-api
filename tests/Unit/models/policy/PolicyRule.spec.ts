@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
 
 let app: AbstractApplication;
 
 describe.skip(describeName('PolicyRule tests'), () => {
-    before(async () => {
-        app = testSuite.app;
-    })
+  before(async () => {
+    app = testSuite.app;
+  });
 });

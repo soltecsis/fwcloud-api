@@ -1,11 +1,18 @@
-import { registerDecorator, ValidationArguments, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
-import { getRepository, In } from "typeorm";
-import { boolean } from "yargs";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { Crt } from "../../../models/vpn/pki/Crt";
+import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
+import { In } from 'typeorm';
+import { boolean } from 'yargs';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import db from '../../../database/database-manager';
 
 export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isClientOpenVPN',
       target: object.constructor,
@@ -17,16 +24,20 @@ export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
           value = Array.isArray(value) ? value : [value];
 
           return new Promise<boolean>(async (resolve, reject) => {
-            const openvpns: OpenVPN[] = await getRepository(OpenVPN).find(
-              {
-                where: { id: In(value as number[])}
-              }
-            );
-            
+            const openvpns: OpenVPN[] = await db
+              .getSource()
+              .manager.getRepository(OpenVPN)
+              .find({
+                where: { id: In(value) },
+              });
+
             if (openvpns.length === 0) return resolve(true);
 
-            for (let i=0; i<openvpns.length; i++) {
-              const crt: Crt = await getRepository(Crt).findOne({ where: { id: openvpns[i].crtId }});
+            for (let i = 0; i < openvpns.length; i++) {
+              const crt: Crt = await db
+                .getSource()
+                .manager.getRepository(Crt)
+                .findOne({ where: { id: openvpns[i].crtId } });
 
               if (openvpns[i].parentId === null || crt.type !== 1) return resolve(false);
             }
@@ -36,8 +47,8 @@ export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
         },
 
         defaultMessage(args: ValidationArguments): string {
-          return `is not a valid client openvpn`
-        }
+          return `is not a valid client openvpn`;
+        },
       },
     });
   };

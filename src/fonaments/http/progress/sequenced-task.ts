@@ -20,45 +20,45 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Task, GroupDescription, TaskDescription } from "./task";
-import { ParalellizedTask } from "./parallelized-task";
-import { TasksEventEmitter } from "./progress";
+import { Task, GroupDescription, TaskDescription } from './task';
+import { ParalellizedTask } from './parallelized-task';
+import { TasksEventEmitter } from './progress';
 
 export class SequencedTask extends Task {
-    protected _tasks: Array<Task>;
+  protected _tasks: Array<Task>;
 
-    constructor(eventEmitter: TasksEventEmitter, fn: GroupDescription) {
-        super(eventEmitter, null, null);
-        fn(this);
-    }
+  constructor(eventEmitter: TasksEventEmitter, fn: GroupDescription) {
+    super(eventEmitter, null, null);
+    fn(this);
+  }
 
-    public getTasks(): Array<Task> {
-        return this._tasks;
-    }
+  public getTasks(): Array<Task> {
+    return this._tasks;
+  }
 
-    public addTask(task: TaskDescription, description: string = null): void {
-        this._tasks.push(new Task(this._eventEmitter, task, description));
-    }
+  public addTask(task: TaskDescription, description: string = null): void {
+    this._tasks.push(new Task(this._eventEmitter, task, description));
+  }
 
-    public parallel(fn: GroupDescription, description: string = null): void {
-        this._tasks.push(new ParalellizedTask(this._eventEmitter, fn));
-    }
+  public parallel(fn: GroupDescription, description: string = null): void {
+    this._tasks.push(new ParalellizedTask(this._eventEmitter, fn));
+  }
 
-    public sequence(fn: GroupDescription, description: string = null): void {
-        this._tasks.push(new SequencedTask(this._eventEmitter, fn));
-    }
+  public sequence(fn: GroupDescription, description: string = null): void {
+    this._tasks.push(new SequencedTask(this._eventEmitter, fn));
+  }
 
-    public run(): Promise<any> {
-        return new Promise<any>(async (resolve,reject) => {
-            for(let i = 0; i < this._tasks.length; i++) {
-                try {
-                    await this._tasks[i].run();
-                } catch(e) {
-                    return reject(e);
-                }
-            }
+  public run(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      for (let i = 0; i < this._tasks.length; i++) {
+        try {
+          await this._tasks[i].run();
+        } catch (e) {
+          return reject(e);
+        }
+      }
 
-            return resolve();
-        });
-    }
+      return resolve();
+    });
+  }
 }

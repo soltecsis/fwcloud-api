@@ -23,19 +23,19 @@
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 
 export function positionsEmpty(data: any): boolean {
-  if (!data || !data.positions) return false;
+  if (!data || !data.positions) return false;
 
-  for(let i=0; i<data.positions.length; i++) {
-      if (data.positions[i].ipobjs.length !== 0) return false;
+  for (let i = 0; i < data.positions.length; i++) {
+    if (data.positions[i].ipobjs.length !== 0) return false;
   }
 
   return true;
 }
 
-export function searchInPolicyData(data: any, position:number, id: number): boolean {
-  for (let i=0; i<data.positions.length; i++) {
+export function searchInPolicyData(data: any, position: number, id: number): boolean {
+  for (let i = 0; i < data.positions.length; i++) {
     if (data.positions[i].id === position) {
-      for (let j=0; j<data.positions[i].ipobjs.length; j++) {
+      for (let j = 0; j < data.positions[i].ipobjs.length; j++) {
         if (data.positions[i].ipobjs[j].id === id) return true;
       }
       return false;
@@ -52,7 +52,6 @@ export async function populateRule(rule: number, position: number, ipobj: number
     ipobj_g: -1,
     interface: -1,
     position: position,
-    position_order: 1
+    position_order: 1,
   });
 }
-

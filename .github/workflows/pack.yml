@@ -13,12 +13,12 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Download FWCloud-API
         run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
@@ -31,17 +31,12 @@ jobs:
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
-
-          # It is necessary to remove the next two files. 
-          # If not, the rpm package generation procedure raises errors.
-          rm "./node_modules/figlet/importable-fonts/Patorjk's Cheese.js" 
-          rm "./node_modules/figlet/fonts/Patorjk's Cheese.flf"
           
       - name: Create ${{ env.TGZ }} file
         run: tar zcpf ${{ env.TGZ }} fwcloud
 
       - name: Upload ${{ env.TGZ }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tgz
           path: ${{ env.TGZ }}
@@ -54,14 +49,14 @@ jobs:
       matrix:
         pkg: [deb, rpm]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Get fwcloud-api version
         id: package-version
         uses: martinbeentjes/npm-get-version-action@v1.3.1
 
       - name: Download ${{ env.TGZ }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tgz
 
@@ -98,7 +93,7 @@ jobs:
             -s dir
 
       - name: Upload ${{ matrix.pkg }} package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.pkg }}-package
           path: ./*.${{ matrix.pkg }}
@@ -112,10 +107,10 @@ jobs:
         pkg: [[deb, any/any], [rpm, rpm_any/rpm_any]]
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download ${{ matrix.pkg[0] }} package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.pkg[0] }}-package
 

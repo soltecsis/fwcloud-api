@@ -80,13 +80,13 @@ schema.validate = req => {
 			else if (req.url === '/policy/rule/copy' || req.url === '/policy/rule/move')
 				schema = schema.append({
 					pasteOnRuleId: sharedSch.id,
-					pasteOffset: Joi.number().integer().valid([-1, 0, 1]),
+					pasteOffset: Joi.number().integer().valid(-1, 0, 1),
 					rulesIds: Joi.array().items(sharedSch.id)
 				});
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
-			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
+			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
 		} catch (error) { return reject(error) }
 	});

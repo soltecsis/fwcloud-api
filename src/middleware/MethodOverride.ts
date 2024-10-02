@@ -20,22 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
 import method_override from 'method-override';
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
 
 export class MethodOverride extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        this.app.express.use(method_override((req, res) => {
-            if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-                // look in urlencoded POST bodies and delete it
-                var method = req.body._method;
-                delete req.body._method;
-                return method;
-            }
-        }));
+  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+    this.app.express.use(
+      method_override((req, res) => {
+        if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+          // look in urlencoded POST bodies and delete it
+          const method = req.body._method;
+          delete req.body._method;
+          return method;
+        }
+      }),
+    );
 
-        return next();
-    }
-
+    return next();
+  }
 }

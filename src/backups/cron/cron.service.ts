@@ -20,28 +20,21 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../../fonaments/services/service";
-import { CronJob, CronCommand } from "cron";
-import { Moment } from "moment";
+import { Service } from '../../fonaments/services/service';
+import { CronJob, CronCommand, CronOnCompleteCommand } from 'cron';
+import { Moment } from 'moment';
 
 export class CronService extends Service {
-    protected _jobs: Array<CronJob> = [];
+  protected _jobs: Array<CronJob> = [];
 
-    public async build(): Promise<CronService> {
-        this._jobs = [];
-        return this;
-    }
+  public async build(): Promise<CronService> {
+    this._jobs = [];
+    return this;
+  }
 
-    public async close(): Promise<void> {
-        for(let i = 0; i < this._jobs.length; i++) {
-            this._jobs[i].stop();
-        }
-    }
-    
-
-    public addJob(cronTime: string | Date | Moment, onTick: CronCommand, onComplete?: CronCommand, start?: boolean, timeZone?: string, context?: any, runOnInit?: boolean, utcOffset?: string | number, unrefTimeout?: boolean) {
-        const job: CronJob = new CronJob(cronTime, onTick, onComplete, start, timeZone, context, runOnInit, utcOffset, unrefTimeout);
-        this._jobs.push(job);
-        return job;
-    }
+  public addJob(cronTime: string, onTick: CronCommand<any, false>) {
+    const job = new CronJob(cronTime, onTick);
+    this._jobs.push(job);
+    return job;
+  }
 }

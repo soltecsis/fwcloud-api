@@ -20,213 +20,216 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Response } from "express";
-import { isResponsable } from "../../fonaments/contracts/responsable"
-import { InternalServerException } from "../exceptions/internal-server-exception";
-import { HttpException } from "../exceptions/http/http-exception";
-import { AbstractApplication, app } from "../abstract-application";
-import { isArray } from "util";
-import { HttpCodeResponse } from "./http-code-response";
-import ObjectHelpers from "../../utils/object-helpers";
-import { FwCloudError } from "../exceptions/error";
-import { classToPlain } from "class-transformer";
-import * as stream from "stream"
+import { Response } from 'express';
+import { isResponsable } from '../../fonaments/contracts/responsable';
+import { InternalServerException } from '../exceptions/internal-server-exception';
+import { HttpException } from '../exceptions/http/http-exception';
+import { AbstractApplication, app } from '../abstract-application';
+import { isArray } from 'util';
+import { HttpCodeResponse } from './http-code-response';
+import ObjectHelpers from '../../utils/object-helpers';
+import { FwCloudError } from '../exceptions/error';
+import { classToPlain } from 'class-transformer';
+import * as stream from 'stream';
 
-type Attachment = FileAttached | ContentAttached
+type Attachment = FileAttached | ContentAttached;
 
 interface ResponseBody {
-    status: number,
-    response: string,
-    
-    data?: object | Array<object>,
-    
-    message: string,
-    errors?: object,
-    stack?: Array<string>
+  status: number;
+  response: string;
+
+  data?: object | Array<object>;
+
+  message: string;
+  errors?: object;
+  stack?: Array<string>;
 }
 
 interface FileAttached {
-    path: string;
-    filename?: string;
+  path: string;
+  filename?: string;
 }
 
 interface ContentAttached {
-    content: string;
-    filename?: string;
+  content: string;
+  filename?: string;
 }
 
 interface DataPayload {
-    data: object | Array<object>
+  data: object | Array<object>;
 }
 
 function isFileAttached(value: Attachment): value is FileAttached {
-    return Object.prototype.hasOwnProperty.call(value, "path");
+  return Object.prototype.hasOwnProperty.call(value, 'path');
 }
 
 function isContentAttached(value: Attachment): value is ContentAttached {
-    return ObjectHelpers.prototype.hasOwnProperty.call(value, "content")
+  return ObjectHelpers.prototype.hasOwnProperty.call(value, 'content');
 }
 
 export interface ErrorPayload {
-    message: string,
-    errors?: object,
-    stack?: Array<string>
+  message: string;
+  errors?: object;
+  stack?: Array<string>;
 }
 
 export class ResponseBuilder {
-    protected _app: AbstractApplication;
-    protected _response: Response;
+  protected _app: AbstractApplication;
+  protected _response: Response;
 
-    protected _status: number;
-    protected _payload: object;
-    protected _error: HttpException;
-    
-    protected _attachment: Attachment;
-    
-    private constructor() {
-        this._app = app();
+  protected _status: number;
+  protected _payload: object;
+  protected _error: HttpException;
+
+  protected _attachment: Attachment;
+
+  private constructor() {
+    this._app = app();
+  }
+
+  public static buildResponse(): ResponseBuilder {
+    return new ResponseBuilder();
+  }
+
+  public status(status: number): ResponseBuilder {
+    if (this._status) {
+      throw new Error('Status already defined for the given response');
     }
 
-    public static buildResponse(): ResponseBuilder {
-        return new ResponseBuilder();
+    this._status = status;
+    return this;
+  }
+
+  public body(payload: any): ResponseBuilder {
+    if (this._payload) {
+      throw new Error('Message already defined for the given response');
     }
 
-    public status(status: number): ResponseBuilder {
-        if (this._status) {
-            throw new Error('Status already defined for the given response');
-        }
+    this._payload = payload;
 
-        this._status = status;
-        return this;
+    return this;
+  }
+
+  public download(path: string, filename?: string, cb?: (err: Error) => void): ResponseBuilder {
+    this._attachment = {
+      path: path,
+      filename: filename,
+    };
+    return this;
+  }
+
+  public downloadContent(content: string, filename?: string): ResponseBuilder {
+    this._attachment = {
+      content,
+      filename,
+    };
+    return this;
+  }
+
+  public hasFileAttached(): boolean {
+    return this._attachment ? true : false;
+  }
+
+  public error(error: Error): ResponseBuilder {
+    if (!(error instanceof FwCloudError)) {
+      error = new FwCloudError(error);
     }
 
-    public body(payload: any): ResponseBuilder {
-        if (this._payload) {
-            throw new Error('Message already defined for the given response');
-        }
-
-        this._payload = payload;
-
-        return this;
+    // In case the exception is not an http exception we generate a 500 exception
+    if (!(error instanceof HttpException)) {
+      error = new InternalServerException(error.message, error.stack);
     }
 
-    public download(path: string, filename?: string, cb?: (err: Error) => void): ResponseBuilder {   
-        this._attachment = {
-            path: path,
-            filename: filename
-        }
-        return this;
+    this._status = (<HttpException>error).status;
+    this._error = <HttpException>error;
+
+    return this;
+  }
+
+  public build(response: Response): ResponseBuilder {
+    this._response = response;
+
+    if (!this._status) {
+      throw new Error('Status not defined for the given response');
     }
 
-    public downloadContent(content: string, filename?: string): ResponseBuilder {
-        this._attachment = {
-            content,
-            filename
-        }
-        return this;
+    this._response.status(this._status);
+
+    if (this.hasFileAttached()) {
+      return this;
     }
 
-    public hasFileAttached(): boolean {
-        return this._attachment ? true: false;
+    this._response.json(this.buildMessage());
+
+    return this;
+  }
+
+  public send(): Response {
+    if (this.hasFileAttached() && isFileAttached(this._attachment)) {
+      this._response.download(this._attachment.path, this._attachment.filename);
+      return this._response;
+    }
+    if (this.hasFileAttached() && isContentAttached(this._attachment)) {
+      const fileContents = Buffer.from(this._attachment.content);
+
+      const redStream = new stream.PassThrough();
+      redStream.end(fileContents);
+
+      this._response.set(
+        'Content-disposition',
+        'attachment; filename=' + (this._attachment.filename ?? 'file.text'),
+      );
+      this._response.set('Content-Type', 'text/plain');
+
+      redStream.pipe(this._response);
+
+      return this._response;
     }
 
-    public error(error: Error): ResponseBuilder {
-        if (!(error instanceof FwCloudError)) {
-            error = new FwCloudError(error);
-        }
+    this._response.send();
+  }
 
-        // In case the exception is not an http exception we generate a 500 exception
-        if (!(error instanceof HttpException)) {
-            error = new InternalServerException(error.message, error.stack);
-        }
+  protected buildMessage(): ResponseBody {
+    const envelope: Partial<ResponseBody> = {
+      status: this._status,
+      response: HttpCodeResponse.get(this._status),
+    };
 
-        this._status = (<HttpException>error).status;
-        this._error = <HttpException>error;
+    return <ResponseBody>ObjectHelpers.merge(envelope, this.buildPayload(this._payload));
+  }
 
-        return this;
+  public toJSON(): ResponseBody {
+    return this.buildMessage();
+  }
+
+  protected buildPayload(payload: any): ErrorPayload | DataPayload {
+    if (this._error) {
+      return this.buildErrorPayload(this._error);
+    }
+    return isArray(payload) ? this.buildArrayDataPayload(payload) : this.buildDataPayload(payload);
+  }
+
+  protected buildDataPayload(payload: object): DataPayload {
+    if (payload === null || payload === undefined) {
+      return { data: null };
     }
 
-    public build(response: Response): ResponseBuilder {
-        this._response = response;
+    const data: object = isResponsable(payload) ? payload.toResponse() : payload;
 
-        if (!this._status) {
-            throw new Error('Status not defined for the given response');
-        }
+    return { data: data };
+  }
 
-        this._response.status(this._status);
+  protected buildArrayDataPayload(payload: Array<any>): DataPayload {
+    const result: Array<object> = [];
 
-        if (this.hasFileAttached()) {
-            return this;
-        }
-
-        this._response.json(this.buildMessage());
-
-        return this;
+    for (let i = 0; i < payload.length; i++) {
+      result.push(isResponsable(payload[i]) ? payload[i].toResponse() : classToPlain(payload[i]));
     }
 
-    public send(): Response {
-        if (this.hasFileAttached() && isFileAttached(this._attachment)) {
-            this._response.download(this._attachment.path, this._attachment.filename);
-            return this._response;
-        }
-        if (this.hasFileAttached() && isContentAttached(this._attachment)) {
-            var fileContents = Buffer.from(this._attachment.content)
+    return { data: result };
+  }
 
-            var redStream = new stream.PassThrough();
-            redStream.end(fileContents);
-
-            this._response.set('Content-disposition', 'attachment; filename=' + this._attachment.filename ?? 'file.text');
-            this._response.set('Content-Type', 'text/plain');
-
-            redStream.pipe(this._response);
-
-            return this._response;
-        }
-
-        this._response.send();
-    }
-
-    protected buildMessage(): ResponseBody {
-        let envelope: Partial<ResponseBody> = {
-            status: this._status,
-            response: HttpCodeResponse.get(this._status),
-        }
-
-        return <ResponseBody>ObjectHelpers.merge(envelope, this.buildPayload(this._payload));
-    }
-
-    public toJSON(): ResponseBody {
-        return this.buildMessage();
-    }
-
-    protected buildPayload(payload: any): ErrorPayload | DataPayload {
-        if (this._error) {
-            return this.buildErrorPayload(this._error);
-        }
-        return isArray(payload) ? this.buildArrayDataPayload(payload) : this.buildDataPayload(payload);
-    }
-
-    protected buildDataPayload(payload: Object): DataPayload {
-        if (payload === null || payload === undefined) {
-            return {data: null};
-        }
-
-        const data: object = isResponsable(payload) ? payload.toResponse() : payload;
-
-        return {data: data};
-    }
-
-    protected buildArrayDataPayload(payload: Array<any>): DataPayload {
-        const result: Array<Object> = [];
-
-        for (let i = 0; i < payload.length; i++) {
-            result.push(isResponsable(payload[i]) ? payload[i].toResponse() : classToPlain(payload[i]));
-        }
-
-        return {data: result};
-    }
-
-    protected buildErrorPayload(error: HttpException): ErrorPayload {
-        return error.toResponse();
-    }
+  protected buildErrorPayload(error: HttpException): ErrorPayload {
+    return error.toResponse();
+  }
 }

@@ -20,26 +20,31 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { SelectQueryBuilder } from "typeorm";
-import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleExporter } from "./routing-rule.exporter";
-import { RouteToIPObjGroup } from "../../../models/routing/route/route-to-ipobj-group.model";
-import { Route } from "../../../models/routing/route/route.model";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { SelectQueryBuilder } from 'typeorm';
+import { RoutingRule } from '../../../models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleExporter } from './routing-rule.exporter';
+import { RouteToIPObjGroup } from '../../../models/routing/route/route-to-ipobj-group.model';
+import { Route } from '../../../models/routing/route/route.model';
 
 export class RouteToIPObjGroupExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RouteToIPObjGroup;
-    }
+  protected getEntity(): typeof Model {
+    return RouteToIPObjGroup;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(Route, 'route').select('route.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb.subQuery().from(Route, 'route').select('route.id');
 
-            return `${alias}.routeId IN` + new RoutingRuleExporter()
-                .getFilterBuilder(subquery, 'route', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routeId IN` +
+        new RoutingRuleExporter().getFilterBuilder(subquery, 'route', fwCloudId).getQuery()
+      );
+    });
+  }
 }

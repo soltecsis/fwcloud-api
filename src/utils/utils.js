@@ -137,6 +137,8 @@ utilsModel.decrypt = (text) => {
 utilsModel.decryptFirewallData = (data) => {
 	return new Promise((resolve, reject) => {
 		try {
+			if (data.install_user !== null) {
+				var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 			const algorithm = config.get('crypt').algorithm;
 			const secretKey = Buffer.from(config.get('crypt').secret, 'hex');
 			const iv = Buffer.from(config.get('crypt').iv,'hex');
@@ -147,12 +149,20 @@ utilsModel.decryptFirewallData = (data) => {
 				decUser += decipher.final('utf8');
 				data.install_user = decUser;
 			}
+			if (data.install_pass !== null) {
+				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 			if (data.install_pass && data.install_pass !== '') {
 				var decipherPass = crypto.createDecipheriv(algorithm, secretKey, iv);
 				var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
 				decPass += decipherPass.final('utf8');
 				data.install_pass = decPass;
 			}
+
+			if (data.install_apikey !== null) {
+				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
+				var decPass = decipherPass.update(data.install_apikey, 'hex', 'utf8');
+				decPass += decipherPass.final('utf8');
+				data.install_apikey = decPass;
 			console.log("data.install_apikey",data.install_apikey);
 			console.log(data.install_apikey && data.install_apikey !== '')
 			if (data.install_apikey && data.install_apikey !== '') {

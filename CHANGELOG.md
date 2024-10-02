@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.9] - 2024-10-01
+### Fixed
+- Change default config options for host to bind, database host and fwcloud-updater host form `localhost` to `127.0.0.1`.
+- Error: `/var/lib/dpkg/info/fwcloud-api.postinst: 139: [: Disabled: unexpected operator`.
+- Problem installing .deb package in Debian 12. Use `127.0.0.1` instead of `localhost` for the `DBHOST` variable in the `after-install.sh` script.
+
+
+## [2.0.4] - 2024-09-29
+### Added
+- CI scripts update.
+- HAProxy service API calls and service compiler.
+- KeepAlived service API calls and service compiler.
+- DHCP service API calls and service compiler.
+- Database migration for the KeepAlived service management.
+- Database migration for the HAProxy service management.
+- Database migration for the DHCP service management.
+- Added query data to get Agent host information.
+- HAProxy plugin.
+- Systemctl management API call.
+- Database migration for the DHCP service management.
+- In the firewalls/clusters tree new sort of nodes under a firewall or cluster node. 
+- Migrations are added to create the System nodes and their children: DHCP, Keepalived, and HAProxy.
+
+### Changed
+- Dependencies upgraded to the last version.
+- 'TypeORM' upgraded and made changes from last version (v0.3.20). 
+- 'SocketIO' upgraded as well.
+- Replaced 'ip' package by 'ipaddr.js' package. 
+- Replaced 'chalk' package by 'kleur' package.
+- Added 'husky' and 'lint-staged' to manage Prettier and ESlint before each commit.
+- ESLint and Prettier configured into the project and fixed errors afterwards.
+- Optimize and reduce the time for the firewalls and clusters tree creation.
+
+
 ## [1.9.2] - 2023-06-07
 ### Added
 - `GET updates/type/pkg` API call. It will be used by FWCloud-UI to get the updates information in a FWCloud DEB/RPM packages based installation.

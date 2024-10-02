@@ -65,7 +65,6 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
-import { getRepository } from 'typeorm';
 import db from '../../../database/database-manager';
 const fwcError = require('../../../utils/error_table');
 import * as crypto from "crypto";
@@ -313,7 +312,7 @@ router.put('/install', async(req, res, next) => {
 		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
 		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		
 		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
@@ -366,7 +365,7 @@ router.put('/install', async(req, res, next) => {
  */
 router.put('/uninstall', async(req, res, next) => {
 	try {
-		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
@@ -414,12 +413,12 @@ router.put('/uninstall', async(req, res, next) => {
 router.put('/ccdsync', async(req, res, next) => {
 	try {
 		const channel = await Channel.fromRequest(req);
-		const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+		const firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
 			.where('firewall.id = :firewallId', {firewallId: req.body.firewall})
 			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 			.getOneOrFail();
 		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
-		const openvpnQuery = getRepository(OpenVPN).createQueryBuilder('openvpn')
+		const openvpnQuery = db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
 			.innerJoinAndSelect('openvpn.crt', 'crt')
 			.innerJoin('openvpn.firewall', 'firewall')
 			.where('openvpn.id = :openvpnId', {openvpnId: req.body.openvpn})
@@ -456,7 +455,7 @@ router.put('/ccdsync', async(req, res, next) => {
 		const client_config_dir = openvpn_opt.arg;
 
 		// Get all client configurations for this OpenVPN server configuration.
-		const clients = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+		const clients = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
 			.innerJoinAndSelect('openvpn.crt', 'crt')
 			.where('openvpn.parentId = :parentId', {parentId: openvpn.id})
 			.getMany();
@@ -485,7 +484,7 @@ router.put('/ccdsync', async(req, res, next) => {
 		const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
 		if (toBeInstalled.length > 0) {
 
-			const toBeInstalledOpenVPNs = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+			const toBeInstalledOpenVPNs = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
 				.innerJoinAndSelect('openvpn.crt', 'crt')
 				.where('openvpn.parentId = :openvpn', {openvpn: openvpn.id})
 				.andWhere('crt.cn IN (:...names)', {names: toBeInstalled})
@@ -543,7 +542,7 @@ router.put('/ccdsync', async(req, res, next) => {
  */
 router.put('/status/get', async(req, res, next) => {
 	try {
-		const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+		const firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
 			.where(`firewall.id = :id`, {id: req.body.firewall})
 			.andWhere(`firewall.fwCloudId = :fwcloud`, {fwcloud: req.body.fwcloud})
 			.getOneOrFail();
@@ -551,7 +550,7 @@ router.put('/status/get', async(req, res, next) => {
 
 		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
 			communication = new SSHCommunication({
-				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await db.getSource().manager.getRepository(IPObj).findOneOrFail({where: {id: firewall.install_ipobj}})).address,
 				port: Object.prototype.hasOwnProperty.call(req.body, "port") ? req.body.port : firewall.install_port,
 				username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? req.body.sshuser : utilsModel.decrypt(firewall.install_user),
 				password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? req.body.sshpass : utilsModel.decrypt(firewall.install_pass),

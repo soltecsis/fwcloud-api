@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceContainer, ServiceBound } from "./service-container";
-import { AbstractApplication } from "../abstract-application";
+import { ServiceContainer, ServiceBound } from './service-container';
+import { AbstractApplication } from '../abstract-application';
 
 export abstract class ServiceProvider {
-    protected app: AbstractApplication;
+  protected app: AbstractApplication;
 
-    constructor(app: AbstractApplication) {
-        this.app = app;
-    }
+  constructor(app: AbstractApplication) {
+    this.app = app;
+  }
 
-    public abstract register(serviceContainer: ServiceContainer): ServiceBound;
+  public abstract register(serviceContainer: ServiceContainer): ServiceBound;
 
-    public async bootstrap(app: AbstractApplication): Promise<void> {
-        return;
-    }
+  public async bootstrap(app: AbstractApplication): Promise<void> {
+    return;
+  }
 }

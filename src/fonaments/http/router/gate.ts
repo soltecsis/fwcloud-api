@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request } from "express";
+import { Request } from 'express';
 
 export class Gate {
-    public async grant(request: Request): Promise<boolean> {
-        return false;
-    }
+  public async grant(request: Request): Promise<boolean> {
+    return false;
+  }
 }

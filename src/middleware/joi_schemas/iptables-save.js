@@ -36,7 +36,7 @@ schema.validate = req => {
             socketid: sharedSch.socketio_id.optional(), 
             fwcloud: sharedSch.id, 
             firewall: sharedSch.id,
-            ip_version: Joi.number().integer().valid([4, 6])
+            ip_version: Joi.number().integer().valid(4, 6)
          });
 
         if (req.method==='PUT' && req.path==='/iptables-save/import') {
@@ -49,7 +49,7 @@ schema.validate = req => {
             }
               
             if (!req.body.type) return reject(fwcError.other('iptables-save import type expected'));
-            schema = schema.append({ type: Joi.string().valid(['data', 'remote']) });
+            schema = schema.append({ type: Joi.string().valid('data', 'remote') });
       
             if (req.body.type==='data')
                 schema = schema.append({ data: Joi.array().items(Joi.string()) });
@@ -91,7 +91,7 @@ schema.validate = req => {
         else return reject(fwcError.BAD_API_CALL);
 
 		try {
-			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
+			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
 		} catch (error) { return reject(error) }
 	});

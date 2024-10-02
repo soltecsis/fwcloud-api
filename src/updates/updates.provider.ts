@@ -20,22 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceProvider } from "../fonaments/services/service-provider";
-import { ServiceContainer, ServiceBound } from "../fonaments/services/service-container";
-import { UpdateService } from "./updates.service";
-import { AbstractApplication } from "../fonaments/abstract-application";
+import { ServiceProvider } from '../fonaments/services/service-provider';
+import { ServiceContainer, ServiceBound } from '../fonaments/services/service-container';
+import { UpdateService } from './updates.service';
+import { AbstractApplication } from '../fonaments/abstract-application';
 
 export class UpdateServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(UpdateService.name, async(app: AbstractApplication): Promise<UpdateService> => {
-            return UpdateService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      UpdateService.name,
+      async (app: AbstractApplication): Promise<UpdateService> => {
+        return UpdateService.make(app);
+      },
+    );
+  }
 
-    public async bootstrap(app: AbstractApplication) {
-        // Call to backup service in order to start cron job task
-        await app.getService<UpdateService>(UpdateService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication) {
+    // Call to backup service in order to start cron job task
+    await app.getService<UpdateService>(UpdateService.name);
+  }
 }

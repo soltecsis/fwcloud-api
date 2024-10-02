@@ -20,46 +20,48 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Task, GroupDescription, TaskDescription } from "./task";
-import { SequencedTask } from "./sequenced-task";
-import { TasksEventEmitter } from "./progress";
+import { Task, GroupDescription, TaskDescription } from './task';
+import { SequencedTask } from './sequenced-task';
+import { TasksEventEmitter } from './progress';
 
 export class ParalellizedTask extends Task {
-    constructor(eventEmitter: TasksEventEmitter, fn: GroupDescription) {
-        super(eventEmitter, null, null);
-        fn(this);
-    }
+  constructor(eventEmitter: TasksEventEmitter, fn: GroupDescription) {
+    super(eventEmitter, null, null);
+    fn(this);
+  }
 
-    public getTasks(): Array<Task> {
-        return this._tasks;
-    }
+  public getTasks(): Array<Task> {
+    return this._tasks;
+  }
 
-    public addTask(task: TaskDescription, description: string = null): void {
-        this._tasks.push(new Task(this._eventEmitter, task, description));
-    }
+  public addTask(task: TaskDescription, description: string = null): void {
+    this._tasks.push(new Task(this._eventEmitter, task, description));
+  }
 
-    public parallel(fn: GroupDescription, description: string = null): void {
-        this._tasks.push(new ParalellizedTask(this._eventEmitter, fn));
-    }
+  public parallel(fn: GroupDescription, description: string = null): void {
+    this._tasks.push(new ParalellizedTask(this._eventEmitter, fn));
+  }
 
-    public sequence(fn: GroupDescription, description: string = null): void {
-        this._tasks.push(new SequencedTask(this._eventEmitter, fn));
-    }
+  public sequence(fn: GroupDescription, description: string = null): void {
+    this._tasks.push(new SequencedTask(this._eventEmitter, fn));
+  }
 
-    public run(): Promise<any> {
-        return new Promise<any>((resolve,reject) => {
-            const promises: Array<Promise<any>> = [];
+  public run(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const promises: Array<Promise<any>> = [];
 
-            for(let i = 0; i < this._tasks.length; i++) {
-                const promise: Promise<any> = this._tasks[i].run();
-                promises.push(promise);
-            }
+      for (let i = 0; i < this._tasks.length; i++) {
+        const promise: Promise<any> = this._tasks[i].run();
+        promises.push(promise);
+      }
 
-            Promise.all(promises).then(() => {
-                return resolve();
-            }).catch(e => {
-                return reject(e);
-            })
+      Promise.all(promises)
+        .then(() => {
+          return resolve();
+        })
+        .catch((e) => {
+          return reject(e);
         });
-    }
+    });
+  }
 }

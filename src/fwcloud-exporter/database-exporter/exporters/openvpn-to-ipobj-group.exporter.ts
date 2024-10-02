@@ -20,45 +20,59 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { Connection, QueryRunner } from "typeorm";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { OpenVPNExporter } from "./openvpn.exporter";
-import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
-import { IPObjGroupExporter } from "./ipobj-group.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { Connection, QueryRunner } from 'typeorm';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { OpenVPNExporter } from './openvpn.exporter';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
+import { IPObjGroupExporter } from './ipobj-group.exporter';
 
 export class OpenVPNToIPObjGroupExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return null;
-    }
+  protected getEntity(): typeof Model {
+    return null;
+  }
 
-    public getTableName(): string {
-        return 'openvpn__ipobj_g';
-    }
+  public getTableName(): string {
+    return 'openvpn__ipobj_g';
+  }
 
-    protected async getRows(connection: Connection, fwCloudId: number): Promise<any> {
-        const qr: QueryRunner = connection.createQueryRunner();
-        
-        const data = await qr.query(`SELECT * FROM ${this.getTableName()} 
+  protected async getRows(connection: Connection, fwCloudId: number): Promise<any> {
+    const qr: QueryRunner = connection.createQueryRunner();
+
+    const data = await qr.query(
+      `SELECT * FROM ${this.getTableName()} 
         WHERE openvpn IN ${this.getOpenVPNIds(connection, fwCloudId)[0]}
-        OR ipobj_g IN ${this.getIpObjGruopIds(connection, fwCloudId)[0]}`, 
-        this.getOpenVPNIds(connection, fwCloudId)[1].concat(
-            this.getIpObjGruopIds(connection, fwCloudId)[1]
-        ));
-    
-        await qr.release();
+        OR ipobj_g IN ${this.getIpObjGruopIds(connection, fwCloudId)[0]}`,
+      this.getOpenVPNIds(connection, fwCloudId)[1].concat(
+        this.getIpObjGruopIds(connection, fwCloudId)[1],
+      ),
+    );
 
-        return data;
-    }
+    await qr.release();
 
-    protected getOpenVPNIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
-        const subquery = connection.createQueryBuilder().subQuery().from(OpenVPN, 'openvpn').select('openvpn.id');
-        return new OpenVPNExporter().getFilterBuilder(subquery, 'openvpn', fwCloudId).getQueryAndParameters();
-    }
+    return data;
+  }
 
-    protected getIpObjGruopIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
-        const subquery = connection.createQueryBuilder().subQuery().from(IPObjGroup, 'ipobj_g').select('ipobj_g.id');
-        return new IPObjGroupExporter().getFilterBuilder(subquery, 'ipobj_g', fwCloudId).getQueryAndParameters();
-    }
+  protected getOpenVPNIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
+    const subquery = connection
+      .createQueryBuilder()
+      .subQuery()
+      .from(OpenVPN, 'openvpn')
+      .select('openvpn.id');
+    return new OpenVPNExporter()
+      .getFilterBuilder(subquery, 'openvpn', fwCloudId)
+      .getQueryAndParameters();
+  }
+
+  protected getIpObjGruopIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
+    const subquery = connection
+      .createQueryBuilder()
+      .subQuery()
+      .from(IPObjGroup, 'ipobj_g')
+      .select('ipobj_g.id');
+    return new IPObjGroupExporter()
+      .getFilterBuilder(subquery, 'ipobj_g', fwCloudId)
+      .getQueryAndParameters();
+  }
 }
