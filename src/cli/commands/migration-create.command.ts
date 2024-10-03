@@ -49,12 +49,14 @@ export class MigrationCreateCommand extends Command {
       throw new Error('Migration directory not found: ' + directory);
     }
 
-    const path = Path.join(directory, version);
+    const filename = args.n as string;
+
+    const path = Path.join(directory, version, filename);
 
     args.d = path;
     args.dir = path;
 
-    await new originalCommand.MigrationCreateCommand().handler(args);
+    await new originalCommand.MigrationCreateCommand().handler({ args, path });
 
     this.output.success('Migration file created');
   }
