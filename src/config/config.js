@@ -261,13 +261,6 @@ const config = convict({
       default: '',
       env: 'CRYPT_SECRET',
       sensitive: true
-    },
-    iv: {
-      doc: 'Initialization vector for encryption.',
-      format: String,
-      default: '',
-      env: 'CRYPT_IV',
-      sensitive: true
     }
 	},
 

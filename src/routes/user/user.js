@@ -32,7 +32,6 @@ import { app, logger } from '../../fonaments/abstract-application';
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const fwcError = require('../../utils/error_table');
-const utils = require('../../utils/utils');
 
 const config = require('../../config/config');
 
@@ -91,17 +90,7 @@ router.post('/login', async (req, res) => {
 		inbound requests or events.
 		*/
 		if (await bcrypt.compare(req.body.customer + req.body.username + req.body.password, data[0].password)) {
-			// Use utilsModel.decrypt to decrypt sensitive data such as apikey or ssh_password
-			if (data[0].apikey) {
-				const decryptedApiKey = utilsModel.decrypt(data[0].apikey);
-				req.session.apikey = decryptedApiKey; // Store the decrypted value in the session
-			}
-
-			if (data[0].ssh_password) {
-				const decryptedSshPassword = utilsModel.decrypt(data[0].ssh_password);
-				req.session.ssh_password = decryptedSshPassword; // Store the decrypted value in the session
-			}
-
+			// Return authorization token.
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
@@ -124,12 +113,12 @@ router.post('/login', async (req, res) => {
 				if (!req.headers['x-tfa']) {
 					throw fwcError.BAD_LOGIN;
 				} else {
+
 					let isVerified = speakeasy.totp.verify({
 						secret: req.session.tfa,
 						encoding: 'base32',
 						token: req.headers['x-tfa']
 					});
-
 					if (isVerified) {
 						res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey, "tfa": req.session.tfa });
 					} else {
