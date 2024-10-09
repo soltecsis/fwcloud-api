@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -146,8 +146,8 @@ router.post('/login', async (req, res) => {
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 OK
 */
-router.post('/logout',(req, res) => {
-	req.session.destroy(err => {});
+router.post('/logout', (req, res) => {
+	req.session.destroy(err => { });
 	res.status(204).end();
 });
 
@@ -210,22 +210,22 @@ router.post('', async (req, res) => {
 	try {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't need to check it again.
-	
+
 		// Verify that exists the customer to which the new user will belong.
-		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
+		if (!(await Customer.existsId(req.dbCon, req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
 		// Verify that for the indicated customer we don't have another user with the same username.
-		if (await User.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
+		if (await User.existsCustomerUserName(req.dbCon, req.body.customer, req.body.username))
 			throw fwcError.ALREADY_EXISTS;
 
 		const new_user_id = await User._insert(req);
 
 		// If the new user has the administrator role, then, allow him/her to see all existing fwclouds.
-		if (req.body.role===1)
-			await User.allowAllFwcloudAccess(req.dbCon,new_user_id);
+		if (req.body.role === 1)
+			await User.allowAllFwcloudAccess(req.dbCon, new_user_id);
 
-		res.status(200).json({"user": new_user_id});
+		res.status(200).json({ "user": new_user_id });
 	} catch (error) {
 		logger().error('Error creating a user: ' + JSON.stringify(error));
 		res.status(400).json(error);
@@ -279,35 +279,35 @@ router.post('', async (req, res) => {
 router.put('', async (req, res) => {
 	try {
 		// Verify that the customer exists.
-		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
+		if (!(await Customer.existsId(req.dbCon, req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
 		// Verify that the user exists and belongs to the indicated customer.
-		if (!(await User.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+		if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
 			throw fwcError.NOT_FOUND;
 
 		// Veriry that don't exists another user with the same username into the same customer.
-		if(await User.existsCustomerUserNameOtherId(req.dbCon,req.body.customer,req.body.username,req.body.user))
+		if (await User.existsCustomerUserNameOtherId(req.dbCon, req.body.customer, req.body.username, req.body.user))
 			throw fwcError.ALREADY_EXISTS_NAME;
 
 		// If there is only on administrator user left and we want to change his role from administrator to manager,
 		// don't allow it.
-		if(await User.isAdmin(req) && req.body.role!==1) {
-			const data = await User.lastAdminUser(req); 
-			if (data.result) 
+		if (await User.isAdmin(req) && req.body.role !== 1) {
+			const data = await User.lastAdminUser(req);
+			if (data.result)
 				throw fwcError.other('It is not allowed to change the role of the last administrator user');
 		}
 
 		// Don't allow to change the role of the current logged user.
 		// If we allow it the logged user will lost the power of change customers and users information.
-		if (req.body.user===req.session.user_id && req.body.role!==1)
+		if (req.body.user === req.session.user_id && req.body.role !== 1)
 			throw fwcError.other('It is not allowed to change the role of the logged user');
 
 		await User._update(req);
 
 		// If the modified user has the administrator role, then, allow him/her to see all existing fwclouds.
-		if (req.body.role===1)
-			await User.allowAllFwcloudAccess(req.dbCon,req.body.user);
+		if (req.body.role === 1)
+			await User.allowAllFwcloudAccess(req.dbCon, req.body.user);
 
 		res.status(204).end();
 	} catch (error) {
@@ -401,12 +401,12 @@ router.put('/changepass', async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		// Verify that the customer exists.
-		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
+		if (!(await Customer.existsId(req.dbCon, req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
 		// Check that the user indicated in the requests exists and belongs to the customer send in the request body.
 		// req.body.customer is a mandatory parameter in Joi schema.
-		if (req.body.user && !(await User.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+		if (req.body.user && !(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
 			throw fwcError.NOT_FOUND;
 
 		const data = await User.get(req);
@@ -444,23 +444,23 @@ router.put('/get', async (req, res) => {
  * 	 "msg":	"Not found"
  * }
  */
-router.put('/del', 
-restrictedCheck.user,
-async (req, res) => {
-	try {
-		if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
-			throw fwcError.NOT_FOUND;
+router.put('/del',
+	restrictedCheck.user,
+	async (req, res) => {
+		try {
+			if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
+				throw fwcError.NOT_FOUND;
 
-		if (req.body.user===req.session.user_id)
-			throw fwcError.other('It is not allowed to delete the logged user');
+			if (req.body.user === req.session.user_id)
+				throw fwcError.other('It is not allowed to delete the logged user');
 
-		await User._delete(req);
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error removing user: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
-});
+			await User._delete(req);
+			res.status(204).end();
+		} catch (error) {
+			logger().error('Error removing user: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
+	});
 
 
 /**
@@ -532,7 +532,7 @@ router.post('/fwcloud', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await User.allowFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
+		await User.allowFwcloudAccess(req.dbCon, req.body.user, req.body.fwcloud);
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error enabling fwcloud access: ' + JSON.stringify(error));
@@ -565,7 +565,7 @@ router.put('/fwcloud/del', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await User.disableFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
+		await User.disableFwcloudAccess(req.dbCon, req.body.user, req.body.fwcloud);
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error disabling fwcloud access: ' + JSON.stringify(error));
@@ -627,7 +627,7 @@ router.put('/fwcloud/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting user fwclouds: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
