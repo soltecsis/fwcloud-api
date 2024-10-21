@@ -77,6 +77,13 @@ export class UpdateEncryptionScheme1727938107354 implements MigrationInterface {
 
     const secret = config.get('crypt').secret;
 
+    // Revert the column sizes to their original values
+    await queryRunner.query(`
+        ALTER TABLE firewall MODIFY COLUMN install_apikey VARCHAR(255);
+        ALTER TABLE firewall MODIFY COLUMN install_user VARCHAR(250);
+        ALTER TABLE firewall MODIFY COLUMN install_pass VARCHAR(250);
+    `);
+
     // Process firewalls with encrypted data
     const firewalls = await this.firewallRepository.find({
       where: [
