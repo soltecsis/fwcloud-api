@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 
+### Fixed
+- Updated Node.js packages to the latest versions.
+
 ## [2.0.10] - 2024-10-02
 ### Fixed
 - Database migration for increase the size of the field `plugins` of the `firewal` and `cluster` tables, from `smallint` to `int`. This migration had a bug and didn't preserve the value of the `plugins` field.
