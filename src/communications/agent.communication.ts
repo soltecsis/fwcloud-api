@@ -168,6 +168,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         configs,
         eventEmitter,
       );
+
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
@@ -640,7 +641,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
     requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
-
     return requestConfig;
   }
 }
