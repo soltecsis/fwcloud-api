@@ -642,8 +642,14 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
     requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
+    const contentTypeCount = Object.keys(requestConfig.headers).filter(
+      (key) => key.toLowerCase() === 'content-type',
+    ).length;
     // Remove the duplicate 'Content-Type: application/json' header
-    if (requestConfig.headers['Content-Type'] === 'application/json') {
+    if (
+      contentTypeCount > 1 &&
+      requestConfig.headers['Content-Type']?.toLowerCase() === 'application/json'
+    ) {
       delete requestConfig.headers['Content-Type'];
     }
 
