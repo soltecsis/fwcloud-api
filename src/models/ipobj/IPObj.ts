@@ -1565,7 +1565,7 @@ export class IPObj extends Model {
       .getRawMany();
   }
 
-  public static async searchInterfaceHostInKeepalivedRule(dbCon: any, fwcloid: number, id: number) {
+  public static async searchInterfaceHostInKeepalivedRule(dbCon: any, fwcloud: number, id: number) {
     return await db
       .getSource()
       .manager.getRepository(KeepalivedRule)
@@ -1576,7 +1576,7 @@ export class IPObj extends Model {
       .innerJoin('keepalived_rule.firewall', 'firewall')
       .leftJoin('firewall.cluster', 'cluster')
       .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', {
-        fwcloid,
+        fwcloud,
       })
       .getRawMany();
   }
