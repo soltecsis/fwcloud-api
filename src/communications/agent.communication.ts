@@ -161,6 +161,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
+      if (this.config.headers && this.config.headers['Content-Type']) {
+        delete this.config.headers['Content-Type'];
+      }
 
       const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
         form,
@@ -168,7 +171,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         configs,
         eventEmitter,
       );
-
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
@@ -641,17 +643,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
     requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
-
-    const contentTypeCount = Object.keys(requestConfig.headers).filter(
-      (key) => key.toLowerCase() === 'content-type',
-    ).length;
-    // Remove the duplicate 'Content-Type: application/json' header
-    if (
-      contentTypeCount > 1 &&
-      requestConfig.headers['Content-Type']?.toLowerCase() === 'application/json'
-    ) {
-      delete requestConfig.headers['Content-Type'];
-    }
 
     return requestConfig;
   }
