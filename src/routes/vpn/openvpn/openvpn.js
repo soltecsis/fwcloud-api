@@ -417,7 +417,7 @@ router.put('/ccdsync', async(req, res, next) => {
 			.where('firewall.id = :firewallId', {firewallId: req.body.firewall})
 			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 			.getOneOrFail();
-		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
+		let communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		const openvpnQuery = db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
 			.innerJoinAndSelect('openvpn.crt', 'crt')
 			.innerJoin('openvpn.firewall', 'firewall')
@@ -477,7 +477,7 @@ router.put('/ccdsync', async(req, res, next) => {
 				hash: digest
 			});
 		}
-
+		communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		const compare = CCDComparer.compare(ccdLocalHashes, ccdRemoteHashes);
 
 		// Unsynced and onlyLocal certificates must be installed
@@ -503,7 +503,7 @@ router.put('/ccdsync', async(req, res, next) => {
 				await communication.installOpenVPNClientConfigs(client_config_dir, options, channel);
 			}
 		}
-
+		communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		//onlyRemote certificates must be uninstalled
 		const toBeUnInstalled = compare.onlyRemote;
 		if (toBeUnInstalled.length > 0) {

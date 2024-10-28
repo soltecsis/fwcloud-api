@@ -161,9 +161,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
-      if (this.config.headers && this.config.headers['Content-Type']) {
-        delete this.config.headers['Content-Type'];
-      }
 
       const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
         form,
