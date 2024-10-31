@@ -105,6 +105,7 @@ schema.validate = req => {
 				.conditional('name', { is: 'dev-type', then: Joi.string().valid('tun','tap') })
 				.conditional('name', { is: 'cipher', then: Joi.string().valid(...validCiphers)})
 				.conditional('name', { is: 'data-ciphers', then: Joi.string().regex(cipherRegex)})
+				.conditional('name', { is: 'data-ciphers-fallback', then: Joi.string().valid(...validCiphers)})
 				.conditional('name', { is: 'config', then: sharedSch.linux_path })
 				.conditional('name', { is: 'ifconfig-pool-persist', then: sharedSch.linux_path })
 				.conditional('name', { is: 'client-config-dir', then: sharedSch.linux_path })
