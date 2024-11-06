@@ -136,7 +136,8 @@ export class BackupService extends Service {
 
     if (matches.length > 0) {
       const backup = matches[0];
-      await backup.init();
+      // TODO: Check tests
+      // await backup.init();
       return backup;
     }
 
