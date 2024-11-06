@@ -94,9 +94,18 @@ export class Backup implements Responsable {
     this._comment = null;
     this._version = null;
     this._imported = false;
-    this._dataSource = db.getSource();
-    this._firewallRepository = new FirewallRepository(db.getSource().manager);
-    this._openvpnRepository = new OpenVPNRepository(db.getSource().manager);
+  }
+
+  async init() {
+    try {
+      await db.connect(app());
+      this._dataSource = db.getSource();
+
+      this._firewallRepository = new FirewallRepository(this._dataSource.manager);
+      this._openvpnRepository = new OpenVPNRepository(this._dataSource.manager);
+    } catch (error) {
+      console.error('Error al inicializar Backup:', error);
+    }
   }
 
   toResponse(): object {
