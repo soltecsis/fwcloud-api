@@ -141,6 +141,7 @@ export class BackupService extends Service {
     const backup: Backup = await this.findOne(id);
 
     if (backup) {
+      await backup.init();
       return backup;
     }
 
