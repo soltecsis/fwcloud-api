@@ -134,7 +134,13 @@ export class BackupService extends Service {
       return backup.id === id;
     });
 
-    return matches.length > 0 ? matches[0] : null;
+    if (matches.length > 0) {
+      const backup = matches[0];
+      await backup.init();
+      return backup;
+    }
+
+    return null;
   }
 
   public async findOneOrFail(id: number): Promise<Backup> {
@@ -151,11 +157,13 @@ export class BackupService extends Service {
   /**
    * Creates a new backup
    */
-  public create(
+  public async create(
     comment?: string,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<Backup> {
     const backup: Backup = new Backup();
+    await backup.init();
+
     backup.setComment(comment ? comment : null);
 
     return backup.create(this._config.data_dir, eventEmitter);
