@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 
 ### Fixed
 - Updated Node.js packages to the latest versions.
+- Replaced deprecated methods createCiper and createDecipher.
+- Updated SocketIO package to version 4.8.0.
+- Solved error when trying to delete a host in objects section.
+- Solved several OpenVPN related issues.
+
+### Added
+- New options of the latest VPN versions.
+- Added `comp` option in server and client configurations to solve problem between OpenVPN 2.5 and default OpenVPN options.
 
 ## [2.0.10] - 2024-10-02
 ### Fixed
