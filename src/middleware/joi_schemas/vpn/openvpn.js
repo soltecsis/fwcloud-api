@@ -39,13 +39,26 @@ schema.validate = req => {
 		}
 	
 		var schema = Joi.object().keys({ fwcloud: sharedSch.id });
+		
+		const validCiphers = [
+			'AES-256-GCM',
+			'AES-128-GCM',
+			'AES-256-CBC',
+			'AES-128-CBC',
+			'CHACHA20-POLY1305',
+			'BF-CBC',
+			'CAMELLIA-256-CBC',
+			'CAMELLIA-128-CBC',
+			'DES-EDE3-CBC'
+		];
+		const cipherRegex = new RegExp(`^(${validCiphers.join('|')})(:(${validCiphers.join('|')}))*$`);
 
 		var schemaPar = Joi.object().keys({
 			name: Joi.alternatives().conditional('scope', {
 				is: 1,
-				then: Joi.string().valid('askpass', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
-					'auth', 'bcast-buffers', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'client-cert-not-required', 'client-config-dir',
-					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'compress', 'config', 'connect-freq',
+				then: Joi.string().valid('askpass', 'auth-gen-token', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
+					'auth', 'bcast-buffers','block-outside-dns', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'data-ciphers', 'data-ciphers-fallback', 'client-cert-not-required', 'client-config-dir',
+					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'config', 'connect-freq',
 					'connect-retry', 'crl-verify', 'cryptoapicert', 'daemon', 'dev-node', 'dev-type', 'dev', 'dh', 'dhcp-option', 'dhcp-release',
 					'dhcp-renew', 'disable-occ', 'disable', 'down-pre', 'down', 'duplicate-cn', 'echo', 'engine', 'explicit-exit-notify', 'fast-io',
 					'float', 'fragment', 'group', 'hand-window', 'hash-size', 'http-proxy-option', 'http-proxy-retry', 'http-proxy-timeout',
@@ -53,14 +66,14 @@ schema.validate = req => {
 					'ifconfig-push', 'ifconfig', 'inactive', 'inetd', 'ip-win32 method', 'ipchange', 'iroute', 'keepalive', 'key-method', 'key', 'keysizen',
 					'learn-address', 'link-mtu', 'local', 'log-append', 'log', 'suppress-timestamps', 'lport', 'management-hold', 'management-log-cache',
 					'management-query-passwords', 'management', 'max-clients', 'max-routes-per-client', 'mktun', 'mlock', 'mode', 'mssfix', 'mtu-disc',
-					'mtu-test', 'multihome', 'mute-replay-warnings', 'mute', 'nice', 'no-iv', 'no-replay', 'nobind', 'ns-cert-type', 'passtos', 'pause-exit', 'persist-key',
+					'mtu-test', 'multihome', 'mute-replay-warnings', 'mute', 'nice', 'no-iv', 'no-replay', 'nobind', 'ns-cert-type', 'remote-cert-tls', 'passtos', 'pause-exit', 'persist-key',
 					'persist-local-ip', 'persist-remote-ip', 'persist-tun', 'ping-exit', 'ping-restart', 'ping-timer-rem', 'ping', 'pkcs12', 'plugin', 'port',
 					'proto', 'pull', 'push-reset', 'push', 'rcvbuf', 'redirect-gateway', 'remap-usr1', 'remote-cert-tls', 'remote-random', 'remote', 'reneg-bytes',
 					'reneg-pkts', 'reneg-sec', 'replay-persist', 'replay-window', 'resolv-retry', 'rmtun', 'route-delay', 'route-gateway', 'route-method',
 					'route-noexec', 'route-up', 'route', 'rport', 'script-security', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
 					'show-ciphers', 'show-digests', 'show-engines', 'show-net-up', 'show-net', 'show-tls', 'show-valid-subnets', 'single-session', 'sndbuf',
-					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth',
-					'tls-cipher', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tls-version-min', 'tls-version-max','topology', 
+					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth', 'tls-crypt-v2',
+					'tls-cipher', 'tls-ciphersuites', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tls-version-min', 'tls-version-max','topology', 
 					'tmp-dir', 'tran-window ', 'tun-ipv6','tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up', 'user', 'username-as-common-name ', 
 					'verb', 'writepid', 
 				),
@@ -79,7 +92,7 @@ schema.validate = req => {
 				.conditional('name', { is: 'verb', then: Joi.valid('0','1','2','3','4','5','6','7','8','9','10','11') })
 				.conditional('name', { is: 'script-security', then: Joi.valid('0','1','2','3') })
 				.conditional('name', { is: 'comp-lzo', then: Joi.string().valid('yes','no','adaptive') })
-				.conditional('name', { is: 'compress', then: Joi.string().valid('lzo','lz4','') })
+				.conditional('name', { is: 'compress', then: Joi.string().valid('lzo','lz4', 'lz4-v2', '') })
 				.conditional('name', { is: 'route-gateway', then: Joi.string().valid('gw','dhcp') })
 				.conditional('name', { is: 'redirect-gateway', then: Joi.string().valid('local','autolocal','def1','bypass-dhcp','bypass-dns','block-local') })
 				.conditional('name', { is: 'redirect-private', then: Joi.string().valid('local','autolocal','def1','bypass-dhcp','bypass-dns','block-local') })
@@ -90,7 +103,9 @@ schema.validate = req => {
 				.conditional('name', { is: 'resolv-retry', then: Joi.string().regex(/^infinite|[0-9]{1,10}$/) })
 				.conditional('name', { is: 'dev', then: Joi.string().regex(/^tun|vtun|tap[0-9]{1,6}$/).allow('') })
 				.conditional('name', { is: 'dev-type', then: Joi.string().valid('tun','tap') })
-				.conditional('name', { is: 'cipher', then: Joi.string().regex(/^[a-zA-Z0-9\-]{2,64}$/) })
+				.conditional('name', { is: 'cipher', then: Joi.string().valid(...validCiphers)})
+				.conditional('name', { is: 'data-ciphers', then: Joi.string().regex(cipherRegex)})
+				.conditional('name', { is: 'data-ciphers-fallback', then: Joi.string().valid(...validCiphers)})
 				.conditional('name', { is: 'config', then: sharedSch.linux_path })
 				.conditional('name', { is: 'ifconfig-pool-persist', then: sharedSch.linux_path })
 				.conditional('name', { is: 'client-config-dir', then: sharedSch.linux_path })
