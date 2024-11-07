@@ -13,12 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Solved several OpenVPN related issues.
 
 ### Added
-- New options of the latest VPN versions.
-- Added `comp` option in server and client configurations to solve problem between OpenVPN 2.5 and default OpenVPN options.
+- New options of the latest OpenVPN versions.
+- `comp` option in server and client configurations to solve problem between OpenVPN 2.5 and default OpenVPN options.
 
 ## [2.0.10] - 2024-10-02
 ### Fixed
-- Database migration for increase the size of the field `plugins` of the `firewal` and `cluster` tables, from `smallint` to `int`. This migration had a bug and didn't preserve the value of the `plugins` field.
+- Database migration for increase the size of the field `plugins` of the `firewall` and `cluster` tables, from `smallint` to `int`. This migration had a bug and didn't preserve the value of the `plugins` field.
 
 
 ## [2.0.9] - 2024-10-01
