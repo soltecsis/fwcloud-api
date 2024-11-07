@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 
+## [2.0.11] - 2024-11-07
 ### Fixed
 - Updated Node.js packages to the latest versions.
 - Replaced deprecated methods createCiper and createDecipher.
@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New options of the latest OpenVPN versions.
 - `comp` option in server and client configurations to solve problem between OpenVPN 2.5 and default OpenVPN options.
+
 
 ## [2.0.10] - 2024-10-02
 ### Fixed
