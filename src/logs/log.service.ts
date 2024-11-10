@@ -73,7 +73,7 @@ export class LogService extends Service {
             format: 'YYYY-MM-DD HH:mm:ss',
           }),
           winston.format.printf(
-            (info) => `${info.timestamp}|${info.level.toUpperCase()}|${info.message}`,
+            (info) => `${info.timestamp}|${info.level.toUpperCase()}|${info.message}`, // eslint-disable-line
           ),
         ),
         maxsize: this._config.maxSize,
@@ -90,7 +90,7 @@ export class LogService extends Service {
               format: 'YYYY-MM-DD HH:mm:ss',
             }),
             winston.format.printf(
-              (info) => `${info.timestamp}|${info.level.toUpperCase()}|${info.message}`,
+              (info) => `${info.timestamp}|${info.level.toUpperCase()}|${info.message}`, // eslint-disable-line
             ),
           ),
         }),
@@ -110,7 +110,7 @@ export class LogService extends Service {
             format: 'YYYY-MM-DD HH:mm:ss',
           }),
           winston.format.align(),
-          winston.format.printf((info) => `${info.timestamp}|${info.message}`),
+          winston.format.printf((info) => `${info.timestamp}|${info.message}`), // eslint-disable-line
         ),
         maxsize: this._config.maxSize,
         maxFiles: this._config.maxFiles,
@@ -125,7 +125,7 @@ export class LogService extends Service {
             winston.format.timestamp({
               format: 'YYYY-MM-DD HH:mm:ss',
             }),
-            winston.format.printf((info) => `${info.timestamp}|${info.message}`),
+            winston.format.printf((info) => `${info.timestamp}|${info.message}`), // eslint-disable-line
           ),
         }),
       );
@@ -143,7 +143,7 @@ export class LogService extends Service {
           winston.format.timestamp({
             format: 'YYYY-MM-DD HH:mm:ss',
           }),
-          winston.format.printf((info) => `${info.timestamp}|${info.message}`),
+          winston.format.printf((info) => `${info.timestamp}|${info.message}`), // eslint-disable-line
         ),
         maxsize: this._config.maxSize,
         maxFiles: this._config.maxFiles,
