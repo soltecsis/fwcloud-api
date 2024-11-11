@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More cipher algorithms for the configuration options in which it is necessary to indicate one or several algorithms names.
 
 
+## [Unreleased] - 
+### Fixed
+- In the `.deb` and `.rpm` package versions of FWCloud-API, run database migrations after upgrade.
+
+
 ## [2.0.11] - 2024-11-07
 ### Fixed
 - Updated Node.js packages to the latest versions.
