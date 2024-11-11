@@ -12,6 +12,7 @@
 #############################################
 
 cd /opt/fwcloud/api
+node fwcli migration:run >/dev/null
 node fwcli migration:data >/dev/null
 node fwcli standard:services:add >/dev/null
 
