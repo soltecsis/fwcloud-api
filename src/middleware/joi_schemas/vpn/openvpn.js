@@ -221,13 +221,14 @@ schema.validate = req => {
 				.conditional('name', { is: 'float', then: Joi.valid('') })
 				.conditional('name', { is: 'multihome', then: Joi.valid('') })
 				.conditional('name', { is: 'ccd-exclusive', then: Joi.valid('') })
-				.conditional('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/), otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() })
+				.conditional('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/) }) 
 				.conditional('name', { is: 'server', then: Joi.valid('') })
 				.conditional('name', { is: 'daemon', then: Joi.valid('') })
 				.conditional('name', { is: 'duplicate-cn', then: Joi.valid('') })
 				.conditional('name', { is: 'ifconfig-pool-linear', then: Joi.valid('') })
-				.conditional('name', { is: ' comp-noadapt', then: Joi.valid('') })
-				.conditional('name', { is: 'fast-io', then: Joi.valid('') }),
+				.conditional('name', { is: 'comp-noadapt', then: Joi.valid('') })
+				.conditional('name', { is: 'fast-io', then: Joi.valid(''),
+				otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() }),
 				ipobj: Joi.alternatives()
 				.conditional('name', { is: 'server', then: sharedSch.id })
 				.conditional('name', { is: 'remote', then: sharedSch.id })
