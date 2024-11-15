@@ -290,6 +290,12 @@ schema.validate = req => {
 		try {
 			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
-		} catch (error) { return reject(error) }
+		} catch (error) { 
+			if(error.message) {
+				 return reject(fwcError.other(`Validation error: ${error.message}`));
+			} else {
+			return reject(error) 
+			}
+		}
 	});
 };
