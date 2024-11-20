@@ -138,15 +138,15 @@ schema.validate = req => {
 				)
 				
 			}).custom((value, helpers) => {
-				const nonUniqueNames = ['client', 'persist-key', 'persist-tun', 'nobind', 'tls-client', 'float', 'multihome', 'ccd-exclusive'];
+				const repeteableValueOptions = ['remote', 'route', 'push', 'iroute', 'remote-cert-tls', 'tls-auth', 'tls-crypt'];
 
-				if (nonUniqueNames.includes(value)) {
+				if (repeteableValueOptions.includes(value)) {
 					return value;
 				}
 
 				const existingNames = req.body.options.map(option => option.name);
 				if (existingNames.filter(name => name === value).length > 1) {
-					return helpers.error('any.duplicate', { value });
+					return helpers.message('{"{#value}}" cannot be defined more than once');
 				}
 
 				return value;
@@ -235,8 +235,6 @@ schema.validate = req => {
 				.conditional('name', { is: 'ifconfig-push', then: sharedSch.id, otherwise: Joi.valid(null) }),
 			scope: sharedSch._0_1, // 0=ccd, 1=config file
 			comment: sharedSch.comment
-		}).messages({
-			'any.duplicate': 'The name "{{#value}}" must be unique.'
 		});
 
 		if (req.method==="POST" && req.path==='/vpn/openvpn') {
@@ -291,11 +289,14 @@ schema.validate = req => {
 			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
 		} catch (error) { 
-			if(error.message) {
-				 return reject(fwcError.other(`Validation error: ${error.message}`));
-			} else {
-			return reject(error) 
-			}
-		}
+			if (error.details) {
+				const details = error.details.map(detail => {
+					const path = detail.path.join('.');
+					const name = path.startsWith('options') ? req.body.options[parseInt(path.split('.')[1])].name : path;
+					return `Validation error: "${name}" value ${detail.message.split(' ').slice(1).join(' ')}`;
+				});
+				return reject(fwcError.other(details.join(', ')));
+			} else return reject(fwcError.other(error.message));
+		 }
 	});
 };
