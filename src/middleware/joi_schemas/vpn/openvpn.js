@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -39,13 +39,82 @@ schema.validate = req => {
 		}
 	
 		var schema = Joi.object().keys({ fwcloud: sharedSch.id });
+		
+		const validCiphers = [
+			'AES-128-CBC', 'aes-128-cbc',
+			'AES-128-CFB', 'aes-128-cfb',
+			'AES-128-CFB1', 'aes-128-cfb1',
+			'AES-128-CFB8', 'aes-128-cfb8',
+			'AES-128-GCM', 'aes-128-gcm',
+			'AES-128-OFB', 'aes-128-ofb',
+			'AES-192-CBC', 'aes-192-cbc',
+			'AES-192-CFB', 'aes-192-cfb',
+			'AES-192-CFB1', 'aes-192-cfb1',
+			'AES-192-CFB8', 'aes-192-cfb8',
+			'AES-192-GCM', 'aes-192-gcm',
+			'AES-192-OFB', 'aes-192-ofb',
+			'AES-256-CBC', 'aes-256-cbc',
+			'AES-256-CFB', 'aes-256-cfb',
+			'AES-256-CFB1', 'aes-256-cfb1',
+			'AES-256-CFB8', 'aes-256-cfb8',
+			'AES-256-GCM', 'aes-256-gcm',
+			'AES-256-OFB', 'aes-256-ofb',
+			'ARIA-128-CBC', 'aria-128-cbc',
+			'ARIA-128-CFB', 'aria-128-cfb',
+			'ARIA-128-CFB1', 'aria-128-cfb1',
+			'ARIA-128-CFB8', 'aria-128-cfb8',
+			'ARIA-128-GCM', 'aria-128-gcm',
+			'ARIA-128-OFB', 'aria-128-ofb',
+			'ARIA-192-CBC', 'aria-192-cbc',
+			'ARIA-192-CFB', 'aria-192-cfb',
+			'ARIA-192-CFB1', 'aria-192-cfb1',
+			'ARIA-192-CFB8', 'aria-192-cfb8',
+			'ARIA-192-GCM', 'aria-192-gcm',
+			'ARIA-192-OFB', 'aria-192-ofb',
+			'ARIA-256-CBC', 'aria-256-cbc',
+			'ARIA-256-CFB', 'aria-256-cfb',
+			'ARIA-256-CFB1', 'aria-256-cfb1',
+			'ARIA-256-CFB8', 'aria-256-cfb8',
+			'ARIA-256-GCM', 'aria-256-gcm',
+			'ARIA-256-OFB', 'aria-256-ofb',
+			'CAMELLIA-128-CBC', 'camellia-128-cbc',
+			'CAMELLIA-128-CFB', 'camellia-128-cfb',
+			'CAMELLIA-128-CFB1', 'camellia-128-cfb1',
+			'CAMELLIA-128-CFB8', 'camellia-128-cfb8',
+			'CAMELLIA-128-OFB', 'camellia-128-ofb',
+			'CAMELLIA-192-CBC', 'camellia-192-cbc',
+			'CAMELLIA-192-CFB', 'camellia-192-cfb',
+			'CAMELLIA-192-CFB1', 'camellia-192-cfb1',
+			'CAMELLIA-192-CFB8', 'camellia-192-cfb8',
+			'CAMELLIA-192-OFB', 'camellia-192-ofb',
+			'CAMELLIA-256-CBC', 'camellia-256-cbc',
+			'CAMELLIA-256-CFB', 'camellia-256-cfb',
+			'CAMELLIA-256-CFB1', 'camellia-256-cfb1',
+			'CAMELLIA-256-CFB8', 'camellia-256-cfb8',
+			'CAMELLIA-256-OFB', 'camellia-256-ofb',
+			'CHACHA20-POLY1305', 'chacha20-poly1305',
+			'DES-EDE-CBC', 'des-ede-cbc',
+			'DES-EDE-CFB', 'des-ede-cfb',
+			'DES-EDE-OFB', 'des-ede-ofb',
+			'DES-EDE3-CBC', 'des-ede3-cbc',
+			'DES-EDE3-CFB', 'des-ede3-cfb',
+			'DES-EDE3-CFB1', 'des-ede3-cfb1',
+			'DES-EDE3-CFB8', 'des-ede3-cfb8',
+			'DES-EDE3-OFB', 'des-ede3-ofb',
+			'SM4-CBC', 'sm4-cbc',
+			'SM4-CFB', 'sm4-cfb',
+			'SM4-OFB', 'sm4-ofb'
+		];
+		const cipherRegex = new RegExp(`^(${validCiphers.join('|')})(:(${validCiphers.join('|')}))*$`);
 
 		var schemaPar = Joi.object().keys({
 			name: Joi.alternatives().conditional('scope', {
 				is: 1,
-				then: Joi.string().valid('askpass', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
-					'auth', 'bcast-buffers', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'client-cert-not-required', 'client-config-dir',
-					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'compress', 'config', 'connect-freq',
+				then: 
+				Joi.string()
+				.valid('askpass', 'auth-gen-token', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
+					'auth', 'bcast-buffers','block-outside-dns', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'data-ciphers', 'data-ciphers-fallback', 'client-cert-not-required', 'client-config-dir',
+					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'config', 'connect-freq',
 					'connect-retry', 'crl-verify', 'cryptoapicert', 'daemon', 'dev-node', 'dev-type', 'dev', 'dh', 'dhcp-option', 'dhcp-release',
 					'dhcp-renew', 'disable-occ', 'disable', 'down-pre', 'down', 'duplicate-cn', 'echo', 'engine', 'explicit-exit-notify', 'fast-io',
 					'float', 'fragment', 'group', 'hand-window', 'hash-size', 'http-proxy-option', 'http-proxy-retry', 'http-proxy-timeout',
@@ -59,14 +128,28 @@ schema.validate = req => {
 					'reneg-pkts', 'reneg-sec', 'replay-persist', 'replay-window', 'resolv-retry', 'rmtun', 'route-delay', 'route-gateway', 'route-method',
 					'route-noexec', 'route-up', 'route', 'rport', 'script-security', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
 					'show-ciphers', 'show-digests', 'show-engines', 'show-net-up', 'show-net', 'show-tls', 'show-valid-subnets', 'single-session', 'sndbuf',
-					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth',
-					'tls-cipher', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tls-version-min', 'tls-version-max','topology', 
+					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth','tls-cypt', 'tls-crypt-v2',
+					'tls-cipher', 'tls-ciphersuites', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tls-version-min', 'tls-version-max','topology', 
 					'tmp-dir', 'tran-window ', 'tun-ipv6','tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up', 'user', 'username-as-common-name ', 
-					'verb', 'writepid', 
+					'verb', 'writepid'
 				),
 				otherwise: Joi.string().valid('push', 'push-reset', 'iroute', 'iroute-ipv6', 'ifconfig-push',
 					'ifconfig-ipv6-push', 'disable', 'config', 'comp-lzo', 'max-routes-per-client'
 				)
+				
+			}).custom((value, helpers) => {
+				const repeteableValueOptions = ['remote', 'route', 'push', 'iroute', 'remote-cert-tls', 'tls-auth', 'tls-crypt'];
+
+				if (repeteableValueOptions.includes(value)) {
+					return value;
+				}
+
+				const existingNames = req.body.options.map(option => option.name);
+				if (existingNames.filter(name => name === value).length > 1) {
+					return helpers.message('{"{#value}}" cannot be defined more than once');
+				}
+
+				return value;
 			}),
 			//arg: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional(),
 			arg: Joi.alternatives()
@@ -79,7 +162,7 @@ schema.validate = req => {
 				.conditional('name', { is: 'verb', then: Joi.valid('0','1','2','3','4','5','6','7','8','9','10','11') })
 				.conditional('name', { is: 'script-security', then: Joi.valid('0','1','2','3') })
 				.conditional('name', { is: 'comp-lzo', then: Joi.string().valid('yes','no','adaptive') })
-				.conditional('name', { is: 'compress', then: Joi.string().valid('lzo','lz4','') })
+				.conditional('name', { is: 'compress', then: Joi.string().valid('lzo','lz4', 'lz4-v2', '') })
 				.conditional('name', { is: 'route-gateway', then: Joi.string().valid('gw','dhcp') })
 				.conditional('name', { is: 'redirect-gateway', then: Joi.string().valid('local','autolocal','def1','bypass-dhcp','bypass-dns','block-local') })
 				.conditional('name', { is: 'redirect-private', then: Joi.string().valid('local','autolocal','def1','bypass-dhcp','bypass-dns','block-local') })
@@ -90,7 +173,9 @@ schema.validate = req => {
 				.conditional('name', { is: 'resolv-retry', then: Joi.string().regex(/^infinite|[0-9]{1,10}$/) })
 				.conditional('name', { is: 'dev', then: Joi.string().regex(/^tun|vtun|tap[0-9]{1,6}$/).allow('') })
 				.conditional('name', { is: 'dev-type', then: Joi.string().valid('tun','tap') })
-				.conditional('name', { is: 'cipher', then: Joi.string().regex(/^[a-zA-Z0-9\-]{2,64}$/) })
+				.conditional('name', { is: 'cipher', then: Joi.string().valid(...validCiphers)})
+				.conditional('name', { is: 'data-ciphers', then: Joi.string().regex(cipherRegex)})
+				.conditional('name', { is: 'data-ciphers-fallback', then: Joi.string().valid(...validCiphers)})
 				.conditional('name', { is: 'config', then: sharedSch.linux_path })
 				.conditional('name', { is: 'ifconfig-pool-persist', then: sharedSch.linux_path })
 				.conditional('name', { is: 'client-config-dir', then: sharedSch.linux_path })
@@ -136,8 +221,15 @@ schema.validate = req => {
 				.conditional('name', { is: 'float', then: Joi.valid('') })
 				.conditional('name', { is: 'multihome', then: Joi.valid('') })
 				.conditional('name', { is: 'ccd-exclusive', then: Joi.valid('') })
-				.conditional('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/), otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() }),
-			ipobj: Joi.alternatives()
+				.conditional('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/) }) 
+				.conditional('name', { is: 'server', then: Joi.valid('') })
+				.conditional('name', { is: 'daemon', then: Joi.valid('') })
+				.conditional('name', { is: 'duplicate-cn', then: Joi.valid('') })
+				.conditional('name', { is: 'ifconfig-pool-linear', then: Joi.valid('') })
+				.conditional('name', { is: 'comp-noadapt', then: Joi.valid('') })
+				.conditional('name', { is: 'fast-io', then: Joi.valid(''),
+				otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() }),
+				ipobj: Joi.alternatives()
 				.conditional('name', { is: 'server', then: sharedSch.id })
 				.conditional('name', { is: 'remote', then: sharedSch.id })
 				.conditional('name', { is: 'ifconfig-push', then: sharedSch.id, otherwise: Joi.valid(null) }),
@@ -196,6 +288,15 @@ schema.validate = req => {
 		try {
 			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
-		} catch (error) { return reject(error) }
+		} catch (error) { 
+			if (error.details) {
+				const details = error.details.map(detail => {
+					const path = detail.path.join('.');
+					const name = path.startsWith('options') ? req.body.options[parseInt(path.split('.')[1])].name : path;
+					return `Validation error: "${name}" value ${detail.message.split(' ').slice(1).join(' ')}`;
+				});
+				return reject(fwcError.other(details.join(', ')));
+			} else return reject(fwcError.other(error.message));
+		 }
 	});
 };

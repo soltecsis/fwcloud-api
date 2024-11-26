@@ -4,13 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 
+## [2.0.13] - 2024-11-11
+### Fixed
+- In the `.deb` and `.rpm` package versions of FWCloud-API, run database migrations after upgrade.
+
+
+## [2.0.12] - 2024-11-10
+### Fixed
+- OpenVPN cipher validation. Allow cipher algorithms names in both, upper and lower case.
+
+### Added
+- More cipher algorithms for the configuration options in which it is necessary to indicate one or several algorithms names.
+
+
+## [2.0.11] - 2024-11-07
 ### Fixed
 - Updated Node.js packages to the latest versions.
+- Replaced deprecated methods createCiper and createDecipher.
+- Updated SocketIO package to version 4.8.0.
+- Solved error when trying to delete a host in objects section.
+- Solved several OpenVPN related issues.
+
+### Added
+- New options of the latest OpenVPN versions.
+- `comp` option in server and client configurations to solve problem between OpenVPN 2.5 and default OpenVPN options.
+
 
 ## [2.0.10] - 2024-10-02
 ### Fixed
-- Database migration for increase the size of the field `plugins` of the `firewal` and `cluster` tables, from `smallint` to `int`. This migration had a bug and didn't preserve the value of the `plugins` field.
+- Database migration for increase the size of the field `plugins` of the `firewall` and `cluster` tables, from `smallint` to `int`. This migration had a bug and didn't preserve the value of the `plugins` field.
 
 
 ## [2.0.9] - 2024-10-01
