@@ -450,7 +450,9 @@ export class Backup implements Responsable {
         //console.time("db import");
         child_process.execSync(this.buildCmd('mysql', databaseService));
         //console.timeEnd("db import");
-
+        if (!this._firewallRepository || !this._openvpnRepository) {
+          await this.init();
+        }
         //Change compilation status from firewalls
         await this._firewallRepository.markAllAsUncompiled();
 
