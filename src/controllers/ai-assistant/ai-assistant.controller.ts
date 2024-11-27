@@ -15,13 +15,7 @@ export class AIassistantController extends Controller {
   }
 
   @Validate(AiAssistantDto)
-  public async; /**
-   * Creates a new question for the assistant.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
-  checkPolicyScript(req: Request, res: Response): Promise<ResponseBuilder> {
+  public async checkPolicyScript(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
       const { prompt } = req.body;
       if (!prompt) {
