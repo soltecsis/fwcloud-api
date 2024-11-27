@@ -239,6 +239,9 @@ export class Routes extends RouteCollection {
                 router
                   .post('/', AIassistantController, 'checkPolicyScript')
                   .name('AIassistant.checkPolicyScript');
+                router
+                  .post('/response', AIassistantController, 'getResponse')
+                  .name('AIassistant.getResponse');
               });
 
               router.prefix('/system', (router: RouterParser) => {
@@ -537,9 +540,9 @@ export class Routes extends RouteCollection {
           //Firewalls
           // Old way restored. These routes has been disabled temporarily
           /*router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
-                                  router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
-                                  router.post('/install', FirewallController, 'install').name('firewalls.install');
-                              });*/
+                        router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
+                        router.post('/install', FirewallController, 'install').name('firewalls.install');
+                    });*/
 
           //Colors usage.
           router.get('/colors', FwCloudController, 'colors').name('fwclouds.colors');
@@ -557,8 +560,9 @@ export class Routes extends RouteCollection {
               .delete('/:snapshot(\\d+)', SnapshotController, 'destroy')
               .name('snapshots.destroy');
           });
+
+          router.post('/export', FwCloudExportController, 'store').name('fwclouds.exports.store');
         });
-        router.post('/export', FwCloudExportController, 'store').name('fwclouds.exports.store');
       });
 
       // iptables-save import/export
