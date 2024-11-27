@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- Resolved issues with migration commands (`reset`, `rollback`, `run`, `create`, `data`, `backup:create`, `backup:restore`) caused by recent updates in TypeORM. Adjusted migration logic to ensure compatibility and proper functionality.
+- Updated project dependencies to their latest versions to enhance compatibility, security, and performance.
+
 ## [2.0.13] - 2024-11-11
 ### Fixed
 - In the `.deb` and `.rpm` package versions of FWCloud-API, run database migrations after upgrade.
