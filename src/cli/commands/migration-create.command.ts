@@ -20,48 +20,67 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as process from "process";
-import * as yargs from "yargs";
+import * as process from 'process';
+import * as yargs from 'yargs';
 import * as Path from 'path';
 import * as originalCommand from 'typeorm/commands/MigrationCreateCommand';
-import { Application } from "../Application";
-import { DatabaseService } from "../../database/database.service";
-import { Command, Option } from "../command";
-
+import { Application } from '../Application';
+import { DatabaseService } from '../../database/database.service';
+import { Command, Option } from '../command';
 
 /**
  * Runs migration command.
  */
 export class MigrationCreateCommand extends Command {
-    public name: string = "migration:create";
-    public description: string = "Create a new migration";
+  public name: string = 'migration:create';
+  public description: string = 'Create a new migration';
 
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        let version = args.tag ? args.tag as string : this._app.version.tag;
+  async handle(args: yargs.Arguments) {
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
+    const version = args.tag ? (args.tag as string) : this._app.version.tag;
 
-        const directory:string = args.directory as string ? args.directory : databaseService.config.migration_directory
-            
-        if (!directory) {
-            throw new Error('Migration directory not found: ' + directory);
-        }
+    const directory: string = (args.directory as string)
+      ? args.directory
+      : databaseService.config.migration_directory;
 
-
-        const path = Path.join(directory, version);
-
-        args.d = path;
-        args.dir = path;
-
-        await new originalCommand.MigrationCreateCommand().handler(args);
-
-        this.output.success('Migration file created');
+    if (!directory) {
+      throw new Error('Migration directory not found: ' + directory);
     }
 
-    public getOptions(): Option[] {
-        return [
-            { name: 'name', alias: 'n', description: 'Migration name', required: true },
-            { name: 'tag', alias: 't', description: 'Schema version which migration belongs to', required: true},
-            { name: 'directory', alias: 'd', description: 'Custom migration directory', required: false}
-        ]
-    }
+    const filename = args.n as string;
+
+    const path = Path.join(directory, version, filename);
+
+    args.d = path;
+    args.dir = path;
+
+    await new originalCommand.MigrationCreateCommand().handler({ args, path });
+
+    this.output.success('Migration file created');
+  }
+
+  public getOptions(): Option[] {
+    return [
+      {
+        name: 'name',
+        alias: 'n',
+        description: 'Migration name',
+        required: true,
+      },
+      {
+        name: 'tag',
+        alias: 't',
+        description: 'Schema version which migration belongs to',
+        required: true,
+      },
+      {
+        name: 'directory',
+        alias: 'd',
+        description: 'Custom migration directory',
+        required: false,
+      },
+    ];
+  }
 }

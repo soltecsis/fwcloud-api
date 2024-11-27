@@ -20,29 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { NextFunction } from "express";
-import { Socket } from "socket.io";
-import { HTTPApplication } from "../../http-application";
+import { NextFunction } from 'express';
+import { Socket } from 'socket.io';
+import { HTTPApplication } from '../../http-application';
 
 export abstract class SocketMiddleware {
-    protected app: HTTPApplication;
+  protected app: HTTPApplication;
 
-    public abstract handle(socket: Socket, next: NextFunction): void;
+  public abstract handle(socket: Socket, next: NextFunction): void;
 
-    private safeHandler(socket: Socket, next: NextFunction) {
-        try {
-            this.handle(socket, next);
-        } catch (e) {
-            console.error(e);
-            throw e;
-        }
+  private safeHandler(socket: Socket, next: NextFunction) {
+    try {
+      this.handle(socket, next);
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
+  }
 
-    public register(app: HTTPApplication) {
-        this.app = app;
-        
-        app.socketio.use((socket: Socket, next: NextFunction) => {
-            this.safeHandler(socket, next);
-        })
-    }
+  public register(app: HTTPApplication) {
+    this.app = app;
+
+    app.socketio.use((socket: Socket, next: NextFunction) => {
+      this.safeHandler(socket, next);
+    });
+  }
 }

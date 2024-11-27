@@ -20,20 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import "reflect-metadata";
+import 'reflect-metadata';
 import * as fs from 'fs';
-import { ServiceContainer } from "./services/service-container";
-import { ServiceProvider } from "./services/service-provider";
-import { Service } from "./services/service";
-import * as path from "path";
-import { Version } from "../version/version";
-import { FSHelper } from "../utils/fs-helper";
-import { DatabaseService } from "../database/database.service";
-import { LogServiceProvider } from "../logs/log.provider";
-import { LoggerType, LogService } from "../logs/log.service";
-import winston from "winston";
-
-
+import { ServiceContainer } from './services/service-container';
+import { ServiceProvider } from './services/service-provider';
+import { Service } from './services/service';
+import * as path from 'path';
+import { Version } from '../version/version';
+import { FSHelper } from '../utils/fs-helper';
+import { DatabaseService } from '../database/database.service';
+import { LogServiceProvider } from '../logs/log.provider';
+import { LoggerType, LogService } from '../logs/log.service';
+import winston from 'winston';
 
 let _runningApplication: AbstractApplication = null;
 
@@ -49,7 +47,6 @@ export function app<T extends AbstractApplication>(): T {
   return <T>_runningApplication;
 }
 
-
 export abstract class AbstractApplication {
   protected _config: any;
   protected _path: string;
@@ -61,6 +58,7 @@ export abstract class AbstractApplication {
     try {
       this._path = path;
       this._config = require('../config/config');
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
       _runningApplication = this;
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
@@ -107,8 +105,12 @@ export abstract class AbstractApplication {
 
   protected async loadVersion(): Promise<Version> {
     const version: Version = new Version();
-    version.tag = JSON.parse(fs.readFileSync(path.join(this._path, 'package.json')).toString()).version;
-    version.schema = await (await this.getService<DatabaseService>(DatabaseService.name)).getSchemaVersion();
+    version.tag = JSON.parse(
+      fs.readFileSync(path.join(this._path, 'package.json')).toString(),
+    ).version;
+    version.schema = await (
+      await this.getService<DatabaseService>(DatabaseService.name)
+    ).getSchemaVersion();
 
     return version;
   }
@@ -116,14 +118,14 @@ export abstract class AbstractApplication {
   protected registerProviders(): void {
     const providers: Array<any> = [LogServiceProvider].concat(this.providers());
     for (let i = 0; i < providers.length; i++) {
-      const provider: ServiceProvider = new (providers[i])()
+      const provider: ServiceProvider = new providers[i]();
       provider.register(this._services);
     }
   }
 
   protected async bootsrapServices(): Promise<void> {
     for (let i = 0; i < this.providers().length; i++) {
-      const provider: ServiceProvider = new (this.providers()[i])()
+      const provider: ServiceProvider = new (this.providers()[i])();
       await provider.bootstrap(this);
     }
   }
@@ -152,14 +154,13 @@ export abstract class AbstractApplication {
       FSHelper.mkdirSync(this._config.get('backup').data_dir);
       FSHelper.mkdirSync(this._config.get('snapshot').data_dir);
       FSHelper.mkdirSync(this._config.get('openvpn.history').data_dir);
-      
+
       if (FSHelper.directoryExistsSync(this._config.get('tmp').directory)) {
         FSHelper.rmDirectorySync(this._config.get('tmp').directory);
       }
       FSHelper.mkdirSync(this._config.get('tmp').directory);
-      
     } catch (e) {
-      console.error("Could not create the logs directory. ERROR: ", e.message);
+      console.error('Could not create the logs directory. ERROR: ', e.message);
       process.exit(1);
     }
   }

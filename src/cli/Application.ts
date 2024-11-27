@@ -33,53 +33,52 @@ import { FirewallServiceProvider } from '../models/firewall/firewall.provider';
 import { FwCloudExportServiceProvider } from '../fwcloud-exporter/fwcloud-export.provider';
 import { OpenVPNServiceProvider } from '../models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from '../models/fwcloud/fwcloud.provider';
-import { CLIApplication } from "../fonaments/cli-application";
+import { CLIApplication } from '../fonaments/cli-application';
 import { RouterService } from '../fonaments/http/router/router.service';
 import { Routes } from '../routes/routes';
 
 export class Application extends CLIApplication {
-    public static async run(path?: string): Promise<Application> {
-        try {
-            const app: Application = new Application(path);
-            await app.bootstrap();
-            return app;
-        } catch (e) {
-            console.error('Application can not start: ' + e.message);
-            console.error(e.stack);
-            process.exit(1);
-        }
+  public static async run(path?: string): Promise<Application> {
+    try {
+      const app: Application = new Application(path);
+      await app.bootstrap();
+      return app;
+    } catch (e) {
+      console.error('Application can not start: ' + e.message);
+      console.error(e.stack);
+      process.exit(1);
     }
+  }
 
-    protected providers(): Array<typeof ServiceProvider> {
-        return [
-            DatabaseServiceProvider,
-            RepositoryServiceProvider,
-            RouterServiceProvider,
-            AuthorizationServiceProvider,
-            CronServiceProvider,
-            BackupServiceProvider,
-            SnapshotServiceProvider,
-            WebSocketServiceProvider,
-            FirewallServiceProvider,
-            FwCloudExportServiceProvider,
-            OpenVPNServiceProvider,
-            FwCloudServiceProvider
-        ]
-    }
+  protected providers(): Array<typeof ServiceProvider> {
+    return [
+      DatabaseServiceProvider,
+      RepositoryServiceProvider,
+      RouterServiceProvider,
+      AuthorizationServiceProvider,
+      CronServiceProvider,
+      BackupServiceProvider,
+      SnapshotServiceProvider,
+      WebSocketServiceProvider,
+      FirewallServiceProvider,
+      FwCloudExportServiceProvider,
+      OpenVPNServiceProvider,
+      FwCloudServiceProvider,
+    ];
+  }
 
-    public async bootstrap(): Promise<CLIApplication> {
-        this.setCLIConfiguration();
-        await super.bootstrap();
+  public async bootstrap(): Promise<CLIApplication> {
+    this.setCLIConfiguration();
+    await super.bootstrap();
 
-        const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
+    const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
 
-        routerService.registerRoutes();
+    routerService.registerRoutes();
 
-        return this;
-    }
+    return this;
+  }
 
-    protected setCLIConfiguration()
-    {
-        this.config.set('log.stdout', this._config.get('env') !== 'test');
-    }
+  protected setCLIConfiguration() {
+    this.config.set('log.stdout', this._config.get('env') !== 'test');
+  }
 }

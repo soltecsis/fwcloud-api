@@ -42,9 +42,9 @@ import { Tree } from '../../models/tree/Tree';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
-import { getRepository } from 'typeorm';
 import { Route } from '../../models/routing/route/route.model';
 import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
+import db from '../../database/database-manager';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -230,7 +230,7 @@ router.put('/delfrom', async(req, res) => {
             if (policyRules.length > 0) 
 			    throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-			const routes = await getRepository(Route).createQueryBuilder("route")
+			const routes = await db.getSource().manager.getRepository(Route).createQueryBuilder("route")
 			.innerJoinAndSelect("route.routeToIPObjGroups", "routeToIPObjGroups")
 			.innerJoinAndSelect("routeToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
 			.getCount();			
@@ -238,7 +238,7 @@ router.put('/delfrom', async(req, res) => {
             if (routes > 0)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-			const routingRules = await getRepository(RoutingRule).createQueryBuilder("rule")
+			const routingRules = await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder("rule")
 			.innerJoinAndSelect("rule.routingRuleToIPObjGroups", "routingRuleToIPObjGroups")
 			.innerJoinAndSelect("routingRuleToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
 			.getCount();

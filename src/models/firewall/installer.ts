@@ -1,24 +1,24 @@
-import { Firewall } from "./Firewall";
-import { SSHConfig } from "./firewall.service";
-import { app } from "../../fonaments/abstract-application";
+import { Firewall } from './Firewall';
+import { SSHConfig } from './firewall.service';
+import { app } from '../../fonaments/abstract-application';
 import sshTools from '../../utils/ssh';
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressInfoPayload, ProgressNoticePayload } from "../../sockets/messages/socket-message";
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { ProgressInfoPayload, ProgressNoticePayload } from '../../sockets/messages/socket-message';
 
 export class Installer {
-    protected _firewall: Firewall;
+  protected _firewall: Firewall;
 
-    constructor(firewall: Firewall) {
-        this._firewall = firewall;
-    }
+  constructor(firewall: Firewall) {
+    this._firewall = firewall;
+  }
 
-    public async install(sshConfig: SSHConfig, eventEmitter: EventEmitter): Promise<string> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                /***** WARNING ******/
-                /* The original code is in PolicyScript.ts and it has been changed!!!!! */
-                /********************/
-                /*
+  public async install(sshConfig: SSHConfig, eventEmitter: EventEmitter): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        /***** WARNING ******/
+        /* The original code is in PolicyScript.ts and it has been changed!!!!! */
+        /********************/
+        /*
                 eventEmitter.emit('message', new ProgressInfoPayload("Uploading firewall script (" + sshConfig.host + ")\n"));
                 await sshTools.uploadFile(sshConfig, this._firewall.getPolicyFilePath(), app().config.get('policy').script_name);
 
@@ -36,10 +36,10 @@ export class Installer {
 
                 eventEmitter.emit('message', new ProgressNoticePayload(data));
                 */
-                resolve("DONE");
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
+        resolve('DONE');
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 }

@@ -1,9 +1,9 @@
-import { Type } from "class-transformer";
-import { IsArray, IsNumber } from "class-validator";
+import { Type } from 'class-transformer';
+import { IsArray, IsNumber } from 'class-validator';
 
 export class RouteControllerBulkRemoveQueryDto {
-    @IsArray()
-    @IsNumber({}, {each: true})
-    @Type(() => Number)
-    routes: number[];
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  routes: number[];
 }

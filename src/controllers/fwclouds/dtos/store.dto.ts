@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString } from 'class-validator';
 
 export class FwCloudControllerStoreDto {
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsString()
-    @IsOptional()
-    image: string;
+  @IsString()
+  @IsOptional()
+  image: string;
 
-    @IsString()
-    @IsOptional()
-    comment: string;
+  @IsString()
+  @IsOptional()
+  comment: string;
 }

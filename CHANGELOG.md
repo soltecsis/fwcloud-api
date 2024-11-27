@@ -4,12 +4,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] -
+## [2.0.13] - 2024-11-11
+### Fixed
+- In the `.deb` and `.rpm` package versions of FWCloud-API, run database migrations after upgrade.
+
+
+## [2.0.12] - 2024-11-10
+### Fixed
+- OpenVPN cipher validation. Allow cipher algorithms names in both, upper and lower case.
+
+### Added
+- More cipher algorithms for the configuration options in which it is necessary to indicate one or several algorithms names.
+
+
+## [2.0.11] - 2024-11-07
+### Fixed
+- Updated Node.js packages to the latest versions.
+- Replaced deprecated methods createCiper and createDecipher.
+- Updated SocketIO package to version 4.8.0.
+- Solved error when trying to delete a host in objects section.
+- Solved several OpenVPN related issues.
+
 ### Added
-- KeepAlived service API calls and service compiler
-- DHCP service API calls and service compiler
+- New options of the latest OpenVPN versions.
+- `comp` option in server and client configurations to solve problem between OpenVPN 2.5 and default OpenVPN options.
+
+
+## [2.0.10] - 2024-10-02
+### Fixed
+- Database migration for increase the size of the field `plugins` of the `firewall` and `cluster` tables, from `smallint` to `int`. This migration had a bug and didn't preserve the value of the `plugins` field.
+
+
+## [2.0.9] - 2024-10-01
+### Fixed
+- Change default config options for host to bind, database host and fwcloud-updater host form `localhost` to `127.0.0.1`.
+- Error: `/var/lib/dpkg/info/fwcloud-api.postinst: 139: [: Disabled: unexpected operator`.
+- Problem installing .deb package in Debian 12. Use `127.0.0.1` instead of `localhost` for the `DBHOST` variable in the `after-install.sh` script.
+
+
+## [2.0.4] - 2024-09-29
+### Added
+- CI scripts update.
+- HAProxy service API calls and service compiler.
+- KeepAlived service API calls and service compiler.
+- DHCP service API calls and service compiler.
 - Database migration for the KeepAlived service management.
 - Database migration for the HAProxy service management.
+- Database migration for the DHCP service management.
 - Added query data to get Agent host information.
 - HAProxy plugin.
 - Systemctl management API call.
@@ -18,7 +59,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrations are added to create the System nodes and their children: DHCP, Keepalived, and HAProxy.
 
 ### Changed
+- Dependencies upgraded to the last version.
+- 'TypeORM' upgraded and made changes from last version (v0.3.20). 
+- 'SocketIO' upgraded as well.
+- Replaced 'ip' package by 'ipaddr.js' package. 
+- Replaced 'chalk' package by 'kleur' package.
+- Added 'husky' and 'lint-staged' to manage Prettier and ESlint before each commit.
+- ESLint and Prettier configured into the project and fixed errors afterwards.
 - Optimize and reduce the time for the firewalls and clusters tree creation.
+
 
 ## [1.9.2] - 2023-06-07
 ### Added

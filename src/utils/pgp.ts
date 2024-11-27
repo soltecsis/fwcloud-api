@@ -24,72 +24,80 @@ const openpgp = require('openpgp');
 const fwcError = require('./error_table');
 
 export class PgpHelper {
-    private _publicKey: string;
-    private _privateKey: string;
+  private _publicKey: string;
+  private _privateKey: string;
 
-    constructor (keyPair?: {public: string, private: string}) {
-        if (keyPair) {
-            this._publicKey = keyPair.public;
-            this._privateKey = keyPair.private;
-        }
+  constructor(keyPair?: { public: string; private: string }) {
+    if (keyPair) {
+      this._publicKey = keyPair.public;
+      this._privateKey = keyPair.private;
     }
+  }
 
-    get publicKey():string {
-        return this._publicKey;
-    }
+  get publicKey(): string {
+    return this._publicKey;
+  }
 
-    get privateKey():string {
-        return this._privateKey;
-    }
+  get privateKey(): string {
+    return this._privateKey;
+  }
 
-    public async init(rsaBits: number): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const { privateKey, publicKey } = await openpgp.generateKey({
-                    userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
-                    rsaBits: rsaBits,
-                    format: 'binary' // Change the format to 'binary'
-                });
-
-                if (!publicKey || !privateKey)
-                    return reject(fwcError.PGP_KEYS_GEN);
-
-                this._publicKey = publicKey.toString();
-                this._privateKey = privateKey.toString();
-                resolve();
-            } catch (error) { reject(error) }
+  public init(rsaBits: number): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { privateKey, publicKey } = await openpgp.generateKey({
+          userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
+          rsaBits: rsaBits,
+          type: 'rsa',
+          format: 'armored', // Change the format to 'binary'
         });
-    }
 
-    public encrypt(msg: string): Promise<string> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const publicKey = await openpgp.readKey({ armoredKey: this._publicKey });
+        if (!publicKey || !privateKey) return reject(fwcError.PGP_KEYS_GEN);
 
-                const msgEncrypted = await openpgp.encrypt({
-                    message: await openpgp.createMessage({ text: msg }),
-                    encryptionKeys: publicKey
-                  });
+        this._publicKey = publicKey.toString();
+        this._privateKey = privateKey.toString();
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 
-                resolve(msgEncrypted.toString());
-            } catch (error) { reject(error); }
+  public encrypt(msg: string): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const publicKey = await openpgp.readKey({
+          armoredKey: this._publicKey,
         });
-    }
 
-    public decrypt(msgEncrypted: string): Promise<string> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const privateKey = await openpgp.decryptKey({
-                    privateKey: await openpgp.readPrivateKey({ armoredKey: this._privateKey })
-                  });
-
-                const msg = await openpgp.decrypt({
-                    message: await openpgp.readMessage({ armoredMessage: msgEncrypted }),
-                    decryptionKeys: privateKey
-                  });
-
-                resolve(msg.data.toString());
-            } catch (error) { reject(error); }
+        const msgEncrypted = await openpgp.encrypt({
+          message: await openpgp.createMessage({ text: msg }),
+          encryptionKeys: publicKey,
         });
-    }
+
+        resolve(msgEncrypted);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  public decrypt(msgEncrypted: string): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const privateKeyObject = await openpgp.readPrivateKey({
+          armoredKey: this._privateKey,
+        });
+
+        const msg = await openpgp.decrypt({
+          message: await openpgp.readMessage({ armoredMessage: msgEncrypted }),
+          decryptionKeys: privateKeyObject,
+        });
+        resolve(msg.data);
+      } catch (error) {
+        console.error('Error decrypting message:', error);
+        reject(error);
+      }
+    });
+  }
 }

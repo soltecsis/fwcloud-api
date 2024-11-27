@@ -20,42 +20,39 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
 import cors, { CorsOptions } from 'cors';
-import { Request, Response, NextFunction } from "express";
-import { CorsException } from "./exceptions/cors.exception";
-import { HTTPApplication } from "../fonaments/http-application";
+import { Request, Response, NextFunction } from 'express';
+import { CorsException } from './exceptions/cors.exception';
+import { HTTPApplication } from '../fonaments/http-application';
 
 export class CORS extends Middleware {
+  public register(app: HTTPApplication) {
+    this.app = app;
 
-    public register(app: HTTPApplication) {
-        this.app = app;
-
-        const options: CorsOptions = {
-            credentials: true,
-            origin: (origin: string, callback: (error: Error, status?: boolean) => void) => {
-                if (this.isOriginAllowed(origin)) {
-                    return callback(null, true);
-                }
-                
-                return callback(new CorsException(origin));
-            }
+    const options: CorsOptions = {
+      credentials: true,
+      origin: (origin: string, callback: (error: Error, status?: boolean) => void) => {
+        if (this.isOriginAllowed(origin)) {
+          return callback(null, true);
         }
 
-        this.app.express.use(cors(options));
+        return callback(new CorsException(origin));
+      },
+    };
+
+    this.app.express.use(cors(options));
+  }
+
+  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+    return;
+  }
+
+  public isOriginAllowed(origin: string): boolean {
+    if (this.app.config.get('CORS.enabled') === false) {
+      return true;
     }
 
-    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        return;
-    }
-
-    public isOriginAllowed(origin: string): boolean {
-        
-        if (this.app.config.get('CORS.enabled') === false) {
-            return true;
-        }
-
-        return this.app.config.get('CORS').whitelist.indexOf(origin) !== -1;
-    }
-
+    return this.app.config.get('CORS').whitelist.indexOf(origin) !== -1;
+  }
 }

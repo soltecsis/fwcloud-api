@@ -20,21 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../fonaments/abstract-application";
-import { ServiceBound, ServiceContainer } from "../../../fonaments/services/service-container";
-import { ServiceProvider } from "../../../fonaments/services/service-provider";
-import { RouteService } from "./route.service";
+import { AbstractApplication } from '../../../fonaments/abstract-application';
+import { ServiceBound, ServiceContainer } from '../../../fonaments/services/service-container';
+import { ServiceProvider } from '../../../fonaments/services/service-provider';
+import { RouteService } from './route.service';
 
 export class RouteServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(RouteService.name, async(app: AbstractApplication): Promise<RouteService> => {
-            return RouteService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      RouteService.name,
+      async (app: AbstractApplication): Promise<RouteService> => {
+        return RouteService.make(app);
+      },
+    );
+  }
 
-    public async bootstrap(app: AbstractApplication) {
-        await app.getService<RouteService>(RouteService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication) {
+    await app.getService<RouteService>(RouteService.name);
+  }
 }

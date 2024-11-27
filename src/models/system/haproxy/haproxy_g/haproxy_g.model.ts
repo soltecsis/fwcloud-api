@@ -1,4 +1,3 @@
-
 /*!
     Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -16,35 +15,35 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import Model from "../../../Model";
-import { Firewall } from "../../../firewall/Firewall";
-import { HAProxyRule } from "../haproxy_r/haproxy_r.model";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import Model from '../../../Model';
+import { Firewall } from '../../../firewall/Firewall';
+import { HAProxyRule } from '../haproxy_r/haproxy_r.model';
 
 const tableName = 'haproxy_g';
 
 @Entity({ name: tableName })
 export class HAProxyGroup extends Model {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ type: 'varchar', length: 255 })
-    name: string;
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
 
-    @Column({ name: 'firewall' })
-    firewallId: number;
+  @Column({ name: 'firewall' })
+  firewallId: number;
 
-    @ManyToOne(type => Firewall, firewall => firewall.haproxyGroups)
-    @JoinColumn({ name: 'firewall' })
-    firewall: Firewall;
+  @ManyToOne((type) => Firewall, (firewall) => firewall.haproxyGroups)
+  @JoinColumn({ name: 'firewall' })
+  firewall: Firewall;
 
-    @Column({ type: 'varchar', length: 50 })
-    style: string;
+  @Column({ type: 'varchar', length: 50 })
+  style: string;
 
-    @OneToMany(type => HAProxyRule, haproxy => haproxy.group, { eager: true })
-    rules: HAProxyRule[];
+  @OneToMany((type) => HAProxyRule, (haproxy) => haproxy.group, { eager: true })
+  rules: HAProxyRule[];
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 }

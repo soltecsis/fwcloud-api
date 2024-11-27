@@ -20,20 +20,27 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { Firewall } from "../models/firewall/Firewall";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
-import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { Firewall } from '../models/firewall/Firewall';
+import { User } from '../models/user/User';
+import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class SystemctlPolicy extends Policy {
-    
-    static async communicate(user: User, fwCloud: FwCloud, firewall: Firewall,): Promise<Authorization> {
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
-        
-        user = await User.findOne({where: {id: user.id}, relations: ['fwClouds', 'firewalls']})
-        return user.fwClouds.findIndex(item => item.id === fwCloud.id) >= 0 ? Authorization.grant() : Authorization.revoke();
+  static async communicate(
+    user: User,
+    fwCloud: FwCloud,
+    firewall: Firewall,
+  ): Promise<Authorization> {
+    if (user.role === 1) {
+      return Authorization.grant();
     }
+
+    user = await User.findOne({
+      where: { id: user.id },
+      relations: ['fwClouds', 'firewalls'],
+    });
+    return user.fwClouds.findIndex((item) => item.id === fwCloud.id) >= 0
+      ? Authorization.grant()
+      : Authorization.revoke();
+  }
 }

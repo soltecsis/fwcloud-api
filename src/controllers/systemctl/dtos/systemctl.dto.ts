@@ -20,29 +20,32 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {IsInt, IsOptional, IsString, Matches, Min} from "class-validator";
+import { IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
 
 export class SystemCtlDto {
-    @IsInt()
-    @Min(1)
-    fwcloud: number;
+  @IsInt()
+  @Min(1)
+  fwcloud: number;
 
-    @IsInt()
-    @Min(1)
-    firewall: number;
+  @IsInt()
+  @Min(1)
+  firewall: number;
 
-    @IsString()
-    @Matches(/^(status|start|stop|restart|reload|enable|disable)$/, { message: 'Invalid command' })
-    command: string;
+  @IsString()
+  @Matches(/^(status|start|stop|restart|reload|enable|disable)$/, {
+    message: 'Invalid command',
+  })
+  command: string;
 
-    @IsString()
-    @Matches(/^(openvpn|openvpn@[a-zA-Z0-9-_]+|isc-dhcp-server|keepalived|haproxy)$/, { message: 'Invalid service' })
-    service: string;
+  @IsString()
+  @Matches(/^(openvpn|openvpn@[a-zA-Z0-9-_]+|isc-dhcp-server|keepalived|haproxy)$/, {
+    message: 'Invalid service',
+  })
+  service: string;
 
-    @IsOptional()
-    sshuser: string;
+  @IsOptional()
+  sshuser: string;
 
-    @IsOptional()
-    sshpass: string;
+  @IsOptional()
+  sshpass: string;
 }
-

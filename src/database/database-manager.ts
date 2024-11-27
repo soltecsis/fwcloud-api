@@ -20,57 +20,64 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-import { Connection, QueryRunner } from "typeorm";
-import * as config from "../config/config";
-import Query from "./Query";
+import { DataSource, QueryRunner } from 'typeorm';
+import * as config from '../config/config';
+import Query from './Query';
 import { AbstractApplication } from '../fonaments/abstract-application';
 import { DatabaseService } from './database.service';
 
 export class DatabaseManager {
+  private _connected: boolean = false;
+  private _dataSource: DataSource = null;
+  private configDB: {
+    host: string;
+    user: string;
+    port: number;
+    pass: string;
+    name: string;
+  } = config.get('db');
 
-    private _connected: boolean = false;
-    private _connection: Connection = null;
-    private configDB: {
-        host: string,
-        user: string,
-        port: number,
-        pass: string,
-        name: string
-    } = config.get('db');
+  public async connect(app: AbstractApplication): Promise<DataSource> {
+    const databaseService: DatabaseService = await app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
 
-    public async connect(app: AbstractApplication): Promise<Connection> {
-        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+    this._dataSource = databaseService.dataSource;
+    return this._dataSource;
+  }
 
-        this._connection = databaseService.connection;
-        return this._connection;
+  public get(done: (err, query: Query) => void) {
+    if (!this._dataSource) {
+      done(new Error('Connection not found'), null);
     }
 
-    public get(done: (err, query: Query) => void) {
-        if (!this._connection) {
-            done(new Error('Connection not found'), null);
-        }
+    const query: Query = new Query();
 
-        const query: Query = new Query();
+    done(null, query);
+  }
 
-        done(null, query);
+  public getQueryRunner(): QueryRunner {
+    if (!this._dataSource) {
+      throw Error('Connection not found');
     }
 
-    public getQueryRunner(): QueryRunner {
-        if (!this._connection) {
-            throw Error('Connection not found');
-        }
+    return this._dataSource.createQueryRunner();
+  }
 
-        return this._connection.createQueryRunner();
+  public getQuery(): Query {
+    if (!this._dataSource) {
+      throw Error('Connection not found');
     }
 
-    public getQuery(): Query {
-        if (!this._connection) {
-            throw Error('Connection not found');
-        }
+    return new Query();
+  }
 
-        return new Query();
+  public getSource(): DataSource {
+    if (!this._dataSource) {
+      throw Error('Connection not found');
     }
+    return this._dataSource;
+  }
 }
 
 const db: DatabaseManager = new DatabaseManager();

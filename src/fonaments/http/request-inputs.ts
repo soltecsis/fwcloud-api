@@ -20,48 +20,53 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request } from "express";
-import ObjectHelpers from "../../utils/object-helpers";
+import { Request } from 'express';
+import ObjectHelpers from '../../utils/object-helpers';
 
 export class RequestInputs {
+  private _req: Request;
 
-    private _req: Request;
+  constructor(req: Request) {
+    this._req = req;
+  }
 
-    constructor(req: Request) {
-        this._req = req;
+  /**
+   * Returns all inputs
+   */
+  public all<T extends object>(): T {
+    return this._req.body;
+  }
+
+  /**
+   * Returns the input value or default value if it does not exist
+   *
+   * @param name Input name
+   * @param defaultValue Default value
+   */
+  public get<T extends string | string[] | number | number[]>(
+    name: string,
+    defaultValue: T = undefined,
+  ): T {
+    if (Object.prototype.hasOwnProperty.call(this._req.body, name)) {
+      return this._req.body[name];
     }
 
-    /**
-     * Returns all inputs
-     */
-    public all<T extends object>(): T {
-        return this._req.body;
+    if (Object.prototype.hasOwnProperty.call(this._req.query, name)) {
+      return this._req.query[name] as T;
     }
 
-    /**
-     * Returns the input value or default value if it does not exist
-     * 
-     * @param name Input name
-     * @param defaultValue Default value
-     */
-    public get<T extends string | string[] | unknown = unknown>(name: string, defaultValue: T = undefined): T {
-        if (Object.prototype.hasOwnProperty.call(this._req.body, name)) {
-            return this._req.body[name];
-        }
+    return defaultValue;
+  }
 
-        if (Object.prototype.hasOwnProperty.call(this._req.query, name)) {
-            return this._req.query[name] as T;
-        }
-
-        return defaultValue;
-    }
-
-    /**
-     * Returns whether an input exists
-     * 
-     * @param name Input name
-     */
-    public has(name: string): boolean {
-        return Object.prototype.hasOwnProperty.call(this._req.body, name) || Object.prototype.hasOwnProperty.call(this._req.query, name)
-    }
+  /**
+   * Returns whether an input exists
+   *
+   * @param name Input name
+   */
+  public has(name: string): boolean {
+    return (
+      Object.prototype.hasOwnProperty.call(this._req.body, name) ||
+      Object.prototype.hasOwnProperty.call(this._req.query, name)
+    );
+  }
 }

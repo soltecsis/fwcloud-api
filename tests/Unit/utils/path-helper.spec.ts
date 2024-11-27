@@ -20,15 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect, playgroundPath } from "../../mocha/global-setup";
-import * as path from "path";
-import { PathHelper } from "../../../src/utils/path-helpers";
+import { describeName, expect, playgroundPath } from '../../mocha/global-setup';
+import * as path from 'path';
+import { PathHelper } from '../../../src/utils/path-helpers';
 
 describe(describeName('PathHelper Unit Tests'), () => {
-    
-    describe('directoryName()', () => {
-        it('directoryName() should return the directory name which contains the path', () => {
-            expect(PathHelper.directoryName(path.join(playgroundPath, 'test'))).to.be.deep.eq('test');
-        });
-    })
-})
+  describe('directoryName()', () => {
+    it('directoryName() should return the directory name which contains the path', () => {
+      expect(PathHelper.directoryName(path.join(playgroundPath, 'test'))).to.be.deep.eq('test');
+    });
+  });
+});

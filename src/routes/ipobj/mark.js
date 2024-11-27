@@ -28,10 +28,10 @@ import { Mark } from '../../models/ipobj/Mark';
 import { Firewall } from '../../models/firewall/Firewall';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { app, logger } from '../../fonaments/abstract-application';
-import { getRepository } from 'typeorm';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { Tree } from '../../models/tree/Tree';
 import { FwcTree } from '../../models/tree/fwc-tree.model';
+import db from '../../database/database-manager';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -75,7 +75,7 @@ router.put('/', async (req, res) => {
    	// Modify the mark data.
 		await Mark.modifyMark(req);
 		//Update all group nodes which references the mark to set the new name
-		await getRepository(FwcTree).createQueryBuilder('node')
+		await db.getSource().manager.getRepository(FwcTree).createQueryBuilder('node')
 			.update(FwcTree)
 			.set({
 				name: req.body.name
@@ -84,7 +84,7 @@ router.put('/', async (req, res) => {
 			.andWhere('id_obj = :id', {id: req.body.mark})
 			.execute();
 
-		const mark = await getRepository(Mark).findOneOrFail(req.body.mark, {
+		const mark = await db.getSource().manager.getRepository(Mark).findOneOrFail(req.body.mark, {
 			relations: ['policyRules', 'routingRuleToMarks', 'routingRuleToMarks.routingRule', 'routingRuleToMarks.routingRule.routingTable']
 		});
 

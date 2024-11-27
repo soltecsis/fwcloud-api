@@ -15,34 +15,42 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
-import Model from "../../../models/Model";
-import { HAProxyRuleToIPObj } from "../../../models/system/haproxy/haproxy_r/haproxy_r-to_ipobj.model";
-import { HAProxyGroupExporter } from "./haproxy_g.exporter";
-import { HAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.model";
-import { HAProxyRuleExporter } from "./haproxy_r.exporter";
-import { IPObj } from "../../../models/ipobj/IPObj";
-import { IPObjExporter } from "./ipobj.exporter";
-import { TableExporter } from "./table-exporter";
+import { SelectQueryBuilder } from 'typeorm';
+import Model from '../../../models/Model';
+import { HAProxyRuleToIPObj } from '../../../models/system/haproxy/haproxy_r/haproxy_r-to_ipobj.model';
+import { HAProxyGroupExporter } from './haproxy_g.exporter';
+import { HAProxyRule } from '../../../models/system/haproxy/haproxy_r/haproxy_r.model';
+import { HAProxyRuleExporter } from './haproxy_r.exporter';
+import { IPObj } from '../../../models/ipobj/IPObj';
+import { IPObjExporter } from './ipobj.exporter';
+import { TableExporter } from './table-exporter';
 
 export class HAProxyRuleToIPObjExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return HAProxyRuleToIPObj;
-    }
+  protected getEntity(): typeof Model {
+    return HAProxyRuleToIPObj;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .where((qb) => {
-                const query = qb.subQuery().from(HAProxyRule, 'haproxy_r').select('haproxy_r.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .where((qb) => {
+        const query = qb.subQuery().from(HAProxyRule, 'haproxy_r').select('haproxy_r.id');
 
-                return `${alias}.haproxyRuleId IN ` + new HAProxyRuleExporter()
-                    .getFilterBuilder(query, 'haproxy_r', fwCloudId).getQuery()
-            })
-            .orWhere((qb) => {
-                const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
+        return (
+          `${alias}.haproxyRuleId IN ` +
+          new HAProxyRuleExporter().getFilterBuilder(query, 'haproxy_r', fwCloudId).getQuery()
+        );
+      })
+      .orWhere((qb) => {
+        const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
 
-                return `${alias}.ipObjId IN ` + new IPObjExporter()
-                    .getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
-            });
-    }
+        return (
+          `${alias}.ipObjId IN ` +
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
+        );
+      });
+  }
 }

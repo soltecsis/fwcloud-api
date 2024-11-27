@@ -20,54 +20,69 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository } from "../../../database/repository";
-import { OpenVPN } from "./OpenVPN";
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
-import { ValidEntities } from "../../ipobj/IPObj.repository";
+import { OpenVPN } from './OpenVPN';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
+import { ValidEntities } from '../../ipobj/IPObj.repository';
+import { Repository } from '../../../database/repository';
 
-@EntityRepository(OpenVPN)
+//@EntityRepository(OpenVPN)
 export class OpenVPNRepository extends Repository<OpenVPN> {
-  public async markAllAsUninstalled(): Promise<void> {
-    await this.createQueryBuilder().update(OpenVPN)
-      .set({
-          status: 1,
-          installed_at: null
-      }).execute();
+  constructor(manager?: EntityManager) {
+    super(OpenVPN, manager);
   }
 
-  getOpenVPNInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPN> {
-    let query = this.createQueryBuilder("vpn")
-      .select("vpn.id","id").addSelect("crt.cn","name").addSelect("(select id from ipobj_type where id=311)","type")
-      .addSelect("vpnFirewall.id","firewall_id").addSelect("vpnFirewall.name","firewall_name")
-      .addSelect("vpnCluster.id","cluster_id").addSelect("vpnCluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId");
+  public async markAllAsUninstalled(): Promise<void> {
+    await this.createQueryBuilder()
+      .update(OpenVPN)
+      .set({
+        status: 1,
+        installed_at: null,
+      })
+      .execute();
+  }
+
+  getOpenVPNInRouting_ForGrid(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable?: number,
+  ): SelectQueryBuilder<OpenVPN> {
+    let query = this.createQueryBuilder('vpn')
+      .select('vpn.id', 'id')
+      .addSelect('crt.cn', 'name')
+      .addSelect('(select id from ipobj_type where id=311)', 'type')
+      .addSelect('vpnFirewall.id', 'firewall_id')
+      .addSelect('vpnFirewall.name', 'firewall_name')
+      .addSelect('vpnCluster.id', 'cluster_id')
+      .addSelect('vpnCluster.name', 'cluster_name')
+      .addSelect(`${entity}.id`, 'entityId');
 
     if (entity === 'rule') {
       query
         .innerJoin('vpn.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
         .addSelect('routingRuleToOpenVPNs.order', '_order')
-        .innerJoin('routingRuleToOpenVPNs.routingRule', entity)  
+        .innerJoin('routingRuleToOpenVPNs.routingRule', entity);
     }
 
     if (entity === 'route') {
       query
-      .innerJoin('vpn.routeToOpenVPNs', 'routeToOpenVPNs')
-      .addSelect('routeToOpenVPNs.order', '_order')
-      .innerJoin('routeToOpenVPNs.route', entity)
+        .innerJoin('vpn.routeToOpenVPNs', 'routeToOpenVPNs')
+        .addSelect('routeToOpenVPNs.order', '_order')
+        .innerJoin('routeToOpenVPNs.route', entity);
     }
-      
-    query
-      .innerJoin(`${entity}.routingTable`, "table")
-      .innerJoin("table.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .innerJoin("vpn.firewall", "vpnFirewall")
-      .leftJoin("vpnFirewall.cluster", "vpnCluster")
-      .innerJoin("vpn.crt", "crt")
-      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
-      .andWhere("firewall.id = :firewall", {firewall: firewall});
 
-    if (routingTable) query = query.andWhere("table.id = :routingTable", {routingTable});
+    query
+      .innerJoin(`${entity}.routingTable`, 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .innerJoin('vpn.firewall', 'vpnFirewall')
+      .leftJoin('vpnFirewall.cluster', 'vpnCluster')
+      .innerJoin('vpn.crt', 'crt')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
+
+    if (routingTable) query = query.andWhere('table.id = :routingTable', { routingTable });
 
     return query;
-  }    
+  }
 }
