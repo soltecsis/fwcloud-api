@@ -20,48 +20,61 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
-import { Repository } from "../../../database/repository";
-import { ValidEntities } from "../../ipobj/IPObj.repository";
-import { OpenVPNPrefix } from "./OpenVPNPrefix";
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
+import { ValidEntities } from '../../ipobj/IPObj.repository';
+import { OpenVPNPrefix } from './OpenVPNPrefix';
+import { Repository } from '../../../database/repository';
 
-@EntityRepository(OpenVPNPrefix)
+//@EntityRepository(OpenVPNPrefix)
 export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
+  constructor(manager?: EntityManager) {
+    super(OpenVPNPrefix, manager);
+  }
 
-  getOpenVPNPrefixInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPNPrefix> {
-    let query = this.createQueryBuilder("vpnPrefix")
-      .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("(select id from ipobj_type where id=401)","type")
-      .addSelect("vpnFirewall.id","firewall_id").addSelect("vpnFirewall.name","firewall_name")
-      .addSelect("vpnCluster.id","cluster_id").addSelect("vpnCluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId");
+  getOpenVPNPrefixInRouting_ForGrid(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable?: number,
+  ): SelectQueryBuilder<OpenVPNPrefix> {
+    const query = this.createQueryBuilder('vpnPrefix')
+      .select('vpnPrefix.id', 'id')
+      .addSelect('vpnPrefix.name', 'name')
+      .addSelect('(select id from ipobj_type where id=401)', 'type')
+      .addSelect('vpnFirewall.id', 'firewall_id')
+      .addSelect('vpnFirewall.name', 'firewall_name')
+      .addSelect('vpnCluster.id', 'cluster_id')
+      .addSelect('vpnCluster.name', 'cluster_name')
+      .addSelect(`${entity}.id`, 'entityId');
 
     if (entity === 'route') {
       query
         .innerJoin('vpnPrefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
         .addSelect('routeToOpenVPNPrefixes.order', '_order')
-        .innerJoin('routeToOpenVPNPrefixes.route', entity)
+        .innerJoin('routeToOpenVPNPrefixes.route', entity);
     }
 
     if (entity === 'rule') {
       query
         .innerJoin('vpnPrefix.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
         .addSelect('routingRuleToOpenVPNPrefixes.order', '_order')
-        .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity)
+        .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity);
     }
-    
-    query.innerJoin(`${entity}.routingTable`, "table")
-      .innerJoin("table.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .innerJoin("vpnPrefix.openVPN", "vpnServer")
-      .innerJoin("vpnServer.firewall", "vpnFirewall")
-      .leftJoin("vpnFirewall.cluster", "vpnCluster")
-      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
-      .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+    query
+      .innerJoin(`${entity}.routingTable`, 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .innerJoin('vpnPrefix.openVPN', 'vpnServer')
+      .innerJoin('vpnServer.firewall', 'vpnFirewall')
+      .leftJoin('vpnFirewall.cluster', 'vpnCluster')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
 
     if (routingTable) {
-      query.andWhere("table.id = :routingTable", {routingTable});
+      query.andWhere('table.id = :routingTable', { routingTable });
     }
 
-    return query;  
-  }    
+    return query;
+  }
 }

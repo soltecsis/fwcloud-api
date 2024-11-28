@@ -20,18 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { RouterParser } from "./router-parser";
+import { RouterParser } from './router-parser';
 
 export type RouteCollectionClass = typeof RouteCollection;
 
-export interface RouteCollectionable extends RouteCollectionClass {}
-
-
 export abstract class RouteCollection {
+  public parse(router: RouterParser): void {
+    return this.routes(router);
+  }
 
-    public parse(router: RouterParser): void {
-        return this.routes(router);
-    }
-    
-    public abstract routes(router: RouterParser): void;
+  public abstract routes(router: RouterParser): void;
 }

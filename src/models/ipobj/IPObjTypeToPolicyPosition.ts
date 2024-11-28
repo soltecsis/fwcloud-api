@@ -20,132 +20,149 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 import db from '../../database/database-manager';
-import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
-import { IPObjType } from "./IPObjType";
-import { PolicyPosition } from "../policy/PolicyPosition";
-import { logger } from "../../fonaments/abstract-application";
+import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { IPObjType } from './IPObjType';
+import { PolicyPosition } from '../policy/PolicyPosition';
+import { logger } from '../../fonaments/abstract-application';
 
 const tableName: string = 'ipobj_type__policy_position';
 
 @Entity(tableName)
 export class IPObjTypeToPolicyPosition extends Model {
+  @PrimaryColumn({ name: 'type' })
+  ipObjTypeId: number;
 
-    @PrimaryColumn({name: 'type'})
-    ipObjTypeId: number;
+  @ManyToOne((type) => IPObjType, (model) => model.ipObjTypeToPolicyPositions)
+  @JoinColumn({
+    name: 'type',
+  })
+  ipObjType: IPObjType;
 
-    @ManyToOne(type => IPObjType, model => model.ipObjTypeToPolicyPositions)
-    @JoinColumn({
-        name: 'type'
-    })
-    ipObjType: IPObjType;
+  @PrimaryColumn({ name: 'position' })
+  policyPositionId: number;
 
+  @ManyToOne((type) => PolicyPosition, (model) => model.ipObjTypeToPolicyPositions)
+  @JoinColumn({
+    name: 'position',
+  })
+  policyPosition: PolicyPosition;
 
-    @PrimaryColumn({name: 'position'})
-    policyPositionId: number;
+  public getTableName(): string {
+    return tableName;
+  }
 
-    @ManyToOne(type => PolicyPosition, model => model.ipObjTypeToPolicyPositions)
-    @JoinColumn({
-        name: 'position'
-    })
-    policyPosition: PolicyPosition;
+  //Get All ipobj_type__policy_position
+  public static getIpobj_type__policy_positions = (callback) => {
+    db.get((error, connection) => {
+      if (error) return callback(error, null);
+      connection.query(
+        `SELECT type,position FROM ${tableName} ORDER BY type,position`,
+        (error, rows) => {
+          if (error) callback(error, null);
+          else callback(null, rows);
+        },
+      );
+    });
+  };
 
-    public getTableName(): string {
-        return tableName;
-    }
+  //Get ipobj_type__policy_position by  id
+  public static getIpobj_type__policy_position(type, position, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sql =
+        'SELECT type, position, allowed FROM ' +
+        tableName +
+        ' WHERE type = ' +
+        connection.escape(type) +
+        'AND  position = ' +
+        connection.escape(position);
+      logger().debug(sql);
+      connection.query(sql, (error, row) => {
+        if (error) callback(error, null);
+        else callback(null, row);
+      });
+    });
+  }
 
-    //Get All ipobj_type__policy_position
-    public static getIpobj_type__policy_positions = callback => {
-        db.get((error, connection) => {
-            if (error) return callback(error, null);
-            connection.query(`SELECT type,position FROM ${tableName} ORDER BY type,position`, (error, rows) => {
-                if (error)
-                    callback(error, null);
-                else
-                    callback(null, rows);
-            });
-        });
-    }
+  //Add new ipobj_type__policy_position
+  public static insertIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      connection.query(
+        'INSERT INTO ' + tableName + ' SET ?',
+        ipobj_type__policy_positionData,
+        (error, result) => {
+          if (error) {
+            callback(error, null);
+          } else {
+            //devolvemos la última id insertada
+            callback(null, { insertId: 'success' });
+          }
+        },
+      );
+    });
+  }
 
+  //Update ipobj_type__policy_position
+  public static updateIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sql =
+        'UPDATE ' +
+        tableName +
+        ' SET type = ' +
+        connection.escape(ipobj_type__policy_positionData.type) +
+        ' ' +
+        ' WHERE type = ' +
+        connection.escape(ipobj_type__policy_positionData.type) +
+        ' position = ' +
+        connection.escape(ipobj_type__policy_positionData.position);
+      connection.query(sql, (error, result) => {
+        if (error) {
+          callback(error, null);
+        } else {
+          callback(null, { result: true });
+        }
+      });
+    });
+  }
 
-
-
-
-    //Get ipobj_type__policy_position by  id
-    public static getIpobj_type__policy_position(type, position, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sql = 'SELECT type, position, allowed FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
-            logger().debug(sql);
-            connection.query(sql, (error, row) => {
-                if (error)
-                    callback(error, null);
-                else
-                    callback(null, row);
-            });
-        });
-    }
-
-
-    //Add new ipobj_type__policy_position
-    public static insertIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', ipobj_type__policy_positionData, (error, result) => {
-                if (error) {
-                    callback(error, null);
-                }
-                else {
-                    //devolvemos la última id insertada
-                    callback(null, { "insertId": 'success' });
-                }
-            });
-        });
-    }
-
-    //Update ipobj_type__policy_position
-    public static updateIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
-
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sql = 'UPDATE ' + tableName + ' SET type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' ' +
-                ' WHERE type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' position = ' + connection.escape(ipobj_type__policy_positionData.position);
+  //Remove ipobj_type__policy_position with id to remove
+  public static deleteIpobj_type__policy_position(type, position, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sqlExists =
+        'SELECT * FROM ' +
+        tableName +
+        ' WHERE type = ' +
+        connection.escape(type) +
+        ' position = ' +
+        connection.escape(position);
+      connection.query(sqlExists, (error, row) => {
+        //If exists Id from ipobj_type__policy_position to remove
+        if (row) {
+          db.get((error, connection) => {
+            const sql =
+              'DELETE FROM ' +
+              tableName +
+              ' WHERE type = ' +
+              connection.escape(type) +
+              ' position = ' +
+              connection.escape(position);
             connection.query(sql, (error, result) => {
-                if (error) {
-                    callback(error, null);
-                }
-                else {
-                    callback(null, { "result": true });
-                }
+              if (error) {
+                callback(error, null);
+              } else {
+                callback(null, { result: true });
+              }
             });
-        });
-    }
-
-    //Remove ipobj_type__policy_position with id to remove
-    public static deleteIpobj_type__policy_position(type, position, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
-            connection.query(sqlExists, (error, row) => {
-                //If exists Id from ipobj_type__policy_position to remove
-                if (row) {
-                    db.get((error, connection) => {
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
-                        connection.query(sql, (error, result) => {
-                            if (error) {
-                                callback(error, null);
-                            }
-                            else {
-                                callback(null, { "result": true });
-                            }
-                        });
-                    });
-                }
-                else {
-                    callback(null, { "result": false });
-                }
-            });
-        });
-    }
+          });
+        } else {
+          callback(null, { result: false });
+        }
+      });
+    });
+  }
 }

@@ -51,7 +51,7 @@ if [ "$DBENGINE" = "MySQL" ]; then
 fi
 
 # Create the fwcloud database and access user.
-DBHOST="localhost"
+DBHOST="127.0.0.1"
 DBNAME="fwcloud"
 DBUSER="fwcdbusr"
 passGen 16
@@ -92,7 +92,7 @@ chown -R fwcloud:fwcloud api && chmod 750 api
 
 # Some Linux distributions have SELinux enabled.
 if command -v getenforce >/dev/null 2>&1; then
-  if [ $(getenforce) == "Enforcing" ]; then
+  if [ $(getenforce) = "Enforcing" ]; then
     # If SELinux is enabled, then load the semodule necessary for start the FWCloud-API service.
     cd /opt/fwcloud/api/config/sys/SELinux
     checkmodule -M -m -o fwcloud-api.mod fwcloud-api.te

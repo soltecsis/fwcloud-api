@@ -20,37 +20,37 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import Model from "../../../Model";
-import { HAProxyRule } from "./haproxy_r.model";
-import { IPObj } from "../../../ipobj/IPObj";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import Model from '../../../Model';
+import { HAProxyRule } from './haproxy_r.model';
+import { IPObj } from '../../../ipobj/IPObj';
 
 const tableName = 'haproxy_r__ipobj';
 
 @Entity({ name: tableName })
 export class HAProxyRuleToIPObj extends Model {
-    @PrimaryColumn({ name: 'rule' })
-    haproxyRuleId: number;
+  @PrimaryColumn({ name: 'rule' })
+  haproxyRuleId: number;
 
-    @PrimaryColumn({ name: 'ipobj' })
-    ipObjId: number;
+  @PrimaryColumn({ name: 'ipobj' })
+  ipObjId: number;
 
-    @Column({ type: Number })
-    order: number;
+  @Column({ type: Number })
+  order: number;
 
-    @ManyToOne(() => HAProxyRule, haproxyRule => haproxyRule.backendIps, {
-        orphanedRowAction: 'delete'
-    })
-    @JoinColumn({ name: 'rule' })
-    haproxyRule: HAProxyRule;
+  @ManyToOne(() => HAProxyRule, (haproxyRule) => haproxyRule.backendIps, {
+    orphanedRowAction: 'delete',
+  })
+  @JoinColumn({ name: 'rule' })
+  haproxyRule: HAProxyRule;
 
-    @ManyToOne(() => IPObj, ipobj => ipobj.haproxyRuleToIPObjs, {
-        orphanedRowAction: 'delete'
-    })
-    @JoinColumn({ name: 'ipobj' })
-    ipObj: IPObj;
+  @ManyToOne(() => IPObj, (ipobj) => ipobj.haproxyRuleToIPObjs, {
+    orphanedRowAction: 'delete',
+  })
+  @JoinColumn({ name: 'ipobj' })
+  ipObj: IPObj;
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 }

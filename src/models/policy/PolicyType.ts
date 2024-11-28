@@ -20,170 +20,175 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
-import { PolicyPosition } from "./PolicyPosition";
-import { PolicyRule } from "./PolicyRule";
-import { logger } from "../../fonaments/abstract-application";
+import { PrimaryColumn, Column, Entity, OneToMany } from 'typeorm';
+import { PolicyPosition } from './PolicyPosition';
+import { PolicyRule } from './PolicyRule';
+import { logger } from '../../fonaments/abstract-application';
 
 const tableName: string = 'policy_type';
 
 export const PolicyTypesMap = new Map<string, number>([
-    ['IPv4:INPUT',1],  ['IPv4:OUTPUT',2],  ['IPv4:FORWARD',3],  ['IPv4:SNAT',4],  ['IPv4:DNAT',5],
-    ['IPv6:INPUT',61], ['IPv6:OUTPUT',62], ['IPv6:FORWARD',63], ['IPv6:SNAT',64], ['IPv6:DNAT',65],
+  ['IPv4:INPUT', 1],
+  ['IPv4:OUTPUT', 2],
+  ['IPv4:FORWARD', 3],
+  ['IPv4:SNAT', 4],
+  ['IPv4:DNAT', 5],
+  ['IPv6:INPUT', 61],
+  ['IPv6:OUTPUT', 62],
+  ['IPv6:FORWARD', 63],
+  ['IPv6:SNAT', 64],
+  ['IPv6:DNAT', 65],
 ]);
 
 @Entity(tableName)
 export class PolicyType extends Model {
-    
-    @PrimaryColumn()
-    id: number;
+  @PrimaryColumn()
+  id: number;
 
-    @Column()
-    type: string;
+  @Column()
+  type: string;
 
-    @Column()
-    type_order: string;
+  @Column()
+  type_order: string;
 
-    @Column()
-    show_action: number;
+  @Column()
+  show_action: number;
 
-    @OneToMany(type => PolicyPosition, position => position.policyType)
-    policyPositions: Array<PolicyPosition>
+  @OneToMany((type) => PolicyPosition, (position) => position.policyType)
+  policyPositions: Array<PolicyPosition>;
 
-    @OneToMany(type => PolicyRule, policyRule => policyRule.policyType)
-    policyRules: Array<PolicyRule>;
+  @OneToMany((type) => PolicyRule, (policyRule) => policyRule.policyType)
+  policyRules: Array<PolicyRule>;
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 
-    //Get All policy_type
-    public static getPolicy_types(callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', (error, rows) => {
-                if (error)
-                    callback(error, null);
-                else
-                    callback(null, rows);
-            });
-        });
-    }
+  //Get All policy_type
+  public static getPolicy_types(callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', (error, rows) => {
+        if (error) callback(error, null);
+        else callback(null, rows);
+      });
+    });
+  }
 
+  //Get policy_type by  type
+  public static getPolicy_type(id, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+      connection.query(sql, (error, row) => {
+        if (error) callback(error, null);
+        else {
+          callback(null, row);
+        }
+      });
+    });
+  }
 
+  //Get policy_type by  type Letter
+  public static getPolicy_typeL(id, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
+      connection.query(sql, (error, row) => {
+        if (error) callback(error, null);
+        else {
+          callback(null, row);
+        }
+      });
+    });
+  }
 
+  //Get policy_type by name
+  public static getPolicy_typeName(name, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const namesql = '%' + name + '%';
+      const sql =
+        'SELECT * FROM ' +
+        tableName +
+        ' WHERE name like  ' +
+        connection.escape(namesql) +
+        ' ORDER BY type_order';
+      connection.query(sql, (error, row) => {
+        if (error) callback(error, null);
+        else callback(null, row);
+      });
+    });
+  }
 
+  //Add new policy_type
+  public static insertPolicy_type(policy_typeData, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, (error, result) => {
+        if (error) {
+          callback(error, null);
+        } else {
+          //devolvemos la última id insertada
+          callback(null, { insertId: result.insertId });
+        }
+      });
+    });
+  }
 
-    //Get policy_type by  type
-    public static getPolicy_type(id, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-            connection.query(sql, (error, row) => {
-                if (error)
-                    callback(error, null);
-                else{                
-                    callback(null, row);
-                }
-            });
-        });
-    }
+  //Update policy_type
+  public static updatePolicy_type(policy_typeData, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sql =
+        'UPDATE ' +
+        tableName +
+        ' SET name = ' +
+        connection.escape(policy_typeData.name) +
+        ', ' +
+        ' SET type = ' +
+        connection.escape(policy_typeData.type) +
+        ', ' +
+        ' SET id = ' +
+        connection.escape(policy_typeData.id) +
+        ' ' +
+        ' WHERE type = ' +
+        policy_typeData.type;
+      logger().debug(sql);
+      connection.query(sql, (error, result) => {
+        if (error) {
+          callback(error, null);
+        } else {
+          callback(null, { result: true });
+        }
+      });
+    });
+  }
 
-    //Get policy_type by  type Letter
-    public static getPolicy_typeL(id, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
-            connection.query(sql, (error, row) => {
-                if (error)
-                    callback(error, null);
-                else{                
-                    callback(null, row);
-                }
-            });
-        });
-    }
-
-    //Get policy_type by name
-    public static getPolicy_typeName(name, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var namesql = '%' + name + '%';
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  ' + connection.escape(namesql) + ' ORDER BY type_order' ;
-            connection.query(sql, (error, row) => {
-                if (error)
-                    callback(error, null);
-                else
-                    callback(null, row);
-            });
-        });
-    }
-
-
-
-    //Add new policy_type
-    public static insertPolicy_type(policy_typeData, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, (error, result) => {
-                if (error) {
-                    callback(error, null);
-                }
-                else {
-                    //devolvemos la última id insertada
-                    callback(null, { "insertId": result.insertId });
-                }
-            });
-        });
-    }
-
-    //Update policy_type
-    public static updatePolicy_type(policy_typeData, callback) {
-
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_typeData.name) + ', ' +            
-                    ' SET type = ' + connection.escape(policy_typeData.type) + ', ' +            
-                    ' SET id = ' + connection.escape(policy_typeData.id) + ' ' +            
-                ' WHERE type = ' + policy_typeData.type;
-                logger().debug(sql);
+  //Remove policy_type with type to remove
+  public static deletePolicy_type(type, callback) {
+    db.get((error, connection) => {
+      if (error) callback(error, null);
+      const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
+      connection.query(sqlExists, (error, row) => {
+        //If exists Id from policy_type to remove
+        if (row) {
+          db.get((error, connection) => {
+            const sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
             connection.query(sql, (error, result) => {
-                if (error) {
-                    callback(error, null);
-                }
-                else {
-                    callback(null, { "result": true });
-                }
+              if (error) {
+                callback(error, null);
+              } else {
+                callback(null, { result: true });
+              }
             });
-        });
-    }
-
-    //Remove policy_type with type to remove
-    public static deletePolicy_type(type, callback) {
-        db.get((error, connection) => {
-            if (error) callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
-            connection.query(sqlExists, (error, row) => {
-                //If exists Id from policy_type to remove
-                if (row) {
-                    db.get((error, connection) => {
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
-                        connection.query(sql, (error, result) => {
-                            if (error) {
-                                callback(error, null);
-                            }
-                            else {
-                                callback(null, { "result": true });
-                            }
-                        });
-                    });
-                }
-                else {
-                    callback(null, { "result": false });
-                }
-            });
-        });
-    }
+          });
+        } else {
+          callback(null, { result: false });
+        }
+      });
+    });
+  }
 }

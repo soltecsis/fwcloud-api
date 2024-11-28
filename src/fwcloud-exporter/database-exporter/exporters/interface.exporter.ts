@@ -20,25 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { SelectQueryBuilder } from "typeorm";
-import { Interface } from "../../../models/interface/Interface";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { SelectQueryBuilder } from 'typeorm';
+import { Interface } from '../../../models/interface/Interface';
 
 export class InterfaceExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return Interface;
-    }
+  protected getEntity(): typeof Model {
+    return Interface;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .leftJoin(`${alias}.firewall`, "firewall")
-        .leftJoin(`${alias}.ipObjs`, "ipobj")
-        .where("firewall.fwCloudId = :id", {
-            id: fwCloudId
-        })
-        .orWhere("ipobj.fwCloudId = :id", {
-            id: fwCloudId
-        });
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .leftJoin(`${alias}.firewall`, 'firewall')
+      .leftJoin(`${alias}.ipObjs`, 'ipobj')
+      .where('firewall.fwCloudId = :id', {
+        id: fwCloudId,
+      })
+      .orWhere('ipobj.fwCloudId = :id', {
+        id: fwCloudId,
+      });
+  }
 }

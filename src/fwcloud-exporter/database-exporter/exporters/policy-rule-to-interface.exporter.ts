@@ -20,34 +20,41 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { PolicyRuleToInterface } from "../../../models/policy/PolicyRuleToInterface";
-import { SelectQueryBuilder } from "typeorm";
-import { InterfaceExporter } from "./interface.exporter";
-import { PolicyRule } from "../../../models/policy/PolicyRule";
-import { PolicyRuleExporter } from "./policy-rule.exporter";
-import { Interface } from "../../../models/interface/Interface";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { PolicyRuleToInterface } from '../../../models/policy/PolicyRuleToInterface';
+import { SelectQueryBuilder } from 'typeorm';
+import { InterfaceExporter } from './interface.exporter';
+import { PolicyRule } from '../../../models/policy/PolicyRule';
+import { PolicyRuleExporter } from './policy-rule.exporter';
+import { Interface } from '../../../models/interface/Interface';
 
 export class PolicyRuleToInterfaceExporter extends TableExporter {
-    
-    protected getEntity(): typeof Model {
-        return PolicyRuleToInterface;
-    }
+  protected getEntity(): typeof Model {
+    return PolicyRuleToInterface;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(Interface, 'interface').select('interface.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .where((qb) => {
+        const subquery = qb.subQuery().from(Interface, 'interface').select('interface.id');
 
-            return `${alias}.interfaceId IN ` + new InterfaceExporter()
-                .getFilterBuilder(subquery, 'interface', fwCloudId).getQuery()
-        })
-        .orWhere((qb) => {
-            const subquery = qb.subQuery().from(PolicyRule, 'policy_r').select('policy_r.id');
+        return (
+          `${alias}.interfaceId IN ` +
+          new InterfaceExporter().getFilterBuilder(subquery, 'interface', fwCloudId).getQuery()
+        );
+      })
+      .orWhere((qb) => {
+        const subquery = qb.subQuery().from(PolicyRule, 'policy_r').select('policy_r.id');
 
-            return `${alias}.policyRuleId IN ` + new PolicyRuleExporter()
-                .getFilterBuilder(subquery, 'policy_r', fwCloudId).getQuery()
-        });;
-    }
+        return (
+          `${alias}.policyRuleId IN ` +
+          new PolicyRuleExporter().getFilterBuilder(subquery, 'policy_r', fwCloudId).getQuery()
+        );
+      });
+  }
 }

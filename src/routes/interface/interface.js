@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -38,7 +38,7 @@ const fwcError = require('../../utils/error_table');
 
 
 /* Get all interfaces by firewall*/
-router.put('/fw/all/get', async(req, res) => {
+router.put('/fw/all/get', async (req, res) => {
 	try {
 		let data = await Interface.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
 		if (data && data.length > 0)
@@ -68,7 +68,7 @@ router.put('/fw/full/get', (req, res) => {
 });
 
 /* Get  interface by id and  by firewall*/
-router.put('/fw/get', async(req, res) => {
+router.put('/fw/get', async (req, res) => {
 	try {
 		const data = await Interface.getInterface(req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
@@ -116,7 +116,7 @@ router.put('/host/get', (req, res) => {
 
 
 /* Create New interface */
-router.post("/", async(req, res) => {
+router.post("/", async (req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var node_parent = req.body.node_parent;
 	var node_order = req.body.node_order;
@@ -178,9 +178,9 @@ router.post("/", async(req, res) => {
 
 /* Update interface that exist */
 router.put('/', (req, res) => {
-	var fwcloud = req.body.fwcloud;
+	const fwcloud = req.body.fwcloud;
 	//Save data into object
-	var interfaceData = {
+	const interfaceData = {
 		id: req.body.id,
 		name: req.body.name,
 		labelName: req.body.labelName,
@@ -191,7 +191,7 @@ router.put('/', (req, res) => {
 	};
 
 	if ((interfaceData.id !== null) && (fwcloud !== null)) {
-		Interface.updateInterface(interfaceData, async(error, data) => {
+		Interface.updateInterface(interfaceData, async (error, data) => {
 			if (error) {
 				logger().error('Error updating interface: ' + JSON.stringify(error));
 				return res.status(400).json(error)
@@ -203,13 +203,15 @@ router.put('/', (req, res) => {
 
 					await Firewall.updateFirewallStatusInterface(req.body.fwcloud, [interfaceData.id]);
 
-					var data_return = {};
+					const data_return = {};
 					await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
-		
+
 					await Tree.updateFwc_Tree_OBJ(req, interfaceData);
 
 					res.status(200).json(data_return);
-				} catch (error) { res.status(400).json(error) }
+				} catch (error) {
+					res.status(400).json(error)
+				}
 			} else {
 				logger().error('Error updating new interface');
 				res.status(400).end();
@@ -225,7 +227,7 @@ router.put('/', (req, res) => {
 /* Remove firewall interface */
 router.put('/fw/del',
 	restrictedCheck.interface,
-	async(req, res) => {
+	async (req, res) => {
 		try {
 			await IPObj.deleteIpobjInterface(req.dbCon, req.body.id);
 			await Interface.deleteInterfaceFW(req.dbCon, req.body.id);
@@ -241,7 +243,7 @@ router.put('/fw/del',
 /* Remove host interface */
 router.put("/host/del",
 	restrictedCheck.interface,
-	async(req, res) => {
+	async (req, res) => {
 		try {
 			await InterfaceIPObj.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
 			await IPObj.deleteIpobjInterface(req.dbCon, req.body.id);
@@ -256,7 +258,7 @@ router.put("/host/del",
 
 
 /* Search where is used interface  */
-router.put('/where', async(req, res) => {
+router.put('/where', async (req, res) => {
 	try {
 		const data = await Interface.searchInterfaceUsage(req.body.id, req.body.type, req.body.fwcloud, null);
 		if (data.result > 0)
@@ -275,7 +277,7 @@ router.put('/restricted', restrictedCheck.interface, (req, res) => res.status(20
 
 
 /* Get all network interface information from a firewall.  */
-router.put('/autodiscover', async(req, res, next) => {
+router.put('/autodiscover', async (req, res, next) => {
 	try {
 		let communication = null;
 
@@ -302,7 +304,7 @@ router.put('/autodiscover', async(req, res, next) => {
 		const ifsData = await Interface.ifsDataToJson(rawData);
 
 		res.status(200).json(ifsData);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting network interface information: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 
 		if (error instanceof HttpException) {
@@ -310,7 +312,7 @@ router.put('/autodiscover', async(req, res, next) => {
 		}
 
 		if (error.message)
-			res.status(400).json({message: error.message});
+			res.status(400).json({ message: error.message });
 		else
 			res.status(400).json(error);
 	}

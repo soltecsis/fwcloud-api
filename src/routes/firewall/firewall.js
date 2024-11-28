@@ -81,7 +81,6 @@ import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
-import { getRepository } from 'typeorm';
 import { Cluster } from '../../models/firewall/Cluster';
 import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
 import { DHCPGroup } from '../../models/system/dhcp/dhcp_g/dhcp_g.model';

@@ -1,54 +1,27 @@
-import { MigrationInterface, QueryRunner, TableColumn } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInterface
-{
+export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.changeColumn(
-      "firewall",
-      "plugins",
-      new TableColumn({
-        name: "plugins",
-        type: "int",
-        isNullable: false,
-        default: 0,
-      })
-    );
+    await queryRunner.query(`
+      ALTER TABLE firewall
+      MODIFY COLUMN plugins INT NOT NULL DEFAULT 0;
+    `);
 
-    await queryRunner.changeColumn(
-      "cluster",
-      "plugins",
-      new TableColumn({
-        name: "plugins",
-        type: "int",
-        isNullable: false,
-        default: 0,
-      })
-    );
+    await queryRunner.query(`
+      ALTER TABLE cluster
+      MODIFY COLUMN plugins INT NOT NULL DEFAULT 0;
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.changeColumn(
-      "firewall",
-      "plugins",
-      new TableColumn({
-        name: "plugins",
-        type: "smallint",
-        length: "2",
-        isNullable: false,
-        default: 0,
-      })
-    );
+    await queryRunner.query(`
+      ALTER TABLE firewall
+      MODIFY COLUMN plugins SMALLINT NOT NULL DEFAULT 0;
+    `);
 
-    await queryRunner.changeColumn(
-      "cluster",
-      "plugins",
-      new TableColumn({
-        name: "plugins",
-        type: "smallint",
-        length: "2",
-        isNullable: false,
-        default: 0,
-      })
-    );
+    await queryRunner.query(`
+      ALTER TABLE cluster
+      MODIFY COLUMN plugins SMALLINT NOT NULL DEFAULT 0;
+    `);
   }
 }
