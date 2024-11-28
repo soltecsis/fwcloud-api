@@ -29,11 +29,13 @@ export class AIassistantService extends Service {
         apiKey: process.env.OPENAI_API_KEY,
       });
       const completion = await openai.chat.completions.create({
-        model: 'o1-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 350,
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: prompt },
+        ],
       });
-      console.log('Completion', completion);
+      console.log('Completion', completion.choices[0].message?.content);
       return completion.choices[0].message?.content || 'No response received.';
     } catch (error) {
       console.error('Error communicating with OpenAI API:', error);
