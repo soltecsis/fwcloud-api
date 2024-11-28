@@ -67,12 +67,6 @@ export class KeepalivedGroupController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves a list of Keepalived groups.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   async index(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedGroupPolicy.index(this._firewall, req.session.user)).authorize();
 
@@ -85,12 +79,6 @@ export class KeepalivedGroupController extends Controller {
   }
 
   @Validate(KeepalivedGroupControllerCreateDto)
-  /**
-   * Creates a new KeepalivedGroup.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder.
-   */
   async create(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedGroupPolicy.create(this._firewall, req.session.user)).authorize();
 
@@ -112,12 +100,6 @@ export class KeepalivedGroupController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves the keepalived group information.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   async show(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedGroupPolicy.show(this._keepalivedGroup, req.session.user)).authorize();
 
@@ -125,12 +107,6 @@ export class KeepalivedGroupController extends Controller {
   }
 
   @Validate(KeepalivedGroupUpdateDto)
-  /**
-   * Updates the keepalived group.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   async update(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedGroupPolicy.update(this._keepalivedGroup, req.session.user)).authorize();
 
@@ -143,12 +119,6 @@ export class KeepalivedGroupController extends Controller {
   }
 
   @Validate()
-  /**
-   * Removes the keepalived group.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   async remove(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedGroupPolicy.remove(this._keepalivedGroup, req.session.user)).authorize();
 
