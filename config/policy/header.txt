@@ -40,13 +40,18 @@ check_cmds() {
   test "$POLICY_COMPILER" = "NFTables" -a -z "$NFT" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'nft' not found." && exit 1
 }
 
-iptables_default_filter_policy() { 
-  $IPTABLES  -P OUTPUT  $1
-  $IPTABLES  -P INPUT   $1
-  $IPTABLES  -P FORWARD $1
-  $IP6TABLES -P OUTPUT  $1
-  $IP6TABLES -P INPUT   $1
-  $IP6TABLES -P FORWARD $1
+iptables_default_filter_policy() {
+  if [ ! -z "$IPTABLES" -a -f "$IPTABLES" -a -x "$IPTABLES" ]; then
+    $IPTABLES  -P OUTPUT  $1
+    $IPTABLES  -P INPUT   $1
+    $IPTABLES  -P FORWARD $1
+  fi
+
+  if [ ! -z "$IPTABLES6" -a -f "$IPTABLES6" -a -x "$IPTABLES6" ]; then
+    $IP6TABLES -P OUTPUT  $1
+    $IP6TABLES -P INPUT   $1
+    $IP6TABLES -P FORWARD $1
+  fi
 }
 
 load_nat_modules() {
@@ -63,17 +68,19 @@ load_nat_modules() {
 }
 
 reset_iptables_v4() { 
-  $IPTABLES --flush
-  $IPTABLES -X
-  $IPTABLES --flush
-  $IPTABLES --flush FORWARD
-  $IPTABLES --flush INPUT
-  $IPTABLES --flush OUTPUT
-  $IPTABLES --table nat --flush
-  $IPTABLES --table nat --delete-chain
-  $IPTABLES --table mangle --flush
-  $IPTABLES --table mangle --delete-chain
-  $IPTABLES --delete-chain
+  if [ ! -z "$IPTABLES" -a -f "$IPTABLES" -a -x "$IPTABLES" ]; then
+    $IPTABLES --flush
+    $IPTABLES -X
+    $IPTABLES --flush
+    $IPTABLES --flush FORWARD
+    $IPTABLES --flush INPUT
+    $IPTABLES --flush OUTPUT
+    $IPTABLES --table nat --flush
+    $IPTABLES --table nat --delete-chain
+    $IPTABLES --table mangle --flush
+    $IPTABLES --table mangle --delete-chain
+    $IPTABLES --delete-chain
+  fi
 }
 
 reset_iptables_v6() {
