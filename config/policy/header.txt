@@ -84,15 +84,17 @@ reset_iptables_v4() {
 }
 
 reset_iptables_v6() {
-  IPv6_TABLES="filter nat mangle"
-  for table in $IPv6_TABLES; do
-    $IP6TABLES -t $table -L -n | while read c chain rest; do
-        if test "X$c" = "XChain" ; then
-          $IP6TABLES -t $table -F $chain
-       fi
+  if [ ! -z "$IPTABLES6" -a -f "$IPTABLES6" -a -x "$IPTABLES6" ]; then
+    IPv6_TABLES="filter nat mangle"
+    for table in $IPv6_TABLES; do
+      $IP6TABLES -t $table -L -n | while read c chain rest; do
+          if test "X$c" = "XChain" ; then
+            $IP6TABLES -t $table -F $chain
+        fi
+      done
+      $IP6TABLES -t $table -X
     done
-    $IP6TABLES -t $table -X
-  done
+  fi
 }
 
 reset_nft() {
