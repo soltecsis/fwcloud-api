@@ -4,7 +4,7 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
-        name: 'ai_models',
+        name: 'ai',
         columns: [
           {
             name: 'id',
@@ -25,7 +25,7 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
 
     await queryRunner.createTable(
       new Table({
-        name: 'ai',
+        name: 'ai_models',
         columns: [
           {
             name: 'id',
@@ -35,9 +35,21 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
             generationStrategy: 'increment',
           },
           {
+            name: 'ai_id',
+            type: 'int',
+            isNullable: false,
+          },
+          {
             name: 'name',
             type: 'varchar',
             isNullable: false,
+          },
+        ],
+        foreignKeys: [
+          {
+            columnNames: ['ai_id'],
+            referencedTableName: 'ai',
+            referencedColumnNames: ['id'],
           },
         ],
       }),
@@ -61,22 +73,12 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
             isNullable: false,
           },
           {
-            name: 'ai_id',
-            type: 'int',
-            isNullable: false,
-          },
-          {
             name: 'model_id',
             type: 'int',
             isNullable: false,
           },
         ],
         foreignKeys: [
-          {
-            columnNames: ['ai_id'],
-            referencedTableName: 'ai',
-            referencedColumnNames: ['id'],
-          },
           {
             columnNames: ['model_id'],
             referencedTableName: 'ai_models',
@@ -88,18 +90,18 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
     );
 
     await queryRunner.query(`
-      INSERT INTO ai_models (name) VALUES
-      ('GPT-4'),
-      ('GPT-4-turbo'),
-      ('GPT-3.5-turbo'),
-      ('GPT-3.5-turbo-16k'),
-      ('DALL·E'),
-      ('Whisper');
+      INSERT INTO ai (name) VALUES
+      ('ChatGPT');
   `);
 
     await queryRunner.query(`
-      INSERT INTO ai (name) VALUES
-      ('ChatGPT');
+      INSERT INTO ai_models (name,ai_id) VALUES
+      ('GPT-4',1),
+      ('GPT-4-turbo',1),
+      ('GPT-3.5-turbo',1),
+      ('GPT-3.5-turbo-16k',1),
+      ('DALL·E',1),
+      ('Whisper',1);
   `);
   }
 
