@@ -96,12 +96,13 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
 
     await queryRunner.query(`
       INSERT INTO ai_models (name,ai_id) VALUES
-      ('GPT-4',1),
-      ('GPT-4-turbo',1),
-      ('GPT-3.5-turbo',1),
-      ('GPT-3.5-turbo-16k',1),
-      ('DALL·E',1),
-      ('Whisper',1);
+      ('gpt-4',1),
+      ('gpt-4-turbo',1),
+      ('gpt-4o',1),
+      ('gpt-4o-mini',1),
+      ('o1-preview',1),
+      ('o1-mini',1),
+      ('gpt-3.5-turbo',1)
   `);
   }
 
