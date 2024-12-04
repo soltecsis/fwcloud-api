@@ -585,6 +585,12 @@ export class Routes extends RouteCollection {
       });
     });
 
+    router.prefix('/aiassistant', (router: RouterParser) => {
+      router.get('/', AIassistantController, 'getConfig').name('aiassistant.get');
+      router.put('/', AIassistantController, 'updateConfig').name('aiassistant.update');
+      router.delete('/', AIassistantController, 'deleteConfig').name('aiassistant.delete');
+    });
+
     router.prefix('/config', (router: RouterParser) => {
       router.get('/', FwCloudController, 'getConfig').name('config.get');
     });
