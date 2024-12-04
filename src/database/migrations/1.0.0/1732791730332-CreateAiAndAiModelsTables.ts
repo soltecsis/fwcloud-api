@@ -109,8 +109,8 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('ai_credentials');
 
-    await queryRunner.dropTable('ai');
-
     await queryRunner.dropTable('ai_models');
+
+    await queryRunner.dropTable('ai');
   }
 }
