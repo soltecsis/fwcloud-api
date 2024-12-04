@@ -83,6 +83,9 @@ import { DHCPRuleToIPObj } from '../models/system/dhcp/dhcp_r/dhcp_r-to-ipobj.mo
 import { KeepalivedRule } from '../models/system/keepalived/keepalived_r/keepalived_r.model';
 import { KeepalivedGroup } from '../models/system/keepalived/keepalived_g/keepalived_g.model';
 import { KeepalivedToIPObj } from '../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj';
+import { AIModel } from '../models/ai-assistant/ai-assistant-models.model';
+import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.model';
+import { AI } from '../models/ai-assistant/ai-assistant.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -339,6 +342,9 @@ export class DatabaseService extends Service {
         KeepalivedRule,
         KeepalivedGroup,
         KeepalivedToIPObj,
+        AICredentials,
+        AIModel,
+        AI,
       ],
     };
   }
