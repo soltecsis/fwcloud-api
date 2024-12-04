@@ -65,7 +65,7 @@ export class AIAssistantService extends Service {
       });
 
       if (!credentials || credentials.length === 0) {
-        throw new Error('No AI assistant configuration found.');
+        return [];
       }
       return credentials.map(
         (credential) =>
