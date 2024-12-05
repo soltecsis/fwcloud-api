@@ -41,7 +41,7 @@
     "cron": "^3.2.1",
     "dotenv": "^16.4.5",
     "easy-tree": "0.0.3",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "express-session": "^1.18.1",
     "form-data": "^4.0.1",
     "fs-extra": "^11.2.0",
