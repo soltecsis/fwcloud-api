@@ -7,6 +7,7 @@ import { AiAssistantDto } from './dto/ai-assistant.dto';
 import { Firewall } from '../../models/firewall/Firewall';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import db from '../../database/database-manager';
+import { AiAssistantCredentialDto } from './dto/ai-assistant-credentials.dto';
 
 export class AIassistantController extends Controller {
   private _aiAssistantService: AIAssistantService;
@@ -51,7 +52,7 @@ export class AIassistantController extends Controller {
     }
   }
 
-  @Validate(AiAssistantDto)
+  @Validate(AiAssistantCredentialDto)
   public async updateConfig(req: Request, res: Response): Promise<void> {
     try {
       const config = this._aiAssistantService.upateOrCreateAiCredentials(
@@ -65,7 +66,7 @@ export class AIassistantController extends Controller {
     }
   }
 
-  @Validate(AiAssistantDto)
+  @Validate(AiAssistantCredentialDto)
   public async deleteConfig(req: Request, res: Response): Promise<void> {
     try {
       const config = this._aiAssistantService.deleteAiCredentials(req.body);

@@ -90,6 +90,10 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
     );
 
     await queryRunner.query(`
+      ALTER TABLE ai_credentials MODIFY COLUMN api_key VARCHAR(512);
+    `);
+
+    await queryRunner.query(`
       INSERT INTO ai (name) VALUES
       ('ChatGPT');
   `);

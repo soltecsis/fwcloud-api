@@ -26,6 +26,9 @@ import OpenAI from 'openai';
 import { AIAssistantRepository } from './ai-assistant.repository';
 import { DatabaseService } from '../../database/database.service';
 import { AICredentials } from './ai-assistant-credentials.model';
+import { Repository } from 'typeorm';
+import { AI } from './ai-assistant.model';
+import { AIModel } from './ai-assistant-models.model';
 
 class CredentialDto {
   apiKey: string;
@@ -39,8 +42,12 @@ class CredentialDto {
   }
 }
 
+const utilsModel = require('../../utils/utils');
+
 export class AIAssistantService extends Service {
-  protected _aiAssistantRepository: AIAssistantRepository;
+  private _aiAssistantRepository: AIAssistantRepository;
+  private _aiRepository: Repository<AI>;
+  private _aiModelRepository: Repository<AIModel>;
   protected _PolicyRuleService: PolicyRuleService;
   protected _databaseService: DatabaseService;
 
@@ -55,6 +62,9 @@ export class AIAssistantService extends Service {
       this._databaseService.dataSource.manager,
     );
 
+    this._aiRepository = this._databaseService.dataSource.manager.getRepository(AI);
+    this._aiModelRepository = this._databaseService.dataSource.manager.getRepository(AIModel);
+
     return this;
   }
 
@@ -67,9 +77,16 @@ export class AIAssistantService extends Service {
       if (!credentials || credentials.length === 0) {
         return [];
       }
-      return credentials.map(
-        (credential) =>
-          new CredentialDto(credential.apiKey, credential.model.name, credential.model.ai.name),
+
+      return Promise.all(
+        credentials.map(async (credential) => {
+          const decryptedApiKey = await utilsModel.decrypt(credential.apiKey);
+          return new CredentialDto(
+            decryptedApiKey,
+            credential.model.name,
+            credential.model.ai.name,
+          );
+        }),
       );
     } catch (error) {
       console.error('Error fetching AI assistant configuration:', error);
@@ -77,9 +94,83 @@ export class AIAssistantService extends Service {
     }
   }
 
-  async upateOrCreateAiCredentials(aiName: string, modelName: string, apiKey: string) {}
+  async upateOrCreateAiCredentials(
+    aiName: string,
+    modelName: string,
+    apiKey: string,
+  ): Promise<CredentialDto> {
+    try {
+      // Find the AI by its name.
+      const ai = await this._aiRepository.findOne({ where: { name: aiName } });
+      if (!ai) {
+        throw new Error(`AI with name '${aiName}' not found.`);
+      }
 
-  async deleteAiCredentials(credentials: AICredentials) {}
+      // Find the model associated with the AI.
+      const model = await this._aiModelRepository.findOne({
+        where: { name: modelName, aiId: ai.id }, // Direct relationship with aiId.
+        relations: ['ai'], // Include the relationship with AI.
+      });
+      if (!model) {
+        throw new Error(`Model with name '${modelName}' for AI '${aiName}' not found.`);
+      }
+
+      // Search for the existing credentials for the model.
+      let credential = await this._aiAssistantRepository.findOne({
+        where: { aiModelId: model.id }, // Search by the model ID.
+        relations: ['model'], // Include the relationship with the model.
+      });
+
+      const encryptedApiKey = await utilsModel.encrypt(apiKey);
+
+      if (credential) {
+        // Update the API Key if it already exists.
+        credential.apiKey = encryptedApiKey;
+      } else {
+        // Create new credentials if they do not exist.
+        credential = this._aiAssistantRepository.create({
+          apiKey: encryptedApiKey,
+          aiModelId: model.id,
+          model,
+        });
+      }
+      // Save the credentials in the database.
+      const savedCredential = await this._aiAssistantRepository.save(credential);
+
+      const decryptedApiKey = await utilsModel.decrypt(savedCredential.apiKey);
+
+      // Return the DTO with the updated data.
+      return new CredentialDto(
+        decryptedApiKey,
+        savedCredential.model.name,
+        savedCredential.model.ai.name,
+      );
+    } catch (error) {
+      console.error('Error updating or creating AI assistant credentials:', error);
+      throw new Error('Failed to update or create AI assistant credentials.');
+    }
+  }
+
+  async deleteAiCredentials(credentials: AICredentials): Promise<string> {
+    try {
+      // Check if the credentials exist.
+      const existingCredential = await this._aiAssistantRepository.findOne({
+        where: { aiModelId: credentials.aiModelId, apiKey: credentials.apiKey },
+      });
+
+      if (!existingCredential) {
+        throw new Error('AI credentials not found.');
+      }
+
+      // Delete the credentials.
+      await this._aiAssistantRepository.remove(existingCredential);
+
+      return 'AI credentials successfully deleted.';
+    } catch (error) {
+      console.error('Error deleting AI assistant credentials:', error);
+      throw new Error('Failed to delete AI assistant credentials.');
+    }
+  }
 
   async getPolicyScript(fwcloud: number, firewallId: number) {
     if (!fwcloud || !firewallId) {
