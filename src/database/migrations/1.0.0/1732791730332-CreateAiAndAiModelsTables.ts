@@ -69,7 +69,7 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
           },
           {
             name: 'api_key',
-            type: 'varchar',
+            type: 'text',
             isNullable: false,
           },
           {
@@ -88,10 +88,6 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
       }),
       true,
     );
-
-    await queryRunner.query(`
-      ALTER TABLE ai_credentials MODIFY COLUMN api_key VARCHAR(512);
-    `);
 
     await queryRunner.query(`
       INSERT INTO ai (name) VALUES

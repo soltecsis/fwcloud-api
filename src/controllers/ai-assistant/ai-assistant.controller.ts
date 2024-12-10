@@ -53,26 +53,30 @@ export class AIassistantController extends Controller {
   }
 
   @Validate(AiAssistantCredentialDto)
-  public async updateConfig(req: Request, res: Response): Promise<void> {
+  public async updateConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
       const config = this._aiAssistantService.upateOrCreateAiCredentials(
         req.body.ai,
         req.body.model,
         req.body.apiKey,
       );
-      res.status(200).send(config);
+      return ResponseBuilder.buildResponse().status(200).body(config);
     } catch (error) {
-      res.status(500).send({ error: 'Failed to update AI assistant configuration.' });
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ error: 'Failed to update AI assistant configuration.' });
     }
   }
 
-  @Validate(AiAssistantCredentialDto)
-  public async deleteConfig(req: Request, res: Response): Promise<void> {
+  @Validate()
+  public async deleteConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
-      const config = this._aiAssistantService.deleteAiCredentials(req.body);
-      res.status(200).send(config);
+      const config = this._aiAssistantService.deleteAllAiCredentials();
+      return ResponseBuilder.buildResponse().status(200);
     } catch (error) {
-      res.status(500).send({ error: 'Failed to delete AI assistant configuration.' });
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ error: 'Failed to delete AI assistant configuration.' });
     }
   }
 

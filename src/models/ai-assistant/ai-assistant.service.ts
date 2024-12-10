@@ -117,8 +117,7 @@ export class AIAssistantService extends Service {
 
       // Search for the existing credentials for the model.
       let credential = await this._aiAssistantRepository.findOne({
-        where: { aiModelId: model.id }, // Search by the model ID.
-        relations: ['model'], // Include the relationship with the model.
+        where: {},
       });
 
       const encryptedApiKey = await utilsModel.encrypt(apiKey);
@@ -126,6 +125,7 @@ export class AIAssistantService extends Service {
       if (credential) {
         // Update the API Key if it already exists.
         credential.apiKey = encryptedApiKey;
+        credential.model = model;
       } else {
         // Create new credentials if they do not exist.
         credential = this._aiAssistantRepository.create({
@@ -140,35 +140,22 @@ export class AIAssistantService extends Service {
       const decryptedApiKey = await utilsModel.decrypt(savedCredential.apiKey);
 
       // Return the DTO with the updated data.
-      return new CredentialDto(
-        decryptedApiKey,
-        savedCredential.model.name,
-        savedCredential.model.ai.name,
-      );
+      return new CredentialDto(decryptedApiKey, model.name, ai.name);
     } catch (error) {
       console.error('Error updating or creating AI assistant credentials:', error);
       throw new Error('Failed to update or create AI assistant credentials.');
     }
   }
 
-  async deleteAiCredentials(credentials: AICredentials): Promise<string> {
+  async deleteAllAiCredentials(): Promise<string> {
     try {
-      // Check if the credentials exist.
-      const existingCredential = await this._aiAssistantRepository.findOne({
-        where: { aiModelId: credentials.aiModelId, apiKey: credentials.apiKey },
-      });
+      // Delete all entries from the `ai_credentials` table
+      await this._aiAssistantRepository.clear();
 
-      if (!existingCredential) {
-        throw new Error('AI credentials not found.');
-      }
-
-      // Delete the credentials.
-      await this._aiAssistantRepository.remove(existingCredential);
-
-      return 'AI credentials successfully deleted.';
+      return 'All AI credentials successfully deleted.';
     } catch (error) {
-      console.error('Error deleting AI assistant credentials:', error);
-      throw new Error('Failed to delete AI assistant credentials.');
+      console.error('Error deleting all AI assistant credentials:', error);
+      throw new Error('Failed to delete all AI assistant credentials.');
     }
   }
 
