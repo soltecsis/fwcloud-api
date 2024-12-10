@@ -53,6 +53,7 @@ import { KeepalivedGroupController } from '../controllers/system/keepalived-grou
 import { KeepalivedController } from '../controllers/system/keepalived/keepalived.controller';
 import { HAProxyGroupController } from '../controllers/system/haproxy-group/haproxy-group.controller';
 import { HAProxyController } from '../controllers/system/haproxy/haproxy.controller';
+import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -232,6 +233,15 @@ export class Routes extends RouteCollection {
                     });
                   });
                 });
+              });
+
+              router.prefix('/AIassistant', (router: RouterParser) => {
+                router
+                  .post('/', AIassistantController, 'checkPolicyScript')
+                  .name('AIassistant.checkPolicyScript');
+                router
+                  .post('/response', AIassistantController, 'getResponse')
+                  .name('AIassistant.getResponse');
               });
 
               router.prefix('/system', (router: RouterParser) => {
@@ -573,6 +583,12 @@ export class Routes extends RouteCollection {
         router.post('/', TfaController, 'setup').name('profile.tfa.setup');
         router.delete('/', TfaController, 'deleteSetup').name('profile.tfa.setup.delete');
       });
+    });
+
+    router.prefix('/aiassistant', (router: RouterParser) => {
+      router.get('/', AIassistantController, 'getConfig').name('aiassistant.get');
+      router.put('/', AIassistantController, 'updateConfig').name('aiassistant.update');
+      router.delete('/', AIassistantController, 'deleteConfig').name('aiassistant.delete');
     });
 
     router.prefix('/config', (router: RouterParser) => {
