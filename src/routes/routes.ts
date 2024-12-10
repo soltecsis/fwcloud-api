@@ -147,6 +147,14 @@ export class Routes extends RouteCollection {
                   .post('/download', PolicyRuleController, 'download')
                   .name('fwclouds.firewalls.policyRules.download');
               });
+              router.prefix('/AIassistant', (router: RouterParser) => {
+                router
+                  .post('/:rules(\\d+)', AIassistantController, 'checkCompiledRules')
+                  .name('AIassistant.checkCompiledRules');
+                router
+                  .post('/', AIassistantController, 'checkPolicyScript')
+                  .name('AIassistant.checkPolicyScript');
+              });
 
               router.prefix('/openvpns', (router: RouterParser) => {
                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
@@ -233,12 +241,6 @@ export class Routes extends RouteCollection {
                     });
                   });
                 });
-              });
-
-              router.prefix('/AIassistant', (router: RouterParser) => {
-                router
-                  .post('/', AIassistantController, 'checkPolicyScript')
-                  .name('AIassistant.checkPolicyScript');
               });
 
               router.prefix('/system', (router: RouterParser) => {
