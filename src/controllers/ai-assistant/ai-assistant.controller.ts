@@ -46,7 +46,7 @@ export class AIassistantController extends Controller {
           .status(404)
           .body({ error: 'No AI assistant configuration found.' });
       } else {
-        const pgp = new PgpHelper(req.session.pgp);
+        const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
         if (config[0].apiKey !== null) {
           config[0].apiKey = await pgp.encrypt(config[0].apiKey);
         }
