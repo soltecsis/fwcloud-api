@@ -29,6 +29,7 @@ import { AICredentials } from './ai-assistant-credentials.model';
 import { Repository } from 'typeorm';
 import { AI } from './ai-assistant.model';
 import { AIModel } from './ai-assistant-models.model';
+import { PgpHelper } from '../../utils/pgp';
 
 class CredentialDto {
   apiKey: string;
@@ -80,9 +81,8 @@ export class AIAssistantService extends Service {
 
       return Promise.all(
         credentials.map(async (credential) => {
-          const decryptedApiKey = await utilsModel.decrypt(credential.apiKey);
           return new CredentialDto(
-            decryptedApiKey,
+            utilsModel.decrypt(credential.apiKey),
             credential.model.name,
             credential.model.ai.name,
           );
@@ -120,27 +120,23 @@ export class AIAssistantService extends Service {
         where: {},
       });
 
-      const encryptedApiKey = await utilsModel.encrypt(apiKey);
-
       if (credential) {
         // Update the API Key if it already exists.
-        credential.apiKey = encryptedApiKey;
+        credential.apiKey = apiKey;
         credential.model = model;
       } else {
         // Create new credentials if they do not exist.
         credential = this._aiAssistantRepository.create({
-          apiKey: encryptedApiKey,
+          apiKey: apiKey,
           aiModelId: model.id,
           model,
         });
       }
+
       // Save the credentials in the database.
-      const savedCredential = await this._aiAssistantRepository.save(credential);
-
-      const decryptedApiKey = await utilsModel.decrypt(savedCredential.apiKey);
-
+      await this._aiAssistantRepository.save(credential);
       // Return the DTO with the updated data.
-      return new CredentialDto(decryptedApiKey, model.name, ai.name);
+      return new CredentialDto(credential.apiKey, model.name, ai.name);
     } catch (error) {
       console.error('Error updating or creating AI assistant credentials:', error);
       throw new Error('Failed to update or create AI assistant credentials.');

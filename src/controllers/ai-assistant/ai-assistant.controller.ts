@@ -8,6 +8,9 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import db from '../../database/database-manager';
 import { AiAssistantCredentialDto } from './dto/ai-assistant-credentials.dto';
+import { PgpHelper } from '../../utils/pgp';
+
+const utilsModel = require('../../utils/utils');
 
 export class AIassistantController extends Controller {
   private _aiAssistantService: AIAssistantService;
@@ -43,6 +46,11 @@ export class AIassistantController extends Controller {
           .status(404)
           .body({ error: 'No AI assistant configuration found.' });
       } else {
+        const pgp = new PgpHelper(req.session.pgp);
+        if (config[0].apiKey !== null) {
+          config[0].apiKey = await pgp.encrypt(config[0].apiKey);
+        }
+
         return ResponseBuilder.buildResponse().status(200).body(config);
       }
     } catch (error) {
@@ -55,10 +63,15 @@ export class AIassistantController extends Controller {
   @Validate(AiAssistantCredentialDto)
   public async updateConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
-      const config = this._aiAssistantService.upateOrCreateAiCredentials(
+      const pgp = new PgpHelper(req.session.pgp);
+      if (req.body.apiKey !== null) {
+        req.body.apiKey = await pgp.decrypt(req.body.apiKey);
+      }
+
+      const config = await this._aiAssistantService.upateOrCreateAiCredentials(
         req.body.ai,
         req.body.model,
-        req.body.apiKey,
+        req.body.apiKey !== null ? await utilsModel.encrypt(req.body.apiKey) : null,
       );
       return ResponseBuilder.buildResponse().status(200).body(config);
     } catch (error) {
