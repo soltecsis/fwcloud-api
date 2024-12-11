@@ -88,13 +88,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves a list of DHCP configurations.
-   *
-   * @param req - The request object.
-   * @param res - The response object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async index(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
@@ -108,12 +101,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves the grid data for DHCP.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async grid(req: Request): Promise<ResponseBuilder> {
     if (![1, 2].includes(parseInt(req.params.set))) {
       return ResponseBuilder.buildResponse().status(400).body({ message: 'Invalid set parameter' });
@@ -134,12 +121,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate(DHCPRuleCreateDto)
-  /**
-   * Creates a DHCP rule.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async create(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
 
@@ -157,12 +138,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate(DHCPRuleCopyDto)
-  /**
-   * Copies DHCP rules based on the provided IDs.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async copy(req: Request): Promise<ResponseBuilder> {
     const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
@@ -182,12 +157,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate(DHCPRuleUpdateDto)
-  /**
-   * Updates the DHCP configuration.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async update(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.update(this._dhcprule, req.session.user)).authorize();
     try {
@@ -203,12 +172,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate()
-  /**
-   * Removes a DHCP rule.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async remove(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.delete(this._dhcprule, req.session.user)).authorize();
 
@@ -222,12 +185,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves the DHCP rule and returns it as a response.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async show(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.show(this._dhcprule, req.session.user)).authorize();
 
@@ -235,12 +192,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate(DHCPRuleCopyDto)
-  /**
-   * Moves the DHCP rules to a different location.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async move(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.move(this._firewall, req.session.user)).authorize();
 
@@ -278,12 +229,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate()
-  /**
-   * Compiles the DHCP configuration based on the provided request.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async compile(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.show(this._dhcprule, req.session.user)).authorize();
 
@@ -301,12 +246,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate()
-  /**
-   * Installs DHCP configurations on the firewall.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async install(req: Request): Promise<ResponseBuilder> {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
@@ -355,13 +294,6 @@ export class DhcpController extends Controller {
   }
 
   @Validate(DhcpRuleBulkUpdateDto)
-  /**
-   * Updates multiple DHCP rules in bulk.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   * @throws HttpException if no rules are found.
-   */
   public async bulkUpdate(req: Request): Promise<ResponseBuilder> {
     const rules: DHCPRule[] = [];
 
@@ -393,13 +325,6 @@ export class DhcpController extends Controller {
 
   @Validate()
   @ValidateQuery(DhcpRuleBulkRemoveDto)
-  /**
-   * Removes multiple DHCP rules in bulk.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   * @throws HttpException if no rules are found to be removed.
-   */
   public async bulkRemove(req: Request): Promise<ResponseBuilder> {
     const rules: DHCPRule[] = [];
 

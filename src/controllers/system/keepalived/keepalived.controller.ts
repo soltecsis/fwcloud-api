@@ -79,13 +79,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves a list of keepalived configurations.
-   *
-   * @param req - The request object.
-   * @param res - The response object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async index(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.index(this._firewall, req.session.user)).authorize();
 
@@ -100,12 +93,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves the grid data for keepalived.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async grid(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.index(this._firewall, req.session.user)).authorize();
 
@@ -119,12 +106,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleCreateDto)
-  /**
-   * Creates a new Keepalived rule.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async create(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.create(this._firewall, req.session.user)).authorize();
 
@@ -142,12 +123,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleCopyDto)
-  /**
-   * Copies the Keepalived rules specified by the given IDs.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async copy(req: Request): Promise<ResponseBuilder> {
     const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
@@ -167,12 +142,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleUpdateDto)
-  /**
-   * Updates the keepalived rule.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async update(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.update(this._keepalivedrule, req.session.user)).authorize();
     try {
@@ -188,12 +157,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate()
-  /**
-   * Removes a keepalived rule.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async remove(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.delete(this._keepalivedrule, req.session.user)).authorize();
 
@@ -211,12 +174,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate()
-  /**
-   * Retrieves the keepalived rule and returns it as a response.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async show(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.show(this._keepalivedrule, req.session.user)).authorize();
 
@@ -224,12 +181,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleCopyDto)
-  /**
-   * Moves the Keepalived rules to a different location.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
   public async move(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.move(this._firewall, req.session.user)).authorize();
 
@@ -339,13 +290,6 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleBulkUpdateDto)
-  /**
-   * Updates multiple Keepalived rules in bulk.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   * @throws HttpException if no rules are found.
-   */
   public async bulkUpdate(req: Request): Promise<ResponseBuilder> {
     const rules: KeepalivedRule[] = [];
 
@@ -377,13 +321,6 @@ export class KeepalivedController extends Controller {
 
   @Validate()
   @ValidateQuery(KeepalivedRuleBulkRemoveDto)
-  /**
-   * Removes multiple Keepalived rules in bulk.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   * @throws HttpException if no rules are found to be removed.
-   */
   public async bulkRemove(req: Request): Promise<ResponseBuilder> {
     const rules: KeepalivedRule[] = [];
 

@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.16] - 2024-12-02
+### Fixed
+- IPTables6 missing command bug reported in FWCloud forum: https://forum.fwcloud.net/threads/nft-only-system-missing-iptables-command.136/
+
+
+## [2.0.15] - 2024-12-01
+### Fixed
+- IPTables missing command bug reported in FWCloud forum: https://forum.fwcloud.net/threads/nft-only-system-missing-iptables-command.136/
+
+
+## [2.0.14] - 2024-11-27
+### Fixed
+- Resolved issues with migration commands (`reset`, `rollback`, `run`, `create`, `data`, `backup:create`, `backup:restore`) caused by recent updates in TypeORM. Adjusted migration logic to ensure compatibility and proper functionality.
+- OpenVPN validation issues.
+- Updated Node.js packages to the latest versions.
+
+
+## [2.0.13] - 2024-11-11
+### Fixed
+- In the `.deb` and `.rpm` package versions of FWCloud-API, run database migrations after upgrade.
+
+
 ## [2.0.12] - 2024-11-10
 ### Fixed
 - OpenVPN cipher validation. Allow cipher algorithms names in both, upper and lower case.

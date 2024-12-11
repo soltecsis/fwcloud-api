@@ -110,7 +110,9 @@ schema.validate = req => {
 		var schemaPar = Joi.object().keys({
 			name: Joi.alternatives().conditional('scope', {
 				is: 1,
-				then: Joi.string().valid('askpass', 'auth-gen-token', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
+				then: 
+				Joi.string()
+				.valid('askpass', 'auth-gen-token', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
 					'auth', 'bcast-buffers','block-outside-dns', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'data-ciphers', 'data-ciphers-fallback', 'client-cert-not-required', 'client-config-dir',
 					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'config', 'connect-freq',
 					'connect-retry', 'crl-verify', 'cryptoapicert', 'daemon', 'dev-node', 'dev-type', 'dev', 'dh', 'dhcp-option', 'dhcp-release',
@@ -120,20 +122,34 @@ schema.validate = req => {
 					'ifconfig-push', 'ifconfig', 'inactive', 'inetd', 'ip-win32 method', 'ipchange', 'iroute', 'keepalive', 'key-method', 'key', 'keysizen',
 					'learn-address', 'link-mtu', 'local', 'log-append', 'log', 'suppress-timestamps', 'lport', 'management-hold', 'management-log-cache',
 					'management-query-passwords', 'management', 'max-clients', 'max-routes-per-client', 'mktun', 'mlock', 'mode', 'mssfix', 'mtu-disc',
-					'mtu-test', 'multihome', 'mute-replay-warnings', 'mute', 'nice', 'no-iv', 'no-replay', 'nobind', 'ns-cert-type', 'remote-cert-tls', 'passtos', 'pause-exit', 'persist-key',
+					'mtu-test', 'multihome', 'mute-replay-warnings', 'mute', 'nice', 'no-iv', 'no-replay', 'nobind', 'ns-cert-type', 'passtos', 'pause-exit', 'persist-key',
 					'persist-local-ip', 'persist-remote-ip', 'persist-tun', 'ping-exit', 'ping-restart', 'ping-timer-rem', 'ping', 'pkcs12', 'plugin', 'port',
 					'proto', 'pull', 'push-reset', 'push', 'rcvbuf', 'redirect-gateway', 'remap-usr1', 'remote-cert-tls', 'remote-random', 'remote', 'reneg-bytes',
 					'reneg-pkts', 'reneg-sec', 'replay-persist', 'replay-window', 'resolv-retry', 'rmtun', 'route-delay', 'route-gateway', 'route-method',
 					'route-noexec', 'route-up', 'route', 'rport', 'script-security', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
 					'show-ciphers', 'show-digests', 'show-engines', 'show-net-up', 'show-net', 'show-tls', 'show-valid-subnets', 'single-session', 'sndbuf',
-					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth', 'tls-crypt-v2',
+					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth','tls-cypt', 'tls-crypt-v2',
 					'tls-cipher', 'tls-ciphersuites', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tls-version-min', 'tls-version-max','topology', 
 					'tmp-dir', 'tran-window ', 'tun-ipv6','tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up', 'user', 'username-as-common-name ', 
-					'verb', 'writepid', 
+					'verb', 'writepid'
 				),
 				otherwise: Joi.string().valid('push', 'push-reset', 'iroute', 'iroute-ipv6', 'ifconfig-push',
 					'ifconfig-ipv6-push', 'disable', 'config', 'comp-lzo', 'max-routes-per-client'
 				)
+				
+			}).custom((value, helpers) => {
+				const repeteableValueOptions = ['remote', 'route', 'push', 'iroute', 'remote-cert-tls', 'tls-auth', 'tls-crypt'];
+
+				if (repeteableValueOptions.includes(value)) {
+					return value;
+				}
+
+				const existingNames = req.body.options.map(option => option.name);
+				if (existingNames.filter(name => name === value).length > 1) {
+					return helpers.message('{"{#value}}" cannot be defined more than once');
+				}
+
+				return value;
 			}),
 			//arg: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional(),
 			arg: Joi.alternatives()
@@ -205,8 +221,15 @@ schema.validate = req => {
 				.conditional('name', { is: 'float', then: Joi.valid('') })
 				.conditional('name', { is: 'multihome', then: Joi.valid('') })
 				.conditional('name', { is: 'ccd-exclusive', then: Joi.valid('') })
-				.conditional('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/), otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() }),
-			ipobj: Joi.alternatives()
+				.conditional('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/) }) 
+				.conditional('name', { is: 'server', then: Joi.valid('') })
+				.conditional('name', { is: 'daemon', then: Joi.valid('') })
+				.conditional('name', { is: 'duplicate-cn', then: Joi.valid('') })
+				.conditional('name', { is: 'ifconfig-pool-linear', then: Joi.valid('') })
+				.conditional('name', { is: 'comp-noadapt', then: Joi.valid('') })
+				.conditional('name', { is: 'fast-io', then: Joi.valid(''),
+				otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() }),
+				ipobj: Joi.alternatives()
 				.conditional('name', { is: 'server', then: sharedSch.id })
 				.conditional('name', { is: 'remote', then: sharedSch.id })
 				.conditional('name', { is: 'ifconfig-push', then: sharedSch.id, otherwise: Joi.valid(null) }),
@@ -265,6 +288,15 @@ schema.validate = req => {
 		try {
 			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 			resolve();
-		} catch (error) { return reject(error) }
+		} catch (error) { 
+			if (error.details) {
+				const details = error.details.map(detail => {
+					const path = detail.path.join('.');
+					const name = path.startsWith('options') ? req.body.options[parseInt(path.split('.')[1])].name : path;
+					return `Validation error: "${name}" value ${detail.message.split(' ').slice(1).join(' ')}`;
+				});
+				return reject(fwcError.other(details.join(', ')));
+			} else return reject(fwcError.other(error.message));
+		 }
 	});
 };
