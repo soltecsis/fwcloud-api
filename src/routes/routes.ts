@@ -237,11 +237,13 @@ export class Routes extends RouteCollection {
 
               router.prefix('/AIassistant', (router: RouterParser) => {
                 router
-                  .post('/:rules(\\d+)', AIassistantController, 'checkCompiledRules')
-                  .name('AIassistant.checkCompiledRules');
-                router
                   .post('/', AIassistantController, 'checkPolicyScript')
                   .name('AIassistant.checkPolicyScript');
+                router.prefix('/rules', (router: RouterParser) => {
+                  router
+                    .post(':rules(\\d+)', AIassistantController, 'checkCompiledRules')
+                    .name('AIassistant.checkCompiledRules');
+                });
               });
 
               router.prefix('/system', (router: RouterParser) => {
