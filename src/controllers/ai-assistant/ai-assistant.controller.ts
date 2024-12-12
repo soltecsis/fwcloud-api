@@ -9,6 +9,10 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 import db from '../../database/database-manager';
 import { AiAssistantCredentialDto } from './dto/ai-assistant-credentials.dto';
 import { PgpHelper } from '../../utils/pgp';
+import { parse } from 'querystring';
+import OpenAI from 'openai';
+import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
+import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 
 const utilsModel = require('../../utils/utils');
 
@@ -16,6 +20,8 @@ export class AIassistantController extends Controller {
   private _aiAssistantService: AIAssistantService;
   protected _firewall: Firewall;
   protected _fwCloud: FwCloud;
+  protected _policyRuleService: PolicyRuleService;
+  private openai: OpenAI;
 
   public async make(req: Request): Promise<void> {
     this._aiAssistantService = await this._app.getService<AIAssistantService>(
@@ -94,6 +100,12 @@ export class AIassistantController extends Controller {
   }
 
   @Validate(AiAssistantDto)
+  /**
+   * Creates a new question for the assistant from policy script.
+   *
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
   public async checkPolicyScript(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
       const { prompt } = req.body;
@@ -106,11 +118,26 @@ export class AIassistantController extends Controller {
         parseInt(req.params.fwcloud),
         parseInt(req.params.firewall),
       );
+      const config = await this._aiAssistantService.getAiCredentials();
 
-      const response = await this._aiAssistantService.getResponse(prompt + '\n' + policyScript);
+      // Configure OpenAI client with API key
+      this.openai = new OpenAI({ apiKey: config[0].apiKey });
+      const completion = await this.openai.chat.completions.create({
+        model: config[0].model,
+        messages: [
+          {
+            role: 'user',
+            content: `${prompt}\n${policyScript}`, // Concatenate prompt to the policy script
+          },
+        ],
+        max_tokens: 350,
+        n: 1,
+      });
 
-      console.log(response);
-      return ResponseBuilder.buildResponse().status(200).body(response);
+      const scriptResponse = completion.choices[0].message.content.trim();
+      const formattedResponse = this.insertLineBreaks(scriptResponse, 120); // Set character quantity for each line at openAI API response
+
+      return ResponseBuilder.buildResponse().status(200).body(formattedResponse);
     } catch (error) {
       console.error('Error:', error);
       return error;
@@ -118,18 +145,99 @@ export class AIassistantController extends Controller {
   }
 
   @Validate(AiAssistantDto)
-  public async getResponse(req: Request, res: Response): Promise<void> {
+  /**
+   * Creates a new question for the assistant from compiled rules.
+   *
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
+  public async checkCompiledRules(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
       const { prompt } = req.body;
+      console.log('prompt', prompt);
       if (!prompt) {
         res.status(400).send({ error: 'Prompt text is required.' });
         return;
       }
-      const response = await this._aiAssistantService.getResponse(prompt);
+      // Procesar rulesIds que vienen en query string.
+      const queryString = req.url.split('?')[1]; // Tomar la parte después de "?"
+      const queryParams = queryString ? parse(queryString) : {}; // Parsear el querystring
+      console.log('this.firewall', this._firewall);
 
-      res.status(200).send({ response });
+      // Procesar `rules[]` del queryParams
+      const rulesIds: number[] = queryParams['rules[]']
+        ? Array.isArray(queryParams['rules[]'])
+          ? (queryParams['rules[]'] as string[]).map((id) => parseInt(id, 10))
+          : [parseInt(queryParams['rules[]'] as string, 10)]
+        : [];
+      console.log('rulesids', rulesIds);
+      if (!req.params.fwcloud || !req.params.firewallId) {
+        throw new Error('Firewall or FwCloud is not defined');
+      }
+      //TODO: RECUPERAR COMPILACION DE REGLAS
+      const rulesToCheck = await this._policyRuleService.content(
+        parseInt(req.params.fwcloud),
+        parseInt(req.params.firewall),
+      );
+      const rulesCompile = PolicyCompiler.compile('IPTables', rulesIds);
+      const rulesCompileString = JSON.stringify(rulesCompile);
+      console.log('rulesCompile', rulesCompile);
+      /*let firewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: {
+          id: parseInt(req.params.firewall),
+          fwCloudId: parseInt(req.params.fwcloud),
+        },
+      });
+      console.log("firewall", firewall);*/
+      //const compiler = firewall.
+      /*const rulesCompile = await this._aiAssistantService.getFwCompiler(+req.params.fwcloud,+req.params.firewall) //PolicyCompiler.compile('IPTables', rulesToCheck);
+      rulesIds;*/
+      console.log('req', req);
+      console.log('rulesIds', rulesIds);
+
+      const config = await this._aiAssistantService.getAiCredentials();
+
+      // Configure OpenAI client with API key
+      this.openai = new OpenAI({ apiKey: config[0].apiKey });
+      const completion = await this.openai.chat.completions.create({
+        model: config[0].model,
+        messages: [
+          {
+            role: 'user',
+            content: `${prompt}\n${rulesCompileString}`, // Concatenate prompt to the policy script
+          },
+        ],
+        max_tokens: 350,
+        n: 1,
+      });
+
+      const scriptResponse = completion.choices[0].message.content.trim();
+      const formattedResponse = this.insertLineBreaks(scriptResponse, 120); // Set character quantity for each line at openAI API response
+
+      console.log(formattedResponse);
+      return ResponseBuilder.buildResponse().status(200).body({ formattedResponse });
     } catch (error) {
-      res.status(500).send({ error: 'Failed to fetch response from OpenAI.' });
+      console.error('Error:', error);
+      return error;
     }
+  }
+
+  public insertLineBreaks(text, maxLineLength) {
+    let result = '';
+    let lineLength = 0;
+
+    for (const word of text.split(' ')) {
+      if (lineLength + word.length + 1 > maxLineLength) {
+        result += '\n';
+        lineLength = 0;
+      }
+      result += (lineLength === 0 ? '' : ' ') + word;
+      lineLength += word.length + 1;
+    }
+
+    return result;
   }
 }

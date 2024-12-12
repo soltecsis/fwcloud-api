@@ -30,6 +30,8 @@ import { Repository } from 'typeorm';
 import { AI } from './ai-assistant.model';
 import { AIModel } from './ai-assistant-models.model';
 import { PgpHelper } from '../../utils/pgp';
+import { Firewall } from '../firewall/Firewall';
+import db from '../../database/database-manager';
 
 class CredentialDto {
   apiKey: string;
@@ -162,7 +164,18 @@ export class AIAssistantService extends Service {
     const policyScript = await this._PolicyRuleService.content(fwcloud, firewallId);
     return policyScript;
   }
-
+  async getFwCompiler(fwcloud: number, firewallId: number) {
+    const firewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: {
+          id: firewallId,
+          fwCloudId: fwcloud,
+        },
+      });
+    console.log('firewall', firewall);
+  }
   async getResponse(prompt: string): Promise<string> {
     try {
       const openai = new OpenAI({
