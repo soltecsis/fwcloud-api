@@ -29,6 +29,7 @@ declare module 'express-session' {
     username: string;
     user: User;
     keepalive_ts: number;
+    uiPublicKey?: string;
     pgp: { public: string; private: string };
     socketId: string;
   }

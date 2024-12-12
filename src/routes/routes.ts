@@ -147,14 +147,6 @@ export class Routes extends RouteCollection {
                   .post('/download', PolicyRuleController, 'download')
                   .name('fwclouds.firewalls.policyRules.download');
               });
-              router.prefix('/AIassistant', (router: RouterParser) => {
-                router
-                  .post('/:rules(\\d+)', AIassistantController, 'checkCompiledRules')
-                  .name('AIassistant.checkCompiledRules');
-                router
-                  .post('/', AIassistantController, 'checkPolicyScript')
-                  .name('AIassistant.checkPolicyScript');
-              });
 
               router.prefix('/openvpns', (router: RouterParser) => {
                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
@@ -241,6 +233,15 @@ export class Routes extends RouteCollection {
                     });
                   });
                 });
+              });
+
+              router.prefix('/AIassistant', (router: RouterParser) => {
+                router
+                  .post('/:rules(\\d+)', AIassistantController, 'checkCompiledRules')
+                  .name('AIassistant.checkCompiledRules');
+                router
+                  .post('/', AIassistantController, 'checkPolicyScript')
+                  .name('AIassistant.checkPolicyScript');
               });
 
               router.prefix('/system', (router: RouterParser) => {
@@ -582,6 +583,12 @@ export class Routes extends RouteCollection {
         router.post('/', TfaController, 'setup').name('profile.tfa.setup');
         router.delete('/', TfaController, 'deleteSetup').name('profile.tfa.setup.delete');
       });
+    });
+
+    router.prefix('/aiassistant', (router: RouterParser) => {
+      router.get('/', AIassistantController, 'getConfig').name('aiassistant.get');
+      router.put('/', AIassistantController, 'updateConfig').name('aiassistant.update');
+      router.delete('/', AIassistantController, 'deleteConfig').name('aiassistant.delete');
     });
 
     router.prefix('/config', (router: RouterParser) => {

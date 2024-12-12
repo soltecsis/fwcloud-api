@@ -1,175 +1,135 @@
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
-
 import { Validate } from '../../decorators/validate.decorator';
-import { OpenAI } from 'openai';
-import config from '../../config/config';
-import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
-import { AIassistantService } from '../../models/ai-assistant/ai-assistant.service';
-import { parse } from 'querystring';
+import { AIAssistantService } from '../../models/ai-assistant/ai-assistant.service';
+import { AiAssistantDto } from './dto/ai-assistant.dto';
+import { Firewall } from '../../models/firewall/Firewall';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import db from '../../database/database-manager';
+import { AiAssistantCredentialDto } from './dto/ai-assistant-credentials.dto';
+import { PgpHelper } from '../../utils/pgp';
+
+const utilsModel = require('../../utils/utils');
 
 export class AIassistantController extends Controller {
-  private _policyRuleService: PolicyRuleService;
-  private openaiApiKey: string;
-  private openai: OpenAI;
+  private _aiAssistantService: AIAssistantService;
+  protected _firewall: Firewall;
+  protected _fwCloud: FwCloud;
 
-  //constructor(app: Application) {
-  //super(app);
-  async make(): Promise<void> {
-    this._policyRuleService = await this._app.getService<PolicyRuleService>(PolicyRuleService.name);
+  public async make(req: Request): Promise<void> {
+    this._aiAssistantService = await this._app.getService<AIAssistantService>(
+      AIAssistantService.name,
+    );
 
-    //this._AIassistantService = new AIassistantService(app);
-    this.openai = new OpenAI({
-      apiKey: config._instance.openai_assistant.openai.apiKey,
-      organization: config._instance.openai_assistant.openai.organization,
-    });
-  }
-
-  // Function to set the OpenAI API key
-  @Validate()
-  public async setOpenaiApiKey(key: string): Promise<ResponseBuilder> {
-    //this.openaiApiKey = key;
-    await AIassistantService.UpdateOpenAiApiKey(key);
-    return ResponseBuilder.buildResponse().status(200);
-  }
-
-  // Function to get the OpenAI API key
-  @Validate()
-  public async getOpenaiApiKey(req: Request): Promise<ResponseBuilder> {
-    try {
-      const apiKey = await AIassistantService.GetOpenAiApiKey(+req.params.apiKey);
-
-      return ResponseBuilder.buildResponse().status(200).body({
-        apiKey: apiKey,
-      });
-    } catch (error) {
-      console.error('Error obteniendo la API Key:', error);
-      throw new Error('Error al obtener la clave API.');
+    if (req.params.firewall) {
+      this._firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({ where: { id: parseInt(req.params.firewall) } });
+    }
+    if (req.params.fwcloud) {
+      this._fwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .findOneOrFail({ where: { id: parseInt(req.params.fwcloud) } });
     }
   }
 
   @Validate()
-  public async deleteOpenAiApiKey(req: Request): Promise<ResponseBuilder> {
+  public async getConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
-      await AIassistantService.GetOpenAiApiKey(+req.params.apiKey);
+      const config = await this._aiAssistantService.getAiCredentials();
 
-      return ResponseBuilder.buildResponse().status(204);
-    } catch (error) {
-      console.error('Error al eliminar la clave API:', error);
-      throw new Error('Error al procesar la solicitud para eliminar la clave API.');
-    }
-  }
+      if (!config) {
+        return ResponseBuilder.buildResponse()
+          .status(404)
+          .body({ error: 'No AI assistant configuration found.' });
+      } else {
+        const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
+        if (config[0].apiKey !== null) {
+          config[0].apiKey = await pgp.encrypt(config[0].apiKey);
+        }
 
-  public insertLineBreaks(text, maxLineLength) {
-    let result = '';
-    let lineLength = 0;
-
-    for (const word of text.split(' ')) {
-      if (lineLength + word.length + 1 > maxLineLength) {
-        result += '\n';
-        lineLength = 0;
+        return ResponseBuilder.buildResponse().status(200).body(config);
       }
-      result += (lineLength === 0 ? '' : ' ') + word;
-      lineLength += word.length + 1;
+    } catch (error) {
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ error: 'Failed to fetch AI assistant configuration.' });
     }
-
-    return result;
   }
 
-  @Validate(/*AIassistantDto*/)
-  /**
-   * Creates a new question for the assistant.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
-  public async checkPolicyScript(request: Request): Promise<ResponseBuilder> {
+  @Validate(AiAssistantCredentialDto)
+  public async updateConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
-      const prompt = request.body.message;
+      const pgp = new PgpHelper(req.session.pgp);
+      if (req.body.apiKey !== null) {
+        req.body.apiKey = await pgp.decrypt(req.body.apiKey);
+      }
 
-      // Llamar al servicio para obtener el contenido del script
-      const policyScript = await this._policyRuleService.content(
-        parseInt(request.params.fwcloud, 10),
-        parseInt(request.params.firewall, 10),
+      const config = await this._aiAssistantService.upateOrCreateAiCredentials(
+        req.body.ai,
+        req.body.model,
+        req.body.apiKey !== null ? await utilsModel.encrypt(req.body.apiKey) : null,
+      );
+      return ResponseBuilder.buildResponse().status(200).body(config);
+    } catch (error) {
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ error: 'Failed to update AI assistant configuration.' });
+    }
+  }
+
+  @Validate()
+  public async deleteConfig(req: Request, res: Response): Promise<ResponseBuilder> {
+    try {
+      const config = this._aiAssistantService.deleteAllAiCredentials();
+      return ResponseBuilder.buildResponse().status(200);
+    } catch (error) {
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ error: 'Failed to delete AI assistant configuration.' });
+    }
+  }
+
+  @Validate(AiAssistantDto)
+  public async checkPolicyScript(req: Request, res: Response): Promise<ResponseBuilder> {
+    try {
+      const { prompt } = req.body;
+      if (!prompt) {
+        res.status(400).send({ error: 'Prompt text is required.' });
+        return;
+      }
+
+      const policyScript = await this._aiAssistantService.getPolicyScript(
+        parseInt(req.params.fwcloud),
+        parseInt(req.params.firewall),
       );
 
-      // Crear la solicitud de completions usando OpenAI
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'user',
-            content: `${prompt}\n${policyScript}`, // Construcción del mensaje
-          },
-        ],
-        max_tokens: 350,
-        n: 1,
-      });
+      const response = await this._aiAssistantService.getResponse(prompt + '\n' + policyScript);
 
-      const scriptResponse = completion.choices[0].message.content.trim();
-      const formattedResponse = this.insertLineBreaks(scriptResponse, 100); // Set character quantity for each line at openAI API response
-
-      console.log(completion.choices[0].message.content.trim());
-      return ResponseBuilder.buildResponse().status(200).body({ formattedResponse });
+      console.log(response);
+      return ResponseBuilder.buildResponse().status(200).body(response);
     } catch (error) {
       console.error('Error:', error);
       return error;
     }
   }
 
-  @Validate(/*AIassistantDto*/)
-  /**
-   * Creates a new question for the assistant.
-   *
-   * @param req - The request object.
-   * @returns A Promise that resolves to a ResponseBuilder object.
-   */
-  public async checkCompiledRules(request: Request): Promise<ResponseBuilder> {
+  @Validate(AiAssistantDto)
+  public async getResponse(req: Request, res: Response): Promise<void> {
     try {
-      console.log('entra');
-      //const prompt = request.params.messages;
-      const prompt = request.body.message; // Si viene en el body, cámbialo.
-      // Procesar rulesIds que vienen en query string.
-      const queryString = request.url.split('?')[1]; // Tomar la parte después de "?"
-      const queryParams = queryString ? parse(queryString) : {}; // Parsear el querystring
-
-      // Procesar `rules[]` del queryParams
-      const rulesIds: number[] = queryParams['rules[]']
-        ? Array.isArray(queryParams['rules[]'])
-          ? (queryParams['rules[]'] as string[]).map((id) => parseInt(id, 10))
-          : [parseInt(queryParams['rules[]'] as string, 10)]
-        : [];
-
-      if (!request.params.fwcloud || !request.params.firewallId) {
-        throw new Error('Firewall or FwCloud is not defined');
+      const { prompt } = req.body;
+      if (!prompt) {
+        res.status(400).send({ error: 'Prompt text is required.' });
+        return;
       }
-      const rulesToCheck = await this._policyRuleService.content(
-        parseInt(request.params.fwcloud),
-        parseInt(request.params.firewall),
-      );
-      rulesIds;
-      console.log('request', request);
-      console.log('rulesIds', rulesIds);
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'user',
-            content: prompt + '\n' + rulesToCheck, // Add the script to the prompt,
-          },
-        ],
-        max_tokens: 350,
-        n: 1,
-      });
-      const scriptResponse = completion.choices[0].message.content.trim();
-      const formattedResponse = this.insertLineBreaks(scriptResponse, 100); // Set character quantity for each line at openAI API response
+      const response = await this._aiAssistantService.getResponse(prompt);
 
-      console.log(completion.choices[0].message.content.trim());
-      return ResponseBuilder.buildResponse().status(200).body({ formattedResponse });
+      res.status(200).send({ response });
     } catch (error) {
-      console.error('Error:', error);
-      return error;
+      res.status(500).send({ error: 'Failed to fetch response from OpenAI.' });
     }
   }
 }

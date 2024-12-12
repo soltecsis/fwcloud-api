@@ -74,7 +74,7 @@ export class InputValidation extends Middleware {
       'profile',
       'openvpnarchives',
       'systemctl',
-      'AIassistant',
+      'aiassistant',
     ];
 
     // Verify that item1 is in the valid list.

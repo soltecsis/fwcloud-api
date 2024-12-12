@@ -78,7 +78,7 @@ import { DHCPRuleServiceProvider } from './models/system/dhcp/dhcp_r/dhcp_r.prov
 import { DHCPGroupServiceProvider } from './models/system/dhcp/dhcp_g/dhcp_g.provider';
 import { KeepalivedGroupServiceProvider } from './models/system/keepalived/keepalived_g/keepalived_g.provider';
 import { KeepalivedRuleServiceProvider } from './models/system/keepalived/keepalived_r/keepalived_r.provider';
-import { AIAssistantServiceProvider } from './models/ai-assistant/ai-assistant.provider';
+import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -160,6 +160,7 @@ export class Application extends HTTPApplication {
       DHCPGroupServiceProvider,
       KeepalivedRuleServiceProvider,
       KeepalivedGroupServiceProvider,
+      AIAssistantProvider,
       OpenVPNPrefixServiceProvider,
       OpenVPNStatusHistoryServiceProvider,
       HAProxyRuleServiceProvider,
@@ -168,7 +169,6 @@ export class Application extends HTTPApplication {
       AuthServiceProvider,
       CaServiceProvider,
       CrtServiceProvider,
-      AIAssistantServiceProvider,
     ];
   }
 
