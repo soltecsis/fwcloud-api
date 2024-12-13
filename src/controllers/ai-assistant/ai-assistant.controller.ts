@@ -13,6 +13,7 @@ import { parse } from 'querystring';
 import OpenAI from 'openai';
 import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
 import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
+import { PolicyRule } from '../../models/policy/PolicyRule';
 
 const utilsModel = require('../../utils/utils');
 
@@ -154,60 +155,41 @@ export class AIassistantController extends Controller {
   public async checkCompiledRules(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
       const { prompt } = req.body;
-      console.log('prompt', prompt);
       if (!prompt) {
         res.status(400).send({ error: 'Prompt text is required.' });
         return;
       }
-      // Procesar rulesIds que vienen en query string.
-      const queryString = req.url.split('?')[1]; // Tomar la parte después de "?"
-      const queryParams = queryString ? parse(queryString) : {}; // Parsear el querystring
-      console.log('this.firewall', this._firewall);
+      // Proccess rulesIds that URL includes
+      const queryString = req.url.split('?')[1]; // Take ruleIds after "?" character
+      const queryParams = queryString ? parse(queryString) : {}; // Parse querystring
+      //console.log('this.firewall', this._firewall);
+      const options = this._firewall.options;
 
-      // Procesar `rules[]` del queryParams
+      // Proccessr `rules[]` from queryParams
       const rulesIds: number[] = queryParams['rules[]']
         ? Array.isArray(queryParams['rules[]'])
           ? (queryParams['rules[]'] as string[]).map((id) => parseInt(id, 10))
           : [parseInt(queryParams['rules[]'] as string, 10)]
         : [];
-      console.log('rulesids', rulesIds);
-      if (!req.params.fwcloud || !req.params.firewallId) {
+      if (!req.params.fwcloud || !req.params.firewall) {
         throw new Error('Firewall or FwCloud is not defined');
       }
-      //TODO: RECUPERAR COMPILACION DE REGLAS
-      const rulesToCheck = await this._policyRuleService.content(
-        parseInt(req.params.fwcloud),
-        parseInt(req.params.firewall),
-      );
-      const rulesCompile = PolicyCompiler.compile('IPTables', rulesIds);
+      const rule_data = await PolicyRule.getPolicy_r(req.dbCon, req.params.firewall, rulesIds);
+      const rulesArray = [rule_data];
+      const rulesCompile = PolicyCompiler.compile('IPTables', rulesArray);
       const rulesCompileString = JSON.stringify(rulesCompile);
       console.log('rulesCompile', rulesCompile);
-      /*let firewall: Firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: {
-          id: parseInt(req.params.firewall),
-          fwCloudId: parseInt(req.params.fwcloud),
-        },
-      });
-      console.log("firewall", firewall);*/
-      //const compiler = firewall.
-      /*const rulesCompile = await this._aiAssistantService.getFwCompiler(+req.params.fwcloud,+req.params.firewall) //PolicyCompiler.compile('IPTables', rulesToCheck);
-      rulesIds;*/
-      console.log('req', req);
-      console.log('rulesIds', rulesIds);
 
-      const config = await this._aiAssistantService.getAiCredentials();
+      const configAI = await this._aiAssistantService.getAiCredentials();
 
       // Configure OpenAI client with API key
-      this.openai = new OpenAI({ apiKey: config[0].apiKey });
-      const completion = await this.openai.chat.completions.create({
-        model: config[0].model,
+      this.openai = new OpenAI({ apiKey: configAI[0].apiKey });
+      /*const completion = await this.openai.chat.completions.create({
+        model: configAI[0].model,
         messages: [
           {
             role: 'user',
-            content: `${prompt}\n${rulesCompileString}`, // Concatenate prompt to the policy script
+            content: `${prompt}\n${rulesCompileString}`, // Concatenate prompt to the rule(s) compilation
           },
         ],
         max_tokens: 350,
@@ -217,8 +199,8 @@ export class AIassistantController extends Controller {
       const scriptResponse = completion.choices[0].message.content.trim();
       const formattedResponse = this.insertLineBreaks(scriptResponse, 120); // Set character quantity for each line at openAI API response
 
-      console.log(formattedResponse);
-      return ResponseBuilder.buildResponse().status(200).body({ formattedResponse });
+      console.log(formattedResponse);*/
+      return ResponseBuilder.buildResponse().status(200).body('response' /*{ formattedResponse }*/);
     } catch (error) {
       console.error('Error:', error);
       return error;
