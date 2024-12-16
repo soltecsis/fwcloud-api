@@ -10,8 +10,6 @@ import db from '../../database/database-manager';
 import { AiAssistantCredentialDto } from './dto/ai-assistant-credentials.dto';
 import { PgpHelper } from '../../utils/pgp';
 import { parse } from 'querystring';
-import OpenAI from 'openai';
-import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
 import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 
@@ -21,8 +19,6 @@ export class AIassistantController extends Controller {
   private _aiAssistantService: AIAssistantService;
   protected _firewall: Firewall;
   protected _fwCloud: FwCloud;
-  protected _policyRuleService: PolicyRuleService;
-  private openai: OpenAI;
 
   public async make(req: Request): Promise<void> {
     this._aiAssistantService = await this._app.getService<AIAssistantService>(
@@ -75,7 +71,7 @@ export class AIassistantController extends Controller {
         req.body.apiKey = await pgp.decrypt(req.body.apiKey);
       }
 
-      const config = await this._aiAssistantService.upateOrCreateAiCredentials(
+      const config = await this._aiAssistantService.updateOrCreateAiCredentials(
         req.body.ai,
         req.body.model,
         req.body.apiKey !== null ? await utilsModel.encrypt(req.body.apiKey) : null,
@@ -91,7 +87,7 @@ export class AIassistantController extends Controller {
   @Validate()
   public async deleteConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
-      const config = this._aiAssistantService.deleteAllAiCredentials();
+      await this._aiAssistantService.deleteAllAiCredentials();
       return ResponseBuilder.buildResponse().status(200);
     } catch (error) {
       return ResponseBuilder.buildResponse()
@@ -121,24 +117,13 @@ export class AIassistantController extends Controller {
       );
       const config = await this._aiAssistantService.getAiCredentials();
 
-      // Configure OpenAI client with API key
-      this.openai = new OpenAI({ apiKey: config[0].apiKey });
-      const completion = await this.openai.chat.completions.create({
-        model: config[0].model,
-        messages: [
-          {
-            role: 'user',
-            content: `${prompt}\n${policyScript}`, // Concatenate prompt to the policy script
-          },
-        ],
-        max_tokens: 350,
-        n: 1,
-      });
+      const response = await this._aiAssistantService.getResponse(
+        config[0].apiKey,
+        config[0].model,
+        prompt + '\n' + policyScript,
+      );
 
-      const scriptResponse = completion.choices[0].message.content.trim();
-      const formattedResponse = this.insertLineBreaks(scriptResponse, 120); // Set character quantity for each line at openAI API response
-
-      return ResponseBuilder.buildResponse().status(200).body(formattedResponse);
+      return ResponseBuilder.buildResponse().status(200).body(response);
     } catch (error) {
       console.error('Error:', error);
       return error;
@@ -161,11 +146,11 @@ export class AIassistantController extends Controller {
       }
       // Proccess rulesIds that URL includes
       const queryString = req.url.split('?')[1]; // Take ruleIds after "?" character
-      const queryParams = queryString ? parse(queryString) : {}; // Parse querystring
-      //console.log('this.firewall', this._firewall);
+      const queryParams = queryString ? parse(queryString) : {}; // x querystring
+
       const options = this._firewall.options;
 
-      // Proccessr `rules[]` from queryParams
+      // Proccess `rules[]` from queryParams
       const rulesIds: number[] = queryParams['rules[]']
         ? Array.isArray(queryParams['rules[]'])
           ? (queryParams['rules[]'] as string[]).map((id) => parseInt(id, 10))
@@ -174,52 +159,35 @@ export class AIassistantController extends Controller {
       if (!req.params.fwcloud || !req.params.firewall) {
         throw new Error('Firewall or FwCloud is not defined');
       }
-      const rule_data = await PolicyRule.getPolicy_r(req.dbCon, req.params.firewall, rulesIds);
-      const rulesArray = [rule_data];
-      const rulesCompile = PolicyCompiler.compile('IPTables', rulesArray);
+
+      const rules_data = await PolicyRule.getPolicyData(
+        'compiler',
+        req.dbCon,
+        Number(req.params.fwcloud),
+        Number(req.params.firewall),
+        1,
+        rulesIds,
+        null,
+      );
+
+      const rulesCompile = await PolicyCompiler.compile(
+        options == 4099 ? 'NFTables' : 'IPTables',
+        rules_data,
+      );
       const rulesCompileString = JSON.stringify(rulesCompile);
-      console.log('rulesCompile', rulesCompile);
 
       const configAI = await this._aiAssistantService.getAiCredentials();
 
-      // Configure OpenAI client with API key
-      this.openai = new OpenAI({ apiKey: configAI[0].apiKey });
-      /*const completion = await this.openai.chat.completions.create({
-        model: configAI[0].model,
-        messages: [
-          {
-            role: 'user',
-            content: `${prompt}\n${rulesCompileString}`, // Concatenate prompt to the rule(s) compilation
-          },
-        ],
-        max_tokens: 350,
-        n: 1,
-      });
+      const response = await this._aiAssistantService.getResponse(
+        configAI[0].apiKey,
+        configAI[0].model,
+        prompt + '\n' + rulesCompileString,
+      );
 
-      const scriptResponse = completion.choices[0].message.content.trim();
-      const formattedResponse = this.insertLineBreaks(scriptResponse, 120); // Set character quantity for each line at openAI API response
-
-      console.log(formattedResponse);*/
-      return ResponseBuilder.buildResponse().status(200).body('response' /*{ formattedResponse }*/);
+      return ResponseBuilder.buildResponse().status(200).body(response);
     } catch (error) {
       console.error('Error:', error);
       return error;
     }
-  }
-
-  public insertLineBreaks(text, maxLineLength) {
-    let result = '';
-    let lineLength = 0;
-
-    for (const word of text.split(' ')) {
-      if (lineLength + word.length + 1 > maxLineLength) {
-        result += '\n';
-        lineLength = 0;
-      }
-      result += (lineLength === 0 ? '' : ' ') + word;
-      lineLength += word.length + 1;
-    }
-
-    return result;
   }
 }

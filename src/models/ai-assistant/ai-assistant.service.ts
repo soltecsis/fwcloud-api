@@ -25,13 +25,9 @@ import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
 import OpenAI from 'openai';
 import { AIAssistantRepository } from './ai-assistant.repository';
 import { DatabaseService } from '../../database/database.service';
-import { AICredentials } from './ai-assistant-credentials.model';
 import { Repository } from 'typeorm';
 import { AI } from './ai-assistant.model';
 import { AIModel } from './ai-assistant-models.model';
-import { PgpHelper } from '../../utils/pgp';
-import { Firewall } from '../firewall/Firewall';
-import db from '../../database/database-manager';
 
 class CredentialDto {
   apiKey: string;
@@ -96,7 +92,7 @@ export class AIAssistantService extends Service {
     }
   }
 
-  async upateOrCreateAiCredentials(
+  async updateOrCreateAiCredentials(
     aiName: string,
     modelName: string,
     apiKey: string,
@@ -161,38 +157,43 @@ export class AIAssistantService extends Service {
     if (!fwcloud || !firewallId) {
       throw new Error('Firewall or FwCloud is not defined');
     }
-    const policyScript = await this._PolicyRuleService.content(fwcloud, firewallId);
-    return policyScript;
+    return await this._PolicyRuleService.content(fwcloud, firewallId);
   }
-  async getFwCompiler(fwcloud: number, firewallId: number) {
-    const firewall: Firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: {
-          id: firewallId,
-          fwCloudId: fwcloud,
-        },
-      });
-    console.log('firewall', firewall);
-  }
-  async getResponse(prompt: string): Promise<string> {
+  async getResponse(apiKey: string, model: string, prompt: string): Promise<string> {
     try {
       const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey: apiKey,
       });
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: model,
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: prompt },
         ],
       });
-      console.log('Completion', completion.choices[0].message?.content);
-      return completion.choices[0].message?.content || 'No response received.';
+
+      return (
+        this.insertLineBreaks(completion.choices[0].message?.content.trim(), 120) ||
+        'No response received.'
+      );
     } catch (error) {
-      console.error('Error communicating with OpenAI API:', error);
-      throw new Error('Failed to fetch response from OpenAI API.');
+      throw new Error(`Error communicating with OpenAI API: ${error}`);
     }
+  }
+
+  public insertLineBreaks(text, maxLineLength) {
+    let result = '';
+    let lineLength = 0;
+
+    for (const word of text.split(' ')) {
+      if (lineLength + word.length + 1 > maxLineLength) {
+        result += '\n';
+        lineLength = 0;
+      }
+      result += (lineLength === 0 ? '' : ' ') + word;
+      lineLength += word.length + 1;
+    }
+
+    return result;
   }
 }
