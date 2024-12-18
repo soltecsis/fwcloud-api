@@ -159,6 +159,7 @@ export class AIAssistantService extends Service {
     }
     return await this._PolicyRuleService.content(fwcloud, firewallId);
   }
+
   async getResponse(apiKey: string, model: string, prompt: string): Promise<string> {
     try {
       const openai = new OpenAI({
