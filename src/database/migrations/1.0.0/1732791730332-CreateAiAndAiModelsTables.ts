@@ -69,7 +69,7 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
           },
           {
             name: 'api_key',
-            type: 'varchar',
+            type: 'text',
             isNullable: false,
           },
           {
