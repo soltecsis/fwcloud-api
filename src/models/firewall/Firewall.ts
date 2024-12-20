@@ -69,6 +69,7 @@ import { DHCPGroup } from '../system/dhcp/dhcp_g/dhcp_g.model';
 import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
+import { WireGuard } from '../vpn/wireguard/WireGuard';
 
 const tableName: string = 'firewall';
 
@@ -204,6 +205,9 @@ export class Firewall extends Model {
 
   @OneToMany((type) => OpenVPN, (openVPN) => openVPN.firewall)
   openVPNs: Array<OpenVPN>;
+
+  @OneToMany((type) => WireGuard, (wireGuard) => wireGuard.firewall)
+  wireGuards: Array<WireGuard>;
 
   @OneToMany((type) => PolicyGroup, (policyGroup) => policyGroup.firewall)
   policyGroups: Array<PolicyGroup>;
