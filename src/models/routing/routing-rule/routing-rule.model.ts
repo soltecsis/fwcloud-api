@@ -44,6 +44,8 @@ import { RoutingRuleToOpenVPN } from './routing-rule-to-openvpn.model';
 import { RoutingRuleToIPObjGroup } from './routing-rule-to-ipobj-group.model';
 import { RoutingRuleToIPObj } from './routing-rule-to-ipobj.model';
 import { RoutingRuleToMark } from './routing-rule-to-mark.model';
+import { RoutingRuleToWireGuardPrefix } from './routing-rule-to-wireguard-prefix.model';
+import { RoutingRuleToWireGuard } from './routing-rule-to-wireguard.model';
 
 const tableName: string = 'routing_r';
 
@@ -136,6 +138,16 @@ export class RoutingRule extends Model {
     cascade: true,
   })
   routingRuleToOpenVPNs: RoutingRuleToOpenVPN[];
+
+  @OneToMany(() => RoutingRuleToOpenVPNPrefix, (model) => model.routingRule, {
+    cascade: true,
+  })
+  routingRuleToWireGuardPrefixes: RoutingRuleToWireGuardPrefix[];
+
+  @OneToMany(() => RoutingRuleToWireGuard, (model) => model.routingRule, {
+    cascade: true,
+  })
+  routingRuleToWireGuards: RoutingRuleToWireGuard[];
 
   public getTableName(): string {
     return tableName;

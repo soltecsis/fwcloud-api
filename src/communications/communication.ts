@@ -38,6 +38,15 @@ export type OpenVPNHistoryRecord = {
   connectedAtTimestampInSeconds: number;
 };
 
+export type WireGuardHistoryRecord = {
+  timestamp: number;
+  name: string;
+  address: string;
+  bytesReceived: number;
+  bytesSent: number;
+  connectedAtTimestampInSeconds: number;
+};
+
 export type FwcAgentInfo = {
   fwc_agent_version: string;
   host_name: string;
@@ -68,6 +77,16 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<void>;
   abstract installOpenVPNClientConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
+  abstract installWireGuardServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
+  abstract installWireGuardClientConfigs(
     dir: string,
     configs: { name: string; content: string }[],
     eventEmitter?: EventEmitter,

@@ -20,68 +20,60 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { WireGuard } from './WireGuard';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ValidEntities } from '../../ipobj/IPObj.repository';
+import { WireGuardPrefix } from './WireGuardPrefix';
 import { Repository } from '../../../database/repository';
 
-//@EntityRepository(WireGuard)
-export class WireGuardRepository extends Repository<WireGuard> {
+//@EntityRepository(WireGuardPrefix)
+export class WireGuardPrefixRepository extends Repository<WireGuardPrefix> {
   constructor(manager?: EntityManager) {
-    super(WireGuard, manager);
+    super(WireGuardPrefix, manager);
   }
 
-  public async markAllAsUninstalled(): Promise<void> {
-    await this.createQueryBuilder()
-      .update(WireGuard)
-      .set({
-        status: 1,
-        installed_at: null,
-      })
-      .execute();
-  }
-
-  getWireGuardInRouting_ForGrid(
+  getWireGuardPrefixInRouting_ForGrid(
     entity: ValidEntities,
     fwcloud: number,
     firewall: number,
     routingTable?: number,
-  ): SelectQueryBuilder<WireGuard> {
-    let query = this.createQueryBuilder('vpn')
-      .select('vpn.id', 'id')
-      .addSelect('crt.cn', 'name')
-      .addSelect('(select id from ipobj_type where id=311)', 'type')
+  ): SelectQueryBuilder<WireGuardPrefix> {
+    const query = this.createQueryBuilder('vpnPrefix')
+      .select('vpnPrefix.id', 'id')
+      .addSelect('vpnPrefix.name', 'name')
+      .addSelect('(select id from ipobj_type where id=401)', 'type')
       .addSelect('vpnFirewall.id', 'firewall_id')
       .addSelect('vpnFirewall.name', 'firewall_name')
       .addSelect('vpnCluster.id', 'cluster_id')
       .addSelect('vpnCluster.name', 'cluster_name')
       .addSelect(`${entity}.id`, 'entityId');
 
-    if (entity === 'rule') {
-      query
-        .innerJoin('vpn.routingRuleToWireGuards', 'routingRuleToWireGuards')
-        .addSelect('routingRuleToWireGuards.order', '_order')
-        .innerJoin('routingRuleToWireGuards.routingRule', entity);
-    }
-
     if (entity === 'route') {
       query
-        .innerJoin('vpn.routeToWireGuards', 'routeToWireGuards')
-        .addSelect('routeToWireGuards.order', '_order')
-        .innerJoin('routeToWireGuards.route', entity);
+        .innerJoin('vpnPrefix.routeToWireGuardPrefixes', 'routeToWireGuardPrefixes')
+        .addSelect('routeToWireGuardPrefixes.order', '_order')
+        .innerJoin('routeToWireGuardPrefixes.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('vpnPrefix.routingRuleToWireGuardPrefixes', 'routingRuleToWireGuardPrefixes')
+        .addSelect('routingRuleToWireGuardPrefixes.order', '_order')
+        .innerJoin('routingRuleToWireGuardPrefixes.routingRule', entity);
     }
 
     query
       .innerJoin(`${entity}.routingTable`, 'table')
       .innerJoin('table.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .innerJoin('vpn.firewall', 'vpnFirewall')
+      .innerJoin('vpnPrefix.wireGuard', 'vpnServer')
+      .innerJoin('vpnServer.firewall', 'vpnFirewall')
       .leftJoin('vpnFirewall.cluster', 'vpnCluster')
-      .innerJoin('vpn.crt', 'crt')
       .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
       .andWhere('firewall.id = :firewall', { firewall: firewall });
 
-    if (routingTable) query = query.andWhere('table.id = :routingTable', { routingTable });
+    if (routingTable) {
+      query.andWhere('table.id = :routingTable', { routingTable });
+    }
 
     return query;
   }

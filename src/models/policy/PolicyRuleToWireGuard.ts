@@ -23,13 +23,25 @@
 import Model from '../Model';
 import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyPosition } from './PolicyPosition';
-import { WireGuard } from '../vpn/wireGuard/WireGuard';
+import { WireGuard } from '../vpn/wireguard/WireGuard';
 import { PolicyRule } from './PolicyRule';
 
 const tableName: string = 'policy_r__wireGuard';
 
 @Entity(tableName)
 export class PolicyRuleToWireGuard extends Model {
+  static searchWireGuardInRule(dbCon: any, fwcloud: number, wireGuard: number): any {
+    throw new Error('Method not implemented.');
+  }
+  static searchWireGuardInGroup(dbCon: any, fwcloud: number, wireGuard: number): any {
+    throw new Error('Method not implemented.');
+  }
+  static searchLastWireGuardInPrefixInRule(dbCon: any, fwcloud: number, wireGuard: number): any {
+    throw new Error('Method not implemented.');
+  }
+  static searchLastWireGuardInPrefixInGroup(dbCon: any, fwcloud: number, wireGuard: number): any {
+    throw new Error('Method not implemented.');
+  }
   @PrimaryColumn({ name: 'rule' })
   policyRuleId: number;
 

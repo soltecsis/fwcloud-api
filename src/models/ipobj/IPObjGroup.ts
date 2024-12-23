@@ -25,6 +25,8 @@ import db from '../../database/database-manager';
 import { IPObj } from './IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import {
@@ -88,6 +90,12 @@ export class IPObjGroup extends Model {
 
   @ManyToMany((type) => OpenVPNPrefix, (openVPNPrefix) => openVPNPrefix.ipObjGroups)
   openVPNPrefixes: Array<OpenVPNPrefix>;
+
+  @ManyToMany((type) => WireGuard, (wireGuard) => wireGuard.ipObjGroups)
+  wireGuards: Array<WireGuard>;
+
+  @ManyToMany((type) => WireGuardPrefix, (wireGuardPrefix) => wireGuardPrefix.ipObjGroups)
+  wireGuardPrefixes: Array<WireGuardPrefix>;
 
   @OneToMany(() => RoutingRuleToIPObjGroup, (model) => model.ipObjGroup)
   routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[];

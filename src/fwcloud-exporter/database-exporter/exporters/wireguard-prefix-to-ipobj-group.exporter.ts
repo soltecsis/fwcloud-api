@@ -23,18 +23,18 @@
 import { TableExporter } from './table-exporter';
 import Model from '../../../models/Model';
 import { DataSource, QueryRunner } from 'typeorm';
-import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
-import { OpenVPNExporter } from './openvpn.exporter';
-import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
+import { WireGuardPrefix } from '../../../models/vpn/wireguard/WireGuardPrefix';
+import { WireGuardPrefixExporter } from './wireguard-prefix.exporter';
 import { IPObjGroupExporter } from './ipobj-group.exporter';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
 
-export class OpenVPNToIPObjGroupExporter extends TableExporter {
+export class WireGuardPrefixToIPObjGroupExporter extends TableExporter {
   protected getEntity(): typeof Model {
     return null;
   }
 
   public getTableName(): string {
-    return 'openvpn__ipobj_g';
+    return 'wireGuard_prefix__ipobj_g';
   }
 
   protected async getRows(connection: DataSource, fwCloudId: number): Promise<any> {
@@ -42,9 +42,9 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
 
     const data = await qr.query(
       `SELECT * FROM ${this.getTableName()} 
-        WHERE openvpn IN ${this.getOpenVPNIds(connection, fwCloudId)[0]}
+        WHERE prefix IN ${this.getWireGuardPrefixIds(connection, fwCloudId)[0]}
         OR ipobj_g IN ${this.getIpObjGruopIds(connection, fwCloudId)[0]}`,
-      this.getOpenVPNIds(connection, fwCloudId)[1].concat(
+      this.getWireGuardPrefixIds(connection, fwCloudId)[1].concat(
         this.getIpObjGruopIds(connection, fwCloudId)[1],
       ),
     );
@@ -54,14 +54,14 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
     return data;
   }
 
-  protected getOpenVPNIds(connection: DataSource, fwCloudId: number): [string, Array<any>] {
+  protected getWireGuardPrefixIds(connection: DataSource, fwCloudId: number): [string, Array<any>] {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(OpenVPN, 'openvpn')
-      .select('openvpn.id');
-    return new OpenVPNExporter()
-      .getFilterBuilder(subquery, 'openvpn', fwCloudId)
+      .from(WireGuardPrefix, 'wireGuard_prefix')
+      .select('wireGuard_prefix.id');
+    return new WireGuardPrefixExporter()
+      .getFilterBuilder(subquery, 'wireGuard_prefix', fwCloudId)
       .getQueryAndParameters();
   }
 

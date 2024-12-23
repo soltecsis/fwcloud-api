@@ -24,10 +24,10 @@ import db from '../database/database-manager';
 import { Policy, Authorization } from '../fonaments/authorization/policy';
 import { Firewall } from '../models/firewall/Firewall';
 import { User } from '../models/user/User';
-import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
+import { WireGuard } from '../models/vpn/wireguard/WireGuard';
 
 export class WireGuardPolicy extends Policy {
-  static async installer(openvpn: OpenVPN, user: User): Promise<Authorization> {
+  static async installer(wireGuard: WireGuard, user: User): Promise<Authorization> {
     user = await db
       .getSource()
       .manager.getRepository(User)
@@ -35,11 +35,11 @@ export class WireGuardPolicy extends Policy {
         where: { id: user.id },
         relations: ['fwClouds'],
       });
-    openvpn = await db
+    wireGuard = await db
       .getSource()
-      .manager.getRepository(OpenVPN)
+      .manager.getRepository(WireGuard)
       .findOneOrFail({
-        where: { id: openvpn.id },
+        where: { id: wireGuard.id },
         relations: ['firewall'],
       });
 
@@ -47,12 +47,12 @@ export class WireGuardPolicy extends Policy {
       return Authorization.grant();
     }
 
-    if (openvpn.firewall) {
+    if (wireGuard.firewall) {
       const firewall: Firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
         .findOneOrFail({
-          where: { id: openvpn.firewall.id },
+          where: { id: wireGuard.firewall.id },
           relations: ['fwCloud'],
         });
 
@@ -66,7 +66,7 @@ export class WireGuardPolicy extends Policy {
     return Authorization.revoke();
   }
 
-  static async history(openvpn: OpenVPN, user: User): Promise<Authorization> {
+  static async history(wireGuard: WireGuard, user: User): Promise<Authorization> {
     user = await db
       .getSource()
       .manager.getRepository(User)
@@ -74,11 +74,11 @@ export class WireGuardPolicy extends Policy {
         where: { id: user.id },
         relations: ['fwClouds'],
       });
-    openvpn = await db
+    wireGuard = await db
       .getSource()
-      .manager.getRepository(OpenVPN)
+      .manager.getRepository(WireGuard)
       .findOneOrFail({
-        where: { id: openvpn.id },
+        where: { id: wireGuard.id },
         relations: ['firewall'],
       });
 
@@ -86,12 +86,12 @@ export class WireGuardPolicy extends Policy {
       return Authorization.grant();
     }
 
-    if (openvpn.firewall) {
+    if (wireGuard.firewall) {
       const firewall: Firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
         .findOneOrFail({
-          where: { id: openvpn.firewall.id },
+          where: { id: wireGuard.firewall.id },
           relations: ['fwCloud'],
         });
 

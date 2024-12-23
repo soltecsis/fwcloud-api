@@ -40,15 +40,15 @@ const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../pki/Crt';
 import { IPObjGroup } from '../../ipobj/IPObjGroup';
-import { WireGuardPrefix } from './WireGuardPrefix';
 import { RoutingRule } from '../../routing/routing-rule/routing-rule.model';
 import { Route } from '../../routing/route/route.model';
-import { RouteToWireGuard } from '../../routing/route/route-to-WireGuard.model';
-import { RoutingRuleToWireGuard } from '../../routing/routing-rule/routing-rule-to-WireGuard.model';
-import { WireGuardStatusHistory } from './status/WireGuard-status-history';
 import db from '../../../database/database-manager';
 import { IpUtils } from '../../../utils/ip-utils';
 import { WireGuardOption } from './wireguard-option.model';
+import { WireGuardPrefix } from './WireGuardPrefix';
+import { RoutingRuleToWireGuard } from '../../routing/routing-rule/routing-rule-to-wireguard.model';
+import { RouteToWireGuard } from '../../routing/route/route-to-wireguard.model';
+import { WireGuardStatusHistory } from './status/wireguard-status-history';
 
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
@@ -139,7 +139,7 @@ export class WireGuard extends Model {
   policyRuleToWireGuards: Array<PolicyRuleToWireGuard>;
 
   @OneToMany((type) => WireGuardPrefix, (model) => model.wireGuard)
-  WireGuardPrefixes: Array<WireGuardPrefix>;
+  wireGuardPrefixes: Array<WireGuardPrefix>;
 
   @OneToMany(() => RoutingRuleToWireGuard, (model) => model.wireGuard)
   routingRuleToWireGuards: RoutingRuleToWireGuard[];
@@ -149,6 +149,7 @@ export class WireGuard extends Model {
 
   @OneToMany(() => WireGuardStatusHistory, (model) => model.wireGuardServer)
   historyRecords: WireGuardStatusHistory[];
+  static parentId: any;
 
   public getTableName(): string {
     return tableName;
@@ -641,7 +642,9 @@ export class WireGuard extends Model {
           // Include the rules that use the groups in which the WireGuard is being used.
           search.restrictions.WireGuardInGroupInRule = [];
           for (let i = 0; i < search.restrictions.WireGuardInGroup.length; i++) {
-            const data: any = await IPObjGroup.searchGroupUsage(
+            //TODO: FALTA AWAIT
+
+            const data: any = IPObjGroup.searchGroupUsage(
               search.restrictions.WireGuardInGroup[i].group_id,
               fwcloud,
             );
@@ -651,11 +654,14 @@ export class WireGuard extends Model {
           if (search.restrictions.LastWireGuardInPrefixInRule.length == 0) {
             // Include the rules that use prefixes in which the WireGuard is being used, including the
             // groups (used in rules) in which these prefixes are being used.
-            const prefixes = await WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
+            //TODO: FALTA AWAIT
+            const prefixes = WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
             search.restrictions.WireGuardInPrefixInRule = [];
             search.restrictions.WireGuardInPrefixInGroupInRule = [];
             for (let i = 0; i < prefixes.length; i++) {
-              const data: any = await WireGuardPrefix.searchPrefixUsage(
+              //TODO: FALTA AWAIT
+
+              const data: any = WireGuardPrefix.searchPrefixUsage(
                 dbCon,
                 fwcloud,
                 prefixes[i].id,

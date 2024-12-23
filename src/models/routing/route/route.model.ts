@@ -44,6 +44,8 @@ import { RouteToOpenVPN } from './route-to-openvpn.model';
 import { RouteToIPObjGroup } from './route-to-ipobj-group.model';
 import { RouteToIPObj } from './route-to-ipobj.model';
 import { Firewall } from '../../firewall/Firewall';
+import { RouteToWireGuard } from './route-to-wireguard.model';
+import { RouteToWireGuardPrefix } from './route-to-wireguard-prefix.model';
 
 const tableName: string = 'route';
 
@@ -136,6 +138,16 @@ export class Route extends Model {
     cascade: true,
   })
   routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
+
+  @OneToMany(() => RouteToOpenVPN, (model) => model.route, {
+    cascade: true,
+  })
+  routeToWireGuards: RouteToWireGuard[];
+
+  @OneToMany(() => RouteToWireGuardPrefix, (model) => model.route, {
+    cascade: true,
+  })
+  routeToWireGuardPrefixes: RouteToWireGuardPrefix[];
 
   public getTableName(): string {
     return tableName;

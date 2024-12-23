@@ -24,12 +24,12 @@ import Model from '../Model';
 import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyRule } from './PolicyRule';
 import { PolicyPosition } from './PolicyPosition';
-import { WreGuardPrefix } from '../vpn/wireGuard/WireGuardPrefix';
+import { WireGuardPrefix } from '../vpn/wireguard/WireGuardPrefix';
 
 const tableName: string = 'policy_r__wireGuard_prefix';
 
 @Entity(tableName)
-export class PolicyRuleTowireGuardPrefix extends Model {
+export class PolicyRuleToWireGuardPrefix extends Model {
   @PrimaryColumn({ name: 'rule' })
   policyRuleId: number;
 
@@ -56,7 +56,7 @@ export class PolicyRuleTowireGuardPrefix extends Model {
 
   @ManyToOne(
     (type) => PolicyPosition,
-    (policyPosition) => policyPosition.policyRuleTowireGuardPrefixes,
+    (policyPosition) => policyPosition.policyRuleToWireGuardPrefixes,
   )
   @JoinColumn({
     name: 'position',
@@ -64,15 +64,15 @@ export class PolicyRuleTowireGuardPrefix extends Model {
   policyPosition: PolicyPosition;
 
   @ManyToOne(
-    (type) => wireGuardPrefix,
-    (wireGuardPrefix) => wireGuardPrefix.policyRuleTowireGuardPrefixes,
+    (type) => WireGuardPrefix,
+    (wireGuardPrefix) => wireGuardPrefix.policyRuleToWireGuardPrefixes,
   )
   @JoinColumn({
     name: 'prefix',
   })
-  wireGuardPrefix: wireGuardPrefix;
+  wireGuardPrefix: WireGuardPrefix;
 
-  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleTowireGuardPrefixes)
+  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToWireGuardPrefixes)
   @JoinColumn({
     name: 'rule',
   })

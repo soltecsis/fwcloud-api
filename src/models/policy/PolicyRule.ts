@@ -36,6 +36,8 @@ import { PolicyType } from './PolicyType';
 import { Firewall, FireWallOptMask } from '../firewall/Firewall';
 import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import { PolicyRuleToWireGuard } from './PolicyRuleToWireGuard';
+import { PolicyRuleToWireGuardPrefix } from './PolicyRuleToWireguardPrefix';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'policy_r';
@@ -177,6 +179,18 @@ export class PolicyRule extends Model {
     (policyRuleToOpenVPNPrefix) => policyRuleToOpenVPNPrefix.policyRule,
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+
+  @OneToMany(
+    (type) => PolicyRuleToWireGuard,
+    (policyRuleToWireGuard) => policyRuleToWireGuard.policyRule,
+  )
+  policyRuleToWireGuards: Array<PolicyRuleToWireGuard>;
+
+  @OneToMany(
+    (type) => PolicyRuleToWireGuardPrefix,
+    (policyRuleToWireGuardPrefix) => policyRuleToWireGuardPrefix.policyRule,
+  )
+  policyRuleToWireGuardPrefixes: Array<PolicyRuleToWireGuardPrefix>;
 
   private static clon_data: any;
 
