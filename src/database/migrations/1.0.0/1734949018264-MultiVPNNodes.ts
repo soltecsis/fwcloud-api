@@ -4,7 +4,7 @@ export class MultiVPNNodes1734949018264 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create the parent node MultiVPN
     await queryRunner.query(
-      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('MVP', NULL, 'MultiVPN')",
+      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('VPN', NULL, 'VPN')",
     );
 
     // Add WireGuard and IPsec to `fwc_tree_node_types`
@@ -24,7 +24,7 @@ export class MultiVPNNodes1734949018264 implements MigrationInterface {
     for (const node of openVPNNodes) {
       // Create the parent MultiVPN node associated with each OpenVPN
       const result = await queryRunner.query(
-        "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`, `node_order`, `id_obj`, `fwcloud`) VALUES (?, 'MultiVPN', 'MVP', 0, NULL, ?)",
+        "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`, `node_order`, `id_obj`, `fwcloud`) VALUES (?, 'VPN', 'VPN', 0, NULL, ?)",
         [node.id, node.fwcloud],
       );
 
@@ -55,7 +55,7 @@ export class MultiVPNNodes1734949018264 implements MigrationInterface {
 
     // Restore OpenVPN nodes to their original state
     const multiVPNNodes = await queryRunner.query(
-      "SELECT `id`, `id_parent` FROM `fwc_tree` WHERE `node_type` = 'MVP'",
+      "SELECT `id`, `id_parent` FROM `fwc_tree` WHERE `node_type` = 'VPN'",
     );
 
     for (const node of multiVPNNodes) {
@@ -66,11 +66,11 @@ export class MultiVPNNodes1734949018264 implements MigrationInterface {
     }
 
     // Delete MultiVPN nodes
-    await queryRunner.query("DELETE FROM `fwc_tree` WHERE `node_type` = 'MVP'");
+    await queryRunner.query("DELETE FROM `fwc_tree` WHERE `node_type` = 'VPN'");
 
     // Delete the MultiVPN, WireGuard, and IPsec node types from `fwc_tree_node_types`.
     await queryRunner.query(
-      "DELETE FROM `fwc_tree_node_types` WHERE `node_type` IN ('MVP', 'WGR', 'IPS')",
+      "DELETE FROM `fwc_tree_node_types` WHERE `node_type` IN ('VPN', 'WGR', 'IPS')",
     );
   }
 }
