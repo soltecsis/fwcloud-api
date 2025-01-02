@@ -36,13 +36,11 @@ export class WireGuardTables1735812019269 implements MigrationInterface {
             columnNames: ['firewall'],
             referencedTableName: 'firewall',
             referencedColumnNames: ['id'],
-            onDelete: 'CASCADE',
           },
           {
             columnNames: ['crt'],
             referencedTableName: 'crt',
             referencedColumnNames: ['id'],
-            onDelete: 'CASCADE',
           },
         ],
       }),
@@ -68,7 +66,66 @@ export class WireGuardTables1735812019269 implements MigrationInterface {
             columnNames: ['wireguard'],
             referencedTableName: 'wireguard',
             referencedColumnNames: ['id'],
-            onDelete: 'CASCADE',
+          },
+        ],
+      }),
+    );
+
+    // Create 'wireguard_prefix_ipobj_g' table
+    await queryRunner.createTable(
+      new Table({
+        name: 'wireguard_prefix_ipobj_g',
+        columns: [
+          {
+            name: 'id',
+            type: 'int',
+            isPrimary: true,
+            isGenerated: true,
+            generationStrategy: 'increment',
+          },
+          { name: 'prefix', type: 'int', isNullable: false },
+          { name: 'ipobj_g', type: 'int', isNullable: false },
+        ],
+        foreignKeys: [
+          {
+            columnNames: ['prefix'],
+            referencedTableName: 'wireguard_prefix',
+            referencedColumnNames: ['id'],
+          },
+          {
+            columnNames: ['ipobj_g'],
+            referencedTableName: 'ipobj_g',
+            referencedColumnNames: ['id'],
+          },
+        ],
+      }),
+    );
+
+    // Create 'wireguard_ipobj' table
+    await queryRunner.createTable(
+      new Table({
+        name: 'wireguard_ipobj',
+        columns: [
+          {
+            name: 'id',
+            type: 'int',
+            isPrimary: true,
+            isGenerated: true,
+            generationStrategy: 'increment',
+          },
+          { name: 'wireguard', type: 'int', isNullable: false },
+          { name: 'ipobj', type: 'int', isNullable: false },
+        ],
+        foreignKeys: [
+          {
+            columnNames: ['wireguard'],
+            referencedTableName: 'wireguard',
+            referencedColumnNames: ['id'],
+          },
+          {
+            columnNames: ['ipobj'],
+            referencedTableName: 'ipobj',
+            referencedColumnNames: ['id'],
           },
         ],
       }),
@@ -100,7 +157,6 @@ export class WireGuardTables1735812019269 implements MigrationInterface {
             columnNames: ['wireguard_server_id'],
             referencedTableName: 'wireguard',
             referencedColumnNames: ['id'],
-            onDelete: 'CASCADE',
           },
         ],
       }),
@@ -110,6 +166,8 @@ export class WireGuardTables1735812019269 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop tables in reverse order
     await queryRunner.dropTable('wireguard_status_history');
+    await queryRunner.dropTable('wireguard_ipobj');
+    await queryRunner.dropTable('wireguard_prefix_ipobj_g');
     await queryRunner.dropTable('wireguard_prefix');
     await queryRunner.dropTable('wireguard');
   }
