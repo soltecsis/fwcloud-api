@@ -658,19 +658,23 @@ export class WireGuard extends Model {
             const prefixes = WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
             search.restrictions.WireGuardInPrefixInRule = [];
             search.restrictions.WireGuardInPrefixInGroupInRule = [];
-            for (let i = 0; i < prefixes.length; i++) {
-              //TODO: FALTA AWAIT
+            if (Array.isArray(prefixes)) {
+              for (let i = 0; i < prefixes.length; i++) {
+                //TODO: FALTA AWAIT
 
-              const data: any = WireGuardPrefix.searchPrefixUsage(
-                dbCon,
-                fwcloud,
-                prefixes[i].id,
-                true,
-              );
-              search.restrictions.WireGuardInPrefixInRule.push(...data.restrictions.PrefixInRule);
-              search.restrictions.WireGuardInPrefixInGroupInRule.push(
-                ...data.restrictions.PrefixInGroupInRule,
-              );
+                const data: any = WireGuardPrefix.searchPrefixUsage(
+                  dbCon,
+                  fwcloud,
+                  prefixes[i].id,
+                  true,
+                );
+                search.restrictions.WireGuardInPrefixInRule.push(...data.restrictions.PrefixInRule);
+                search.restrictions.WireGuardInPrefixInGroupInRule.push(
+                  ...data.restrictions.PrefixInGroupInRule,
+                );
+              }
+            } else {
+              console.error('El método no devolvió un arreglo.');
             }
           }
         }

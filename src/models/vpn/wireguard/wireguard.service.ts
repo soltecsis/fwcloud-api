@@ -28,13 +28,13 @@ import {
 import { Service } from '../../../fonaments/services/service';
 import { WireGuard } from './WireGuard';
 import db from '../../../database/database-manager';
-import { InstallerGenerator } from '../../../wireGuard-installer/installer-generator';
+import { InstallerGenerator } from '../../../wireguard-installer/installer-generator';
 import { getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
 import { Firewall } from '../../firewall/Firewall';
 import { CronService } from '../../../backups/cron/cron.service';
 import { CronJob } from 'cron';
 import { logger } from '../../../fonaments/abstract-application';
-import { WireGuardStatusHistory } from './status/wireGuard-status-history';
+import { WireGuardStatusHistory } from './status/wireguard-status-history';
 import * as fs from 'fs-extra';
 import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 import path from 'path';

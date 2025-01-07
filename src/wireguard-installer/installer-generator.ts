@@ -1,8 +1,8 @@
 import path from 'path';
 import * as child_process from 'child_process';
 import * as fs from 'fs-extra';
-import { InvalidConnectionNameException } from '../../tests/Unit/wireguard-installer/exceptions/invalid-connection-name.exception';
 import { app, logger } from '../fonaments/abstract-application';
+import { InvalidConnectionNameException } from '../../tests/Unit/openvpn-installer/exceptions/invalid-connection-name.exception';
 
 export class InstallerGenerator {
   static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9]{1}([a-zA-Z0-9-_]{2,30})[a-zA-Z0-9]{1}$/);
