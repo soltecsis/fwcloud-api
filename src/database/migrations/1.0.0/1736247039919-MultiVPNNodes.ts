@@ -4,16 +4,16 @@ export class MultiVPNNodes1736247039919 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create the parent node MultiVPN
     await queryRunner.query(
-      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('VPN', NULL, 'VPN')",
+      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('VPN', 300, 'VPN')",
     );
 
     // Add WireGuard and IPsec to `fwc_tree_node_types`
     await queryRunner.query(
-      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('WGR', NULL, 'WireGuard')",
+      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('WGR', 320, 'WireGuard')",
     );
 
     await queryRunner.query(
-      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('IPS', NULL, 'IPsec')",
+      "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES ('IPS', 330, 'IPsec')",
     );
 
     // Select existing OpenVPN nodes to associate them with MultiVPN
@@ -22,6 +22,7 @@ export class MultiVPNNodes1736247039919 implements MigrationInterface {
     );
 
     for (const node of openVPNNodes) {
+      console.log(`Creating MultiVPN node for OpenVPN ${node}`);
       // Create the parent MultiVPN node associated with each OpenVPN
       const result = await queryRunner.query(
         "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`, `node_order`, `id_obj`, `fwcloud`) VALUES (?, 'VPN', 'VPN', 0, NULL, ?)",
