@@ -12,6 +12,7 @@ import { PgpHelper } from '../../utils/pgp';
 import { parse } from 'querystring';
 import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { PolicyRule } from '../../models/policy/PolicyRule';
+import axios from 'axios';
 
 const utilsModel = require('../../utils/utils');
 
@@ -63,12 +64,36 @@ export class AIassistantController extends Controller {
     }
   }
 
+  // Method to validate OpenAi ApiKey
+  private async validateOpenAIKey(apiKey: string): Promise<boolean> {
+    try {
+      const response = await axios.get('https://api.openai.com/v1/models', {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      return response.status === 200;
+    } catch (error) {
+      console.error('Failed to validate OpenAI API Key:', error.message);
+      return false;
+    }
+  }
+
   @Validate(AiAssistantCredentialDto)
   public async updateConfig(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
       const pgp = new PgpHelper(req.session.pgp);
       if (req.body.apiKey !== null) {
         req.body.apiKey = await pgp.decrypt(req.body.apiKey);
+      }
+      if (req.body.apiKey !== null) {
+        // validate API Key from OpenAI
+        const isValidApiKey = await this.validateOpenAIKey(req.body.apiKey);
+        if (!isValidApiKey) {
+          return ResponseBuilder.buildResponse()
+            .status(400)
+            .body({ error: 'Invalid OpenAI API Key.' });
+        }
       }
 
       const config = await this._aiAssistantService.updateOrCreateAiCredentials(
@@ -105,6 +130,7 @@ export class AIassistantController extends Controller {
    */
   public async checkPolicyScript(req: Request, res: Response): Promise<ResponseBuilder> {
     try {
+      console.log('checkPolicyScript', req.body);
       const { prompt } = req.body;
       if (!prompt) {
         res.status(400).send({ error: 'Prompt text is required.' });
