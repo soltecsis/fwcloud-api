@@ -84,6 +84,8 @@ export enum FirewallInstallProtocol {
 
 export enum PluginsFlags {
   openvpn = 'openvpn',
+  wireguard = 'wireguard',
+  ipsec = 'ipsec',
   geoip = 'geoip',
   crowdsec = 'crowdsec',
   ntopng = 'ntopng',
