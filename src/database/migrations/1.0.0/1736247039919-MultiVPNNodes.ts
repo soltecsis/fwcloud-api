@@ -23,9 +23,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 const newIPobjTypes = [
-  { id: 320, type: 'WIREGARD CONFIG', protocol_number: null },
-  { id: 321, type: 'WIREGARD CLI', protocol_number: null },
-  { id: 322, type: 'WIREGARD SRV', protocol_number: null },
+  { id: 320, type: 'WIREGUARD CONFIG', protocol_number: null },
+  { id: 321, type: 'WIREGUARD CLI', protocol_number: null },
+  { id: 322, type: 'WIREGUARD SRV', protocol_number: null },
   { id: 330, type: 'IPSEC CONFIG', protocol_number: null },
   { id: 331, type: 'IPSEC CLI', protocol_number: null },
   { id: 332, type: 'IPSEC SRV', protocol_number: null },
