@@ -289,7 +289,7 @@ export class Tree extends Model {
               'FP6',
               'FDI',
               'FCF',
-              'OPN',
+              'VPN',
               'ROU',
               'SYS',
             ]);
