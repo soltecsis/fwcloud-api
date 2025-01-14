@@ -1145,6 +1145,38 @@ export class Tree extends Model {
     });
   }
 
+  // Generate the VPN nodes.
+  public static async vpnTree(
+    connection: any,
+    fwcloud: number,
+    firewall: number,
+    parentNode: number,
+  ): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const vpnNode = await this.newNode(
+          connection,
+          fwcloud,
+          'VPN',
+          parentNode,
+          'VPN',
+          firewall,
+          null,
+        );
+
+        await this.newNode(connection, fwcloud, 'OpenVPN', vpnNode, 'OPN', firewall, 0);
+        await this.openvpnServerTree(connection, fwcloud, firewall, vpnNode);
+
+        await this.newNode(connection, fwcloud, 'WireGuard', vpnNode, 'WG', firewall, 0);
+        await this.newNode(connection, fwcloud, 'IPSec', vpnNode, 'IS', firewall, 0);
+
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   // //Generate the routing nodes.
   // public static makeSureRoutingTreeExists(connection: any, fwcloud: number, children: any): Promise<boolean> {
   //     return new Promise(async (resolve, reject) => {
@@ -1239,8 +1271,7 @@ export class Tree extends Model {
             id2 = await this.newNode(connection, fwcloud, 'Interfaces', id1, 'FDI', firewallId, 10);
             await this.interfacesTree(connection, fwcloud, id2, firewallId, 'FW');
 
-            id2 = await this.newNode(connection, fwcloud, 'OpenVPN', id1, 'OPN', firewallId, 0);
-            await this.openvpnServerTree(connection, fwcloud, firewallId, id2);
+            await this.vpnTree(connection, fwcloud, firewallId, id1);
 
             await this.routingTree(connection, fwcloud, firewallId, id1);
 
@@ -1437,16 +1468,7 @@ export class Tree extends Model {
             );
             await this.interfacesTree(connection, fwcloud, id2, clusters[0].fwmaster_id, 'FW');
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'OpenVPN',
-              id1,
-              'OPN',
-              clusters[0].fwmaster_id,
-              0,
-            );
-            await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
+            await this.vpnTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
 
             await this.routingTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
 
