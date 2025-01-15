@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - devel
-      -multivpn
+      - multivpn
 
 jobs:
   test:
