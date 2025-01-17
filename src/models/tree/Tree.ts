@@ -1164,8 +1164,16 @@ export class Tree extends Model {
           null,
         );
 
-        await this.newNode(connection, fwcloud, 'OpenVPN', vpnNode, 'OPN', firewall, 0);
-        await this.openvpnServerTree(connection, fwcloud, firewall, vpnNode);
+        const openVPNNode = await this.newNode(
+          connection,
+          fwcloud,
+          'OpenVPN',
+          vpnNode,
+          'OPN',
+          firewall,
+          0,
+        );
+        await this.openvpnServerTree(connection, fwcloud, firewall, openVPNNode);
 
         await this.newNode(connection, fwcloud, 'WireGuard', vpnNode, 'WG', firewall, 0);
         await this.newNode(connection, fwcloud, 'IPSec', vpnNode, 'IS', firewall, 0);
