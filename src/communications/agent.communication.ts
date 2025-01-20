@@ -43,6 +43,7 @@ import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
+import { error } from 'console';
 
 type AgentCommunicationData = {
   protocol: 'https' | 'http';
@@ -337,6 +338,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             'message',
             new ProgressPayload('error', false, 'Plugin action failed: ' + err.message),
           );
+          this.handleRequestException(err, eventEmitter);
         });
 
       return '';
@@ -486,6 +488,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
         eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Timeout\n`));
         throw new HttpException(`ECONNABORTED: Timeout`, 400);
+      } else if (
+        error.code === 'ERR_BAD_REQUEST' &&
+        error.message == 'Request failed with status code 400'
+      ) {
+        eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Invalid plugin name\n`));
+        throw new HttpException(`ERR_BAD_REQUEST: Invalid plugin name`, 400);
       }
 
       if (error.response?.data?.message) {
