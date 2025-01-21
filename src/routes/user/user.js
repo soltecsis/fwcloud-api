@@ -146,9 +146,16 @@ router.post('/login', async (req, res) => {
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 OK
 */
-router.post('/logout', (req, res) => {
-	req.session.destroy(err => { });
+router.post('/logout',async (req, res) => {
+	let fwcloudData = { iduser: req.session.user_id };
+	const fwClouds = await FwCloud.getFwclouds(req.dbCon, req.session.user_id);
+	for (const fwcloud of fwClouds) {
+		fwcloudData.id = fwcloud.id;
+		await FwCloud.updateFwcloudUnlock(fwcloudData);
+	}
+	req.session.destroy(err => {});
 	res.status(204).end();
+
 });
 
 

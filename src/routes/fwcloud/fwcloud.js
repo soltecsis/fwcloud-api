@@ -66,10 +66,11 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 
 
 var utilsModel = require('../../utils/utils');
-import { Tree } from '../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 import { User } from '../../models/user/User'
 import { logger } from '../../fonaments/abstract-application';
+const EventEmitter = require('events');
+import { ProgressPayload } from '../../sockets/messages/socket-message';
 const fwcError = require('../../utils/error_table');
 
 /**
@@ -289,33 +290,39 @@ async(req, res) => {
  *         ]
  *       };
  */
-/*router.put('/lock', (req, res) => {
-	//Save fwcloud data into objet
-	var fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id };
+router.put('/lock', async (req, res) => {
+    const channel = new EventEmitter();
+    const fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
 
-	FwcloudModel.updateFwcloudLock(fwcloudData)
-		.then(data => {
-			if (data.result) {
-				logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		})
-		.catch(r => {
-			logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error locking', objModel, r, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		});
-
-
-});*/
+    try {
+        const data = await FwCloud.updateFwcloudLock(fwcloudData);
+        if (data.result) {
+            logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
+            channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'success', 'FWCLOUD LOCKED OK'));
+            return res.status(200).json({
+                result: true,
+                message: 'FWCLOUD LOCKED OK',
+            });
+        } else {
+            logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+            channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'error', 'NOT ACCESS FOR LOCKING'));
+            return res.status(200).json({
+                result: false,
+                message: 'NOT ACCESS FOR LOCKING',
+                info: {
+                    locked_by: data.lockByUser,
+                    ip_user: req.socket.remoteAddress
+                }
+            });
+        }
+    } catch (error) {
+        logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+        return res.status(200).json({
+            result: false,
+            message: 'ERROR LOCKING: ' + error,
+        });
+    }
+});
 
 /**
  * Unlock fwcloud status
@@ -351,31 +358,34 @@ async(req, res) => {
  *         ]
  *       };
  */
-/*router.put('/unlock', (req, res) => {
-	//Save fwcloud data into objet
-	var fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id };
-	FwcloudModel.updateFwcloudUnlock(fwcloudData)
+router.put('/unlock', (req, res) => {
+	//Save fwcloud data into object
+	const fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
+	FwCloud.updateFwcloudUnlock(fwcloudData)
 		.then(data => {
 			if (data.result) {
-				logger().info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD UNLOCKED OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
+				logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  UNLOCKED BY USER: " + fwcloudData.iduser);
+				res.status(200).json({
+					result: true,
+					message: 'FWCLOUD UNLOCKED OK',
 				});
 			} else {
 				logger().info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
+				res.status(200).json({
+					result: false,
+					message: 'NOT ACCESS FOR UNLOCKING',
 				});
 			}
 		})
 		.catch(error => {
 			logger().info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
+			res.status(200).json({
+				result: false,
+				message: 'ERROR UNLOCKING: ' + error,
 			});
 		});
 
-});*/
+});
 
 /* Get locked Status of fwcloud by Id */
 /**
