@@ -12,7 +12,7 @@ import { testSuite } from '../../mocha/global-setup';
 import { _URL } from '../../../src/fonaments/http/router/router.service';
 import sinon from 'sinon';
 
-describe.only('LockValidation Middleware', () => {
+describe('LockValidation Middleware', () => {
   let app: Application;
   let fwcProduct: FwCloudProduct;
   let adminUser: User;
