@@ -24,12 +24,18 @@ describe(describeName('FwcTree Exporter Unit Tests'), () => {
     fwCloud = await dataSource.manager.getRepository(FwCloud).save(
       dataSource.manager.getRepository(FwCloud).create({
         name: StringHelper.randomize(10),
+        locked: false,
+        locked_by: null,
+        lock_session_id: null,
       }),
     );
 
     fwCloud2 = await dataSource.manager.getRepository(FwCloud).save(
       dataSource.manager.getRepository(FwCloud).create({
         name: StringHelper.randomize(10),
+        locked: false,
+        locked_by: null,
+        lock_session_id: null,
       }),
     );
 

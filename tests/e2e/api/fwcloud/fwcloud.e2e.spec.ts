@@ -34,6 +34,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
       'locked_at',
       'locked_by',
       'locked',
+      'lock_session_id',
     ],
     properties: {
       id: { type: 'number', minimum: 1 },
@@ -47,6 +48,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
       locked_at: { type: ['number', 'null'] },
       locked_by: { type: ['number', 'null'] },
       locked: { type: 'number' },
+      lock_session_id: { type: ['string', 'null'] },
     },
   };
 
@@ -73,7 +75,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
   beforeEach(async () => {
     regularUserSessionId = generateSession(regularUser);
     adminUserSessionId = generateSession(adminUser);
-
     fwCloud = await (await app.getService<FwCloudService>(FwCloudService.name)).store(fwcData);
   });
 
@@ -86,7 +87,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
           .expect(401);
       });
 
-      it('guest user shoult not get all fwclouds data', async () => {
+      it('guest user should not get all fwclouds data', async () => {
         return await request(app.express)
           .put('/fwcloud/all/get')
           .send({ fwcloud: fwCloud.id })
@@ -244,6 +245,89 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
             },
             response: 'Forbidden',
             status: 403,
+          });
+      });
+    });
+
+    describe('FwCloudManagement@lock', () => {
+      it('guest user should not lock a fwcloud', async () => {
+        return await request(app.express)
+          .put('/fwcloud/lock')
+          .send({ fwcloud: fwCloud.id })
+          .expect(401);
+      });
+
+      it('regular user should not lock a fwcloud', async () => {
+        return await request(app.express)
+          .put('/fwcloud/lock')
+          .send({ fwcloud: fwCloud.id })
+          .set('Cookie', [attachSession(regularUserSessionId)])
+          .expect(400, { fwcErr: 7000, msg: 'FWCloud access not allowed' });
+      });
+
+      it('admin user should lock a fwcloud', async () => {
+        return await request(app.express)
+          .put('/fwcloud/lock')
+          .send({ fwcloud: fwCloud.id })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200, { result: true, message: 'FWCLOUD LOCKED OK' });
+      });
+
+      it('admin user should not lock a locked fwcloud by another user', async () => {
+        fwCloud.locked = true;
+        fwCloud.locked_by = 10;
+        await manager.getRepository(FwCloud).save(fwCloud);
+        return await request(app.express)
+          .put('/fwcloud/lock')
+          .send({ fwcloud: fwCloud.id })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body).to.have.property('result').which.is.false;
+            expect(response.body)
+              .to.have.property('message')
+              .which.is.equal('NOT ACCESS FOR LOCKING');
+          });
+      });
+    });
+
+    describe('FwCloudManagement@unlock', () => {
+      it('guest user should not unlock a fwcloud', async () => {
+        return await request(app.express)
+          .put('/fwcloud/unlock')
+          .send({ fwcloud: fwCloud.id })
+          .expect(401);
+      });
+
+      it('regular user should not unlock a fwcloud', async () => {
+        return await request(app.express)
+          .put('/fwcloud/unlock')
+          .send({ fwcloud: fwCloud.id })
+          .set('Cookie', [attachSession(regularUserSessionId)])
+          .expect(400)
+          .then((response) => {
+            expect(response.body).to.have.property('fwcErr').which.is.equal(7000);
+            expect(response.body)
+              .to.have.property('msg')
+              .which.is.equal('FWCloud access not allowed');
+          });
+      });
+
+      it('admin user should not unlock a locked fwcloud by another user', async () => {
+        fwCloud.locked = true;
+        fwCloud.locked_by = 10;
+        fwCloud.lock_session_id = null;
+        await manager.getRepository(FwCloud).save(fwCloud);
+        return await request(app.express)
+          .put('/fwcloud/unlock')
+          .send({ fwcloud: fwCloud.id })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body).to.have.property('result').which.is.false;
+            expect(response.body)
+              .to.have.property('message')
+              .which.is.equal('NOT ACCESS FOR UNLOCKING');
           });
       });
     });
