@@ -198,7 +198,7 @@ export class WireGuard extends Model {
 
   public static delCfgOptAll(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = 'delete from wireGuard_opt where wireGuard=' + req.body.WireGuard;
+      const sql = 'delete from wireguard_opt where wireGuard=' + req.body.WireGuard;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve();
@@ -209,17 +209,17 @@ export class WireGuard extends Model {
   public static delCfg(dbCon, fwcloud, wireGuard): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get all the ipobj referenced by this WireGuard configuration.
-      const sql = `select OBJ.id,OBJ.type from wireGuard_opt OPT
+      const sql = `select OBJ.id,OBJ.type from wireguard_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
                 where OPT.wireGuard=${wireGuard} and OPT.name!='remote'`;
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
-        dbCon.query(`delete from wireGuard_opt where wireGuard=${wireGuard}`, (error, result) => {
+        dbCon.query(`delete from wireguard_opt where wireGuard=${wireGuard}`, (error, result) => {
           if (error) return reject(error);
 
           dbCon.query(
-            `delete from wireGuard_prefix where wireGuard=${wireGuard}`,
+            `delete from wireguard_prefix where wireGuard=${wireGuard}`,
             (error, result) => {
               if (error) return reject(error);
 
@@ -291,7 +291,7 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         const data = result[0];
-        sql = 'select * from wireGuard_opt where wireGuard=' + req.body.wireGuard;
+        sql = 'select * from wireguard_opt where wireGuard=' + req.body.wireGuard;
         req.dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
 
@@ -305,7 +305,7 @@ export class WireGuard extends Model {
   public static getOptData(dbCon, wireGuard, name) {
     return new Promise((resolve, reject) => {
       const sql =
-        'select * from wireGuard_opt where wireGuard=' +
+        'select * from wireguard_opt where wireGuard=' +
         wireGuard +
         ' and name=' +
         dbCon.escape(name);
@@ -347,7 +347,7 @@ export class WireGuard extends Model {
   // Get data of an WireGuard server clients.
   public static getWireGuardClients(dbCon, wireGuard) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.id,CRT.cn,VPN.status from wireGuard VPN 
+      const sql = `select VPN.id,CRT.cn,VPN.status from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where wireGuard=${wireGuard}`;
       dbCon.query(sql, (error, result) => {
@@ -360,7 +360,7 @@ export class WireGuard extends Model {
   // Get data of WireGuard servers of a firewall.
   public static getWireGuardServersByFirewall(dbCon, firewall) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.id,CRT.cn from wireGuard VPN 
+      const sql = `select VPN.id,CRT.cn from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where VPN.firewall=${firewall} and CRT.type=2`;
       dbCon.query(sql, (error, result) => {
@@ -375,9 +375,9 @@ export class WireGuard extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
-                IF(VPN.wireGuard is null,VPN.wireGuard,(select crt.cn from wireGuard inner join crt on crt.id=wireGuard.crt where wireGuard.id=VPN.wireGuard)) as wireGuard_server_cn
+                IF(VPN.wireGuard is null,VPN.wireGuard,(select crt.cn from wireguard inner join crt on crt.id=wireGuard.crt where wireGuard.id=VPN.wireGuard)) as wireGuard_server_cn
                 ${type === 2 ? `,O.netmask` : ``}
-                from wireGuard VPN 
+                from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 inner join firewall FW on FW.id=VPN.firewall
@@ -396,7 +396,7 @@ export class WireGuard extends Model {
 
   public static getWireGuardServersByCloud(dbCon, fwcloud) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.id,CRT.cn from wireGuard VPN 
+      const sql = `select VPN.id,CRT.cn from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and CRT.type=2`; // 2 = Server certificate.
@@ -442,7 +442,7 @@ export class WireGuard extends Model {
         des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         // Get all the configuration options.
-        sql = `select name,ipobj,arg,scope,comment from wireGuard_opt where wireGuard=${wireGuard} order by WireGuard_opt.order`;
+        sql = `select name,ipobj,arg,scope,comment from wireguard_opt where wireGuard=${wireGuard} order by WireGuard_opt.order`;
         dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
 
@@ -546,7 +546,7 @@ export class WireGuard extends Model {
   public static freeVpnIP(req) {
     return new Promise((resolve, reject) => {
       // Search for the VPN LAN and mask.
-      let sql = `select OBJ.address,OBJ.netmask from wireGuard_opt OPT
+      let sql = `select OBJ.address,OBJ.netmask from wireguard_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
                 where OPT.wireGuard=${req.body.wireGuard} and OPT.name='server' and OPT.ipobj is not null`;
       req.dbCon.query(sql, (error, result) => {
@@ -566,7 +566,7 @@ export class WireGuard extends Model {
         const lastLong = IpUtils.toLong(net.lastAddress);
 
         // Obtain the VPN LAN used IPs.
-        sql = `select OBJ.address from wireGuard VPN
+        sql = `select OBJ.address from wireguard VPN
                     inner join wireGuard_opt OPT on OPT.wireGuard=VPN.id
                     inner join ipobj OBJ on OBJ.id=OPT.ipobj
                     where VPN.wireGuard=${req.body.wireGuard} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
@@ -844,7 +844,7 @@ export class WireGuard extends Model {
 
   public static searchWireGuardChild(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.id FROM wireGuard VPN
+      const sql = `SELECT VPN.id FROM wireguard VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
                 WHERE FW.fwcloud=${fwcloud} AND VPN.wireGuard=${wireGuard}`;
       dbCon.query(sql, async (error, result) => {
@@ -859,7 +859,7 @@ export class WireGuard extends Model {
   public static searchIPObjInWireGuardOpt(dbCon, ipobj, name) {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `select WireGuard from wireGuard_opt where ipobj=${ipobj} and name=${dbCon.escape(name)}`,
+        `select WireGuard from wireguard_opt where ipobj=${ipobj} and name=${dbCon.escape(name)}`,
         (error, result) => {
           if (error) return reject(error);
           resolve(result.length < 1 ? false : true);
@@ -871,12 +871,12 @@ export class WireGuard extends Model {
   // Get the ID of all WireGuard configurations who's status field is not zero.
   public static getWireGuardStatusNotZero(req, data) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.id,VPN.status FROM wireGuard VPN
+      const sql = `SELECT VPN.id,VPN.status FROM wireguard VPN
                 INNER JOIN firewall FW on FW.id=VPN.firewall
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
       req.dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
-        data.WireGuard_status = rows;
+        data.wireGuard_status = rows;
         resolve(data);
       });
     });
@@ -896,7 +896,7 @@ export class WireGuard extends Model {
 
   public static removeFromGroup(req) {
     return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM wireGuard__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND wireGuard=${req.body.ipobj}`;
+      const sql = `DELETE FROM wireguard__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND wireGuard=${req.body.ipobj}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);

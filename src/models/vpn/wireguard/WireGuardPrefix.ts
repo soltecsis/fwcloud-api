@@ -174,7 +174,7 @@ export class WireGuardPrefix extends Model {
   // Get all prefixes for the indicated CA.
   public static getOpenvpnClientesUnderPrefix(dbCon, wireGuard, prefix_name): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.id from wireGuard VPN 
+      const sql = `select VPN.id from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where wireGuard=${wireGuard} and CRT.cn LIKE '${prefix_name}%'`;
       dbCon.query(sql, (error, result) => {
@@ -251,7 +251,7 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
-                from wireGuard_prefix P
+                from wireguard_prefix P
                 inner join wireGuard VPN on VPN.id=P.wireGuard
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
@@ -385,7 +385,7 @@ export class WireGuardPrefix extends Model {
 
   public static removePrefixFromGroup(req) {
     return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM wireGuard_prefix__ipobj_g WHERE prefix=${req.body.ipobj} AND ipobj_g=${req.body.ipobj_g}`;
+      const sql = `DELETE FROM wireguard_prefix__ipobj_g WHERE prefix=${req.body.ipobj} AND ipobj_g=${req.body.ipobj_g}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
@@ -418,7 +418,7 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
                 (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name
-                from wireGuard_prefix__ipobj_g P
+                from wireguard_prefix__ipobj_g P
                 inner join wireGuard_prefix PRE on PRE.id=P.prefix
                 inner join ipobj_g G on G.id=P.ipobj_g
                 where G.fwcloud=${fwcloud} and P.prefix=${prefix}`;

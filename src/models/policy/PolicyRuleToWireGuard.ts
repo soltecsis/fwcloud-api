@@ -196,7 +196,7 @@ export class PolicyRuleToWireGuard extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
                 (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name
-                from wireGuard__ipobj_g P
+                from wireguard__ipobj_g P
                 inner join wireGuard VPN on VPN.id=P.wireGuard			
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ipobj_g G on G.id=P.ipobj_g
@@ -211,7 +211,7 @@ export class PolicyRuleToWireGuard extends Model {
   public static getConfigsUnderwireGuardPrefix(dbCon, wireGuard_server_id, prefix_name) {
     return new Promise((resolve, reject) => {
       // Get all WireGuard client configs under an WireGuard configuration server whose CRT common name matches the prefix name.
-      const sql = `select VPN.id from wireGuard VPN
+      const sql = `select VPN.id from wireguard VPN
                 inner join crt CRT on CRT.id=VPN.crt
                 where VPN.wireGuard=${wireGuard_server_id} and CRT.type=1 and CRT.cn like CONCAT(${dbCon.escape(prefix_name)},'%')`;
       dbCon.query(sql, (error, rows) => {
@@ -264,7 +264,7 @@ export class PolicyRuleToWireGuard extends Model {
     return new Promise((resolve, reject) => {
       // Fisrt get all the WireGuard prefixes in groups to which the WireGuard configuration belongs.
       const sql = `select P.prefix, PRE.wireGuard, PRE.name, GR.id group_id, GR.name group_name
-                from wireGuard_prefix__ipobj_g P
+                from wireguard_prefix__ipobj_g P
                 inner join ipobj_g GR on GR.id=P.ipobj_g
                 inner join wireGuard_prefix PRE on PRE.id=P.prefix
                 inner join wireGuard VPN on VPN.wireGuard=PRE.wireGuard
@@ -314,7 +314,7 @@ export class PolicyRuleToWireGuard extends Model {
   public static searchwireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       // Get all the WireGuard prefixes in groups to which the WireGuard configuration belongs.
-      const sql = `select P.ipobj_g from wireGuard_prefix__ipobj_g P
+      const sql = `select P.ipobj_g from wireguard_prefix__ipobj_g P
                 inner join wireGuard_prefix PRE on PRE.id=P.prefix
                 inner join wireGuard VPN on VPN.wireGuard=PRE.wireGuard
                 inner join crt CRT on CRT.id=VPN.crt
