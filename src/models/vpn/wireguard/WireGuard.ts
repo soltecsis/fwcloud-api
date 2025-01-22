@@ -284,7 +284,7 @@ export class WireGuard extends Model {
     });
   }
 
-  public static getCfg(req) {
+  public static getCfg(req): Promise<any> {
     return new Promise((resolve, reject) => {
       let sql = `select * from ${tableName} where id=${req.body.wireGuard}`;
       req.dbCon.query(sql, (error, result) => {
@@ -596,7 +596,7 @@ export class WireGuard extends Model {
     fwcloud: number,
     wireGuard: number,
     extendedSearch?: boolean,
-  ) {
+  ): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
         const search: any = {};
