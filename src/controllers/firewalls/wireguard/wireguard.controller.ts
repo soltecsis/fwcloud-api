@@ -49,7 +49,7 @@ import {
 } from '../../../models/vpn/wireguard/status/wireguard-status-history.service';
 import { GraphQueryDto } from './dtos/graph-query.dto';
 
-export class WireGuardController extends Controller {
+export class FirewallWireGuardController extends Controller {
   protected _wireGuard: WireGuard;
   protected _firewall: Firewall;
   protected _fwCloud: FwCloud;
