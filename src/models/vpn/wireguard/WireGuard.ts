@@ -53,7 +53,7 @@ import { WireGuardStatusHistory } from './status/wireguard-status-history';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 
-const tableName: string = 'WireGuard';
+const tableName: string = 'wireguard';
 
 @Entity(tableName)
 export class WireGuard extends Model {
@@ -156,21 +156,45 @@ export class WireGuard extends Model {
   }
 
   // Insert new WireGuard configuration register in the database.
-  public static addCfg(req) {
-    return new Promise((resolve, reject) => {
-      const cfg = {
-        wireGuard: req.body.wireGuard,
-        firewall: req.body.firewall,
-        crt: req.body.crt,
-        install_dir: req.body.install_dir,
-        install_name: req.body.install_name,
-        comment: req.body.comment,
-        status: 1,
-      };
-      req.dbCon.query(`insert into ${tableName} SET ?`, cfg, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+  public static addCfg(req): Promise<number> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.firewall) {
+          throw new Error("Missing 'firewall' value in the request");
+        }
+        if (!req.crt) {
+          throw new Error("Missing 'crt' value in the request");
+        }
+        if (!req.install_dir) {
+          throw new Error("Missing 'install_dir' value in the request");
+        }
+        if (!req.install_name) {
+          throw new Error("Missing 'install_name' value in the request");
+        }
+
+        const cfg = {
+          firewall: req.firewall,
+          crt: req.crt,
+          install_dir: req.install_dir,
+          install_name: req.install_name,
+          comment: req.comment || null,
+          status: 1,
+        };
+
+        console.log('cfg', cfg);
+
+        await WireGuard.insert(cfg)
+          .then((result) => {
+            console.log('result', result);
+            resolve(result.identifiers[0].id);
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      } catch (error) {
+        console.error('addCfg error:', error);
+        reject(error);
+      }
     });
   }
 
@@ -193,6 +217,16 @@ export class WireGuard extends Model {
         if (error) return reject(error);
         resolve();
       });
+    });
+  }
+
+  public static addPrefix(wireguardId: number, prefix: { name: string }): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `insert into wireGuard_prefix SET wireGuard=${wireguardId}, name=${prefix.name}`;
+      db.getSource()
+        .manager.query(sql)
+        .then((result) => resolve())
+        .catch((error) => reject(error));
     });
   }
 

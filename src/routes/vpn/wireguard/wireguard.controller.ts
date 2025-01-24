@@ -11,6 +11,7 @@ export class WireGuardController extends Controller {
   @Validate()
   async store(req): Promise<ResponseBuilder> {
     try {
+      // Initial validation
       if (
         req.tree_node.node_type !== 'WG' &&
         req.tree_node.node_type !== 'WGS' &&
@@ -18,11 +19,9 @@ export class WireGuardController extends Controller {
       ) {
         throw new Error(fwcError.BAD_TREE_NODE);
       }
-
       if (req.body.wireguard && req.body.wireguard != req.tree_node.id_obj) {
         throw new Error("Information in node tree and in API request don't match");
       }
-
       if (req.crt.type === 1 && !req.body.wireguard) {
         throw new Error(
           'When using client certificates you must indicate the WireGuard server configuration',
@@ -33,28 +32,42 @@ export class WireGuardController extends Controller {
           'When using server certificates you must not indicate the WireGuard server configuration',
         );
       }
-
       if (req.crt.type === 1 && req.crt.ca !== req.wireguard.ca) {
         throw new Error(
-          'CRT for a new client WireGuard configuration must has the same CA that the server OpenVPN configuration to which it belongs',
+          'CRT for a new client WireGuard configuration must has the same CA that the server WireGuard configuration to which it belongs',
         );
       }
-
       if (req.crt.type === 1 && req.body.firewall !== req.wireguard.firewall) {
         throw new Error(
           'Firewall ID for the new client WireGuard configuration must match server WireGuard configuration',
         );
       }
-
-      const newWireguard = await WireGuard.addCfg(req);
-
+      // Create base configuration
+      const newWireguard = await WireGuard.addCfg({
+        wireguard: req.body.wireguard,
+        firewall: req.body.firewall,
+        crt: req.body.crt,
+        install_dir: req.body.install_dir,
+        install_name: req.body.install_name,
+        comment: req.body.comment || null,
+        status: 1, // Default active configuration
+      });
+      console.log('newWireguard', newWireguard);
+      // Insert options
       let order = 1;
       for (const opt of req.body.options) {
+        // Validate option before inserting it
+        if (!opt.name) {
+          throw new Error(`Option is missing the 'name' field.`);
+        }
+
+        // Configure option
         opt.wireguard = newWireguard;
         opt.order = order++;
         await WireGuard.addCfgOpt(req, opt);
       }
 
+      // Create node in tree
       let nodeId;
       if (req.tree_node.node_type === 'WGS') {
         nodeId = await Tree.newNode(
@@ -78,8 +91,12 @@ export class WireGuardController extends Controller {
         );
       }
 
+      // Handle prefixes (if necessary)
       if (req.crt.type === 2) {
-        //TODO: Prefixes
+        const prefixes = req.body.prefixes || [];
+        for (const prefix of prefixes) {
+          await WireGuard.addPrefix(newWireguard, prefix);
+        }
       }
 
       return ResponseBuilder.buildResponse()
