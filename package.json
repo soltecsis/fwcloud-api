@@ -22,7 +22,7 @@
     "lint:check": "npm run lint",
     "lint:fix": "npm run lint -- --fix",
     "prepare": "husky",
-    "dev": "nodemon --watch src --exec \"npm run build && node dist/src/bin/fwcloud\""
+    "dev": "nodemon --ext js,ts --watch src --exec \"npm run build && node dist/src/bin/fwcloud\""
   },
   "dependencies": {
     "archiver": "^7.0.1",
