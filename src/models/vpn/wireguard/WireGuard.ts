@@ -49,6 +49,10 @@ import { WireGuardPrefix } from './WireGuardPrefix';
 import { RoutingRuleToWireGuard } from '../../routing/routing-rule/routing-rule-to-wireguard.model';
 import { RouteToWireGuard } from '../../routing/route/route-to-wireguard.model';
 import { WireGuardStatusHistory } from './status/wireguard-status-history';
+import * as child_process from 'child_process';
+import * as crypto from 'crypto';
+
+const utilsModel = require('../../../utils/utils.js');
 
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
@@ -71,6 +75,12 @@ export class WireGuard extends Model {
 
   @Column()
   status: number;
+
+  @Column({ type: 'varchar', length: 255 })
+  public_key: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  private_key: string;
 
   @Column()
   created_at: Date;
@@ -155,6 +165,22 @@ export class WireGuard extends Model {
     return tableName;
   }
 
+  public static generateKeyPair(): { public_key: string; private_key: string } {
+    try {
+      const privateKey = child_process.execSync('wg genkey').toString('utf-8').trim();
+
+      const publicKey = child_process
+        .execSync(`echo ${privateKey} | wg pubkey`)
+        .toString('utf-8')
+        .trim();
+
+      return { public_key: publicKey, private_key: privateKey };
+    } catch (error) {
+      console.error('Error generating WireGuard key pair:', error);
+      throw new Error('Failed to generate WireGuard key pair');
+    }
+  }
+
   // Insert new WireGuard configuration register in the database.
   public static addCfg(req): Promise<number> {
     return new Promise(async (resolve, reject) => {
@@ -172,6 +198,8 @@ export class WireGuard extends Model {
           throw new Error("Missing 'install_name' value in the request");
         }
 
+        const keys = this.generateKeyPair();
+
         const cfg = {
           firewallId: req.firewall,
           crtId: req.crt,
@@ -179,13 +207,12 @@ export class WireGuard extends Model {
           install_name: req.install_name,
           comment: req.comment || null,
           status: 1,
+          public_key: await utilsModel.encrypt(keys.public_key),
+          private_key: await utilsModel.encrypt(keys.private_key),
         };
-
-        console.log('cfg', cfg);
 
         await this.insert(cfg)
           .then((result) => {
-            console.log('result', result);
             resolve(result.identifiers[0].id);
           })
           .catch((error) => {

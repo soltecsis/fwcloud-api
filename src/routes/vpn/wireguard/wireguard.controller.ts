@@ -52,7 +52,7 @@ export class WireGuardController extends Controller {
         comment: req.body.comment || null,
         status: 1, // Default active configuration
       });
-      console.log('newWireguard', newWireguard);
+
       // Insert options
       let order = 1;
       for (const opt of req.body.options) {
