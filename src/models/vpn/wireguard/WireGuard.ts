@@ -173,8 +173,8 @@ export class WireGuard extends Model {
         }
 
         const cfg = {
-          firewall: req.firewall,
-          crt: req.crt,
+          firewallId: req.firewall,
+          crtId: req.crt,
           install_dir: req.install_dir,
           install_name: req.install_name,
           comment: req.comment || null,
@@ -183,7 +183,7 @@ export class WireGuard extends Model {
 
         console.log('cfg', cfg);
 
-        await WireGuard.insert(cfg)
+        await this.insert(cfg)
           .then((result) => {
             console.log('result', result);
             resolve(result.identifiers[0].id);
