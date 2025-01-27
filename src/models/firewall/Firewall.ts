@@ -99,6 +99,8 @@ export enum PluginsFlags {
   isc_bind9 = 'isc-bind9',
   isc_dhcp = 'isc-dhcp',
   haproxy = 'haproxy',
+  wireguard = 'wireguard',
+  ipsec = 'ipsec',
 }
 
 // Special rules codes.
