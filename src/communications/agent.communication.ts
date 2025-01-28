@@ -320,7 +320,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       // Disable timeout and manage it from the WebSocket events.
       requestConfig.timeout = 0;
 
-      axios
+      await axios
         .post(pathUrl, params, requestConfig)
         .then((_) => {
           const endMessage: ProgressPayload = new ProgressPayload(
@@ -334,10 +334,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             : this.eventEmitterWSClose.on('close', () => eventEmitter.emit('message', endMessage));
         })
         .catch((err) => {
-          eventEmitter.emit(
-            'message',
-            new ProgressPayload('error', false, 'Plugin action failed: ' + err.message),
-          );
           this.handleRequestException(err, eventEmitter);
         });
 
@@ -488,12 +484,22 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
         eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Timeout\n`));
         throw new HttpException(`ECONNABORTED: Timeout`, 400);
-      } else if (
-        error.code === 'ERR_BAD_REQUEST' &&
-        error.message == 'Request failed with status code 400'
-      ) {
-        eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Invalid plugin name\n`));
-        throw new HttpException(`ERR_BAD_REQUEST: Invalid plugin name`, 400);
+      }
+
+      if (error.code === 'ERR_BAD_REQUEST') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ERROR: Bad Request: ${error.response.data.message}\n`),
+        );
+        throw new HttpException(`ERR_BAD_REQUEST: ${error.response.data.message}\n`, 400);
+      }
+
+      if (error.code === 'ERR_BAD_REQUEST') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ERROR: Bad Request: ${error.response.data.message}\n`),
+        );
+        throw new HttpException(`ERR_BAD_REQUEST: ${error.response.data.message}\n`, 400);
       }
 
       if (error.response?.data?.message) {
