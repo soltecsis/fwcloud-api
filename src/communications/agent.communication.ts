@@ -44,6 +44,7 @@ import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
+import { error } from 'console';
 
 type AgentCommunicationData = {
   protocol: 'https' | 'http';
@@ -604,6 +605,14 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
         eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Timeout\n`));
         throw new HttpException(`ECONNABORTED: Timeout`, 400);
+      }
+
+      if (error.code === 'ERR_BAD_REQUEST') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ERROR: Bad Request: ${error.response.data.message}\n`),
+        );
+        throw new HttpException(`ERR_BAD_REQUEST: ${error.response.data.message}\n`, 400);
       }
 
       if (error.code === 'ERR_BAD_REQUEST') {
