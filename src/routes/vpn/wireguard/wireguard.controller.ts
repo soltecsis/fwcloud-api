@@ -52,7 +52,6 @@ export class WireGuardController extends Controller {
         comment: req.body.comment || null,
         status: 1, // Default active configuration
       });
-
       // Insert options
       let order = 1;
       for (const opt of req.body.options) {
@@ -69,7 +68,7 @@ export class WireGuardController extends Controller {
 
       // Create node in tree
       let nodeId;
-      if (req.tree_node.node_type === 'WGS') {
+      if (req.tree_node.node_type === 'WG') {
         nodeId = await Tree.newNode(
           req.dbCon,
           req.body.fwcloud,
@@ -79,7 +78,7 @@ export class WireGuardController extends Controller {
           newWireguard,
           322,
         );
-      } else if (req.tree_node.node_type === 'WGC') {
+      } else if (req.tree_node.node_type === 'WGS') {
         nodeId = await Tree.newNode(
           req.dbCon,
           req.body.fwcloud,
