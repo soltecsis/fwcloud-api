@@ -35,7 +35,7 @@ import Model from '../../Model';
 import { IPObj } from '../../ipobj/IPObj';
 import { WireGuard } from './WireGuard';
 
-const tableName: string = 'wireGuard_opt';
+const tableName: string = 'wireguard_opt';
 
 @Entity(tableName)
 export class WireGuardOption extends Model {
