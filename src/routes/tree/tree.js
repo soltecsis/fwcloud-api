@@ -28,6 +28,7 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
 var fwc_tree_node = require("../../models/tree/node.js");
 
 
@@ -78,6 +79,7 @@ router.put('/firewalls/get', async (req, res) => {
 
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
+		await WireGuard.getWireGuardStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
 
 		res.status(200).json(tree);
