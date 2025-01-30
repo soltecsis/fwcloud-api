@@ -49,8 +49,6 @@ import { WireGuardPrefix } from './WireGuardPrefix';
 import { RoutingRuleToWireGuard } from '../../routing/routing-rule/routing-rule-to-wireguard.model';
 import { RouteToWireGuard } from '../../routing/route/route-to-wireguard.model';
 import { WireGuardStatusHistory } from './status/wireguard-status-history';
-import * as child_process from 'child_process';
-import * as crypto from 'crypto';
 
 const utilsModel = require('../../../utils/utils.js');
 
@@ -59,6 +57,7 @@ const fs = require('fs');
 
 const tableName: string = 'wireguard';
 
+const sodium = require('libsodium-wrappers');
 @Entity(tableName)
 export class WireGuard extends Model {
   @PrimaryGeneratedColumn()
@@ -165,20 +164,21 @@ export class WireGuard extends Model {
     return tableName;
   }
 
-  public static generateKeyPair(): { public_key: string; private_key: string } {
-    try {
-      const privateKey = child_process.execSync('wg genkey').toString('utf-8').trim();
+  public static async generateKeyPair(): Promise<{ public_key: string; private_key: string }> {
+    // Ensure the library is initialized
+    await sodium.ready;
 
-      const publicKey = child_process
-        .execSync(`echo ${privateKey} | wg pubkey`)
-        .toString('utf-8')
-        .trim();
+    // Generate a private key (32 random bytes)
+    const privateKey = sodium.randombytes_buf(sodium.crypto_box_SECRETKEYBYTES);
 
-      return { public_key: publicKey, private_key: privateKey };
-    } catch (error) {
-      console.error('Error generating WireGuard key pair:', error);
-      throw new Error('Failed to generate WireGuard key pair');
-    }
+    // Derive the public key from the private key
+    const publicKey = sodium.crypto_scalarmult_base(privateKey);
+
+    // Convert to Base64
+    const privateKeyBase64 = sodium.to_base64(privateKey);
+    const publicKeyBase64 = sodium.to_base64(publicKey);
+
+    return { public_key: publicKeyBase64, private_key: privateKeyBase64 };
   }
 
   // Insert new WireGuard configuration register in the database.
@@ -198,7 +198,7 @@ export class WireGuard extends Model {
           throw new Error("Missing 'install_name' value in the request");
         }
 
-        const keys = this.generateKeyPair();
+        const keys = await this.generateKeyPair();
 
         const cfg = {
           firewallId: req.firewall,
