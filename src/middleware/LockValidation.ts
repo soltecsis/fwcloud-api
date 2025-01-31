@@ -49,7 +49,8 @@ export class LockValidation extends Middleware {
             if (accessResult.mylock) {
               return next();
             } else {
-              throw new Error(fwcError.ACC_FWCLOUD_LOCK.msg);
+              // eslint-disable-next-line @typescript-eslint/only-throw-error
+              throw fwcError.ACC_FWCLOUD_LOCK;
             }
           }
 
