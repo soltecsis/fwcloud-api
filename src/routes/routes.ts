@@ -139,6 +139,12 @@ export class Routes extends RouteCollection {
           router
             .get('/status/get', WireGuardController, 'getStatus')
             .name('vpn.wireguard.status.get');
+          router
+            .get('/config/filename', WireGuardController, 'getConfigFilename')
+            .name('vpn.wireguard.config.filename');
+          router
+            .get('/clients/get', WireGuardController, 'getClients')
+            .name('vpn.wireguard.clients.get');
         });
       });
 

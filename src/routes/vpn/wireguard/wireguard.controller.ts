@@ -234,4 +234,26 @@ export class WireGuardController extends Controller {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
+
+  async getConfigFilename(req): Promise<ResponseBuilder> {
+    try {
+      const data = await WireGuard.getConfigFilename(
+        req.dbCon,
+        req.body.fwcloud,
+        req.body.wireguard,
+      );
+      return ResponseBuilder.buildResponse().status(200).body(data);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
+
+  async getClients(req): Promise<ResponseBuilder> {
+    try {
+      const data = await WireGuard.getWireGuardClients(req.dbCon, req.body.fwcloud);
+      return ResponseBuilder.buildResponse().status(200).body(data);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
 }
