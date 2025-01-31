@@ -24,7 +24,6 @@ import { Middleware } from '../fonaments/http/middleware/Middleware';
 import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/user/User';
 import StringHelper from '../utils/string.helper';
-import { Repository } from 'typeorm';
 import { logger } from '../fonaments/abstract-application';
 
 export class ConfirmationToken extends Middleware {
@@ -72,9 +71,7 @@ export class ConfirmationToken extends Middleware {
       // The component used in fwcloud-ui for select the file needed in the next two api calls
       // doesn't allows confirmation token management.
       (req.method === 'POST' && req.path === '/fwclouds/import') ||
-      (req.method === 'POST' && req.path === '/backups/import') ||
-      (req.method === 'PUT' && req.url === '/fwcloud/lock') ||
-      (req.method === 'PUT' && req.url === '/fwcloud/unlock')
+      (req.method === 'POST' && req.path === '/backups/import')
     ) {
       return false;
     }
