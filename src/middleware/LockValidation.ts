@@ -3,7 +3,6 @@ import { Middleware } from '../fonaments/http/middleware/Middleware';
 import { FwCloud, Lock } from '../models/fwcloud/FwCloud';
 import fwcError from '../utils/error_table';
 import { logger } from '../fonaments/abstract-application';
-const utilsModel = require('../utils/utils');
 
 export class LockValidation extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {

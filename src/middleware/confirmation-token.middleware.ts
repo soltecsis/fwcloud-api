@@ -72,7 +72,9 @@ export class ConfirmationToken extends Middleware {
       // The component used in fwcloud-ui for select the file needed in the next two api calls
       // doesn't allows confirmation token management.
       (req.method === 'POST' && req.path === '/fwclouds/import') ||
-      (req.method === 'POST' && req.path === '/backups/import')
+      (req.method === 'POST' && req.path === '/backups/import') ||
+      (req.method === 'PUT' && req.url === '/fwcloud/lock') ||
+      (req.method === 'PUT' && req.url === '/fwcloud/unlock')
     ) {
       return false;
     }
