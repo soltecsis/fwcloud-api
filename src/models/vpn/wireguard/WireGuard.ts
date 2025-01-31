@@ -1085,4 +1085,31 @@ export class WireGuard extends Model {
       );
     });
   }
+
+  public static getConfigFilename(dbCon, fwcloud, wireGuard) {
+    return new Promise((resolve, reject) => {
+      const sql = `select install_dir from wireguard`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        if (!result.length) return resolve('wg0.conf');
+
+        const usedNumbers = result
+          .map((row) => {
+            row.install_name;
+          })
+          .filter((name) => /^wg\d+\.conf$/.test(name))
+          .map((name) => parseInt(name.match(/\d+/)[0]))
+          .sort((a, b) => a - b);
+
+        let nextNumber = 0;
+        for (const number of usedNumbers) {
+          if (number !== nextNumber) break;
+          nextNumber++;
+        }
+
+        const newFilename = `wg${nextNumber}.conf`;
+        resolve(newFilename);
+      });
+    });
+  }
 }
