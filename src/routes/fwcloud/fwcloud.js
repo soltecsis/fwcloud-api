@@ -358,33 +358,31 @@ router.put('/lock', async (req, res) => {
  *         ]
  *       };
  */
-router.put('/unlock', (req, res) => {
-	//Save fwcloud data into object
+router.put('/unlock', async (req, res) => {
+	// Save fwcloud data into object
 	const fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
-	FwCloud.updateFwcloudUnlock(fwcloudData)
-		.then(data => {
-			if (data.result) {
-				logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  UNLOCKED BY USER: " + fwcloudData.iduser);
-				res.status(200).json({
-					result: true,
-					message: 'FWCLOUD UNLOCKED OK',
-				});
-			} else {
-				logger().info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-				res.status(200).json({
-					result: false,
-					message: 'NOT ACCESS FOR UNLOCKING',
-				});
-			}
-		})
-		.catch(error => {
-			logger().info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+	try {
+		const data = await FwCloud.updateFwcloudUnlock(fwcloudData);
+		if (data.result) {
+			logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  UNLOCKED BY USER: " + fwcloudData.iduser);
+			res.status(200).json({
+				result: true,
+				message: 'FWCLOUD UNLOCKED OK',
+			});
+		} else {
+			logger().info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
 			res.status(200).json({
 				result: false,
-				message: 'ERROR UNLOCKING: ' + error,
+				message: 'NOT ACCESS FOR UNLOCKING',
 			});
+		}
+	} catch (error) {
+		logger().info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+		res.status(200).json({
+			result: false,
+			message: 'ERROR UNLOCKING: ' + error,
 		});
-
+	}
 });
 
 /* Get locked Status of fwcloud by Id */

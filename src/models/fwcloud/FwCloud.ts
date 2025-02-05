@@ -1,23 +1,23 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-	https://soltecsis.com
-	info@soltecsis.com
+  Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  https://soltecsis.com
+  info@soltecsis.com
 
 
-	This file is part of FWCloud (https://fwcloud.net).
+  This file is part of FWCloud (https://fwcloud.net).
 
-	FWCloud is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Affero General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+  FWCloud is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-	FWCloud is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+  FWCloud is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Model from '../Model';
@@ -495,52 +495,87 @@ export class FwCloud extends Model {
   }
 
   /**
-   * Check Fwcloud locked timeout
+   * Checks if the lock on the FwCloud instance has timed out and unlocks it if necessary.
    *
-   * @method getFwcloudLockedTimeout
+   * This method performs the following steps:
+   * 1. Queries the database to check if the FwCloud instance is locked.
+   * 2. If locked, it checks if the session file associated with the lock exists.
+   * 3. If the session file exists, it reads the file to determine if the lock has expired based on the keepalive timestamp.
+   * 4. If the lock has expired or the session file does not exist, it updates the database to unlock the FwCloud instance.
    *
-   * @param {Function} callback    Function callback response
-   *
-   *       callback(error, Rows)
-   *
-   * @return {Boolean} Returns `RESULT UNLOCKED`
-   *
+   * @param fwcloudId - The ID of the FwCloud instance to check.
+   * @returns A promise that resolves when the check is complete.
+   * @throws An error if there is an issue with the database query, file system operations, or JSON parsing.
    */
-  public static checkFwcloudLockTimeout(timeout, callback) {
+  static async checkFwcloudLockTimeout(fwcloudId: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
-        if (error) return reject(false);
+      const locked = 1;
+      const unlocked = 0;
+
+      db.get(async (error, connection) => {
+        if (error) return reject(error);
+
         const sql = `
-          SELECT TIMESTAMPDIFF(MINUTE, updated_at, NOW()) AS dif, C.* 
-          FROM ${tableName} C 
-          WHERE C.locked = 1 
-          HAVING dif > ${timeout}
+          SELECT lock_session_id 
+          FROM ${tableName} 
+          WHERE id = ${connection.escape(fwcloudId)} 
+          AND locked = ${connection.escape(locked)}
         `;
-        connection.query(sql, (error, rows) => {
-          if (error) reject(false);
-          else if (rows && rows.length > 0) {
-            //UNLOCK ALL
-            for (let i = 0; i < rows.length; i++) {
-              const row = rows[i];
-              const sqlupdate = 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
-              connection.query(sqlupdate, (error, result) => {
-                logger().info(
-                  '-----> UNLOCK FWCLOUD: ' +
-                    row.id +
-                    ' BY TIMEOT INACTIVITY of ' +
-                    row.dif +
-                    '  Min LAST UPDATE: ' +
-                    row.updated_at +
-                    '  LAST LOCK: ' +
-                    row.locked_at +
-                    '  BY: ' +
-                    row.locked_by,
-                );
+
+        connection.query(sql, async (error, result) => {
+          if (error) return reject(error);
+          if (result.length === 0) return resolve();
+
+          const sessionFilePath = path.join(
+            app().config.get('session').files_path,
+            result[0].lock_session_id + '.json',
+          );
+
+          try {
+            const exists = await fs.pathExists(sessionFilePath);
+            const sqlUpdate = `
+              UPDATE ${tableName}
+              SET locked = ${connection.escape(unlocked)}
+              WHERE id = ${connection.escape(fwcloudId)}
+            `;
+
+            if (exists) {
+              logger().info(`Checking lock timeout for session ${sessionFilePath}`);
+
+              fs.readFile(sessionFilePath, 'utf8', (err, data) => {
+                if (err) return reject(err);
+
+                try {
+                  const sessionData = JSON.parse(data);
+                  const elapsed_ms: number = Date.now() - sessionData.keepalive_ts;
+                  const keepalive_ms: number = app().config.get('session').keepalive_ms;
+
+                  if (elapsed_ms > keepalive_ms) {
+                    logger().info(
+                      `Session file ${sessionFilePath} has expired, unlocking FwCloud ${fwcloudId}`,
+                    );
+                    connection.query(sqlUpdate, (err, result) => {
+                      if (err) return reject(err);
+                      resolve();
+                    });
+                  } else {
+                    resolve();
+                  }
+                } catch (parseError) {
+                  reject(parseError);
+                }
+              });
+            } else {
+              logger().info(
+                `Session file ${sessionFilePath} not found, unlocking FwCloud ${fwcloudId}`,
+              );
+              connection.query(sqlUpdate, (err, result) => {
+                if (err) return reject(err);
+                resolve();
               });
             }
-            resolve(true);
-          } else {
-            reject(false);
+          } catch (fsError) {
+            reject(fsError);
           }
         });
       });
@@ -624,7 +659,9 @@ export class FwCloud extends Model {
    *
    */
   public static updateFwcloudLock(fwcloudData): Promise<{ result: boolean; lockByUser?: string }> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      await FwCloud.checkFwcloudLockTimeout(fwcloudData.fwcloud);
+
       const locked = 1;
       db.get((error, connection) => {
         if (error) return reject(error);
