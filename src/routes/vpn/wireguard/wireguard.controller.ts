@@ -168,13 +168,16 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getInfo(req): Promise<ResponseBuilder> {
     try {
+      const wireguardRecord = await WireGuard.getCfg(req);
+
       const data = await WireGuard.getWireGuardInfo(
         req.dbCon,
         req.body.fwcloud,
         req.body.wireguard,
-        req.wireguard.type,
+        wireguardRecord.type,
       );
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {

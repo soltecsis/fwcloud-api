@@ -281,6 +281,12 @@ schema.validate = req => {
 					|| req.path==='/vpn/openvpn/info/get' || req.path==='/vpn/openvpn/where') {
 				schema = schema.append({ openvpn: sharedSch.id });
 			}
+			else if (req.path === '/vpn/wireguard/get' || req.path === '/vpn/wireguard/del'
+					|| req.path === '/vpn/wireguard/ip/get' || req.path === '/vpn/wireguard/ipobj/get'
+					|| req.path === '/vpn/wireguard/restricted' || req.path === '/vpn/wireguard/file/get'
+					|| req.path === '/vpn/wireguard/info/get' || req.path === '/vpn/wireguard/where') {
+						schema = schema.append({ wireguard: sharedSch.id });
+			}
 			else if (req.path==='/vpn/openvpn/firewall/get') 
 				schema = schema.append({ firewall: sharedSch.id });
 		} else return reject(fwcError.BAD_API_CALL);

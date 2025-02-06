@@ -347,12 +347,12 @@ export class WireGuard extends Model {
 
   public static getCfg(req): Promise<any> {
     return new Promise((resolve, reject) => {
-      let sql = `select * from ${tableName} where id=${req.body.wireGuard}`;
+      let sql = `select * from ${tableName} where id=${req.body.wireguard}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
         const data = result[0];
-        sql = 'select * from wireguard_opt where wireguard=' + req.body.wireGuard;
+        sql = 'select * from wireguard_opt where wireguard=' + req.body.wireguard;
         req.dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
 
@@ -448,7 +448,7 @@ export class WireGuard extends Model {
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         for (let i = 0; i < result.length; i++) {
-          result[i].type = type === 1 ? 311 : 312;
+          result[i].type = type === 1 ? 321 : 322;
         }
         resolve(result);
       });
