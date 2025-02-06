@@ -159,6 +159,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getIp(req): Promise<ResponseBuilder> {
     try {
       const freeIP = await WireGuard.freeVpnIP(req);

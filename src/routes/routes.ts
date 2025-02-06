@@ -121,7 +121,7 @@ export class Routes extends RouteCollection {
           router.get('/get', WireGuardController, 'get').name('vpn.wireguard.get');
           router.get('/file/get', WireGuardController, 'getFile').name('vpn.wireguard.file.get');
           router.get('/ipobj/get', WireGuardController, 'getIpObj').name('vpn.wireguard.ipobj.get');
-          router.get('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
+          router.put('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
           router.put('/info/get', WireGuardController, 'getInfo').name('vpn.wireguard.info.get');
           router
             .get('/firewall/get', WireGuardController, 'getFirewall')
