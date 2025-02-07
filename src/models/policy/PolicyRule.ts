@@ -276,6 +276,17 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
+            union select R.rule, R.position, VPN.id, CRT.cn, "321" as type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__wireguard R
+            inner join wireguard VPN on VPN.id=R.wireguard
+            inner join crt CRT ON CRT.id=VPN.crt
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=VPN.firewall  
+            left join cluster CL on CL.id=FW.cluster  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
             union select R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
             from policy_r__openvpn_prefix R 

@@ -291,7 +291,7 @@ export class IPObjGroup extends Model {
             try {
               if (obj.type === 'O')
                 ipobj_node = new ipobj_Data((await IPObj.getIpobj(dbCon, fwcloud, obj.id))[0]);
-              else if (obj.type === 'VPN')
+              else if (obj.type === 'OPN')
                 ipobj_node = new ipobj_Data(
                   (await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, obj.id, 1))[0],
                 );

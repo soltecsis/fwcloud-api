@@ -32,7 +32,7 @@ export class WireGuardPrefixService extends Service {
     if (
       search.result &&
       (
-        await WireGuardPrefix.getOpenvpnClientesUnderPrefix(
+        await WireGuardPrefix.getWireGuardClientsUnderPrefix(
           req.dbCon,
           (req as any).prefix.wireGuard,
           req.body.name,
@@ -60,7 +60,7 @@ export class WireGuardPrefixService extends Service {
       .set({
         name: req.body.name,
       })
-      .where('node_type = :type', { type: 'PRO' })
+      .where('node_type = :type', { type: 'PRW' }) //TODO: REVISAR PREFIX WIREGUARD
       .andWhere('id_obj = :id', { id: req.body.prefix })
       .execute();
 
