@@ -1088,15 +1088,13 @@ export class WireGuard extends Model {
 
   public static getConfigFilename(dbCon) {
     return new Promise((resolve, reject) => {
-      const sql = `select install_dir from wireguard`;
+      const sql = `select install_name from wireguard`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         if (!result.length) return resolve('wg0.conf');
 
         const usedNumbers = result
-          .map((row) => {
-            row.install_name;
-          })
+          .map((row) => row.install_name)
           .filter((name) => /^wg\d+\.conf$/.test(name))
           .map((name) => parseInt(name.match(/\d+/)[0]))
           .sort((a, b) => a - b);
