@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -47,9 +47,6 @@ const tableName: string = 'wireGuard_prefix';
 
 @Entity(tableName)
 export class WireGuardPrefix extends Model {
-  static getWireGuardClientPrefixes(dbCon: any, wireGuard: number) {
-    throw new Error('Method not implemented.');
-  }
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -172,7 +169,7 @@ export class WireGuardPrefix extends Model {
   }
 
   // Get all prefixes for the indicated CA.
-  public static getOpenvpnClientesUnderPrefix(dbCon, wireGuard, prefix_name): Promise<unknown[]> {
+  public static getWireGuardClientsUnderPrefix(dbCon, wireGuard, prefix_name): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
@@ -185,7 +182,7 @@ export class WireGuardPrefix extends Model {
   }
 
   // Get all prefixes that match the indicated WireGuard client.
-  public static getOpenvpnClientPrefixes(
+  public static getWireGuardClientPrefixes(
     dbCon: any,
     wireGuard: number,
   ): Promise<{ id: number; name: string }[]> {
@@ -214,14 +211,14 @@ export class WireGuardPrefix extends Model {
   }
 
   // Activate the compile/install flags of all the firewalls that use prefixes that contains the WireGuard.
-  public static updateOpenvpnClientPrefixesFWStatus(
+  public static updateWireGuardClientPrefixesFWStatus(
     dbCon: any,
     fwcloud: number,
     wireGuard: number,
   ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const prefixMatch = await WireGuardPrefix.getOpenvpnClientPrefixes(dbCon, wireGuard);
+        const prefixMatch = await WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
         for (let i = 0; i < prefixMatch.length; i++) {
           const search: any = await WireGuardPrefix.searchPrefixUsage(
             dbCon,
@@ -247,7 +244,7 @@ export class WireGuardPrefix extends Model {
   }
 
   // Get information about a prefix used in an WireGuard server configuration.
-  public static getPrefixOpenvpnInfo(dbCon, fwcloud, prefix) {
+  public static getPrefixWireGuardInfo(dbCon, fwcloud, prefix) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
@@ -264,7 +261,7 @@ export class WireGuardPrefix extends Model {
         result[0].type = 401;
         result[0].wireGuard_clients = [];
         try {
-          const wireGuard_clients: any = await this.getOpenvpnClientesUnderPrefix(
+          const wireGuard_clients: any = await this.getWireGuardClientsUnderPrefix(
             dbCon,
             result[0].wireGuard,
             result[0].name,
@@ -307,12 +304,12 @@ export class WireGuardPrefix extends Model {
             fwcloud,
             prefix_name,
             parent,
-            'PRO',
+            'PRW', // TODO: REVISAR PREFIX WIREGUARD
             prefix_id,
             401,
           );
           for (const row of result)
-            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'OCL', row.id, 311);
+            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'WGC', row.id, 321);
         } catch (error) {
           return reject(error);
         }
@@ -320,7 +317,7 @@ export class WireGuardPrefix extends Model {
         if (result.length === 0) return resolve();
 
         // Remove from WireGuard server node the nodes that match de prefix.
-        sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=311 AND name LIKE '${prefix}%'`;
+        sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=321 AND name LIKE '${prefix}%'`;
         dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
           resolve();
@@ -346,9 +343,9 @@ export class WireGuardPrefix extends Model {
             fwcloud,
             wireGuard_cli.cn,
             node_id,
-            'OCL',
+            'WGC',
             wireGuard_cli.id,
-            311,
+            321,
           );
         }
 

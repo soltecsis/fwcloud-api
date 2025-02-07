@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -107,7 +107,7 @@ export class PolicyRuleToWireGuard extends Model {
   public static checkwireGuardPosition(dbCon, position) {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `select type from ipobj_type__policy_position where type=311 and position=${position}`,
+        `select type from ipobj_type__policy_position where type=321 and position=${position}`,
         (error, rows) => {
           if (error) return reject(error);
           resolve(rows.length > 0 ? 1 : 0);
@@ -174,7 +174,7 @@ export class PolicyRuleToWireGuard extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
                 O.wireGuard obj_id, CRT.cn obj_name,
-                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=311) as obj_type_id,
+                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
             from policy_r__wireGuard O
@@ -195,7 +195,7 @@ export class PolicyRuleToWireGuard extends Model {
   public static searchwireGuardInGroup(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
-                (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name
+                (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name
                 from wireguard__ipobj_g P
                 inner join wireGuard VPN on VPN.id=P.wireGuard			
                 inner join crt CRT on CRT.id=VPN.crt
@@ -224,7 +224,7 @@ export class PolicyRuleToWireGuard extends Model {
   public static searchLastwireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the WireGuard prefixes in rules to which the WireGuard configuration belongs.
-      const sql = `select P.rule rule_id, P.prefix, PRE.wireGuard, PRE.name, R.type rule_type, (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name,
+      const sql = `select P.rule rule_id, P.prefix, PRE.wireGuard, PRE.name, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name,
                 PT.name rule_type_name, P.position rule_position_id, PP.name rule_position_name, R.firewall firewall_id, F.name firewall_name,
                 F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
                 from policy_r__wireGuard_prefix P

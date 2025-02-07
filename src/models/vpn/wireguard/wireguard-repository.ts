@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -50,7 +50,7 @@ export class WireGuardRepository extends Repository<WireGuard> {
     let query = this.createQueryBuilder('vpn')
       .select('vpn.id', 'id')
       .addSelect('crt.cn', 'name')
-      .addSelect('(select id from ipobj_type where id=311)', 'type')
+      .addSelect('(select id from ipobj_type where id=321)', 'type')
       .addSelect('vpnFirewall.id', 'firewall_id')
       .addSelect('vpnFirewall.name', 'firewall_name')
       .addSelect('vpnCluster.id', 'cluster_id')
