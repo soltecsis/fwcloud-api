@@ -1086,7 +1086,7 @@ export class WireGuard extends Model {
     });
   }
 
-  public static getConfigFilename(dbCon, fwcloud, wireGuard) {
+  public static getConfigFilename(dbCon) {
     return new Promise((resolve, reject) => {
       const sql = `select install_dir from wireguard`;
       dbCon.query(sql, (error, result) => {

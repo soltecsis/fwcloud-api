@@ -239,13 +239,10 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getConfigFilename(req): Promise<ResponseBuilder> {
     try {
-      const data = await WireGuard.getConfigFilename(
-        req.dbCon,
-        req.body.fwcloud,
-        req.body.wireguard,
-      );
+      const data = await WireGuard.getConfigFilename(req.dbCon);
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
