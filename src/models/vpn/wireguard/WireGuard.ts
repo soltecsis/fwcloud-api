@@ -630,7 +630,7 @@ export class WireGuard extends Model {
         sql = `select OBJ.address from wireguard VPN
                     inner join wireguard_opt OPT on OPT.wireguard=VPN.id
                     inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                    where VPN.wireguard=${req.body.wireGuard} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
+                    where VPN.wireguard=${req.body.wireguard} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
         req.dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
 
