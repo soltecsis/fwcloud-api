@@ -139,7 +139,6 @@ export class FwCloudFactory {
         name: StringHelper.randomize(10),
         locked: false,
         locked_by: null,
-        lock_session_id: null,
       }),
     );
 

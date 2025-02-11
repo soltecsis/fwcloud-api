@@ -24,7 +24,6 @@ describe(describeName('Ca Service Unit Test'), () => {
         name: 'fwcloudTest',
         locked: false,
         locked_by: null,
-        lock_session_id: null,
       }),
     );
     ca = await manager.getRepository(Ca).save(

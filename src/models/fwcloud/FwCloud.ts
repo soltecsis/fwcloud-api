@@ -82,7 +82,7 @@ export class FwCloud extends Model {
   locked_at: Date;
 
   @Column()
-  locked_by: number;
+  locked_by: string;
 
   @Column()
   locked: boolean;
@@ -92,9 +92,6 @@ export class FwCloud extends Model {
 
   @Column()
   comment: string;
-
-  @Column()
-  lock_session_id: string;
 
   @ManyToMany((type) => User, (user) => user.fwClouds)
   @JoinTable({
@@ -434,11 +431,7 @@ export class FwCloud extends Model {
           else if (row && row.length > 0) {
             //logger().debug(row[0]);
             logger().debug('IDUSER: ' + iduser);
-            if (
-              row[0].locked === 1 &&
-              Number(row[0].locked_by) === Number(iduser) &&
-              row[0].lock_session_id === lock_session_id
-            ) {
+            if (row[0].locked === 1 && row[0].locked_by === lock_session_id) {
               //Access OK, LOCKED by USER
               resolve({
                 access: true,
@@ -447,21 +440,8 @@ export class FwCloud extends Model {
                 locked_by: row[0].locked_by,
                 mylock: true,
               });
-            } else if (
-              row[0].locked === 1 &&
-              Number(row[0].locked_by) === Number(iduser) &&
-              row[0].lock_session_id !== lock_session_id
-            ) {
-              //Access OK, LOCKED by SAME USER but DIFFERENT SESSION
-              resolve({
-                access: true,
-                locked: true,
-                locked_at: row[0].locked_at,
-                locked_by: row[0].locked_by,
-                mylock: false,
-              });
-            } else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser)) {
-              //Access OK, LOCKED by OTHER USER
+            } else if (row[0].locked === 1 && row[0].locked_by !== lock_session_id) {
+              //Access OK, LOCKED by ANOTHER USER or SESSION
               resolve({
                 access: true,
                 locked: true,
@@ -516,7 +496,7 @@ export class FwCloud extends Model {
         if (error) return reject(error);
 
         const sql = `
-          SELECT lock_session_id 
+          SELECT locked_by
           FROM ${tableName} 
           WHERE id = ${connection.escape(fwcloudId)} 
           AND locked = ${connection.escape(locked)}
@@ -528,7 +508,7 @@ export class FwCloud extends Model {
 
           const sessionFilePath = path.join(
             app().config.get('session').files_path,
-            result[0].lock_session_id + '.json',
+            result[0].locked_by + '.json',
           );
 
           try {
@@ -658,7 +638,9 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static updateFwcloudLock(fwcloudData): Promise<{ result: boolean; lockByUser?: string }> {
+  public static updateFwcloudLock(
+    fwcloudData,
+  ): Promise<{ result: boolean; lockByUser?: string; lockedAt?: string }> {
     return new Promise(async (resolve, reject) => {
       await FwCloud.checkFwcloudLockTimeout(fwcloudData.fwcloud);
 
@@ -670,7 +652,7 @@ export class FwCloud extends Model {
         const sqlExists = `
           SELECT id FROM ${tableName}
           WHERE id = ${connection.escape(fwcloudData.fwcloud)}
-          AND (locked=0 OR (locked=1 AND locked_by=${connection.escape(fwcloudData.iduser)} AND lock_session_id=${connection.escape(fwcloudData.lock_session_id)}))
+          AND (locked=0 OR (locked=1 AND locked_by=${connection.escape(fwcloudData.lock_session_id)}))
         `;
 
         connection.query(sqlExists, (error, row) => {
@@ -681,18 +663,20 @@ export class FwCloud extends Model {
               INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=${connection.escape(fwcloudData.iduser)}
               WHERE C.id = ${connection.escape(fwcloudData.fwcloud)}
             `;
-            logger().debug(sqlExists);
+            //logger().debug(sqlExists);
             connection.query(sqlExists, (error, row) => {
+              if (error) {
+                return reject(error);
+              }
               if (row && row.length > 0) {
                 const sql = `
                   UPDATE ${tableName}
                   SET locked = ${connection.escape(locked)},
                   locked_at = CURRENT_TIMESTAMP,
-                  locked_by = ${connection.escape(fwcloudData.iduser)},
-                  lock_session_id = ${connection.escape(fwcloudData.lock_session_id)}
+                  locked_by = ${connection.escape(fwcloudData.lock_session_id)}
                   WHERE id = ${fwcloudData.fwcloud}
                 `;
-                logger().debug(sql);
+                //logger().debug(sql);
                 connection.query(sql, (error, result) => {
                   if (error) {
                     reject(error);
@@ -705,26 +689,41 @@ export class FwCloud extends Model {
               }
             });
           } else {
-            const sqlCheckSession = `
-              SELECT id FROM ${tableName}
+            const sqlLockedBy = `
+              SELECT locked_by, locked_at FROM ${tableName}
               WHERE id = ${connection.escape(fwcloudData.fwcloud)}
-              AND locked=1 AND locked_by=${connection.escape(fwcloudData.iduser)}
+              AND locked = ${connection.escape(locked)}
             `;
 
-            connection.query(sqlCheckSession, (error, row) => {
-              if (row && row.length > 0) {
-                // User is the same but with different sessions
-                resolve({ result: false, lockByUser: 'another session with the same user' });
-              } else {
-                // User is different
-                const sqlUser = `SELECT username FROM user INNER JOIN user__fwcloud ON user.id=user__fwcloud.user INNER JOIN ${tableName} ON ${tableName}.locked_by=user.id WHERE user__fwcloud.fwcloud=${fwcloudData.fwcloud}`;
-                connection.query(sqlUser, (error, userRow) => {
-                  if (userRow && userRow.length > 0) {
-                    resolve({ result: false, lockByUser: userRow[0].username });
-                  } else {
-                    resolve({ result: false });
+            connection.query(sqlLockedBy, async (error, row) => {
+              if (error) {
+                return reject(error);
+              } else if (row && row.length > 0) {
+                const sessionFilePath = path.join(
+                  app().config.get('session').files_path,
+                  row[0].locked_by + '.json',
+                );
+
+                try {
+                  const exists = await fs.pathExists(sessionFilePath);
+                  if (exists) {
+                    fs.readFile(sessionFilePath, 'utf8', (err, data) => {
+                      if (err) return reject(err);
+                      try {
+                        const sessionData = JSON.parse(data);
+                        resolve({
+                          result: false,
+                          lockByUser: sessionData.username,
+                          lockedAt: row[0].locked_at,
+                        });
+                      } catch (fsError) {
+                        reject(fsError);
+                      }
+                    });
                   }
-                });
+                } catch (fsError) {
+                  reject(fsError);
+                }
               }
             });
           }
@@ -765,11 +764,14 @@ export class FwCloud extends Model {
       const unlocked = 0;
       db.get((error, connection) => {
         if (error) reject(error);
-        const sqlExists = `SELECT id FROM ${tableName} WHERE id = ${connection.escape(fwcloudData.id)} AND (locked=${connection.escape(locked)} AND locked_by=${connection.escape(fwcloudData.iduser)} AND lock_session_id=${connection.escape(fwcloudData.lock_session_id)})`;
+        const sqlExists = `SELECT id FROM ${tableName} WHERE id = ${connection.escape(fwcloudData.id)} AND (locked=${connection.escape(locked)} AND locked_by=${connection.escape(fwcloudData.lock_session_id)})`;
         connection.query(sqlExists, (error, row) => {
+          if (error) {
+            reject(error);
+          }
           //If exists Id from fwcloud to remove
           if (row && row.length > 0) {
-            const sql = `UPDATE ${tableName} SET locked = ${connection.escape(unlocked)}, locked_by = ${connection.escape(fwcloudData.iduser)}, lock_session_id = ${connection.escape(fwcloudData.lock_session_id)} WHERE id = ${fwcloudData.id}`;
+            const sql = `UPDATE ${tableName} SET locked = ${connection.escape(unlocked)}, locked_by = null WHERE id = ${fwcloudData.id}`;
 
             connection.query(sql, (error, result) => {
               if (error) {

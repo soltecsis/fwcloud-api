@@ -73,7 +73,6 @@ describe(describeName('Model Unit Tests'), () => {
       'locked',
       'image',
       'comment',
-      'lock_session_id',
     ]);
   });
 

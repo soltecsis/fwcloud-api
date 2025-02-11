@@ -306,14 +306,15 @@ router.put('/lock', async (req, res) => {
         } else {
             logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
             channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'error', 'NOT ACCESS FOR LOCKING'));
-            return res.status(200).json({
-                result: false,
-                message: 'NOT ACCESS FOR LOCKING',
-                info: {
-                    locked_by: data.lockByUser,
-                    ip_user: req.socket.remoteAddress
-                }
-            });
+			return res.status(200).json({
+				result: false,
+				message: 'NOT ACCESS FOR LOCKING',
+				info: {
+					locked_by: data.lockByUser,
+					ip_user: req.socket.remoteAddress,
+					locked_at: data.lockedAt,
+				}
+			});
         }
     } catch (error) {
         logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
@@ -364,7 +365,7 @@ router.put('/unlock', async (req, res) => {
 	try {
 		const data = await FwCloud.updateFwcloudUnlock(fwcloudData);
 		if (data.result) {
-			logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  UNLOCKED BY USER: " + fwcloudData.iduser);
+			logger().info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
 			res.status(200).json({
 				result: true,
 				message: 'FWCLOUD UNLOCKED OK',

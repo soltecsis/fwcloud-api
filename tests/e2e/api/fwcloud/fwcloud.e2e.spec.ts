@@ -36,7 +36,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
       'locked_at',
       'locked_by',
       'locked',
-      'lock_session_id',
     ],
     properties: {
       id: { type: 'number', minimum: 1 },
@@ -48,9 +47,8 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
       created_by: { type: 'number' },
       updated_by: { type: 'number' },
       locked_at: { type: ['number', 'null'] },
-      locked_by: { type: ['number', 'null'] },
+      locked_by: { type: ['string', 'null'] },
       locked: { type: 'number' },
-      lock_session_id: { type: ['string', 'null'] },
     },
   };
 
@@ -277,8 +275,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 
       it('admin user should not lock a locked fwcloud by another user', async () => {
         fwCloud.locked = true;
-        fwCloud.locked_by = 10;
-        fwCloud.lock_session_id = generateSession(adminUser);
+        fwCloud.locked_by = generateSession(adminUser);
         await manager.getRepository(FwCloud).save(fwCloud);
         return await request(app.express)
           .put('/fwcloud/lock')
@@ -295,8 +292,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 
       it('admin user should not lock a locked fwcloud by himself with another session', async () => {
         fwCloud.locked = true;
-        fwCloud.locked_by = adminUser.id;
-        fwCloud.lock_session_id = generateSession(adminUser);
+        fwCloud.locked_by = generateSession(adminUser);
         await manager.getRepository(FwCloud).save(fwCloud);
         return await request(app.express)
           .put('/fwcloud/lock')
@@ -313,15 +309,14 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 
       it('admin user should lock a locked fwcloud if the lock session is expired', async () => {
         fwCloud.locked = true;
-        fwCloud.locked_by = adminUser.id;
-        fwCloud.lock_session_id = generateSession(adminUser);
+        fwCloud.locked_by = generateSession(adminUser);
         await manager.getRepository(FwCloud).save(fwCloud);
 
         const t = () => {
           return new Promise<void>(async (resolve) => {
             const sessionFilePath = path.join(
               app.config.get('session').files_path,
-              `${fwCloud.lock_session_id}.json`,
+              `${fwCloud.locked_by}.json`,
             );
 
             try {
@@ -373,8 +368,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 
       it('admin user should not unlock a locked fwcloud by another user', async () => {
         fwCloud.locked = true;
-        fwCloud.locked_by = 10;
-        fwCloud.lock_session_id = null;
+        fwCloud.locked_by = '1234';
         await manager.getRepository(FwCloud).save(fwCloud);
         return await request(app.express)
           .put('/fwcloud/unlock')

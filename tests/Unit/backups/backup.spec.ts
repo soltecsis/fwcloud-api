@@ -357,7 +357,7 @@ describe(describeName('Backup Unit tests'), () => {
 
     it('should remove encrypted data if export snapshot hash is not equal', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test', locked: false, locked_by: null, lock_session_id: null }),
+        FwCloud.create({ name: 'test', locked: false, locked_by: null }),
       );
       let firewall: Firewall = await Firewall.save(
         Firewall.create({

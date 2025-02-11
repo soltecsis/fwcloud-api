@@ -8,6 +8,8 @@ export class LockValidation extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     if (
       req.method === 'GET' ||
+      req.url.startsWith('/user') ||
+      req.url.startsWith('/customer') ||
       req.url.startsWith('/backups') ||
       req.url.startsWith('/config') ||
       req.url.startsWith('/openvpnarchives') ||
@@ -35,42 +37,42 @@ export class LockValidation extends Middleware {
             ? Number(req.url.split('/')[2])
             : undefined);
 
-        if (fwcloudId) {
-          const accessResult: Lock = await FwCloud.getFwcloudAccess(
-            req.session.user_id,
-            fwcloudId,
-            req.sessionID,
-          );
+        if (!fwcloudId) throw fwcError.other('Error locking FWCloud');
 
-          if (!accessResult.access) {
-            return next();
-          }
+        const accessResult: Lock = await FwCloud.getFwcloudAccess(
+          req.session.user_id,
+          fwcloudId,
+          req.sessionID,
+        );
 
-          if (accessResult.locked) {
-            if (accessResult.mylock) {
-              return next();
-            } else {
-              // eslint-disable-next-line @typescript-eslint/only-throw-error
-              throw fwcError.ACC_FWCLOUD_LOCK;
-            }
-          }
+        if (!accessResult.access) {
+          return next();
+        }
 
-          const fwcloudData = {
-            fwcloud: fwcloudId,
-            iduser: req.session.user_id,
-            lock_session_id: req.sessionID,
-          };
-
-          const update = await FwCloud.updateFwcloudLock(fwcloudData);
-          if (update.result) {
-            logger().info(`FWCLOUD: ${fwcloudData.fwcloud} LOCKED BY USER: ${fwcloudData.iduser}`);
+        if (accessResult.locked) {
+          if (accessResult.mylock) {
             return next();
           } else {
-            logger().info(
-              `NOT ACCESS FOR LOCKING FWCLOUD: ${fwcloudData.fwcloud} BY USER: ${fwcloudData.iduser}`,
-            );
-            throw fwcError.other('Error locking FWCloud');
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
+            throw fwcError.ACC_FWCLOUD_LOCK;
           }
+        }
+
+        const fwcloudData = {
+          fwcloud: fwcloudId,
+          iduser: req.session.user_id,
+          lock_session_id: req.sessionID,
+        };
+
+        const update = await FwCloud.updateFwcloudLock(fwcloudData);
+        if (update.result) {
+          logger().info(`FWCLOUD: ${fwcloudData.fwcloud} LOCKED BY USER: ${fwcloudData.iduser}`);
+          return next();
+        } else {
+          logger().info(
+            `NOT ACCESS FOR LOCKING FWCLOUD: ${fwcloudData.fwcloud} BY USER: ${fwcloudData.iduser}`,
+          );
+          throw fwcError.other('Error locking FWCloud');
         }
       } catch (error) {
         logger().debug(`Error during lock validation ${JSON.stringify(error)}`);
