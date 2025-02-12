@@ -92,7 +92,7 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static checkwireGuardPosition(dbCon, position) {
+  public static checkWireGuardPosition(dbCon, position) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select type from ipobj_type__policy_position where type=321 and position=${position}`,
@@ -248,7 +248,7 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchLastwireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
+  public static searchLastWireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the WireGuard prefixes in groups to which the WireGuard configuration belongs.
       const sql = `select P.prefix, PRE.wireGuard, PRE.name, GR.id group_id, GR.name group_name
