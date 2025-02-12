@@ -118,7 +118,7 @@ export class Routes extends RouteCollection {
         router.prefix('/wireguard', (router: RouterParser) => {
           router.post('/', WireGuardController, 'store').name('vpn.wireguard.store');
           router.put('/', WireGuardController, 'update').name('vpn.wireguard.update');
-          router.get('/get', WireGuardController, 'get').name('vpn.wireguard.get');
+          router.put('/get', WireGuardController, 'get').name('vpn.wireguard.get');
           router.get('/file/get', WireGuardController, 'getFile').name('vpn.wireguard.file.get');
           router.get('/ipobj/get', WireGuardController, 'getIpObj').name('vpn.wireguard.ipobj.get');
           router.put('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
