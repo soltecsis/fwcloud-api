@@ -201,6 +201,13 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isNullable: false,
           },
           {
+            name: 'wireguard_cli',
+            type: 'int',
+            length: '11',
+            isNullable: true,
+            default: null,
+          },
+          {
             name: 'ipobj',
             type: 'int',
             length: '11',
@@ -249,6 +256,13 @@ export class WireGuard1737018559931 implements MigrationInterface {
             columnNames: ['wireguard'],
             referencedTableName: 'wireguard',
             referencedColumnNames: ['id'],
+          },
+          {
+            columnNames: ['wireguard_cli'],
+            referencedTableName: 'wireguard',
+            referencedColumnNames: ['id'],
+            onDelete: 'SET NULL',
+            onUpdate: 'CASCADE',
           },
         ],
       }),
