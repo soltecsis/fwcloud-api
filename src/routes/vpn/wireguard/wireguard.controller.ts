@@ -127,6 +127,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async get(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getCfg(req);
