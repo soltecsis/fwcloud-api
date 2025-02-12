@@ -261,8 +261,6 @@ export class WireGuard1737018559931 implements MigrationInterface {
             columnNames: ['wireguard_cli'],
             referencedTableName: 'wireguard',
             referencedColumnNames: ['id'],
-            onDelete: 'SET NULL',
-            onUpdate: 'CASCADE',
           },
         ],
       }),
