@@ -30,18 +30,6 @@ const tableName: string = 'policy_r__wireGuard';
 
 @Entity(tableName)
 export class PolicyRuleToWireGuard extends Model {
-  static searchWireGuardInRule(dbCon: any, fwcloud: number, wireGuard: number): any {
-    throw new Error('Method not implemented.');
-  }
-  static searchWireGuardInGroup(dbCon: any, fwcloud: number, wireGuard: number): any {
-    throw new Error('Method not implemented.');
-  }
-  static searchLastWireGuardInPrefixInRule(dbCon: any, fwcloud: number, wireGuard: number): any {
-    throw new Error('Method not implemented.');
-  }
-  static searchLastWireGuardInPrefixInGroup(dbCon: any, fwcloud: number, wireGuard: number): any {
-    throw new Error('Method not implemented.');
-  }
   @PrimaryColumn({ name: 'rule' })
   policyRuleId: number;
 
@@ -170,21 +158,21 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchwireGuardInRule(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardInRule(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
-                O.wireGuard obj_id, CRT.cn obj_name,
+                O.wireguard obj_id, CRT.cn obj_name,
                 R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
-            from policy_r__wireGuard O
+            from policy_r__wireguard O
                 inner join policy_r R on R.id=O.rule
                 inner join firewall FW on FW.id=R.firewall
                 inner join policy_position P on P.id=O.position
                 inner join policy_type PT on PT.id=R.type
-                inner join wireGuard VPN on VPN.id=O.wireGuard
+                inner join wireguard VPN on VPN.id=O.wireguard
                 inner join crt CRT on CRT.id=VPN.crt
-                where FW.fwcloud=${fwcloud} and O.wireGuard=${wireGuard}`;
+                where FW.fwcloud=${fwcloud} and O.wireguard=${wireGuard}`;
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
         resolve(rows);
@@ -192,12 +180,12 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchwireGuardInGroup(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardInGroup(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
                 (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name
                 from wireguard__ipobj_g P
-                inner join wireGuard VPN on VPN.id=P.wireGuard			
+                inner join wireguard VPN on VPN.id=P.wireguard			
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ipobj_g G on G.id=P.ipobj_g
                 where G.fwcloud=${fwcloud} and P.wireGuard=${wireGuard}`;
@@ -208,7 +196,7 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static getConfigsUnderwireGuardPrefix(dbCon, wireGuard_server_id, prefix_name) {
+  public static getConfigsUnderWireGuardPrefix(dbCon, wireGuard_server_id, prefix_name) {
     return new Promise((resolve, reject) => {
       // Get all WireGuard client configs under an WireGuard configuration server whose CRT common name matches the prefix name.
       const sql = `select VPN.id from wireguard VPN
@@ -221,19 +209,19 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchLastwireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
+  public static searchLastWireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the WireGuard prefixes in rules to which the WireGuard configuration belongs.
-      const sql = `select P.rule rule_id, P.prefix, PRE.wireGuard, PRE.name, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name,
+      const sql = `select P.rule rule_id, P.prefix, PRE.wireguard, PRE.name, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name,
                 PT.name rule_type_name, P.position rule_position_id, PP.name rule_position_name, R.firewall firewall_id, F.name firewall_name,
                 F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
-                from policy_r__wireGuard_prefix P
+                from policy_r__wireguard_prefix P
                 inner join policy_r R on R.id=P.rule
                 inner join firewall F on F.id = R.firewall
                 inner join policy_position PP on PP.id=P.position
                 inner join policy_type PT on PT.id=R.type
-                inner join wireGuard_prefix PRE on PRE.id=P.prefix
-                inner join wireGuard VPN on VPN.wireGuard=PRE.wireGuard
+                inner join wireguard_prefix PRE on PRE.id=P.prefix
+                inner join wireguard VPN on VPN.wireguard=PRE.wireguard
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and VPN.id=${wireGuard} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
@@ -243,7 +231,7 @@ export class PolicyRuleToWireGuard extends Model {
         const result = [];
         try {
           for (const row of rows) {
-            const data: any = await this.getConfigsUnderwireGuardPrefix(
+            const data: any = await this.getConfigsUnderWireGuardPrefix(
               dbCon,
               row.wireGuard,
               row.name,
@@ -266,8 +254,8 @@ export class PolicyRuleToWireGuard extends Model {
       const sql = `select P.prefix, PRE.wireGuard, PRE.name, GR.id group_id, GR.name group_name
                 from wireguard_prefix__ipobj_g P
                 inner join ipobj_g GR on GR.id=P.ipobj_g
-                inner join wireGuard_prefix PRE on PRE.id=P.prefix
-                inner join wireGuard VPN on VPN.wireGuard=PRE.wireGuard
+                inner join wireguard_prefix PRE on PRE.id=P.prefix
+                inner join wireguard VPN on VPN.wireguard=PRE.wireguard
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and VPN.id=${wireGuard} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
@@ -277,7 +265,7 @@ export class PolicyRuleToWireGuard extends Model {
         const result = [];
         try {
           for (const row of rows) {
-            const data: any = await this.getConfigsUnderwireGuardPrefix(
+            const data: any = await this.getConfigsUnderWireGuardPrefix(
               dbCon,
               row.wireGuard,
               row.name,
@@ -294,12 +282,12 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchwireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       // Get all the WireGuard prefixes in rules to which the WireGuard configuration belongs.
       const sql = `select R.firewall,P.rule from policy_r__wireGuard_prefix P
-                inner join wireGuard_prefix PRE on PRE.id=P.prefix
-                inner join wireGuard VPN on VPN.wireGuard=PRE.wireGuard
+                inner join wireguard_prefix PRE on PRE.id=P.prefix
+                inner join wireguard VPN on VPN.wireguard=PRE.wireguard
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join policy_r R on R.id=P.rule
                 inner join firewall F on F.id=R.firewall
@@ -311,12 +299,12 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchwireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
       // Get all the WireGuard prefixes in groups to which the WireGuard configuration belongs.
       const sql = `select P.ipobj_g from wireguard_prefix__ipobj_g P
-                inner join wireGuard_prefix PRE on PRE.id=P.prefix
-                inner join wireGuard VPN on VPN.wireGuard=PRE.wireGuard
+                inner join wireguard_prefix PRE on PRE.id=P.prefix
+                inner join wireguard VPN on VPN.wireguard=PRE.wireguard
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and VPN.id=${wireGuard} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
