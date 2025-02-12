@@ -605,9 +605,48 @@ export class WireGuard1737018559931 implements MigrationInterface {
         ],
       }),
     );
+
+    await queryRunner.createTable(
+      new Table({
+        name: 'routing_r__wireguard_prefix',
+        columns: [
+          {
+            name: 'rule',
+            type: 'int',
+            length: '11',
+            isPrimary: true,
+          },
+          {
+            name: 'wireguard_prefix',
+            type: 'int',
+            length: '11',
+            isPrimary: true,
+          },
+          {
+            name: 'order',
+            type: 'int',
+            length: '11',
+            isNullable: false,
+          },
+        ],
+        foreignKeys: [
+          {
+            columnNames: ['rule'],
+            referencedTableName: 'routing_r',
+            referencedColumnNames: ['id'],
+          },
+          {
+            columnNames: ['wireguard_prefix'],
+            referencedTableName: 'wireguard_prefix',
+            referencedColumnNames: ['id'],
+          },
+        ],
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
+    await queryRunner.dropTable('routing_r__wireguard_prefix', true);
     await queryRunner.dropTable('routing_r__wireguard', true);
     await queryRunner.dropTable('route__wireguard_prefix', true);
     await queryRunner.dropTable('route__wireguard', true);
