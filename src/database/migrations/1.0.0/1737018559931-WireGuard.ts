@@ -416,9 +416,85 @@ export class WireGuard1737018559931 implements MigrationInterface {
         ],
       }),
     );
+
+    await queryRunner.createTable(
+      new Table({
+        name: 'policy_r__wireguard_prefix',
+        columns: [
+          {
+            name: 'rule',
+            type: 'int',
+            length: '11',
+            isPrimary: true,
+          },
+          {
+            name: 'prefix',
+            type: 'int',
+            length: '11',
+            isPrimary: true,
+          },
+          {
+            name: 'position',
+            type: 'int',
+            length: '11',
+            isPrimary: true,
+          },
+          {
+            name: 'position_order',
+            type: 'int',
+            length: '11',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'created_at',
+            type: 'datetime',
+            isNullable: false,
+            default: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'updated_at',
+            type: 'datetime',
+            isNullable: false,
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'created_by',
+            type: 'int',
+            isNullable: false,
+            default: 0,
+          },
+          {
+            name: 'updated_by',
+            type: 'int',
+            isNullable: false,
+            default: 0,
+          },
+        ],
+        foreignKeys: [
+          {
+            columnNames: ['prefix'],
+            referencedTableName: 'wireguard_prefix',
+            referencedColumnNames: ['id'],
+          },
+          {
+            columnNames: ['rule'],
+            referencedTableName: 'policy_r',
+            referencedColumnNames: ['id'],
+          },
+          {
+            columnNames: ['position'],
+            referencedTableName: 'policy_position',
+            referencedColumnNames: ['id'],
+          },
+        ],
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
+    await queryRunner.dropTable('policy_r__wireguard_prefix', true);
     await queryRunner.dropTable('policy_r__wireguard', true);
     await queryRunner.dropTable('wireguard_prefix__ipobj_g', true);
     await queryRunner.dropTable('wireguard_prefix', true);
