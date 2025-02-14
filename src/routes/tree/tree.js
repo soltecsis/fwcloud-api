@@ -138,9 +138,12 @@ router.put('/firewalls/get', async (req, res) => {
 router.put('/objects/get', async (req, res) => {
 	try {
 		const treeObjects = await Tree.dumpTree(req.dbCon, 'OBJECTS', req.body.fwcloud);
+		const treeCountries = await Tree.dumpTree(req.dbCon, 'COUNTRIES', req.body.fwcloud);
+
 		await Tree.stdFoldersFirst(treeObjects);
 		const tree = [
-			treeObjects
+			treeObjects,
+			treeCountries
 		]
 		res.status(200).json(tree);
 	} catch (error) {
