@@ -106,6 +106,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async update(req): Promise<ResponseBuilder> {
     try {
       await WireGuard.updateCfg(req);
@@ -137,6 +138,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getFile(req): Promise<ResponseBuilder> {
     try {
       const cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
@@ -146,6 +148,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getIpObj(req): Promise<ResponseBuilder> {
     try {
       const cfgData = await WireGuard.getCfg(req);
@@ -187,6 +190,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getFirewall(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getWireGuardServersByFirewall(req.dbCon, req.body.firewall);
@@ -196,6 +200,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   //TODO: restriced check
   async delete(req): Promise<ResponseBuilder> {
     try {
@@ -217,11 +222,13 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   //TODO: restriced check
   async restricted(/*req*/): Promise<ResponseBuilder> {
     return ResponseBuilder.buildResponse().status(204);
   }
 
+  @Validate()
   async where(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.searchWireGuardUsage(
@@ -250,6 +257,7 @@ export class WireGuardController extends Controller {
     }
   }
 
+  @Validate()
   async getClients(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getWireGuardClients(req.dbCon, req.body.fwcloud);
