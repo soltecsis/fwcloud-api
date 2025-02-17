@@ -609,7 +609,7 @@ export class WireGuard extends Model {
       // Search for the VPN LAN and mask.
       let sql = `select OBJ.address,OBJ.netmask from wireguard_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.wireguard=${req.body.wireguard} and OPT.name='server' and OPT.ipobj is not null`;
+                where OPT.wireguard=${req.body.wireguard} and OPT.name='address' and OPT.ipobj is not null`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
@@ -644,7 +644,8 @@ export class WireGuard extends Model {
                 break;
               }
             }
-            if (!found) return resolve({ ip: IpUtils.fromLong(freeIPLong), netmask: netmask });
+            if (!found)
+              return resolve({ ip: IpUtils.fromLong(freeIPLong), netmask: ipobj.netmask });
           }
           reject(fwcError.other('There are no free VPN IPs'));
         });
