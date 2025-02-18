@@ -4,6 +4,7 @@ import { Validate } from '../../../decorators/validate.decorator';
 import { WireGuard } from '../../../models/vpn/wireguard/WireGuard';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObj } from '../../../models/ipobj/IPObj';
+import { WireGuardPrefix } from '../../../models/vpn/wireguard/WireGuardPrefix';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -202,21 +203,27 @@ export class WireGuardController extends Controller {
   }
 
   @Validate()
-  //TODO: restriced check
   async delete(req): Promise<ResponseBuilder> {
     try {
-      if (req.wireguard.type === 1) {
-        await WireGuard.delCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+      if (req.wireguard?.type === 1) {
+        await WireGuardPrefix.updateWireGuardClientPrefixesFWStatus(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.wireguard,
+        );
       }
 
       await WireGuard.delCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
 
-      if (req.wireguard.type === 1) {
-        // TODO: Prefixes
+      if (req.wireguard?.type === 1) {
+        await WireGuardPrefix.applyWireGuardPrefixes(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.wireguard,
+        );
       } else {
         await Tree.deleteObjFromTree(req.body.fwcloud, req.body.wireguard, 322);
       }
-
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
@@ -224,9 +231,12 @@ export class WireGuardController extends Controller {
   }
 
   @Validate()
-  //TODO: restriced check
-  async restricted(/*req*/): Promise<ResponseBuilder> {
-    return ResponseBuilder.buildResponse().status(204);
+  async restricted(): Promise<ResponseBuilder> {
+    try {
+      return ResponseBuilder.buildResponse().status(204);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
   }
 
   @Validate()

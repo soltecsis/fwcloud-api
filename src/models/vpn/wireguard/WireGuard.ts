@@ -96,12 +96,12 @@ export class WireGuard extends Model {
   @Column()
   installed_at: Date;
 
-  @Column({ name: 'wireGuard' })
+  @Column({ name: 'wireguard' })
   parentId: number;
 
   @ManyToOne((type) => WireGuard, (wireGuard) => wireGuard.childs)
   @JoinColumn({
-    name: 'wireGuard',
+    name: 'wireguard',
   })
   parent: WireGuard;
 
@@ -131,9 +131,9 @@ export class WireGuard extends Model {
 
   @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.wireGuards)
   @JoinTable({
-    name: 'wireGuard__ipobj_g',
+    name: 'wireguard__ipobj_g',
     joinColumn: {
-      name: 'wireGuard',
+      name: 'wireguard',
     },
     inverseJoinColumn: {
       name: 'ipobj_g',
@@ -749,12 +749,13 @@ export class WireGuard extends Model {
         }
         resolve(search);
       } catch (error) {
+        console.log('searchWireGuardUsage error:', error);
         reject(error);
       }
     });
   }
 
-  public static async searchWireGuardInRoute(fwcloud: number, wireGuard: number): Promise<any> {
+  public static async searchWireGuardInRoute(fwcloud: number, wireguard: number): Promise<any> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -764,8 +765,8 @@ export class WireGuard extends Model {
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('route.routeToWireGuards', 'routeToWireGuards')
-      .innerJoin('routeToWireGuards.wireGuard', 'wireGuard', 'wireGuard.id = :wireGuard', {
-        wireGuard: wireGuard,
+      .innerJoin('routeToWireGuards.wireGuard', 'wireguard', 'wireguard.id = :wireguard', {
+        wireguard: wireguard,
       })
       .innerJoinAndSelect('route.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
@@ -787,8 +788,8 @@ export class WireGuard extends Model {
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('routing_rule.routingRuleToWireGuards', 'routingRuleToWireGuards')
-      .innerJoin('routingRuleToWireGuards.wireGuard', 'wireGuard', 'wireGuard.id = :wireGuard', {
-        WireGuard: WireGuard,
+      .innerJoin('routingRuleToWireGuards.wireGuard', 'wireguard', 'wireguard.id = :wireguard', {
+        wireguard: wireGuard,
       })
       .innerJoinAndSelect('routing_rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
@@ -812,8 +813,8 @@ export class WireGuard extends Model {
       .innerJoinAndSelect('route.routingTable', 'table')
       .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
       .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
-      .innerJoin('ipObjGroup.WireGuards', 'wireGuard', 'wireGuard.id = :wireGuard', {
-        wireGuard: wireGuard,
+      .innerJoin('ipObjGroup.wireGuards', 'wireguard', 'wireguard.id = :wireguard', {
+        wireguard: wireGuard,
       })
       .innerJoin('table.firewall', 'firewall')
       .leftJoin('firewall.cluster', 'cluster')
@@ -835,8 +836,8 @@ export class WireGuard extends Model {
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
       .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
-      .innerJoin('ipObjGroup.WireGuards', 'wireGuard', 'wireGuard.id = :wireGuard', {
-        wireGuard: wireGuard,
+      .innerJoin('ipObjGroup.wireGuards', 'wireguard', 'wireguard.id = :wireguard', {
+        wireguard: wireGuard,
       })
       .innerJoin('routing_rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
@@ -904,7 +905,11 @@ export class WireGuard extends Model {
     });
   }
 
-  public static searchWireGuardChild(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardChild(
+    dbCon,
+    fwcloud,
+    wireGuard,
+  ): Promise<{ result: boolean; restrictions?: any }> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id FROM wireguard VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall

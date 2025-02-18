@@ -3,7 +3,7 @@ import Model from '../../Model';
 import { WireGuard } from '../../vpn/wireguard/WireGuard';
 import { RoutingRule } from './routing-rule.model';
 
-const tableName: string = 'routing_r__wireGuard';
+const tableName: string = 'routing_r__wireguard';
 
 @Entity(tableName)
 export class RoutingRuleToWireGuard extends Model {
@@ -13,7 +13,7 @@ export class RoutingRuleToWireGuard extends Model {
   routingRuleId: number;
 
   @PrimaryColumn({
-    name: 'wireGuard',
+    name: 'wireguard',
   })
   openVPNId: number;
 
@@ -34,7 +34,7 @@ export class RoutingRuleToWireGuard extends Model {
     orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: 'wireGuard',
+    name: 'wireguard',
   })
   wireGuard: WireGuard;
 

@@ -43,7 +43,7 @@ import { RoutingRuleToWireGuardPrefix } from '../../routing/routing-rule/routing
 import { PolicyRuleToWireGuardPrefix } from '../../policy/PolicyRuleToWireguardPrefix';
 const fwcError = require('../../../utils/error_table');
 
-const tableName: string = 'wireGuard_prefix';
+const tableName: string = 'wireguard_prefix';
 
 @Entity(tableName)
 export class WireGuardPrefix extends Model {
@@ -189,8 +189,8 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       // First get all the WireGuard prefixes of the WireGuard server.
       const sql = `select P.id,P.name,CRT.cn from ${tableName} P
-                inner join wireGuard V1 on V1.id=P.wireGuard    
-                inner join wireGuard V2 on V2.wireGuard=V1.id
+                inner join wireguard V1 on V1.id=P.wireguard    
+                inner join wireguard V2 on V2.wireguard=V1.id
                 inner join crt CRT on CRT.id=V2.crt    
                 where V2.id=${wireGuard}`;
       dbCon.query(sql, (error, result) => {
@@ -371,7 +371,7 @@ export class WireGuardPrefix extends Model {
   public static addPrefixToGroup(dbCon: any, prefix: number, ipobj_g: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `INSERT INTO wireGuard_prefix__ipobj_g values(${prefix},${ipobj_g})`,
+        `INSERT INTO wireguard_prefix__ipobj_g values(${prefix},${ipobj_g})`,
         (error, result) => {
           if (error) return reject(error);
           resolve(result.insertId);
@@ -402,7 +402,7 @@ export class WireGuardPrefix extends Model {
                 inner join firewall FW on FW.id=R.firewall
                 inner join policy_position P on P.id=O.position
                 inner join policy_type PT on PT.id=R.type
-                inner join wireGuard_prefix PRE on PRE.id=O.prefix
+                inner join wireguard_prefix PRE on PRE.id=O.prefix
                 where FW.fwcloud=${fwcloud} and O.prefix=${prefix}`;
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);

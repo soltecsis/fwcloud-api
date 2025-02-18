@@ -327,6 +327,7 @@ export class OpenVPNPrefix extends Model {
   public static applyOpenVPNPrefixes(dbCon, fwcloud, openvpn_srv): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
+        // WGS para wireguard server
         const node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);
         const node_id = node[0].id;
         // Remove all nodes under the OpenVPN server configuration node.
@@ -335,6 +336,7 @@ export class OpenVPNPrefix extends Model {
         // Create all OpenVPN client config nodes.
         const openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
         for (const openvpn_cli of openvpn_cli_list) {
+          // WCG para wireguard client
           await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
         }
 
