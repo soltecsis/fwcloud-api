@@ -158,6 +158,7 @@ export class WireGuardController extends Controller {
           data.push(await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, opt.ipobj));
         }
       }
+      return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
