@@ -243,7 +243,6 @@ export class Tree extends Model {
                 from fwc_tree where fwcloud=${fwcloud} and id_parent is null and name='${treeType}'`;
 
       dbCon.query(sql, async (error, nodes) => {
-        console.log('nodes', nodes);
         if (error) return reject(error);
         if (nodes.length === 0) return reject(new Error('Root node not found'));
 

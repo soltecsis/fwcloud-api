@@ -261,7 +261,6 @@ router.put('/firewall/get', async(req, res) => {
 router.put('/del',
 restrictedCheck.openvpn,
 async(req, res) => {
-	console.log('Delete OpenVPN configuration', req.openvpn);
 	try {
 		// Update the compilation status of all the firewalls that use the VPN Prefixes to which this OpenVPN
 		// connection belongs. It must be done before the OpenVPN deletion.
