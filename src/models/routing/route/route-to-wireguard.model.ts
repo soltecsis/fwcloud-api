@@ -3,7 +3,7 @@ import Model from '../../Model';
 import { WireGuard } from '../../vpn/wireguard/WireGuard';
 import { Route } from './route.model';
 
-const tableName: string = 'route__wireGuard';
+const tableName: string = 'route__wireguard';
 
 @Entity(tableName)
 export class RouteToWireGuard extends Model {
@@ -13,7 +13,7 @@ export class RouteToWireGuard extends Model {
   routeId: number;
 
   @PrimaryColumn({
-    name: 'wireGuard',
+    name: 'wireguard',
   })
   openVPNId: number;
 
@@ -34,7 +34,7 @@ export class RouteToWireGuard extends Model {
     orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: 'wireGuard',
+    name: 'wireguard',
   })
   wireGuard: WireGuard;
 

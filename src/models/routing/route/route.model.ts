@@ -20,22 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Interface } from '../../interface/Interface';
 import { IPObj } from '../../ipobj/IPObj';
-import { IPObjGroup } from '../../ipobj/IPObjGroup';
 import Model from '../../Model';
-import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
-import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
 import { RoutingTable } from '../routing-table/routing-table.model';
 import { RouteGroup } from '../route-group/route-group.model';
 import db from '../../../database/database-manager';
@@ -139,7 +127,7 @@ export class Route extends Model {
   })
   routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
 
-  @OneToMany(() => RouteToOpenVPN, (model) => model.route, {
+  @OneToMany(() => RouteToWireGuard, (model) => model.route, {
     cascade: true,
   })
   routeToWireGuards: RouteToWireGuard[];
