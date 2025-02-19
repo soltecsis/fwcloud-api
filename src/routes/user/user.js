@@ -147,15 +147,10 @@ router.post('/login', async (req, res) => {
  * HTTP/1.1 204 OK
 */
 router.post('/logout',async (req, res) => {
-	let fwcloudData = { iduser: req.session.user_id, lock_session_id: req.sessionID};
-	const fwClouds = await FwCloud.getFwclouds(req.dbCon, req.session.user_id);
-	for (const fwcloud of fwClouds) {
-		fwcloudData.id = fwcloud.id;
-		await FwCloud.updateFwcloudUnlock(fwcloudData);
-	}
+	await FwCloud.unlockAllLockedFwclouds(req.sessionID);
 	req.session.destroy(err => {});
 	res.status(204).end();
-
+	
 });
 
 
