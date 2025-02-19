@@ -50,7 +50,7 @@ export class WireGuardPrefix extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'wireGuard' })
+  @Column({ name: 'wireguard' })
   wireGuardId: number;
 
   @Column()
@@ -70,7 +70,7 @@ export class WireGuardPrefix extends Model {
 
   @ManyToOne((type) => WireGuard, (model) => model.wireGuardPrefixes)
   @JoinColumn({
-    name: 'wireGuard',
+    name: 'wireguard',
   })
   wireGuard: WireGuard;
 
@@ -94,7 +94,7 @@ export class WireGuardPrefix extends Model {
   public static existsPrefix(dbCon, wireGuard, name) {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `SELECT id FROM ${tableName} WHERE wireGuard=${wireGuard} AND name=${dbCon.escape(name)}`,
+        `SELECT id FROM ${tableName} WHERE wireguard=${wireGuard} AND name=${dbCon.escape(name)}`,
         (error, result) => {
           if (error) return reject(error);
           resolve(result.length > 0 ? true : false);
@@ -145,7 +145,7 @@ export class WireGuardPrefix extends Model {
   public static deletePrefixAll(dbCon, fwcloud, firewall) {
     return new Promise((resolve, reject) => {
       const sql = `delete PRE from ${tableName} as PRE
-                inner join wireGuard VPN on VPN.id=PRE.wireGuard
+                inner join wireguard VPN on VPN.id=PRE.wireguard
                 inner join firewall FW on FW.id=VPN.firewall
                 where FW.id=${firewall} and FW.fwcloud=${fwcloud}`;
       dbCon.query(sql, (error, result) => {
@@ -159,7 +159,7 @@ export class WireGuardPrefix extends Model {
   public static getPrefixes(dbCon, wireGuard) {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `SELECT id,name FROM ${tableName} WHERE wireGuard=${wireGuard}`,
+        `SELECT id,name FROM ${tableName} WHERE wireguard=${wireGuard}`,
         (error, result) => {
           if (error) return reject(error);
           resolve(result);
@@ -173,7 +173,7 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
-                where wireGuard=${wireGuard} and CRT.cn LIKE '${prefix_name}%'`;
+                where wireguard=${wireGuard} and CRT.cn LIKE '${prefix_name}%'`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result);
@@ -292,8 +292,8 @@ export class WireGuardPrefix extends Model {
       // Move all affected nodes into the new prefix container node.
       const prefix = dbCon.escape(prefix_name).slice(1, -1);
       let sql = `SELECT VPN.id,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt CRT
-                INNER JOIN wireGuard VPN on VPN.crt=CRT.id
-                WHERE VPN.wireGuard=${wireGuard_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
+                INNER JOIN wireguard VPN on VPN.crt=CRT.id
+                WHERE VPN.wireguard=${wireGuard_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
@@ -330,7 +330,8 @@ export class WireGuardPrefix extends Model {
   public static applyWireGuardPrefixes(dbCon, fwcloud, wireGuard_srv): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', wireGuard_srv);
+        const node = await Tree.getNodeInfo(dbCon, fwcloud, 'WGS', wireGuard_srv);
+
         const node_id = node[0].id;
         // Remove all nodes under the WireGuard server configuration node.
         await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);

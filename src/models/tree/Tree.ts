@@ -243,7 +243,6 @@ export class Tree extends Model {
                 from fwc_tree where fwcloud=${fwcloud} and id_parent is null and name='${treeType}'`;
 
       dbCon.query(sql, async (error, nodes) => {
-        console.log('nodes', nodes);
         if (error) return reject(error);
         if (nodes.length === 0) return reject(new Error('Root node not found'));
 
@@ -1076,6 +1075,65 @@ export class Tree extends Model {
     });
   }
 
+  //Generate the Wireguard client nodes.
+  public static wireguardClientTree(
+    connection,
+    fwcloud,
+    firewall,
+    server_vpn,
+    node,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id,CRT.cn FROM wireguard VPN
+      INNER JOIN crt CRT on CRT.id=VPN.crt
+      WHERE VPN.firewall=${firewall} and VPN.wireguard=${server_vpn}`;
+      connection.query(sql, async (error, vpns) => {
+        if (error) return reject(error);
+        if (vpns.length === 0) return resolve();
+
+        try {
+          for (const vpn of vpns) {
+            await this.newNode(connection, fwcloud, vpn.cn, node, 'WGC', vpn.id, 321);
+          }
+        } catch (error) {
+          return reject(error);
+        }
+        resolve();
+      });
+    });
+  }
+
+  //Generate the Wireguard server nodes.
+  public static wireguardServerTree(connection, fwcloud, firewall, node): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id,CRT.cn FROM wireguard VPN
+      INNER JOIN crt CRT on CRT.id=VPN.crt
+      WHERE VPN.firewall=${firewall} and VPN.wireguard is null`;
+      connection.query(sql, async (error, vpns) => {
+        if (error) return reject(error);
+        if (vpns.length === 0) return resolve();
+
+        try {
+          for (const vpn of vpns) {
+            const newNodeId = await this.newNode(
+              connection,
+              fwcloud,
+              vpn.cn,
+              node,
+              'WGS',
+              vpn.id,
+              322,
+            );
+            await this.wireguardClientTree(connection, fwcloud, firewall, vpn.id, newNodeId);
+          }
+        } catch (error) {
+          return reject(error);
+        }
+        resolve();
+      });
+    });
+  }
+
   //Generate the routing nodes.
   public static routingTree(
     connection: any,
@@ -1176,7 +1234,16 @@ export class Tree extends Model {
         );
         await this.openvpnServerTree(connection, fwcloud, firewall, openVPNNode);
 
-        await this.newNode(connection, fwcloud, 'WireGuard', vpnNode, 'WG', firewall, 0);
+        const wireGuardNode = await this.newNode(
+          connection,
+          fwcloud,
+          'WireGuard',
+          vpnNode,
+          'WG',
+          firewall,
+          0,
+        );
+        await this.wireguardServerTree(connection, fwcloud, firewall, wireGuardNode);
         await this.newNode(connection, fwcloud, 'IPSec', vpnNode, 'IS', firewall, 0);
 
         resolve();

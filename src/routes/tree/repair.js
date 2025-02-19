@@ -31,6 +31,8 @@ import { Tree } from '../../models/tree/Tree';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { Channel } from '../../sockets/channels/channel';
 import { logger } from '../../fonaments/abstract-application';
+import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
 const fwcError = require('../../utils/error_table');
 
 
@@ -75,6 +77,12 @@ router.put('/', async (req, res) =>{
         for (let openvpn_srv of openvpn_srv_list) {
           channel.emit('message', new ProgressNoticePayload(`OpenVPN server: ${openvpn_srv.cn}\n`));
           await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv.id);
+        }
+
+        const wireguard_srv_list = await WireGuard.getWireGuardServersByCloud(req.dbCon,req.body.fwcloud);
+        for (let wireguard_srv of wireguard_srv_list) {
+          channel.emit('message', new ProgressNoticePayload(`WireGuard server: ${wireguard_srv.cn}\n`));
+          await WireGuardPrefix.applyWireGuardPrefixes(req.dbCon,req.body.fwcloud,wireguard_srv.id);
         }
         break;
       }
