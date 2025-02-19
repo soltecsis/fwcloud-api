@@ -254,7 +254,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate(GetDto)
+  @Validate()
   async getConfigFilename(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getConfigFilename(req.dbCon);
