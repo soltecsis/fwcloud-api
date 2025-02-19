@@ -1,0 +1,84 @@
+import { Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsArray,
+  IsOptional,
+  IsIn,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
+
+export class WireGuardOptionDTO {
+  @IsString()
+  @IsIn([
+    'address',
+    'DNS',
+    'MTU',
+    'table',
+    'endpoint',
+    'allowed-ips',
+    'persistentkeepalive',
+    'listen-port',
+    'public-key',
+    'pre-up',
+    'post-up',
+    'pre-down',
+    'post-down',
+  ])
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[0-9]{1,6}$/, { message: 'Invalid port format' })
+  arg?: string;
+
+  @IsOptional()
+  @IsString()
+  scope?: string;
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
+}
+
+export class StoreDto {
+  @IsNotEmpty()
+  @IsNumber()
+  fwcloud: number;
+
+  @IsOptional()
+  @IsNumber()
+  wireguard?: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  firewall: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  crt: number;
+
+  @IsString()
+  @IsOptional()
+  install_dir?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid install_name format' })
+  install_name?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WireGuardOptionDTO)
+  options: WireGuardOptionDTO[];
+
+  @IsString()
+  @IsOptional()
+  comment?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  node_id: number;
+}

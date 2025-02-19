@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsNumber } from 'class-validator';
 
-export class GetIpDto {
+export class GetDto {
   @IsNotEmpty()
   @IsNumber()
   fwcloud: number;

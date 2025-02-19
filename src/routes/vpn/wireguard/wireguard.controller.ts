@@ -5,12 +5,15 @@ import { WireGuard } from '../../../models/vpn/wireguard/WireGuard';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { WireGuardPrefix } from '../../../models/vpn/wireguard/WireGuardPrefix';
-import { GetIpDto } from './dto/getIp.dto';
+import { GetDto } from './dto/get.dto';
+import { StoreDto } from './dto/store.dto';
+import { UpdateDto } from './dto/update.dto';
+import { GetFirewallDto } from './dto/getFirewall.dto';
 
 const fwcError = require('../../../utils/error_table');
 
 export class WireGuardController extends Controller {
-  @Validate()
+  @Validate(StoreDto)
   async store(req): Promise<ResponseBuilder> {
     try {
       // Initial validation
@@ -100,7 +103,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(UpdateDto)
   async update(req): Promise<ResponseBuilder> {
     try {
       await WireGuard.updateCfg(req);
@@ -122,7 +125,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async get(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getCfg(req);
@@ -132,7 +135,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async getFile(req): Promise<ResponseBuilder> {
     try {
       const cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
@@ -142,7 +145,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async getIpObj(req): Promise<ResponseBuilder> {
     try {
       const cfgData = await WireGuard.getCfg(req);
@@ -158,7 +161,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate(GetIpDto)
+  @Validate(GetDto)
   async getIp(req): Promise<ResponseBuilder> {
     try {
       const freeIP = await WireGuard.freeVpnIP(req);
@@ -168,7 +171,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async getInfo(req): Promise<ResponseBuilder> {
     try {
       const wireguardRecord = await WireGuard.getCfg(req);
@@ -185,7 +188,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetFirewallDto)
   async getFirewall(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getWireGuardServersByFirewall(req.dbCon, req.body.firewall);
@@ -195,7 +198,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async delete(req): Promise<ResponseBuilder> {
     try {
       if (req.wireguard?.type === 1) {
@@ -223,7 +226,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async restricted(): Promise<ResponseBuilder> {
     try {
       return ResponseBuilder.buildResponse().status(204);
@@ -232,7 +235,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async where(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.searchWireGuardUsage(
@@ -251,7 +254,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async getConfigFilename(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getConfigFilename(req.dbCon);
@@ -261,7 +264,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetDto)
   async getClients(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getWireGuardClients(req.dbCon, req.body.fwcloud);
