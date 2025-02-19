@@ -261,7 +261,6 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		console.log('MOVE: ', req.body);
 		let pasteOnRuleId = req.body.pasteOnRuleId;
 
 		// The rule over which we move cat rules can not be part of the moved rules.
@@ -416,7 +415,6 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 
 			resolve();
 		} catch (error) { 
-			console.log('ERROR: ', error);
 			return reject(error)
 		}
 	});

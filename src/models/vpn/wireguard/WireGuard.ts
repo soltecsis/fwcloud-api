@@ -614,7 +614,7 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         // If we have no VPN LAN we can not give any free IP.
-        if (result.length === 0) return reject(fwcError.other('wireguard LAN not found'));
+        if (result.length === 0) return reject(fwcError.other('WireGuard LAN not found'));
 
         // net will contain information about the VPN network.
         const ipobj = result[0];
@@ -749,7 +749,6 @@ export class WireGuard extends Model {
         }
         resolve(search);
       } catch (error) {
-        console.log('searchWireGuardUsage error:', error);
         reject(error);
       }
     });
