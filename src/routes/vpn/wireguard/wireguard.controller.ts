@@ -226,7 +226,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate(GetDto)
+  @Validate()
   async restricted(): Promise<ResponseBuilder> {
     try {
       return ResponseBuilder.buildResponse().status(204);

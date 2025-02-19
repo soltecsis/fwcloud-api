@@ -31,12 +31,15 @@ export class WireGuardOptionDTO {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[0-9]{1,6}$/, { message: 'Invalid port format' })
   arg?: string;
 
   @IsOptional()
-  @IsString()
-  scope?: string;
+  @IsNumber()
+  ipobj?: number;
+
+  @IsOptional()
+  @IsNumber()
+  scope?: number;
 
   @IsOptional()
   @IsString()
