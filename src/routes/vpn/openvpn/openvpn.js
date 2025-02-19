@@ -71,6 +71,9 @@ import * as crypto from "crypto";
 import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { SSHCommunication } from '../../../communications/ssh.communication';
+import { InputValidation } from '../../../middleware/InputValidation';
+
+const inputValidation = new InputValidation().handle.bind(new InputValidation());
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -216,11 +219,11 @@ router.put('/ipobj/get', async(req, res) => {
 /**
  * Get next VPN LAN free IP.
  */
-router.put('/ip/get', async(req, res) => {
+router.put('/ip/get', inputValidation, async (req, res) => {
 	try {
 		const freeIP = await OpenVPN.freeVpnIP(req);
 		res.status(200).json(freeIP);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting openvpn free ip: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
