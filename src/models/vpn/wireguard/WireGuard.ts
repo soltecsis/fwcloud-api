@@ -185,41 +185,26 @@ export class WireGuard extends Model {
   public static addCfg(req): Promise<number> {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!req.firewall) {
-          throw new Error("Missing 'firewall' value in the request");
-        }
-        if (!req.crt) {
-          throw new Error("Missing 'crt' value in the request");
-        }
-        if (!req.install_dir) {
-          throw new Error("Missing 'install_dir' value in the request");
-        }
-        if (!req.install_name) {
-          throw new Error("Missing 'install_name' value in the request");
-        }
-
         const keys = await this.generateKeyPair();
 
         const cfg = {
-          firewallId: req.firewall,
-          crtId: req.crt,
-          install_dir: req.install_dir,
-          install_name: req.install_name,
-          comment: req.comment || null,
+          firewall: req.body.firewall,
+          crt: req.body.crt,
+          install_dir: req.body.install_dir,
+          install_name: req.body.install_name,
+          comment: req.body.comment || null,
           status: 1,
           public_key: await utilsModel.encrypt(keys.public_key),
           private_key: await utilsModel.encrypt(keys.private_key),
         };
 
-        await this.insert(cfg)
-          .then((result) => {
-            resolve(result.identifiers[0].id);
-          })
-          .catch((error) => {
-            reject(error);
-          });
+        req.dbCon.query(`insert into ${tableName} SET ?`, cfg, (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(result.insertId);
+        });
       } catch (error) {
-        console.error('addCfg error:', error);
         reject(error);
       }
     });

@@ -44,15 +44,7 @@ export class WireGuardController extends Controller {
         );
       }
       // Create base configuration
-      const newWireguard = await WireGuard.addCfg({
-        wireguard: req.body.wireguard,
-        firewall: req.body.firewall,
-        crt: req.body.crt,
-        install_dir: req.body.install_dir,
-        install_name: req.body.install_name,
-        comment: req.body.comment || null,
-        status: 1, // Default active configuration
-      });
+      const newWireguard = await WireGuard.addCfg(req);
       // Insert options
       let order = 1;
       for (const opt of req.body.options) {
@@ -87,7 +79,7 @@ export class WireGuardController extends Controller {
           req.body.node_id,
           'WGC',
           newWireguard,
-          323,
+          321,
         );
       }
 
