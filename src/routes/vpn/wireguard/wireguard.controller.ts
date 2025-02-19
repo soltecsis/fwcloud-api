@@ -5,6 +5,7 @@ import { WireGuard } from '../../../models/vpn/wireguard/WireGuard';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { WireGuardPrefix } from '../../../models/vpn/wireguard/WireGuardPrefix';
+import { GetIpDto } from './dto/getIp.dto';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -157,7 +158,7 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate()
+  @Validate(GetIpDto)
   async getIp(req): Promise<ResponseBuilder> {
     try {
       const freeIP = await WireGuard.freeVpnIP(req);
