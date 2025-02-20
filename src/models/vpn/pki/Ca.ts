@@ -141,38 +141,31 @@ export class Ca extends Model {
    */
   public static storePkiInfo(req, tree): Promise<void> {
     return new Promise((resolve, reject) => {
-      //TODO: REVISAR ESTA CONSULTA. REVISAR QUE HACER CON WIREGUARD_DISABLED
-      const sql = `
-      SELECT 
-        VPN.id AS openvpn, VPN.openvpn AS openvpn_parent, 
-        CRT.id AS crt, CRT.ca, OPT.name AS openvpn_disabled,
-        WG.id AS wireguard, WG.wireguard AS wireguard_parent
-      FROM crt CRT
-      INNER JOIN openvpn VPN ON VPN.crt = CRT.id
-      INNER JOIN firewall FW ON FW.id = VPN.firewall
-      LEFT JOIN openvpn_opt OPT ON OPT.openvpn = VPN.id AND OPT.name = 'disable'
-      LEFT JOIN wireguard WG ON WG.firewall = FW.id
-      WHERE FW.fwcloud = ${req.body.fwcloud}`;
+      let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
+                  FROM crt CRT
+                  INNER JOIN openvpn VPN on VPN.crt=CRT.id
+                  INNER JOIN firewall FW on FW.id=VPN.firewall
+                  LEFT JOIN openvpn_opt OPT on OPT.openvpn=VPN.id and OPT.name='disable'
+                  WHERE FW.fwcloud=${req.body.fwcloud}`;
 
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
-        tree.openvpn_info = result.map((row) => ({
-          openvpn: row.openvpn,
-          openvpn_parent: row.openvpn_parent,
-          crt: row.crt,
-          ca: row.ca,
-          openvpn_disabled: row.openvpn_disabled,
-        }));
+        tree.openvpn_info = result;
 
-        tree.wireguard_info = result.map((row) => ({
-          wireguard: row.wireguard,
-          wireguard_parent: row.wireguard_parent,
-          crt: row.crt,
-          ca: row.ca,
-        }));
+        sql = `SELECT VPN.id as wireguard,VPN.wireguard as wireguard_parent,CRT.id as crt,CRT.ca, OPT.name as wireguard_disabled
+                FROM crt CRT
+                INNER JOIN wireguard VPN on VPN.crt=CRT.id
+                INNER JOIN firewall FW on FW.id=VPN.firewall
+                LEFT JOIN wireguard_opt OPT on OPT.wireguard=VPN.id and OPT.name='disable'
+                WHERE FW.fwcloud=${req.body.fwcloud}`;
 
-        resolve();
+        req.dbCon.query(sql, (error, result) => {
+          if (error) return reject(error);
+
+          tree.wireguard_info = result;
+          resolve();
+        });
       });
     });
   }

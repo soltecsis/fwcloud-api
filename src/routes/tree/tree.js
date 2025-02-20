@@ -60,7 +60,9 @@ var fwc_tree_node = require("../../models/tree/node.js");
  *    "children": [],
  *    "fw_status": [],
  *    "openvpn_status": [],
- *    "openvpn_info": []
+ *    "openvpn_info": [],
+ *    "wireguard_status": [],
+ *    "wireguard_info": [],
  * }
  * 
  * @apiErrorExample {json} Error-Response:
