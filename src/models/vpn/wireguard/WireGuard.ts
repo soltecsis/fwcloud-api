@@ -196,6 +196,7 @@ export class WireGuard extends Model {
           status: 1,
           public_key: await utilsModel.encrypt(keys.public_key),
           private_key: await utilsModel.encrypt(keys.private_key),
+          wireguard: req.body.wireguard || null,
         };
 
         req.dbCon.query(`insert into ${tableName} SET ?`, cfg, (error, result) => {

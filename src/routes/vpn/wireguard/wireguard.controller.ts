@@ -215,7 +215,7 @@ export class WireGuardController extends Controller {
         await WireGuardPrefix.applyWireGuardPrefixes(
           req.dbCon,
           req.body.fwcloud,
-          req.body.wireguard,
+          req.wireguard.wireguard,
         );
       } else {
         await Tree.deleteObjFromTree(req.body.fwcloud, req.body.wireguard, 322);
