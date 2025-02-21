@@ -77,6 +77,7 @@ var errorTable = {
   "ACC_CRT_PREFIX":       {"fwcErr": 7007, "msg": "CRT prefix access not allowed"},
   "ACC_POLICY_RULE":      {"fwcErr": 7008, "msg": "Policy rule access not allowed"},
   "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},
+  "ACC_FWCLOUD_LOCK":     {"fwcErr": 7010, "msg": "FWCloud is locked by another user, only read operations are allowed"},
   
   //Limit
   "LIMIT_FWCLOUDS":       {"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},

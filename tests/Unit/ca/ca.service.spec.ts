@@ -22,6 +22,8 @@ describe(describeName('Ca Service Unit Test'), () => {
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
         name: 'fwcloudTest',
+        locked: false,
+        locked_by: null,
       }),
     );
     ca = await manager.getRepository(Ca).save(
