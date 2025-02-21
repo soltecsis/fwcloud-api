@@ -137,6 +137,8 @@ export class FwCloudFactory {
       this._fwcloudRepository.create({
         id: this.randomId(10, 100000),
         name: StringHelper.randomize(10),
+        locked: false,
+        locked_by: null,
       }),
     );
 
