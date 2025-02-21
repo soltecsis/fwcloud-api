@@ -46,7 +46,11 @@ describe(describeName('Firewall E2E Tests'), () => {
 
     fwCloud = await manager
       .getRepository(FwCloud)
-      .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }));
+      .save(
+        manager
+          .getRepository(FwCloud)
+          .create({ name: StringHelper.randomize(10), locked: false, locked_by: null }),
+      );
     const ipObj: IPObj = await manager.getRepository(IPObj).save(
       manager.getRepository(IPObj).create({
         name: 'test',
@@ -566,6 +570,7 @@ describe(describeName('Firewall E2E Tests'), () => {
   describe('FirewallController@limits', () => {
     let tree: TreeNode;
     beforeEach(async () => {
+      sinon.restore();
       const response = await request(app.express)
         .post(_URL().getURL('fwclouds.store'))
         .send({
@@ -574,9 +579,20 @@ describe(describeName('Firewall E2E Tests'), () => {
           comment: '',
         })
         .set('Cookie', [attachSession(adminUserSessionId)]);
+      sinon.stub(FwCloud, 'getFwcloudAccess').resolves({
+        access: true,
+        locked: true,
+        mylock: true,
+        locked_by: adminUser.id,
+        locked_at: '',
+      });
 
       fwCloud = response.body.data;
       tree = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
+    });
+
+    afterEach(() => {
+      sinon.restore();
     });
 
     it('the limit is greater than the number of firewalls', async () => {

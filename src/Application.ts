@@ -78,6 +78,7 @@ import { DHCPRuleServiceProvider } from './models/system/dhcp/dhcp_r/dhcp_r.prov
 import { DHCPGroupServiceProvider } from './models/system/dhcp/dhcp_g/dhcp_g.provider';
 import { KeepalivedGroupServiceProvider } from './models/system/keepalived/keepalived_g/keepalived_g.provider';
 import { KeepalivedRuleServiceProvider } from './models/system/keepalived/keepalived_r/keepalived_r.provider';
+import { LockValidation } from './middleware/LockValidation';
 import { RestrictedMiddleware } from './middleware/restricted.middleware';
 
 export class Application extends HTTPApplication {
@@ -187,6 +188,7 @@ export class Application extends HTTPApplication {
       ConfirmationToken,
       InputValidation,
       AccessControl,
+      LockValidation,
       RestrictedMiddleware,
     ];
   }

@@ -46,6 +46,11 @@ describe(describeName('Ca E2E Test'), () => {
         comment: 'testComment',
       }),
     );
+
+    loggedUser.fwClouds = [fwCloud];
+    adminUser.fwClouds = [fwCloud];
+    await manager.getRepository(User).save([loggedUser, adminUser]);
+
     service = await app.getService<CaService>(CaService.name);
   });
 
@@ -61,6 +66,9 @@ describe(describeName('Ca E2E Test'), () => {
         .expect(401);
     });
     it('regular user should not update a comment of ca if it does not belong to the fwcloud', async () => {
+      loggedUser.fwClouds = [];
+      await manager.getRepository(User).save(loggedUser);
+
       return await request(app.express)
         .put(
           _URL().getURL('fwclouds.cas.update', {
@@ -72,9 +80,6 @@ describe(describeName('Ca E2E Test'), () => {
         .expect(401);
     });
     it('regular user should update a comment of ca if it does belong to the fwcloud', async () => {
-      loggedUser.fwClouds = [fwCloud];
-      await manager.getRepository(User).save(loggedUser);
-
       return await request(app.express)
         .put(
           _URL().getURL('fwclouds.cas.update', {

@@ -146,9 +146,11 @@ router.post('/login', async (req, res) => {
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 OK
 */
-router.post('/logout', (req, res) => {
-	req.session.destroy(err => { });
+router.post('/logout',async (req, res) => {
+	await FwCloud.unlockAllLockedFwclouds(req.sessionID);
+	req.session.destroy(err => {});
 	res.status(204).end();
+	
 });
 
 
