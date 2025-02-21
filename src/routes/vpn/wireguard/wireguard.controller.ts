@@ -267,7 +267,7 @@ export class WireGuardController extends Controller {
   @Validate(GetDto)
   async getClients(req): Promise<ResponseBuilder> {
     try {
-      const data = await WireGuard.getWireGuardClients(req.dbCon, req.body.fwcloud);
+      const data = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);

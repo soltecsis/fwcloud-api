@@ -143,7 +143,7 @@ export class Routes extends RouteCollection {
             .get('/config/filename', WireGuardController, 'getConfigFilename')
             .name('vpn.wireguard.config.filename');
           router
-            .get('/clients/get', WireGuardController, 'getClients')
+            .put('/clients/get', WireGuardController, 'getClients')
             .name('vpn.wireguard.clients.get');
         });
       });

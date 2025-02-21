@@ -394,12 +394,31 @@ export class WireGuard extends Model {
   // Get data of an WireGuard server clients.
   public static getWireGuardClients(dbCon, wireGuard) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.id,CRT.cn,VPN.status from wireguard VPN 
+      let sql = `select VPN.*,CRT.cn,VPN.status from wireguard VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where wireguard=${wireGuard}`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        resolve(result);
+
+        const vpnIds = result.map((vpn) => vpn.id);
+
+        sql = `select * from wireguard_opt where wireguard in (${vpnIds.join(',')})`;
+        dbCon.query(sql, (error, optionResults) => {
+          if (error) return reject(error);
+
+          const optionsMap = optionResults.reduce((acc, option) => {
+            if (!acc[option.wireguard]) {
+              acc[option.wireguard] = [];
+            }
+            acc[option.wireguard].push(option);
+            return acc;
+          }, {});
+          const finalResult = result.map((vpn) => ({
+            ...vpn,
+            options: optionsMap[vpn.id] || [],
+          }));
+          resolve(finalResult);
+        });
       });
     });
   }
