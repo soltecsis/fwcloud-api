@@ -394,30 +394,69 @@ export class WireGuard extends Model {
   // Get data of an WireGuard server clients.
   public static getWireGuardClients(dbCon, wireGuard) {
     return new Promise((resolve, reject) => {
-      let sql = `select VPN.*,CRT.cn,VPN.status from wireguard VPN 
-                inner join crt CRT on CRT.id=VPN.crt
-                where wireguard=${wireGuard}`;
-      dbCon.query(sql, (error, result) => {
+      let sql = `SELECT VPN.*, CRT.cn, VPN.status 
+                   FROM wireguard VPN 
+                   INNER JOIN crt CRT ON CRT.id = VPN.crt
+                   WHERE VPN.wireguard = ?`;
+
+      dbCon.query(sql, [wireGuard], (error, result) => {
         if (error) return reject(error);
+        if (result.length === 0) return resolve([]); // If there are no VPNs, return an empty array
 
         const vpnIds = result.map((vpn) => vpn.id);
+        if (vpnIds.length === 0) return resolve(result);
 
-        sql = `select * from wireguard_opt where wireguard in (${vpnIds.join(',')})`;
+        // Second query: Get all the wireguard_opt of these VPNs
+        sql = `SELECT * FROM wireguard_opt WHERE wireguard IN (${vpnIds.join(',')})`;
+
         dbCon.query(sql, (error, optionResults) => {
           if (error) return reject(error);
 
-          const optionsMap = optionResults.reduce((acc, option) => {
-            if (!acc[option.wireguard]) {
-              acc[option.wireguard] = [];
-            }
-            acc[option.wireguard].push(option);
-            return acc;
-          }, {});
-          const finalResult = result.map((vpn) => ({
-            ...vpn,
-            options: optionsMap[vpn.id] || [],
-          }));
-          resolve(finalResult);
+          // Get the IP object IDs of the options
+          const ipObjIds = optionResults.map((opt) => opt.ipobj).filter((id) => id !== null);
+          // If there is no ipobj, return the result without making another query
+          if (ipObjIds.length === 0) {
+            const optionsMap = optionResults.reduce((acc, option) => {
+              if (!acc[option.wireguard]) acc[option.wireguard] = [];
+              option.ipobj = null;
+              acc[option.wireguard].push(option);
+              return acc;
+            }, {});
+
+            const finalResult = result.map((vpn) => ({
+              ...vpn,
+              options: optionsMap[vpn.id] || [],
+            }));
+
+            return resolve(finalResult);
+          }
+
+          // Third query: Get the information of the ipobj with the obtained IDs
+          sql = `SELECT * FROM ipobj WHERE id IN (${ipObjIds.join(',')})`;
+
+          dbCon.query(sql, (error, ipObjResults) => {
+            if (error) return reject(error);
+
+            const ipObjMap = ipObjResults.reduce((acc, ip) => {
+              acc[ip.id] = ip;
+              return acc;
+            }, {});
+
+            // Add the ipobj information inside each option
+            const optionsMap = optionResults.reduce((acc, option) => {
+              if (!acc[option.wireguard]) acc[option.wireguard] = [];
+              option.ipobj = ipObjMap[option.ipobj] || null;
+              acc[option.wireguard].push(option);
+              return acc;
+            }, {});
+
+            const finalResult = result.map((vpn) => ({
+              ...vpn,
+              options: optionsMap[vpn.id] || [],
+            }));
+
+            resolve(finalResult);
+          });
         });
       });
     });
