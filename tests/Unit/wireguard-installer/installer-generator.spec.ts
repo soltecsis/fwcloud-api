@@ -144,7 +144,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
       //@ts-ignore
       const removeStub = sinon
         .stub(InstallerGenerator.prototype, 'removeConfigFile' as keyof InstallerGenerator)
-        .returns(null);
+        .returns(null as never);
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
 
       generator.generate();
