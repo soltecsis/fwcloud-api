@@ -36,9 +36,11 @@ const newFWCTreeNodeTypes = [
   { node_type: 'WG', obj_type: 320, name: 'WireGuard Config' },
   { node_type: 'WGC', obj_type: 321, name: 'WireGuard Config CLI' },
   { node_type: 'WGS', obj_type: 322, name: 'WireGuard Config SRV' },
+  { node_type: 'PRW', obj_type: null, name: 'WireGuard server prefix' },
   { node_type: 'IS', obj_type: 330, name: 'IPSec Config' },
   { node_type: 'ISC', obj_type: 331, name: 'IPSec Config CLI' },
   { node_type: 'ISS', obj_type: 332, name: 'IPSec Config SRV' },
+  { node_type: 'PRI', obj_type: null, name: 'IPSec server prefix' },
 ];
 
 export class MultiVPNNodes1736247039919 implements MigrationInterface {
