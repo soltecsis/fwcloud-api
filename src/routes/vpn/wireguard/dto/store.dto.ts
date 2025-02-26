@@ -13,19 +13,19 @@ import {
 export class WireGuardOptionDTO {
   @IsString()
   @IsIn([
-    'address',
+    'Address',
     'DNS',
     'MTU',
-    'table',
-    'endpoint',
-    'allowed-ips',
-    'persistentkeepalive',
-    'listen-port',
-    'public-key',
-    'pre-up',
-    'post-up',
-    'pre-down',
-    'post-down',
+    'Table',
+    'EndPoint',
+    'AllowedIPs',
+    'PersistentKeepalive',
+    'ListenPort',
+    'PublicKey',
+    'PreIp',
+    'PostUp',
+    'PreDown',
+    'PostDown',
   ])
   name: string;
 
