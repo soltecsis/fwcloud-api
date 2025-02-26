@@ -258,7 +258,7 @@ export class WireGuard extends Model {
       // Get all the ipobj referenced by this WireGuard configuration.
       const sql = `select OBJ.id,OBJ.type from wireguard_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.wireguard=${wireGuard} and OPT.name!='remote'`;
+                where OPT.wireguard=${wireGuard} and OPT.name!='Endpoint'`;
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
