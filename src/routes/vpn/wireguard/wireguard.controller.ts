@@ -49,6 +49,7 @@ export class WireGuardController extends Controller {
       }
       // Create base configuration
       const newWireguard = await WireGuard.addCfg(req);
+
       // Insert options
       let order = 1;
       for (const opt of req.body.options) {
@@ -61,6 +62,22 @@ export class WireGuardController extends Controller {
         opt.wireguard = newWireguard;
         opt.order = order++;
         await WireGuard.addCfgOpt(req, opt);
+      }
+
+      if (req.body.wireguard) {
+        const wireguardCfg = await WireGuard.getCfg(req);
+        const order = wireguardCfg?.options.reduce((max, opt) => Math.max(max, opt.order), 0) + 1;
+        const scope = wireguardCfg?.options.find((opt) => opt.scope !== undefined)?.scope;
+        const options = [
+          {
+            name: 'AllowedIPs',
+            wireguard: req.body.wireguard,
+            wireguard_cli: newWireguard,
+            order: order,
+            scope: scope,
+          },
+        ];
+        await WireGuard.addCfgOpt(req, options);
       }
 
       // Create node in tree
