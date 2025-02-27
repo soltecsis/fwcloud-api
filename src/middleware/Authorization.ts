@@ -60,6 +60,8 @@ export class Authorization extends Middleware {
       const elapsed_ms: number = Date.now() - req.session.keepalive_ts;
       const keepalive_ms: number = this.app.config.get('session').keepalive_ms;
       if (elapsed_ms > keepalive_ms) {
+        await User.disableLockFwcloudAccess(req);
+
         req.session.destroy((err) => {});
         throw fwcError.SESSION_EXPIRED;
       }

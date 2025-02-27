@@ -368,4 +368,30 @@ export class User extends Model {
       );
     });
   }
+
+  public static disableLockFwcloudAccess(req): Promise<void> {
+    return new Promise((resolve, reject) => {
+      req.dbCon.query(
+        `select fwcloud from user__fwcloud where user=${req.session.user_id}`,
+        async (error, result) => {
+          if (error) return reject(error);
+
+          try {
+            for (const fwcloud of result) {
+              const fwcloudData = {
+                id: fwcloud.fwcloud,
+                iduser: req.session.user_id,
+                lock_session_id: req.sessionID,
+              };
+              await FwCloud.updateFwcloudUnlock(fwcloudData);
+            }
+
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        },
+      );
+    });
+  }
 }

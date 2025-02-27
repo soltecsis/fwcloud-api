@@ -22,12 +22,12 @@
 
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
-export class WireGuard1737018559931 implements MigrationInterface {
+export class IPSec1740582098062 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
-      //wireguard
+      //ipsec
       new Table({
-        name: 'wireguard',
+        name: 'ipsec',
         columns: [
           {
             name: 'id',
@@ -38,7 +38,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isNullable: true,
@@ -136,8 +136,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
         ],
@@ -146,13 +146,13 @@ export class WireGuard1737018559931 implements MigrationInterface {
       true,
     );
 
-    //wireguard__ipobj_g
+    //ipsec__ipobj_g
     await queryRunner.createTable(
       new Table({
-        name: 'wireguard__ipobj_g',
+        name: 'ipsec__ipobj_g',
         columns: [
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isNullable: false,
@@ -173,8 +173,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
         ],
@@ -182,10 +182,10 @@ export class WireGuard1737018559931 implements MigrationInterface {
       true,
     );
 
-    //wireguard_opt
+    //ipsec_opt
     await queryRunner.createTable(
       new Table({
-        name: 'wireguard_opt',
+        name: 'ipsec_opt',
         columns: [
           {
             name: 'id',
@@ -195,13 +195,13 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isNullable: false,
           },
           {
-            name: 'wireguard_cli',
+            name: 'ipsec_cli',
             type: 'int',
             length: '11',
             isNullable: true,
@@ -248,7 +248,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
         ],
         uniques: [
           {
-            columnNames: ['wireguard', 'wireguard_cli'],
+            columnNames: ['ipsec', 'ipsec_cli'],
           },
         ],
         foreignKeys: [
@@ -258,13 +258,13 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard_cli'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec_cli'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
         ],
@@ -272,10 +272,10 @@ export class WireGuard1737018559931 implements MigrationInterface {
       true,
     );
 
-    //wireguard_prefix
+    //ipsec_prefix
     await queryRunner.createTable(
       new Table({
-        name: 'wireguard_prefix',
+        name: 'ipsec_prefix',
         columns: [
           {
             name: 'id',
@@ -286,7 +286,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isNullable: false,
@@ -298,21 +298,21 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isNullable: false,
           },
         ],
-        uniques: [{ columnNames: ['wireguard', 'name'] }],
+        uniques: [{ columnNames: ['ipsec', 'name'] }],
         foreignKeys: [
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
         ],
       }),
     );
 
-    //wireguard_prefix__ipobj_g
+    //ipsec_prefix__ipobj_g
     await queryRunner.createTable(
       new Table({
-        name: 'wireguard_prefix__ipobj_g',
+        name: 'ipsec_prefix__ipobj_g',
         columns: [
           {
             name: 'prefix',
@@ -335,7 +335,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
           },
           {
             columnNames: ['prefix'],
-            referencedTableName: 'wireguard_prefix',
+            referencedTableName: 'ipsec_prefix',
             referencedColumnNames: ['id'],
           },
         ],
@@ -344,7 +344,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
     await queryRunner.createTable(
       new Table({
-        name: 'policy_r__wireguard',
+        name: 'policy_r__ipsec',
         columns: [
           {
             name: 'rule',
@@ -354,7 +354,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isNullable: false,
@@ -402,8 +402,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
         ],
         foreignKeys: [
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
           {
@@ -422,7 +422,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
     await queryRunner.createTable(
       new Table({
-        name: 'policy_r__wireguard_prefix',
+        name: 'policy_r__ipsec_prefix',
         columns: [
           {
             name: 'rule',
@@ -478,7 +478,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
         foreignKeys: [
           {
             columnNames: ['prefix'],
-            referencedTableName: 'wireguard_prefix',
+            referencedTableName: 'ipsec_prefix',
             referencedColumnNames: ['id'],
           },
           {
@@ -497,7 +497,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
     await queryRunner.createTable(
       new Table({
-        name: 'route__wireguard',
+        name: 'route__ipsec',
         columns: [
           {
             name: 'route',
@@ -506,7 +506,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isPrimary: true,
@@ -525,8 +525,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
         ],
@@ -535,7 +535,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
     await queryRunner.createTable(
       new Table({
-        name: 'route__wireguard_prefix',
+        name: 'route__ipsec_prefix',
         columns: [
           {
             name: 'route',
@@ -544,7 +544,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard_prefix',
+            name: 'ipsec_prefix',
             type: 'int',
             length: '11',
             isPrimary: true,
@@ -563,8 +563,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard_prefix'],
-            referencedTableName: 'wireguard_prefix',
+            columnNames: ['ipsec_prefix'],
+            referencedTableName: 'ipsec_prefix',
             referencedColumnNames: ['id'],
           },
         ],
@@ -573,7 +573,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
     await queryRunner.createTable(
       new Table({
-        name: 'routing_r__wireguard',
+        name: 'routing_r__ipsec',
         columns: [
           {
             name: 'rule',
@@ -582,7 +582,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard',
+            name: 'ipsec',
             type: 'int',
             length: '11',
             isPrimary: true,
@@ -601,8 +601,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard'],
-            referencedTableName: 'wireguard',
+            columnNames: ['ipsec'],
+            referencedTableName: 'ipsec',
             referencedColumnNames: ['id'],
           },
         ],
@@ -611,7 +611,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
     await queryRunner.createTable(
       new Table({
-        name: 'routing_r__wireguard_prefix',
+        name: 'routing_r__ipsec_prefix',
         columns: [
           {
             name: 'rule',
@@ -620,7 +620,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'wireguard_prefix',
+            name: 'ipsec_prefix',
             type: 'int',
             length: '11',
             isPrimary: true,
@@ -639,8 +639,8 @@ export class WireGuard1737018559931 implements MigrationInterface {
             referencedColumnNames: ['id'],
           },
           {
-            columnNames: ['wireguard_prefix'],
-            referencedTableName: 'wireguard_prefix',
+            columnNames: ['ipsec_prefix'],
+            referencedTableName: 'ipsec_prefix',
             referencedColumnNames: ['id'],
           },
         ],
@@ -649,16 +649,16 @@ export class WireGuard1737018559931 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable('routing_r__wireguard_prefix', true);
-    await queryRunner.dropTable('routing_r__wireguard', true);
-    await queryRunner.dropTable('route__wireguard_prefix', true);
-    await queryRunner.dropTable('route__wireguard', true);
-    await queryRunner.dropTable('policy_r__wireguard_prefix', true);
-    await queryRunner.dropTable('policy_r__wireguard', true);
-    await queryRunner.dropTable('wireguard_prefix__ipobj_g', true);
-    await queryRunner.dropTable('wireguard_prefix', true);
-    await queryRunner.dropTable('wireguard_opt', true);
-    await queryRunner.dropTable('wireguard__ipobj_g', true);
-    await queryRunner.dropTable('wireguard', true);
+    await queryRunner.dropTable('routing_r__ipsec_prefix', true);
+    await queryRunner.dropTable('routing_r__ipsec', true);
+    await queryRunner.dropTable('route__ipsec_prefix', true);
+    await queryRunner.dropTable('route__ipsec', true);
+    await queryRunner.dropTable('policy_r__ipsec_prefix', true);
+    await queryRunner.dropTable('policy_r__ipsec', true);
+    await queryRunner.dropTable('ipsec_prefix__ipobj_g', true);
+    await queryRunner.dropTable('ipsec_prefix', true);
+    await queryRunner.dropTable('ipsec_opt', true);
+    await queryRunner.dropTable('ipsec__ipobj_g', true);
+    await queryRunner.dropTable('ipsec', true);
   }
 }

@@ -32,6 +32,8 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
         name: StringHelper.randomize(10),
+        locked: false,
+        locked_by: null,
       }),
     );
 

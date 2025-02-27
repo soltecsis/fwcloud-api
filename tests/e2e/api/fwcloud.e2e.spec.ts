@@ -94,6 +94,10 @@ describe(describeName('FwCloud E2E Tests'), () => {
       beforeEach(async () => {
         fwCloud = FwCloud.create({ name: StringHelper.randomize(10) });
         await fwCloud.save();
+        regularUser.fwClouds = [fwCloud];
+        adminUser.fwClouds = [fwCloud];
+        await regularUser.save();
+        await adminUser.save();
       });
 
       it('guest user should not update a fwcloud', async () => {
