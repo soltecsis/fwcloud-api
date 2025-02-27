@@ -216,7 +216,7 @@ export class WireGuard extends Model {
       const sql = `UPDATE ${tableName} SET install_dir=${req.dbCon.escape(req.body.install_dir)},
                 install_name=${req.dbCon.escape(req.body.install_name)},
                 comment=${req.dbCon.escape(req.body.comment)}
-                WHERE id=${req.body.wireGuard}`;
+                WHERE id=${req.body.wireguard}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve();
@@ -245,7 +245,7 @@ export class WireGuard extends Model {
 
   public static delCfgOptAll(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = 'delete from wireguard_opt where wireGuard=' + req.body.WireGuard;
+      const sql = 'delete from wireguard_opt where wireGuard=' + req.body.wireguard;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve();

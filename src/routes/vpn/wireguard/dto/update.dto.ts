@@ -13,6 +13,10 @@ import { WireGuardOptionDTO } from './store.dto';
 export class UpdateDto {
   @IsNotEmpty()
   @IsNumber()
+  fwcloud: number;
+
+  @IsNotEmpty()
+  @IsNumber()
   wireguard: number;
 
   @IsString()
