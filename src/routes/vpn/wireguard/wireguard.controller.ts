@@ -226,7 +226,12 @@ export class WireGuardController extends Controller {
         );
       }
 
-      await WireGuard.delCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+      await WireGuard.delCfg(
+        req.dbCon,
+        req.body.fwcloud,
+        req.body.wireguard,
+        req.wireguard.type === 1,
+      );
 
       if (req.wireguard?.type === 1) {
         await WireGuardPrefix.applyWireGuardPrefixes(

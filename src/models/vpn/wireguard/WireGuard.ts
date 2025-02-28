@@ -253,7 +253,7 @@ export class WireGuard extends Model {
     });
   }
 
-  public static delCfg(dbCon, fwcloud, wireGuard): Promise<void> {
+  public static delCfg(dbCon, fwcloud, wireGuard, isClient = false): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get all the ipobj referenced by this WireGuard configuration.
       const sql = `select OBJ.id,OBJ.type from wireguard_opt OPT
@@ -262,9 +262,18 @@ export class WireGuard extends Model {
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
+        if (isClient) {
+          console.log('isClient');
+          dbCon.query(
+            `delete from wireguard_opt where wireguard_cli=${wireGuard}`,
+            (error, result) => {
+              if (error) return reject(error);
+              // Continue with the rest of the deletion process
+            },
+          );
+        }
         dbCon.query(`delete from wireguard_opt where wireguard=${wireGuard}`, (error, result) => {
           if (error) return reject(error);
-
           dbCon.query(
             `delete from wireguard_prefix where wireguard=${wireGuard}`,
             (error, result) => {
