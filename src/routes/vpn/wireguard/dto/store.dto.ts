@@ -13,13 +13,14 @@ import {
 export class WireGuardOptionDTO {
   @IsString()
   @IsIn([
+    'PrivateKey',
     'Address',
     'DNS',
     'MTU',
     'Table',
     'Endpoint',
     'AllowedIPs',
-    'persistentkeepalive',
+    'PersistentKeepalive',
     'ListenPort',
     'PublicKey',
     'PreIp',
