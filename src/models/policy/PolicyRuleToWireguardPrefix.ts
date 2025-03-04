@@ -26,7 +26,7 @@ import { PolicyRule } from './PolicyRule';
 import { PolicyPosition } from './PolicyPosition';
 import { WireGuardPrefix } from '../vpn/wireguard/WireGuardPrefix';
 
-const tableName: string = 'policy_r__wireGuard_prefix';
+const tableName: string = 'policy_r__wireguard_prefix';
 
 @Entity(tableName)
 export class PolicyRuleToWireGuardPrefix extends Model {

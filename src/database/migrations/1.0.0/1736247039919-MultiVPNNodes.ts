@@ -29,6 +29,7 @@ const newIPobjTypes = [
   { id: 330, type: 'IPSEC CONFIG', protocol_number: null },
   { id: 331, type: 'IPSEC CLI', protocol_number: null },
   { id: 332, type: 'IPSEC SRV', protocol_number: null },
+  { id: 402, type: 'WIREGUARD PREFIX', protocol_number: null },
 ];
 
 const newFWCTreeNodeTypes = [

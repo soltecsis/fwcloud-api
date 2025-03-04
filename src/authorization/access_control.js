@@ -296,6 +296,12 @@ function checkPrefixAccess(req) {
 				INNER JOIN firewall FW ON FW.id=VPN.firewall
 				WHERE P.id=${req.body.prefix}`;
 		}
+		else if (item[1]==='vpn' && item[2]==='wireguard' && item[3]==='prefix') {
+			sql = `select FW.fwcloud,P.* FROM wireguard_prefix P
+				INNER JOIN wireguard W ON W.id=P.wireguard
+				INNER JOIN firewall FW ON FW.id=W.firewall
+				WHERE P.id=${req.body.prefix}`;
+		}
 		else resolve(false);
 
 		req.dbCon.query(sql, (error, result) => {

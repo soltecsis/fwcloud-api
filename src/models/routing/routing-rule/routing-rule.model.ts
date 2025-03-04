@@ -139,7 +139,7 @@ export class RoutingRule extends Model {
   })
   routingRuleToOpenVPNs: RoutingRuleToOpenVPN[];
 
-  @OneToMany(() => RoutingRuleToOpenVPNPrefix, (model) => model.routingRule, {
+  @OneToMany(() => RoutingRuleToWireGuardPrefix, (model) => model.routingRule, {
     cascade: true,
   })
   routingRuleToWireGuardPrefixes: RoutingRuleToWireGuardPrefix[];

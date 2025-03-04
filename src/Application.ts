@@ -80,6 +80,8 @@ import { KeepalivedGroupServiceProvider } from './models/system/keepalived/keepa
 import { KeepalivedRuleServiceProvider } from './models/system/keepalived/keepalived_r/keepalived_r.provider';
 import { LockValidation } from './middleware/LockValidation';
 import { RestrictedMiddleware } from './middleware/restricted.middleware';
+import { WireGuard } from './models/vpn/wireguard/WireGuard';
+import { WireGuardPrefixServiceProvider } from './models/vpn/wireguard/wireguard-prefix.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -169,6 +171,7 @@ export class Application extends HTTPApplication {
       AuthServiceProvider,
       CaServiceProvider,
       CrtServiceProvider,
+      WireGuardPrefixServiceProvider,
     ];
   }
 

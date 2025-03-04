@@ -55,6 +55,7 @@ import { HAProxyGroupController } from '../controllers/system/haproxy-group/hapr
 import { HAProxyController } from '../controllers/system/haproxy/haproxy.controller';
 import { FirewallWireGuardController } from '../controllers/firewalls/wireguard/wireguard.controller';
 import { WireGuardController } from './vpn/wireguard/wireguard.controller';
+import { WireGuardPrefixController } from './vpn/wireguard/wireguard.prefix.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -145,6 +146,24 @@ export class Routes extends RouteCollection {
           router
             .put('/clients/get', WireGuardController, 'getClients')
             .name('vpn.wireguard.clients.get');
+          router.prefix('/prefix', (router: RouterParser) => {
+            router.post('/', WireGuardPrefixController, 'prefix').name('vpn.wireguard.prefix');
+            router
+              .put('/', WireGuardPrefixController, 'update')
+              .name('vpn.wireguard.prefix.update');
+            router
+              .put('/info/get', WireGuardPrefixController, 'getInfo')
+              .name('vpn.wireguard.prefix.info.get');
+            router
+              .put('/restricted', WireGuardPrefixController, 'restricted')
+              .name('vpn.wireguard.prefix.restrictions');
+            router
+              .put('/where', WireGuardPrefixController, 'where')
+              .name('vpn.wireguard.prefix.where');
+            router
+              .put('/del', WireGuardPrefixController, 'delete')
+              .name('vpn.wireguard.prefix.del');
+          });
         });
       });
 

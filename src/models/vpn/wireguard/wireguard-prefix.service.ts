@@ -20,7 +20,7 @@ export class WireGuardPrefixService extends Service {
     // Verify that the new prefix name doesn't already exists.
     req.body.ca = (req as any).prefix.ca;
 
-    if (await WireGuardPrefix.existsPrefix(req.dbCon, (req as any).prefix.wireGuard, req.body.name))
+    if (await WireGuardPrefix.existsPrefix(req.dbCon, (req as any).prefix.wireguard, req.body.name))
       throw fwcError.ALREADY_EXISTS;
 
     // If we modify a prefix used in a rule or group, and the new prefix name has no wireGuard clients, then don't allow it.
@@ -34,7 +34,7 @@ export class WireGuardPrefixService extends Service {
       (
         await WireGuardPrefix.getWireGuardClientsUnderPrefix(
           req.dbCon,
-          (req as any).prefix.wireGuard,
+          (req as any).prefix.wireguard,
           req.body.name,
         )
       ).length < 1
@@ -48,7 +48,7 @@ export class WireGuardPrefixService extends Service {
     await WireGuardPrefix.applyWireGuardPrefixes(
       req.dbCon,
       req.body.fwcloud,
-      (req as any).prefix.wireGuard,
+      (req as any).prefix.wireguard,
     );
 
     //Update all group nodes which references the prefix to set the new name
@@ -97,20 +97,20 @@ export class WireGuardPrefixService extends Service {
 
           .leftJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
           .leftJoin('routingRuleToIPObjGroups.ipObjGroup', 'ruleGroup')
-          .leftJoin('ruleGroup.openVPNPrefixes', 'ruleGroupWireGuardPrefix')
+          .leftJoin('ruleGroup.wireGuardPrefixes', 'ruleGroupWireGuardPrefix')
 
           .leftJoin('rule.routingRuleToWireGuardPrefixes', 'routingRuleToWireGuardPrefix')
 
           .leftJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
           .leftJoin('routeToIPObjGroups.ipObjGroup', 'routeGroup')
-          .leftJoin('routeGroup.openVPNPrefixes', 'routeGroupWireGuardPrefix')
+          .leftJoin('routeGroup.wireGuardPrefixes', 'routeGroupWireGuardPrefix')
 
           .leftJoin('route.routeToWireGuardPrefixes', 'routeToWireGuardPrefix')
 
-          .where('routingRuleToWireGuardPrefix.openVPNPrefixId = :idRoutingRule', {
+          .where('routingRuleToWireGuardPrefix.wireGuardPrefixId = :idRoutingRule', {
             idRoutingRule: prefixId,
           })
-          .orWhere('routeToWireGuardPrefix.openVPNPrefixId = :idRoute', { idRoute: prefixId })
+          .orWhere('routeToWireGuardPrefix.wireGuardPrefixId = :idRoute', { idRoute: prefixId })
           .orWhere('ruleGroupWireGuardPrefix.id = :idRuleGroupPrefix', {
             idRuleGroupPrefix: prefixId,
           })

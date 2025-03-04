@@ -58,7 +58,7 @@ export class WireGuardPrefix extends Model {
 
   @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.wireGuardPrefixes)
   @JoinTable({
-    name: 'wireGuard_prefix__ipobj_g',
+    name: 'wireguard_prefix__ipobj_g',
     joinColumn: {
       name: 'prefix',
     },
@@ -109,7 +109,7 @@ export class WireGuardPrefix extends Model {
       const prefixData = {
         id: null,
         name: req.body.name,
-        wireGuard: req.body.wireGuard,
+        wireguard: req.body.wireguard,
       };
       req.dbCon.query(`INSERT INTO ${tableName} SET ?`, prefixData, (error, result) => {
         if (error) return reject(error);
@@ -171,8 +171,8 @@ export class WireGuardPrefix extends Model {
   // Get all prefixes for the indicated CA.
   public static getWireGuardClientsUnderPrefix(dbCon, wireGuard, prefix_name): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.id from wireguard VPN 
-                inner join crt CRT on CRT.id=VPN.crt
+      const sql = `select WG.id from wireguard WG 
+                inner join crt CRT on CRT.id=WG.crt
                 where wireguard=${wireGuard} and CRT.cn LIKE '${prefix_name}%'`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
@@ -249,26 +249,26 @@ export class WireGuardPrefix extends Model {
       const sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
                 from wireguard_prefix P
-                inner join wireguard VPN on VPN.id=P.wireguard
-                inner join crt CRT on CRT.id=VPN.crt
+                inner join wireguard WG on WG.id=P.wireguard
+                inner join crt CRT on CRT.id=WG.crt
                 inner join ca CA on CA.id=CRT.ca
-                inner join firewall FW on FW.id=VPN.firewall 
+                inner join firewall FW on FW.id=WG.firewall 
                 where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         if (result.length === 0) return reject(fwcError.NOT_FOUND);
-
-        result[0].type = 401;
-        result[0].wireGuard_clients = [];
+        console.log(result);
+        result[0].type = 402;
+        result[0].wireguard_clients = [];
         try {
-          const wireGuard_clients: any = await this.getWireGuardClientsUnderPrefix(
+          const wireguard_clients: any = await this.getWireGuardClientsUnderPrefix(
             dbCon,
-            result[0].wireGuard,
+            result[0].wireguard,
             result[0].name,
           );
-          for (const wireGuard_client of wireGuard_clients)
-            result[0].wireGuard_clients.push(
-              (await WireGuard.getWireGuardInfo(dbCon, fwcloud, wireGuard_client.id, 1))[0],
+          for (const wireguard_client of wireguard_clients)
+            result[0].wireguard_clients.push(
+              (await WireGuard.getWireGuardInfo(dbCon, fwcloud, wireguard_client.id, 1))[0],
             );
         } catch (error) {
           return reject(error);
@@ -291,9 +291,9 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       // Move all affected nodes into the new prefix container node.
       const prefix = dbCon.escape(prefix_name).slice(1, -1);
-      let sql = `SELECT VPN.id,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt CRT
-                INNER JOIN wireguard VPN on VPN.crt=CRT.id
-                WHERE VPN.wireguard=${wireGuard_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
+      let sql = `SELECT WG.id,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt CRT
+                INNER JOIN wireguard WG on WG.crt=CRT.id
+                WHERE WG.wireguard=${wireGuard_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
@@ -304,9 +304,9 @@ export class WireGuardPrefix extends Model {
             fwcloud,
             prefix_name,
             parent,
-            'PRW', // TODO: REVISAR PREFIX WIREGUARD
+            'PRW',
             prefix_id,
-            401,
+            402,
           );
           for (const row of result)
             await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'WGC', row.id, 321);
@@ -331,7 +331,6 @@ export class WireGuardPrefix extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         const node = await Tree.getNodeInfo(dbCon, fwcloud, 'WGS', wireGuard_srv);
-
         const node_id = node[0].id;
         // Remove all nodes under the WireGuard server configuration node.
         await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
@@ -398,7 +397,7 @@ export class WireGuardPrefix extends Model {
                 R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=401) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
-                from policy_r__wireGuard_prefix O
+                from policy_r__wireguard_prefix O
                 inner join policy_r R on R.id=O.rule
                 inner join firewall FW on FW.id=R.firewall
                 inner join policy_position P on P.id=O.position

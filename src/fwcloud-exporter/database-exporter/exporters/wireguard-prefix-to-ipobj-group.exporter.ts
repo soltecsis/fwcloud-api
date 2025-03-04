@@ -34,7 +34,7 @@ export class WireGuardPrefixToIPObjGroupExporter extends TableExporter {
   }
 
   public getTableName(): string {
-    return 'wireGuard_prefix__ipobj_g';
+    return 'wireguard_prefix__ipobj_g';
   }
 
   protected async getRows(connection: DataSource, fwCloudId: number): Promise<any> {
@@ -58,10 +58,10 @@ export class WireGuardPrefixToIPObjGroupExporter extends TableExporter {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(WireGuardPrefix, 'wireGuard_prefix')
-      .select('wireGuard_prefix.id');
+      .from(WireGuardPrefix, 'wireguard_prefix')
+      .select('wireguard_prefix.id');
     return new WireGuardPrefixExporter()
-      .getFilterBuilder(subquery, 'wireGuard_prefix', fwCloudId)
+      .getFilterBuilder(subquery, 'wireguard_prefix', fwCloudId)
       .getQueryAndParameters();
   }
 

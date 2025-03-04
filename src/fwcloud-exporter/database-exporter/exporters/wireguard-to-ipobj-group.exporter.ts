@@ -34,7 +34,7 @@ export class WireGuardToIPObjGroupExporter extends TableExporter {
   }
 
   public getTableName(): string {
-    return 'wireGuard__ipobj_g';
+    return 'wireguard__ipobj_g';
   }
 
   protected async getRows(connection: DataSource, fwCloudId: number): Promise<any> {
@@ -42,7 +42,7 @@ export class WireGuardToIPObjGroupExporter extends TableExporter {
 
     const data = await qr.query(
       `SELECT * FROM ${this.getTableName()} 
-        WHERE wireGuard IN ${this.getWireGuardIds(connection, fwCloudId)[0]}
+        WHERE wireguard IN ${this.getWireGuardIds(connection, fwCloudId)[0]}
         OR ipobj_g IN ${this.getIpObjGruopIds(connection, fwCloudId)[0]}`,
       this.getWireGuardIds(connection, fwCloudId)[1].concat(
         this.getIpObjGruopIds(connection, fwCloudId)[1],
@@ -58,10 +58,10 @@ export class WireGuardToIPObjGroupExporter extends TableExporter {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(WireGuard, 'wireGuard')
-      .select('wireGuard.id');
+      .from(WireGuard, 'wireguard')
+      .select('wireguard.id');
     return new WireGuardExporter()
-      .getFilterBuilder(subquery, 'wireGuard', fwCloudId)
+      .getFilterBuilder(subquery, 'wireguard', fwCloudId)
       .getQueryAndParameters();
   }
 

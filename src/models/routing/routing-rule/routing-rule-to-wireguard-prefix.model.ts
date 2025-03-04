@@ -3,7 +3,7 @@ import Model from '../../Model';
 import { RoutingRule } from './routing-rule.model';
 import { WireGuardPrefix } from '../../vpn/wireguard/WireGuardPrefix';
 
-const tableName: string = 'routing_r__openvpn_prefix';
+const tableName: string = 'routing_r__wireguard_prefix';
 
 @Entity(tableName)
 export class RoutingRuleToWireGuardPrefix extends Model {
@@ -13,9 +13,9 @@ export class RoutingRuleToWireGuardPrefix extends Model {
   routingRuleId: number;
 
   @PrimaryColumn({
-    name: 'openvpn_prefix',
+    name: 'wireguard_prefix',
   })
-  openVPNPrefixId: number;
+  wireGuardPrefixId: number;
 
   @Column({
     type: Number,
@@ -34,10 +34,9 @@ export class RoutingRuleToWireGuardPrefix extends Model {
     orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: 'openvpn_prefix',
+    name: 'wireguard_prefix',
   })
-  openVPNPrefix: WireGuardPrefix;
-  wireGuardPrefix: any;
+  wireGuardPrefix: WireGuardPrefix;
 
   public getTableName(): string {
     return tableName;
