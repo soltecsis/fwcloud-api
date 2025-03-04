@@ -119,7 +119,7 @@ export class Routes extends RouteCollection {
           router.post('/', WireGuardController, 'store').name('vpn.wireguard.store');
           router.put('/', WireGuardController, 'update').name('vpn.wireguard.update');
           router.put('/get', WireGuardController, 'get').name('vpn.wireguard.get');
-          router.get('/file/get', WireGuardController, 'getFile').name('vpn.wireguard.file.get');
+          router.put('/file/get', WireGuardController, 'getFile').name('vpn.wireguard.file.get');
           router.put('/ipobj/get', WireGuardController, 'getIpObj').name('vpn.wireguard.ipobj.get');
           router.put('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
           router.put('/info/get', WireGuardController, 'getInfo').name('vpn.wireguard.info.get');
@@ -140,7 +140,7 @@ export class Routes extends RouteCollection {
             .get('/status/get', WireGuardController, 'getStatus')
             .name('vpn.wireguard.status.get');
           router
-            .get('/config/filename', WireGuardController, 'getConfigFilename')
+            .put('/config/filename', WireGuardController, 'getConfigFilename')
             .name('vpn.wireguard.config.filename');
           router
             .put('/clients/get', WireGuardController, 'getClients')

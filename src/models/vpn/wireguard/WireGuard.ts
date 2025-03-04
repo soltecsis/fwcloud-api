@@ -263,7 +263,6 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         if (isClient) {
-          console.log('isClient');
           dbCon.query(
             `delete from wireguard_opt where wireguard_cli=${wireGuard}`,
             (error, result) => {
@@ -523,97 +522,76 @@ export class WireGuard extends Model {
 
   public static dumpCfg(dbCon, fwcloud, wireGuard) {
     return new Promise((resolve, reject) => {
-      // First obtain the CN of the certificate.
-      let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
-                VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
-                INNER JOIN wireguard VPN ON VPN.crt=CRT.id
-                LEFT JOIN wireguard VPNSRV ON VPNSRV.id=VPN.wireguard
-                INNER JOIN firewall FW ON FW.id=VPN.firewall
-                LEFT JOIN cluster CL ON CL.id=FW.cluster
-			    WHERE VPN.id=${wireGuard}`;
-
-      dbCon.query(sql, (error, result) => {
+      // 1. Consulta principal: datos del servidor
+      const sql = `SELECT *
+                 FROM wireguard VPN
+                 LEFT JOIN firewall FW ON FW.id = VPN.firewall
+                 LEFT JOIN cluster CL ON CL.id=FW.cluster
+                 WHERE VPN.id=${wireGuard}`;
+      dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
+        if (!result || result.length === 0)
+          return reject(fwcError.other('WireGuard configuration not found'));
+        const wgRow = result[0];
 
-        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
-        const ca_crt_path = ca_dir + 'ca.crt';
-        const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
-        const key_path = ca_dir + 'private/' + result[0].cn + '.key';
-        const dh_path = result[0].type === 2 ? ca_dir + 'dh.pem' : '';
+        // Cabecera: bloque [Interface] del servidor
+        let wg_cfg = `[Interface]\n`;
+        wg_cfg += `PrivateKey = ${await utilsModel.decrypt(wgRow.private_key)}\n`;
 
-        // Header description.
-        let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
-        des += `# Generated: ${Date()}\n`;
-        des += `# Certificate Common Name: ${result[0].cn} \n`;
-        des += result[0].cl_name
-          ? `# Firewall Cluster: ${result[0].cl_name}\n`
-          : `# Firewall: ${result[0].fw_name}\n`;
-        if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
-          result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
-        if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
-          result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
-        des += `# Wireguard Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
-        des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
+        // 2. Consulta para obtener las opciones del [Interface] del servidor (Address, ListenPort, DNS)
+        const sqlOpts = `SELECT *
+                       FROM wireguard_opt OPT
+                       WHERE OPT.wireguard=${wireGuard}
+                       AND OPT.name IN ('Address', 'ListenPort', 'DNS')
+                       ORDER BY OPT.order`;
+        dbCon.query(sqlOpts, (optError, optResult) => {
+          if (optError) return reject(optError);
+          const interfaceLines = [];
+          optResult.forEach((opt) => {
+            const commentLines = opt.comment ? opt.comment.replace(/\n/g, '\n# ') : '';
+            interfaceLines.push(commentLines + `${opt.name} = ${opt.arg}`);
+          });
+          if (interfaceLines.length) {
+            wg_cfg += interfaceLines.join('\n') + '\n\n';
+          } else {
+            wg_cfg += '\n';
+          }
 
-        // Get all the configuration options.
-        sql = `select name,ipobj,arg,scope,comment from wireguard_opt where wireguard=${wireGuard} order by Wireguard_opt.order`;
-        dbCon.query(sql, async (error, result) => {
-          if (error) return reject(error);
+          // 3. Consulta para obtener la información de los peers (clientes)
+          const sqlPeers = `
+            SELECT 
+              C.id, 
+              C.public_key, 
+              ADDR.arg AS client_address, 
+              ALW.arg AS allowedips
+            FROM wireguard C
+            INNER JOIN wireguard_opt ADDR 
+                ON ADDR.wireguard = C.id 
+               AND ADDR.name = 'Address'
+            LEFT JOIN wireguard_opt ALW 
+                ON ALW.wireguard = C.id 
+               AND ALW.name = 'AllowedIPs'
+               AND ALW.wireguard_cli = ${wireGuard}
+            WHERE C.wireguard IS NOT NULL
+            ORDER BY C.id
+          `;
+          dbCon.query(sqlPeers, async (peerError, peerResult) => {
+            if (peerError) return reject(peerError);
 
-          try {
-            // Generate the WireGuard config file.
-            let wireguard_cfg = des;
-            let wireguard_ccd = '';
-
-            // First add all the configuration options.
-            for (const opt of result) {
-              let cfg_line =
-                (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
-              if (opt.ipobj) {
-                // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
-                if (ipobj.type === 7) {
-                  // Network
-                  const netmask =
-                    ipobj.netmask[0] === '/'
-                      ? IpUtils.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
-                      : ipobj.netmask;
-                  cfg_line += ' ' + ipobj.address + ' ' + netmask;
-                } else if (ipobj.type === 5) {
-                  // Address
-                  cfg_line += ' ' + ipobj.address;
-                  if (opt.name === 'ifconfig-push') cfg_line += ' ' + ipobj.netmask;
-                  else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
-                } else if (ipobj.type === 9) {
-                  // DNS Name
-                  cfg_line += ' ' + ipobj.name;
-                  if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
-                }
-              } else if (opt.arg) cfg_line += ' ' + opt.arg;
-
-              if (opt.scope === 0)
-                // CCD file
-                wireguard_ccd += cfg_line + '\n';
-              // Config file
-              else wireguard_cfg += cfg_line + '\n';
+            // Procesamos cada cliente; usamos un loop for...of para esperar las decriptaciones
+            for (const peer of peerResult) {
+              // Si el registro de AllowedIPs es nulo, se usa solo la dirección del cliente
+              const concatenatedAllowedIPs =
+                peer.allowedips != null && peer.allowedips.trim() !== ''
+                  ? `${peer.client_address},${peer.allowedips}`
+                  : peer.client_address;
+              wg_cfg += `[Peer]\n`;
+              wg_cfg += `PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`;
+              wg_cfg += `AllowedIPs = ${concatenatedAllowedIPs}\n\n`;
             }
 
-            // Now read the files data and put it into de config files.
-            if (dh_path)
-              // Configuración WireGuard de servidor.
-              wireguard_cfg +=
-                '\n<dh>\n' + ((await this.getCRTData(dh_path)) as string) + '</dh>\n';
-            wireguard_cfg +=
-              '\n<ca>\n' + ((await this.getCRTData(ca_crt_path)) as string) + '</ca>\n';
-            wireguard_cfg +=
-              '\n<cert>\n' + ((await this.getCRTData(crt_path)) as string) + '</cert>\n';
-            wireguard_cfg +=
-              '\n<key>\n' + ((await this.getCRTData(key_path)) as string) + '</key>\n';
-
-            resolve({ cfg: wireguard_cfg, ccd: wireguard_ccd });
-          } catch (error) {
-            reject(error);
-          }
+            resolve({ cfg: wg_cfg });
+          });
         });
       });
     });
