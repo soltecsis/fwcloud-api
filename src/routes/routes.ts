@@ -131,7 +131,7 @@ export class Routes extends RouteCollection {
           router
             .put('/restricted', WireGuardController, 'restricted')
             .name('vpn.wireguard.restrictions');
-          router.get('/where', WireGuardController, 'where').name('vpn.wireguard.where');
+          router.put('/where', WireGuardController, 'where').name('vpn.wireguard.where');
           router.put('/install', WireGuardController, 'install').name('vpn.wireguard.install');
           router
             .put('/uninstall', WireGuardController, 'uninstall')

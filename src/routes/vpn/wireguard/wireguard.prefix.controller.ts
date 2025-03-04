@@ -78,6 +78,22 @@ export class WireGuardPrefixController extends Controller {
   }
 
   @Validate()
+  async where(req): Promise<ResponseBuilder> {
+    try {
+      const data = await WireGuardPrefix.searchPrefixUsage(
+        req.dbCon,
+        req.body.fwcloud,
+        req.body.prefix,
+        true,
+      );
+      if ((data as any).result) return ResponseBuilder.buildResponse().status(200).body(data);
+      else return ResponseBuilder.buildResponse().status(204);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
+
+  @Validate()
   async delete(req): Promise<ResponseBuilder> {
     try {
       // Delete prefix.

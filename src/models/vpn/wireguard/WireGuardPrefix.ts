@@ -257,7 +257,6 @@ export class WireGuardPrefix extends Model {
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         if (result.length === 0) return reject(fwcError.NOT_FOUND);
-        console.log(result);
         result[0].type = 402;
         result[0].wireguard_clients = [];
         try {
