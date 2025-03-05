@@ -246,11 +246,6 @@ export class WireGuard1737018559931 implements MigrationInterface {
             default: null,
           },
         ],
-        uniques: [
-          {
-            columnNames: ['wireguard', 'wireguard_cli'],
-          },
-        ],
         foreignKeys: [
           {
             columnNames: ['ipobj'],
