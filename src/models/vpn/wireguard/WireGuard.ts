@@ -524,10 +524,10 @@ export class WireGuard extends Model {
     return new Promise((resolve, reject) => {
       // 1. Consulta principal: datos del servidor
       const sql = `SELECT *
-                 FROM wireguard VPN
-                 LEFT JOIN firewall FW ON FW.id = VPN.firewall
-                 LEFT JOIN cluster CL ON CL.id=FW.cluster
-                 WHERE VPN.id=${wireGuard}`;
+      FROM wireguard VPN
+      LEFT JOIN firewall FW ON FW.id = VPN.firewall
+      LEFT JOIN cluster CL ON CL.id=FW.cluster
+      WHERE VPN.id=${wireGuard}`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         if (!result || result.length === 0)
@@ -540,57 +540,92 @@ export class WireGuard extends Model {
 
         // 2. Consulta para obtener las opciones del [Interface] del servidor (Address, ListenPort, DNS)
         const sqlOpts = `SELECT *
-                       FROM wireguard_opt OPT
-                       WHERE OPT.wireguard=${wireGuard}
-                       AND OPT.name IN ('Address', 'ListenPort', 'DNS')
-                       ORDER BY OPT.order`;
+            FROM wireguard_opt OPT
+            WHERE OPT.wireguard=${wireGuard}
+            AND OPT.name IN ('Address', 'ListenPort', 'DNS')
+            ORDER BY OPT.order`;
         dbCon.query(sqlOpts, (optError, optResult) => {
           if (optError) return reject(optError);
           const interfaceLines = [];
           optResult.forEach((opt) => {
             const commentLines = opt.comment ? opt.comment.replace(/\n/g, '\n# ') : '';
-            interfaceLines.push(commentLines + `${opt.name} = ${opt.arg}`);
+            const formattedComment = commentLines ? `#${commentLines}\n` : '';
+            interfaceLines.push(`${formattedComment}${opt.name} = ${opt.arg}`);
           });
           if (interfaceLines.length) {
-            wg_cfg += interfaceLines.join('\n') + '\n\n';
+            wg_cfg += interfaceLines.join('\n');
+            wg_cfg += '\n\n';
           } else {
             wg_cfg += '\n';
           }
 
-          // 3. Consulta para obtener la información de los peers (clientes)
-          const sqlPeers = `
-            SELECT 
-              C.id, 
-              C.public_key, 
-              ADDR.arg AS client_address, 
-              ALW.arg AS allowedips
-            FROM wireguard C
-            INNER JOIN wireguard_opt ADDR 
-                ON ADDR.wireguard = C.id 
-               AND ADDR.name = 'Address'
-            LEFT JOIN wireguard_opt ALW 
-                ON ALW.wireguard = C.id 
-               AND ALW.name = 'AllowedIPs'
-               AND ALW.wireguard_cli = ${wireGuard}
-            WHERE C.wireguard IS NOT NULL
-            ORDER BY C.id
-          `;
-          dbCon.query(sqlPeers, async (peerError, peerResult) => {
-            if (peerError) return reject(peerError);
+          const sqlCheckIsClient = `SELECT wireguard FROM wireguard WHERE id=${wireGuard}`;
+          dbCon.query(sqlCheckIsClient, (error, result) => {
+            if (error) return reject(error);
+            if (result.length === 0) return reject(new Error('WireGuard configuration not found'));
+            const isClient = result[0].wireguard !== null;
 
-            // Procesamos cada cliente; usamos un loop for...of para esperar las decriptaciones
-            for (const peer of peerResult) {
-              // Si el registro de AllowedIPs es nulo, se usa solo la dirección del cliente
-              const concatenatedAllowedIPs =
-                peer.allowedips != null && peer.allowedips.trim() !== ''
-                  ? `${peer.client_address},${peer.allowedips}`
-                  : peer.client_address;
-              wg_cfg += `[Peer]\n`;
-              wg_cfg += `PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`;
-              wg_cfg += `AllowedIPs = ${concatenatedAllowedIPs}\n\n`;
+            const sqlWireGuardId = isClient
+              ? wireGuard
+              : `(SELECT id FROM wireguard WHERE wireguard=${wireGuard})`;
+            const sqlPeersBase = `SELECT 
+                                C.id,
+                                C.public_key,
+                                WG.arg AS client_address,
+                                ALW.arg AS allowedips,
+                                ALW.comment AS allowedips_comment,
+                                OPT.name AS option_name,
+                                OPT.arg AS option_value,
+                                OPT.comment AS option_comment
+                              FROM wireguard C
+                              INNER JOIN wireguard_opt WG
+                                ON WG.wireguard = C.id
+                                AND WG.name = 'Address'
+                              LEFT JOIN wireguard_opt ALW
+                                ON ALW.wireguard = C.id
+                                AND ALW.name = 'AllowedIPs'
+                                AND ALW.wireguard_cli IN (${sqlWireGuardId})
+                              LEFT JOIN wireguard_opt OPT
+                                ON OPT.wireguard = C.id
+                                AND OPT.wireguard_cli IN (${sqlWireGuardId})
+                                AND OPT.name NOT IN ('Address', 'AllowedIPs')
+                              WHERE C.wireguard IS ${isClient ? 'NOT' : ''} NULL`;
+
+            let sqlPeers = sqlPeersBase;
+            if (isClient) {
+              sqlPeers += ` AND C.id = ${sqlWireGuardId}`;
             }
+            sqlPeers += ` ORDER BY C.id, OPT.name;`;
 
-            resolve({ cfg: wg_cfg });
+            dbCon.query(sqlPeers, async (peerError, peerResult) => {
+              if (peerError) return reject(peerError);
+
+              for (const peer of peerResult) {
+                const allowedIpsComment = peer.allowedips_comment
+                  ? `# ${peer.allowedips_comment.replace(/\n/g, '\n# ')}\n`
+                  : '';
+                const comment = peer.option_comment
+                  ? `# ${peer.option_comment.replace(/\n/g, '\n# ')}\n`
+                  : '';
+                const concatenatedAllowedIPs =
+                  peer.allowedips && peer.allowedips.trim() !== ''
+                    ? `${peer.client_address},${peer.allowedips}`
+                    : peer.client_address;
+                wg_cfg += `[Peer]\n`;
+                wg_cfg += `PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`;
+                wg_cfg += allowedIpsComment;
+                wg_cfg += `AllowedIPs = ${concatenatedAllowedIPs}\n\n`;
+                if (peer.option_name === 'Endpoint') {
+                  wg_cfg += comment;
+                  wg_cfg += `Endpoint = ${peer.option_value}\n\n`;
+                } else if (peer.option_name === 'PersistentKeepalive') {
+                  wg_cfg += comment;
+                  wg_cfg += `PersistentKeepalive = ${peer.option_value}\n\n`;
+                }
+              }
+
+              resolve({ cfg: wg_cfg });
+            });
           });
         });
       });
