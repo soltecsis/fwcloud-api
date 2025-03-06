@@ -534,11 +534,11 @@ export class WireGuard extends Model {
           return reject(fwcError.other('WireGuard configuration not found'));
         const wgRow = result[0];
 
-        // Cabecera: bloque [Interface] del servidor
+        // Header: [Interface] server section
         let wg_cfg = `[Interface]\n`;
         wg_cfg += `PrivateKey = ${await utilsModel.decrypt(wgRow.private_key)}\n`;
 
-        // 2. Consulta para obtener las opciones del [Interface] del servidor (Address, ListenPort, DNS)
+        // 2. Query to get [Interface] options from server (Address, ListenPort, DNS)
         const sqlOpts = `SELECT *
             FROM wireguard_opt OPT
             WHERE OPT.wireguard=${wireGuard}
@@ -611,6 +611,7 @@ export class WireGuard extends Model {
                   peer.allowedips && peer.allowedips.trim() !== ''
                     ? `${peer.client_address},${peer.allowedips}`
                     : peer.client_address;
+                // Header: [Peer] peers section
                 wg_cfg += `[Peer]\n`;
                 wg_cfg += `PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`;
                 wg_cfg += allowedIpsComment;
