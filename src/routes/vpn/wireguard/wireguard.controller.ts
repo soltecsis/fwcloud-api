@@ -9,6 +9,12 @@ import { GetDto } from './dto/get.dto';
 import { StoreDto } from './dto/store.dto';
 import { UpdateDto } from './dto/update.dto';
 import { GetFirewallDto } from './dto/getFirewall.dto';
+import { Channel } from '../../../sockets/channels/channel';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import db from '../../../database/database-manager';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -117,6 +123,99 @@ export class WireGuardController extends Controller {
         .body({ insertId: newWireguard, TreeinsertId: nodeId });
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
+
+  @Validate()
+  async install(req): Promise<ResponseBuilder> {
+    try {
+      const channel = await Channel.fromRequest(req);
+      const cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({ where: { id: req.body.firewall } });
+      const communication = await firewall.getCommunication({
+        sshuser: req.body.sshuser,
+        sshpassword: req.body.sshpass,
+      });
+
+      channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
+
+      if (!req.wireguard.install_dir || !req.wireguard.install_name)
+        throw new Error('Empty install dir or install name');
+      await communication.installOpenVPNServerConfigs(
+        req.wireguard.install_dir,
+        [
+          {
+            content: (cfgDump as any).cfg,
+            name: req.wireguard.install_name,
+          },
+        ],
+        channel,
+      );
+
+      // Update the status flag for the OpenVPN configuration.
+      await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '&~1');
+
+      // Update the install date.
+      await WireGuard.updateWireGuardInstallDate(req.dbCon, req.body.wireguard);
+
+      channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
+      return ResponseBuilder.buildResponse().status(200);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        return ResponseBuilder.buildResponse()
+          .status(error.status)
+          .body({ message: error.message });
+      }
+
+      if (error.message)
+        return ResponseBuilder.buildResponse().status(400).body({ message: error.message });
+      else return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
+
+  @Validate()
+  async uninstall(req): Promise<ResponseBuilder> {
+    try {
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({ where: { id: req.body.firewall } });
+      const channel = await Channel.fromRequest(req);
+      const communication = await firewall.getCommunication({
+        sshuser: req.body.sshuser,
+        sshpassword: req.body.sshpass,
+      });
+
+      channel.emit('message', new ProgressPayload('start', false, 'Uninstalling Wireguard'));
+
+      if (!req.wireguard.install_dir || !req.wireguard.install_name)
+        throw new Error('Empty install dir or install name');
+
+      await communication.uninstallWireGuardConfigs(
+        req.wireguard.install_dir,
+        [req.wireguard.install_name],
+        channel,
+      );
+
+      // Update the status flag for the OpenVPN configuration.
+      await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
+
+      channel.emit('message', new ProgressPayload('end', false, 'Uninstalling Wireguard'));
+
+      return ResponseBuilder.buildResponse().status(200);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        return ResponseBuilder.buildResponse()
+          .status(error.status)
+          .body({ message: error.message });
+      }
+
+      if (error.message)
+        return ResponseBuilder.buildResponse().status(400).body({ message: error.message });
+      else return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
 

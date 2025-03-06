@@ -114,7 +114,11 @@ export abstract class Communication<ConnectionData> {
     files: string[],
     channel?: EventEmitter,
   ): Promise<void>;
-
+  abstract uninstallWireGuardConfigs(
+    dir: string,
+    files: string[],
+    channel?: EventEmitter,
+  ): Promise<void>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
