@@ -71,7 +71,7 @@ export class WireGuardController extends Controller {
       }
 
       if (req.body.wireguard) {
-        const wireguardCfg = await WireGuard.getCfg(req);
+        const wireguardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
         const order = wireguardCfg?.options.reduce((max, opt) => Math.max(max, opt.order), 0) + 1;
         const scope = wireguardCfg?.options.find((opt) => opt.scope !== undefined)?.scope;
         const options = [
@@ -142,14 +142,24 @@ export class WireGuardController extends Controller {
 
       channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
 
-      if (!req.wireguard.install_dir || !req.wireguard.install_name)
-        throw new Error('Empty install dir or install name');
+      let installDir = req.wireguard.install_dir;
+      let installName = req.wireguard.install_name;
+      if (!req.wireguard.install_dir || !req.wireguard.install_name) {
+        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
+        if (wireGuardCfg.wireguard === null) {
+          throw new Error('Empty install dir or install name');
+        } else {
+          const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
+          installDir = wireGuardParentCfg.install_dir;
+          installName = wireGuardParentCfg.install_name;
+        }
+      }
       await communication.installOpenVPNServerConfigs(
-        req.wireguard.install_dir,
+        installDir,
         [
           {
             content: (cfgDump as any).cfg,
-            name: req.wireguard.install_name,
+            name: installName,
           },
         ],
         channel,
@@ -161,7 +171,7 @@ export class WireGuardController extends Controller {
       // Update the install date.
       await WireGuard.updateWireGuardInstallDate(req.dbCon, req.body.wireguard);
 
-      channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
+      channel.emit('message', new ProgressPayload('end', false, 'Installing Wireguard'));
       return ResponseBuilder.buildResponse().status(200);
     } catch (error) {
       if (error instanceof HttpException) {
@@ -244,7 +254,7 @@ export class WireGuardController extends Controller {
   @Validate(GetDto)
   async get(req): Promise<ResponseBuilder> {
     try {
-      const data = await WireGuard.getCfg(req);
+      const data = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
@@ -264,7 +274,7 @@ export class WireGuardController extends Controller {
   @Validate(GetDto)
   async getIpObj(req): Promise<ResponseBuilder> {
     try {
-      const cfgData = await WireGuard.getCfg(req);
+      const cfgData = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
       const data = [];
       for (const opt of cfgData.options) {
         if (opt.ipobj) {
@@ -290,7 +300,7 @@ export class WireGuardController extends Controller {
   @Validate(GetDto)
   async getInfo(req): Promise<ResponseBuilder> {
     try {
-      const wireguardRecord = await WireGuard.getCfg(req);
+      const wireguardRecord = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
 
       const data = await WireGuard.getWireGuardInfo(
         req.dbCon,

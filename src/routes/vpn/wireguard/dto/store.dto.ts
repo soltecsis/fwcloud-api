@@ -27,6 +27,7 @@ export class WireGuardOptionDTO {
     'PostUp',
     'PreDown',
     'PostDown',
+    'disable',
   ])
   name: string;
 
