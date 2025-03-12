@@ -112,10 +112,13 @@ export class WireGuardController extends Controller {
 
       // Handle prefixes (if necessary)
       if (req.crt.type === 2) {
+        // 1=Client certificate, 2=Server certificate.
         const prefixes = req.body.prefixes || [];
         for (const prefix of prefixes) {
           await WireGuard.addPrefix(newWireguard, prefix);
         }
+        // If we are creaing a WireGuard server configuration, then create the VPN virtual network interface with its assigned IP.
+        await WireGuard.createWireGuardServerInterface(req, newWireguard);
       }
 
       return ResponseBuilder.buildResponse()
