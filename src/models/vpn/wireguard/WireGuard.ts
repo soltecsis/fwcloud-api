@@ -245,7 +245,7 @@ export class WireGuard extends Model {
 
   public static delCfgOptAll(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = 'delete from wireguard_opt where wireGuard=' + req.body.wireguard;
+      const sql = 'delete from wireguard_opt where wireguard=' + req.body.wireguard;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve();

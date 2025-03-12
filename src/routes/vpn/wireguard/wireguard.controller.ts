@@ -130,7 +130,25 @@ export class WireGuardController extends Controller {
   async install(req): Promise<ResponseBuilder> {
     try {
       const channel = await Channel.fromRequest(req);
-      const cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+
+      let installDir = req.wireguard.install_dir;
+      let installName = req.wireguard.install_name;
+      let cfgDump = null;
+
+      if (!req.wireguard.install_dir || !req.wireguard.install_name) {
+        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
+        if (wireGuardCfg.wireguard === null) {
+          throw new Error('Empty install dir or install name');
+        } else {
+          const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
+          installDir = wireGuardParentCfg.install_dir;
+          installName = wireGuardParentCfg.install_name;
+          cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, wireGuardCfg.wireguard);
+        }
+      } else {
+        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+      }
+
       const firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
@@ -142,18 +160,6 @@ export class WireGuardController extends Controller {
 
       channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
 
-      let installDir = req.wireguard.install_dir;
-      let installName = req.wireguard.install_name;
-      if (!req.wireguard.install_dir || !req.wireguard.install_name) {
-        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
-        if (wireGuardCfg.wireguard === null) {
-          throw new Error('Empty install dir or install name');
-        } else {
-          const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
-          installDir = wireGuardParentCfg.install_dir;
-          installName = wireGuardParentCfg.install_name;
-        }
-      }
       await communication.installOpenVPNServerConfigs(
         installDir,
         [
@@ -165,7 +171,7 @@ export class WireGuardController extends Controller {
         channel,
       );
 
-      // Update the status flag for the OpenVPN configuration.
+      // Update the status flag for the Wireguard configuration.
       await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '&~1');
 
       // Update the install date.
