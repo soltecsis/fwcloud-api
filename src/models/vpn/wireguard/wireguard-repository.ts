@@ -47,26 +47,26 @@ export class WireGuardRepository extends Repository<WireGuard> {
     firewall: number,
     routingTable?: number,
   ): SelectQueryBuilder<WireGuard> {
-    let query = this.createQueryBuilder('vpn')
-      .select('vpn.id', 'id')
+    let query = this.createQueryBuilder('wg')
+      .select('wg.id', 'id')
       .addSelect('crt.cn', 'name')
       .addSelect('(select id from ipobj_type where id=321)', 'type')
-      .addSelect('vpnFirewall.id', 'firewall_id')
-      .addSelect('vpnFirewall.name', 'firewall_name')
-      .addSelect('vpnCluster.id', 'cluster_id')
-      .addSelect('vpnCluster.name', 'cluster_name')
+      .addSelect('wgFirewall.id', 'firewall_id')
+      .addSelect('wgFirewall.name', 'firewall_name')
+      .addSelect('wgCluster.id', 'cluster_id')
+      .addSelect('wgCluster.name', 'cluster_name')
       .addSelect(`${entity}.id`, 'entityId');
 
     if (entity === 'rule') {
       query
-        .innerJoin('vpn.routingRuleToWireGuards', 'routingRuleToWireGuards')
+        .innerJoin('wg.routingRuleToWireGuards', 'routingRuleToWireGuards')
         .addSelect('routingRuleToWireGuards.order', '_order')
         .innerJoin('routingRuleToWireGuards.routingRule', entity);
     }
 
     if (entity === 'route') {
       query
-        .innerJoin('vpn.routeToWireGuards', 'routeToWireGuards')
+        .innerJoin('wg.routeToWireGuards', 'routeToWireGuards')
         .addSelect('routeToWireGuards.order', '_order')
         .innerJoin('routeToWireGuards.route', entity);
     }
@@ -75,9 +75,9 @@ export class WireGuardRepository extends Repository<WireGuard> {
       .innerJoin(`${entity}.routingTable`, 'table')
       .innerJoin('table.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .innerJoin('vpn.firewall', 'vpnFirewall')
-      .leftJoin('vpnFirewall.cluster', 'vpnCluster')
-      .innerJoin('vpn.crt', 'crt')
+      .innerJoin('wg.firewall', 'wgFirewall')
+      .leftJoin('wgFirewall.cluster', 'wgCluster')
+      .innerJoin('wg.crt', 'crt')
       .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
       .andWhere('firewall.id = :firewall', { firewall: firewall });
 

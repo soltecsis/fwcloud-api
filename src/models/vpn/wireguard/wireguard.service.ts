@@ -70,14 +70,14 @@ export class WireGuardService extends Service {
   protected _archiveMutex = new Mutex();
 
   public async build(): Promise<WireGuardService> {
-    this._config = this.loadCustomizedConfig(this._app.config.get('wireGuard'));
-    this._cronService = await this._app.getService<CronService>(CronService.name);
+    // this._config = this.loadCustomizedConfig(this._app.config.get('wireGuard'));
+    // this._cronService = await this._app.getService<CronService>(CronService.name);
 
-    const archiveDirectory: string = this._config.history.data_dir;
+    // const archiveDirectory: string = this._config.history.data_dir;
 
-    if (!fs.existsSync(archiveDirectory)) {
-      fs.mkdirpSync(archiveDirectory);
-    }
+    // if (!fs.existsSync(archiveDirectory)) {
+    //   fs.mkdirpSync(archiveDirectory);
+    // }
 
     return this;
   }

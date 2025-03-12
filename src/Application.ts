@@ -82,6 +82,8 @@ import { LockValidation } from './middleware/LockValidation';
 import { RestrictedMiddleware } from './middleware/restricted.middleware';
 import { WireGuard } from './models/vpn/wireguard/WireGuard';
 import { WireGuardPrefixServiceProvider } from './models/vpn/wireguard/wireguard-prefix.provider';
+import { WireGuardService } from './models/vpn/wireguard/wireguard.service';
+import { WireGuardServiceProvider } from './models/vpn/wireguard/wireguard.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -132,6 +134,9 @@ export class Application extends HTTPApplication {
 
       //Starting scheduled task from the openvpn service
       (await this.getService<OpenVPNService>(OpenVPNService.name)).startScheduledTasks();
+
+      //Starting scheduled task from the wireguard service
+      //(await this.getService<WireGuardService>(WireGuardService.name)).startScheduledTasks();
     }
 
     return this;
@@ -171,6 +176,7 @@ export class Application extends HTTPApplication {
       AuthServiceProvider,
       CaServiceProvider,
       CrtServiceProvider,
+      WireGuardServiceProvider,
       WireGuardPrefixServiceProvider,
     ];
   }
