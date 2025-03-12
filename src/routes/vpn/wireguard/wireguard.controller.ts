@@ -131,13 +131,12 @@ export class WireGuardController extends Controller {
     try {
       const channel = await Channel.fromRequest(req);
 
-      let installDir = req.wireguard.install_dir;
-      let installName = req.wireguard.install_name;
+      let { install_dir: installDir, install_name: installName } = req.wireguard;
       let cfgDump = null;
 
-      if (!req.wireguard.install_dir || !req.wireguard.install_name) {
+      if (!installDir || !installName) {
         const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
-        if (wireGuardCfg.wireguard === null) {
+        if (!wireGuardCfg.wireguard) {
           throw new Error('Empty install dir or install name');
         } else {
           const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
@@ -180,15 +179,9 @@ export class WireGuardController extends Controller {
       channel.emit('message', new ProgressPayload('end', false, 'Installing Wireguard'));
       return ResponseBuilder.buildResponse().status(200);
     } catch (error) {
-      if (error instanceof HttpException) {
-        return ResponseBuilder.buildResponse()
-          .status(error.status)
-          .body({ message: error.message });
-      }
-
-      if (error.message)
-        return ResponseBuilder.buildResponse().status(400).body({ message: error.message });
-      else return ResponseBuilder.buildResponse().status(400).body(error);
+      const status = error instanceof HttpException ? error.status : 400;
+      const message = error.message || error;
+      return ResponseBuilder.buildResponse().status(status).body({ message });
     }
   }
 
