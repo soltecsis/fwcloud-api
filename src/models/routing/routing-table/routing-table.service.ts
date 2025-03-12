@@ -43,6 +43,10 @@ import { RouteService } from '../route/route.service';
 import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingUtils } from '../shared';
 import { RoutingTable } from './routing-table.model';
 import { DatabaseService } from '../../../database/database.service';
+import { WireGuardRepository } from '../../vpn/wireguard/wireguard-repository';
+import { WireGuardPrefixRepository } from '../../vpn/wireguard/WireGuardPrefix.repository';
+import { WireGuard } from '../../vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../vpn/wireguard/WireGuardPrefix';
 
 interface IFindManyRoutingTablePath {
   firewallId?: number;
@@ -77,6 +81,8 @@ export class RoutingTableService extends Service {
   private _ipobjGroupRepository: IPObjGroupRepository;
   private _openvpnRepository: OpenVPNRepository;
   private _openvpnPrefixRepository: OpenVPNPrefixRepository;
+  private _wireguardRepository: WireGuardRepository;
+  private _wireguardPrefixRepository: WireGuardPrefixRepository;
   protected _firewallService: FirewallService;
   protected _databaseService: DatabaseService;
   constructor(app: Application) {
@@ -93,6 +99,10 @@ export class RoutingTableService extends Service {
     this._ipobjGroupRepository = new IPObjGroupRepository(this._databaseService.dataSource.manager);
     this._openvpnRepository = new OpenVPNRepository(this._databaseService.dataSource.manager);
     this._openvpnPrefixRepository = new OpenVPNPrefixRepository(
+      this._databaseService.dataSource.manager,
+    );
+    this._wireguardRepository = new WireGuardRepository(this._databaseService.dataSource.manager);
+    this._wireguardPrefixRepository = new WireGuardPrefixRepository(
       this._databaseService.dataSource.manager,
     );
 
@@ -392,6 +402,34 @@ export class RoutingTableService extends Service {
         routingTable,
         routes,
       ),
+      this._ipobjRepository.getIpobjsInWireGuardInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
+      this._ipobjRepository.getIpobjsInWireGuardInGroupsInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
+      this._ipobjRepository.getIpobjsInWireGuardPrefixesInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
+      this._ipobjRepository.getIpobjInWireGuardPrefixesInGroupsInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
     ];
   }
 
@@ -399,7 +437,9 @@ export class RoutingTableService extends Service {
     fwcloud: number,
     firewall: number,
     routingTable: number,
-  ): SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix>[] {
+  ): SelectQueryBuilder<
+    IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | WireGuard | WireGuardPrefix
+  >[] {
     return [
       this._ipobjRepository.getIpobjsInRouting_ForGrid('route', fwcloud, firewall, routingTable),
       this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid(
@@ -415,6 +455,20 @@ export class RoutingTableService extends Service {
         firewall,
         routingTable,
       ),
-    ];
+      this._wireguardRepository.getWireGuardInRouting_ForGrid(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+      ),
+      this._wireguardPrefixRepository.getWireGuardPrefixInRouting_ForGrid(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+      ),
+    ] as SelectQueryBuilder<
+      IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | WireGuard | WireGuardPrefix
+    >[];
   }
 }

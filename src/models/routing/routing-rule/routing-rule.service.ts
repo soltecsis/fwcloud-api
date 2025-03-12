@@ -64,7 +64,7 @@ import { RoutingGroup } from '../routing-group/routing-group.model';
 import { RoutingGroupService } from '../routing-group/routing-group.service';
 import { DatabaseService } from '../../../database/database.service';
 import { WireGuardRepository } from '../../vpn/wireguard/wireguard-repository';
-import { WireGuardPrefixRepository } from '../../vpn/wireguard/WireGuardPRefix.repository';
+import { WireGuardPrefixRepository } from '../../vpn/wireguard/WireGuardPrefix.repository';
 import { RoutingRuleToWireGuard } from './routing-rule-to-wireguard.model';
 import { RoutingRuleToWireGuardPrefix } from './routing-rule-to-wireguard-prefix.model';
 import { WireGuardPrefix } from '../../vpn/wireguard/WireGuardPrefix';
@@ -200,7 +200,6 @@ export class RoutingRuleService extends Service {
     routingRuleData.rule_order = rule_order;
 
     let persisted: RoutingRule = await this._repository.save(routingRuleData);
-    console.log('DATA DESDE CREATE: ', data);
     try {
       persisted = await this.update(persisted.id, {
         ipObjIds: data.ipObjIds,
@@ -289,7 +288,6 @@ export class RoutingRuleService extends Service {
         relations: ['routingTable', 'routingTable.firewall'],
       })
     ).routingTable.firewall;
-    console.log('DATA DESDE UPDATE: ', data);
     const estaData = data;
     await this.validateFromRestriction(rule.id, estaData);
 
@@ -813,7 +811,6 @@ export class RoutingRuleService extends Service {
    * @returns
    */
   protected async validateFromRestriction(ruleId: number, data: IUpdateRoutingRule): Promise<void> {
-    console.log('DATA DESDE VALIDATE: ', data);
     const rule = await this._repository.findOneOrFail({
       where: { id: ruleId },
       relations: [

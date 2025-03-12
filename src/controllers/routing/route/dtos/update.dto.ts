@@ -95,4 +95,20 @@ export class RouteControllerUpdateDto {
   })
   @Type(() => PositionalEntityDto)
   openVPNPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  wireGuardIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  wireGuardPrefixIds?: PositionalEntityDto[];
 }
