@@ -1055,9 +1055,11 @@ export class WireGuard extends Model {
   public static createWireGuardServerInterface(req, cfg): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        let wireGuard_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
+        let wireGuard_opt: any = await this.getOptData(req.dbCon, cfg, 'Address');
         if (wireGuard_opt) {
-          const interface_name = wireGuard_opt.arg;
+          const interface_name = req.body.install_name.replace(/\.conf$/, '');
+          req.body.wireguard = (req.body.wireguard ?? 0) + wireGuard_opt.wireguard;
+          const freeIP = (await WireGuard.freeVpnIP(req)) as { ip: string; netmask: string };
 
           // If we already have an interface with the same name then do nothing.
           const interfaces = await Interface.getInterfaces(
@@ -1101,7 +1103,7 @@ export class WireGuard extends Model {
               );
 
               // Create the network address for the new interface.
-              wireGuard_opt = await this.getOptData(req.dbCon, cfg, 'server');
+              wireGuard_opt = await this.getOptData(req.dbCon, cfg, 'Address');
               if (wireGuard_opt && wireGuard_opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(
@@ -1109,10 +1111,9 @@ export class WireGuard extends Model {
                   req.body.fwcloud,
                   wireGuard_opt.ipobj,
                 );
-                if (ipobj.type === 7) {
+                if (ipobj.type === 7 || ipobj.type === 5) {
+                  // network or address
                   // Network
-                  const net = IpUtils.subnet(ipobj.address, ipobj.netmask);
-
                   const ipobjData = {
                     id: null,
                     fwcloud: req.body.fwcloud,
@@ -1120,8 +1121,8 @@ export class WireGuard extends Model {
                     name: interface_name,
                     type: 5,
                     protocol: null,
-                    address: net.firstAddress,
-                    netmask: ipobj.netmask,
+                    address: freeIP.ip,
+                    netmask: freeIP.netmask,
                     diff_serv: null,
                     ip_version: 4,
                     icmp_code: null,
@@ -1141,7 +1142,7 @@ export class WireGuard extends Model {
                   await Tree.newNode(
                     req.dbCon,
                     req.body.fwcloud,
-                    `${interface_name} (${net.firstAddress})`,
+                    `${interface_name} (${freeIP.ip})`,
                     nodeId,
                     'OIA',
                     ipobjId,

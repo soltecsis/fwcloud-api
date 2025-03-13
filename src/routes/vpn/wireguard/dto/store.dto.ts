@@ -46,6 +46,10 @@ export class WireGuardOptionDTO {
   @IsOptional()
   @IsString()
   comment?: string;
+
+  @IsOptional()
+  @IsNumber()
+  wireguard_cli?: number;
 }
 
 export class StoreDto {
