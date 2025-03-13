@@ -128,7 +128,7 @@ export class PolicyRuleToWireGuard extends Model {
 
   public static deleteFromRulePosition(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND wireguard=${req.body.wireGuard} AND position=${req.body.position}`;
+      const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND wireguard=${req.body.wireguard} AND position=${req.body.position}`;
       req.dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
         resolve();
