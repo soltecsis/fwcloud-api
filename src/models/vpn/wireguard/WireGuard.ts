@@ -342,16 +342,26 @@ export class WireGuard extends Model {
   public static getCfg(dbCon, wireGuard): Promise<any> {
     return new Promise((resolve, reject) => {
       let sql = `select * from ${tableName} where id=${wireGuard}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, wireguard_result) => {
         if (error) return reject(error);
 
-        const data = result[0];
+        const data = wireguard_result[0];
         sql = `select * from wireguard_opt where wireguard=${wireGuard}`;
-        dbCon.query(sql, (error, result) => {
+        dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
 
           data.options = result;
-          resolve(data);
+          try {
+            const wireguard_data = (
+              await Promise.all(
+                wireguard_result.map((wireguard) => utilsModel.decryptWireguardData(wireguard)),
+              )
+            )[0];
+
+            resolve(wireguard_data);
+          } catch (error) {
+            return reject(error);
+          }
         });
       });
     });

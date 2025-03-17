@@ -15,6 +15,7 @@ import db from '../../../database/database-manager';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+import { PgpHelper } from '../../../utils/pgp';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -257,7 +258,26 @@ export class WireGuardController extends Controller {
   async get(req): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
-      return ResponseBuilder.buildResponse().status(200).body(data);
+
+      if (data) {
+        if (data.public_key === null) {
+          data.public_key = '';
+        }
+        if (data.private_key === null) {
+          data.private_key = '';
+        }
+
+        const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
+        if (data.public_key) {
+          data.public_key = await pgp.encrypt(data.public_key);
+        }
+        if (data.private_key) {
+          data.private_key = await pgp.encrypt(data.private_key);
+        }
+
+        return ResponseBuilder.buildResponse().status(200).body(data);
+      }
+      return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
