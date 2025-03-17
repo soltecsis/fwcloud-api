@@ -410,19 +410,24 @@ export class WireGuard extends Model {
   }
 
   // Get data of an WireGuard server clients.
-  public static getWireGuardClients(dbCon, wireGuard) {
+  public static getWireGuardClients(dbCon, wireGuard): Promise<any[]> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT VPN.*, CRT.cn, VPN.status 
                    FROM wireguard VPN 
                    INNER JOIN crt CRT ON CRT.id = VPN.crt
                    WHERE VPN.wireguard = ?`;
 
-      dbCon.query(sql, [wireGuard], (error, result) => {
+      dbCon.query(sql, [wireGuard], async (error, result) => {
         if (error) return reject(error);
         if (result.length === 0) return resolve([]); // If there are no VPNs, return an empty array
 
         const vpnIds = result.map((vpn) => vpn.id);
         if (vpnIds.length === 0) return resolve(result);
+        try {
+          result = await Promise.all(result.map((vpn) => utilsModel.decryptWireguardData(vpn)));
+        } catch (error) {
+          return reject(error);
+        }
 
         // Second query: Get all the wireguard_opt of these VPNs
         sql = `SELECT * FROM wireguard_opt WHERE wireguard IN (${vpnIds.join(',')})`;
