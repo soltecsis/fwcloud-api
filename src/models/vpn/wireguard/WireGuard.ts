@@ -814,14 +814,14 @@ export class WireGuard extends Model {
             // Include the rules that use prefixes in which the WireGuard is being used, including the
             // groups (used in rules) in which these prefixes are being used.
             //TODO: FALTA AWAIT
-            const prefixes = WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
+            const prefixes = await WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
             search.restrictions.WireGuardInPrefixInRule = [];
             search.restrictions.WireGuardInPrefixInGroupInRule = [];
             if (Array.isArray(prefixes)) {
               for (let i = 0; i < prefixes.length; i++) {
                 //TODO: FALTA AWAIT
 
-                const data: any = WireGuardPrefix.searchPrefixUsage(
+                const data: any = await WireGuardPrefix.searchPrefixUsage(
                   dbCon,
                   fwcloud,
                   prefixes[i].id,
