@@ -1,4 +1,3 @@
-import { query } from 'express';
 import { MigrationInterface, QueryRunner, TableForeignKey, TableIndex } from 'typeorm';
 
 export class changeUniqueKeyOpenvpn1653307616404 implements MigrationInterface {
