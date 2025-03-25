@@ -60,11 +60,13 @@ const VALID_WG_COMMANDS = [
   'wg-quickconfshow',
 ];
 
-enum WireGuardScope {
+export enum WireGuardScope {
   CCD = 0,
   CONFIG_FILE = 1,
-  WG_INTERFACE = 2,
-  WG_PEER = 3,
+  WG_SERVER_INTERFACE = 2,
+  WG_SERVER_PEER = 3,
+  WG_CLIENT_INTERFACE = 4,
+  WG_CLIENT_PEER = 5,
 }
 
 const VALID_WG_OPTIONS = [

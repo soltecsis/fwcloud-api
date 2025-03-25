@@ -16,6 +16,7 @@ import { Firewall } from '../../../models/firewall/Firewall';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { PgpHelper } from '../../../utils/pgp';
+import { WireGuardScope } from '../../../controllers/firewalls/wireguard/dtos/store.dto';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -81,7 +82,7 @@ export class WireGuardController extends Controller {
             wireguard: req.body.wireguard,
             wireguard_cli: newWireguard,
             order: order,
-            scope: scope,
+            scope: WireGuardScope.WG_SERVER_PEER,
           },
         ];
         await WireGuard.addCfgOpt(req, options);
