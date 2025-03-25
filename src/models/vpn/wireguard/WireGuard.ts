@@ -801,8 +801,6 @@ export class WireGuard extends Model {
           // Include the rules that use the groups in which the WireGuard is being used.
           search.restrictions.WireGuardInGroupInRule = [];
           for (let i = 0; i < search.restrictions.WireGuardInGroup.length; i++) {
-            //TODO: FALTA AWAIT
-
             const data: any = IPObjGroup.searchGroupUsage(
               search.restrictions.WireGuardInGroup[i].group_id,
               fwcloud,
@@ -813,14 +811,11 @@ export class WireGuard extends Model {
           if (search.restrictions.LastWireGuardInPrefixInRule.length == 0) {
             // Include the rules that use prefixes in which the WireGuard is being used, including the
             // groups (used in rules) in which these prefixes are being used.
-            //TODO: FALTA AWAIT
             const prefixes = await WireGuardPrefix.getWireGuardClientPrefixes(dbCon, wireGuard);
             search.restrictions.WireGuardInPrefixInRule = [];
             search.restrictions.WireGuardInPrefixInGroupInRule = [];
             if (Array.isArray(prefixes)) {
               for (let i = 0; i < prefixes.length; i++) {
-                //TODO: FALTA AWAIT
-
                 const data: any = await WireGuardPrefix.searchPrefixUsage(
                   dbCon,
                   fwcloud,
@@ -1188,11 +1183,10 @@ export class WireGuard extends Model {
       );
     });
   }
-
-  public static getConfigFilename(dbCon) {
+  public static getConfigFilename(dbCon, firewall) {
     return new Promise((resolve, reject) => {
-      const sql = `select install_name from wireguard`;
-      dbCon.query(sql, (error, result) => {
+      const sql = `select install_name from wireguard WHERE firewall = ?`;
+      dbCon.query(sql, [firewall], (error, result) => {
         if (error) return reject(error);
         if (!result.length) return resolve('wg0.conf');
 
