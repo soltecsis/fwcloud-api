@@ -25,6 +25,8 @@ import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyPosition } from './PolicyPosition';
 import { WireGuard } from '../vpn/wireguard/WireGuard';
 import { PolicyRule } from './PolicyRule';
+import { Request } from 'express';
+import Query from '../../database/Query';
 
 const tableName: string = 'policy_r__wireguard';
 
@@ -77,7 +79,7 @@ export class PolicyRuleToWireGuard extends Model {
   }
 
   //Add new policy_r__wireGuard
-  public static insertInRule(req) {
+  public static insertInRule(req: Request): Promise<unknown> {
     return new Promise(async (resolve, reject) => {
       const policyWireGuard = {
         rule: req.body.rule,
@@ -85,14 +87,23 @@ export class PolicyRuleToWireGuard extends Model {
         position: req.body.position,
         position_order: req.body.position_order,
       };
-      req.dbCon.query(`insert into ${tableName} set ?`, policyWireGuard, async (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `insert into ${tableName} (rule, wireguard, position, position_order) values (?, ?, ?, ?)`,
+        [
+          policyWireGuard.rule,
+          policyWireGuard.wireGuard,
+          policyWireGuard.position,
+          policyWireGuard.position_order,
+        ],
+        async (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
-  public static checkWireGuardPosition(dbCon, position) {
+  public static checkWireGuardPosition(dbCon: Query, position: any): Promise<unknown> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select type from ipobj_type__policy_position where type=321 and position=${position}`,
@@ -104,7 +115,12 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static checkExistsInPosition(dbCon, rule, wireGuard, position) {
+  public static checkExistsInPosition(
+    dbCon: Query,
+    rule: number,
+    wireGuard: number,
+    position: number,
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT rule FROM ${tableName}
                 WHERE rule=${rule} AND wireguard=${wireGuard} AND position=${position}`;
@@ -115,50 +131,28 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static moveToNewPosition(req): Promise<void> {
+  public static moveToNewPosition(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND wireguard=${req.body.wireGuard} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error, rows) => {
+      req.dbCon.query(sql, async (error, _) => {
         if (error) return reject(error);
         resolve();
       });
     });
   }
 
-  public static deleteFromRulePosition(req): Promise<void> {
+  public static deleteFromRulePosition(req: Request): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND wireguard=${req.body.wireguard} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error, rows) => {
+      req.dbCon.query(sql, async (error, _) => {
         if (error) return reject(error);
         resolve();
       });
     });
   }
 
-  public static deleteFromRule(dbCon, rule): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-  }
-
-  //Duplicate policy_r__wireGuard RULES
-  public static duplicatePolicy_r__wireGuard(dbCon, rule, new_rule): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const sql = `INSERT INTO ${tableName} (rule, wireguard, position,position_order)
-                (SELECT ${new_rule}, wireguard, position, position_order
-                from ${tableName} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error, result) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-  }
-
-  public static searchWireGuardInRule(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardInRule(dbCon: Query, fwcloud: number, wireGuard: number) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
                 O.wireguard obj_id, CRT.cn obj_name,
@@ -180,7 +174,7 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchWireGuardInGroup(dbCon, fwcloud, wireGuard) {
+  public static searchWireGuardInGroup(dbCon: Query, fwcloud: number, wireGuard: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
                 (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name
@@ -196,7 +190,11 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static getConfigsUnderWireGuardPrefix(dbCon, wireGuard_server_id, prefix_name) {
+  public static getConfigsUnderWireGuardPrefix(
+    dbCon: Query,
+    wireGuard_server_id: number,
+    prefix_name: string,
+  ) {
     return new Promise((resolve, reject) => {
       // Get all WireGuard client configs under an WireGuard configuration server whose CRT common name matches the prefix name.
       const sql = `select VPN.id from wireguard VPN
@@ -209,7 +207,11 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchLastWireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
+  public static searchLastWireGuardInPrefixInRule(
+    dbCon: Query,
+    fwcloud: number,
+    wireGuard: number,
+  ) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the WireGuard prefixes in rules to which the WireGuard configuration belongs.
       const sql = `select P.rule rule_id, P.prefix, PRE.wireguard, PRE.name, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name,
@@ -248,7 +250,11 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
-  public static searchLastWireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
+  public static searchLastWireGuardInPrefixInGroup(
+    dbCon: Query,
+    fwcloud: number,
+    wireGuard: number,
+  ) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the WireGuard prefixes in groups to which the WireGuard configuration belongs.
       const sql = `select P.prefix, PRE.wireguard, PRE.name, GR.id group_id, GR.name group_name
@@ -277,39 +283,6 @@ export class PolicyRuleToWireGuard extends Model {
           return reject(error);
         }
 
-        resolve(result);
-      });
-    });
-  }
-
-  public static searchWireGuardInPrefixInRule(dbCon, fwcloud, wireGuard) {
-    return new Promise((resolve, reject) => {
-      // Get all the WireGuard prefixes in rules to which the WireGuard configuration belongs.
-      const sql = `select R.firewall,P.rule from policy_r__wireguard_prefix P
-                inner join wireguard_prefix PRE on PRE.id=P.prefix
-                inner join wireguard VPN on VPN.wireguard=PRE.wireguard
-                inner join crt CRT on CRT.id=VPN.crt
-                inner join policy_r R on R.id=P.rule
-                inner join firewall F on F.id=R.firewall
-                where F.fwcloud=${fwcloud} and VPN.id=${wireGuard} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
-      dbCon.query(sql, async (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      });
-    });
-  }
-
-  public static searchWireGuardInPrefixInGroup(dbCon, fwcloud, wireGuard) {
-    return new Promise((resolve, reject) => {
-      // Get all the WireGuard prefixes in groups to which the WireGuard configuration belongs.
-      const sql = `select P.ipobj_g from wireguard_prefix__ipobj_g P
-                inner join wireguard_prefix PRE on PRE.id=P.prefix
-                inner join wireguard VPN on VPN.wireguard=PRE.wireguard
-                inner join crt CRT on CRT.id=VPN.crt
-                inner join ca CA on CA.id=CRT.ca
-                where CA.fwcloud=${fwcloud} and VPN.id=${wireGuard} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
-      dbCon.query(sql, async (error, result) => {
-        if (error) return reject(error);
         resolve(result);
       });
     });

@@ -171,7 +171,7 @@ utilsModel.decryptFirewallData = (data) => {
 };
 
 utilsModel.decryptWireguardData = async (data) => {
-	return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
 		try {
 			const algorithm = config.get('crypt').algorithm;
 			const secret = config.get('crypt').secret;

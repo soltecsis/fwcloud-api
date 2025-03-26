@@ -22,7 +22,7 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, SelectQueryBuilder } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, SelectQueryBuilder, DataSource } from 'typeorm';
 import Query from '../../database/Query';
 import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
@@ -1077,11 +1077,11 @@ export class Tree extends Model {
 
   //Generate the Wireguard client nodes.
   public static wireguardClientTree(
-    connection,
-    fwcloud,
-    firewall,
-    server_vpn,
-    node,
+    connection: Query,
+    fwcloud: number,
+    firewall: number,
+    server_vpn: number,
+    node: unknown,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id,CRT.cn FROM wireguard VPN
@@ -1104,7 +1104,12 @@ export class Tree extends Model {
   }
 
   //Generate the Wireguard server nodes.
-  public static wireguardServerTree(connection, fwcloud, firewall, node): Promise<void> {
+  public static wireguardServerTree(
+    connection: Query,
+    fwcloud: number,
+    firewall: number,
+    node: unknown,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id,CRT.cn FROM wireguard VPN
       INNER JOIN crt CRT on CRT.id=VPN.crt
@@ -1115,7 +1120,7 @@ export class Tree extends Model {
 
         try {
           for (const vpn of vpns) {
-            const newNodeId = await this.newNode(
+            const newNodeId: unknown = await this.newNode(
               connection,
               fwcloud,
               vpn.cn,

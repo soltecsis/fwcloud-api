@@ -10,19 +10,20 @@ import { StoreDto } from './dto/store.dto';
 import { UpdateDto } from './dto/update.dto';
 import { GetFirewallDto } from './dto/getFirewall.dto';
 import { Channel } from '../../../sockets/channels/channel';
-import { Crt } from '../../../models/vpn/pki/Crt';
 import db from '../../../database/database-manager';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { PgpHelper } from '../../../utils/pgp';
 import { WireGuardScope } from '../../../controllers/firewalls/wireguard/dtos/store.dto';
+import { Request } from 'express';
+import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
 
 const fwcError = require('../../../utils/error_table');
 
 export class WireGuardController extends Controller {
   @Validate(StoreDto)
-  async store(req): Promise<ResponseBuilder> {
+  async store(req: any): Promise<ResponseBuilder> {
     try {
       // Initial validation
       if (
@@ -74,8 +75,11 @@ export class WireGuardController extends Controller {
 
       if (req.body.wireguard) {
         const wireguardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
-        const order = wireguardCfg?.options.reduce((max, opt) => Math.max(max, opt.order), 0) + 1;
-        const scope = wireguardCfg?.options.find((opt) => opt.scope !== undefined)?.scope;
+        const order =
+          wireguardCfg?.options.reduce(
+            (max: number, opt: WireGuardOption) => Math.max(max, opt.order),
+            0,
+          ) + 1;
         const options = [
           {
             name: 'AllowedIPs',
@@ -89,7 +93,7 @@ export class WireGuardController extends Controller {
       }
 
       // Create node in tree
-      let nodeId;
+      let nodeId: unknown;
       if (req.tree_node.node_type === 'WG') {
         nodeId = await Tree.newNode(
           req.dbCon,
@@ -132,7 +136,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate()
-  async install(req): Promise<ResponseBuilder> {
+  async install(req: any): Promise<ResponseBuilder> {
     try {
       const channel = await Channel.fromRequest(req);
 
@@ -147,10 +151,10 @@ export class WireGuardController extends Controller {
           const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
           installDir = wireGuardParentCfg.install_dir;
           installName = wireGuardParentCfg.install_name;
-          cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, wireGuardCfg.wireguard);
+          cfgDump = await WireGuard.dumpCfg(req.dbCon, wireGuardCfg.wireguard);
         }
       } else {
-        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.wireguard);
       }
 
       const firewall = await db
@@ -178,7 +182,7 @@ export class WireGuardController extends Controller {
       // Update the status flag for the Wireguard configuration.
       await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '&~1');
 
-      // Update the install date.
+      // Update the installation date.
       await WireGuard.updateWireGuardInstallDate(req.dbCon, req.body.wireguard);
 
       channel.emit('message', new ProgressPayload('end', false, 'Installing Wireguard'));
@@ -191,7 +195,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate()
-  async uninstall(req): Promise<ResponseBuilder> {
+  async uninstall(req: any): Promise<ResponseBuilder> {
     try {
       const firewall = await db
         .getSource()
@@ -234,7 +238,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(UpdateDto)
-  async update(req): Promise<ResponseBuilder> {
+  async update(req: Request): Promise<ResponseBuilder> {
     try {
       await WireGuard.updateCfg(req);
 
@@ -256,7 +260,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async get(req): Promise<ResponseBuilder> {
+  async get(req: any): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
 
@@ -288,9 +292,9 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async getFile(req): Promise<ResponseBuilder> {
+  async getFile(req: Request): Promise<ResponseBuilder> {
     try {
-      const cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.fwcloud, req.body.wireguard);
+      const cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.wireguard);
       return ResponseBuilder.buildResponse().status(200).body(cfgDump);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
@@ -298,7 +302,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async getIpObj(req): Promise<ResponseBuilder> {
+  async getIpObj(req: Request): Promise<ResponseBuilder> {
     try {
       const cfgData = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
       const data = [];
@@ -314,7 +318,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async getIp(req): Promise<ResponseBuilder> {
+  async getIp(req: Request): Promise<ResponseBuilder> {
     try {
       const freeIP = await WireGuard.freeVpnIP(req);
       return ResponseBuilder.buildResponse().status(200).body(freeIP);
@@ -324,7 +328,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async getInfo(req): Promise<ResponseBuilder> {
+  async getInfo(req: Request): Promise<ResponseBuilder> {
     try {
       const wireguardRecord = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
 
@@ -341,7 +345,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetFirewallDto)
-  async getFirewall(req): Promise<ResponseBuilder> {
+  async getFirewall(req: Request): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getWireGuardServersByFirewall(req.dbCon, req.body.firewall);
       return ResponseBuilder.buildResponse().status(200).body(data);
@@ -351,7 +355,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async delete(req): Promise<ResponseBuilder> {
+  async delete(req: any): Promise<ResponseBuilder> {
     try {
       if (req.wireguard?.type === 1) {
         await WireGuardPrefix.updateWireGuardClientPrefixesFWStatus(
@@ -393,7 +397,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async where(req): Promise<ResponseBuilder> {
+  async where(req: Request): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.searchWireGuardUsage(
         req.dbCon,
@@ -412,7 +416,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate()
-  async getConfigFilename(req): Promise<ResponseBuilder> {
+  async getConfigFilename(req: Request): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getConfigFilename(req.dbCon, req.body.firewall);
       return ResponseBuilder.buildResponse().status(200).body(data);
@@ -422,7 +426,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetDto)
-  async getClients(req): Promise<ResponseBuilder> {
+  async getClients(req: any): Promise<ResponseBuilder> {
     try {
       let data: any[] = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
       const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });

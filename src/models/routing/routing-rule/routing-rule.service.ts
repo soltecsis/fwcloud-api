@@ -27,7 +27,6 @@ import { ValidationException } from '../../../fonaments/exceptions/validation-ex
 import { Service } from '../../../fonaments/services/service';
 import { ErrorBag } from '../../../fonaments/validation/validator';
 import { Offset } from '../../../offset';
-import { Cluster } from '../../firewall/Cluster';
 import { Firewall } from '../../firewall/Firewall';
 import { FirewallService } from '../../firewall/firewall.service';
 import { Interface } from '../../interface/Interface';
@@ -99,7 +98,7 @@ interface IUpdateRoutingRule {
   openVPNIds?: { id: number; order: number }[];
   openVPNPrefixIds?: { id: number; order: number }[];
   wireGuardIds?: { id: number; order: number }[];
-  wireGcleuardPrefixIds?: { id: number; order: number }[];
+  wireGuardPrefixIds?: { id: number; order: number }[];
   markIds?: { id: number; order: number }[];
 }
 
@@ -207,7 +206,7 @@ export class RoutingRuleService extends Service {
         openVPNIds: data.openVPNIds,
         openVPNPrefixIds: data.openVPNPrefixIds,
         wireGuardIds: data.wireGuardIds,
-        wireGcleuardPrefixIds: data.wireGcleuardPrefixIds,
+        wireGuardPrefixIds: data.wireGcleuardPrefixIds,
         firewallApplyToId: data.firewallApplyToId,
         markIds: data.markIds,
       });
@@ -288,8 +287,7 @@ export class RoutingRuleService extends Service {
         relations: ['routingTable', 'routingTable.firewall'],
       })
     ).routingTable.firewall;
-    const estaData = data;
-    await this.validateFromRestriction(rule.id, estaData);
+    await this.validateFromRestriction(rule.id, data);
 
     if (data.ipObjIds) {
       await this.validateUpdateIPObjs(firewall, data);
@@ -353,9 +351,9 @@ export class RoutingRuleService extends Service {
       );
     }
 
-    if (data.wireGcleuardPrefixIds) {
+    if (data.wireGuardPrefixIds) {
       await this.validateWireGuardPrefixes(firewall, data);
-      rule.routingRuleToWireGuardPrefixes = data.wireGcleuardPrefixIds.map(
+      rule.routingRuleToWireGuardPrefixes = data.wireGuardPrefixIds.map(
         (item) =>
           ({
             routingRuleId: rule.id,
@@ -839,8 +837,8 @@ export class RoutingRuleService extends Service {
     const wireguards: number = data.wireGuardIds
       ? data.wireGuardIds.length
       : rule.routingRuleToWireGuards.length;
-    const wireguardPrefixes: number = data.wireGcleuardPrefixIds
-      ? data.wireGcleuardPrefixIds.length
+    const wireguardPrefixes: number = data.wireGuardPrefixIds
+      ? data.wireGuardPrefixIds.length
       : rule.routingRuleToWireGuardPrefixes.length;
     if (
       marks +
@@ -872,7 +870,7 @@ export class RoutingRuleService extends Service {
       errors['wireGuardIds'] = ['From should contain at least one item'];
     }
 
-    if (data.wireGcleuardPrefixIds && data.wireGcleuardPrefixIds.length === 0) {
+    if (data.wireGuardPrefixIds && data.wireGuardPrefixIds.length === 0) {
       errors['wireGcleuardPrefixIds'] = ['From should contain at least one item'];
     }
 
@@ -1022,7 +1020,7 @@ export class RoutingRuleService extends Service {
   ): Promise<void> {
     const errors: ErrorBag = {};
 
-    if (!data.wireGcleuardPrefixIds || data.wireGcleuardPrefixIds.length === 0) {
+    if (!data.wireGuardPrefixIds || data.wireGuardPrefixIds.length === 0) {
       return;
     }
 
@@ -1032,14 +1030,14 @@ export class RoutingRuleService extends Service {
       .createQueryBuilder('prefix')
       .innerJoin('prefix.wireGuard', 'wireguard')
       .innerJoin('wireguard.firewall', 'firewall')
-      .whereInIds(data.wireGcleuardPrefixIds.map((item) => item.id))
+      .whereInIds(data.wireGuardPrefixIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
         fwcloud: firewall.fwCloudId,
       })
       .getMany();
 
-    for (let i = 0; i < data.wireGcleuardPrefixIds.length; i++) {
-      if (wireguardprefixes.findIndex((item) => item.id === data.wireGcleuardPrefixIds[i].id) < 0) {
+    for (let i = 0; i < data.wireGuardPrefixIds.length; i++) {
+      if (wireguardprefixes.findIndex((item) => item.id === data.wireGuardPrefixIds[i].id) < 0) {
         errors[`wireGcleuardPrefixIds.${i}.id`] = ['wireguardPrefix does not exists'];
       }
     }
