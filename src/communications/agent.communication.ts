@@ -44,7 +44,6 @@ import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
-import { error } from 'console';
 
 type AgentCommunicationData = {
   protocol: 'https' | 'http';
@@ -206,6 +205,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       this.handleRequestException(error, eventEmitter);
     }
   }
+
   async installWireGuardServerConfigs(
     dir: string,
     configs: { name: string; content: string }[],

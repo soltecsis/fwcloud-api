@@ -24,13 +24,12 @@ import {
   ProgressInfoPayload,
   ProgressPayload,
   ProgressNoticePayload,
-} from './../../../sockets/messages/socket-message';
+} from '../../../sockets/messages/socket-message';
 import { Service } from '../../../fonaments/services/service';
 import { WireGuard } from './WireGuard';
 import db from '../../../database/database-manager';
 import { InstallerGenerator } from '../../../wireguard-installer/installer-generator';
 import { getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
-import { Firewall } from '../../firewall/Firewall';
 import { CronService } from '../../../backups/cron/cron.service';
 import { CronJob } from 'cron';
 import { logger } from '../../../fonaments/abstract-application';
@@ -127,16 +126,8 @@ export class WireGuardService extends Service {
 
     try {
       const openVPNId: number = openVPN.id;
-      const firewall: Firewall = await db
-        .getSource()
-        .manager.getRepository(Firewall)
-        .findOne({
-          where: { id: openVPN.firewallId },
-          relations: ['fwCloud'],
-        });
-      const fwCloudId: number = firewall.fwCloudId;
 
-      configData = ((await WireGuard.dumpCfg(db.getQuery(), fwCloudId, openVPNId)) as any).cfg;
+      configData = ((await WireGuard.dumpCfg(db.getQuery(), openVPNId)) as any).cfg;
     } catch (e) {
       throw new Error(
         'Unable to generate the wireGuard configuration during installer generation: ' +
@@ -297,7 +288,7 @@ export class WireGuardService extends Service {
                 path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
                 content,
                 { flag: 'a' },
-                async (err) => {
+                async (err: any) => {
                   if (err) {
                     return reject(err);
                   }
@@ -343,20 +334,22 @@ export class WireGuardService extends Service {
       try {
         //Create an array with all files their paths
         const allFiles: { file: string; path: string }[] = [];
-        fs.readdirSync(this._config.history.data_dir).filter((dirent) => {
+        fs.readdirSync(this._config.history.data_dir).filter((dirent: string) => {
           if (fs.existsSync(path.join(this._config.history.data_dir, dirent))) {
-            fs.readdirSync(path.join(this._config.history.data_dir, dirent)).filter((subDirent) => {
-              if (fs.existsSync(path.join(this._config.history.data_dir, dirent, subDirent))) {
-                fs.readdirSync(path.join(this._config.history.data_dir, dirent, subDirent)).map(
-                  (file) => {
-                    allFiles.push({
-                      file: file,
-                      path: path.join(this._config.history.data_dir, dirent, subDirent),
-                    });
-                  },
-                );
-              }
-            });
+            fs.readdirSync(path.join(this._config.history.data_dir, dirent)).filter(
+              (subDirent: string) => {
+                if (fs.existsSync(path.join(this._config.history.data_dir, dirent, subDirent))) {
+                  fs.readdirSync(path.join(this._config.history.data_dir, dirent, subDirent)).map(
+                    (file: any) => {
+                      allFiles.push({
+                        file: file,
+                        path: path.join(this._config.history.data_dir, dirent, subDirent),
+                      });
+                    },
+                  );
+                }
+              },
+            );
           }
         });
         const filesToRemove = allFiles

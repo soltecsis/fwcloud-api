@@ -31,8 +31,8 @@ import {
   OneToMany,
   ManyToOne,
 } from 'typeorm';
-import { WireGuard } from '../../../models/vpn/wireguard/WireGuard';
-import { Tree } from '../../../models/tree/Tree';
+import { WireGuard } from './WireGuard';
+import { Tree } from '../../tree/Tree';
 import { IPObjGroup } from '../../ipobj/IPObjGroup';
 import { Firewall } from '../../firewall/Firewall';
 import { RoutingRule } from '../../routing/routing-rule/routing-rule.model';
@@ -41,7 +41,9 @@ import db from '../../../database/database-manager';
 import { RouteToWireGuardPrefix } from '../../routing/route/route-to-wireguard-prefix.model';
 import { RoutingRuleToWireGuardPrefix } from '../../routing/routing-rule/routing-rule-to-wireguard-prefix.model';
 import { PolicyRuleToWireGuardPrefix } from '../../policy/PolicyRuleToWireguardPrefix';
-const fwcError = require('../../../utils/error_table');
+import fwcError from '../../../utils/error_table';
+import Query from '../../../database/Query';
+import { Request } from 'express';
 
 const tableName: string = 'wireguard_prefix';
 
@@ -91,39 +93,43 @@ export class WireGuardPrefix extends Model {
   }
 
   // Validate new prefix container.
-  public static existsPrefix(dbCon, wireGuard, name) {
+  public static existsPrefix(dbCon: Query, wireGuard: number, name: string) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE wireguard=${wireGuard} AND name=${dbCon.escape(name)}`,
         (error, result) => {
           if (error) return reject(error);
-          resolve(result.length > 0 ? true : false);
+          resolve(result.length > 0);
         },
       );
     });
   }
 
   // Add new prefix container.
-  public static createPrefix(req) {
+  public static createPrefix(req: Request) {
     return new Promise((resolve, reject) => {
       const prefixData = {
         id: null,
         name: req.body.name,
         wireguard: req.body.wireguard,
       };
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, prefixData, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ${tableName} (id, name, wireguard) VALUES (?, ?, ?)`,
+        [prefixData.id, prefixData.name, prefixData.wireguard],
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
   // Modify a CRT Prefix container.
-  public static modifyPrefix(req): Promise<void> {
+  public static modifyPrefix(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -132,9 +138,9 @@ export class WireGuardPrefix extends Model {
   }
 
   // Delete CRT Prefix container.
-  public static deletePrefix(dbCon, prefix): Promise<void> {
+  public static deletePrefix(dbCon: Query, prefix: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`DELETE from ${tableName} WHERE id=${prefix}`, (error, result) => {
+      dbCon.query(`DELETE from ${tableName} WHERE id=${prefix}`, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -142,7 +148,7 @@ export class WireGuardPrefix extends Model {
   }
 
   // Remove all prefixes under the indicated firewall.
-  public static deletePrefixAll(dbCon, fwcloud, firewall) {
+  public static deletePrefixAll(dbCon: Query, fwcloud: number, firewall: number) {
     return new Promise((resolve, reject) => {
       const sql = `delete PRE from ${tableName} as PRE
                 inner join wireguard VPN on VPN.id=PRE.wireguard
@@ -156,7 +162,7 @@ export class WireGuardPrefix extends Model {
   }
 
   // Get all prefixes for the indicated wireGuard server.
-  public static getPrefixes(dbCon, wireGuard) {
+  public static getPrefixes(dbCon: Query, wireGuard: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id,name FROM ${tableName} WHERE wireguard=${wireGuard}`,
@@ -169,7 +175,11 @@ export class WireGuardPrefix extends Model {
   }
 
   // Get all prefixes for the indicated CA.
-  public static getWireGuardClientsUnderPrefix(dbCon, wireGuard, prefix_name): Promise<unknown[]> {
+  public static getWireGuardClientsUnderPrefix(
+    dbCon: Query,
+    wireGuard: number,
+    prefix_name: string,
+  ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
       const sql = `select WG.id from wireguard WG 
                 inner join crt CRT on CRT.id=WG.crt
@@ -193,7 +203,7 @@ export class WireGuardPrefix extends Model {
                 inner join wireguard V2 on V2.wireguard=V1.id
                 inner join crt CRT on CRT.id=V2.crt    
                 where V2.id=${wireGuard}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error: any, result: any) => {
         if (error) return reject(error);
 
         const matches: { id: number; name: string }[] = [];
@@ -244,7 +254,7 @@ export class WireGuardPrefix extends Model {
   }
 
   // Get information about a prefix used in an WireGuard server configuration.
-  public static getPrefixWireGuardInfo(dbCon, fwcloud, prefix) {
+  public static getPrefixWireGuardInfo(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
@@ -280,12 +290,12 @@ export class WireGuardPrefix extends Model {
 
   // Fill prefix node with matching entries.
   public static fillPrefixNodeWireGuard(
-    dbCon,
-    fwcloud,
-    wireGuard_ser,
-    prefix_name,
-    prefix_id,
-    parent,
+    dbCon: Query,
+    fwcloud: number,
+    wireGuard_ser: number,
+    prefix_name: string,
+    prefix_id: number,
+    parent: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       // Move all affected nodes into the new prefix container node.
@@ -317,7 +327,7 @@ export class WireGuardPrefix extends Model {
 
         // Remove from WireGuard server node the nodes that match de prefix.
         sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=321 AND name LIKE '${prefix}%'`;
-        dbCon.query(sql, (error, result) => {
+        dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -326,7 +336,11 @@ export class WireGuardPrefix extends Model {
   }
 
   // Apply WireGuard server prefixes to tree node.
-  public static applyWireGuardPrefixes(dbCon, fwcloud, wireGuard_srv): Promise<void> {
+  public static applyWireGuardPrefixes(
+    dbCon: Query,
+    fwcloud: number,
+    wireGuard_srv: number,
+  ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         const node = await Tree.getNodeInfo(dbCon, fwcloud, 'WGS', wireGuard_srv);
@@ -371,7 +385,7 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `INSERT INTO wireguard_prefix__ipobj_g values(${prefix},${ipobj_g})`,
-        (error, result) => {
+        (error: any, result: any) => {
           if (error) return reject(error);
           resolve(result.insertId);
         },
@@ -379,7 +393,7 @@ export class WireGuardPrefix extends Model {
     });
   }
 
-  public static removePrefixFromGroup(req) {
+  public static removePrefixFromGroup(req: Request) {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM wireguard_prefix__ipobj_g WHERE prefix=${req.body.ipobj} AND ipobj_g=${req.body.ipobj_g}`;
       req.dbCon.query(sql, (error, result) => {
@@ -389,7 +403,7 @@ export class WireGuardPrefix extends Model {
     });
   }
 
-  public static searchPrefixInRule(dbCon, fwcloud, prefix) {
+  public static searchPrefixInRule(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name,
                 O.prefix obj_id, PRE.name obj_name,
@@ -410,7 +424,7 @@ export class WireGuardPrefix extends Model {
     });
   }
 
-  public static searchPrefixInGroup(dbCon, fwcloud, prefix) {
+  public static searchPrefixInGroup(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
                 (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name
@@ -571,7 +585,7 @@ export class WireGuardPrefix extends Model {
       .getRawMany();
   }
 
-  public static searchPrefixUsageOutOfThisFirewall(req) {
+  public static searchPrefixUsageOutOfThisFirewall(req: Request) {
     return new Promise((resolve, reject) => {
       // First get all firewalls prefixes for WireGuard configurations.
       const sql = `select P.id from ${tableName} P
@@ -610,13 +624,13 @@ export class WireGuardPrefix extends Model {
 
           // Remove items of this firewall.
           answer.restrictions.PrefixInRule = answer.restrictions.PrefixInRule.filter(
-            (item) => item.firewall_id != req.body.firewall,
+            (item: any) => item.firewall_id != req.body.firewall,
           );
           answer.restrictions.PrefixInRoute = answer.restrictions.PrefixInRoute.filter(
-            (item) => item.firewall_id != req.body.firewall,
+            (item: any) => item.firewall_id != req.body.firewall,
           );
           answer.restrictions.PrefixInRoutingRule = answer.restrictions.PrefixInRoutingRule.filter(
-            (item) => item.firewall_id != req.body.firewall,
+            (item: any) => item.firewall_id != req.body.firewall,
           );
         } catch (error) {
           reject(error);

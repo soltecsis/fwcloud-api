@@ -18,7 +18,7 @@ export class WireGuardPrefixController extends Controller {
     );
   }
   @Validate()
-  async prefix(req): Promise<ResponseBuilder> {
+  async prefix(req: any): Promise<ResponseBuilder> {
     try {
       // We can only create prefixes for OpenVPN server configurations.
       if (req.wireguard.type !== 2) throw fwcError.VPN_NOT_SER;
@@ -40,7 +40,7 @@ export class WireGuardPrefixController extends Controller {
   }
 
   @Validate()
-  async update(req): Promise<ResponseBuilder> {
+  async update(req: Request): Promise<ResponseBuilder> {
     try {
       await this.wireGuardPrefixService.update(req);
 
@@ -55,7 +55,7 @@ export class WireGuardPrefixController extends Controller {
   }
 
   @Validate()
-  async getInfo(req): Promise<ResponseBuilder> {
+  async getInfo(req: Request): Promise<ResponseBuilder> {
     try {
       const data = await WireGuardPrefix.getPrefixWireGuardInfo(
         req.dbCon,
@@ -78,7 +78,7 @@ export class WireGuardPrefixController extends Controller {
   }
 
   @Validate()
-  async where(req): Promise<ResponseBuilder> {
+  async where(req: Request): Promise<ResponseBuilder> {
     try {
       const data = await WireGuardPrefix.searchPrefixUsage(
         req.dbCon,
@@ -94,7 +94,7 @@ export class WireGuardPrefixController extends Controller {
   }
 
   @Validate()
-  async delete(req): Promise<ResponseBuilder> {
+  async delete(req: any): Promise<ResponseBuilder> {
     try {
       // Delete prefix.
       await WireGuardPrefix.deletePrefix(req.dbCon, req.body.prefix);
