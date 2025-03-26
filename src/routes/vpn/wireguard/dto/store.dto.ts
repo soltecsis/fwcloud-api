@@ -23,10 +23,13 @@ export class WireGuardOptionDTO {
     'PersistentKeepalive',
     'ListenPort',
     'PublicKey',
-    'PreIp',
+    'PreUp',
     'PostUp',
     'PreDown',
     'PostDown',
+    'SaveConfig',
+    'FwMark',
+    'PresharedKey',
     'disable',
   ])
   name: string;
