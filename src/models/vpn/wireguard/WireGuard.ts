@@ -346,6 +346,16 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         const data = wireguard_result[0];
+
+        if (data.wireguard !== null) {
+          sql = `select * from ${tableName} where id=${data.wireguard}`;
+          dbCon.query(sql, async (error, result) => {
+            if (error) return reject(error);
+            const serverPublicKey = await utilsModel.decryptWireguardData(result[0]);
+            data.server_public_key = serverPublicKey.public_key;
+          });
+        }
+
         sql = `select * from wireguard_opt where wireguard=${wireGuard}`;
         dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
@@ -644,9 +654,24 @@ export class WireGuard extends Model {
                 };
 
                 const formatPeerSection = async (peer, isDisabled) => {
-                  let section = isDisabled
-                    ? `# CLIENT BLOCKED\n# [Peer]\n# PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`
-                    : `[Peer]\nPublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`;
+                  let section;
+                  if (isClient) {
+                    const serverIdSql = `SELECT * from ${tableName} where id = (SELECT wireguard FROM ${tableName} WHERE id=${wireGuard})`;
+                    const serverResult = await new Promise((resolve, reject) => {
+                      dbCon.query(serverIdSql, (error, result) => {
+                        if (error) return reject(error);
+                        resolve(result[0]);
+                      });
+                    });
+
+                    section = isDisabled
+                      ? `# CLIENT BLOCKED\n# [Peer]\n# PublicKey = ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`
+                      : `[Peer]\nPublicKey =  ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`;
+                  } else {
+                    section = isDisabled
+                      ? `# CLIENT BLOCKED\n# [Peer]\n# PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`
+                      : `[Peer]\nPublicKey =  ${await utilsModel.decrypt(peer.public_key)}\n`;
+                  }
                   for (const option of peer.options) {
                     section += await formatOption(option, isDisabled);
                   }

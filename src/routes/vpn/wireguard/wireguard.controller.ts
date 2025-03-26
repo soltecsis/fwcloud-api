@@ -275,6 +275,9 @@ export class WireGuardController extends Controller {
         if (data.private_key) {
           data.private_key = await pgp.encrypt(data.private_key);
         }
+        if (data.server_public_key) {
+          data.server_public_key = await pgp.encrypt(data.server_public_key);
+        }
 
         return ResponseBuilder.buildResponse().status(200).body(data);
       }
