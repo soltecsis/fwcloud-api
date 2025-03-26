@@ -191,6 +191,8 @@ export class FwCloud extends Model {
         `delete PO from policy_r__ipobj PO inner join policy_r RULE on RULE.id=PO.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PVPN from policy_r__openvpn PVPN inner join policy_r RULE on RULE.id=PVPN.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PPRE from policy_r__openvpn_prefix PPRE inner join policy_r RULE on RULE.id=PPRE.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
+        `delete PWG from policy_r__wireguard PWG inner join policy_r RULE on RULE.id=PWG.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
+        `delete PPREWG from policy_r__wireguard_prefix PPREWG inner join policy_r RULE on RULE.id=PPREWG.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete RULE from policy_r RULE inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PG from policy_g PG inner join firewall FW on FW.id=PG.firewall where FW.fwcloud=${this.id};`,
 
@@ -199,6 +201,8 @@ export class FwCloud extends Model {
         `delete RROG from routing_r__ipobj_g RROG inner join routing_r RULE on RULE.id=RROG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRVPN from routing_r__openvpn RRVPN inner join routing_r RULE on RULE.id=RRVPN.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRPRE from routing_r__openvpn_prefix RRPRE inner join routing_r RULE on RULE.id=RRPRE.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RRWG from routing_r__wireguard RRWG inner join routing_r RULE on RULE.id=RRWG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RRPREWG from routing_r__wireguard_prefix RRPREWG inner join routing_r RULE on RULE.id=RRPREWG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRM from routing_r__mark RRM inner join routing_r RULE on RULE.id=RRM.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RR from routing_r RR inner join routing_table RT on RT.id=RR.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRG from routing_g RRG inner join firewall FW on FW.id=RRG.firewall where FW.fwcloud=${this.id};`,
@@ -208,6 +212,8 @@ export class FwCloud extends Model {
         `delete ROG from route__ipobj_g ROG inner join route ROUTE on ROUTE.id=ROG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RVPN from route__openvpn RVPN inner join route ROUTE on ROUTE.id=RVPN.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RPRE from route__openvpn_prefix RPRE inner join route ROUTE on ROUTE.id=RPRE.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RWG from route__wireguard RWG inner join route ROUTE on ROUTE.id=RWG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RPREWG from route__wireguard_prefix RPREWG inner join route ROUTE on ROUTE.id=RPREWG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete ROUTE from route ROUTE inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RT from routing_table RT inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RG from route_g RG inner join firewall FW on FW.id=RG.firewall where FW.fwcloud=${this.id};`,
@@ -234,6 +240,14 @@ export class FwCloud extends Model {
         `delete PRE from openvpn_prefix PRE inner join openvpn VPN on VPN.id=PRE.openvpn inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
         `delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where VPN.openvpn is not null and FW.fwcloud=${this.id};`,
         `delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+
+        // Next the WireGuard entities of the database.
+        `delete OPT from wireguard_opt OPT inner join wireguard VPN on VPN.id=OPT.wireguard inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+        `delete VPN from wireguard__ipobj_g VPN inner join ipobj_g G on G.id=VPN.ipobj_g where G.fwcloud=${this.id};`,
+        `delete PRE from wireguard_prefix__ipobj_g PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};`,
+        `delete PRE from wireguard_prefix PRE inner join wireguard VPN on VPN.id=PRE.wireguard inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+        `delete VPN from wireguard VPN inner join firewall FW on FW.id=VPN.firewall where VPN.wireguard is not null and FW.fwcloud=${this.id};`,
+        `delete VPN from wireguard VPN inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
 
         // Now the PKI entities.
         `delete CRT from crt CRT inner join ca CA on CA.id=CRT.ca where CA.fwcloud=${this.id};`,
