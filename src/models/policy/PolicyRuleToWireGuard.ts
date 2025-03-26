@@ -152,6 +152,28 @@ export class PolicyRuleToWireGuard extends Model {
     });
   }
 
+  public static deleteFromRule(dbCon, rule): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  //Duplicate policy_r__wireGuard RULES
+  public static duplicatePolicy_r__wireGuard(dbCon, rule, new_rule): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `INSERT INTO ${tableName} (rule, wireguard, position,position_order)
+                (SELECT ${new_rule}, wireguard, position, position_order
+                from ${tableName} where rule=${rule} order by  position, position_order)`;
+      dbCon.query(sql, async (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
   public static searchWireGuardInRule(dbCon: Query, fwcloud: number, wireGuard: number) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 

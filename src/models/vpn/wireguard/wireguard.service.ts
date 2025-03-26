@@ -41,7 +41,8 @@ import { Zip } from '../../../utils/zip';
 import ObjectHelpers from '../../../utils/object-helpers';
 import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
 import { EventEmitter } from 'events';
-//TODO: REVISAR WireGuard y wireguard  (minusculas)
+import { Firewall } from '../../firewall/Firewall';
+
 export type WireGuardConfig = {
   history: {
     data_dir: string;
@@ -119,15 +120,23 @@ export class WireGuardService extends Service {
 
   public async generateInstaller(
     name: string,
-    openVPN: WireGuard,
+    wireGuard: WireGuard,
     outputPath: string,
   ): Promise<string> {
     let configData: string;
 
     try {
-      const openVPNId: number = openVPN.id;
+      const wireGuardId: number = wireGuard.id;
+      const firewall: Firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOne({
+          where: { id: wireGuard.firewallId },
+          relations: ['fwCloud'],
+        });
+      const fwCloudId: number = firewall.fwCloudId;
 
-      configData = ((await WireGuard.dumpCfg(db.getQuery(), openVPNId)) as any).cfg;
+      configData = ((await WireGuard.dumpCfg(db.getQuery(), wireGuardId)) as any).cfg;
     } catch (e) {
       throw new Error(
         'Unable to generate the wireGuard configuration during installer generation: ' +

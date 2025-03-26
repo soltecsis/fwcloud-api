@@ -44,7 +44,7 @@ export class WireGuardOptionExporter extends TableExporter {
         const subquery = qb.subQuery().from(WireGuard, 'wireGuard').select('wireGuard.id');
 
         return (
-          `${alias}.openVPNId IN ` +
+          `${alias}.wireGuardId IN ` +
           new WireGuardExporter().getFilterBuilder(subquery, 'wireGuard', fwCloudId).getQuery()
         );
       })
