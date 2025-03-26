@@ -852,6 +852,8 @@ export class PolicyRule extends Model {
           await this.clonePolicyInterface(dbCon, rowData.firewall, rowData.id, newRule);
           await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
           await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rowData.id, newRule);
+          await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -1137,6 +1139,8 @@ export class PolicyRule extends Model {
             try {
               await PolicyRuleToOpenVPN.deleteFromRule(dbCon, rule);
               await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
+              await PolicyRuleToWireGuard.deleteFromRule(dbCon, rule);
+              await PolicyRuleToWireGuardPrefix.deleteFromRule(dbCon, rule);
             } catch (error) {
               return reject(error);
             }

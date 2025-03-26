@@ -310,14 +310,20 @@ export class WireGuard extends Model {
       // In the restrictions check we have already checked that it is possible to remove them.
       // IMPORTANT: Order by CRT type for remove clients before servers. If we don't do it this way,
       // and the WireGuard server is removed first, we will get a database foreign key constraint fails error.
-      const sql = `select VPN.id,CRT.type from ${tableName} VPN
+      const sql = `select VPN.id,CRT.type,VPN.wireguard from ${tableName} VPN
                 inner join crt CRT on CRT.id=VPN.crt
                 where VPN.firewall=${firewall} order by CRT.type asc`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
-
         try {
-          for (const wireGuard of result) {
+          // First delete client configurations, if exist
+          const clientConfigs = result.filter((r) => r.type === 1 && r.wireguard !== null);
+          for (const wireGuard of clientConfigs) {
+            await this.delCfg(dbCon, fwcloud, wireGuard.id, true);
+          }
+          // Afterwards, delete server configurations
+          const serverConfigs = result.filter((r) => r.type !== 1);
+          for (const wireGuard of serverConfigs) {
             await this.delCfg(dbCon, fwcloud, wireGuard.id);
           }
         } catch (error) {
