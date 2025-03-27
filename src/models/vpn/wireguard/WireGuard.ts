@@ -47,7 +47,6 @@ import { WireGuardOption } from './wireguard-option.model';
 import { WireGuardPrefix } from './WireGuardPrefix';
 import { RoutingRuleToWireGuard } from '../../routing/routing-rule/routing-rule-to-wireguard.model';
 import { RouteToWireGuard } from '../../routing/route/route-to-wireguard.model';
-import { WireGuardStatusHistory } from './status/wireguard-status-history';
 import { Request } from 'express';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
@@ -155,10 +154,6 @@ export class WireGuard extends Model {
 
   @OneToMany(() => RouteToWireGuard, (model) => model.wireGuard)
   routeToWireGuards: RouteToWireGuard[];
-
-  @OneToMany(() => WireGuardStatusHistory, (model) => model.wireGuardServer)
-  historyRecords: WireGuardStatusHistory[];
-  static parentId: any;
 
   public getTableName(): string {
     return tableName;
