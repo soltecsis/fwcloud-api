@@ -80,7 +80,7 @@ export interface ICreateRoutingRule {
   openVPNIds?: { id: number; order: number }[];
   openVPNPrefixIds?: { id: number; order: number }[];
   wireGuardIds?: { id: number; order: number }[];
-  wireGcleuardPrefixIds?: { id: number; order: number }[];
+  wireGuardPrefixIds?: { id: number; order: number }[];
   markIds?: { id: number; order: number }[];
   to?: number; //Reference where create the rule
   offset?: Offset;
@@ -206,7 +206,7 @@ export class RoutingRuleService extends Service {
         openVPNIds: data.openVPNIds,
         openVPNPrefixIds: data.openVPNPrefixIds,
         wireGuardIds: data.wireGuardIds,
-        wireGuardPrefixIds: data.wireGcleuardPrefixIds,
+        wireGuardPrefixIds: data.wireGuardPrefixIds,
         firewallApplyToId: data.firewallApplyToId,
         markIds: data.markIds,
       });
@@ -243,7 +243,7 @@ export class RoutingRuleService extends Service {
         'routingRuleToIPObjGroups',
         'routingRuleToOpenVPNs',
         'routingRuleToOpenVPNPrefixes',
-        'routingRuleToWireGuard',
+        'routingRuleToWireGuards',
         'routingRuleToWireGuardPrefixes',
       ],
     });
@@ -522,7 +522,7 @@ export class RoutingRuleService extends Service {
           'routingRuleToOpenVPNs',
           'routingRuleToOpenVPNPrefixes',
           'routingRuleToWireGuards',
-          'routingRuleToWireGuardPrefix',
+          'routingRuleToWireGuardPrefixes',
         ],
       });
     const toRule: RoutingRule = await db
@@ -871,7 +871,7 @@ export class RoutingRuleService extends Service {
     }
 
     if (data.wireGuardPrefixIds && data.wireGuardPrefixIds.length === 0) {
-      errors['wireGcleuardPrefixIds'] = ['From should contain at least one item'];
+      errors['wireGuardPrefixIds'] = ['From should contain at least one item'];
     }
 
     throw new ValidationException('The given data was invalid', errors);
@@ -1028,7 +1028,7 @@ export class RoutingRuleService extends Service {
       .getSource()
       .manager.getRepository(WireGuardPrefix)
       .createQueryBuilder('prefix')
-      .innerJoin('prefix.wireGuard', 'wireguard')
+      .innerJoin('prefix.wireguard', 'wireguard')
       .innerJoin('wireguard.firewall', 'firewall')
       .whereInIds(data.wireGuardPrefixIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
@@ -1145,7 +1145,7 @@ export class RoutingRuleService extends Service {
         null,
         rules,
       ),
-      this._ipobjRepository.getIpobjsInWireGuardInRouting('rule', fwcloud, firewall, null, rules),
+      /*this._ipobjRepository.getIpobjsInWireGuardInRouting('rule', fwcloud, firewall, null, rules),
       this._ipobjRepository.getIpobjsInWireGuardPrefixesInRouting(
         'rule',
         fwcloud,
@@ -1166,7 +1166,7 @@ export class RoutingRuleService extends Service {
         firewall,
         null,
         rules,
-      ),
+      ),*/
       this._markRepository.getMarksInRoutingRules(fwcloud, firewall, rules),
     ];
   }

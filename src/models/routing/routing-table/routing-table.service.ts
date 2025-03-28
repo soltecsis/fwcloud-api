@@ -402,7 +402,7 @@ export class RoutingTableService extends Service {
         routingTable,
         routes,
       ),
-      this._ipobjRepository.getIpobjsInWireGuardInRouting(
+      /*this._ipobjRepository.getIpobjsInWireGuardInRouting(
         'route',
         fwcloud,
         firewall,
@@ -429,7 +429,7 @@ export class RoutingTableService extends Service {
         firewall,
         routingTable,
         routes,
-      ),
+      ),*/
     ];
   }
 
