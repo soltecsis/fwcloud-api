@@ -1,4 +1,4 @@
-import { describeName, playgroundPath, testSuite } from '../../mocha/global-setup';
+import { describeName, playgroundPath } from '../../mocha/global-setup';
 import path from 'path';
 import { FSHelper } from '../../../src/utils/fs-helper';
 import { expect } from 'chai';
@@ -7,258 +7,149 @@ import { InstallerGenerator } from '../../../src/openvpn-installer/installer-gen
 import { InvalidConnectionNameException } from './exceptions/invalid-connection-name.exception';
 import sinon from 'sinon';
 import { app } from '../../../src/fonaments/abstract-application';
+import { randomUUID } from 'crypto';
 
 describe(describeName('InstallerGenerator Unit Tests'), () => {
   let workspace: string;
   let generator: InstallerGenerator;
   let connectionName: string;
   let outputPath: string;
-  let stubGenerateCommand: sinon.SinonStub;
+  let sandbox: sinon.SinonSandbox;
 
   beforeEach(async () => {
-    workspace = path.join(playgroundPath, 'lib/nsis');
+    sandbox = sinon.createSandbox();
+    workspace = path.join(playgroundPath, 'lib/nsis-' + randomUUID());
     outputPath = path.join(workspace, 'output.exe');
     await FSHelper.copy('lib/nsis-3.05', workspace);
     connectionName = 'connectionTest';
 
-    // @ts-ignore
-    stubGenerateCommand = sinon
+    sandbox
       .stub(InstallerGenerator.prototype, 'generateExecutable' as keyof InstallerGenerator)
       .callsFake(() => {
         return fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), '');
       });
   });
 
-  afterEach(() => {
-    fs.removeSync(workspace);
-    stubGenerateCommand.restore();
+  afterEach(async () => {
+    sandbox.restore();
+    await fs.remove(workspace);
   });
 
   describe('constructor()', () => {
-    it('should throw an exception if the connection name starts with an invalid character', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, '-connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, ' connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '_connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '$connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-    });
-
-    it('should throw an exception if the connection name ends with an invalid character', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, 'connection-', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection ', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection_', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection$', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connec$tion', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connec Tion', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-    });
-
-    it('should throw an exception if the connection name length reaches the limit', () => {
-      const f = () => {
-        generator = new InstallerGenerator(
-          workspace,
-          'connectionconnectionconnectionconnection',
-          '',
-          outputPath,
+    it('should throw an exception for invalid start characters', () => {
+      const names = ['-connection', ' connection', '_connection', '$connection'];
+      for (const name of names) {
+        expect(() => new InstallerGenerator(workspace, name, '', outputPath)).to.throw(
+          InvalidConnectionNameException,
         );
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
+      }
     });
 
-    it('should not throw an exception if the connection name is valid', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, 'connect-ion', '', outputPath);
-      };
+    it('should throw an exception for invalid end characters', () => {
+      const names = [
+        'connection-',
+        'connection ',
+        'connection_',
+        'connection$',
+        'connec$tion',
+        'connec Tion',
+      ];
+      for (const name of names) {
+        expect(() => new InstallerGenerator(workspace, name, '', outputPath)).to.throw(
+          InvalidConnectionNameException,
+        );
+      }
+    });
 
-      expect(f).not.to.throw(InvalidConnectionNameException);
+    it('should throw for name longer than limit', () => {
+      expect(
+        () =>
+          new InstallerGenerator(
+            workspace,
+            'connectionconnectionconnectionconnection',
+            '',
+            outputPath,
+          ),
+      ).to.throw(InvalidConnectionNameException);
+    });
 
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connect_Ion', '', outputPath);
-      };
-
-      expect(f).not.to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '1connect_Ion', '', outputPath);
-      };
-
-      expect(f).not.to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '1connect_Ion1', '', outputPath);
-      };
-
-      expect(f).not.to.throw(InvalidConnectionNameException);
+    it('should accept valid connection names', () => {
+      const names = ['connect-ion', 'connect_Ion', '1connect_Ion', '1connect_Ion1'];
+      for (const name of names) {
+        expect(() => new InstallerGenerator(workspace, name, '', outputPath)).not.to.throw();
+      }
     });
   });
 
   describe('generate()', () => {
-    it('should generate the ovpn file which filename is the connection name', () => {
-      //@ts-ignore
-      const removeStub = sinon
+    it('should generate .ovpn file', () => {
+      sandbox
         .stub(InstallerGenerator.prototype, 'removeConfigFile' as keyof InstallerGenerator)
         .returns(null as never);
-      generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
 
+      generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
       generator.generate();
 
-      expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn'))).to.be
-        .true;
-      expect(fs.statSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn')).isFile()).to
-        .be.true;
-      expect(
-        fs.readFileSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn')).toString(),
-      ).to.be.eq('<test></test>');
-      removeStub.restore();
+      const ovpnPath = path.join(workspace, 'fwcloud-vpn', `${connectionName}.ovpn`);
+      expect(fs.existsSync(ovpnPath)).to.be.true;
+      expect(fs.readFileSync(ovpnPath, 'utf8')).to.equal('<test></test>');
     });
 
-    it('should remove the ovpn file after generate installer', () => {
+    it('should delete .ovpn after generating', () => {
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
-
       generator.generate();
-      expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn'))).to.be
-        .false;
+
+      const ovpnPath = path.join(workspace, 'fwcloud-vpn', `${connectionName}.ovpn`);
+      expect(fs.existsSync(ovpnPath)).to.be.false;
     });
 
-    it('should generate the exe file', () => {
+    it('should generate .exe', () => {
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
+      const pathOut = generator.generate();
 
-      const _path: string = generator.generate();
-      expect(fs.existsSync(_path)).to.be.true;
-      expect(fs.statSync(_path).isFile()).to.be.true;
+      expect(fs.existsSync(pathOut)).to.be.true;
     });
 
-    it('should clean files if script throws an exception', () => {
-      stubGenerateCommand.restore();
-      //@ts-ignore
-      stubGenerateCommand = sinon
+    it('should clean files on error', () => {
+      sandbox.restore();
+      sandbox = sinon.createSandbox();
+      sandbox
         .stub(InstallerGenerator.prototype, 'generateExecutable' as keyof InstallerGenerator)
-        .callsFake(() => {
-          throw new Error();
-        });
+        .throws(new Error('Fail'));
 
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
+      expect(() => generator.generate()).to.throw();
 
-      const f = () => {
-        const _path: string = generator.generate();
-      };
-
-      expect(f).to.throw(Error);
       expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'))).to.be.false;
-      expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn'))).to.be
+      expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', `${connectionName}.ovpn`))).to.be
         .false;
     });
 
-    it('should generate a sign executable', async () => {
-      // @ts-ignore
-      const stubShouldSign = sinon
-        .stub(InstallerGenerator.prototype, 'shouldSignExecutable')
-        .returns(true);
-      //@ts-ignore
-      const stubSignCommand = sinon
-        .stub(InstallerGenerator.prototype, 'signExecutable' as keyof InstallerGenerator)
-        .callsFake(() => {
-          return fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), 'signed');
-        });
+    it('should generate signed executable', () => {
+      sandbox.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
+      sandbox.stub(InstallerGenerator.prototype, 'signExecutable' as any).callsFake(() => {
+        const signedPath = path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe');
+        fs.writeFileSync(signedPath, 'signed');
+      });
 
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
-
       generator.generate(true);
 
       expect(fs.existsSync(outputPath)).to.be.true;
-      expect(fs.readFileSync(outputPath).toString()).to.be.eq('signed');
-
-      stubShouldSign.restore();
-      stubSignCommand.restore();
+      expect(fs.readFileSync(outputPath, 'utf8')).to.equal('signed');
     });
 
-    // it('should call sign command with all arguments', async () => {
-    //     // @ts-ignore
-    //     const stubShouldSign = sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
-    //     //@ts-ignore
-    //     const stubSignCommand = sinon.stub(InstallerGenerator.prototype, 'signExecutable').callsFake(() => {
-    //         fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "signed")
-    //     });
-
-    //     app().config.set('openvpn.installer.osslsigncode.path', 'binPath');
-    //     app().config.set('openvpn.installer.osslsigncode.cert_path', 'cert_path');
-    //     app().config.set('openvpn.installer.osslsigncode.url', 'url');
-    //     app().config.set('openvpn.installer.osslsigncode.description', 'description');
-
-    //     generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
-
-    //     generator.generate(true);
-
-    //     expect(stubSignCommand.calledWith("binPath", "cert_path", "url", "description")).to.be.true;
-
-    //     stubShouldSign.restore();
-    //     stubSignCommand.restore();
-    // });
-
-    it('should not sign the executable if generate() is called without sign flag', async () => {
-      // @ts-ignore
-      const stubShouldSign = sinon
-        .stub(InstallerGenerator.prototype, 'shouldSignExecutable')
-        .returns(true);
-      //@ts-ignore
-      const stubSignCommand = sinon
-        .stub(InstallerGenerator.prototype, 'signExecutable' as keyof InstallerGenerator)
-        .callsFake(() => {
-          return fs.writeFileSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'), 'signed');
-        });
+    it('should not sign if sign=false', () => {
+      sandbox.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
+      const stub = sandbox.stub(
+        InstallerGenerator.prototype,
+        'signExecutable' as keyof InstallerGenerator,
+      );
 
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
-
       generator.generate(false);
 
-      expect(stubSignCommand.called).to.be.false;
+      expect(stub.called).to.be.false;
     });
   });
 });
