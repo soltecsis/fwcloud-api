@@ -33,6 +33,7 @@ export class LockValidation extends Middleware {
       try {
         const fwcloudId =
           req.body.fwcloud ||
+          req.query.channel_id ||
           (req.url.split('/').length > 2 && !isNaN(Number(req.url.split('/')[2]))
             ? Number(req.url.split('/')[2])
             : undefined);
