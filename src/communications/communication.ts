@@ -38,6 +38,15 @@ export type OpenVPNHistoryRecord = {
   connectedAtTimestampInSeconds: number;
 };
 
+export type WireGuardHistoryRecord = {
+  timestamp: number;
+  name: string;
+  address: string;
+  bytesReceived: number;
+  bytesSent: number;
+  connectedAtTimestampInSeconds: number;
+};
+
 export type FwcAgentInfo = {
   fwc_agent_version: string;
   host_name: string;
@@ -72,6 +81,16 @@ export abstract class Communication<ConnectionData> {
     configs: { name: string; content: string }[],
     eventEmitter?: EventEmitter,
   ): Promise<void>;
+  abstract installWireGuardServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
+  abstract installWireGuardClientConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
   abstract installHAPRoxyConfigs(
     dir: string,
     configs: { name: string; content: string }[],
@@ -95,7 +114,11 @@ export abstract class Communication<ConnectionData> {
     files: string[],
     channel?: EventEmitter,
   ): Promise<void>;
-
+  abstract uninstallWireGuardConfigs(
+    dir: string,
+    files: string[],
+    channel?: EventEmitter,
+  ): Promise<void>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;

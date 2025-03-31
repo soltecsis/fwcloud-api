@@ -113,6 +113,12 @@ accessCtrl.check = async (req, res, next) => {
 				throw fwcError.ACC_OPENVPN;
 		}
 
+		// Check access to the wireguard indicated in req.body.wireguard.
+		if (req.body.wireguard) {
+			if (!(await checkWireguardAccess(req)))
+				throw fwcError.ACC_WIREGUARD;
+		}
+
 		// Check access to the CRT prefix indicated in req.body.prefix.
 		if (req.body.prefix) {
 			if (!(await checkPrefixAccess(req)))
@@ -250,6 +256,28 @@ function checkOpenVPNAccess(req) {
 	});
 };
 
+// Check access to wireguard configuration.
+function checkWireguardAccess(req) {
+	return new Promise((resolve, reject) => {
+		let sql = `select F.fwcloud,W.*,CRT.* FROM wireguard W
+			INNER JOIN firewall F ON W.firewall=F.id
+			INNER JOIN crt CRT ON CRT.id=W.crt
+			WHERE W.id=${req.body.wireguard}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the CA of the OpenVPN config is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the crt info for use in the API call processing.
+			req.wireguard = result[0];
+
+			resolve(true);
+		});
+	});
+};
+
 
 // Check access to CRT Prefix.
 function checkPrefixAccess(req) {
@@ -266,6 +294,12 @@ function checkPrefixAccess(req) {
 			sql = `select FW.fwcloud,P.* FROM openvpn_prefix P
 				INNER JOIN openvpn VPN ON VPN.id=P.openvpn
 				INNER JOIN firewall FW ON FW.id=VPN.firewall
+				WHERE P.id=${req.body.prefix}`;
+		}
+		else if (item[1]==='vpn' && item[2]==='wireguard' && item[3]==='prefix') {
+			sql = `select FW.fwcloud,P.* FROM wireguard_prefix P
+				INNER JOIN wireguard W ON W.id=P.wireguard
+				INNER JOIN firewall FW ON FW.id=W.firewall
 				WHERE P.id=${req.body.prefix}`;
 		}
 		else resolve(false);

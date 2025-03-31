@@ -37,6 +37,8 @@ import {
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { WireGuard } from '../vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
 
 const utilsModel = require('../../utils/utils.js');
 import { PolicyRule } from '../../models/policy/PolicyRule';
@@ -206,6 +208,9 @@ export class Firewall extends Model {
 
   @OneToMany((type) => OpenVPN, (openVPN) => openVPN.firewall)
   openVPNs: Array<OpenVPN>;
+
+  @OneToMany((type) => WireGuard, (wireGuard) => wireGuard.firewall)
+  wireGuards: Array<WireGuard>;
 
   @OneToMany((type) => PolicyGroup, (policyGroup) => policyGroup.firewall)
   policyGroups: Array<PolicyGroup>;
@@ -1373,6 +1378,8 @@ export class Firewall extends Model {
               await PolicyRule.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
               await OpenVPNPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall openvpn prefixes.
               await OpenVPN.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
+              await WireGuardPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall WireGuard prefixes.
+              await WireGuard.delCfgAll(dbCon, fwcloud, firewall); // Remove all WireGuard configurations for this firewall.
               await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
               await Interface.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
               await Tree.deleteFwc_TreeFullNode({
@@ -1544,16 +1551,22 @@ export class Firewall extends Model {
 					- Interfaces and address of interface.
 					- OpenVPN configuration.
 							  - OpenVPN prefix configuration.
-						  	
-						  Verify too that these objects are not being used in any group.
+					- WireGuard configuration.
+							  - WireGuard prefix configuration.	  	
+						  Verify that these objects are not being used in any group as well.
 				*/
         const r1: any = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
         const r2: any = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
         const r3: any = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
+        const r4: any = await WireGuard.searchWireGuardUsageOutOfThisFirewall(req);
+        const r5: any = await WireGuardPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
+        //TODO: UTILIZAR OBJECTHELERS? utils.mergeObj() is deprectaded. Use ObjectHelers.merge() instead
         if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
         if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
         if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
+        if (r4) search.restrictions = utilsModel.mergeObj(search.restrictions, r4.restrictions);
+        if (r5) search.restrictions = utilsModel.mergeObj(search.restrictions, r5.restrictions);
 
         for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {

@@ -53,6 +53,9 @@ import { KeepalivedGroupController } from '../controllers/system/keepalived-grou
 import { KeepalivedController } from '../controllers/system/keepalived/keepalived.controller';
 import { HAProxyGroupController } from '../controllers/system/haproxy-group/haproxy-group.controller';
 import { HAProxyController } from '../controllers/system/haproxy/haproxy.controller';
+import { FirewallWireGuardController } from '../controllers/firewalls/wireguard/wireguard.controller';
+import { WireGuardController } from './vpn/wireguard/wireguard.controller';
+import { WireGuardPrefixController } from './vpn/wireguard/wireguard.prefix.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -111,6 +114,59 @@ export class Routes extends RouteCollection {
         .post('/systemctl', SystemCtlController, 'systemctlCommunication')
         .name('systemctl.communication');
 
+      //VPN routes
+      router.prefix('/vpn', (router: RouterParser) => {
+        router.prefix('/wireguard', (router: RouterParser) => {
+          router.post('/', WireGuardController, 'store').name('vpn.wireguard.store');
+          router.put('/', WireGuardController, 'update').name('vpn.wireguard.update');
+          router.put('/get', WireGuardController, 'get').name('vpn.wireguard.get');
+          router.put('/file/get', WireGuardController, 'getFile').name('vpn.wireguard.file.get');
+          router.put('/ipobj/get', WireGuardController, 'getIpObj').name('vpn.wireguard.ipobj.get');
+          router.put('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
+          router.put('/info/get', WireGuardController, 'getInfo').name('vpn.wireguard.info.get');
+          router
+            .get('/firewall/get', WireGuardController, 'getFirewall')
+            .name('vpn.wireguard.firewall.get');
+          router.put('/del', WireGuardController, 'delete').name('vpn.wireguard.delete');
+          router
+            .put('/restricted', WireGuardController, 'restricted')
+            .name('vpn.wireguard.restrictions');
+          router.put('/where', WireGuardController, 'where').name('vpn.wireguard.where');
+          router.put('/install', WireGuardController, 'install').name('vpn.wireguard.install');
+          router
+            .put('/uninstall', WireGuardController, 'uninstall')
+            .name('vpn.wireguard.uninstall');
+          router.put('/ccdsync', WireGuardController, 'ccdsync').name('vpn.wireguard.ccdsync');
+          router
+            .get('/status/get', WireGuardController, 'getStatus')
+            .name('vpn.wireguard.status.get');
+          router
+            .put('/config/filename', WireGuardController, 'getConfigFilename')
+            .name('vpn.wireguard.config.filename');
+          router
+            .put('/clients/get', WireGuardController, 'getClients')
+            .name('vpn.wireguard.clients.get');
+          router.prefix('/prefix', (router: RouterParser) => {
+            router.post('/', WireGuardPrefixController, 'prefix').name('vpn.wireguard.prefix');
+            router
+              .put('/', WireGuardPrefixController, 'update')
+              .name('vpn.wireguard.prefix.update');
+            router
+              .put('/info/get', WireGuardPrefixController, 'getInfo')
+              .name('vpn.wireguard.prefix.info.get');
+            router
+              .put('/restricted', WireGuardPrefixController, 'restricted')
+              .name('vpn.wireguard.prefix.restrictions');
+            router
+              .put('/where', WireGuardPrefixController, 'where')
+              .name('vpn.wireguard.prefix.where');
+            router
+              .put('/del', WireGuardPrefixController, 'delete')
+              .name('vpn.wireguard.prefix.del');
+          });
+        });
+      });
+
       router.prefix('/fwclouds', (router: RouterParser) => {
         router.post('/', FwCloudController, 'store').name('fwclouds.store');
         router.post('/import', FwCloudExportController, 'import').name('fwclouds.exports.import');
@@ -158,6 +214,20 @@ export class Routes extends RouteCollection {
                   router
                     .get('/graph', OpenVPNController, 'graph')
                     .name('fwclouds.firewalls.openvpns.graph');
+                });
+              });
+
+              router.prefix('/wireguards', (router: RouterParser) => {
+                router.prefix('/:wireguard(\\d+)', (router: RouterParser) => {
+                  router
+                    .post('/installer', FirewallWireGuardController, 'installer')
+                    .name('fwclouds.firewalls.wireguards.installer');
+                  router
+                    .get('/history', FirewallWireGuardController, 'history')
+                    .name('fwclouds.firewalls.wireguards.history');
+                  router
+                    .get('/graph', FirewallWireGuardController, 'graph')
+                    .name('fwclouds.firewalls.wireguards.graph');
                 });
               });
 

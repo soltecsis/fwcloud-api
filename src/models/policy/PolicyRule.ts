@@ -36,6 +36,8 @@ import { PolicyType } from './PolicyType';
 import { Firewall, FireWallOptMask } from '../firewall/Firewall';
 import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import { PolicyRuleToWireGuard } from './PolicyRuleToWireGuard';
+import { PolicyRuleToWireGuardPrefix } from './PolicyRuleToWireguardPrefix';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'policy_r';
@@ -178,6 +180,18 @@ export class PolicyRule extends Model {
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
+  @OneToMany(
+    (type) => PolicyRuleToWireGuard,
+    (policyRuleToWireGuard) => policyRuleToWireGuard.policyRule,
+  )
+  policyRuleToWireGuards: Array<PolicyRuleToWireGuard>;
+
+  @OneToMany(
+    (type) => PolicyRuleToWireGuardPrefix,
+    (policyRuleToWireGuardPrefix) => policyRuleToWireGuardPrefix.policyRule,
+  )
+  policyRuleToWireGuardPrefixes: Array<PolicyRuleToWireGuardPrefix>;
+
   private static clon_data: any;
 
   public getTableName(): string {
@@ -255,6 +269,17 @@ export class PolicyRule extends Model {
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
             from policy_r__openvpn R
             inner join openvpn VPN on VPN.id=R.openvpn
+            inner join crt CRT ON CRT.id=VPN.crt
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=VPN.firewall  
+            left join cluster CL on CL.id=FW.cluster  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
+            union select R.rule, R.position, VPN.id, CRT.cn, "321" as type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__wireguard R
+            inner join wireguard VPN on VPN.id=R.wireguard
             inner join crt CRT ON CRT.id=VPN.crt
             inner join policy_r PR on PR.id=R.rule
             inner join firewall FW on FW.id=VPN.firewall  
@@ -827,6 +852,8 @@ export class PolicyRule extends Model {
           await this.clonePolicyInterface(dbCon, rowData.firewall, rowData.id, newRule);
           await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
           await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rowData.id, newRule);
+          await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -1112,6 +1139,8 @@ export class PolicyRule extends Model {
             try {
               await PolicyRuleToOpenVPN.deleteFromRule(dbCon, rule);
               await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
+              await PolicyRuleToWireGuard.deleteFromRule(dbCon, rule);
+              await PolicyRuleToWireGuardPrefix.deleteFromRule(dbCon, rule);
             } catch (error) {
               return reject(error);
             }

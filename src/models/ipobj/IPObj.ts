@@ -1112,6 +1112,7 @@ export class IPObj extends Model {
           fwcloud,
         ); //SEARCH IPOBJ GROUP IN RULES
         search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+        search.restrictions.IpobjInWireguard = await this.searchIpobjInWireguard(id, type, fwcloud); //SEARCH IPOBJ IN Wireguard CONFIG
 
         search.restrictions.IpobjInRoute = await this.searchIpobjInRoute(id, fwcloud);
         search.restrictions.IpobjInRouteAsGateway = await this.searchIpobjInRouteAsGateway(
@@ -1147,6 +1148,11 @@ export class IPObj extends Model {
             id,
           );
           search.restrictions.AddrHostInOpenvpn = await this.searchAddrHostInOpenvpn(
+            dbCon,
+            fwcloud,
+            id,
+          );
+          search.restrictions.AddrHostInWireguard = await this.searchAddrHostInWireguard(
             dbCon,
             fwcloud,
             id,
@@ -1469,6 +1475,29 @@ export class IPObj extends Model {
     });
   }
 
+  public static searchIpobjInWireguard(ipobj, type, fwcloud) {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `SELECT WG.*, CRT.cn,
+        C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
+        F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+        FROM wireguard AS WG
+        inner join crt CRT on CRT.id=WG.crt
+        INNER JOIN wireguard_opt OPT on OPT.wireguard=WG.id
+        INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+        INNER JOIN firewall F on F.id=WG.firewall
+        inner join fwcloud C on C.id=F.fwcloud
+        WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows);
+        });
+      });
+    });
+  }
+
   //check if IPOBJ exists in and OpenVPN configuration
   public static addrInIfconfigPushOpenVPN(ipobj, fwcloud) {
     return new Promise((resolve, reject) => {
@@ -1529,6 +1558,26 @@ export class IPObj extends Model {
 			INNER JOIN firewall F on F.id=VPN.firewall
 			inner join fwcloud C on C.id=F.fwcloud
 			WHERE II.ipobj=${host} AND F.fwcloud=${fwcloud}`;
+      dbCon.query(sql, (error, rows) => {
+        if (error) return reject(error);
+        resolve(rows);
+      });
+    });
+  }
+
+  public static searchAddrHostInWireguard(dbCon, fwcloud, host) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT WG.*, CRT.cn,
+      C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
+      F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+      FROM wireguard AS WG
+      inner join crt CRT on CRT.id=WG.crt
+      INNER JOIN wireguard_opt OPT on OPT.wireguard=WG.id
+      INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+      inner join interface__ipobj II on II.interface=OBJ.interface
+      INNER JOIN firewall F on F.id=WG.firewall
+      inner join fwcloud C on C.id=F.fwcloud
+      WHERE II.ipobj=${host} AND F.fwcloud=${fwcloud}`;
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
         resolve(rows);

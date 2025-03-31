@@ -246,11 +246,6 @@ export class WireGuard1737018559931 implements MigrationInterface {
             default: null,
           },
         ],
-        uniques: [
-          {
-            columnNames: ['wireguard', 'wireguard_cli'],
-          },
-        ],
         foreignKeys: [
           {
             columnNames: ['ipobj'],
@@ -646,9 +641,47 @@ export class WireGuard1737018559931 implements MigrationInterface {
         ],
       }),
     );
+
+    const clientPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=311`,
+    );
+    const prefixPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=401`,
+    );
+    for (let index = 0; index < clientPositions.length; index++) {
+      await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [
+        321,
+        clientPositions[index].position,
+      ]);
+    }
+    for (let index = 0; index < prefixPositions.length; index++) {
+      await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [
+        402,
+        prefixPositions[index].position,
+      ]);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
+    const clientPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=311`,
+    );
+    const prefixPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=401`,
+    );
+    for (let index = 0; index < clientPositions.length; index++) {
+      await queryRunner.query(
+        `DELETE FROM ipobj_type__policy_position WHERE type=? AND position=?`,
+        [321, clientPositions[index].position],
+      );
+    }
+    for (let index = 0; index < prefixPositions.length; index++) {
+      await queryRunner.query(
+        `DELETE FROM ipobj_type__policy_position WHERE type=? AND position=?`,
+        [402, prefixPositions[index].position],
+      );
+    }
+
     await queryRunner.dropTable('routing_r__wireguard_prefix', true);
     await queryRunner.dropTable('routing_r__wireguard', true);
     await queryRunner.dropTable('route__wireguard_prefix', true);

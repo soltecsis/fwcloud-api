@@ -24,6 +24,7 @@ import Model from '../../Model';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Ca } from './Ca';
 import { OpenVPN } from '../openvpn/OpenVPN';
+import { WireGuard } from '../wireguard/WireGuard';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -69,6 +70,9 @@ export class Crt extends Model {
 
   @OneToMany((type) => OpenVPN, (openVPN) => openVPN.crt)
   openVPNs: Array<OpenVPN>;
+
+  @OneToMany((type) => WireGuard, (wireGuard) => wireGuard.crt)
+  wireGuards: Array<WireGuard>;
 
   public getTableName(): string {
     return tableName;

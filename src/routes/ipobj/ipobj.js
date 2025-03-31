@@ -78,6 +78,7 @@ import { IPObjType } from '../../models/ipobj/IPObjType';
 import { Firewall } from '../../models/firewall/Firewall';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -313,13 +314,24 @@ router.put('/',
 
 			await IPObj.updateIpobj(req, ipobjData);
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
-			await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
+
+			if (req.body.options && req.body.options.find(option => option.name === "Address")) {	
+				await WireGuard.updateWireGuardStatusIPOBJ(req, ipobjData.id, "|1");
+			} else {
+				await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
+			}
+
 			await IPObj.UpdateHOST(ipobjData.id);
 			await IPObj.UpdateINTERFACE(ipobjData.id);
 
 			var data_return = {};
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
-			await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
+			
+			if (req.body.options && req.body.options.find(option => option.name === "Address")) {
+				await WireGuard.getWireGuardStatusNotZero(req, data_return);
+			} else {
+				await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
+			}
 
 			await Tree.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
 

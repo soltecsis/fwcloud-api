@@ -205,6 +205,34 @@ export class IPObjRepository extends Repository<IPObj> {
     );
   }
 
+  getIpobjsInWireGuardInRouting(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable: number,
+    ids: number[],
+  ): SelectQueryBuilder<IPObj> {
+    const query = this.routingSelects(entity)
+      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('wgOpt.wireguard', 'wg');
+
+    if (entity === 'route') {
+      query
+        .innerJoin('wg.routeToWireGuards', 'routeToWireGuards')
+        .innerJoin('routeToWireGuards.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('wg.routingRuleToWireGuards', 'routingRuleToWireGuards')
+        .innerJoin('routingRuleToWireGuards.routingRule', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "wgOpt.name='address'",
+    );
+  }
+
   // All ipobj under OpenVPNs in groups
   getIpobjsInOpenVPNInGroupsInRouting(
     entity: ValidEntities,
@@ -232,6 +260,66 @@ export class IPObjRepository extends Repository<IPObj> {
 
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
       "vpnOpt.name='ifconfig-push'",
+    );
+  }
+
+  getIpobjsInWireGuardInGroupsInRouting(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable: number,
+    ids: number[],
+  ): SelectQueryBuilder<IPObj> {
+    const query = this.routingSelects(entity)
+      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wg.ipObjGroups', 'ipobjGroup');
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "wgOpt.name='address'",
+    );
+  }
+
+  getIpobjsInWireGuardPrefixesInRouting(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable: number,
+    ids: number[],
+  ): SelectQueryBuilder<IPObj> {
+    const query = this.routingSelects(entity)
+      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wg.crt', 'crt')
+      .innerJoin('wg.parent', 'wgServer')
+      .innerJoin('wgServer.wireGuardPrefixes', 'prefix');
+
+    if (entity === 'route') {
+      query
+        .innerJoin('prefix.routeToWireGuardPrefixes', 'routeToWireGuardPrefixes')
+        .innerJoin('routeToWireGuardPrefixes.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('prefix.routingRuleToWireGuardPrefixes', 'routingRuleToWireGuardPrefixes')
+        .innerJoin('routingRuleToWireGuardPrefixes.routingRule', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and wgOpt.name='address'",
     );
   }
 
@@ -267,6 +355,38 @@ export class IPObjRepository extends Repository<IPObj> {
     );
   }
 
+  getIpobjGroupsInWireGuardInRouting(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable: number,
+    ids: number[],
+  ): SelectQueryBuilder<IPObj> {
+    const query = this.routingSelects(entity)
+      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wg.crt', 'crt')
+      .innerJoin('wg.parent', 'wgServer')
+      .innerJoin('wgServer.wireGuardPrefixes', 'prefix')
+      .innerJoin('prefix.ipObjGroups', 'ipobjGroup');
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and wgOpt.name='address'",
+    );
+  }
+
   // All ipobj under OpenVPN prefixes in groups
   getIpobjsInOpenVPNPrefixesInGroupsInRouting(
     entity: ValidEntities,
@@ -297,6 +417,70 @@ export class IPObjRepository extends Repository<IPObj> {
 
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
       "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'",
+    );
+  }
+
+  getIpobjInWireGuardPrefixesInGroupsInRouting(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable: number,
+    ids: number[],
+  ): SelectQueryBuilder<IPObj> {
+    const query = this.routingSelects(entity)
+      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wg.crt', 'crt')
+      .innerJoin('wg.parent', 'wgServer')
+      .innerJoin('wgServer.wireGuardPrefixes', 'prefix')
+      .innerJoin('prefix.ipObjGroups', 'ipobjGroup');
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and wgOpt.name='address'",
+    );
+  }
+
+  getIpobjGroupsInWireGuardPrefixesInRouting(
+    entity: ValidEntities,
+    fwcloud: number,
+    firewall: number,
+    routingTable: number,
+    ids: number[],
+  ): SelectQueryBuilder<IPObj> {
+    const query = this.routingSelects(entity)
+      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wg.crt', 'crt')
+      .innerJoin('wg.parent', 'wgServer')
+      .innerJoin('wgServer.wireGuardPrefixes', 'prefix')
+      .innerJoin('prefix.ipObjGroups', 'ipobjGroup');
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and wgOpt.name='address'",
     );
   }
 
