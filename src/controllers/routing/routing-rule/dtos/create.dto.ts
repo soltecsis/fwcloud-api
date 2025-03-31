@@ -99,6 +99,22 @@ export class RoutingRuleControllerCreateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
+  wireGuardIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  wireGuardPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
   markIds?: PositionalEntityDto[];
 
   @IsNumber()

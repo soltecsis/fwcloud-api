@@ -27,6 +27,7 @@ import {
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   SystemCtlInfo,
+  WireGuardHistoryRecord,
 } from './communication';
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import {
@@ -43,7 +44,6 @@ import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
-import { error } from 'console';
 
 type AgentCommunicationData = {
   protocol: 'https' | 'http';
@@ -73,6 +73,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     this.ws_url = this.url.replace('http://', 'ws://').replace('https://', 'wss://');
     this.cancel_token = axios.CancelToken.source();
     this.config = {
+      //TODO: AÑADIR WIREGUARD / IPSEC aqui?
       timeout: app().config.get('openvpn.agent.timeout'),
       headers: {
         'X-API-Key': this.connectionData.apikey,
@@ -177,6 +178,87 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   }
 
   async uninstallOpenVPNConfigs(
+    dir: string,
+    files: string[],
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      files.forEach((file) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+          ),
+        );
+      });
+
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.data = {
+        dir: dir,
+        files: files,
+      };
+
+      await axios.delete(pathUrl, config);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async installWireGuardServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/wireguard/files/upload';
+      const form = new FormData();
+      form.append('dst_dir', dir);
+      form.append('perms', 600);
+
+      configs.forEach((config) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(
+            `Uploading WireGuard configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
+          ),
+        );
+        form.append('data', config.content, config.name);
+      });
+
+      const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+      await axios.post(pathUrl, form, requestConfig);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async installWireGuardClientConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/wireguard/files/upload';
+      const form = new FormData();
+
+      const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
+        form,
+        dir,
+        configs,
+        eventEmitter,
+      );
+
+      await axios.post(pathUrl, form, requestConfig);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async uninstallWireGuardConfigs(
     dir: string,
     files: string[],
     eventEmitter: EventEmitter = new EventEmitter(),
@@ -461,6 +543,45 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       this.handleRequestException(error);
     }
   }
+  async getWireGuardHistoryFile(filepath: string): Promise<WireGuardHistoryRecord[]> {
+    try {
+      const filename: string = path.basename(filepath);
+      const dir: string = path.dirname(filepath);
+      const pathUrl: string = this.url + '/api/v1/openvpn/get/status';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.headers['Content-Type'] = 'application/json';
+
+      const response: AxiosResponse<string> = await axios.put(
+        pathUrl,
+        {
+          dir,
+          files: [filename],
+        },
+        config,
+      );
+
+      if (response.status === 200) {
+        return response.data
+          .split('\n')
+          .filter((item) => item !== '')
+          .slice(1)
+          .map((item) => ({
+            timestamp: parseInt(item.split(',')[0]),
+            name: item.split(',')[1],
+            address: item.split(',')[2],
+            bytesReceived: parseInt(item.split(',')[3]),
+            bytesSent: parseInt(item.split(',')[4]),
+            connectedAtTimestampInSeconds: parseInt(item.split(',')[5]),
+          }));
+      }
+
+      throw new Error('Unexpected getWireGuardHistoryFile response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
   async systemctlManagement(command: string, service: string): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/systemctl';

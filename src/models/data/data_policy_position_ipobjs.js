@@ -72,7 +72,7 @@ function policy_position_ipobjs_data(data, order, type) {
 		}
 	} else if (type === 'G') {
 		this.type = data.type;
-	} else if (type === 'VPN') {
+	} else if (type === 'OPN') {
 		this.type = 311;
 		this.name = data.cn;
 		this.address = data.address;

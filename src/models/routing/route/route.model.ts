@@ -20,22 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Interface } from '../../interface/Interface';
 import { IPObj } from '../../ipobj/IPObj';
-import { IPObjGroup } from '../../ipobj/IPObjGroup';
 import Model from '../../Model';
-import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
-import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
 import { RoutingTable } from '../routing-table/routing-table.model';
 import { RouteGroup } from '../route-group/route-group.model';
 import db from '../../../database/database-manager';
@@ -44,6 +32,8 @@ import { RouteToOpenVPN } from './route-to-openvpn.model';
 import { RouteToIPObjGroup } from './route-to-ipobj-group.model';
 import { RouteToIPObj } from './route-to-ipobj.model';
 import { Firewall } from '../../firewall/Firewall';
+import { RouteToWireGuard } from './route-to-wireguard.model';
+import { RouteToWireGuardPrefix } from './route-to-wireguard-prefix.model';
 
 const tableName: string = 'route';
 
@@ -136,6 +126,16 @@ export class Route extends Model {
     cascade: true,
   })
   routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
+
+  @OneToMany(() => RouteToWireGuard, (model) => model.route, {
+    cascade: true,
+  })
+  routeToWireGuards: RouteToWireGuard[];
+
+  @OneToMany(() => RouteToWireGuardPrefix, (model) => model.route, {
+    cascade: true,
+  })
+  routeToWireGuardPrefixes: RouteToWireGuardPrefix[];
 
   public getTableName(): string {
     return tableName;

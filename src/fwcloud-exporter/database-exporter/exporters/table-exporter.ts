@@ -21,7 +21,7 @@
 */
 
 import Model from '../../../models/Model';
-import { Connection, SelectQueryBuilder } from 'typeorm';
+import { DataSource, SelectQueryBuilder } from 'typeorm';
 import { ExporterResult } from '../exporter-result';
 
 export class TableExporter {
@@ -31,7 +31,7 @@ export class TableExporter {
     this._entity = this.getEntity();
   }
 
-  public async bootstrap(connection: Connection, fwCloudId: number): Promise<void> {
+  public async bootstrap(connection: DataSource, fwCloudId: number): Promise<void> {
     return;
   }
 
@@ -54,7 +54,7 @@ export class TableExporter {
 
   public async export(
     results: ExporterResult,
-    connection: Connection,
+    connection: DataSource,
     fwCloudId: number,
   ): Promise<ExporterResult> {
     results.addTableData(this.getTableName(), await this.getRows(connection, fwCloudId));
@@ -62,7 +62,7 @@ export class TableExporter {
     return results;
   }
 
-  protected async getRows(connection: Connection, fwCloudId: number): Promise<Array<object>> {
+  protected async getRows(connection: DataSource, fwCloudId: number): Promise<Array<object>> {
     const qb: SelectQueryBuilder<any> = connection.createQueryBuilder(
       this._entity,
       this.getTableName(),

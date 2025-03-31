@@ -335,6 +335,7 @@ export class OpenVPNPrefix extends Model {
         // Create all OpenVPN client config nodes.
         const openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
         for (const openvpn_cli of openvpn_cli_list) {
+          // WCG para wireguard client
           await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
         }
 

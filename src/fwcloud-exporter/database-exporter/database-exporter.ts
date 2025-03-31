@@ -56,7 +56,6 @@ import { RouteGroupExporter } from './exporters/route-group.exporter';
 import { RoutingRuleExporter } from './exporters/routing-rule.exporter';
 import { RoutingRuleToIPObjExporter } from './exporters/routing-rule-to-ipobj.exporter';
 import { RoutingRuleToIPObjGroupExporter } from './exporters/routing-rule-to-ipobj-group.exporter';
-import { RoutingRuleToOpenVPNPrefix } from '../../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model';
 import { RoutingRuleToOpenVPNExporter } from './exporters/routing-rule-to-openvpn.exporter';
 import { RoutingRuleToOpenVPNPrefixExporter } from './exporters/routing-rule-to-openvpn-prefix.exporter';
 import { RoutingRuleToMarkExporter } from './exporters/routing-rule-to-mark.exporter';
@@ -70,6 +69,17 @@ import { HAProxyGroupExporter } from './exporters/haproxy_g.exporter';
 import { DHCPRuleExporter } from './exporters/dhcp_r.exporter';
 import { DHCPGroupExporter } from './exporters/dhcp_g.exporter';
 import { DHCPRuleToIPObjExporter } from './exporters/dhcp_r-to-ipobj.exporter';
+import { RouteToWireGuardPrefixExporter } from './exporters/route-to-wireguard-prefix.exporter';
+import { RouteToWireGuardExporter } from './exporters/route-to-wireguard.exporter';
+import { RoutingRuleToWireGuardPrefixExporter } from './exporters/routing-rule-to-wireguard-prefix.exporter';
+import { RoutingRuleToWireGuardExporter } from './exporters/routing-rule-to-wireguard.exporter';
+import { WireGuardOptionExporter } from './exporters/wireguard-option.exporter';
+import { WireGuardPrefixToIPObjGroupExporter } from './exporters/wireguard-prefix-to-ipobj-group.exporter';
+import { WireGuardPrefixExporter } from './exporters/wireguard-prefix.exporter';
+import { WireGuardToIPObjGroupExporter } from './exporters/wireguard-to-ipobj-group.exporter';
+import { WireGuardExporter } from './exporters/wireguard.exporter';
+import { PolicyRuleToWireguardPrefixExporter } from './exporters/policy-rule-to-wireguard-prefix.exporter';
+import { PolicyRuleToWireguardExporter } from './exporters/policy-rule-to-wireguard.exporter';
 
 const EXPORTERS = [
   new CaExporter(),
@@ -88,11 +98,17 @@ const EXPORTERS = [
   new OpenVPNPrefixExporter(),
   new OpenVPNExporter(),
   new OpenVPNPrefixToIPObjGroupExporter(),
+  new WireGuardOptionExporter(),
+  new WireGuardPrefixExporter(),
+  new WireGuardExporter(),
+  new WireGuardPrefixToIPObjGroupExporter(),
   new PolicyGroupExporter(),
   new PolicyRuleToInterfaceExporter(),
   new PolicyRuleToIPObjExporter(),
   new PolicyRuleToOpenVPNPrefixExporter(),
   new PolicyRuleToOpenVPNExporter(),
+  new PolicyRuleToWireguardPrefixExporter(),
+  new PolicyRuleToWireguardExporter(),
   new PolicyRuleExporter(),
   new RoutingTableExporter(),
   new RoutingGroupExporter(),
@@ -101,12 +117,16 @@ const EXPORTERS = [
   new RoutingRuleToIPObjGroupExporter(),
   new RoutingRuleToOpenVPNExporter(),
   new RoutingRuleToOpenVPNPrefixExporter(),
+  new RoutingRuleToWireGuardExporter(),
+  new RoutingRuleToWireGuardPrefixExporter(),
   new RoutingRuleToMarkExporter(),
   new RouteExporter(),
   new RouteToIPObjExporter(),
   new RouteToIPObjGroupExporter(),
   new RouteToOpenVPNExporter(),
   new RouteToOpenVPNPrefixExporter(),
+  new RouteToWireGuardExporter(),
+  new RouteToWireGuardPrefixExporter(),
   new RouteGroupExporter(),
   new HAProxyRuleExporter(),
   new HAProxyRuleToIPObjExporter(),
@@ -115,6 +135,7 @@ const EXPORTERS = [
   new DHCPRuleToIPObjExporter(),
   new DHCPGroupExporter(),
   new OpenVPNToIPObjGroupExporter(),
+  new WireGuardToIPObjGroupExporter(),
   new FwcTreeExporter(),
 ];
 
