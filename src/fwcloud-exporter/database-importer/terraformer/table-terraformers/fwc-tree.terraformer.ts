@@ -36,6 +36,8 @@ import { CaPrefix } from '../../../../models/vpn/pki/CaPrefix';
 import { OpenVPNPrefix } from '../../../../models/vpn/openvpn/OpenVPNPrefix';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { RoutingTable } from '../../../../models/routing/routing-table/routing-table.model';
+import { WireGuard } from '../../../../models/vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../../../models/vpn/wireguard/WireGuardPrefix';
 
 export class FwcTreeTerraformer extends TableTerraformer {
   protected _typeToTableNameMapping: { [type: string]: typeof Model } = {
@@ -63,15 +65,22 @@ export class FwcTreeTerraformer extends TableTerraformer {
     NT: null,
     NTD: Firewall,
     NTS: Firewall,
-    OCL: OpenVPN,
     OIA: IPObj,
     OIG: IPObjGroup,
     OIH: IPObj,
     OIN: IPObj,
     OIR: IPObj,
     ONS: IPObj,
+
+    VPN: Firewall,
     OPN: Firewall,
     OSR: OpenVPN,
+    OCL: OpenVPN,
+    WG: Firewall,
+    WGS: WireGuard,
+    WGC: WireGuard,
+    //TODO: FALTA IPSEC
+
     PF: Firewall,
     PF6: Firewall,
     PI: Firewall,
@@ -80,6 +89,7 @@ export class FwcTreeTerraformer extends TableTerraformer {
     PO6: Firewall,
     PRE: CaPrefix,
     PRO: OpenVPNPrefix,
+    PRW: WireGuardPrefix,
     SOC: null,
     SOG: IPObjGroup,
     SOI: IPObj,
