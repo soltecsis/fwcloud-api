@@ -73,7 +73,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     this.ws_url = this.url.replace('http://', 'ws://').replace('https://', 'wss://');
     this.cancel_token = axios.CancelToken.source();
     this.config = {
-      //TODO: AÑADIR WIREGUARD / IPSEC aqui?
       timeout: app().config.get('openvpn.agent.timeout'),
       headers: {
         'X-API-Key': this.connectionData.apikey,
@@ -232,28 +231,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
-    }
-  }
-
-  async installWireGuardClientConfigs(
-    dir: string,
-    configs: { name: string; content: string }[],
-    eventEmitter: EventEmitter = new EventEmitter(),
-  ): Promise<void> {
-    try {
-      const pathUrl: string = this.url + '/api/v1/wireguard/files/upload';
-      const form = new FormData();
-
-      const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
-        form,
-        dir,
-        configs,
-        eventEmitter,
-      );
-
-      await axios.post(pathUrl, form, requestConfig);
-    } catch (error) {
+      console.log('Error: ', error.message);
       this.handleRequestException(error, eventEmitter);
     }
   }

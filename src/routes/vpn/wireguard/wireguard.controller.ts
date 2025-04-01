@@ -166,8 +166,7 @@ export class WireGuardController extends Controller {
       });
 
       channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
-
-      await communication.installOpenVPNServerConfigs(
+      await communication.installWireGuardServerConfigs(
         installDir,
         [
           {

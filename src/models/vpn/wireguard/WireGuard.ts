@@ -357,7 +357,7 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         const data = wireguard_result[0];
-
+        //IS CLIENT
         if (data.wireguard !== null) {
           sql = `select * from ${tableName} where id=${data.wireguard}`;
           dbCon.query(sql, async (error, result) => {
