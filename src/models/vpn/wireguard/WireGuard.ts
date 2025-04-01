@@ -536,7 +536,9 @@ export class WireGuard extends Model {
                 inner join firewall FW on FW.id=VPN.firewall
                 inner join wireguard_opt OPT on OPT.wireguard=${wireGuard}
                 inner join ipobj O on O.id=OPT.ipobj
-                where FW.fwcloud=${fwcloud} and VPN.id=${wireGuard} ${type === 1 ? `and OPT.name='ifconfig-push'` : ``}`;
+                where FW.fwcloud=${fwcloud} and VPN.id=${wireGuard}`;
+      // TODO: Revisar si es necesario filtrar por el tipo de certificado
+      /*${type === 1 ? `and OPT.name='ifconfig-push'` : ``}`;*/
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         for (let i = 0; i < result.length; i++) {
