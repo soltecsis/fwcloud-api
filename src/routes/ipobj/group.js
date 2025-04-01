@@ -45,6 +45,8 @@ import { logger } from '../../fonaments/abstract-application';
 import { Route } from '../../models/routing/route/route.model';
 import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 import db from '../../database/database-manager';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -191,6 +193,21 @@ router.put('/addto', async(req, res) => {
 			dataIpobj = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;
+		} else if (req.body.node_type === 'WGC') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			await WireGuard.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await WireGuard.getWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			dataIpobj[0].name = dataIpobj[0].cn;
+			dataIpobj[0].type = 321;
+		} else if(req.body.node_type === 'PRW') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			await WireGuard.addPrefixToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await WireGuard.getPrefixWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			dataIpobj[0].type = 402;
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 			
@@ -251,6 +268,10 @@ router.put('/delfrom', async(req, res) => {
 			await OpenVPN.removeFromGroup(req);
 		else if (req.body.obj_type === 401) // OpenVPN PREFIX
 			await OpenVPNPrefix.removePrefixFromGroup(req);
+		else if (req.body.obj_type === 321) // WireGuard CLI
+			await WireGuard.removeFromGroup(req);
+		else if (req.body.obj_type === 402) // WireGuard PREFIX
+			await WireGuardPrefix.removePrefixFromGroup(req);
 		else
 			await IPObjToIPObjGroup.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 

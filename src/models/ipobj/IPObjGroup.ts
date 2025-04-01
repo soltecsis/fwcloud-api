@@ -221,6 +221,7 @@ export class IPObjGroup extends Model {
             return resolve(ipVersions);
           }
 
+          // Check OpenVPN and WireGuard configurations
           dbCon.query(
             `select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`,
             (error, result) => {
@@ -243,8 +244,34 @@ export class IPObjGroup extends Model {
                       ipv6: false,
                     });
 
-                  // If we arrive here, then the group is empty.
-                  resolve(ipVersions);
+                  dbCon.query(
+                    `select count(*) as n from wireguard__ipobj_g where ipobj_g=${group}`,
+                    (error, result) => {
+                      if (error) return reject(error);
+                      // If there is a WireGuard configuration in the group, then this is an IPv4 group.
+                      if (result[0].n > 0)
+                        return resolve({
+                          ipv4: true,
+                          ipv6: false,
+                        });
+
+                      dbCon.query(
+                        `select count(*) as n from wireguard_prefix__ipobj_g where ipobj_g=${group}`,
+                        (error, result) => {
+                          if (error) return reject(error);
+                          // If there is a WireGuard prefix in the group, then this is an IPv4 group.
+                          if (result[0].n > 0)
+                            return resolve({
+                              ipv4: true,
+                              ipv6: false,
+                            });
+
+                          // If we arrive here, then the group is empty.
+                          resolve(ipVersions);
+                        },
+                      );
+                    },
+                  );
                 },
               );
             },
