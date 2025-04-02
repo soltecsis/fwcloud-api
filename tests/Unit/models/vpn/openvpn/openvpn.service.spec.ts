@@ -20,20 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FSHelper } from './../../../../src/utils/fs-helper';
-import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { FSHelper } from './../../../../../src/utils/fs-helper';
+import { describeName, testSuite, expect } from '../../../../mocha/global-setup';
 import {
   OpenVPNService,
   OpenVPNUpdateableConfig,
-} from '../../../../src/models/vpn/openvpn/openvpn.service';
+} from '../../../../../src/models/vpn/openvpn/openvpn.service';
 import * as fs from 'fs';
-import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import path from 'path';
 import {
   CreateOpenVPNStatusHistoryData,
   OpenVPNStatusHistoryService,
-} from '../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
-import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+} from '../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
+import { AbstractApplication } from '../../../../../src/fonaments/abstract-application';
 import sinon from 'sinon';
 
 describe(describeName('OpenVPN Service Unit Tests'), () => {
