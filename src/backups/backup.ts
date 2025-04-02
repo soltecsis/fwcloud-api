@@ -539,14 +539,26 @@ export class Backup implements Responsable {
     process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0, 128);
 
     const dir = cmd === 'mysqldump' ? '>' : '<';
+    // Base command parts
+    let command = cmd;
+    // Add --column-statistics=0 only for mysqldump
+    if (cmd === 'mysqldump') {
+      command += ' --column-statistics=0';
+    }
     // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
-    if (app().config.get('db.mysqldump.protocol') === 'tcp') cmd += ' --protocol=TCP';
+    if (app().config.get('db.mysqldump.protocol') === 'tcp') {
+      command += ' --protocol=TCP';
+    }
     // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
     // they will use by default the socket file.
     // That is fine, because using the socket file will improve performance.
-    cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} ${dir} "${dumpFile}"`;
+    command += ` -h "${dbConfig.host}"`;
+    command += ` -P ${dbConfig.port}`;
+    command += ` -u ${dbConfig.user}`;
+    command += ` ${dbConfig.name}`;
+    command += ` ${dir} "${dumpFile}"`;
 
-    return cmd;
+    return command;
   }
 
   /**
