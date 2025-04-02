@@ -275,7 +275,6 @@ export class Tree extends Model {
               }
               // Include data for WireGuard Nodes Server
               if (nodes[i].node_type == 'WGS' || nodes[i].node_type == 'WGC') {
-                console.log('entra wireguard1');
                 nodes[i] = await this.addSearchInfoWireGuard(nodes[i]);
               }
               // Add the current node children array to the map.
@@ -387,7 +386,6 @@ export class Tree extends Model {
   }
 
   private static async addSearchInfoWireGuard(node: WireGuardNode): Promise<WireGuardNode> {
-    console.log('node addsearch wireguard 1', node);
     const qb: SelectQueryBuilder<IPObj> = db
       .getSource()
       .manager.getRepository(IPObj)
