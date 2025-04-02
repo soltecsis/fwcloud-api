@@ -322,14 +322,14 @@ function checkPrefixAccess(req) {
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
-			// Caso especial para ipobj/group/addto que puede devolver múltiples resultados
+			// Special case for `ipobj/group/addto` which can return multiple results
 			if (item[1] === 'ipobj' && item[2] === 'group' && item[3] === 'addto') {
-				// Verificar que al menos hay un resultado y que todos pertenecen al mismo fwcloud
+				// Verify that there is at least one result and that all belong to the same fwcloud
 				if (result.length === 0 || !result.every(row => row.fwcloud === req.body.fwcloud)) {
 					return resolve(false);
 				}
 
-				// Almacenar todos los prefijos encontrados
+				// Store all the prefixes found.
 				req.prefix = result;
 				return resolve(true);
 			} else {
