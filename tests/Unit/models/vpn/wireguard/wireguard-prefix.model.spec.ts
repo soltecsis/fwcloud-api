@@ -6,11 +6,9 @@ import { Route } from '../../../../../src/models/routing/route/route.model';
 import { RoutingRule } from '../../../../../src/models/routing/routing-rule/routing-rule.model';
 import { RouteService } from '../../../../../src/models/routing/route/route.service';
 import { RoutingRuleService } from '../../../../../src/models/routing/routing-rule/routing-rule.service';
-import { expect, testSuite } from '../../../../mocha/global-setup';
-import sinon from 'sinon';
+import { expect } from '../../../../mocha/global-setup';
 import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
-import { Tree } from '../../../../../src/models/tree/Tree';
 
 describe(WireGuardPrefix.name, () => {
   let fwcloudProduct: FwCloudProduct;
