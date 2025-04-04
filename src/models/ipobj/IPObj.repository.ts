@@ -185,7 +185,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('ipobj.optionsListOpenVPN', 'vpnOpt')
       .innerJoin('vpnOpt.openVPN', 'vpn');
 
     if (entity === 'route') {
@@ -213,7 +213,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireguard', 'wg');
 
     if (entity === 'route') {
@@ -242,7 +242,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('ipobj.optionsListOpenVPN', 'vpnOpt')
       .innerJoin('vpnOpt.openVPN', 'vpn')
       .innerJoin('vpn.ipObjGroups', 'ipobjGroup');
 
@@ -271,7 +271,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireguard', 'wg')
       .innerJoin('wg.ipObjGroups', 'ipobjGroup');
 
@@ -300,7 +300,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireguard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')
@@ -332,7 +332,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('ipobj.optionsListOpenVPN', 'vpnOpt')
       .innerJoin('vpnOpt.openVPN', 'vpn')
       .innerJoin('vpn.crt', 'crt')
       .innerJoin('vpn.parent', 'vpnServer')
@@ -363,7 +363,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireguard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')
@@ -396,7 +396,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('ipobj.optionsListOpenVPN', 'vpnOpt')
       .innerJoin('vpnOpt.openVPN', 'vpn')
       .innerJoin('vpn.crt', 'crt')
       .innerJoin('vpn.parent', 'vpnServer')
@@ -428,7 +428,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireguard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')
@@ -460,7 +460,7 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin('ipobj.optionsList', 'wgOpt')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireguard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')

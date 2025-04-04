@@ -47,7 +47,7 @@ export class WireGuardOption extends Model {
   })
   wireGuard: WireGuard;
 
-  @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsList)
+  @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsListWireGuard)
   @JoinColumn({
     name: 'ipobj',
   })

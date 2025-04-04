@@ -57,7 +57,7 @@ export class OpenVPNOption extends Model {
   })
   openVPN: OpenVPN;
 
-  @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsList)
+  @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsListOpenVPN)
   @JoinColumn({
     name: 'ipobj',
   })
