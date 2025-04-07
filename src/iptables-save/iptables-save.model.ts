@@ -43,6 +43,7 @@ import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from 'moment';
 import { PolicyCompilerTools } from '../compiler/policy/PolicyCompilerTools';
 import db from '../database/database-manager';
+import { PolicyRuleToWireGuard } from '../models/policy/PolicyRuleToWireGuard';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -838,8 +839,18 @@ export class IptablesSaveToFWCloud extends Service {
             result[0].id,
             this.req.body.position,
           ))
-        )
+        ) {
           await PolicyRuleToOpenVPN.insertInRule(this.req);
+        } else if (
+          !(await PolicyRuleToWireGuard.checkExistsInPosition(
+            this.req.dbCon,
+            this.ruleId,
+            result[0].id,
+            this.req.body.position,
+          ))
+        ) {
+          await PolicyRuleToWireGuard.insertInRule(this.req);
+        }
       } // Add the addr object to the rule position.
       else await this.addIPObjToRulePosition(dir, addrId);
     }
