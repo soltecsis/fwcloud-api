@@ -2,22 +2,14 @@ import { EntityManager } from 'typeorm';
 import { WireGuardPrefix } from '../../../../../src/models/vpn/wireguard/WireGuardPrefix';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
-import { Route } from '../../../../../src/models/routing/route/route.model';
-import { RoutingRule } from '../../../../../src/models/routing/routing-rule/routing-rule.model';
-import { RouteService } from '../../../../../src/models/routing/route/route.service';
-import { RoutingRuleService } from '../../../../../src/models/routing/routing-rule/routing-rule.service';
 import { expect } from '../../../../mocha/global-setup';
 import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 
 describe(WireGuardPrefix.name, () => {
   let fwcloudProduct: FwCloudProduct;
-  let route: Route;
-  let routingRule: RoutingRule;
   let prefix: WireGuardPrefix;
 
-  let routeService: RouteService;
-  let routingRuleService: RoutingRuleService;
   let manager: EntityManager;
 
   beforeEach(async () => {
