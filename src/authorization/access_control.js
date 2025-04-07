@@ -284,41 +284,65 @@ function checkPrefixAccess(req) {
 	return new Promise((resolve, reject) => {
 		let sql;
 		const item = req.url.split('/');
-    if (item[1]==='vpn' && item[2]==='pki' && item[3]==='prefix') {
+
+		if (item[1] === 'vpn' && item[2] === 'pki' && item[3] === 'prefix') {
 			sql = `select CA.fwcloud,P.* FROM ca_prefix P
-				INNER JOIN ca CA ON CA.id=P.ca
-				WHERE P.id=${req.body.prefix}`;
+                INNER JOIN ca CA ON CA.id=P.ca
+                WHERE P.id=${req.body.prefix}`;
 		}
-		else if ((item[1]==='vpn' && item[2]==='openvpn' && item[3]==='prefix') || (item[1]==='policy' && item[2]==='prefix')
-			|| (item[1]==='ipobj' && item[2]==='group' && item[3]==='addto')) {
+		else if ((item[1] === 'vpn' && item[2] === 'openvpn' && item[3] === 'prefix') || (item[1] === 'policy' && item[2] === 'prefix')) {
 			sql = `select FW.fwcloud,P.* FROM openvpn_prefix P
-				INNER JOIN openvpn VPN ON VPN.id=P.openvpn
-				INNER JOIN firewall FW ON FW.id=VPN.firewall
-				WHERE P.id=${req.body.prefix}`;
+                INNER JOIN openvpn VPN ON VPN.id=P.openvpn
+                INNER JOIN firewall FW ON FW.id=VPN.firewall
+                WHERE P.id=${req.body.prefix}`;
 		}
-		else if (item[1]==='vpn' && item[2]==='wireguard' && item[3]==='prefix') {
+		else if (item[1] === 'vpn' && item[2] === 'wireguard' && item[3] === 'prefix') {
 			sql = `select FW.fwcloud,P.* FROM wireguard_prefix P
-				INNER JOIN wireguard W ON W.id=P.wireguard
-				INNER JOIN firewall FW ON FW.id=W.firewall
-				WHERE P.id=${req.body.prefix}`;
+                INNER JOIN wireguard W ON W.id=P.wireguard
+                INNER JOIN firewall FW ON FW.id=W.firewall
+                WHERE P.id=${req.body.prefix}`;
 		}
-		else resolve(false);
+		else if (item[1] === 'ipobj' && item[2] === 'group' && item[3] === 'addto') {
+			sql = `SELECT FW.fwcloud, P.*, 'openvpn' as prefix_type FROM openvpn_prefix P
+                INNER JOIN openvpn VPN ON VPN.id = P.openvpn
+                INNER JOIN firewall FW ON FW.id = VPN.firewall
+                WHERE P.id = ${req.body.prefix}
+
+                UNION ALL
+
+                SELECT FW.fwcloud, WP.*, 'wireguard' as prefix_type FROM wireguard_prefix WP
+                INNER JOIN wireguard W ON W.id = WP.wireguard
+                INNER JOIN firewall FW ON FW.id = W.firewall
+                WHERE WP.id = ${req.body.prefix}`;
+		}
+		else {
+			return resolve(false);
+		}
 
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
-			// Check that fwcloud of the CA of the CRT prefix row is the same fwcloud indicated in the req.body.fwcloud.
-			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			// Special case for `ipobj/group/addto` which can return multiple results
+			if (item[1] === 'ipobj' && item[2] === 'group' && item[3] === 'addto') {
+				// Verify that there is at least one result and that all belong to the same fwcloud
+				if (result.length === 0 || !result.every(row => row.fwcloud === req.body.fwcloud)) {
+					return resolve(false);
+				}
 
-			// Store the prefix info for use in the API call processing.
-			req.prefix = result[0];
+				// Store all the prefixes found.
+				req.prefix = result;
+				return resolve(true);
+			} else {
+				if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) {
+					return resolve(false);
+				}
 
-			resolve(true);
+				req.prefix = result[0];
+				return resolve(true);
+			}
 		});
 	});
 };
-
 
 // Check access to the tree node.
 function checkTreeNodeAccess(req) {
