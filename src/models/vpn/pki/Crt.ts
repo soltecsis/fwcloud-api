@@ -168,4 +168,20 @@ export class Crt extends Model {
       });
     });
   }
+
+  public static searchCRTInWireguard(dbCon, fwcloud, crt) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id FROM wireguard VPN
+        INNER JOIN crt CRT ON CRT.id=VPN.crt
+        INNER JOIN ca CA ON CA.id=CRT.ca
+        WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
+      dbCon.query(sql, async (error, result) => {
+        if (error) return reject(error);
+
+        if (result.length > 0)
+          resolve({ result: true, restrictions: { crtUsedInWireguard: true } });
+        else resolve({ result: false });
+      });
+    });
+  }
 }

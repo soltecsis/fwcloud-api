@@ -213,12 +213,22 @@ restrictedCheck.ca = async(req, res, next) => {
 	} catch (error) { res.status(400).json(error) }
 };
 
-restrictedCheck.crt = async(req, res, next) => {
+restrictedCheck.crt = async (req, res, next) => {
 	try {
-		let data = await Crt.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
-		if (data.result) return res.status(403).json(data);
+		const openvpnData = await Crt.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (openvpnData.result) {
+			return res.status(403).json(openvpnData);
+		}
+
+		const wireguardData = await Crt.searchCRTInWireguard(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (wireguardData.result) {
+			return res.status(403).json(wireguardData);
+		}
+
 		next();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		res.status(400).json(error);
+	}
 };
 
 restrictedCheck.openvpn_prefix = async(req, res, next) => {
