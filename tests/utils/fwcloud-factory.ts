@@ -42,6 +42,11 @@ import { RoutingRule } from '../../src/models/routing/routing-rule/routing-rule.
 import { RoutingRuleService } from '../../src/models/routing/routing-rule/routing-rule.service';
 import { Mark } from '../../src/models/ipobj/Mark';
 import db from '../../src/database/database-manager';
+import { WireGuard } from '../../src/models/vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../src/models/vpn/wireguard/WireGuardPrefix';
+import { WireGuardOption } from '../../src/models/vpn/wireguard/wireguard-option.model';
+
+const utilsModel = require('../../src/utils/utils.js');
 
 export type FwCloudProduct = {
   dhcpGroup: any;
@@ -55,6 +60,9 @@ export type FwCloudProduct = {
   openvpnServer: OpenVPN;
   openvpnClients: Map<string, OpenVPN>;
   openvpnPrefix: OpenVPNPrefix;
+  wireguardServer: WireGuard;
+  wireguardClients: Map<string, WireGuard>;
+  wireguardPrefix: WireGuardPrefix;
   routingTable: RoutingTable;
   routes: Map<string, Route>;
   routingRules: Map<string, RoutingRule>;
@@ -74,6 +82,9 @@ export class FwCloudFactory {
   private _openvpnRepository: Repository<OpenVPN>;
   private _openvpnOptRepository: Repository<OpenVPNOption>;
   private _openvpnPrefixRepository: Repository<OpenVPNPrefix>;
+  private _wireguardRepository: Repository<WireGuard>;
+  private _wireguardOptRepository: Repository<WireGuardOption>;
+  private _wireguardPrefixRepository: Repository<WireGuardPrefix>;
   private _routingTableRepository: Repository<RoutingTable>;
   private _routeRepository: Repository<Route>;
   private _routingRuleRepository: Repository<RoutingRule>;
@@ -98,6 +109,9 @@ export class FwCloudFactory {
     this._openvpnRepository = this._manager.getRepository(OpenVPN);
     this._openvpnOptRepository = this._manager.getRepository(OpenVPNOption);
     this._openvpnPrefixRepository = this._manager.getRepository(OpenVPNPrefix);
+    this._wireguardRepository = this._manager.getRepository(WireGuard);
+    this._wireguardOptRepository = this._manager.getRepository(WireGuardOption);
+    this._wireguardPrefixRepository = this._manager.getRepository(WireGuardPrefix);
     this._routingTableRepository = this._manager.getRepository(RoutingTable);
     this._routeRepository = this._manager.getRepository(Route);
     this._routingRuleRepository = this._manager.getRepository(RoutingRule);
@@ -108,6 +122,7 @@ export class FwCloudFactory {
     this.fwc.interfaces = new Map<string, Interface>();
     this.fwc.crts = new Map<string, Crt>();
     this.fwc.openvpnClients = new Map<string, OpenVPN>();
+    this.fwc.wireguardClients = new Map<string, WireGuard>();
     this.fwc.routes = new Map<string, Route>();
     this.fwc.routingRules = new Map<string, RoutingRule>();
 
@@ -417,6 +432,58 @@ export class FwCloudFactory {
         }),
       ),
     );
+
+    this.fwc.crts.set(
+      'Wireguard-Server',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'Wireguard-Server',
+          days: 1000,
+          type: 2,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'WireGuard-Cli-1',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'WireGuard-Cli-1',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'WireGuard-Cli-2',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'WireGuard-Cli-2',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'WireGuard-Cli-3',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'Other-WireGuard-Client',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
   }
 
   private async makeVPNs(): Promise<void> {
@@ -545,6 +612,69 @@ export class FwCloudFactory {
         id: this.randomId(10, 100000),
         openVPNId: this.fwc.openvpnServer.id,
         name: 'OpenVPN-Cli-',
+        ipObjGroups: [this.fwc.ipobjGroup],
+      }),
+    );
+
+    this.fwc.wireguardServer = await this._wireguardRepository.save(
+      this._wireguardRepository.create({
+        id: vpnNextId++,
+        parentId: null,
+        firewallId: this.fwc.firewall.id,
+        crtId: this.fwc.crts.get('Wireguard-Server').id,
+        public_key: await utilsModel.encrypt('public-key'),
+        private_key: await utilsModel.encrypt('private-key'),
+      }),
+    );
+
+    this.fwc.wireguardClients.set(
+      'WireGuard-Cli-1',
+      await this._wireguardRepository.save(
+        this._wireguardRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.wireguardServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('WireGuard-Cli-1').id,
+          public_key: await utilsModel.encrypt('public-key'),
+          private_key: await utilsModel.encrypt('private-key'),
+        }),
+      ),
+    );
+
+    this.fwc.wireguardClients.set(
+      'WireGuard-Cli-2',
+      await this._wireguardRepository.save(
+        this._wireguardRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.wireguardServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('WireGuard-Cli-2').id,
+          public_key: await utilsModel.encrypt('public-key'),
+          private_key: await utilsModel.encrypt('private-key'),
+        }),
+      ),
+    );
+
+    this.fwc.wireguardClients.set(
+      'WireGuard-Cli-3',
+      await this._wireguardRepository.save(
+        this._wireguardRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.wireguardServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('WireGuard-Cli-3').id,
+          public_key: await utilsModel.encrypt('public-key'),
+          private_key: await utilsModel.encrypt('private-key'),
+          ipObjGroups: [this.fwc.ipobjGroup],
+        }),
+      ),
+    );
+
+    this.fwc.wireguardPrefix = await this._wireguardPrefixRepository.save(
+      this._wireguardPrefixRepository.create({
+        id: this.randomId(10, 100000),
+        wireGuardId: this.fwc.wireguardServer.id,
+        name: 'WireGuard-Cli-',
         ipObjGroups: [this.fwc.ipobjGroup],
       }),
     );
