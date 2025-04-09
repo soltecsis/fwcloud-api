@@ -145,7 +145,9 @@ export class IPObjGroup extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
             union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
-            union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
+            union select wireguard as id from wireguard__ipobj_g where ipobj_g=${group}
+            union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}
+            union select prefix as id from wireguard_prefix__ipobj_g where ipobj_g=${group}`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
@@ -221,6 +223,7 @@ export class IPObjGroup extends Model {
             return resolve(ipVersions);
           }
 
+          // Check OpenVPN and WireGuard configurations
           dbCon.query(
             `select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`,
             (error, result) => {
@@ -243,8 +246,34 @@ export class IPObjGroup extends Model {
                       ipv6: false,
                     });
 
-                  // If we arrive here, then the group is empty.
-                  resolve(ipVersions);
+                  dbCon.query(
+                    `select count(*) as n from wireguard__ipobj_g where ipobj_g=${group}`,
+                    (error, result) => {
+                      if (error) return reject(error);
+                      // If there is a WireGuard configuration in the group, then this is an IPv4 group.
+                      if (result[0].n > 0)
+                        return resolve({
+                          ipv4: true,
+                          ipv6: false,
+                        });
+
+                      dbCon.query(
+                        `select count(*) as n from wireguard_prefix__ipobj_g where ipobj_g=${group}`,
+                        (error, result) => {
+                          if (error) return reject(error);
+                          // If there is a WireGuard prefix in the group, then this is an IPv4 group.
+                          if (result[0].n > 0)
+                            return resolve({
+                              ipv4: true,
+                              ipv6: false,
+                            });
+
+                          // If we arrive here, then the group is empty.
+                          resolve(ipVersions);
+                        },
+                      );
+                    },
+                  );
                 },
               );
             },
@@ -274,13 +303,22 @@ export class IPObjGroup extends Model {
                 inner join ipobj__ipobjg R on R.ipobj=O.id
                 where R.ipobj_g=${gid}
                 
-                UNION select O.id, C.cn as name, 'VPN' as type from openvpn O
+                UNION select O.id, C.cn as name, 'OPN' as type from openvpn O
                 inner join openvpn__ipobj_g R on R.openvpn=O.id
                 inner join crt C on C.id=O.crt
                 where R.ipobj_g=${gid}
 
                 UNION select id, name, 'PRO' as type from openvpn_prefix O
                 inner join openvpn_prefix__ipobj_g R on R.prefix=O.id
+                where R.ipobj_g=${gid}
+
+                UNION select W.id, C.cn as name, 'WGC' as type from wireguard W
+                inner join wireguard__ipobj_g R on R.wireguard=W.id
+                inner join crt C on C.id=W.crt
+                where R.ipobj_g=${gid}
+
+                UNION select id, name, 'WGP' as type from wireguard_prefix W
+                inner join wireguard_prefix__ipobj_g R on R.prefix=W.id
                 where R.ipobj_g=${gid}
                 order by name`;
         dbCon.query(sql, async (error, rows) => {
@@ -289,16 +327,27 @@ export class IPObjGroup extends Model {
           let ipobj_node;
           for (const obj of rows) {
             try {
-              if (obj.type === 'O')
+              if (obj.type === 'O') {
                 ipobj_node = new ipobj_Data((await IPObj.getIpobj(dbCon, fwcloud, obj.id))[0]);
-              else if (obj.type === 'OPN')
+              } else if (obj.type === 'OPN') {
                 ipobj_node = new ipobj_Data(
                   (await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, obj.id, 1))[0],
                 );
-              else if (obj.type === 'PRO')
+              } else if (obj.type === 'PRO') {
                 ipobj_node = new ipobj_Data(
                   (await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, fwcloud, obj.id))[0],
                 );
+              } else if (obj.type === 'WGC') {
+                // WireGuard VPN
+                ipobj_node = new ipobj_Data(
+                  (await WireGuard.getWireGuardInfo(dbCon, fwcloud, obj.id, 1))[0],
+                );
+              } else if (obj.type === 'WGP') {
+                // WireGuard Prefix
+                ipobj_node = new ipobj_Data(
+                  (await WireGuardPrefix.getPrefixWireGuardInfo(dbCon, fwcloud, obj.id))[0],
+                );
+              }
               group_data.ipobjs.push(ipobj_node);
             } catch (error) {
               return reject(error);

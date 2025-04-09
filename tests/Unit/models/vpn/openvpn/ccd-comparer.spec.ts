@@ -1,6 +1,6 @@
-import { CCDHash } from '../../../../src/communications/communication';
-import { CCDComparation, CCDComparer } from '../../../../src/models/vpn/openvpn/ccd-comparer';
-import { expect } from '../../../mocha/global-setup';
+import { CCDHash } from '../../../../../src/communications/communication';
+import { CCDComparation, CCDComparer } from '../../../../../src/models/vpn/openvpn/ccd-comparer';
+import { expect } from '../../../../mocha/global-setup';
 
 describe(CCDComparer.name + ' Unit Tests', () => {
   let local: CCDHash[];

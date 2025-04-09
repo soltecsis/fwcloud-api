@@ -45,6 +45,8 @@ import { logger } from '../../fonaments/abstract-application';
 import { Route } from '../../models/routing/route/route.model';
 import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 import db from '../../database/database-manager';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -160,7 +162,7 @@ router.put('/restricted', restrictedCheck.ipobj_group, (req, res) => res.status(
 
 
 /* Create New ipobj__ipobjg */
-router.put('/addto', async(req, res) => {
+router.put('/addto', async (req, res) => {
 	try {
 		// It is not possible to add a network interface to a group of IP objects.
 		if (req.body.node_type === "IFF" || req.body.node_type === "IFH")
@@ -184,22 +186,49 @@ router.put('/addto', async(req, res) => {
 			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			// Don't allow adding an empty OpenVPN server prefix to a group.
-			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
+			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(
+				req.dbCon,
+				req.prefix.find(prefix => prefix.prefix_type === 'openvpn').openvpn,
+				req.prefix.find(prefix => prefix.prefix_type === 'openvpn').name)).length < 1) {
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
 
-			await OpenVPNPrefix.addPrefixToGroup(req.dbCon,req.body.ipobj,req.body.ipobj_g);
+			await OpenVPNPrefix.addPrefixToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
 			dataIpobj = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;
+		} else if (req.body.node_type === 'WGC') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			await WireGuard.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await WireGuard.getWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			dataIpobj[0].name = dataIpobj[0].cn;
+			dataIpobj[0].type = 321;
+		} else if (req.body.node_type === 'PRW') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			// Don't allow adding an empty WireGuard server prefix to a group.
+			if ((await WireGuardPrefix.getWireGuardClientsUnderPrefix(
+				req.dbCon,
+				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').openvpn,
+				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').name)).length < 1) {
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
+
+			await WireGuardPrefix.addPrefixToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await WireGuardPrefix.getPrefixWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			dataIpobj[0].type = 402;
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
-			
+
 			if (dataIpobj.length > 0 && dataIpobj[0].type === 8) {
 				if (dataIpobj[0].interfaces.length === 0 || dataIpobj[0].interfaces.filter(item => item.ipobjs.length > 0).length === 0) {
 					throw fwcError.IPOBJ_EMPTY_CONTAINER;
 				}
 			}
-			
+
 			await IPObjToIPObjGroup.insertIpobj__ipobjg(req);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}
@@ -251,6 +280,10 @@ router.put('/delfrom', async(req, res) => {
 			await OpenVPN.removeFromGroup(req);
 		else if (req.body.obj_type === 401) // OpenVPN PREFIX
 			await OpenVPNPrefix.removePrefixFromGroup(req);
+		else if (req.body.obj_type === 321) // WireGuard CLI
+			await WireGuard.removeFromGroup(req);
+		else if (req.body.obj_type === 402) // WireGuard PREFIX
+			await WireGuardPrefix.removePrefixFromGroup(req);
 		else
 			await IPObjToIPObjGroup.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 
