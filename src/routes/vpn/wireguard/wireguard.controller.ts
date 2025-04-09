@@ -17,12 +17,14 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
+import { WireGuardPolicy } from '../../../policies/wireguard.policy';
 
 const fwcError = require('../../../utils/error_table');
 
 export class WireGuardController extends Controller {
   @Validate(StoreDto)
   async store(req: any): Promise<ResponseBuilder> {
+    (await WireGuardPolicy.checkPermission(req.session.user)).authorize();
     try {
       // Initial validation
       if (
