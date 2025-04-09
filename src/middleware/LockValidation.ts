@@ -17,7 +17,7 @@ export class LockValidation extends Middleware {
       req.url.startsWith('/systemctl') ||
       req.url.startsWith('/profile') ||
       (req.method === 'POST' && req.url.startsWith('/fwclouds/import')) ||
-      (req.method === 'POST' && req.url.startsWith('/fwclouds/export')) ||
+      (req.method === 'POST' && req.url.startsWith('/fwclouds') && req.url.endsWith('/export')) ||
       (req.method === 'PUT' && req.url.endsWith('/get')) ||
       (req.method === 'PUT' && req.url.endsWith('/where')) ||
       (req.method === 'POST' && req.url === '/fwclouds') ||
