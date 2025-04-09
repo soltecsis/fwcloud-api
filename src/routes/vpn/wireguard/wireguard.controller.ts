@@ -17,6 +17,7 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
+import { SystemCtlController } from '../../../controllers/systemctl/systemctl.controller';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -139,23 +140,6 @@ export class WireGuardController extends Controller {
     try {
       const channel = await Channel.fromRequest(req);
 
-      let { install_dir: installDir, install_name: installName } = req.wireguard;
-      let cfgDump = null;
-
-      if (!installDir || !installName) {
-        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
-        if (!wireGuardCfg.wireguard) {
-          throw new Error('Empty install dir or install name');
-        } else {
-          const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
-          installDir = wireGuardParentCfg.install_dir;
-          installName = wireGuardParentCfg.install_name;
-          cfgDump = await WireGuard.dumpCfg(req.dbCon, wireGuardCfg.wireguard);
-        }
-      } else {
-        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.wireguard);
-      }
-
       const firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
@@ -166,16 +150,68 @@ export class WireGuardController extends Controller {
       });
 
       channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
-      await communication.installWireGuardServerConfigs(
-        installDir,
-        [
-          {
-            content: (cfgDump as any).cfg,
-            name: installName,
-          },
-        ],
-        channel,
-      );
+
+      let { install_dir: installDir, install_name: installName } = req.wireguard;
+      let cfgDump = null;
+
+      if (!installDir || !installName) {
+        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
+
+        if (!wireGuardCfg.wireguard) {
+          throw new Error('Empty install dir or install name');
+        }
+
+        const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
+        installDir = wireGuardParentCfg.install_dir;
+        installName = wireGuardParentCfg.install_name;
+        cfgDump = await WireGuard.dumpCfg(req.dbCon, wireGuardCfg.wireguard);
+
+        await installWireGuardConfig(
+          communication,
+          installDir,
+          installName,
+          cfgDump,
+          channel,
+          true,
+        );
+      } else {
+        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.wireguard);
+        await installWireGuardConfig(
+          communication,
+          installDir,
+          installName,
+          cfgDump,
+          channel,
+          false,
+        );
+      }
+
+      async function installWireGuardConfig(
+        communication: any,
+        installDir: string,
+        installName: string,
+        cfgDump: any,
+        channel: any,
+        reload: boolean,
+      ): Promise<void> {
+        await communication.installWireGuardServerConfigs(
+          installDir,
+          [
+            {
+              content: (cfgDump as any).cfg,
+              name: installName,
+            },
+          ],
+          channel,
+        );
+
+        if (reload) {
+          await communication.systemctlManagement(
+            'reload',
+            `wg-quick@${installName.split('.')[0]}`,
+          );
+        }
+      }
 
       // Update the status flag for the Wireguard configuration.
       await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '&~1');
