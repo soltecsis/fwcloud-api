@@ -7,7 +7,7 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 
-describe.only('Tree Model Unit Tests', () => {
+describe('Tree Model Unit Tests', () => {
   let fwCloud: FwCloud;
   let manager: EntityManager;
   let dbCon;
