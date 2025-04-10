@@ -7,9 +7,7 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 
-describe('Tree Model Unit Tests', function () {
-  this.timeout(200000); // Increase timeout to 200 seconds
-
+describe.only('Tree Model Unit Tests', () => {
   let fwCloud: FwCloud;
   let manager: EntityManager;
   let dbCon;
@@ -45,46 +43,46 @@ describe('Tree Model Unit Tests', function () {
         .save(manager.getRepository(Firewall).create(firewallData));
     });
 
-    it('should insert a new firewall node and verify tree dump', async () => {
+    it('should insert a new firewall node and verify tree dump', async function () {
       const nodeId = 1;
 
-      await Tree.createAllTreeCloud(fwCloud);
-      await Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id);
-
-      const treeDump = await Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id);
-
-      const insertedNode = treeDump.children.find((node) => node.id_obj === firewall.id);
-      expect(insertedNode).to.exist;
-      expect(insertedNode.node_type).to.equal('FW');
-      expect(insertedNode.fwcloud).to.equal(fwCloud.id);
+      return Tree.createAllTreeCloud(fwCloud)
+        .then(() => Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id))
+        .then(() => Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id))
+        .then((treeDump) => {
+          const insertedNode = treeDump.children.find((node) => node.id_obj === firewall.id);
+          expect(insertedNode).to.exist;
+          expect(insertedNode.node_type).to.equal('FW');
+          expect(insertedNode.fwcloud).to.equal(fwCloud.id);
+        });
     });
 
-    it('should generate VPN nodes under the firewall node', async () => {
+    it('should generate VPN nodes under the firewall node', async function () {
       const nodeId = 1;
 
-      await Tree.createAllTreeCloud(fwCloud);
-      await Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id);
+      return Tree.createAllTreeCloud(fwCloud)
+        .then(() => Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id))
+        .then(() => Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id))
+        .then((treeDump) => {
+          const firewallNode = treeDump.children.find((node) => node.id_obj === firewall.id);
+          expect(firewallNode).to.exist;
 
-      const treeDump = await Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id);
+          const vpnNode = firewallNode.children.find((node) => node.node_type === 'VPN');
+          expect(vpnNode).to.exist;
+          expect(vpnNode.text).to.equal('VPN');
 
-      const firewallNode = treeDump.children.find((node) => node.id_obj === firewall.id);
-      expect(firewallNode).to.exist;
+          const openVpnNode = vpnNode.children.find((node) => node.node_type === 'OPN');
+          expect(openVpnNode).to.exist;
+          expect(openVpnNode.text).to.equal('OpenVPN');
 
-      const vpnNode = firewallNode.children.find((node) => node.node_type === 'VPN');
-      expect(vpnNode).to.exist;
-      expect(vpnNode.text).to.equal('VPN');
+          const wireGuardNode = vpnNode.children.find((node) => node.node_type === 'WG');
+          expect(wireGuardNode).to.exist;
+          expect(wireGuardNode.text).to.equal('WireGuard');
 
-      const openVpnNode = vpnNode.children.find((node) => node.node_type === 'OPN');
-      expect(openVpnNode).to.exist;
-      expect(openVpnNode.text).to.equal('OpenVPN');
-
-      const wireGuardNode = vpnNode.children.find((node) => node.node_type === 'WG');
-      expect(wireGuardNode).to.exist;
-      expect(wireGuardNode.text).to.equal('WireGuard');
-
-      const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
-      expect(ipSecNode).to.exist;
-      expect(ipSecNode.text).to.equal('IPSec');
+          const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
+          expect(ipSecNode).to.exist;
+          expect(ipSecNode.text).to.equal('IPSec');
+        });
     });
   });
 
