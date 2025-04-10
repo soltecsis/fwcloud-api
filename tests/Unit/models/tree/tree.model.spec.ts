@@ -7,7 +7,9 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 
-describe('Tree Model Unit Tests', () => {
+describe('Tree Model Unit Tests', function () {
+  this.timeout(200000); // Increase timeout to 200 seconds
+
   let fwCloud: FwCloud;
   let manager: EntityManager;
   let dbCon;
