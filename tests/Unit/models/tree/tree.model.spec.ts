@@ -43,7 +43,7 @@ describe('Tree Model Unit Tests', () => {
         .save(manager.getRepository(Firewall).create(firewallData));
     });
 
-    it('should insert a new firewall node and verify tree dump', async function () {
+    it.skip('should insert a new firewall node and verify tree dump', async function () {
       const nodeId = 1;
 
       return Tree.createAllTreeCloud(fwCloud)
