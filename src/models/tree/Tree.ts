@@ -385,7 +385,6 @@ export class Tree extends Model {
     return node;
   }
 
-
   private static async addSearchInfoWireGuard(node: WireGuardNode): Promise<WireGuardNode> {
     const qb: SelectQueryBuilder<IPObj> = db
       .getSource()
