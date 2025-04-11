@@ -43,6 +43,7 @@ import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
 import { IpUtils } from '../../utils/ip-utils';
+import { WireGuardOption } from '../vpn/wireguard/wireguard-option.model';
 
 const asyncMod = require('async');
 const host_Data = require('../../models/data/data_ipobj_host');
@@ -152,7 +153,10 @@ export class IPObj extends Model {
   interface: Interface;
 
   @OneToMany((type) => OpenVPNOption, (options) => options.ipObj)
-  optionsList: Array<OpenVPNOption>;
+  optionsListOpenVPN: Array<OpenVPNOption>;
+
+  @OneToMany((type) => WireGuardOption, (options) => options.ipObj)
+  optionsListWireGuard: Array<OpenVPNOption>;
 
   @OneToMany((type) => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObj)
   ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
@@ -1544,6 +1548,31 @@ export class IPObj extends Model {
     });
   }
 
+  //check if interface ipobj exists in and WireGuard configuration
+  public static searchIpobjInterfaceInWireguard(_interface, fwcloud, diff_firewall) {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `SELECT VPN.*, CRT.cn,
+				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM wireguard AS VPN
+				inner join crt CRT on CRT.id=VPN.crt
+				INNER JOIN wireguard_opt OPT on OPT.wireguard=VPN.id
+				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+				INNER JOIN firewall F on F.id=VPN.firewall
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE OBJ.interface=${_interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
+				${diff_firewall ? `AND F.id<>${diff_firewall}` : ''}`;
+
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows);
+        });
+      });
+    });
+  }
   //check if interface ipobj exists in and OpenVPN configuration
   public static searchAddrHostInOpenvpn(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {

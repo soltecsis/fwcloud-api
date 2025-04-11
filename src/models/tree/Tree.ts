@@ -28,6 +28,7 @@ import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
+import { WireGuardOption } from '../vpn/wireguard/wireguard-option.model';
 const fwcError = require('../../utils/error_table');
 const asyncMod = require('async');
 const _Tree = require('easy-tree');
@@ -47,6 +48,9 @@ export type TreeNode = {
 };
 
 export type OpenVPNNode = TreeNode & {
+  address: string;
+};
+export type WireGuardNode = TreeNode & {
   address: string;
 };
 
@@ -272,7 +276,8 @@ export class Tree extends Model {
               // Include data for WireGuard Nodes Server
               if (nodes[i].node_type == 'WGS' || nodes[i].node_type == 'WGC') {
                 nodes[i] = await this.addSearchInfoWireGuard(nodes[i]);
-              } // Add the current node children array to the map.
+              }
+              // Add the current node children array to the map.
               nodes[i].children = [];
               childrenArrayMap.set(nodes[i].id, nodes[i].children);
 
@@ -380,14 +385,15 @@ export class Tree extends Model {
     return node;
   }
 
-  private static async addSearchInfoWireGuard(node: OpenVPNNode): Promise<OpenVPNNode> {
+
+  private static async addSearchInfoWireGuard(node: WireGuardNode): Promise<WireGuardNode> {
     const qb: SelectQueryBuilder<IPObj> = db
       .getSource()
       .manager.getRepository(IPObj)
       .createQueryBuilder('ipobj')
       .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
       .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
-      .andWhere('option.openVPNId = :id', { id: node.id_obj });
+      .andWhere('option.wireGuardId = :id', { id: node.id_obj });
 
     if (node.node_type !== 'WGS') {
       qb.andWhere('option.name = :name', { name: 'address' });

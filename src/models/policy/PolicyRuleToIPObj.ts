@@ -344,8 +344,10 @@ export class PolicyRuleToIPObj extends Model {
   public static isGroupEmpty = (dbCon, group) => {
     return new Promise((resolve, reject) => {
       const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
-			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
-			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
+            union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
+            union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}
+            union select wireguard as id from wireguard__ipobj_g where ipobj_g=${group}
+            union select prefix as id from wireguard_prefix__ipobj_g where ipobj_g=${group}`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 

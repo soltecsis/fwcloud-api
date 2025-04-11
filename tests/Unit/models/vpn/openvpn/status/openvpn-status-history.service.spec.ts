@@ -1,14 +1,14 @@
 import { EntityManager } from 'typeorm';
-import { OpenVPNStatusHistory } from '../../../../../src/models/vpn/openvpn/status/openvpn-status-history';
+import { OpenVPNStatusHistory } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-history';
 import {
   CreateOpenVPNStatusHistoryData,
   FindResponse,
   GraphDataResponse,
   OpenVPNStatusHistoryService,
-} from '../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
-import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
-import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
-import db from '../../../../../src/database/database-manager';
+} from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
+import { describeName, expect, testSuite } from '../../../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../../../utils/fwcloud-factory';
+import db from '../../../../../../src/database/database-manager';
 
 describe(describeName(OpenVPNStatusHistoryService.name + ' Unit Tests'), () => {
   let fwcProduct: FwCloudProduct;
