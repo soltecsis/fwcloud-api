@@ -268,6 +268,10 @@ export class Tree extends Model {
               // Include data for OpenVpn Nodes Server
               if (nodes[i].node_type == 'OSR' || nodes[i].node_type == 'OCL') {
                 nodes[i] = await this.addSearchInfoOpenVPN(nodes[i]);
+              }
+              // Include data for WireGuard Nodes Server
+              if (nodes[i].node_type == 'WGS' || nodes[i].node_type == 'WGC') {
+                nodes[i] = await this.addSearchInfoWireGuard(nodes[i]);
               } // Add the current node children array to the map.
               nodes[i].children = [];
               childrenArrayMap.set(nodes[i].id, nodes[i].children);
@@ -367,6 +371,26 @@ export class Tree extends Model {
 
     if (node.node_type !== 'OSR') {
       qb.andWhere('option.name = :name', { name: 'ifconfig-push' });
+    }
+
+    const result: IPObj = await qb.getOne();
+
+    node.address = result.address ?? '';
+
+    return node;
+  }
+
+  private static async addSearchInfoWireGuard(node: OpenVPNNode): Promise<OpenVPNNode> {
+    const qb: SelectQueryBuilder<IPObj> = db
+      .getSource()
+      .manager.getRepository(IPObj)
+      .createQueryBuilder('ipobj')
+      .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
+      .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
+      .andWhere('option.openVPNId = :id', { id: node.id_obj });
+
+    if (node.node_type !== 'WGS') {
+      qb.andWhere('option.name = :name', { name: 'address' });
     }
 
     const result: IPObj = await qb.getOne();

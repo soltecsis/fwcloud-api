@@ -8,7 +8,6 @@ import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 
 describe('Tree Model Unit Tests', function () {
-  this.timeout(300000);
   let fwCloud: FwCloud;
   let manager: EntityManager;
   let dbCon;
@@ -44,7 +43,7 @@ describe('Tree Model Unit Tests', function () {
         .save(manager.getRepository(Firewall).create(firewallData));
     });
 
-    it('should insert a new firewall node and verify tree dump', async (done) => {
+    it('should insert a new firewall node and verify tree dump', async () => {
       const nodeId = 1;
 
       await Tree.createAllTreeCloud(fwCloud);
@@ -56,10 +55,9 @@ describe('Tree Model Unit Tests', function () {
       expect(insertedNode).to.exist;
       expect(insertedNode.node_type).to.equal('FW');
       expect(insertedNode.fwcloud).to.equal(fwCloud.id);
-      done();
     });
 
-    it('should generate VPN nodes under the firewall node', async (done) => {
+    it('should generate VPN nodes under the firewall node', async () => {
       const nodeId = 1;
 
       await Tree.createAllTreeCloud(fwCloud);
@@ -85,7 +83,6 @@ describe('Tree Model Unit Tests', function () {
       const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
       expect(ipSecNode).to.exist;
       expect(ipSecNode.text).to.equal('IPSec');
-      done();
     });
   });
 
@@ -130,7 +127,7 @@ describe('Tree Model Unit Tests', function () {
       await Tree.createAllTreeCloud(fwCloud);
     });
 
-    it('should insert a new cluster firewall node and verify tree dump', async (done) => {
+    it('should insert a new cluster firewall node and verify tree dump', async () => {
       await Tree.insertFwc_Tree_New_cluster(fwCloud.id, nodeId, clusterId);
 
       const treeDump = await Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id);
@@ -139,10 +136,9 @@ describe('Tree Model Unit Tests', function () {
       expect(insertedNode).to.exist;
       expect(insertedNode.node_type).to.equal('CL');
       expect(insertedNode.fwcloud).to.equal(fwCloud.id);
-      done();
     });
 
-    it('should generate VPN nodes under the cluster firewall node', async (done) => {
+    it('should generate VPN nodes under the cluster firewall node', async () => {
       await Tree.insertFwc_Tree_New_cluster(fwCloud.id, 1, clusterId);
 
       const treeDump = await Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id);
@@ -165,7 +161,6 @@ describe('Tree Model Unit Tests', function () {
       const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
       expect(ipSecNode).to.exist;
       expect(ipSecNode.text).to.equal('IPSec');
-      done();
     });
   });
 });
