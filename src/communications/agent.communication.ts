@@ -231,7 +231,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
-      console.log('Error: ', error.message);
       this.handleRequestException(error, eventEmitter);
     }
   }
