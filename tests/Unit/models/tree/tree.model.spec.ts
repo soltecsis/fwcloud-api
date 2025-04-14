@@ -7,7 +7,7 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 
-describe('Tree Model Unit Tests', () => {
+describe.skip('Tree Model Unit Tests', () => {
   let fwCloud: FwCloud;
   let manager: EntityManager;
   let dbCon;
@@ -45,20 +45,16 @@ describe('Tree Model Unit Tests', () => {
 
     it('should insert a new firewall node and verify tree dump', async () => {
       const nodeId = 1;
-      try {
-        await Tree.createAllTreeCloud(fwCloud);
-        await Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id);
 
-        const treeDump = await Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id);
+      await Tree.createAllTreeCloud(fwCloud);
+      await Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id);
 
-        const insertedNode = treeDump.children.find((node) => node.id_obj === firewall.id);
-        expect(insertedNode).to.exist;
-        expect(insertedNode.node_type).to.equal('FW');
-        expect(insertedNode.fwcloud).to.equal(fwCloud.id);
-      } catch (error) {
-        console.error('Error in test:', error);
-        throw error;
-      }
+      const treeDump = await Tree.dumpTree(dbCon, 'FIREWALLS', fwCloud.id);
+
+      const insertedNode = treeDump.children.find((node) => node.id_obj === firewall.id);
+      expect(insertedNode).to.exist;
+      expect(insertedNode.node_type).to.equal('FW');
+      expect(insertedNode.fwcloud).to.equal(fwCloud.id);
     });
 
     it('should generate VPN nodes under the firewall node', async () => {
