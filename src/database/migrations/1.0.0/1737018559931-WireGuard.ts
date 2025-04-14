@@ -22,6 +22,11 @@
 
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
+const OPENVPN_CLI_TYPE = 311;
+const OPENVPN_PREFIX_TYPE = 401;
+const WIREGUARD_CLI_TYPE = 321;
+const WIREGUARD_PREFIX_TYPE = 402;
+
 export class WireGuard1737018559931 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
@@ -643,20 +648,20 @@ export class WireGuard1737018559931 implements MigrationInterface {
     );
 
     const clientPositions = await queryRunner.query(
-      `SELECT position FROM ipobj_type__policy_position WHERE type=311`,
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_CLI_TYPE}`,
     );
     const prefixPositions = await queryRunner.query(
-      `SELECT position FROM ipobj_type__policy_position WHERE type=401`,
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_PREFIX_TYPE}`,
     );
     for (let index = 0; index < clientPositions.length; index++) {
       await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [
-        321,
+        WIREGUARD_CLI_TYPE,
         clientPositions[index].position,
       ]);
     }
     for (let index = 0; index < prefixPositions.length; index++) {
       await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [
-        402,
+        WIREGUARD_PREFIX_TYPE,
         prefixPositions[index].position,
       ]);
     }
@@ -664,23 +669,30 @@ export class WireGuard1737018559931 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<any> {
     const clientPositions = await queryRunner.query(
-      `SELECT position FROM ipobj_type__policy_position WHERE type=311`,
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_CLI_TYPE}`,
     );
     const prefixPositions = await queryRunner.query(
-      `SELECT position FROM ipobj_type__policy_position WHERE type=401`,
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_PREFIX_TYPE}`,
     );
     for (let index = 0; index < clientPositions.length; index++) {
       await queryRunner.query(
         `DELETE FROM ipobj_type__policy_position WHERE type=? AND position=?`,
-        [321, clientPositions[index].position],
+        [WIREGUARD_CLI_TYPE, clientPositions[index].position],
       );
     }
     for (let index = 0; index < prefixPositions.length; index++) {
       await queryRunner.query(
         `DELETE FROM ipobj_type__policy_position WHERE type=? AND position=?`,
-        [402, prefixPositions[index].position],
+        [WIREGUARD_PREFIX_TYPE, prefixPositions[index].position],
       );
     }
+
+    // Remove the WireGuard clients nodes
+    await queryRunner.query('DELETE FROM fwc_tree WHERE node_type="WGC"');
+    // Remove the WireGuard prefixes nodes
+    await queryRunner.query('DELETE FROM fwc_tree WHERE node_type="PRW"');
+    // Remove the WireGuard server nodes
+    await queryRunner.query('DELETE FROM fwc_tree WHERE node_type="WGS"');
 
     await queryRunner.dropTable('routing_r__wireguard_prefix', true);
     await queryRunner.dropTable('routing_r__wireguard', true);
