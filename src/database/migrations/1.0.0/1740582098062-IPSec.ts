@@ -22,6 +22,11 @@
 
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
+const OPENVPN_CLI_TYPE = 311;
+const OPENVPN_PREFIX_TYPE = 401;
+const IPSEC_CLI_TYPE = 331;
+const IPSEC_PREFIX_TYPE = 403;
+
 export class IPSec1740582098062 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
@@ -646,9 +651,54 @@ export class IPSec1740582098062 implements MigrationInterface {
         ],
       }),
     );
+
+    const clientPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_CLI_TYPE}`,
+    );
+    const prefixPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_PREFIX_TYPE}`,
+    );
+    for (let index = 0; index < clientPositions.length; index++) {
+      await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [
+        IPSEC_CLI_TYPE,
+        clientPositions[index].position,
+      ]);
+    }
+    for (let index = 0; index < prefixPositions.length; index++) {
+      await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [
+        IPSEC_PREFIX_TYPE,
+        prefixPositions[index].position,
+      ]);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
+    const clientPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_CLI_TYPE}`,
+    );
+    const prefixPositions = await queryRunner.query(
+      `SELECT position FROM ipobj_type__policy_position WHERE type=${OPENVPN_PREFIX_TYPE}`,
+    );
+    for (let index = 0; index < clientPositions.length; index++) {
+      await queryRunner.query(
+        `DELETE FROM ipobj_type__policy_position WHERE type=? AND position=?`,
+        [IPSEC_CLI_TYPE, clientPositions[index].position],
+      );
+    }
+    for (let index = 0; index < prefixPositions.length; index++) {
+      await queryRunner.query(
+        `DELETE FROM ipobj_type__policy_position WHERE type=? AND position=?`,
+        [IPSEC_PREFIX_TYPE, prefixPositions[index].position],
+      );
+    }
+
+    // Remove the IPSec clients nodes
+    await queryRunner.query('DELETE FROM fwc_tree WHERE node_type="ISC"');
+    // Remove the IPSec prefixes nodes
+    await queryRunner.query('DELETE FROM fwc_tree WHERE node_type="PRI"');
+    // Remove the IPSec server nodes
+    await queryRunner.query('DELETE FROM fwc_tree WHERE node_type="ISS"');
+
     await queryRunner.dropTable('routing_r__ipsec_prefix', true);
     await queryRunner.dropTable('routing_r__ipsec', true);
     await queryRunner.dropTable('route__ipsec_prefix', true);
