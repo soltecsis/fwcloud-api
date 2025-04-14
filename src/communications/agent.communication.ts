@@ -138,7 +138,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       configs.forEach((config) => {
         eventEmitter.emit(
           'message',
-          new ProgressNoticePayload(
+          new ProgressInfoPayload(
             `Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
           ),
         );
@@ -219,7 +219,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       configs.forEach((config) => {
         eventEmitter.emit(
           'message',
-          new ProgressNoticePayload(
+          new ProgressInfoPayload(
             `Uploading WireGuard configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
           ),
         );
@@ -245,12 +245,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         eventEmitter.emit(
           'message',
           new ProgressInfoPayload(
-            `Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+            `Removing Wireguard configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
           ),
         );
       });
 
-      const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
+      const pathUrl: string = this.url + '/api/v1/wireguard/files/remove';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
       config.data = {
