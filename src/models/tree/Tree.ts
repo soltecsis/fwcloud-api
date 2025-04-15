@@ -234,7 +234,6 @@ export class Tree extends Model {
 
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
-
         resolve(nodes);
       });
     });
@@ -247,8 +246,14 @@ export class Tree extends Model {
                 from fwc_tree where fwcloud=${fwcloud} and id_parent is null and name='${treeType}'`;
 
       dbCon.query(sql, async (error, nodes) => {
-        if (error) return reject(error);
-        if (nodes.length === 0) return reject(new Error('Root node not found'));
+        if (error) {
+          logger().error(`Error querying root node in dumpTree: ${error.message}`);
+          return reject(error);
+        }
+        if (nodes.length === 0) {
+          logger().warn(`Root node not found for treeType: ${treeType}, fwCloud ID: ${fwcloud}`);
+          return reject(new Error('Root node not found'));
+        }
 
         try {
           const rootNode: TreeNode = nodes[0];
@@ -309,6 +314,9 @@ export class Tree extends Model {
 
           resolve(rootNode);
         } catch (error) {
+          logger().error(
+            `Error in dumpTree for treeType: ${treeType}, fwCloud ID: ${fwcloud} - ${error.message}`,
+          );
           reject(error);
         }
       });
@@ -394,6 +402,9 @@ export class Tree extends Model {
       .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
       .andWhere('option.wireGuardId = :id', { id: node.id_obj });
 
+    if (node.node_type !== 'WGS') {
+      qb.andWhere('option.name = :name', { name: 'Address' });
+    }
     const result: IPObj = await qb.getOne();
 
     node.address = result.address ?? '';
@@ -832,7 +843,10 @@ export class Tree extends Model {
         await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
         resolve();
       } catch (error) {
-        return reject(error);
+        logger().error(
+          `Error in createAllTreeCloud for fwCloud ID: ${fwCloud.id} - ${error.message}`,
+        );
+        reject(error);
       }
     });
   }
