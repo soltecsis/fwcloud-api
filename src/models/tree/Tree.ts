@@ -234,7 +234,6 @@ export class Tree extends Model {
 
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
-        console.log('nodesUnderNodes', nodes);
         resolve(nodes);
       });
     });
