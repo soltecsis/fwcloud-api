@@ -234,7 +234,7 @@ export class Tree extends Model {
 
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
-
+        console.log('nodesUnderNodes', nodes);
         resolve(nodes);
       });
     });
@@ -403,6 +403,9 @@ export class Tree extends Model {
       .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
       .andWhere('option.wireGuardId = :id', { id: node.id_obj });
 
+    if (node.node_type !== 'WGS') {
+      qb.andWhere('option.name = :name', { name: 'Address' });
+    }
     const result: IPObj = await qb.getOne();
 
     node.address = result.address ?? '';
