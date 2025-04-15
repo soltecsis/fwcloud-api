@@ -73,7 +73,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     this.ws_url = this.url.replace('http://', 'ws://').replace('https://', 'wss://');
     this.cancel_token = axios.CancelToken.source();
     this.config = {
-      //TODO: AÑADIR WIREGUARD / IPSEC aqui?
       timeout: app().config.get('openvpn.agent.timeout'),
       headers: {
         'X-API-Key': this.connectionData.apikey,
@@ -139,7 +138,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       configs.forEach((config) => {
         eventEmitter.emit(
           'message',
-          new ProgressNoticePayload(
+          new ProgressInfoPayload(
             `Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
           ),
         );
@@ -220,7 +219,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       configs.forEach((config) => {
         eventEmitter.emit(
           'message',
-          new ProgressNoticePayload(
+          new ProgressInfoPayload(
             `Uploading WireGuard configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
           ),
         );
@@ -229,28 +228,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
       requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
-
-      await axios.post(pathUrl, form, requestConfig);
-    } catch (error) {
-      this.handleRequestException(error, eventEmitter);
-    }
-  }
-
-  async installWireGuardClientConfigs(
-    dir: string,
-    configs: { name: string; content: string }[],
-    eventEmitter: EventEmitter = new EventEmitter(),
-  ): Promise<void> {
-    try {
-      const pathUrl: string = this.url + '/api/v1/wireguard/files/upload';
-      const form = new FormData();
-
-      const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
-        form,
-        dir,
-        configs,
-        eventEmitter,
-      );
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -268,12 +245,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         eventEmitter.emit(
           'message',
           new ProgressInfoPayload(
-            `Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+            `Removing Wireguard configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
           ),
         );
       });
 
-      const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
+      const pathUrl: string = this.url + '/api/v1/wireguard/files/remove';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
       config.data = {

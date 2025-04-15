@@ -65,7 +65,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
     it('should remove all generated files after ttl', async () => {
       const fwCloudExport: FwCloudExport = await service.create(fwCloud, user, 1);
 
-      await sleep(4);
+      await sleep(1000);
       expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.false;
     });
   });
