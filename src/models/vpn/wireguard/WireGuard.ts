@@ -513,7 +513,8 @@ export class WireGuard extends Model {
       const sql = `SELECT VPN.id, CRT.cn
                    FROM wireguard VPN
                    INNER JOIN crt CRT ON CRT.id = VPN.crt
-                   WHERE VPN.wireguard = ?`;
+                   WHERE VPN.wireguard = ?
+                   ORDER BY CRT.cn`;
 
       dbCon.query(sql, [wireGuard], async (error: any, result: any) => {
         if (error) return reject(error);
