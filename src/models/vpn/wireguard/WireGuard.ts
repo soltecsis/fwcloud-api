@@ -52,7 +52,6 @@ import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import fs from 'fs';
 
-const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils.js');
 const sodium = require('libsodium-wrappers');
 
