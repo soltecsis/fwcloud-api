@@ -427,4 +427,17 @@ describe(WireGuard.name, () => {
       expect(result).to.be.a('string');
     });
   });
+
+  describe('getPeerOptions', () => {
+    it('should return the peer options for a given WireGuard server', async () => {
+      const result = await WireGuard.getPeerOptions(
+        db.getQuery(),
+        fwcloudProduct.wireguardServer.id,
+        fwcloudProduct.wireguardClients.get('WireGuard-Cli-1').id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object');
+    });
+  });
 });

@@ -1296,4 +1296,36 @@ export class WireGuard extends Model {
       });
     });
   }
+
+  public static getPeerOptions(
+    dbCon: Query,
+    wireGuard: number,
+    wireguard_cli: number,
+  ): Promise<{ publicKey: string; options: any[] }> {
+    return new Promise((resolve, reject) => {
+      // First, we get the client's publicKey.
+      const sqlClient = `SELECT public_key FROM wireguard WHERE id = ? AND wireguard = ?`;
+
+      dbCon.query(sqlClient, [wireguard_cli, wireGuard], async (error, clientResult) => {
+        if (error) return reject(error);
+        if (clientResult.length === 0) return resolve({ publicKey: '', options: [] });
+        const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
+
+        const sql = `
+          SELECT 
+            WO.*, 
+            IO.*
+          FROM wireguard_opt WO
+          LEFT JOIN ipobj IO ON IO.id = WO.ipobj
+          WHERE WO.wireguard = ?
+        `;
+
+        dbCon.query(sql, [wireguard_cli], (error, rows) => {
+          if (error) return reject(error);
+
+          resolve({ publicKey, options: rows || [] });
+        });
+      });
+    });
+  }
 }

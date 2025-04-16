@@ -18,6 +18,7 @@ import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
 import { SystemCtlController } from '../../../controllers/systemctl/systemctl.controller';
+import { GetOptionsDto } from './dto/get.dto.options';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -440,6 +441,22 @@ export class WireGuardController extends Controller {
   async getClients(req: any): Promise<ResponseBuilder> {
     try {
       const data: any[] = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
+      return ResponseBuilder.buildResponse().status(200).body(data);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
+
+  @Validate(GetOptionsDto)
+  async getOptions(req: any): Promise<ResponseBuilder> {
+    try {
+      const data = await WireGuard.getPeerOptions(
+        req.dbCon,
+        req.body.wireguard,
+        req.body.wireguard_cli,
+      );
+      const pgp = new PgpHelper(req.session.pgp);
+      data.publicKey = await pgp.encrypt(data.publicKey);
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
