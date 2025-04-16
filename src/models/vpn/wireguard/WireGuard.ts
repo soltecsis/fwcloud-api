@@ -164,17 +164,14 @@ export class WireGuard extends Model {
     // Ensure the library is initialized
     await sodium.ready;
 
-    // Generate a private key (32 random bytes)
-    const privateKey = sodium.randombytes_buf(sodium.crypto_box_SECRETKEYBYTES);
+    // Generate key pair suitable for WireGuard (X25519 / curve25519)
+    const { publicKey, privateKey } = sodium.crypto_kx_keypair();
 
-    // Derive the public key from the private key
-    const publicKey = sodium.crypto_scalarmult_base(privateKey);
-
-    // Convert to Base64
-    const privateKeyBase64 = sodium.to_base64(privateKey);
-    const publicKeyBase64 = sodium.to_base64(publicKey);
-
-    return { public_key: publicKeyBase64, private_key: privateKeyBase64 };
+    // Encode to base64 for use in wg config
+    return {
+      public_key: sodium.to_base64(publicKey, sodium.base64_variants.ORIGINAL),
+      private_key: sodium.to_base64(privateKey, sodium.base64_variants.ORIGINAL),
+    };
   }
 
   // Insert new WireGuard configuration register in the database.
@@ -358,7 +355,7 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         const data = wireguard_result[0];
-
+        //IS CLIENT
         if (data.wireguard !== null) {
           sql = `select * from ${tableName} where id=${data.wireguard}`;
           dbCon.query(sql, async (error, result) => {
