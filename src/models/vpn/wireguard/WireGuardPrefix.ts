@@ -349,7 +349,10 @@ export class WireGuardPrefix extends Model {
         await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
 
         // Create all WireGuard client config nodes.
-        const wireGuard_cli_list: any = await WireGuard.getWireGuardClients(dbCon, wireGuard_srv);
+        const wireGuard_cli_list: any = await WireGuard.getWireGuardClientsInfo(
+          dbCon,
+          wireGuard_srv,
+        );
         for (const wireGuard_cli of wireGuard_cli_list) {
           await Tree.newNode(
             dbCon,

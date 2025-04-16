@@ -262,6 +262,21 @@ describe(WireGuard.name, () => {
     });
   });
 
+  describe('getWireGuardClientsInfo', () => {
+    it('should return all clients under a WireGuard server', async () => {
+      const result = await WireGuard.getWireGuardClientsInfo(
+        db.getQuery(),
+        fwcloudProduct.wireguardServer.id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array');
+      expect(result).to.have.lengthOf(3);
+      expect(result[0]).to.have.property('id');
+      expect(result[0].id).to.equal(fwcloudProduct.wireguardClients.get('WireGuard-Cli-1').id);
+    });
+  });
+
   describe('getWireGuardClients', () => {
     it('should return all clients under a WireGuard server', async () => {
       const result = await WireGuard.getWireGuardClients(

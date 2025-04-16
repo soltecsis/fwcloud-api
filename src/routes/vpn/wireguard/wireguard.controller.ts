@@ -439,28 +439,8 @@ export class WireGuardController extends Controller {
   @Validate(GetDto)
   async getClients(req: any): Promise<ResponseBuilder> {
     try {
-      let data: any[] = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
-      const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
-
-      try {
-        if (data) {
-          data = await Promise.all(
-            data.map(async (client) => {
-              if (client.public_key) {
-                client.public_key = await pgp.encrypt(client.public_key);
-              }
-              if (client.private_key) {
-                client.private_key = await pgp.encrypt(client.private_key);
-              }
-              return client;
-            }),
-          );
-
-          return ResponseBuilder.buildResponse().status(200).body(data);
-        }
-      } catch (error) {
-        return ResponseBuilder.buildResponse().status(400).body(error);
-      }
+      const data: any[] = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
+      return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }

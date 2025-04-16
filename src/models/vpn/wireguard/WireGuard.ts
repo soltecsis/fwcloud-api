@@ -430,7 +430,7 @@ export class WireGuard extends Model {
   }
 
   // Get data of an WireGuard server clients.
-  public static getWireGuardClients(dbCon: Query, wireGuard: number): Promise<any[]> {
+  public static getWireGuardClientsInfo(dbCon: Query, wireGuard: number): Promise<any[]> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT VPN.*, CRT.cn, VPN.status 
                    FROM wireguard VPN 
@@ -503,6 +503,23 @@ export class WireGuard extends Model {
             resolve(finalResult);
           });
         });
+      });
+    });
+  }
+
+  // Get the CN of the WireGuard server certificate and the IDs of the WireGuard clients
+  public static getWireGuardClients(dbCon: Query, wireGuard: number): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id, CRT.cn
+                   FROM wireguard VPN
+                   INNER JOIN crt CRT ON CRT.id = VPN.crt
+                   WHERE VPN.wireguard = ?`;
+
+      dbCon.query(sql, [wireGuard], async (error: any, result: any) => {
+        if (error) return reject(error);
+        if (result.length === 0) return resolve([]); // If there are no VPNs, return an empty array
+
+        resolve(result);
       });
     });
   }
