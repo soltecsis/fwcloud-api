@@ -35,80 +35,47 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
   });
 
   describe('constructor()', () => {
-    it('should throw an exception if the connection name starts with an invalid character', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, '-connection', '', outputPath);
-      };
+    it('should NOT throw for valid connection names with allowed special characters', () => {
+      const validNames = [
+        '_connection',
+        '-connection',
+        '.connection',
+        'conn_name',
+        'conn-name',
+        'conn.name',
+        'a'.repeat(64), // exactly 64 chars
+      ];
 
-      expect(f).to.throw(InvalidConnectionNameException);
+      for (const name of validNames) {
+        const f = () => new InstallerGenerator(workspace, name, '', outputPath);
+        expect(f).to.not.throw();
+      }
+    });
 
-      f = () => {
-        generator = new InstallerGenerator(workspace, ' connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '_connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '$connection', '', outputPath);
-      };
-
+    it('should throw for connection names longer than 64 characters', () => {
+      const invalidName = 'a'.repeat(65); // 65 characters
+      const f = () => new InstallerGenerator(workspace, invalidName, '', outputPath);
       expect(f).to.throw(InvalidConnectionNameException);
     });
 
-    it('should throw an exception if the connection name ends with an invalid character', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, 'connection-', '', outputPath);
-      };
+    it('should throw for connection names with disallowed characters', () => {
+      const invalidNames = [
+        '?connection',
+        '$connection',
+        'conn name', // spaces
+        'conn@name',
+        'conn!name',
+        'name#', // any non a-zA-Z0-9._-
+      ];
 
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection ', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection_', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection$', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connec$tion', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connec Tion', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
+      for (const name of invalidNames) {
+        const f = () => new InstallerGenerator(workspace, name, '', outputPath);
+        expect(f).to.throw(InvalidConnectionNameException);
+      }
     });
 
-    it('should throw an exception if the connection name length reaches the limit', () => {
-      const f = () => {
-        generator = new InstallerGenerator(
-          workspace,
-          'connectionconnectionconnectionconnection',
-          '',
-          outputPath,
-        );
-      };
-
+    it('should throw for empty connection names', () => {
+      const f = () => new InstallerGenerator(workspace, '', '', outputPath);
       expect(f).to.throw(InvalidConnectionNameException);
     });
 
