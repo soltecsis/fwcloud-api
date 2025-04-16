@@ -398,7 +398,7 @@ export class Tree extends Model {
       .getSource()
       .manager.getRepository(IPObj)
       .createQueryBuilder('ipobj')
-      .innerJoin(WireGuardOption, 'option', 'option.ipObj = ipobj.id')
+      .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
       .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
       .andWhere('option.wireGuardId = :id', { id: node.id_obj });
 
