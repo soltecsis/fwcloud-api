@@ -17,7 +17,6 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
-import { SystemCtlController } from '../../../controllers/systemctl/systemctl.controller';
 
 const fwcError = require('../../../utils/error_table');
 

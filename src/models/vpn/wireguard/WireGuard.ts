@@ -625,12 +625,12 @@ export class WireGuard extends Model {
                 ? `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                  FROM wireguard_opt OPT
                  INNER JOIN wireguard PEER ON PEER.id=OPT.wireguard
-                 WHERE OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', 'PresharedKey', 'disable') AND OPT.wireguard_cli IS NULL
+                 WHERE OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', '<<disable>>') AND OPT.wireguard_cli IS NULL
                  ORDER BY OPT.name`
                 : `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                  FROM wireguard PEER 
                  INNER JOIN wireguard_opt OPT ON OPT.wireguard=PEER.id 
-                 WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', 'disable')
+                 WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', '<<disable>>')
                  ORDER BY OPT.name`;
 
               dbCon.query(sqlPeers, async (peerError, peerResult) => {
@@ -669,7 +669,7 @@ export class WireGuard extends Model {
                   }
 
                   const disableOption = peer.options.find(
-                    (option: any) => option.option_name === 'disable',
+                    (option: any) => option.option_name === '<<disable>>',
                   );
                   const addressOption = peer.options.find(
                     (option: any) => option.option_name === 'Address',
@@ -683,7 +683,7 @@ export class WireGuard extends Model {
                       ? `# ${option.option_comment.replace(/\n/g, '\n# ')}\n`
                       : '';
                     switch (option.option_name) {
-                      case 'disable':
+                      case '<<disable>>':
                       case 'Address':
                         return '';
                       case 'AllowedIPs':
@@ -1137,7 +1137,8 @@ export class WireGuard extends Model {
         if (wireGuard_opt) {
           const interface_name = req.body.install_name.replace(/\.conf$/, '');
           req.body.wireguard = (req.body.wireguard ?? 0) + wireGuard_opt.wireguard;
-          const freeIP = (await WireGuard.freeVpnIP(req)) as { ip: string; netmask: string };
+          const [ip, cidr] = wireGuard_opt.arg.split('/');
+          const interface_ip = { ip, netmask: `/${cidr}` };
 
           // If we already have an interface with the same name then do nothing.
           const interfaces = await Interface.getInterfaces(
@@ -1199,8 +1200,8 @@ export class WireGuard extends Model {
                     name: interface_name,
                     type: 5,
                     protocol: null,
-                    address: freeIP.ip,
-                    netmask: freeIP.netmask,
+                    address: interface_ip.ip,
+                    netmask: interface_ip.netmask,
                     diff_serv: null,
                     ip_version: 4,
                     icmp_code: null,
@@ -1220,7 +1221,7 @@ export class WireGuard extends Model {
                   await Tree.newNode(
                     req.dbCon,
                     req.body.fwcloud,
-                    `${interface_name} (${freeIP.ip})`,
+                    `${interface_name} (${interface_ip.ip})`,
                     nodeId,
                     'OIA',
                     ipobjId,
