@@ -447,7 +447,7 @@ export class WireGuardController extends Controller {
   }
 
   @Validate(GetOptionsDto)
-  async getOptions(req: any): Promise<ResponseBuilder> {
+  async getClientOptions(req: any): Promise<ResponseBuilder> {
     try {
       const data = await WireGuard.getPeerOptions(
         req.dbCon,
