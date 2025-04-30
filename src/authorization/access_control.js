@@ -291,10 +291,20 @@ function checkPrefixAccess(req) {
                 WHERE P.id=${req.body.prefix}`;
 		}
 		else if ((item[1] === 'vpn' && item[2] === 'openvpn' && item[3] === 'prefix') || (item[1] === 'policy' && item[2] === 'prefix')) {
-			sql = `select FW.fwcloud,P.* FROM openvpn_prefix P
-                INNER JOIN openvpn VPN ON VPN.id=P.openvpn
-                INNER JOIN firewall FW ON FW.id=VPN.firewall
-                WHERE P.id=${req.body.prefix}`;
+			sql = `SELECT 'openvpn' AS prefix_type, FW.fwcloud, P.* 
+			FROM openvpn_prefix P
+			INNER JOIN openvpn VPN ON VPN.id = P.openvpn
+			INNER JOIN firewall FW ON FW.id = VPN.firewall
+			WHERE P.id = ${req.body.prefix}
+			
+			UNION ALL
+			
+			SELECT 'wireguard' AS prefix_type, FW.fwcloud, W.* 
+			FROM wireguard_prefix W
+			INNER JOIN wireguard VPN ON VPN.id = W.wireguard
+			INNER JOIN firewall FW ON FW.id = VPN.firewall
+			WHERE W.id = ${req.body.prefix}
+			`;
 		}
 		else if (item[1] === 'vpn' && item[2] === 'wireguard' && item[3] === 'prefix') {
 			sql = `select FW.fwcloud,P.* FROM wireguard_prefix P
