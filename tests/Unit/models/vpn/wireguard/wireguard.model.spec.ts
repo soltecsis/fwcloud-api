@@ -288,7 +288,8 @@ describe(WireGuard.name, () => {
       expect(result).to.be.an('array');
       expect(result).to.have.lengthOf(3);
       expect(result[0]).to.have.property('id');
-      expect(result[0].id).to.equal(fwcloudProduct.wireguardClients.get('WireGuard-Cli-1').id);
+      //It’s Wireguard-Cli-3 because the certificates are sorted alphabetically by name
+      expect(result[0].id).to.equal(fwcloudProduct.wireguardClients.get('WireGuard-Cli-3').id);
     });
   });
 
