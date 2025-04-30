@@ -510,17 +510,69 @@ export class WireGuard extends Model {
   // Get the CN of the WireGuard server certificate and the IDs of the WireGuard clients
   public static getWireGuardClients(dbCon: Query, wireGuard: number): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.id, CRT.cn
-                   FROM wireguard VPN
-                   INNER JOIN crt CRT ON CRT.id = VPN.crt
-                   WHERE VPN.wireguard = ?
-                   ORDER BY CRT.cn`;
+      // First, get all WireGuard clients linked to the given server
+      const sqlClient = `
+        SELECT 
+          VPN.id, 
+          CRT.cn
+        FROM wireguard VPN
+        INNER JOIN crt CRT ON CRT.id = VPN.crt
+        WHERE VPN.wireguard = ?
+        ORDER BY CRT.cn
+      `;
 
-      dbCon.query(sql, [wireGuard], async (error: any, result: any) => {
+      dbCon.query(sqlClient, [wireGuard], async (error: any, clients: any[]) => {
         if (error) return reject(error);
-        if (result.length === 0) return resolve([]); // If there are no VPNs, return an empty array
+        if (clients.length === 0) return resolve([]);
 
-        resolve(result);
+        try {
+          const enrichedClients = await Promise.all(
+            clients.map(async (vpn) => {
+              // Get the client's IP address (if any)
+              const addressRes: any = await new Promise((res, rej) => {
+                dbCon.query(
+                  `SELECT IP.address 
+                 FROM wireguard_opt OPT 
+                 INNER JOIN ipobj IP ON IP.id = OPT.ipobj 
+                 WHERE OPT.wireguard = ?`,
+                  [vpn.id],
+                  (err, rows) => (err ? rej(err) : res(rows)),
+                );
+              });
+
+              const address = addressRes.length > 0 ? addressRes[0].address : null;
+
+              // Get the AllowedIPs defined for this client from the server's configuration
+              const allowedRes: any = await new Promise((res, rej) => {
+                dbCon.query(
+                  `SELECT * 
+                 FROM wireguard_opt 
+                 WHERE wireguard = ? AND wireguard_cli = ? AND name = 'AllowedIPs'`,
+                  [wireGuard, vpn.id],
+                  (err, rows) => (err ? rej(err) : res(rows)),
+                );
+              });
+
+              const allowed = allowedRes.length > 0 ? allowedRes[0].arg : null;
+
+              // Concatenate address and allowed IPs, if both exist
+              const allowedips = address
+                ? allowed
+                  ? `${address}, ${allowed}`
+                  : address
+                : allowed || null;
+
+              return {
+                ...vpn,
+                allowedips,
+              };
+            }),
+          );
+
+          resolve(enrichedClients);
+        } catch (err) {
+          reject(err);
+        }
       });
     });
   }
