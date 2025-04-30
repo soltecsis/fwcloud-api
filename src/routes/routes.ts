@@ -147,6 +147,9 @@ export class Routes extends RouteCollection {
             .put('/client/options/get', WireGuardController, 'getClientOptions')
             .name('vpn.wireguard.client.options.get');
           router
+            .put('/client/options/update', WireGuardController, 'updateClientOptions')
+            .name('vpn.wireguard.client.options.update');
+          router
             .put('/clients/get', WireGuardController, 'getClients')
             .name('vpn.wireguard.clients.get');
           router.prefix('/prefix', (router: RouterParser) => {

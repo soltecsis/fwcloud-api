@@ -1382,4 +1382,32 @@ export class WireGuard extends Model {
       });
     });
   }
+
+  public static updatePeerOptions(
+    dbCon: Query,
+    wireguard: number,
+    wireguard_cli: number,
+    options: any[],
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE wireguard_opt
+        SET arg = ?
+        WHERE wireguard = ? AND wireguard_cli = ? AND name = ?
+      `;
+
+      const promises = options.map((option) => {
+        return new Promise<void>((resolve, reject) => {
+          dbCon.query(sql, [option.arg, wireguard, wireguard_cli, option.name], (error) => {
+            if (error) return reject(error);
+            resolve();
+          });
+        });
+      });
+
+      Promise.all(promises)
+        .then(() => resolve())
+        .catch((error) => reject(error));
+    });
+  }
 }
