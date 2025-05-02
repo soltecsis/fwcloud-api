@@ -1366,17 +1366,17 @@ export class WireGuard extends Model {
         const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
 
         const sql = `
-          SELECT 
-            WO.*, 
-            IO.*
+          SELECT WO.*
           FROM wireguard_opt WO
-          LEFT JOIN ipobj IO ON IO.id = WO.ipobj
-          WHERE WO.wireguard = ?
+          WHERE (
+            WO.name = 'Address' AND WO.wireguard = ?
+          ) OR (
+            WO.wireguard = ? AND WO.wireguard_cli = ?
+          )
         `;
 
-        dbCon.query(sql, [wireguard_cli], (error, rows) => {
+        dbCon.query(sql, [wireguard_cli, wireGuard, wireguard_cli], (error, rows) => {
           if (error) return reject(error);
-
           resolve({ publicKey, options: rows || [] });
         });
       });
