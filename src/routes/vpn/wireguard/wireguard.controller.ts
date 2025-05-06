@@ -261,6 +261,9 @@ export class WireGuardController extends Controller {
         await WireGuard.addCfgOpt(req, opt);
       }
 
+      // If wireguard is updated now update the virtual network interface
+      await WireGuard.updateWireGuardServerInterface(req);
+
       await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
 
       return ResponseBuilder.buildResponse().status(204);

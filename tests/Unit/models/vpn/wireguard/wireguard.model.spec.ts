@@ -373,6 +373,27 @@ describe(WireGuard.name, () => {
     });
   });
 
+  describe('updateWireGuardServerInterface', () => {
+    it('should update interface and address for server', async () => {
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          wireguard: fwcloudProduct.wireguardServer.id,
+          fwcloud: fwcloudProduct.fwcloud.id,
+          ipobj_g: fwcloudProduct.ipobjGroup.id,
+        },
+      };
+      await WireGuard.updateWireGuardServerInterface(request);
+      const result = await db
+        .getSource()
+        .getRepository(WireGuard)
+        .findOne({
+          where: { id: fwcloudProduct.wireguardServer.id },
+        });
+      expect(result).to.exist;
+    });
+  });
+
   describe('moveToOtherFirewall', () => {
     it('should update firewall ID for all configs', async () => {
       const newFirewall = await db
