@@ -1229,7 +1229,12 @@ export class WireGuard extends Model {
         };
 
         await IPObj.updateIpobj(req.dbCon, ipobjData);
-        await WireGuard.updateIpObjCfgOpt(req.dbCon, ipobj.id, req.body.wireguard, 'Address');
+        await WireGuard.updateIpObjCfgOpt(
+          req.dbCon,
+          ipobj.id,
+          cfg ?? req.body.wireguard,
+          'Address',
+        );
         await Tree.updateFwc_Tree_OBJ(req, {
           name: interfaceName,
           id: ipobj.id,
@@ -1251,7 +1256,12 @@ export class WireGuard extends Model {
           const ipobj = ipobjs.find((i: any) => i.name === interfaceName);
 
           if (ipobj) {
-            await WireGuard.updateIpObjCfgOpt(req.dbCon, ipobj.id, req.body.wireguard, 'Address');
+            await WireGuard.updateIpObjCfgOpt(
+              req.dbCon,
+              ipobj.id,
+              cfg ?? req.body.wireguard,
+              'Address',
+            );
           }
           return;
         }
@@ -1290,12 +1300,12 @@ export class WireGuard extends Model {
 
         const vpnNetworkOpt = await this.getOptData(req.dbCon, cfg, '<<vpn_network>>');
         if ((vpnNetworkOpt as { ipobj: number })?.ipobj) {
-          const ipobj: IPObj = await IPObj.getIpobjInfo(
+          const ipobj: any = await IPObj.getIpobjInfo(
             req.dbCon,
             req.body.fwcloud,
             (vpnNetworkOpt as { ipobj: number }).ipobj,
           );
-          if (ipobj.ipObjTypeId === 7 || ipobj.ipObjTypeId === 5) {
+          if (ipobj.type === 7 || ipobj.type === 5) {
             const ipobjData = {
               id: null,
               fwcloud: req.body.fwcloud,
@@ -1324,7 +1334,7 @@ export class WireGuard extends Model {
             await WireGuard.updateIpObjCfgOpt(
               req.dbCon,
               ipobjId as number,
-              req.body.wireguard,
+              cfg ?? req.body.wireguard,
               'Address',
             );
             await Tree.newNode(
