@@ -138,4 +138,32 @@ export class IpUtils {
     }
     return [(ipl >>> 24) & 0xff, (ipl >>> 16) & 0xff, (ipl >>> 8) & 0xff, ipl & 0xff].join('.');
   }
+
+  /**
+   * Returns the network address given an IP and subnet mask or CIDR.
+   * @param {string} ipOrCIDR - IP in CIDR format (e.g., "192.168.1.10/24") or plain IP.
+   * @param {string} [mask] - Optional subnet mask (e.g., "255.255.255.0").
+   * @returns {string} Network address.
+   */
+  public static getNetworkAddress(ipOrCIDR, mask) {
+    if (mask) {
+      // IP and mask are provided separately
+      const ip = ipaddr.parse(ipOrCIDR);
+      const subnetMask = ipaddr.parse(mask);
+      const ipBytes = ip.toByteArray();
+      const maskBytes = subnetMask.toByteArray();
+      const maskedBytes = ipBytes.map((byte, index) => byte & maskBytes[index]);
+      return ipaddr.fromByteArray(maskedBytes).toString();
+    } else {
+      // CIDR format is provided
+      const [ip, prefix] = ipaddr.parseCIDR(ipOrCIDR);
+      const subnetMaskBytes =
+        ip.kind() === 'ipv4'
+          ? ipaddr.IPv4.subnetMaskFromPrefixLength(prefix)
+          : ipaddr.IPv6.subnetMaskFromPrefixLength(prefix);
+
+      const subnetMask = ipaddr.fromByteArray(subnetMaskBytes.toByteArray());
+      return `${IpUtils.mask(ip.toString(), subnetMask.toString())}/${prefix}`;
+    }
+  }
 }

@@ -263,6 +263,14 @@ export class WireGuardController extends Controller {
         await WireGuard.addCfgOpt(req, opt);
       }
 
+      if (
+        req.body.options &&
+        req.body.options.some((option) => option.name === '<<vpn_network>>')
+      ) {
+        // If wireguard server is updated now update the virtual network interface
+        await WireGuard.updateWireGuardServerInterface(req);
+      }
+
       await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
 
       return ResponseBuilder.buildResponse().status(204);

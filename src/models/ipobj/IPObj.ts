@@ -678,11 +678,14 @@ export class IPObj extends Model {
     });
   }
 
-  public static getIpobjInfo(dbCon, fwcloud, ipobj) {
+  public static getIpobjInfo(dbCon, fwcloud, ipobj): Promise<IPObj> {
     return new Promise((resolve, reject) => {
       const sql = 'SELECT * FROM ipobj WHERE fwcloud=' + fwcloud + ' AND id=' + ipobj;
       dbCon.query(sql, (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          console.log('Error: ', error);
+          return reject(error);
+        }
         if (result.length < 1) return reject(fwcError.NOT_FOUND);
 
         resolve(result[0]);
@@ -773,7 +776,7 @@ export class IPObj extends Model {
    * #### JSON RESPONSE ERROR:
    *      {result: false}
    * */
-  public static updateIpobj(req, ipobjData): Promise<void> {
+  public static updateIpobj(dbCon, ipobjData): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
         'UPDATE ' +
@@ -783,70 +786,70 @@ export class IPObj extends Model {
         ipobjData.fwcloud +
         ',' +
         'interface = ' +
-        req.dbCon.escape(ipobjData.interface) +
+        dbCon.escape(ipobjData.interface) +
         ',' +
         'name = ' +
-        req.dbCon.escape(ipobjData.name) +
+        dbCon.escape(ipobjData.name) +
         ',' +
         'type = ' +
-        req.dbCon.escape(ipobjData.type) +
+        dbCon.escape(ipobjData.type) +
         ',' +
         'protocol = ' +
-        req.dbCon.escape(ipobjData.protocol) +
+        dbCon.escape(ipobjData.protocol) +
         ',' +
         'address = ' +
-        req.dbCon.escape(ipobjData.address) +
+        dbCon.escape(ipobjData.address) +
         ',' +
         'netmask = ' +
-        req.dbCon.escape(ipobjData.netmask) +
+        dbCon.escape(ipobjData.netmask) +
         ',' +
         'diff_serv = ' +
-        req.dbCon.escape(ipobjData.diff_serv) +
+        dbCon.escape(ipobjData.diff_serv) +
         ',' +
         'ip_version = ' +
-        req.dbCon.escape(ipobjData.ip_version) +
+        dbCon.escape(ipobjData.ip_version) +
         ',' +
         'icmp_code = ' +
-        req.dbCon.escape(ipobjData.icmp_code) +
+        dbCon.escape(ipobjData.icmp_code) +
         ',' +
         'icmp_type = ' +
-        req.dbCon.escape(ipobjData.icmp_type) +
+        dbCon.escape(ipobjData.icmp_type) +
         ',' +
         'tcp_flags_mask = ' +
-        req.dbCon.escape(ipobjData.tcp_flags_mask) +
+        dbCon.escape(ipobjData.tcp_flags_mask) +
         ',' +
         'tcp_flags_settings = ' +
-        req.dbCon.escape(ipobjData.tcp_flags_settings) +
+        dbCon.escape(ipobjData.tcp_flags_settings) +
         ',' +
         'range_start = ' +
-        req.dbCon.escape(ipobjData.range_start) +
+        dbCon.escape(ipobjData.range_start) +
         ',' +
         'range_end = ' +
-        req.dbCon.escape(ipobjData.range_end) +
+        dbCon.escape(ipobjData.range_end) +
         ',' +
         'source_port_start = ' +
-        req.dbCon.escape(ipobjData.source_port_start) +
+        dbCon.escape(ipobjData.source_port_start) +
         ',' +
         'source_port_end = ' +
-        req.dbCon.escape(ipobjData.source_port_end) +
+        dbCon.escape(ipobjData.source_port_end) +
         ',' +
         'destination_port_start = ' +
-        req.dbCon.escape(ipobjData.destination_port_start) +
+        dbCon.escape(ipobjData.destination_port_start) +
         ',' +
         'destination_port_end = ' +
-        req.dbCon.escape(ipobjData.destination_port_end) +
+        dbCon.escape(ipobjData.destination_port_end) +
         ',' +
         'options = ' +
-        req.dbCon.escape(ipobjData.options) +
+        dbCon.escape(ipobjData.options) +
         ',' +
         'comment = ' +
-        req.dbCon.escape(ipobjData.comment) +
+        dbCon.escape(ipobjData.comment) +
         ' ' +
         ' WHERE id = ' +
         ipobjData.id +
         ' AND fwcloud=' +
         ipobjData.fwcloud;
-      req.dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         resolve();
       });

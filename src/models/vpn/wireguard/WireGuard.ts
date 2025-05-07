@@ -239,6 +239,61 @@ export class WireGuard extends Model {
     });
   }
 
+  public static updateCfgOpt(
+    dbCon: Query,
+    wireGuard: number,
+    name: string,
+    arg: string,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE wireguard_opt SET arg=${dbCon.escape(arg)} WHERE wireguard=${wireGuard} and name=${dbCon.escape(name)}`;
+      dbCon.query(sql, (error, _) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  public static updateCfgOptByipobj(
+    dbCon: Query,
+    ipobj: number,
+    name: string,
+    arg: string,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE wireguard_opt SET arg=${dbCon.escape(arg)} WHERE ipobj=${ipobj} and name=${dbCon.escape(name)}`;
+      dbCon.query(sql, (error, _) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  public static updateIpObjCfgOpt(
+    dbCon: Query,
+    ipobj: number,
+    wireGuard: number,
+    name: string,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE wireguard_opt SET ipobj=${ipobj} WHERE wireguard=${wireGuard} and name=${dbCon.escape(name)}`;
+      dbCon.query(sql, (error, _) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  public static checkIpobjInWireGuardOpt(dbCon: Query, ipobj: number): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM wireguard_opt WHERE ipobj=${ipobj}`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+    });
+  }
+
   public static addPrefix(wireguardId: number, prefix: { name: string }): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `insert into wireguard_prefix SET wireguard=${wireguardId}, name=${prefix.name}`;
@@ -824,7 +879,7 @@ export class WireGuard extends Model {
   public static updateWireGuardStatusIPOBJ(
     req: Request,
     ipobj: number,
-    status_action: number,
+    status_action: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE wireguard VPN
@@ -966,7 +1021,7 @@ export class WireGuard extends Model {
                 );
               }
             } else {
-              console.error('El método no devolvió un arreglo.');
+              console.error('The method did not return an array');
             }
           }
         }
@@ -1200,114 +1255,182 @@ export class WireGuard extends Model {
     });
   }
 
-  public static createWireGuardServerInterface(req: Request, cfg: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let wireGuard_opt: any = await this.getOptData(req.dbCon, cfg, 'Address');
-        if (wireGuard_opt) {
-          const interface_name = req.body.install_name.replace(/\.conf$/, '');
-          req.body.wireguard = (req.body.wireguard ?? 0) + wireGuard_opt.wireguard;
-          const [ip, cidr] = wireGuard_opt.arg.split('/');
-          const interface_ip = { ip, netmask: `/${cidr}` };
+  private static async handleWireGuardInterface(
+    req: Request,
+    cfg: number | null,
+    isUpdate: boolean,
+  ): Promise<void> {
+    try {
+      const wireGuardOpt = await this.getOptData(req.dbCon, cfg ?? req.body.wireguard, 'Address');
+      if (!wireGuardOpt) return;
 
-          // If we already have an interface with the same name then do nothing.
-          const interfaces = await Interface.getInterfaces(
-            req.dbCon,
-            req.body.fwcloud,
-            req.body.firewall,
-          );
-          for (const _interface of interfaces) {
-            if (_interface.name === interface_name) return resolve();
-          }
+      const interfaceName = req.body.install_name.replace(/\.conf$/, '');
+      const [ip, cidr] = (wireGuardOpt as { arg: string }).arg.split('/');
+      const interfaceIp = { ip, netmask: `/${cidr}` };
 
-          // Create the WireGuard server network interface.
-          const interfaceData = {
-            id: null,
-            firewall: req.body.firewall,
-            name: interface_name,
-            labelName: '',
-            type: 10,
-            interface_type: 10,
-            comment: '',
-            mac: '',
-          };
+      const interfaces = await Interface.getInterfaces(
+        req.dbCon,
+        req.body.fwcloud,
+        req.body.firewall,
+      );
 
-          const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
-          if (interfaceId) {
-            const interfaces_node: any = await Tree.getNodeUnderFirewall(
+      const targetInterface = interfaces.find((_interface) => _interface.name === interfaceName);
+
+      if (isUpdate) {
+        if (!targetInterface) return;
+
+        const fullInterfaces = await new Promise((resolve, reject) => {
+          Interface.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
+            if (error) return reject(error);
+            resolve(data);
+          });
+        });
+
+        const ipobjs =
+          (fullInterfaces as any[]).find((i: any) => i.name === interfaceName)?.ipobjs || [];
+        const ipobj = ipobjs.find((i: any) => i.name === interfaceName);
+
+        if (!ipobj) return;
+
+        const ipobjData = {
+          ...ipobj,
+          address: interfaceIp.ip,
+          netmask: interfaceIp.netmask,
+        };
+
+        await IPObj.updateIpobj(req.dbCon, ipobjData);
+        await WireGuard.updateIpObjCfgOpt(
+          req.dbCon,
+          ipobj.id,
+          cfg ?? req.body.wireguard,
+          'Address',
+        );
+        await Tree.updateFwc_Tree_OBJ(req, {
+          name: interfaceName,
+          id: ipobj.id,
+          type: 5,
+          interface: targetInterface.id,
+          address: interfaceIp.ip,
+        });
+      } else {
+        if (targetInterface) {
+          const fullInterfaces = await new Promise((resolve, reject) => {
+            Interface.getInterfacesFull(req.body.firewall, req.body.fwcloud, (err, data) => {
+              if (err) return reject(err);
+              resolve(data);
+            });
+          });
+
+          const ipobjs =
+            (fullInterfaces as any[]).find((i: any) => i.name === interfaceName)?.ipobjs || [];
+          const ipobj = ipobjs.find((i: any) => i.name === interfaceName);
+
+          if (ipobj) {
+            await WireGuard.updateIpObjCfgOpt(
               req.dbCon,
-              req.body.fwcloud,
-              req.body.firewall,
-              'FDI',
+              ipobj.id,
+              cfg ?? req.body.wireguard,
+              'Address',
             );
-            if (interfaces_node) {
-              const nodeId = await Tree.newNode(
-                req.dbCon,
-                req.body.fwcloud,
-                interface_name,
-                interfaces_node.id,
-                'IFF',
-                interfaceId,
-                10,
-              );
-
-              // Create the network address for the new interface.
-              wireGuard_opt = await this.getOptData(req.dbCon, cfg, 'Address');
-              if (wireGuard_opt && wireGuard_opt.ipobj) {
-                // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(
-                  req.dbCon,
-                  req.body.fwcloud,
-                  wireGuard_opt.ipobj,
-                );
-                if (ipobj.type === 7 || ipobj.type === 5) {
-                  // network or address
-                  // Network
-                  const ipobjData = {
-                    id: null,
-                    fwcloud: req.body.fwcloud,
-                    interface: interfaceId,
-                    name: interface_name,
-                    type: 5,
-                    protocol: null,
-                    address: interface_ip.ip,
-                    netmask: interface_ip.netmask,
-                    diff_serv: null,
-                    ip_version: 4,
-                    icmp_code: null,
-                    icmp_type: null,
-                    tcp_flags_mask: null,
-                    tcp_flags_settings: null,
-                    range_start: null,
-                    range_end: null,
-                    source_port_start: 0,
-                    source_port_end: 0,
-                    destination_port_start: 0,
-                    destination_port_end: 0,
-                    options: null,
-                  };
-
-                  const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
-                  await Tree.newNode(
-                    req.dbCon,
-                    req.body.fwcloud,
-                    `${interface_name} (${interface_ip.ip})`,
-                    nodeId,
-                    'OIA',
-                    ipobjId,
-                    5,
-                  );
-                }
-              }
-            }
           }
+          return;
         }
 
-        resolve();
-      } catch (error) {
-        reject(error);
+        const interfaceData = {
+          id: null,
+          firewall: req.body.firewall,
+          name: interfaceName,
+          labelName: '',
+          type: 10,
+          interface_type: 10,
+          comment: '',
+          mac: '',
+        };
+
+        const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
+        if (!interfaceId) return;
+
+        const interfacesNode = await Tree.getNodeUnderFirewall(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.firewall,
+          'FDI',
+        );
+        if (!interfacesNode) return;
+
+        const nodeId = await Tree.newNode(
+          req.dbCon,
+          req.body.fwcloud,
+          interfaceName,
+          (interfacesNode as { id: number }).id,
+          'IFF',
+          interfaceId,
+          10,
+        );
+
+        const vpnNetworkOpt = await this.getOptData(req.dbCon, cfg, '<<vpn_network>>');
+        if ((vpnNetworkOpt as { ipobj: number })?.ipobj) {
+          const ipobj: any = await IPObj.getIpobjInfo(
+            req.dbCon,
+            req.body.fwcloud,
+            (vpnNetworkOpt as { ipobj: number }).ipobj,
+          );
+          if (ipobj.type === 7 || ipobj.type === 5) {
+            const ipobjData = {
+              id: null,
+              fwcloud: req.body.fwcloud,
+              interface: interfaceId,
+              name: interfaceName,
+              type: 5,
+              protocol: null,
+              address: interfaceIp.ip,
+              netmask: interfaceIp.netmask,
+              diff_serv: null,
+              ip_version: 4,
+              icmp_code: null,
+              icmp_type: null,
+              tcp_flags_mask: null,
+              tcp_flags_settings: null,
+              range_start: null,
+              range_end: null,
+              source_port_start: 0,
+              source_port_end: 0,
+              destination_port_start: 0,
+              destination_port_end: 0,
+              options: null,
+            };
+
+            const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
+            await WireGuard.updateIpObjCfgOpt(
+              req.dbCon,
+              ipobjId as number,
+              cfg ?? req.body.wireguard,
+              'Address',
+            );
+            await Tree.newNode(
+              req.dbCon,
+              req.body.fwcloud,
+              `${interfaceName} (${interfaceIp.ip})`,
+              nodeId,
+              'OIA',
+              ipobjId,
+              5,
+            );
+          }
+        }
       }
-    });
+    } catch (error) {
+      console.error('Error in handleWireGuardInterface:', error);
+      throw error;
+    }
+  }
+
+  public static async createWireGuardServerInterface(req: Request, cfg: number): Promise<void> {
+    await this.handleWireGuardInterface(req, cfg, false);
+  }
+
+  public static async updateWireGuardServerInterface(req: Request): Promise<void> {
+    await this.handleWireGuardInterface(req, null, true);
   }
 
   //Move rules from one firewall to other.
