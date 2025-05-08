@@ -586,7 +586,7 @@ export class WireGuard extends Model {
               // Get the client's IP address (if any)
               const addressRes: any = await new Promise((res, rej) => {
                 dbCon.query(
-                  `SELECT IP.address 
+                  `SELECT IP.address , IP.netmask
                  FROM wireguard_opt OPT 
                  INNER JOIN ipobj IP ON IP.id = OPT.ipobj 
                  WHERE OPT.wireguard = ?`,
@@ -595,7 +595,8 @@ export class WireGuard extends Model {
                 );
               });
 
-              const address = addressRes.length > 0 ? addressRes[0].address : null;
+              const address =
+                addressRes.length > 0 ? addressRes[0].address + addressRes[0].netmask : null;
 
               // Get the AllowedIPs defined for this client from the server's configuration
               const allowedRes: any = await new Promise((res, rej) => {
