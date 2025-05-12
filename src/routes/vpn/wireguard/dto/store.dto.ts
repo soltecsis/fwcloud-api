@@ -91,7 +91,8 @@ export class WireGuardOptionDTO {
     'SaveConfig',
     'FwMark',
     'PresharedKey',
-    'disable',
+    '<<disable>>',
+    '<<vpn_network>>',
   ])
   name: string;
 

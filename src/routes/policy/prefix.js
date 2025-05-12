@@ -29,28 +29,32 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { Firewall } from '../../models/firewall/Firewall';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { logger } from '../../fonaments/abstract-application';
+import { PolicyRuleToWireGuardPrefix } from '../../models/policy/PolicyRuleToWireguardPrefix';
 const utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 
 /* Create New policy_r__openvpn_prefix */
 router.post("/",
-utilsModel.disableFirewallCompileStatus,
-async (req, res) => {
-	try {
-		if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
-			throw fwcError.IPOBJ_EMPTY_CONTAINER;
+	utilsModel.disableFirewallCompileStatus,
+	async (req, res) => {
+		try {
+			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-		if (!(await PolicyRuleToOpenVPNPrefix.checkPrefixPosition(req.dbCon,req.body.position)))
-			throw fwcError.ALREADY_EXISTS;
+			if (!(await PolicyRuleToOpenVPNPrefix.checkPrefixPosition(req.dbCon, req.body.position)))
+				throw fwcError.ALREADY_EXISTS;
+			if (req.prefix.prefix_type == 'openvpn') {
+				await PolicyRuleToOpenVPNPrefix.insertInRule(req);
+			} else if (req.prefix.prefix_type == 'wireguard') {
+				await PolicyRuleToWireGuardPrefix.insertInRule(req);
+			}
 
-		await PolicyRuleToOpenVPNPrefix.insertInRule(req);
-
-		res.status(204).end();
-	} catch(error) {
-		logger().error('Error creating new policy_r__openvpn_prefix: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
-});
+			res.status(204).end();
+		} catch (error) {
+			logger().error('Error creating new policy_r__openvpn_prefix: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
+	});
 
 
 /* Update POSITION policy_r__openvpn_prefix that exist */

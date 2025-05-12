@@ -79,6 +79,8 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
 import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { IpUtils } from '../../utils/ip-utils';
+import { id } from '../../middleware/joi_schemas/shared';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -312,7 +314,31 @@ router.put('/',
 			if (data && data[0].protocol_number !== null)
 				ipobjData.protocol = data[0].protocol_number;
 
-			await IPObj.updateIpobj(req, ipobjData);
+			await IPObj.updateIpobj(req.dbCon, ipobjData);
+			
+			const wireGuardOptions = await WireGuard.checkIpobjInWireGuardOpt(req.dbCon, ipobjData.id);
+
+			if (wireGuardOptions?.length > 0) {
+				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
+				const [networkIp, networkMask] = networkAddress.split('/');
+
+				await WireGuard.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'Address', ipobjData.address + ipobjData.netmask);
+
+				const wireGuardConfig = await WireGuard.getCfg(req.dbCon, wireGuardOptions[0].wireguard);
+				const vpnNetworkOption = wireGuardConfig.options.find(option => option.name === "<<vpn_network>>");
+
+				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
+				const updatedIpObjData = {
+					...vpnNetworkIpObj,
+					id: vpnNetworkOption.ipobj,
+					address: networkIp,
+					netmask: '/' + networkMask
+				};
+
+				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
+				await WireGuard.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
+			}
+
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
 
 			if (req.body.options && req.body.options.find(option => option.name === "Address")) {	

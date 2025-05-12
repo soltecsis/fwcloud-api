@@ -17,6 +17,10 @@ export class UpdateDto {
 
   @IsNotEmpty()
   @IsNumber()
+  firewall: number;
+
+  @IsNotEmpty()
+  @IsNumber()
   wireguard: number;
 
   @IsString()

@@ -157,7 +157,7 @@ export class Ca extends Model {
                 FROM crt CRT
                 INNER JOIN wireguard VPN on VPN.crt=CRT.id
                 INNER JOIN firewall FW on FW.id=VPN.firewall
-                LEFT JOIN wireguard_opt OPT on OPT.wireguard=VPN.id and OPT.name='disable'
+                LEFT JOIN wireguard_opt OPT on OPT.wireguard=VPN.id and OPT.name='<<disable>>'
                 WHERE FW.fwcloud=${req.body.fwcloud}`;
 
         req.dbCon.query(sql, (error, result) => {

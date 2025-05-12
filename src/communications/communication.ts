@@ -86,11 +86,6 @@ export abstract class Communication<ConnectionData> {
     configs: { name: string; content: string }[],
     eventEmitter?: EventEmitter,
   ): Promise<void>;
-  abstract installWireGuardClientConfigs(
-    dir: string,
-    configs: { name: string; content: string }[],
-    eventEmitter?: EventEmitter,
-  ): Promise<void>;
   abstract installHAPRoxyConfigs(
     dir: string,
     configs: { name: string; content: string }[],

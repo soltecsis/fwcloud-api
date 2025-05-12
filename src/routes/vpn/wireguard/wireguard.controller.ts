@@ -12,7 +12,7 @@ import { GetFirewallDto } from './dto/getFirewall.dto';
 import { Channel } from '../../../sockets/channels/channel';
 import db from '../../../database/database-manager';
 import { Firewall } from '../../../models/firewall/Firewall';
-import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import { ProgressNoticePayload, ProgressPayload } from '../../../sockets/messages/socket-message';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
@@ -141,23 +141,6 @@ export class WireGuardController extends Controller {
     try {
       const channel = await Channel.fromRequest(req);
 
-      let { install_dir: installDir, install_name: installName } = req.wireguard;
-      let cfgDump = null;
-
-      if (!installDir || !installName) {
-        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
-        if (!wireGuardCfg.wireguard) {
-          throw new Error('Empty install dir or install name');
-        } else {
-          const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
-          installDir = wireGuardParentCfg.install_dir;
-          installName = wireGuardParentCfg.install_name;
-          cfgDump = await WireGuard.dumpCfg(req.dbCon, wireGuardCfg.wireguard);
-        }
-      } else {
-        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.wireguard);
-      }
-
       const firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
@@ -167,9 +150,26 @@ export class WireGuardController extends Controller {
         sshpassword: req.body.sshpass,
       });
 
-      channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
+      let { install_dir: installDir, install_name: installName } = req.wireguard;
+      let cfgDump = null;
+      let isClient = false;
+      if (!installDir || !installName) {
+        const wireGuardCfg = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
+        if (!wireGuardCfg.wireguard) {
+          throw new Error('Empty install dir or install name');
+        } else {
+          const wireGuardParentCfg = await WireGuard.getCfg(req.dbCon, wireGuardCfg.wireguard);
+          installDir = wireGuardParentCfg.install_dir;
+          installName = wireGuardParentCfg.install_name;
+          cfgDump = await WireGuard.dumpCfg(req.dbCon, wireGuardCfg.wireguard);
+          isClient = true;
+        }
+      } else {
+        cfgDump = await WireGuard.dumpCfg(req.dbCon, req.body.wireguard);
+      }
 
-      await communication.installOpenVPNServerConfigs(
+      channel.emit('message', new ProgressPayload('start', false, 'Installing Wireguard'));
+      await communication.installWireGuardServerConfigs(
         installDir,
         [
           {
@@ -187,11 +187,22 @@ export class WireGuardController extends Controller {
       await WireGuard.updateWireGuardInstallDate(req.dbCon, req.body.wireguard);
 
       channel.emit('message', new ProgressPayload('end', false, 'Installing Wireguard'));
-      return ResponseBuilder.buildResponse().status(200);
+      if (isClient) {
+        return ResponseBuilder.buildResponse().status(200).body({ installName: installName });
+      } else {
+        return ResponseBuilder.buildResponse().status(200);
+      }
     } catch (error) {
-      const status = error instanceof HttpException ? error.status : 400;
-      const message = error.message || error;
-      return ResponseBuilder.buildResponse().status(status).body({ message });
+      if (error instanceof HttpException) {
+        return ResponseBuilder.buildResponse()
+          .status(error.status)
+          .body({ message: error.message });
+      }
+      if (error.message) {
+        return ResponseBuilder.buildResponse().status(400).body({ message: error.message });
+      } else {
+        return ResponseBuilder.buildResponse().status(400).body(error);
+      }
     }
   }
 
@@ -250,6 +261,14 @@ export class WireGuardController extends Controller {
         opt.wireguard = req.body.wireguard;
         opt.order = order++;
         await WireGuard.addCfgOpt(req, opt);
+      }
+
+      if (
+        req.body.options &&
+        req.body.options.some((option) => option.name === '<<vpn_network>>')
+      ) {
+        // If wireguard server is updated now update the virtual network interface
+        await WireGuard.updateWireGuardServerInterface(req);
       }
 
       await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
