@@ -10,6 +10,8 @@ import { createUser, generateSession, attachSession } from '../../../../utils/ut
 import { Application } from '../../../../../src/Application';
 import { Tree } from '../../../../../src/models/tree/Tree';
 import request = require('supertest');
+import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
+import { WireGuardController } from '../../../../../src/routes/vpn/wireguard/wireguard.controller';
 
 let app: Application;
 let wireGuardService: WireGuardService;
@@ -49,8 +51,8 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
     nodeId = node.id;
   });
 
-  describe('WireGuardController', () => {
-    describe('WireGuardController@store', async () => {
+  describe(WireGuardController.name, () => {
+    describe('@store', async () => {
       let crtId: number;
       beforeEach(async () => {
         crtId = (
@@ -65,11 +67,12 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
           )
         ).id;
       });
+
       it('guest user should not be able to store WireGuard', async () => {
         await request(app.express)
           .post(_URL().getURL('vpn.wireguard.store'))
           .send({
-            fwcloud: fwcProduct.fwcloud.id,
+            fwcloudId: fwcProduct.fwcloud.id,
             firewall: fwcProduct.firewall.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
@@ -92,6 +95,7 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
             expect(response.status).to.equal(401);
           });
       });
+
       it('regular user wich doest not belong to the fwcloud should not be able to store WireGuard', async () => {
         await request(app.express)
           .post(_URL().getURL('vpn.wireguard.store'))
@@ -120,6 +124,7 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
             expect(response.status).to.equal(400);
           });
       });
+
       it('regular user should be able to store WireGuard', async () => {
         await request(app.express)
           .post(_URL().getURL('vpn.wireguard.store'))
@@ -148,6 +153,7 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
             expect(response.status).to.equal(201);
           });
       });
+
       it('admin user should be able to store WireGuard', async () => {
         await request(app.express)
           .post(_URL().getURL('vpn.wireguard.store'))
@@ -174,6 +180,141 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
           })
           .then((response) => {
             expect(response.status).to.equal(201);
+          });
+      });
+    });
+
+    describe('@update', async () => {
+      let wireguardId: number;
+      let crtId: number;
+
+      beforeEach(async () => {
+        const crt = await manager.getRepository(Crt).save(
+          manager.getRepository(Crt).create({
+            caId: fwcProduct.ca.id,
+            cn: 'WireGuard-Server-test',
+            days: 1000,
+            type: 2,
+            comment: 'testComment',
+          }),
+        );
+        crtId = crt.id;
+
+        const wireguard = await manager.getRepository(WireGuard).save(
+          manager.getRepository(WireGuard).create({
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            comment: 'created for test',
+            status: 1,
+            crt: await manager.findOneByOrFail(Crt, { id: crtId }),
+            firewall: fwcProduct.firewall,
+            public_key: 'dummy',
+            private_key: 'dummy',
+          }),
+        );
+        wireguardId = wireguard.id;
+      });
+
+      it('guest user should not be able to update WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .send({
+            fwcloudId: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            crt: crtId,
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.1/24',
+                scope: 2,
+              },
+              {
+                name: '<<vpn_network>>',
+                arg: '1.1.1.0/24',
+                scope: 2,
+              },
+            ],
+            node_id: nodeId,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(401);
+          });
+      });
+
+      it('regular user wich doest not belong to the fwcloud should not be able to update WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 99999,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            wireguard: wireguardId,
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.1/24',
+                scope: 2,
+              },
+              {
+                name: '<<vpn_network>>',
+                arg: '1.1.1.0/24',
+                scope: 2,
+              },
+            ],
+            node_id: nodeId,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to update WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            wireguard: wireguardId,
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.2/24',
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+      });
+
+      it('admin user should be able to update WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            wireguard: wireguardId,
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.2/24',
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
           });
       });
     });
