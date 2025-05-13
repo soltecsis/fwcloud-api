@@ -13,6 +13,8 @@ import request = require('supertest');
 import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
 import { WireGuardController } from '../../../../../src/routes/vpn/wireguard/wireguard.controller';
 
+const openpgp = require('openpgp');
+
 let app: Application;
 let wireGuardService: WireGuardService;
 let loggedUser: User;
@@ -315,6 +317,68 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
           })
           .then((response) => {
             expect(response.status).to.equal(204);
+          });
+      });
+    });
+
+    describe.skip('@get', async () => {
+      beforeEach(async () => {
+        const { publicKey, privateKey } = await openpgp.generateKey({
+          userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
+          rsaBits: 2048,
+          type: 'rsa',
+          format: 'armored', // Change the format to 'binary'
+        });
+        console.log('publicKey', publicKey);
+      });
+      it('guest user should not be able to get WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.get'))
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(401);
+          });
+      });
+
+      it('regular user wich doest not belong to the fwcloud should not be able to get WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 99999,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to get WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+      });
+
+      it('admin user should be able to get WireGuard', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.get'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
           });
       });
     });
