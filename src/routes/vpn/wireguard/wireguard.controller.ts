@@ -25,7 +25,6 @@ const fwcError = require('../../../utils/error_table');
 export class WireGuardController extends Controller {
   @Validate(StoreDto)
   async store(req: any): Promise<ResponseBuilder> {
-    (await WireGuardPolicy.checkPermission(req.session.user)).authorize();
     try {
       // Initial validation
       if (
