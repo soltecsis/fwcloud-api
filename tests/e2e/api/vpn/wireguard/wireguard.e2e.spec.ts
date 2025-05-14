@@ -540,5 +540,58 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
           });
       });
     });
+
+    describe('@getInfo', async () => {
+      it('guest user should not be able to get WireGuard info', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.info.get'))
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(401);
+          });
+      });
+
+      it('regular user wich doest not belong to the fwcloud should not be able to get WireGuard info', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.info.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 99999,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to get WireGuard info', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.info.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+      });
+
+      it('admin user should be able to get WireGuard info', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.info.get'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+      });
+    });
   });
 });
