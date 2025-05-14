@@ -17,7 +17,8 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
-import { WireGuardPolicy } from '../../../policies/wireguard.policy';
+import { GetOptionsDto } from './dto/get.dto.options';
+import { UpdateOptionsDto } from './dto/update.dto.options';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -448,28 +449,39 @@ export class WireGuardController extends Controller {
   @Validate(GetDto)
   async getClients(req: any): Promise<ResponseBuilder> {
     try {
-      let data: any[] = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
+      const data: any[] = await WireGuard.getWireGuardClients(req.dbCon, req.body.wireguard);
+      return ResponseBuilder.buildResponse().status(200).body(data);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
+
+  @Validate(GetOptionsDto)
+  async getClientOptions(req: any): Promise<ResponseBuilder> {
+    try {
+      const data = await WireGuard.getPeerOptions(
+        req.dbCon,
+        req.body.wireguard,
+        req.body.wireguard_cli,
+      );
       const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
+      data.publicKey = await pgp.encrypt(data.publicKey);
+      return ResponseBuilder.buildResponse().status(200).body(data);
+    } catch (error) {
+      return ResponseBuilder.buildResponse().status(400).body(error);
+    }
+  }
 
-      try {
-        if (data) {
-          data = await Promise.all(
-            data.map(async (client) => {
-              if (client.public_key) {
-                client.public_key = await pgp.encrypt(client.public_key);
-              }
-              if (client.private_key) {
-                client.private_key = await pgp.encrypt(client.private_key);
-              }
-              return client;
-            }),
-          );
-
-          return ResponseBuilder.buildResponse().status(200).body(data);
-        }
-      } catch (error) {
-        return ResponseBuilder.buildResponse().status(400).body(error);
-      }
+  @Validate(UpdateOptionsDto)
+  async updateClientOptions(req: any): Promise<ResponseBuilder> {
+    try {
+      const data = await WireGuard.updatePeerOptions(
+        req.dbCon,
+        req.body.wireguard,
+        req.body.wireguard_cli,
+        req.body.options,
+      );
+      return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
