@@ -262,6 +262,21 @@ describe(WireGuard.name, () => {
     });
   });
 
+  describe('getWireGuardClientsInfo', () => {
+    it('should return all clients under a WireGuard server', async () => {
+      const result = await WireGuard.getWireGuardClientsInfo(
+        db.getQuery(),
+        fwcloudProduct.wireguardServer.id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array');
+      expect(result).to.have.lengthOf(3);
+      expect(result[0]).to.have.property('id');
+      expect(result[0].id).to.equal(fwcloudProduct.wireguardClients.get('WireGuard-Cli-1').id);
+    });
+  });
+
   describe('getWireGuardClients', () => {
     it('should return all clients under a WireGuard server', async () => {
       const result = await WireGuard.getWireGuardClients(
@@ -273,7 +288,8 @@ describe(WireGuard.name, () => {
       expect(result).to.be.an('array');
       expect(result).to.have.lengthOf(3);
       expect(result[0]).to.have.property('id');
-      expect(result[0].id).to.equal(fwcloudProduct.wireguardClients.get('WireGuard-Cli-1').id);
+      //It’s Wireguard-Cli-3 because the certificates are sorted alphabetically by name
+      expect(result[0].id).to.equal(fwcloudProduct.wireguardClients.get('WireGuard-Cli-3').id);
     });
   });
 
@@ -431,6 +447,19 @@ describe(WireGuard.name, () => {
 
       expect(result).to.exist;
       expect(result).to.be.a('string');
+    });
+  });
+
+  describe('getPeerOptions', () => {
+    it('should return the peer options for a given WireGuard server', async () => {
+      const result = await WireGuard.getPeerOptions(
+        db.getQuery(),
+        fwcloudProduct.wireguardServer.id,
+        fwcloudProduct.wireguardClients.get('WireGuard-Cli-1').id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object');
     });
   });
 });

@@ -485,7 +485,7 @@ export class WireGuard extends Model {
   }
 
   // Get data of an WireGuard server clients.
-  public static getWireGuardClients(dbCon: Query, wireGuard: number): Promise<any[]> {
+  public static getWireGuardClientsInfo(dbCon: Query, wireGuard: number): Promise<any[]> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT VPN.*, CRT.cn, VPN.status 
                    FROM wireguard VPN 
@@ -558,6 +558,77 @@ export class WireGuard extends Model {
             resolve(finalResult);
           });
         });
+      });
+    });
+  }
+
+  // Get the CN of the WireGuard server certificate and the IDs of the WireGuard clients
+  public static getWireGuardClients(dbCon: Query, wireGuard: number): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      // First, get all WireGuard clients linked to the given server
+      const sqlClient = `
+        SELECT 
+          VPN.id, 
+          CRT.cn
+        FROM wireguard VPN
+        INNER JOIN crt CRT ON CRT.id = VPN.crt
+        WHERE VPN.wireguard = ?
+        ORDER BY CRT.cn
+      `;
+
+      dbCon.query(sqlClient, [wireGuard], async (error: any, clients: any[]) => {
+        if (error) return reject(error);
+        if (clients.length === 0) return resolve([]);
+
+        try {
+          const enrichedClients = await Promise.all(
+            clients.map(async (vpn) => {
+              // Get the client's IP address (if any)
+              const addressRes: any = await new Promise((res, rej) => {
+                dbCon.query(
+                  `SELECT IP.address , IP.netmask
+                 FROM wireguard_opt OPT 
+                 INNER JOIN ipobj IP ON IP.id = OPT.ipobj 
+                 WHERE OPT.wireguard = ?`,
+                  [vpn.id],
+                  (err, rows) => (err ? rej(err) : res(rows)),
+                );
+              });
+
+              const address =
+                addressRes.length > 0 ? addressRes[0].address + addressRes[0].netmask : null;
+
+              // Get the AllowedIPs defined for this client from the server's configuration
+              const allowedRes: any = await new Promise((res, rej) => {
+                dbCon.query(
+                  `SELECT * 
+                 FROM wireguard_opt 
+                 WHERE wireguard = ? AND wireguard_cli = ? AND name = 'AllowedIPs'`,
+                  [wireGuard, vpn.id],
+                  (err, rows) => (err ? rej(err) : res(rows)),
+                );
+              });
+
+              const allowed = allowedRes.length > 0 ? allowedRes[0].arg : null;
+
+              // Concatenate address and allowed IPs, if both exist
+              const allowedips = address
+                ? allowed
+                  ? `${address}, ${allowed}`
+                  : address
+                : allowed || null;
+
+              return {
+                ...vpn,
+                allowedips,
+              };
+            }),
+          );
+
+          resolve(enrichedClients);
+        } catch (err) {
+          reject(err);
+        }
       });
     });
   }
@@ -1401,6 +1472,66 @@ export class WireGuard extends Model {
         const newFilename = `wg${nextNumber}.conf`;
         resolve(newFilename);
       });
+    });
+  }
+
+  public static getPeerOptions(
+    dbCon: Query,
+    wireGuard: number,
+    wireguard_cli: number,
+  ): Promise<{ publicKey: string; options: any[] }> {
+    return new Promise((resolve, reject) => {
+      // First, we get the client's publicKey.
+      const sqlClient = `SELECT public_key FROM wireguard WHERE id = ? AND wireguard = ?`;
+
+      dbCon.query(sqlClient, [wireguard_cli, wireGuard], async (error, clientResult) => {
+        if (error) return reject(error);
+        if (clientResult.length === 0) return resolve({ publicKey: '', options: [] });
+        const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
+
+        const sql = `
+          SELECT WO.*
+          FROM wireguard_opt WO
+          WHERE (
+            WO.name = 'Address' AND WO.wireguard = ?
+          ) OR (
+            WO.wireguard = ? AND WO.wireguard_cli = ?
+          )
+        `;
+
+        dbCon.query(sql, [wireguard_cli, wireGuard, wireguard_cli], (error, rows) => {
+          if (error) return reject(error);
+          resolve({ publicKey, options: rows || [] });
+        });
+      });
+    });
+  }
+
+  public static updatePeerOptions(
+    dbCon: Query,
+    wireguard: number,
+    wireguard_cli: number,
+    options: any[],
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE wireguard_opt
+        SET arg = ?
+        WHERE wireguard = ? AND wireguard_cli = ? AND name = ?
+      `;
+
+      const promises = options.map((option) => {
+        return new Promise<void>((resolve, reject) => {
+          dbCon.query(sql, [option.arg, wireguard, wireguard_cli, option.name], (error) => {
+            if (error) return reject(error);
+            resolve();
+          });
+        });
+      });
+
+      Promise.all(promises)
+        .then(() => resolve())
+        .catch((error) => reject(error));
     });
   }
 }
