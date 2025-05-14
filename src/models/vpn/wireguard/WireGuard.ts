@@ -633,19 +633,6 @@ export class WireGuard extends Model {
     });
   }
 
-  // Get data of WireGuard servers of a firewall.
-  public static getWireGuardServersByFirewall(dbCon: Query, firewall: number) {
-    return new Promise((resolve, reject) => {
-      const sql = `select VPN.id,CRT.cn from wireguard VPN 
-                inner join crt CRT on CRT.id=VPN.crt
-                where VPN.firewall=${firewall} and CRT.type=2`;
-      dbCon.query(sql, (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      });
-    });
-  }
-
   // Get WireGuard client configuration data.
   public static getWireGuardInfo(dbCon: Query, fwcloud: number, wireGuard: number, type: number) {
     return new Promise((resolve, reject) => {

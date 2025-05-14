@@ -364,16 +364,6 @@ export class WireGuardController extends Controller {
     }
   }
 
-  @Validate(GetFirewallDto)
-  async getFirewall(req: Request): Promise<ResponseBuilder> {
-    try {
-      const data = await WireGuard.getWireGuardServersByFirewall(req.dbCon, req.body.firewall);
-      return ResponseBuilder.buildResponse().status(200).body(data);
-    } catch (error) {
-      return ResponseBuilder.buildResponse().status(400).body(error);
-    }
-  }
-
   @Validate(GetDto)
   async delete(req: any): Promise<ResponseBuilder> {
     try {
