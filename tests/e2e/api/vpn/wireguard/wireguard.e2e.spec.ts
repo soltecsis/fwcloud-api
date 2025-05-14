@@ -859,5 +859,60 @@ describe.only(describeName('WireGuard E2E Tests'), () => {
           });
       });
     });
+
+    describe.skip('@getClientOptions', async () => {
+      it('guest user should not be able to get WireGuard client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.client.options.get'))
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(401);
+          });
+      });
+
+      it('regular user wich doest not belong to the fwcloud should not be able to get WireGuard client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.client.options.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 99999,
+            wireguard: fwcProduct.wireguardServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to get WireGuard client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.client.options.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+            wireguard_cli: fwcProduct.wireguardClients.get('WireGuard-Cli-1').id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+      });
+
+      it('admin user should be able to get WireGuard client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.client.options.get'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: fwcProduct.wireguardServer.id,
+            wireguard_cli: fwcProduct.wireguardClients.get('WireGuard-Cli-2').id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+      });
+    });
   });
 });
