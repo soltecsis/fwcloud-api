@@ -627,6 +627,17 @@ export class FwCloudFactory {
       }),
     );
 
+    await this._wireguardOptRepository.save(
+      this._wireguardOptRepository.create({
+        wireGuardId: this.fwc.wireguardServer.id,
+        ipObjId: this.fwc.ipobjs.get('network').id,
+        name: 'Address',
+        arg: this.fwc.ipobjs.get('network').address,
+        order: 1,
+        scope: 0,
+      }),
+    );
+
     this.fwc.wireguardClients.set(
       'WireGuard-Cli-1',
       await this._wireguardRepository.save(
