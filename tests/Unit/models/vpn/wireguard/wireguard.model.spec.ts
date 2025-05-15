@@ -7,7 +7,7 @@ import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import StringHelper from '../../../../../src/utils/string.helper';
 
-describe(WireGuard.name, () => {
+describe.only(WireGuard.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
@@ -134,6 +134,7 @@ describe(WireGuard.name, () => {
       await dbCon.query(`TRUNCATE TABLE wireguard__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
       await dbCon.query(`delete from wireguard where wireguard = ${serverId}`);
+      await dbCon.query(`delete from wireguard_opt where wireguard = ${serverId}`);
 
       await WireGuard.delCfg(
         db.getQuery(),
@@ -159,6 +160,7 @@ describe(WireGuard.name, () => {
 
       await dbCon.query(`TRUNCATE TABLE wireguard__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
+      await dbCon.query(`TRUNCATE TABLE wireguard_opt`);
 
       await WireGuard.delCfgAll(
         db.getQuery(),
@@ -373,7 +375,9 @@ describe(WireGuard.name, () => {
         body: {
           wireguard: fwcloudProduct.wireguardServer.id,
           fwcloud: fwcloudProduct.fwcloud.id,
+          firewall: fwcloudProduct.firewall.id,
           ipobj_g: fwcloudProduct.ipobjGroup.id,
+          install_name: StringHelper.randomize(10) + '.conf',
         },
       };
 
@@ -396,10 +400,14 @@ describe(WireGuard.name, () => {
         body: {
           wireguard: fwcloudProduct.wireguardServer.id,
           fwcloud: fwcloudProduct.fwcloud.id,
+          firewall: fwcloudProduct.firewall.id,
           ipobj_g: fwcloudProduct.ipobjGroup.id,
+          install_name: StringHelper.randomize(10) + '.conf',
         },
       };
+
       await WireGuard.updateWireGuardServerInterface(request);
+
       const result = await db
         .getSource()
         .getRepository(WireGuard)
