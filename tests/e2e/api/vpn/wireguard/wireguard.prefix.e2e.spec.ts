@@ -20,7 +20,7 @@ let adminUserSessionId: string;
 let fwcProduct: FwCloudProduct;
 let manager: EntityManager;
 
-describe.only(describeName('Wireguard Prefix E2E Tests'), () => {
+describe(describeName('Wireguard Prefix E2E Tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
