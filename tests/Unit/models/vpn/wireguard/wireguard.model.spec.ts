@@ -7,7 +7,7 @@ import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import StringHelper from '../../../../../src/utils/string.helper';
 
-describe.only(WireGuard.name, () => {
+describe(WireGuard.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
