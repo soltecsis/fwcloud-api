@@ -267,5 +267,58 @@ describe.only(describeName('Wireguard Prefix E2E Tests'), () => {
           });
       });
     });
+
+    describe.skip('@delete', () => {
+      it('guest user should not be able to delete a prefix', async () => {
+        await request(app.express)
+          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(401);
+          });
+      });
+
+      it('user should not be able to delete a prefix', async () => {
+        await request(app.express)
+          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: 99999,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to delete a prefix', async () => {
+        await request(app.express)
+          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+      });
+
+      it('admin user should be able to delete a prefix', async () => {
+        await request(app.express)
+          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+      });
+    });
   });
 });
