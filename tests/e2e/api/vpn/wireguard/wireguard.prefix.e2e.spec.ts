@@ -214,5 +214,58 @@ describe.only(describeName('Wireguard Prefix E2E Tests'), () => {
           });
       });
     });
+
+    describe('@where', () => {
+      it('guest user should not be able to get prefix usage', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.where'))
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(401);
+          });
+      });
+
+      it('user should not be able to get prefix usage', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.where'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: 99999,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to get prefix usage', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.where'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+      });
+
+      it('admin user should be able to get prefix usage', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.where'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            prefix: fwcProduct.wireguardPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+      });
+    });
   });
 });
