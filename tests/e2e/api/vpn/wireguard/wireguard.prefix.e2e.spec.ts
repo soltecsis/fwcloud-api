@@ -104,5 +104,62 @@ describe.only(describeName('Wireguard Prefix E2E Tests'), () => {
           });
       });
     });
+
+    describe.skip('@update', () => {
+      it('guest user should not be able to update a prefix', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.update'))
+          .send({
+            name: 'test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(401);
+          });
+      });
+
+      it('user should not be able to update a prefix', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: 99999,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(400);
+          });
+      });
+
+      it('regular user should be able to update a prefix', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+      });
+
+      it('admin user should be able to update a prefix', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.prefix.update'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            name: 'test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+      });
+    });
   });
 });
