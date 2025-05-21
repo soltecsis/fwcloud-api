@@ -124,9 +124,6 @@ export class Routes extends RouteCollection {
           router.put('/ipobj/get', WireGuardController, 'getIpObj').name('vpn.wireguard.ipobj.get');
           router.put('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
           router.put('/info/get', WireGuardController, 'getInfo').name('vpn.wireguard.info.get');
-          router
-            .get('/firewall/get', WireGuardController, 'getFirewall')
-            .name('vpn.wireguard.firewall.get');
           router.put('/del', WireGuardController, 'delete').name('vpn.wireguard.delete');
           router
             .put('/restricted', WireGuardController, 'restricted')
@@ -136,10 +133,6 @@ export class Routes extends RouteCollection {
           router
             .put('/uninstall', WireGuardController, 'uninstall')
             .name('vpn.wireguard.uninstall');
-          router.put('/ccdsync', WireGuardController, 'ccdsync').name('vpn.wireguard.ccdsync');
-          router
-            .get('/status/get', WireGuardController, 'getStatus')
-            .name('vpn.wireguard.status.get');
           router
             .put('/config/filename', WireGuardController, 'getConfigFilename')
             .name('vpn.wireguard.config.filename');
