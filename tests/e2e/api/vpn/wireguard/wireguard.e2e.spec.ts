@@ -25,7 +25,7 @@ let fwcProduct: FwCloudProduct;
 let nodeId: number;
 let manager: EntityManager;
 
-describe.only(describeName('WireGuard E2E Tests'), () => {
+describe(describeName('WireGuard E2E Tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
