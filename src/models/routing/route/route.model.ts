@@ -34,6 +34,8 @@ import { RouteToIPObj } from './route-to-ipobj.model';
 import { Firewall } from '../../firewall/Firewall';
 import { RouteToWireGuard } from './route-to-wireguard.model';
 import { RouteToWireGuardPrefix } from './route-to-wireguard-prefix.model';
+import { RouteToIPSec } from './route-to-ipsec.model';
+import { RouteToIPSecPrefix } from './route-to-ipsec-prefix.model';
 
 const tableName: string = 'route';
 
@@ -136,6 +138,16 @@ export class Route extends Model {
     cascade: true,
   })
   routeToWireGuardPrefixes: RouteToWireGuardPrefix[];
+
+  @OneToMany(() => RouteToIPSec, (model) => model.route, {
+    cascade: true,
+  })
+  routeToIPSecs: RouteToIPSec[];
+
+  @OneToMany(() => RouteToIPSecPrefix, (model) => model.route, {
+    cascade: true,
+  })
+  routeToIPSecPrefixes: RouteToIPSecPrefix[];
 
   public getTableName(): string {
     return tableName;

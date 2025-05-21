@@ -285,6 +285,84 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
   }
 
+  async installIPSecServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+
+      const existsDir = await sshTools.runCommand(
+        this.connectionData,
+        `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`,
+      );
+      if (existsDir === '0') {
+        eventEmitter.emit('message', new ProgressNoticePayload(`Creating install directory.\n`));
+        await sshTools.runCommand(this.connectionData, `${sudo} mkdir "${dir}"`);
+        await sshTools.runCommand(this.connectionData, `${sudo} chown root:root "${dir}"`);
+        await sshTools.runCommand(this.connectionData, `${sudo} chmod 755 "${dir}"`);
+      }
+
+      for (const config of configs) {
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(
+            `Uploading IPSec configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
+          ),
+        );
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(`Installing IPSec configuration file.\n`),
+        );
+        await sshTools.uploadStringToFile(this.connectionData, config.content, config.name);
+        await sshTools.runCommand(this.connectionData, `${sudo} mv ${config.name} ${dir}/`);
+        eventEmitter.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
+        await sshTools.runCommand(
+          this.connectionData,
+          `${sudo} chown root:root ${dir}/${config.name}`,
+        );
+        await sshTools.runCommand(this.connectionData, `${sudo} chmod 600 ${dir}/${config.name}`);
+      }
+
+      return;
+    } catch (error) {
+      console.log('Error ssh: ', error);
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async uninstallIPSecConfigs(
+    dir: string,
+    files: string[],
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+
+      for (const file of files) {
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(
+            `Removing IPSec configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+          ),
+        );
+
+        await sshTools.runCommand(this.connectionData, `${sudo} rm -f "${dir}/${file}"`);
+      }
+
+      return;
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
   async getFirewallInterfaces(): Promise<string> {
     try {
       if (!app().config.get('firewall_communication.ssh_enable')) {

@@ -45,6 +45,8 @@ import { Interface } from '../interface/Interface';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { RouteToIPObjGroup } from '../routing/route/route-to-ipobj-group.model';
 import { RoutingRuleToIPObjGroup } from '../routing/routing-rule/routing-rule-to-ipobj-group.model';
+import { IPSec } from '../vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../vpn/ipsec/IPSecPrefix';
 const asyncMod = require('async');
 const ipobj_g_Data = require('../data/data_ipobj_g');
 const ipobj_Data = require('../data/data_ipobj');
@@ -96,6 +98,12 @@ export class IPObjGroup extends Model {
 
   @ManyToMany((type) => WireGuardPrefix, (wireGuardPrefix) => wireGuardPrefix.ipObjGroups)
   wireGuardPrefixes: Array<WireGuardPrefix>;
+
+  @ManyToMany((type) => IPSec, (ipSec) => ipSec.ipObjGroups)
+  ipSecs: Array<IPSec>;
+
+  @ManyToMany((type) => IPSecPrefix, (ipSecPrefix) => ipSecPrefix.ipObjGroups)
+  ipSecPrefixes: Array<IPSecPrefix>;
 
   @OneToMany(() => RoutingRuleToIPObjGroup, (model) => model.ipObjGroup)
   routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[];
@@ -223,7 +231,7 @@ export class IPObjGroup extends Model {
             return resolve(ipVersions);
           }
 
-          // Check OpenVPN and WireGuard configurations
+          // Check OpenVPN, WireGuard and IPSec configurations
           dbCon.query(
             `select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`,
             (error, result) => {
@@ -267,9 +275,33 @@ export class IPObjGroup extends Model {
                               ipv4: true,
                               ipv6: false,
                             });
+                          dbCon.query(
+                            `select count(*) as n from ipsec__ipobj_g where ipobj_g=${group}`,
+                            (error, result) => {
+                              if (error) return reject(error);
+                              // If there is a IPSec configuration in the group, then this is an IPv4 group.
+                              if (result[0].n > 0)
+                                return resolve({
+                                  ipv4: true,
+                                  ipv6: false,
+                                });
 
-                          // If we arrive here, then the group is empty.
-                          resolve(ipVersions);
+                              dbCon.query(
+                                `select count(*) as n from ipsec_prefix__ipobj_g where ipobj_g=${group}`,
+                                (error, result) => {
+                                  if (error) return reject(error);
+                                  // If there is a IPSec prefix in the group, then this is an IPv4 group.
+                                  if (result[0].n > 0)
+                                    return resolve({
+                                      ipv4: true,
+                                      ipv6: false,
+                                    });
+                                  // If we arrive here, then the group is empty.
+                                  resolve(ipVersions);
+                                },
+                              );
+                            },
+                          );
                         },
                       );
                     },
@@ -319,6 +351,15 @@ export class IPObjGroup extends Model {
 
                 UNION select id, name, 'WGP' as type from wireguard_prefix W
                 inner join wireguard_prefix__ipobj_g R on R.prefix=W.id
+                where R.ipobj_g=${gid}
+
+                UNION select I.id, C.cn as name, 'IPC' as type from ipsec W
+                inner join ipsec__ipobj_g R on R.ipsec=W.id
+                inner join crt C on C.id=W.crt
+                where R.ipobj_g=${gid}
+
+                UNION select id, name, 'IPP' as type from ipsec_prefix W
+                inner join ipsec_prefix__ipobj_g R on R.prefix=W.id
                 where R.ipobj_g=${gid}
                 order by name`;
         dbCon.query(sql, async (error, rows) => {

@@ -25,6 +25,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMan
 import { Ca } from './Ca';
 import { OpenVPN } from '../openvpn/OpenVPN';
 import { WireGuard } from '../wireguard/WireGuard';
+import { IPSec } from '../ipsec/IPSec';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -73,6 +74,9 @@ export class Crt extends Model {
 
   @OneToMany((type) => WireGuard, (wireGuard) => wireGuard.crt)
   wireGuards: Array<WireGuard>;
+
+  @OneToMany((type) => IPSec, (ipsec) => ipsec.crt)
+  ipsecs: Array<IPSec>;
 
   public getTableName(): string {
     return tableName;

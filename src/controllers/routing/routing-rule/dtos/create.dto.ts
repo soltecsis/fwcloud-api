@@ -115,6 +115,22 @@ export class RoutingRuleControllerCreateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
+  ipSecIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipSecPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
   markIds?: PositionalEntityDto[];
 
   @IsNumber()

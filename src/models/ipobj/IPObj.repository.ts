@@ -291,7 +291,7 @@ export class IPObjRepository extends Repository<IPObj> {
       "wgOpt.name='address'",
     );
   }
-
+  //TODO: AÑADIR IPSEC
   getIpobjsInWireGuardPrefixesInRouting(
     entity: ValidEntities,
     fwcloud: number,
