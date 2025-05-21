@@ -25,7 +25,7 @@ let fwcProduct: FwCloudProduct;
 let nodeId: number;
 let manager: EntityManager;
 
-describe(describeName('WireGuard E2E Tests'), () => {
+describe.only(describeName('WireGuard E2E Tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
@@ -321,16 +321,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
       });
     });
 
-    describe.skip('@get', async () => {
-      beforeEach(async () => {
-        const { publicKey, privateKey } = await openpgp.generateKey({
-          userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
-          rsaBits: 2048,
-          type: 'rsa',
-          format: 'armored', // Change the format to 'binary'
-        });
-        console.log('publicKey', publicKey);
-      });
+    describe('@get', async () => {
       it('guest user should not be able to get WireGuard', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.wireguard.get'))
@@ -860,7 +851,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
       });
     });
 
-    describe.skip('@getClientOptions', async () => {
+    describe('@getClientOptions', async () => {
       it('guest user should not be able to get WireGuard client options', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.wireguard.client.options.get'))

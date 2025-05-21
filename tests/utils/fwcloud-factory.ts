@@ -622,8 +622,8 @@ export class FwCloudFactory {
         parentId: null,
         firewallId: this.fwc.firewall.id,
         crtId: this.fwc.crts.get('Wireguard-Server').id,
-        public_key: await utilsModel.encrypt('public-key'),
-        private_key: await utilsModel.encrypt('private-key'),
+        public_key: '',
+        private_key: '',
       }),
     );
 
@@ -646,8 +646,8 @@ export class FwCloudFactory {
           parentId: this.fwc.wireguardServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('WireGuard-Cli-1').id,
-          public_key: await utilsModel.encrypt('public-key'),
-          private_key: await utilsModel.encrypt('private-key'),
+          public_key: '',
+          private_key: '',
         }),
       ),
     );
@@ -660,8 +660,8 @@ export class FwCloudFactory {
           parentId: this.fwc.wireguardServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('WireGuard-Cli-2').id,
-          public_key: await utilsModel.encrypt('public-key'),
-          private_key: await utilsModel.encrypt('private-key'),
+          public_key: '',
+          private_key: '',
         }),
       ),
     );
@@ -674,8 +674,8 @@ export class FwCloudFactory {
           parentId: this.fwc.wireguardServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('WireGuard-Cli-3').id,
-          public_key: await utilsModel.encrypt('public-key'),
-          private_key: await utilsModel.encrypt('private-key'),
+          public_key: '',
+          private_key: '',
           ipObjGroups: [this.fwc.ipobjGroup],
         }),
       ),
