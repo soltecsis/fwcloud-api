@@ -105,7 +105,7 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
       });
     });
 
-    describe.skip('@update', () => {
+    describe('@update', () => {
       it('guest user should not be able to update a prefix', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.wireguard.prefix.update'))
@@ -138,12 +138,13 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
           .put(_URL().getURL('vpn.wireguard.prefix.update'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: 'test',
+            name: 'Wi',
             wireguard: fwcProduct.wireguardServer.id,
             fwcloud: fwcProduct.fwcloud.id,
+            prefix: fwcProduct.wireguardPrefix.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(204);
           });
       });
 
@@ -152,12 +153,13 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
           .put(_URL().getURL('vpn.wireguard.prefix.update'))
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
-            name: 'test',
+            name: 'Wi',
             wireguard: fwcProduct.wireguardServer.id,
             fwcloud: fwcProduct.fwcloud.id,
+            prefix: fwcProduct.wireguardPrefix.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(204);
           });
       });
     });
@@ -250,7 +252,7 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(204);
           });
       });
 
@@ -263,15 +265,15 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(204);
           });
       });
     });
 
-    describe.skip('@delete', () => {
+    describe('@delete', () => {
       it('guest user should not be able to delete a prefix', async () => {
         await request(app.express)
-          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .put(_URL().getURL('vpn.wireguard.prefix.del'))
           .send({
             prefix: fwcProduct.wireguardPrefix.id,
             fwcloud: fwcProduct.fwcloud.id,
@@ -283,7 +285,7 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
 
       it('user should not be able to delete a prefix', async () => {
         await request(app.express)
-          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .put(_URL().getURL('vpn.wireguard.prefix.del'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
             prefix: fwcProduct.wireguardPrefix.id,
@@ -296,27 +298,27 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
 
       it('regular user should be able to delete a prefix', async () => {
         await request(app.express)
-          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .put(_URL().getURL('vpn.wireguard.prefix.del'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
             prefix: fwcProduct.wireguardPrefix.id,
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(204);
           });
       });
 
       it('admin user should be able to delete a prefix', async () => {
         await request(app.express)
-          .delete(_URL().getURL('vpn.wireguard.prefix.del'))
+          .put(_URL().getURL('vpn.wireguard.prefix.del'))
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             prefix: fwcProduct.wireguardPrefix.id,
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(204);
           });
       });
     });

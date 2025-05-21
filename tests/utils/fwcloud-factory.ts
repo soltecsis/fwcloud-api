@@ -676,7 +676,6 @@ export class FwCloudFactory {
           crtId: this.fwc.crts.get('WireGuard-Cli-3').id,
           public_key: '',
           private_key: '',
-          //ipObjGroups: [this.fwc.ipobjGroup],
         }),
       ),
     );
@@ -686,7 +685,6 @@ export class FwCloudFactory {
         id: this.randomId(10, 100000),
         wireGuardId: this.fwc.wireguardServer.id,
         name: 'WireGuard-Cli-',
-        ipObjGroups: [this.fwc.ipobjGroup],
       }),
     );
   }
