@@ -12,8 +12,8 @@ import { Tree } from '../../../../../src/models/tree/Tree';
 import request = require('supertest');
 import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
 import { WireGuardController } from '../../../../../src/routes/vpn/wireguard/wireguard.controller';
-
-const openpgp = require('openpgp');
+import { WireGuardPrefix } from '../../../../../src/models/vpn/wireguard/WireGuardPrefix';
+import { WireGuardOption } from '../../../../../src/models/vpn/wireguard/wireguard-option.model';
 
 let app: Application;
 let wireGuardService: WireGuardService;
@@ -585,7 +585,16 @@ describe(describeName('WireGuard E2E Tests'), () => {
       });
     });
 
-    describe.skip('@delete', async () => {
+    describe('@delete', async () => {
+      beforeEach(async () => {
+        await Promise.all(
+          Array.from(fwcProduct.wireguardClients.values()).map((client) =>
+            manager.getRepository(WireGuard).delete(client.id),
+          ),
+        );
+        await manager.getRepository(WireGuardPrefix).delete(fwcProduct.wireguardPrefix.id);
+        await manager.getRepository(WireGuardOption).clear();
+      });
       it('guest user should not be able to delete WireGuard', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.wireguard.delete'))
@@ -620,7 +629,6 @@ describe(describeName('WireGuard E2E Tests'), () => {
             wireguard: fwcProduct.wireguardServer.id,
           })
           .then((response) => {
-            console.log('response', response);
             expect(response.status).to.equal(204);
           });
       });
@@ -631,7 +639,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             fwcloud: fwcProduct.fwcloud.id,
-            wireguard: fwcProduct.wireguardClients.get('WireGuard-Cli-2').id,
+            wireguard: fwcProduct.wireguardServer.id,
           })
           .then((response) => {
             expect(response.status).to.equal(204);
