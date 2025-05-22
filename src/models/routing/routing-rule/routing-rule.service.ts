@@ -1070,7 +1070,7 @@ export class RoutingRuleService extends Service {
 
     for (let i = 0; i < data.ipSecIds.length; i++) {
       if (ipsecs.findIndex((item) => item.id === data.ipSecIds[i].id) < 0) {
-        errors[`ipSecIds.${i}.id`] = ['wireguard does not exists'];
+        errors[`ipSecIds.${i}.id`] = ['ipsec does not exists'];
       }
     }
 

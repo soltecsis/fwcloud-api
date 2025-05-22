@@ -39,6 +39,8 @@ import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
 import { IPObj } from '../models/ipobj/IPObj';
 import  db  from '../database/database-manager'
 import { SimpleConsoleLogger } from 'typeorm';
+import { WireGuardPrefix } from '../models/vpn/wireguard/WireGuardPrefix';
+import { IPSecPrefix } from '../models/vpn/ipsec/IPSecPrefix';
 
 
 restrictedCheck.customer = async(req, res, next) => {
@@ -225,6 +227,10 @@ restrictedCheck.crt = async (req, res, next) => {
 			return res.status(403).json(wireguardData);
 		}
 
+		const ipsecData = await Crt.searchCRTInIpsec(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (ipsecData.result) {
+			return res.status(403).json(ipsecData);
+		}
 		next();
 	} catch (error) {
 		res.status(400).json(error);
@@ -234,6 +240,22 @@ restrictedCheck.crt = async (req, res, next) => {
 restrictedCheck.openvpn_prefix = async(req, res, next) => {
 	try {
 		let data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
+		if (data.result) return res.status(403).json(data);
+
+		next();
+	} catch (error) { res.status(400).json(error) }
+};
+restrictedCheck.wireguard_prefix = async(req, res, next) => {
+	try {
+		let data = await WireGuardPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
+		if (data.result) return res.status(403).json(data);
+
+		next();
+	} catch (error) { res.status(400).json(error) }
+};
+restrictedCheck.ipsec_prefix = async(req, res, next) => {
+	try {
+		let data = await IPSecPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
 		if (data.result) return res.status(403).json(data);
 
 		next();
