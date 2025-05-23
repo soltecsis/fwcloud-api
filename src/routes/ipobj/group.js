@@ -211,13 +211,36 @@ router.put('/addto', async (req, res) => {
 			// Don't allow adding an empty WireGuard server prefix to a group.
 			if ((await WireGuardPrefix.getWireGuardClientsUnderPrefix(
 				req.dbCon,
-				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').openvpn,
+				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').openvpn, //TODO: .wireguard ??
 				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').name)).length < 1) {
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 			}
 
 			await WireGuardPrefix.addPrefixToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
 			dataIpobj = await WireGuardPrefix.getPrefixWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			dataIpobj[0].type = 402;
+		} else if (req.body.node_type === 'ISC') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			await IPSec.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await IPSec.getIPSecInfo(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			dataIpobj[0].name = dataIpobj[0].cn;
+			dataIpobj[0].type = 321;
+		} else if (req.body.node_type === 'PRW') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			// Don't allow adding an empty IPSec server prefix to a group.
+			if ((await IPSecPrefix.getIPSecClientsUnderPrefix(
+				req.dbCon,
+				req.prefix.find(prefix => prefix.prefix_type === 'ipsec').openvpn, //TODO: .ipsec ??
+				req.prefix.find(prefix => prefix.prefix_type === 'ipsec').name)).length < 1) {
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
+
+			await IPSecPrefix.addPrefixToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await IPSecPrefix.getPrefixIPSecInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 402;
 		} else {

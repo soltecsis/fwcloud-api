@@ -164,8 +164,31 @@ export class Ca extends Model {
           if (error) return reject(error);
 
           tree.wireguard_info = result;
-          resolve();
+
+          //resolve();
+          sql = `SELECT VPN.id as ipsec,VPN.ipsec as ipsec_parent,CRT.id as crt,CRT.ca, OPT.name as ipsec_disabled
+          FROM crt CRT
+          INNER JOIN ipsec VPN on VPN.crt=CRT.id
+          INNER JOIN firewall FW on FW.id=VPN.firewall
+          LEFT JOIN ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name='<<disable>>'
+          WHERE FW.fwcloud=${req.body.fwcloud}`;
+
+          req.dbCon.query(sql, (error, result) => {
+            if (error) return reject(error);
+
+            tree.ipsec_info = result;
+
+            resolve();
+          });
         });
+      });
+    });
+  }
+  private static executeQuery(dbCon, sql): Promise<any> {
+    return new Promise((resolve, reject) => {
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
       });
     });
   }

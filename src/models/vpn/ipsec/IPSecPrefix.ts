@@ -70,11 +70,11 @@ export class IPSecPrefix extends Model {
   })
   ipObjGroups: Array<IPObjGroup>;
 
-  @ManyToOne((type) => IPSec, (model) => model.ipsecPrefixes)
+  @ManyToOne((type) => IPSec, (model) => model.ipSecPrefixes)
   @JoinColumn({
     name: 'ipsec',
   })
-  ipsec: IPSec;
+  ipSec: IPSec;
 
   @OneToMany(
     (type) => PolicyRuleToIPSecPrefix,
