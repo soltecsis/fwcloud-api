@@ -139,33 +139,51 @@ export class Ca extends Model {
   /**
    * Store the CA and cert ids into the tree's nodes used for the OpenVPN configurations.
    */
-  public static storePkiInfo(req, tree): Promise<void> {
+  public static async storePkiInfo(req, tree): Promise<void> {
+    const queries = [
+      {
+        key: 'openvpn_info',
+        sql: `SELECT VPN.id as openvpn, VPN.openvpn as openvpn_parent, CRT.id as crt, CRT.ca, OPT.name as openvpn_disabled 
+              FROM crt CRT
+              INNER JOIN openvpn VPN on VPN.crt=CRT.id
+              INNER JOIN firewall FW on FW.id=VPN.firewall
+              LEFT JOIN openvpn_opt OPT on OPT.openvpn=VPN.id and OPT.name='disable'
+              WHERE FW.fwcloud=${req.body.fwcloud}`,
+      },
+      {
+        key: 'wireguard_info',
+        sql: `SELECT VPN.id as wireguard, VPN.wireguard as wireguard_parent, CRT.id as crt, CRT.ca, OPT.name as wireguard_disabled
+              FROM crt CRT
+              INNER JOIN wireguard VPN on VPN.crt=CRT.id
+              INNER JOIN firewall FW on FW.id=VNP.firewall
+              LEFT JOIN wireguard_opt OPT on OPT.wireguard=VPN.id and OPT.name='<<disable>>'
+              WHERE FW.fwcloud=${req.body.fwcloud}`,
+      },
+      {
+        key: 'ipsec_info',
+        sql: `SELECT VPN.id as ipsec, VPN.ipsec as ipsec_parent, CRT.id as crt, CRT.ca, OPT.name as ipsec_disabled
+              FROM crt CRT
+              INNER JOIN ipsec VPN on VPN.crt=CRT.id
+              INNER JOIN firewall FW on FW.id=VPN.firewall
+              LEFT JOIN ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name='<<disable>>'
+              WHERE FW.fwcloud=${req.body.fwcloud}`,
+      },
+    ];
+
+    // Execute all the queries
+    const results = await Promise.all(queries.map((q) => this.executeQuery(req.dbCon, q.sql)));
+
+    // Assign results to the tree
+    queries.forEach((q, index) => {
+      tree[q.key] = results[index];
+    });
+  }
+
+  private static executeQuery(dbCon, sql): Promise<any> {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
-                  FROM crt CRT
-                  INNER JOIN openvpn VPN on VPN.crt=CRT.id
-                  INNER JOIN firewall FW on FW.id=VPN.firewall
-                  LEFT JOIN openvpn_opt OPT on OPT.openvpn=VPN.id and OPT.name='disable'
-                  WHERE FW.fwcloud=${req.body.fwcloud}`;
-
-      req.dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-
-        tree.openvpn_info = result;
-
-        sql = `SELECT VPN.id as wireguard,VPN.wireguard as wireguard_parent,CRT.id as crt,CRT.ca, OPT.name as wireguard_disabled
-                FROM crt CRT
-                INNER JOIN wireguard VPN on VPN.crt=CRT.id
-                INNER JOIN firewall FW on FW.id=VPN.firewall
-                LEFT JOIN wireguard_opt OPT on OPT.wireguard=VPN.id and OPT.name='<<disable>>'
-                WHERE FW.fwcloud=${req.body.fwcloud}`;
-
-        req.dbCon.query(sql, (error, result) => {
-          if (error) return reject(error);
-
-          tree.wireguard_info = result;
-          resolve();
-        });
+        resolve(result);
       });
     });
   }

@@ -36,7 +36,7 @@ export class RoutingRuleToIPSec extends Model {
   @JoinColumn({
     name: 'ipsec',
   })
-  ipsec: IPSec;
+  ipSec: IPSec;
 
   public getTableName(): string {
     return tableName;

@@ -98,13 +98,13 @@ export class IPSec extends Model {
   @Column({ name: 'ipsec' })
   parentId: number;
 
-  @ManyToOne((type) => IPSec, (ipsec) => ipsec.childs)
+  @ManyToOne((type) => IPSec, (ipSec) => ipSec.childs)
   @JoinColumn({
     name: 'ipsec',
   })
   parent: IPSec;
 
-  @OneToMany((type) => IPSec, (ipsec) => ipsec.parent)
+  @OneToMany((type) => IPSec, (ipSec) => ipSec.parent)
   childs: Array<IPSec>;
 
   @Column({ name: 'firewall' })
@@ -119,13 +119,13 @@ export class IPSec extends Model {
   @Column({ name: 'crt' })
   crtId: number;
 
-  @ManyToOne((type) => Crt, (crt) => crt.ipsecs)
+  @ManyToOne((type) => Crt, (crt) => crt.ipSecs)
   @JoinColumn({
     name: 'crt',
   })
   crt: Crt;
 
-  @OneToMany((type) => IPSecOption, (options) => options.ipsec)
+  @OneToMany((type) => IPSecOption, (options) => options.ipSec)
   IPSecOptions: Array<IPSecOption>;
 
   @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.ipSecs)
@@ -140,16 +140,16 @@ export class IPSec extends Model {
   })
   ipObjGroups: Array<IPObjGroup>;
 
-  @OneToMany((type) => PolicyRuleToIPSec, (policyRuleToIPSec) => policyRuleToIPSec.ipsec)
+  @OneToMany((type) => PolicyRuleToIPSec, (policyRuleToIPSec) => policyRuleToIPSec.ipSec)
   policyRuleToIPSecs: Array<PolicyRuleToIPSec>;
 
-  @OneToMany((type) => IPSecPrefix, (model) => model.ipsec)
-  ipsecPrefixes: Array<IPSecPrefix>;
+  @OneToMany((type) => IPSecPrefix, (model) => model.ipSec)
+  ipSecPrefixes: Array<IPSecPrefix>;
 
-  @OneToMany(() => RoutingRuleToIPSec, (model) => model.ipsec)
+  @OneToMany(() => RoutingRuleToIPSec, (model) => model.ipSec)
   routingRuleToIPSecs: RoutingRuleToIPSec[];
 
-  @OneToMany(() => RouteToIPSec, (model) => model.ipsec)
+  @OneToMany(() => RouteToIPSec, (model) => model.ipSec)
   routeToIPSecs: RouteToIPSec[];
 
   public getTableName(): string {
@@ -238,12 +238,12 @@ export class IPSec extends Model {
 
   public static updateCfgOpt(
     dbCon: Query,
-    ipsec: number,
+    ipSec: number,
     name: string,
     arg: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `UPDATE ipsec_opt SET arg=${dbCon.escape(arg)} WHERE ipsec=${ipsec} and name=${dbCon.escape(name)}`;
+      const sql = `UPDATE ipsec_opt SET arg=${dbCon.escape(arg)} WHERE ipsec=${ipSec} and name=${dbCon.escape(name)}`;
       dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
@@ -269,11 +269,11 @@ export class IPSec extends Model {
   public static updateIpObjCfgOpt(
     dbCon: Query,
     ipobj: number,
-    ipsec: number,
+    ipSec: number,
     name: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `UPDATE ipsec_opt SET ipobj=${ipobj} WHERE ipsec=${ipsec} and name=${dbCon.escape(name)}`;
+      const sql = `UPDATE ipsec_opt SET ipobj=${ipobj} WHERE ipsec=${ipSec} and name=${dbCon.escape(name)}`;
       dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
@@ -314,29 +314,29 @@ export class IPSec extends Model {
   public static delCfg(
     dbCon: Query,
     fwcloud: number,
-    ipsec: number,
+    ipSec: number,
     isClient = false,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get all the ipobj referenced by this IPSec configuration.
       const sql = `select OBJ.id,OBJ.type from ipsec_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.ipsec=${ipsec} and OPT.name!='Endpoint'`;
+                where OPT.ipsec=${ipSec} and OPT.name!='Endpoint'`;
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
         if (isClient) {
-          dbCon.query(`delete from ipsec_opt where ipsec_cli=${ipsec}`, (error, _) => {
+          dbCon.query(`delete from ipsec_opt where ipsec_cli=${ipSec}`, (error, _) => {
             if (error) return reject(error);
             // Continue with the rest of the deletion process
           });
         }
-        dbCon.query(`delete from ipsec_opt where ipsec=${ipsec}`, (error, _) => {
+        dbCon.query(`delete from ipsec_opt where ipsec=${ipSec}`, (error, _) => {
           if (error) return reject(error);
-          dbCon.query(`delete from ipsec_prefix where ipsec=${ipsec}`, (error, _) => {
+          dbCon.query(`delete from ipsec_prefix where ipsec=${ipSec}`, (error, _) => {
             if (error) return reject(error);
 
-            dbCon.query(`delete from ${tableName} where id=${ipsec}`, async (error, _) => {
+            dbCon.query(`delete from ${tableName} where id=${ipSec}`, async (error, _) => {
               if (error) return reject(error);
 
               // Remove all the ipobj referenced by this IPSec configuration.
@@ -372,13 +372,13 @@ export class IPSec extends Model {
         try {
           // First delete client configurations, if exist
           const clientConfigs = result.filter((r) => r.type === 1 && r.ipsec !== null);
-          for (const ipsec of clientConfigs) {
-            await this.delCfg(dbCon, fwcloud, ipsec.id, true);
+          for (const ipSec of clientConfigs) {
+            await this.delCfg(dbCon, fwcloud, ipSec.id, true);
           }
           // Afterwards, delete server configurations
           const serverConfigs = result.filter((r) => r.type !== 1);
-          for (const ipsec of serverConfigs) {
-            await this.delCfg(dbCon, fwcloud, ipsec.id);
+          for (const ipSec of serverConfigs) {
+            await this.delCfg(dbCon, fwcloud, ipSec.id);
           }
         } catch (error) {
           return reject(error);
@@ -399,9 +399,9 @@ export class IPSec extends Model {
     });
   }
 
-  public static getCfg(dbCon: Query, ipsec: number): Promise<any> {
+  public static getCfg(dbCon: Query, ipSec: number): Promise<any> {
     return new Promise((resolve, reject) => {
-      let sql = `select * from ${tableName} where id=${ipsec}`;
+      let sql = `select * from ${tableName} where id=${ipSec}`;
       dbCon.query(sql, (error, ipsec_result) => {
         if (error) return reject(error);
 
@@ -411,12 +411,12 @@ export class IPSec extends Model {
           sql = `select * from ${tableName} where id=${data.ipsec}`;
           dbCon.query(sql, async (error, result) => {
             if (error) return reject(error);
-            const serverPublicKey = await utilsModel.decryptIpsecData(result[0]);
+            const serverPublicKey = await utilsModel.decryptWireguardData(result[0]);
             data.server_public_key = serverPublicKey.public_key;
           });
         }
 
-        sql = `select * from ipsec_opt where ipsec=${ipsec}`;
+        sql = `select * from ipsec_opt where ipsec=${ipSec}`;
         dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
 
@@ -424,7 +424,7 @@ export class IPSec extends Model {
           try {
             const ipsec_data = (
               await Promise.all(
-                ipsec_result.map((ipsec: IPSec) => utilsModel.decryptIpsecData(ipsec)),
+                ipsec_result.map((ipsec: IPSec) => utilsModel.decryptWireguardData(ipsec)),
               )
             )[0];
 
@@ -437,10 +437,10 @@ export class IPSec extends Model {
     });
   }
 
-  public static getOptData(dbCon: Query, ipsec: number, name: string) {
+  public static getOptData(dbCon: Query, ipSec: number, name: string) {
     return new Promise((resolve, reject) => {
       const sql =
-        'select * from ipsec_opt where ipsec=' + ipsec + ' and name=' + dbCon.escape(name);
+        'select * from ipsec_opt where ipsec=' + ipSec + ' and name=' + dbCon.escape(name);
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result.length === 0 ? null : result[0]);
@@ -477,21 +477,21 @@ export class IPSec extends Model {
   }
 
   // Get data of an IPSec server clients.
-  public static getIPSecClientsInfo(dbCon: Query, ipsec: number): Promise<any[]> {
+  public static getIPSecClientsInfo(dbCon: Query, ipSec: number): Promise<any[]> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT VPN.*, CRT.cn, VPN.status 
                    FROM ipsec VPN 
                    INNER JOIN crt CRT ON CRT.id = VPN.crt
                    WHERE VPN.ipsec = ?`;
 
-      dbCon.query(sql, [ipsec], async (error: any, result: IPSec[]) => {
+      dbCon.query(sql, [ipSec], async (error: any, result: IPSec[]) => {
         if (error) return reject(error);
         if (result.length === 0) return resolve([]); // If there are no VPNs, return an empty array
 
         const vpnIds = result.map((vpn) => vpn.id);
         if (vpnIds.length === 0) return resolve(result);
         try {
-          result = await Promise.all(result.map((vpn) => utilsModel.decryptIpsecData(vpn)));
+          result = await Promise.all(result.map((vpn) => utilsModel.decryptWireguardData(vpn)));
         } catch (error) {
           return reject(error);
         }
@@ -555,7 +555,7 @@ export class IPSec extends Model {
   }
 
   // Get the CN of the IPSec server certificate and the IDs of the IPSec clients
-  public static getIPSecClients(dbCon: Query, ipsec: number): Promise<any[]> {
+  public static getIPSecClients(dbCon: Query, ipSec: number): Promise<any[]> {
     return new Promise((resolve, reject) => {
       // First, get all IPSec clients linked to the given server
       const sqlClient = `
@@ -568,7 +568,7 @@ export class IPSec extends Model {
         ORDER BY CRT.cn
       `;
 
-      dbCon.query(sqlClient, [ipsec], async (error: any, clients: any[]) => {
+      dbCon.query(sqlClient, [ipSec], async (error: any, clients: any[]) => {
         if (error) return reject(error);
         if (clients.length === 0) return resolve([]);
 
@@ -596,7 +596,7 @@ export class IPSec extends Model {
                   `SELECT * 
                  FROM ipsec_opt 
                  WHERE ipsec = ? AND ipsec_cli = ? AND name = 'AllowedIPs'`,
-                  [ipsec, vpn.id],
+                  [ipSec, vpn.id],
                   (err, rows) => (err ? rej(err) : res(rows)),
                 );
               });
@@ -639,7 +639,7 @@ export class IPSec extends Model {
   }
 
   // Get IPSec client configuration data.
-  public static getIPSecInfo(dbCon: Query, fwcloud: number, ipsec: number, type: number) {
+  public static getIPSecInfo(dbCon: Query, fwcloud: number, ipSec: number, type: number) {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
@@ -649,9 +649,9 @@ export class IPSec extends Model {
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 inner join firewall FW on FW.id=VPN.firewall
-                inner join ipsec_opt OPT on OPT.ipsec=${ipsec}
+                inner join ipsec_opt OPT on OPT.ipsec=${ipSec}
                 inner join ipobj O on O.id=OPT.ipobj
-                where FW.fwcloud=${fwcloud} and VPN.id=${ipsec}`;
+                where FW.fwcloud=${fwcloud} and VPN.id=${ipSec}`;
       // TODO: Revisar si es necesario filtrar por el tipo de certificado
       /*${type === 1 ? `and OPT.name='ifconfig-push'` : ``}`;*/
       dbCon.query(sql, (error, result) => {
@@ -677,7 +677,7 @@ export class IPSec extends Model {
     });
   }
 
-  public static dumpCfg(dbCon: Query, ipsec: number) {
+  public static dumpCfg(dbCon: Query, ipSec: number) {
     return new Promise((resolve, reject) => {
       // First obtain the CN of the certificate.
       const sqlCN = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
@@ -686,7 +686,7 @@ export class IPSec extends Model {
                 LEFT JOIN ipsec VPNSRV ON VPNSRV.id=VPN.ipsec
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
                 LEFT JOIN cluster CL ON CL.id=FW.cluster
-                WHERE VPN.id=${ipsec}`;
+          WHERE VPN.id=${ipSec}`;
 
       dbCon.query(sqlCN, async (error, result) => {
         if (error) return reject(error);
@@ -702,14 +702,14 @@ export class IPSec extends Model {
           result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
         if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
           result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
-        wg_cfg += `# Ipsec Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
+        wg_cfg += `# Wireguard Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
         wg_cfg += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         const sql = `SELECT *
                    FROM ipsec WG
                    LEFT JOIN firewall FW ON FW.id = WG.firewall
                    LEFT JOIN cluster CL ON CL.id=FW.cluster
-                   WHERE WG.id=${ipsec}`;
+                   WHERE WG.id=${ipSec}`;
         dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
           if (!result || result.length === 0)
@@ -721,7 +721,7 @@ export class IPSec extends Model {
 
           const sqlOpts = `SELECT *
                          FROM ipsec_opt OPT
-                         WHERE OPT.ipsec=${ipsec}
+                         WHERE OPT.ipsec=${ipSec}
                          AND OPT.name IN ('Address', 'ListenPort', 'DNS', 'MTU', 'Table', 'PreUp', 'PostUp', 'PreDown', 'PostDown', 'SaveConfig', 'FwMark')
                          ORDER BY OPT.order`;
           dbCon.query(sqlOpts, (optError, optResult) => {
@@ -733,7 +733,7 @@ export class IPSec extends Model {
             });
             wg_cfg += interfaceLines.length ? interfaceLines.join('\n') + '\n\n' : '\n';
 
-            const sqlCheckIsClient = `SELECT ipsec FROM ipsec WHERE id=${ipsec}`;
+            const sqlCheckIsClient = `SELECT ipsec FROM ipsec WHERE id=${ipSec}`;
             dbCon.query(sqlCheckIsClient, (error, result) => {
               if (error) return reject(error);
               if (result.length === 0) return reject(new Error('IPSec configuration not found'));
@@ -742,12 +742,12 @@ export class IPSec extends Model {
                 ? `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                  FROM ipsec_opt OPT
                  INNER JOIN ipsec PEER ON PEER.id=OPT.ipsec
-                 WHERE OPT.ipsec=${ipsec} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', '<<disable>>') AND OPT.ipsec_cli IS NULL
+                 WHERE OPT.ipsec=${ipSec} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', '<<disable>>') AND OPT.ipsec_cli IS NULL
                  ORDER BY OPT.name`
                 : `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                  FROM ipsec PEER 
                  INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id 
-                 WHERE PEER.ipsec=${ipsec} AND OPT.name IN ('Address', '<<disable>>')
+                 WHERE PEER.ipsec=${ipSec} AND OPT.name IN ('Address', '<<disable>>')
                  ORDER BY OPT.name`;
 
               dbCon.query(sqlPeers, async (peerError, peerResult) => {
@@ -768,7 +768,7 @@ export class IPSec extends Model {
                   const peer = peerGroups[peerId];
 
                   if (!isClient) {
-                    const sqlClientOpts = `SELECT * FROM ipsec_opt WHERE ipsec_cli=${peerId} AND ipsec = ${ipsec}`;
+                    const sqlClientOpts = `SELECT * FROM ipsec_opt WHERE ipsec_cli=${peerId} AND ipsec = ${ipSec}`;
                     const clientOptResult = await new Promise((resolve, reject) => {
                       dbCon.query(sqlClientOpts, (clientOptError, clientOptResult) => {
                         if (clientOptError) return reject(clientOptError);
@@ -814,7 +814,7 @@ export class IPSec extends Model {
                   const formatPeerSection = async (peer: any, isDisabled: boolean) => {
                     let section: string;
                     if (isClient) {
-                      const serverIdSql = `SELECT * from ${tableName} where id = (SELECT ipsec FROM ${tableName} WHERE id=${ipsec})`;
+                      const serverIdSql = `SELECT * from ${tableName} where id = (SELECT ipsec FROM ${tableName} WHERE id=${ipSec})`;
                       const serverResult = await new Promise((resolve, reject) => {
                         dbCon.query(serverIdSql, (error, result) => {
                           if (error) return reject(error);
@@ -847,18 +847,18 @@ export class IPSec extends Model {
     });
   }
 
-  public static updateIPSecStatus(dbCon: Query, ipsec: number, status_action: string) {
+  public static updateIPSecStatus(dbCon: Query, ipSec: number, status_action: string) {
     return new Promise((resolve, reject) => {
-      dbCon.query(`UPDATE ipsec SET status=status${status_action} WHERE id=${ipsec}`, (error) => {
+      dbCon.query(`UPDATE ipsec SET status=status${status_action} WHERE id=${ipSec}`, (error) => {
         if (error) return reject(error);
         resolve({ result: true });
       });
     });
   }
 
-  public static updateIPSecInstallDate(dbCon: Query, ipsec: number) {
+  public static updateIPSecInstallDate(dbCon: Query, ipSec: number) {
     return new Promise((resolve, reject) => {
-      dbCon.query(`UPDATE ipsec SET installed_at=NOW() WHERE id=${ipsec}`, (error) => {
+      dbCon.query(`UPDATE ipsec SET installed_at=NOW() WHERE id=${ipSec}`, (error) => {
         if (error) return reject(error);
         resolve({ result: true });
       });
@@ -935,7 +935,7 @@ export class IPSec extends Model {
   public static searchIPSecUsage(
     dbCon: any,
     fwcloud: number,
-    ipsec: number,
+    ipSec: number,
     extendedSearch?: boolean,
   ): Promise<any> {
     return new Promise(async (resolve, reject) => {
@@ -952,30 +952,30 @@ export class IPSec extends Model {
         search.restrictions.IPSecInRule = await PolicyRuleToIPSec.searchIPSecInRule(
           dbCon,
           fwcloud,
-          ipsec,
+          ipSec,
         );
         search.restrictions.IPSecInGroup = await PolicyRuleToIPSec.searchIPSecInGroup(
           dbCon,
           fwcloud,
-          ipsec,
+          ipSec,
         );
         search.restrictions.LastIPSecInPrefixInRule =
-          await PolicyRuleToIPSec.searchLastIPSecInPrefixInRule(dbCon, fwcloud, ipsec);
+          await PolicyRuleToIPSec.searchLastIPSecInPrefixInRule(dbCon, fwcloud, ipSec);
         search.restrictions.LastIPSecInPrefixInGroup =
-          await PolicyRuleToIPSec.searchLastIPSecInPrefixInGroup(dbCon, fwcloud, ipsec);
+          await PolicyRuleToIPSec.searchLastIPSecInPrefixInGroup(dbCon, fwcloud, ipSec);
 
-        search.restrictions.IPSecInRoute = await this.searchIPSecInRoute(fwcloud, ipsec);
+        search.restrictions.IPSecInRoute = await this.searchIPSecInRoute(fwcloud, ipSec);
         search.restrictions.IPSecInGroupInRoute = await this.searchIPSecInGroupInRoute(
           fwcloud,
-          ipsec,
+          ipSec,
         );
         search.restrictions.IPSecInRoutingRule = await this.searchIPSecInRoutingRule(
           fwcloud,
-          ipsec,
+          ipSec,
         );
         search.restrictions.IPSecInGroupInRoutingRule = await this.searchIPSecInGroupInRoutingRule(
           fwcloud,
-          ipsec,
+          ipSec,
         );
 
         if (extendedSearch) {
@@ -992,7 +992,7 @@ export class IPSec extends Model {
           if (search.restrictions.LastIPSecInPrefixInRule.length == 0) {
             // Include the rules that use prefixes in which the IPSec is being used, including the
             // groups (used in rules) in which these prefixes are being used.
-            const prefixes = await IPSecPrefix.getIPSecClientPrefixes(dbCon, ipsec);
+            const prefixes = await IPSecPrefix.getIPSecClientPrefixes(dbCon, ipSec);
             search.restrictions.IPSecInPrefixInRule = [];
             search.restrictions.IPSecInPrefixInGroupInRule = [];
             if (Array.isArray(prefixes)) {
@@ -1037,7 +1037,7 @@ export class IPSec extends Model {
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('route.routeToIPSecs', 'routeToIPSecs')
-      .innerJoin('routeToIPSecs.ipsec', 'ipsec', 'ipsec.id = :ipsec', {
+      .innerJoin('routeToIPSecs.ipSec', 'ipsec', 'ipsec.id = :ipsec', {
         ipsec: ipsec,
       })
       .innerJoinAndSelect('route.routingTable', 'table')
@@ -1047,7 +1047,7 @@ export class IPSec extends Model {
       .getRawMany();
   }
 
-  public static async searchIPSecInRoutingRule(fwcloud: number, ipsec: number): Promise<any> {
+  public static async searchIPSecInRoutingRule(fwcloud: number, ipSec: number): Promise<any> {
     return await db
       .getSource()
       .manager.getRepository(RoutingRule)
@@ -1057,8 +1057,8 @@ export class IPSec extends Model {
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('routing_rule.routingRuleToIPSecs', 'routingRuleToIPSecs')
-      .innerJoin('routingRuleToIPSecs.ipsec', 'ipsec', 'ipsec.id = :ipsec', {
-        ipsec: ipsec,
+      .innerJoin('routingRuleToIPSecs.ipSec', 'ipsec', 'ipsec.id = :ipsec', {
+        ipsec: ipSec,
       })
       .innerJoinAndSelect('routing_rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
@@ -1067,7 +1067,7 @@ export class IPSec extends Model {
       .getRawMany();
   }
 
-  public static async searchIPSecInGroupInRoute(fwcloud: number, ipsec: number): Promise<any> {
+  public static async searchIPSecInGroupInRoute(fwcloud: number, ipSec: number): Promise<any> {
     return await db
       .getSource()
       .manager.getRepository(Route)
@@ -1079,8 +1079,8 @@ export class IPSec extends Model {
       .innerJoinAndSelect('route.routingTable', 'table')
       .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
       .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
-      .innerJoin('ipObjGroup.ipsecs', 'ipsec', 'ipsec.id = :ipsec', {
-        ipsec: ipsec,
+      .innerJoin('ipObjGroup.ipSecs', 'ipsec', 'ipsec.id = :ipsec', {
+        ipsec: ipSec,
       })
       .innerJoin('table.firewall', 'firewall')
       .leftJoin('firewall.cluster', 'cluster')
@@ -1090,7 +1090,7 @@ export class IPSec extends Model {
 
   public static async searchIPSecInGroupInRoutingRule(
     fwcloud: number,
-    ipsec: number,
+    ipSec: number,
   ): Promise<any> {
     return await db
       .getSource()
@@ -1102,8 +1102,8 @@ export class IPSec extends Model {
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
       .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
-      .innerJoin('ipObjGroup.ipsecs', 'ipsec', 'ipsec.id = :ipsec', {
-        ipsec: ipsec,
+      .innerJoin('ipObjGroup.ipSecs', 'ipsec', 'ipsec.id = :ipsec', {
+        ipsec: ipSec,
       })
       .innerJoin('routing_rule.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
@@ -1167,12 +1167,12 @@ export class IPSec extends Model {
   public static searchIPSecChild(
     dbCon: Query,
     fwcloud: number,
-    ipsec: number,
+    ipSec: number,
   ): Promise<{ result: boolean; restrictions?: any }> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id FROM ipsec VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
-                WHERE FW.fwcloud=${fwcloud} AND VPN.ipsec=${ipsec}`;
+                WHERE FW.fwcloud=${fwcloud} AND VPN.ipsec=${ipSec}`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
@@ -1202,16 +1202,16 @@ export class IPSec extends Model {
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
       req.dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
-        data.ipsec_status = rows;
+        data.ipSec_status = rows;
         resolve(data);
       });
     });
   }
 
-  public static addToGroup(dbCon: any, ipsec: number, ipobj_g: number) {
+  public static addToGroup(dbCon: any, ipSec: number, ipobj_g: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `INSERT INTO ipsec__ipobj_g values(${ipsec},${ipobj_g})`,
+        `INSERT INTO ipsec__ipobj_g values(${ipSec},${ipobj_g})`,
         (error: any, result: any) => {
           if (error) return reject(error);
           resolve(result.insertId);
@@ -1236,11 +1236,11 @@ export class IPSec extends Model {
     isUpdate: boolean,
   ): Promise<void> {
     try {
-      const ipsecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'Address');
-      if (!ipsecOpt) return;
+      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'Address');
+      if (!ipSecOpt) return;
 
       const interfaceName = req.body.install_name.replace(/\.conf$/, '');
-      const [ip, cidr] = (ipsecOpt as { arg: string }).arg.split('/');
+      const [ip, cidr] = (ipSecOpt as { arg: string }).arg.split('/');
       const interfaceIp = { ip, netmask: `/${cidr}` };
 
       const interfaces = await Interface.getInterfaces(
@@ -1441,14 +1441,14 @@ export class IPSec extends Model {
 
   public static getPeerOptions(
     dbCon: Query,
-    ipsec: number,
+    ipSec: number,
     ipsec_cli: number,
   ): Promise<{ publicKey: string; options: any[] }> {
     return new Promise((resolve, reject) => {
       // First, we get the client's publicKey.
       const sqlClient = `SELECT public_key FROM ipsec WHERE id = ? AND ipsec = ?`;
 
-      dbCon.query(sqlClient, [ipsec_cli, ipsec], async (error, clientResult) => {
+      dbCon.query(sqlClient, [ipsec_cli, ipSec], async (error, clientResult) => {
         if (error) return reject(error);
         if (clientResult.length === 0) return resolve({ publicKey: '', options: [] });
         const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
@@ -1463,7 +1463,7 @@ export class IPSec extends Model {
           )
         `;
 
-        dbCon.query(sql, [ipsec_cli, ipsec, ipsec_cli], (error, rows) => {
+        dbCon.query(sql, [ipsec_cli, ipSec, ipsec_cli], (error, rows) => {
           if (error) return reject(error);
           resolve({ publicKey, options: rows || [] });
         });

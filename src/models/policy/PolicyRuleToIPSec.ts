@@ -66,7 +66,7 @@ export class PolicyRuleToIPSec extends Model {
   @JoinColumn({
     name: 'ipsec',
   })
-  ipsec: IPSec;
+  ipSec: IPSec;
 
   @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToIPSecs)
   @JoinColumn({

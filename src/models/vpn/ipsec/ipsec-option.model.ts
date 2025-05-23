@@ -33,7 +33,7 @@ export class IPSecOption extends Model {
   id: number;
 
   @Column({ name: 'ipsec' })
-  ipsecId: number;
+  ipSecId: number;
 
   @Column({ name: 'ipobj' })
   ipObjId: number;
@@ -45,7 +45,7 @@ export class IPSecOption extends Model {
   @JoinColumn({
     name: 'ipsec',
   })
-  ipsec: IPSec;
+  ipSec: IPSec;
 
   @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsListIPSec)
   @JoinColumn({
