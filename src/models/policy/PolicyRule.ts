@@ -1209,6 +1209,8 @@ export class PolicyRule extends Model {
               await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
               await PolicyRuleToWireGuard.deleteFromRule(dbCon, rule);
               await PolicyRuleToWireGuardPrefix.deleteFromRule(dbCon, rule);
+              await PolicyRuleToIPSec.deleteFromRule(dbCon, rule);
+              await PolicyRuleToIPSecPrefix.deleteFromRule(dbCon, rule);
             } catch (error) {
               return reject(error);
             }

@@ -388,6 +388,16 @@ export class IPObjGroup extends Model {
                 ipobj_node = new ipobj_Data(
                   (await WireGuardPrefix.getPrefixWireGuardInfo(dbCon, fwcloud, obj.id))[0],
                 );
+              } else if (obj.type === 'ISC') {
+                // IPSec VPN
+                ipobj_node = new ipobj_Data(
+                  (await IPSec.getIPSecInfo(dbCon, fwcloud, obj.id, 1))[0],
+                );
+              } else if (obj.type === 'ISP') {
+                // IPSec Prefix
+                ipobj_node = new ipobj_Data(
+                  (await IPSecPrefix.getPrefixIPSecInfo(dbCon, fwcloud, obj.id))[0],
+                );
               }
               group_data.ipobjs.push(ipobj_node);
             } catch (error) {

@@ -76,7 +76,7 @@ export class Crt extends Model {
   wireGuards: Array<WireGuard>;
 
   @OneToMany((type) => IPSec, (ipsec) => ipsec.crt)
-  ipsecs: Array<IPSec>;
+  ipSecs: Array<IPSec>;
 
   public getTableName(): string {
     return tableName;

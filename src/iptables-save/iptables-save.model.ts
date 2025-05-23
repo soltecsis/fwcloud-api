@@ -44,6 +44,7 @@ import moment from 'moment';
 import { PolicyCompilerTools } from '../compiler/policy/PolicyCompilerTools';
 import db from '../database/database-manager';
 import { PolicyRuleToWireGuard } from '../models/policy/PolicyRuleToWireGuard';
+import { PolicyRuleToIPSec } from '../models/policy/PolicyRuleToIPSec';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -850,6 +851,15 @@ export class IptablesSaveToFWCloud extends Service {
           ))
         ) {
           await PolicyRuleToWireGuard.insertInRule(this.req);
+        } else if (
+          !(await PolicyRuleToIPSec.checkExistsInPosition(
+            this.req.dbCon,
+            this.ruleId,
+            result[0].id,
+            this.req.body.position,
+          ))
+        ) {
+          await PolicyRuleToIPSec.insertInRule(this.req);
         }
       } // Add the addr object to the rule position.
       else await this.addIPObjToRulePosition(dir, addrId);

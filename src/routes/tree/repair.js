@@ -84,6 +84,11 @@ router.put('/', async (req, res) =>{
           channel.emit('message', new ProgressNoticePayload(`WireGuard server: ${wireguard_srv.cn}\n`));
           await WireGuardPrefix.applyWireGuardPrefixes(req.dbCon,req.body.fwcloud,wireguard_srv.id);
         }
+        const ipsec_srv_list = await IPSec.getIPSecServersByCloud(req.dbCon,req.body.fwcloud);
+        for (let ipsec_srv of ipsec_srv_list) {
+          channel.emit('message', new ProgressNoticePayload(`IPSec server: ${ipsec_srv.cn}\n`));
+          await IPSecPrefix.applyIPSecPrefixes(req.dbCon,req.body.fwcloud,ipsec_srv.id);
+        }
         break;
       }
       else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { 
