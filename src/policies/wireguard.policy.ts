@@ -104,4 +104,20 @@ export class WireGuardPolicy extends Policy {
 
     return Authorization.revoke();
   }
+
+  static async checkPermission(user: User): Promise<Authorization> {
+    user = await db
+      .getSource()
+      .manager.getRepository(User)
+      .findOneOrFail({
+        where: { id: user.id },
+        relations: ['fwClouds'],
+      });
+
+    return user.role === 1
+      ? Authorization.grant()
+      : user.fwClouds.length > 0
+        ? Authorization.grant()
+        : Authorization.revoke();
+  }
 }

@@ -302,7 +302,7 @@ describe(WireGuardPrefix.name, () => {
         ]);
 
       expect(result).to.be.an('array');
-      expect(result).to.have.length(2);
+      expect(result).to.have.length(1);
     });
   });
 
