@@ -1419,11 +1419,11 @@ export class IPSec extends Model {
       const sql = `select install_name from ipsec WHERE firewall = ?`;
       dbCon.query(sql, [firewall], (error, result) => {
         if (error) return reject(error);
-        if (!result.length) return resolve('wg0.conf');
+        if (!result.length) return resolve('ips0.conf');
 
         const usedNumbers = result
           .map((row: IPSec) => row.install_name)
-          .filter((name: string) => /^wg\d+\.conf$/.test(name))
+          .filter((name: string) => /^ips\d+\.conf$/.test(name))
           .map((name: string) => parseInt(name.match(/\d+/)[0]))
           .sort((a: any, b: any) => a - b);
 
@@ -1433,7 +1433,7 @@ export class IPSec extends Model {
           nextNumber++;
         }
 
-        const newFilename = `wg${nextNumber}.conf`;
+        const newFilename = `ips${nextNumber}.conf`;
         resolve(newFilename);
       });
     });
