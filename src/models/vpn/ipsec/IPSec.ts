@@ -163,7 +163,7 @@ export class IPSec extends Model {
     // Generate key pair suitable for IPSec (X25519 / curve25519)
     const { publicKey, privateKey } = sodium.crypto_kx_keypair();
 
-    // Encode to base64 for use in wg config
+    // Encode to base64 for use in IPS config
     return {
       public_key: sodium.to_base64(publicKey, sodium.base64_variants.ORIGINAL),
       private_key: sodium.to_base64(privateKey, sodium.base64_variants.ORIGINAL),
@@ -411,7 +411,7 @@ export class IPSec extends Model {
           sql = `select * from ${tableName} where id=${data.ipsec}`;
           dbCon.query(sql, async (error, result) => {
             if (error) return reject(error);
-            const serverPublicKey = await utilsModel.decryptWireguardData(result[0]);
+            const serverPublicKey = await utilsModel.decryptIpsecData(result[0]);
             data.server_public_key = serverPublicKey.public_key;
           });
         }
@@ -424,7 +424,7 @@ export class IPSec extends Model {
           try {
             const ipsec_data = (
               await Promise.all(
-                ipsec_result.map((ipsec: IPSec) => utilsModel.decryptWireguardData(ipsec)),
+                ipsec_result.map((ipsec: IPSec) => utilsModel.decryptIpsecData(ipsec)),
               )
             )[0];
 
@@ -491,7 +491,7 @@ export class IPSec extends Model {
         const vpnIds = result.map((vpn) => vpn.id);
         if (vpnIds.length === 0) return resolve(result);
         try {
-          result = await Promise.all(result.map((vpn) => utilsModel.decryptWireguardData(vpn)));
+          result = await Promise.all(result.map((vpn) => utilsModel.decryptIpsecData(vpn)));
         } catch (error) {
           return reject(error);
         }
@@ -692,33 +692,33 @@ export class IPSec extends Model {
         if (error) return reject(error);
 
         // Header description.
-        let wg_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
-        wg_cfg += `# Generated: ${Date()}\n`;
-        wg_cfg += `# Certificate Common Name: ${result[0].cn} \n`;
-        wg_cfg += result[0].cl_name
+        let ips_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
+        ips_cfg += `# Generated: ${Date()}\n`;
+        ips_cfg += `# Certificate Common Name: ${result[0].cn} \n`;
+        ips_cfg += result[0].cl_name
           ? `# Firewall Cluster: ${result[0].cl_name}\n`
           : `# Firewall: ${result[0].fw_name}\n`;
         if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
           result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
         if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
           result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
-        wg_cfg += `# Wireguard Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
-        wg_cfg += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
+        ips_cfg += `# IPSec Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
+        ips_cfg += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         const sql = `SELECT *
-                   FROM ipsec WG
-                   LEFT JOIN firewall FW ON FW.id = WG.firewall
+                   FROM ipsec IPS
+                   LEFT JOIN firewall FW ON FW.id = IPS.firewall
                    LEFT JOIN cluster CL ON CL.id=FW.cluster
-                   WHERE WG.id=${ipSec}`;
+                   WHERE IPS.id=${ipSec}`;
         dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
           if (!result || result.length === 0)
             return reject(fwcError.other('IPSec configuration not found'));
-          const wgRow = result[0];
+          const ipsRow = result[0];
 
-          wg_cfg += `[Interface]\n`;
-          wg_cfg += `PrivateKey = ${await utilsModel.decrypt(wgRow.private_key)}\n`;
-
+          ips_cfg += `[Interface]\n`;
+          ips_cfg += `PrivateKey = ${await utilsModel.decrypt(ipsRow.private_key)}\n`;
+          //TODO: CAMBIAR OPTIONS
           const sqlOpts = `SELECT *
                          FROM ipsec_opt OPT
                          WHERE OPT.ipsec=${ipSec}
@@ -731,7 +731,7 @@ export class IPSec extends Model {
               const formattedComment = commentLines ? `#${commentLines}\n` : '';
               return `${formattedComment}${opt.name} = ${opt.arg}`;
             });
-            wg_cfg += interfaceLines.length ? interfaceLines.join('\n') + '\n\n' : '\n';
+            ips_cfg += interfaceLines.length ? interfaceLines.join('\n') + '\n\n' : '\n';
 
             const sqlCheckIsClient = `SELECT ipsec FROM ipsec WHERE id=${ipSec}`;
             dbCon.query(sqlCheckIsClient, (error, result) => {
@@ -836,9 +836,9 @@ export class IPSec extends Model {
                     return section + '\n';
                   };
 
-                  wg_cfg += await formatPeerSection(peer, !!disableOption);
+                  ips_cfg += await formatPeerSection(peer, !!disableOption);
                 }
-                resolve({ cfg: wg_cfg });
+                resolve({ cfg: ips_cfg });
               });
             });
           });
