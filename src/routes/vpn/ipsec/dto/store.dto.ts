@@ -18,48 +18,72 @@ import {
 export class IPSecOptionValidator implements ValidatorConstraintInterface {
   validate(value: string, args: ValidationArguments) {
     const option = args.object as IPSecOptionDTO;
-    //TODO: ADAPTAR CON LAS OPCIONES DE IPSEC
     if (!value) return true;
+
     switch (option.name) {
-      // [Interface]
-      case 'PrivateKey':
-        return /^[A-Za-z0-9+/]{43}=$/.test(value);
-      case 'Address':
-        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}(,\s*(\d{1,3}\.){3}\d{1,3}\/\d{1,2})*$/.test(value);
-      case 'ListenPort':
-        return /^([1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/.test(
-          value,
-        );
-      case 'MTU':
+      case 'LocalIP':
+      case 'RemoteIP':
+      case 'DNS1':
+      case 'DNS2':
+        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(value); // IPv4 simple
+
+      case 'IKEVersion':
+        return value === '1' || value === '2';
+
+      case 'AuthMethod':
+        return ['psk', 'cert'].includes(value);
+
+      case 'Phase1Encryption':
+      case 'Phase2Encryption':
+        return ['aes128', 'aes192', 'aes256', '3des'].includes(value);
+
+      case 'Phase1Hash':
+      case 'Phase2Hash':
+        return ['sha1', 'sha256', 'sha384', 'sha512', 'md5'].includes(value);
+
+      case 'Phase1DHGroup':
+        return ['1', '2', '5', '14', '15', '16', '17', '18'].includes(value);
+
+      case 'Phase2PFS':
+        return [
+          'group1',
+          'group2',
+          'group5',
+          'group14',
+          'group15',
+          'group16',
+          'group17',
+          'group18',
+          'none',
+        ].includes(value);
+
+      case 'Phase1Lifetime':
+      case 'Phase2Lifetime':
         return /^\d+$/.test(value) && parseInt(value) > 0;
-      case 'DNS': {
-        const isValid =
-          /^((\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](\.[a-zA-Z]{2,})+)(,\s*((\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](\.[a-zA-Z]{2,})+))*$/.test(
-            value,
-          );
-        return isValid;
-      }
-      case 'Table':
-        return value === 'off' || value === '';
 
-      // [Peer]
+      case 'PoolStart':
+      case 'PoolEnd':
+        return /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
+
+      case 'NATTraversal':
+      case 'SplitTunnel':
+      case 'Mobike':
+        return ['yes', 'no'].includes(value.toLowerCase());
+
+      case 'PSK':
+        return value.length >= 8; // O la longitud que exijas para claves precompartidas
+
+      case 'Username':
+      case 'Password':
+        return value.trim().length > 0;
+
       case 'PublicKey':
-        return /^[A-Za-z0-9+/]{42,44}$/.test(value);
-      case 'AllowedIPs':
-        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}(,\s*(\d{1,3}\.){3}\d{1,3}\/\d{1,2})*$/.test(value);
-      case 'Endpoint':
-        return /^((\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9.-]+):(\d{1,5})$/.test(value);
-      case 'PersistentKeepalive':
-        return /^\d+$/.test(value) && parseInt(value) <= 65535;
-      case 'PresharedKey':
-        return /^[A-Za-z0-9+/]{43}=$/.test(value);
+      case 'PrivateKey':
+        return value.trim().length > 0; // Podrías usar regex si hay un formato específico
 
-      // Commands
-      case 'PreUp':
-      case 'PostUp':
-      case 'PreDown':
-      case 'PostDown':
-        return value.length > 0;
+      case 'Certificate':
+      case 'CA Certificate':
+        return value.trim().endsWith('.crt') || value.trim().endsWith('.pem');
 
       default:
         return true;
@@ -75,23 +99,32 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 export class IPSecOptionDTO {
   @IsString()
   @IsIn([
-    'PrivateKey',
-    'Address',
-    'DNS',
-    'MTU',
-    'Table',
-    'Endpoint',
-    'AllowedIPs',
-    'PersistentKeepalive',
-    'ListenPort',
+    'LocalIP',
+    'RemoteIP',
+    'DNS1',
+    'DNS2',
+    'IKEVersion',
+    'AuthMethod',
+    'Phase1Encryption',
+    'Phase1Hash',
+    'Phase1DHGroup',
+    'Phase1Lifetime',
+    'Phase2Encryption',
+    'Phase2Hash',
+    'Phase2PFS',
+    'Phase2Lifetime',
+    'PoolStart',
+    'PoolEnd',
+    'NATTraversal',
+    'SplitTunnel',
+    'Mobike',
+    'PSK',
+    'Username',
+    'Password',
     'PublicKey',
-    'PreUp',
-    'PostUp',
-    'PreDown',
-    'PostDown',
-    'SaveConfig',
-    'FwMark',
-    'PresharedKey',
+    'PrivateKey',
+    'Certificate',
+    'CA Certificate',
     '<<disable>>',
     '<<vpn_network>>',
   ])
