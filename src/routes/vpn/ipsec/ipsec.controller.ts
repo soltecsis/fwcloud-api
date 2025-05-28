@@ -28,9 +28,9 @@ export class IPSecController extends Controller {
     try {
       // Initial validation
       if (
-        req.tree_node.node_type !== 'WG' &&
-        req.tree_node.node_type !== 'WGS' &&
-        req.tree_node.node_type !== 'WGC'
+        req.tree_node.node_type !== 'IS' &&
+        req.tree_node.node_type !== 'ISS' &&
+        req.tree_node.node_type !== 'ISC'
       ) {
         throw new Error(fwcError.BAD_TREE_NODE);
       }
@@ -73,8 +73,8 @@ export class IPSecController extends Controller {
         opt.order = order++;
         await IPSec.addCfgOpt(req, opt);
       }
-
-      if (req.body.ipsec) {
+      //TODO: REVISAR QUE HACER CON ALLOWEDIPS PARA IPSEC
+      /* if (req.body.ipsec) {
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
         const order =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
@@ -90,26 +90,26 @@ export class IPSecController extends Controller {
         ];
         await IPSec.addCfgOpt(req, options);
       }
-
+*/
       // Create node in tree
       let nodeId: unknown;
-      if (req.tree_node.node_type === 'WG') {
+      if (req.tree_node.node_type === 'IS') {
         nodeId = await Tree.newNode(
           req.dbCon,
           req.body.fwcloud,
           req.crt.cn,
           req.body.node_id,
-          'WGS',
+          'ISS',
           newIpsec,
           322,
         );
-      } else if (req.tree_node.node_type === 'WGS') {
+      } else if (req.tree_node.node_type === 'ISS') {
         nodeId = await Tree.newNode(
           req.dbCon,
           req.body.fwcloud,
           req.crt.cn,
           req.body.node_id,
-          'WGC',
+          'ISC',
           newIpsec,
           321,
         );
@@ -130,6 +130,7 @@ export class IPSecController extends Controller {
         .status(201)
         .body({ insertId: newIpsec, TreeinsertId: nodeId });
     } catch (error) {
+      console.log('error', error);
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }

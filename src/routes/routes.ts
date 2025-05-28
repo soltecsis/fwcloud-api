@@ -167,6 +167,7 @@ export class Routes extends RouteCollection {
               .name('vpn.wireguard.prefix.del');
           });
         });
+
         router.prefix('/ipsec', (router: RouterParser) => {
           router.post('/', IPSecController, 'store').name('vpn.ipsec.store');
           router.put('/', IPSecController, 'update').name('vpn.ipsec.update');
