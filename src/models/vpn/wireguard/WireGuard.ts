@@ -1320,6 +1320,51 @@ export class WireGuard extends Model {
               cfg ?? req.body.wireguard,
               'Address',
             );
+          } else {
+            const ipobjData = {
+              id: null,
+              fwcloud: req.body.fwcloud,
+              interface: targetInterface.id,
+              name: interfaceName,
+              type: 5,
+              protocol: null,
+              address: interfaceIp.ip,
+              netmask: interfaceIp.netmask,
+              diff_serv: null,
+              ip_version: 4,
+              icmp_code: null,
+              icmp_type: null,
+              tcp_flags_mask: null,
+              tcp_flags_settings: null,
+              range_start: null,
+              range_end: null,
+              source_port_start: 0,
+              source_port_end: 0,
+              destination_port_start: 0,
+              destination_port_end: 0,
+              options: null,
+            };
+
+            const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
+            await WireGuard.updateIpObjCfgOpt(
+              req.dbCon,
+              ipobjId as number,
+              cfg ?? req.body.wireguard,
+              'Address',
+            );
+            const interfaceNode = (
+              await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'IFF', targetInterface.id)
+            )[0];
+
+            await Tree.newNode(
+              req.dbCon,
+              req.body.fwcloud,
+              `${interfaceName} (${interfaceIp.ip})`,
+              interfaceNode.id,
+              'OIA',
+              ipobjId,
+              5,
+            );
           }
           return;
         }
