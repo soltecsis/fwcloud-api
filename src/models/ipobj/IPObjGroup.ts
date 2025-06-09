@@ -349,17 +349,17 @@ export class IPObjGroup extends Model {
                 inner join crt C on C.id=W.crt
                 where R.ipobj_g=${gid}
 
-                UNION select id, name, 'WGP' as type from wireguard_prefix W
+                UNION select id, name, 'PRW' as type from wireguard_prefix W
                 inner join wireguard_prefix__ipobj_g R on R.prefix=W.id
                 where R.ipobj_g=${gid}
 
-                UNION select I.id, C.cn as name, 'IPC' as type from ipsec W
-                inner join ipsec__ipobj_g R on R.ipsec=W.id
-                inner join crt C on C.id=W.crt
+                UNION select I.id, C.cn as name, 'ISC' as type from ipsec I
+                inner join ipsec__ipobj_g R on R.ipsec=I.id
+                inner join crt C on C.id=I.crt
                 where R.ipobj_g=${gid}
 
-                UNION select id, name, 'IPP' as type from ipsec_prefix W
-                inner join ipsec_prefix__ipobj_g R on R.prefix=W.id
+                UNION select id, name, 'PRI' as type from ipsec_prefix I
+                inner join ipsec_prefix__ipobj_g R on R.prefix=I.id
                 where R.ipobj_g=${gid}
                 order by name`;
         dbCon.query(sql, async (error, rows) => {
@@ -383,7 +383,7 @@ export class IPObjGroup extends Model {
                 ipobj_node = new ipobj_Data(
                   (await WireGuard.getWireGuardInfo(dbCon, fwcloud, obj.id, 1))[0],
                 );
-              } else if (obj.type === 'WGP') {
+              } else if (obj.type === 'PRW') {
                 // WireGuard Prefix
                 ipobj_node = new ipobj_Data(
                   (await WireGuardPrefix.getPrefixWireGuardInfo(dbCon, fwcloud, obj.id))[0],
@@ -393,7 +393,7 @@ export class IPObjGroup extends Model {
                 ipobj_node = new ipobj_Data(
                   (await IPSec.getIPSecInfo(dbCon, fwcloud, obj.id, 1))[0],
                 );
-              } else if (obj.type === 'ISP') {
+              } else if (obj.type === 'PRI') {
                 // IPSec Prefix
                 ipobj_node = new ipobj_Data(
                   (await IPSecPrefix.getPrefixIPSecInfo(dbCon, fwcloud, obj.id))[0],

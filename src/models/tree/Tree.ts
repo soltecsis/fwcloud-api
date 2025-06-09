@@ -286,6 +286,11 @@ export class Tree extends Model {
               if (nodes[i].node_type == 'WGS' || nodes[i].node_type == 'WGC') {
                 nodes[i] = await this.addSearchInfoWireGuard(nodes[i]);
               }
+              // Include data for IPSec Nodes Server
+              if (nodes[i].node_type == 'ISS' || nodes[i].node_type == 'ISC') {
+                nodes[i] = await this.addSearchInfoIPSec(nodes[i]);
+                console.log('entra dumptree ipsec', nodes[i]);
+              }
               // Add the current node children array to the map.
               nodes[i].children = [];
               childrenArrayMap.set(nodes[i].id, nodes[i].children);
@@ -425,11 +430,11 @@ export class Tree extends Model {
       .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
       .andWhere('option.ipSecId = :id', { id: node.id_obj });
 
-    if (node.node_type !== 'WGS') {
-      qb.andWhere('option.name = :name', { name: 'Address' });
+    if (node.node_type !== 'ISS') {
+      qb.andWhere('option.name = :name', { name: 'LocalIP' });
     }
     const result: IPObj = await qb.getOne();
-
+    console.log('entra addsearchinfoipsec', result);
     node.address = result.address ?? '';
 
     return node;
@@ -1219,7 +1224,7 @@ export class Tree extends Model {
 
         try {
           for (const vpn of vpns) {
-            await this.newNode(connection, fwcloud, vpn.cn, node, 'IPC', vpn.id, 331);
+            await this.newNode(connection, fwcloud, vpn.cn, node, 'ISC', vpn.id, 331);
           }
         } catch (error) {
           return reject(error);
@@ -1250,7 +1255,7 @@ export class Tree extends Model {
               fwcloud,
               vpn.cn,
               node,
-              'IPS',
+              'ISS',
               vpn.id,
               332,
             );

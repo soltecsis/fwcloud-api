@@ -178,8 +178,8 @@ export class IPSecPrefix extends Model {
     prefix_name: string,
   ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
-      const sql = `select WG.id from ipsec WG 
-                inner join crt CRT on CRT.id=WG.crt
+      const sql = `select IPS.id from ipsec IPS 
+                inner join crt CRT on CRT.id=IPS.crt
                 where ipsec=${ipsec} and CRT.cn LIKE '${prefix_name}%'`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
@@ -256,10 +256,10 @@ export class IPSecPrefix extends Model {
       const sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
                 from ipsec_prefix P
-                inner join ipsec WG on WG.id=P.ipsec
-                inner join crt CRT on CRT.id=WG.crt
+                inner join ipsec IPS on IPS.id=P.ipsec
+                inner join crt CRT on CRT.id=IPS.crt
                 inner join ca CA on CA.id=CRT.ca
-                inner join firewall FW on FW.id=WG.firewall 
+                inner join firewall FW on FW.id=IPS.firewall 
                 where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
@@ -297,9 +297,9 @@ export class IPSecPrefix extends Model {
     return new Promise((resolve, reject) => {
       // Move all affected nodes into the new prefix container node.
       const prefix = dbCon.escape(prefix_name).slice(1, -1);
-      let sql = `SELECT WG.id,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt CRT
-                INNER JOIN ipsec WG on WG.crt=CRT.id
-                WHERE WG.ipsec=${ipsec_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
+      let sql = `SELECT IPS.id,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt CRT
+                INNER JOIN ipsec IPS on IPS.crt=CRT.id
+                WHERE IPS.ipsec=${ipsec_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
@@ -315,7 +315,7 @@ export class IPSecPrefix extends Model {
             402,
           );
           for (const row of result)
-            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'WGC', row.id, 321);
+            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'IPSC', row.id, 321);
         } catch (error) {
           return reject(error);
         }
@@ -340,7 +340,7 @@ export class IPSecPrefix extends Model {
   ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const node = await Tree.getNodeInfo(dbCon, fwcloud, 'WGS', ipsec_srv);
+        const node = await Tree.getNodeInfo(dbCon, fwcloud, 'ISS', ipsec_srv);
         const node_id = node[0].id;
         // Remove all nodes under the IPSec server configuration node.
         await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
@@ -348,7 +348,7 @@ export class IPSecPrefix extends Model {
         // Create all IPSec client config nodes.
         const ipsec_cli_list: any = await IPSec.getIPSecClientsInfo(dbCon, ipsec_srv);
         for (const ipsec_cli of ipsec_cli_list) {
-          await Tree.newNode(dbCon, fwcloud, ipsec_cli.cn, node_id, 'WGC', ipsec_cli.id, 321);
+          await Tree.newNode(dbCon, fwcloud, ipsec_cli.cn, node_id, 'ISC', ipsec_cli.id, 321);
         }
 
         // Create the nodes for all the prefixes.

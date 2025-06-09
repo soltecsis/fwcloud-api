@@ -101,7 +101,7 @@ export class IPSecController extends Controller {
           req.body.node_id,
           'ISS',
           newIpsec,
-          322,
+          332,
         );
       } else if (req.tree_node.node_type === 'ISS') {
         nodeId = await Tree.newNode(
@@ -111,7 +111,7 @@ export class IPSecController extends Controller {
           req.body.node_id,
           'ISC',
           newIpsec,
-          321,
+          331,
         );
       }
 
@@ -389,7 +389,7 @@ export class IPSecController extends Controller {
       if (req.ipsec?.type === 1) {
         await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.ipsec.ipsec);
       } else {
-        await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ipsec, 322);
+        await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ipsec, 332);
       }
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {

@@ -641,7 +641,7 @@ export class IPSec extends Model {
   // Get IPSec client configuration data.
   public static getIPSecInfo(dbCon: Query, fwcloud: number, ipSec: number, type: number) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
+      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.LocalIP, FW.cluster cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
                 IF(VPN.ipsec is null,VPN.ipsec,(select crt.cn from ipsec inner join crt on crt.id=ipsec.crt where ipsec.id=VPN.ipsec)) as ipsec_server_cn
                 ${type === 2 ? `,O.netmask` : ``}
@@ -657,7 +657,7 @@ export class IPSec extends Model {
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         for (let i = 0; i < result.length; i++) {
-          result[i].type = type === 1 ? 321 : 322;
+          result[i].type = type === 1 ? 331 : 332;
         }
         resolve(result);
       });
@@ -720,10 +720,40 @@ export class IPSec extends Model {
           ips_cfg += `PrivateKey = ${await utilsModel.decrypt(ipsRow.private_key)}\n`;
           //TODO: CAMBIAR OPTIONS
           const sqlOpts = `SELECT *
-                         FROM ipsec_opt OPT
-                         WHERE OPT.ipsec=${ipSec}
-                         AND OPT.name IN ('Address', 'ListenPort', 'DNS', 'MTU', 'Table', 'PreUp', 'PostUp', 'PreDown', 'PostDown', 'SaveConfig', 'FwMark')
-                         ORDER BY OPT.order`;
+                          FROM ipsec
+                          WHERE OPT.ipsec = ${ipSec}
+                          AND OPT.name IN (
+                              'LocalIP',
+                              'RemoteIP',
+                              'DNS1',
+                              'DNS2',
+                              'IKEVersion',
+                              'AuthMethod',
+                              'Phase1Encryption',
+                              'Phase1Hash',
+                              'Phase1DHGroup',
+                              'Phase1Lifetime',
+                              'Phase2Encryption',
+                              'Phase2Hash',
+                              'Phase2PFS',
+                              'Phase2Lifetime',
+                              'PoolStart',
+                              'PoolEnd',
+                              'NATTraversal',
+                              'SplitTunnel',
+                              'Mobike',
+                              'PSK',
+                              'Username',
+                              'Password',
+                              'PublicKey',
+                              'PrivateKey',
+                              'Certificate',
+                              'CA Certificate',
+                              '<<disable>>',
+                              '<<vpn_network>>',                              
+                          )
+                          ORDER BY OPT.order`;
+
           dbCon.query(sqlOpts, (optError, optResult) => {
             if (optError) return reject(optError);
             const interfaceLines = optResult.map((opt: IPSecOption) => {
@@ -738,6 +768,7 @@ export class IPSec extends Model {
               if (error) return reject(error);
               if (result.length === 0) return reject(new Error('IPSec configuration not found'));
               const isClient = result[0].ipsec !== null;
+              //TODO: REVISAR OPTIONSwireguard para IPSEC
               const sqlPeers = isClient
                 ? `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                  FROM ipsec_opt OPT
@@ -799,6 +830,7 @@ export class IPSec extends Model {
                     const comment = option.option_comment
                       ? `# ${option.option_comment.replace(/\n/g, '\n# ')}\n`
                       : '';
+                    //TODO: REVISAR OPTIONSwireguard para IPSEC ¡
                     switch (option.option_name) {
                       case '<<disable>>':
                       case 'Address':
@@ -888,7 +920,7 @@ export class IPSec extends Model {
       // Search for the VPN LAN and mask.
       let sql = `select OBJ.address,OBJ.netmask from ipsec_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.ipsec=${req.body.ipsec} and OPT.name='Address' and OPT.ipobj is not null`;
+                where OPT.ipsec=${req.body.ipsec} and OPT.name='LocalIP' and OPT.ipobj is not null`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
@@ -1201,6 +1233,7 @@ export class IPSec extends Model {
                 INNER JOIN firewall FW on FW.id=VPN.firewall
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
       req.dbCon.query(sql, (error, rows) => {
+        console.log('rows', rows);
         if (error) return reject(error);
         data.ipSec_status = rows;
         resolve(data);
@@ -1236,7 +1269,7 @@ export class IPSec extends Model {
     isUpdate: boolean,
   ): Promise<void> {
     try {
-      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'Address');
+      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'LocalIP');
       if (!ipSecOpt) return;
 
       const interfaceName = req.body.install_name.replace(/\.conf$/, '');
@@ -1274,7 +1307,7 @@ export class IPSec extends Model {
         };
 
         await IPObj.updateIpobj(req.dbCon, ipobjData);
-        await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'Address');
+        await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'LocalIP');
         await Tree.updateFwc_Tree_OBJ(req, {
           name: interfaceName,
           id: ipobj.id,
@@ -1296,7 +1329,7 @@ export class IPSec extends Model {
           const ipobj = ipobjs.find((i: any) => i.name === interfaceName);
 
           if (ipobj) {
-            await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'Address');
+            await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'LocalIP');
           }
           return;
         }
@@ -1370,7 +1403,7 @@ export class IPSec extends Model {
               req.dbCon,
               ipobjId as number,
               cfg ?? req.body.ipsec,
-              'Address',
+              'LocalIP',
             );
             await Tree.newNode(
               req.dbCon,
@@ -1454,12 +1487,12 @@ export class IPSec extends Model {
         const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
 
         const sql = `
-          SELECT WO.*
-          FROM ipsec_opt WO
+          SELECT IO.*
+          FROM ipsec_opt IO
           WHERE (
-            WO.name = 'Address' AND WO.ipsec = ?
+            IO.name = 'LocalIP' AND IO.ipsec = ?
           ) OR (
-            WO.ipsec = ? AND WO.ipsec_cli = ?
+            IO.ipsec = ? AND IO.ipsec_cli = ?
           )
         `;
 
