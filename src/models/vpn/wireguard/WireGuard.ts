@@ -740,9 +740,10 @@ export class WireGuard extends Model {
                  INNER JOIN wireguard PEER ON PEER.id=OPT.wireguard
                  WHERE OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', '<<disable>>') AND OPT.wireguard_cli IS NULL
                  ORDER BY OPT.name`
-                : `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
+                : `SELECT PEER.*, CRT.cn as peer_cn, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                  FROM wireguard PEER 
-                 INNER JOIN wireguard_opt OPT ON OPT.wireguard=PEER.id 
+                 INNER JOIN wireguard_opt OPT ON OPT.wireguard=PEER.id
+                  LEFT JOIN crt CRT ON PEER.crt=CRT.id 
                  WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', '<<disable>>')
                  ORDER BY OPT.name`;
 
@@ -817,14 +818,13 @@ export class WireGuard extends Model {
                           resolve(result[0]);
                         });
                       });
-
                       section = isDisabled
                         ? `# CLIENT BLOCKED\n# [Peer]\n# PublicKey = ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`
                         : `[Peer]\nPublicKey =  ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`;
                     } else {
                       section = isDisabled
-                        ? `# CLIENT BLOCKED\n# [Peer]\n# PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`
-                        : `[Peer]\nPublicKey =  ${await utilsModel.decrypt(peer.public_key)}\n`;
+                        ? `# CLIENT BLOCKED\n# [Peer]\n# ${peer.peer_cn}\n# PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`
+                        : `[Peer]\n# ${peer.peer_cn}\nPublicKey =  ${await utilsModel.decrypt(peer.public_key)}\n`;
                     }
                     for (const option of peer.options) {
                       section += await formatOption(option, isDisabled);
