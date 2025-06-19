@@ -40,7 +40,15 @@ export class WireGuardOptionValidator implements ValidatorConstraintInterface {
         return isValid;
       }
       case 'Table':
-        return value === 'off' || value === '';
+        if (
+          value === 'off' ||
+          value === 'auto' ||
+          (typeof value === 'string' && /^[0-9]+$/.test(value)) ||
+          (typeof value === 'number' && Number.isInteger(value) && value >= 0)
+        ) {
+          return true;
+        }
+        return false;
 
       // [Peer]
       case 'PublicKey':
