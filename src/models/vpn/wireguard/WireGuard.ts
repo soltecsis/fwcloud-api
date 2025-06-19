@@ -829,11 +829,11 @@ export class WireGuard extends Model {
                       });
                       section = isDisabled
                         ? `# CLIENT BLOCKED\n# [Peer]\n# PublicKey = ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`
-                        : `[Peer]\nPublicKey =  ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`;
+                        : `[Peer]\nPublicKey = ${await utilsModel.decrypt((serverResult as { public_key: string }).public_key)}\n`;
                     } else {
                       section = isDisabled
                         ? `# CLIENT BLOCKED\n# [Peer]\n# ${peer.peer_cn}\n# PublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`
-                        : `[Peer]\n# ${peer.peer_cn}\nPublicKey =  ${await utilsModel.decrypt(peer.public_key)}\n`;
+                        : `[Peer]\n# ${peer.peer_cn}\nPublicKey = ${await utilsModel.decrypt(peer.public_key)}\n`;
                     }
                     for (const option of peer.options) {
                       section += await formatOption(option, isDisabled);
