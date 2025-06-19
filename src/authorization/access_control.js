@@ -303,17 +303,23 @@ function checkPrefixAccess(req) {
                 WHERE P.id=${req.body.prefix}`;
 		}
 		else if (item[1] === 'ipobj' && item[2] === 'group' && item[3] === 'addto') {
-			sql = `SELECT FW.fwcloud, P.*, 'openvpn' as prefix_type FROM openvpn_prefix P
+			console.log("req.body.node_type: ", req.body.node_type);
+			if (req.body.node_type === 'PRO') {
+				sql = `SELECT FW.fwcloud, P.*, 'openvpn' as prefix_type FROM openvpn_prefix P
                 INNER JOIN openvpn VPN ON VPN.id = P.openvpn
                 INNER JOIN firewall FW ON FW.id = VPN.firewall
-                WHERE P.id = ${req.body.prefix}
-
-                UNION ALL
-
-                SELECT FW.fwcloud, WP.*, 'wireguard' as prefix_type FROM wireguard_prefix WP
+                WHERE P.id = ${req.body.prefix}`;
+			} else if (req.body.node_type === 'PRW') {
+				sql = `SELECT FW.fwcloud, WP.*, 'wireguard' as prefix_type FROM wireguard_prefix WP
                 INNER JOIN wireguard W ON W.id = WP.wireguard
                 INNER JOIN firewall FW ON FW.id = W.firewall
                 WHERE WP.id = ${req.body.prefix}`;
+			} else if (req.body.node_type === 'PRI') {
+				sql = `SELECT FW.fwcloud, IP.*, 'ipsec' as prefix_type FROM ipsec_prefix IP
+				INNER JOIN ipsec VPN ON VPN.id = IP.ipsec
+				INNER JOIN firewall FW ON FW.id = VPN.firewall
+				WHERE IP.id = ${req.body.prefix}`;
+			}
 		}
 		else if (item[1] === 'policy' && item[2] === 'prefix' && item[3] === 'openvpn') {
 			sql = `SELECT 'openvpn' AS prefix_type, FW.fwcloud, P.* 
@@ -322,7 +328,7 @@ function checkPrefixAccess(req) {
 			INNER JOIN firewall FW ON FW.id = VPN.firewall
 			WHERE P.id = ${req.body.prefix}`;
 		}
-		else if (item[1] === 'policy' && item[2] === 'prefix' && item[3] === 'wireguard') {	
+		else if (item[1] === 'policy' && item[2] === 'prefix' && item[3] === 'wireguard') {
 			sql = `SELECT 'wireguard' AS prefix_type, FW.fwcloud, W.* 
 			FROM wireguard_prefix W
 			INNER JOIN wireguard VPN ON VPN.id = W.wireguard
