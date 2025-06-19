@@ -328,8 +328,13 @@ function checkPrefixAccess(req) {
 			INNER JOIN wireguard VPN ON VPN.id = W.wireguard
 			INNER JOIN firewall FW ON FW.id = VPN.firewall
 			WHERE W.id = ${req.body.prefix}`;
-		}
-		else {
+		} else if (item[1] === 'policy' && item[2] === 'prefix' && item[3] === 'ipsec') {
+			sql = `SELECT 'ipsec' AS prefix_type, FW.fwcloud, P.* 
+			FROM ipsec_prefix P
+			INNER JOIN ipsec VPN ON VPN.id = P.ipsec
+			INNER JOIN firewall FW ON FW.id = VPN.firewall
+			WHERE P.id = ${req.body.prefix}`;
+		} else {
 			return resolve(false);
 		}
 
