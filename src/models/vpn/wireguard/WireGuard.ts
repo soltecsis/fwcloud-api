@@ -1596,7 +1596,6 @@ export class WireGuard extends Model {
               if (error) return reject(error);
 
               if (result.affectedRows === 0) {
-                // Obtener el siguiente valor de order
                 dbCon.query(sqlGetMaxOrder, [wireguard, wireguard_cli], (orderErr, orderResult) => {
                   if (orderErr) return reject(orderErr);
 
@@ -1608,16 +1607,11 @@ export class WireGuard extends Model {
                     [option.arg, wireguard, wireguard_cli, option.name, nextOrder, option.scope],
                     (insertErr) => {
                       if (insertErr) return reject(insertErr);
-                      console.log(
-                        `(${index}) Insert realizado correctamente con order=${nextOrder} para opción:`,
-                        option,
-                      );
                       resolve();
                     },
                   );
                 });
               } else {
-                console.log(`(${index}) Update realizado correctamente para opción:`, option);
                 resolve();
               }
             },
