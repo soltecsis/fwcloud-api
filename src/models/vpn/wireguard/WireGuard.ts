@@ -1558,18 +1558,58 @@ export class WireGuard extends Model {
     options: any[],
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `
+      const sqlUpdate = `
         UPDATE wireguard_opt
         SET arg = ?
         WHERE wireguard = ? AND wireguard_cli = ? AND name = ?
       `;
 
-      const promises = options.map((option) => {
+      const sqlInsert = `
+      INSERT INTO wireguard_opt (arg, wireguard, wireguard_cli, name, \`order\`, scope)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+      const sqlGetMaxOrder = `
+      SELECT MAX(\`order\`) as maxOrder
+      FROM wireguard_opt
+      WHERE wireguard = ? AND wireguard_cli = ?
+    `;
+
+      const promises = options.map((option, index) => {
         return new Promise<void>((resolve, reject) => {
-          dbCon.query(sql, [option.arg, wireguard, wireguard_cli, option.name], (error) => {
-            if (error) return reject(error);
-            resolve();
-          });
+          dbCon.query(
+            sqlUpdate,
+            [option.arg, wireguard, wireguard_cli, option.name],
+            (error, result) => {
+              if (error) return reject(error);
+
+              if (result.affectedRows === 0) {
+                // Obtener el siguiente valor de order
+                dbCon.query(sqlGetMaxOrder, [wireguard, wireguard_cli], (orderErr, orderResult) => {
+                  if (orderErr) return reject(orderErr);
+
+                  const maxOrder = orderResult[0]?.maxOrder ?? -1;
+                  const nextOrder = maxOrder + 1;
+
+                  dbCon.query(
+                    sqlInsert,
+                    [option.arg, wireguard, wireguard_cli, option.name, nextOrder, option.scope],
+                    (insertErr) => {
+                      if (insertErr) return reject(insertErr);
+                      console.log(
+                        `(${index}) Insert realizado correctamente con order=${nextOrder} para opción:`,
+                        option,
+                      );
+                      resolve();
+                    },
+                  );
+                });
+              } else {
+                console.log(`(${index}) Update realizado correctamente para opción:`, option);
+                resolve();
+              }
+            },
+          );
         });
       });
 
