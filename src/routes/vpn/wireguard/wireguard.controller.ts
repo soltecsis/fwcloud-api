@@ -254,7 +254,12 @@ export class WireGuardController extends Controller {
     try {
       await WireGuard.updateCfg(req);
 
-      await WireGuard.delCfgOptAll(req);
+      const isServer = await WireGuard.isWireGuardServer(req.dbCon, req.body.wireguard);
+      if (isServer) {
+        await WireGuard.delCfgOptByScope(req, 2);
+      } else {
+        await WireGuard.delCfgOptAll(req);
+      }
 
       let order = 1;
       for (const opt of req.body.options) {
