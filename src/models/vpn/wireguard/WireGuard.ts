@@ -239,21 +239,6 @@ export class WireGuard extends Model {
     });
   }
 
-  public static updateCfgOpt(
-    dbCon: Query,
-    wireGuard: number,
-    name: string,
-    arg: string,
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const sql = `UPDATE wireguard_opt SET arg=${dbCon.escape(arg)} WHERE wireguard=${wireGuard} and name=${dbCon.escape(name)}`;
-      dbCon.query(sql, (error, _) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-  }
-
   public static updateCfgOptByipobj(
     dbCon: Query,
     ipobj: number,
@@ -284,6 +269,18 @@ export class WireGuard extends Model {
     });
   }
 
+  public static isWireGuardServer(dbCon: Query, wireGuard: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT wireguard FROM ${tableName} WHERE id=${wireGuard}`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        if (result.length === 0) return resolve(false);
+        // If wireguard is null, it is a server.
+        resolve(result[0].wireguard === null);
+      });
+    });
+  }
+
   public static checkIpobjInWireGuardOpt(dbCon: Query, ipobj: number): Promise<any> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT * FROM wireguard_opt WHERE ipobj=${ipobj}`;
@@ -307,6 +304,16 @@ export class WireGuard extends Model {
   public static delCfgOptAll(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'delete from wireguard_opt where wireguard=' + req.body.wireguard;
+      req.dbCon.query(sql, (error, _) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  public static delCfgOptByScope(req, scope: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and scope=${req.dbCon.escape(scope)}`;
       req.dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
@@ -636,7 +643,7 @@ export class WireGuard extends Model {
   // Get WireGuard client configuration data.
   public static getWireGuardInfo(dbCon: Query, fwcloud: number, wireGuard: number, type: number) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, O.vpn_network, O.netmask, FW.cluster cluster_id,
+      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, O.netmask, FW.cluster cluster_id,
           IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
           IF(VPN.wireguard is null,VPN.wireguard,(select crt.cn from wireguard inner join crt on crt.id=wireguard.crt where wireguard.id=VPN.wireguard)) as wireguard_server_cn
           ${type === 2 ? `,O.netmask` : ``}
@@ -644,12 +651,14 @@ export class WireGuard extends Model {
           inner join crt CRT on CRT.id=VPN.crt
           inner join ca CA on CA.id=CRT.ca
           inner join firewall FW on FW.id=VPN.firewall
-          inner join wireguard_opt OPT on OPT.wireguard=${wireGuard} OPT.name IN ('Address', '<<vpn_network>>')
+          inner join wireguard_opt OPT on OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', '<<vpn_network>>')
           inner join ipobj O on O.id=OPT.ipobj
           where FW.fwcloud=${fwcloud} and VPN.id=${wireGuard}`;
 
       dbCon.query(sql, (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          return reject(error);
+        }
         for (let i = 0; i < result.length; i++) {
           result[i].type = type === 1 ? 321 : 322;
         }
@@ -743,7 +752,7 @@ export class WireGuard extends Model {
                FROM wireguard PEER 
                INNER JOIN wireguard_opt OPT ON OPT.wireguard=PEER.id
                 LEFT JOIN crt CRT ON PEER.crt=CRT.id 
-               WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', '<<disable>>', 'PresharedKey', 'PersistentKeepalive')
+               WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', 'PresharedKey', '<<disable>>', 'PersistentKeepalive')
                ORDER BY OPT.name`;
 
               dbCon.query(sqlPeers, async (peerError, peerResult) => {
@@ -781,6 +790,16 @@ export class WireGuard extends Model {
                     });
                   }
 
+                  const disableOption = peer.options.find(
+                    (option: any) => option.option_name === '<<disable>>',
+                  );
+                  const addressOption = peer.options.find(
+                    (option: any) => option.option_name === 'Address',
+                  )?.option_value;
+                  const allowedIPsOption = peer.options.find(
+                    (option: any) => option.option_name === 'AllowedIPs',
+                  )?.option_value;
+
                   const formatOption = async (option: any, isDisabled: boolean) => {
                     const comment = option.option_comment
                       ? `# ${option.option_comment.replace(/\n/g, '\n# ')}\n`
@@ -805,10 +824,6 @@ export class WireGuard extends Model {
                       case 'Address':
                         return '';
                       case 'AllowedIPs': {
-                        const allowedIPsOption = option.option_value;
-                        const addressOption = peer.options.find(
-                          (opt: any) => opt.option_name === 'Address',
-                        )?.option_value;
                         if (isClient && !allowedIPsOption) return '';
                         return `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${!isClient ? addressOption : ''}${allowedIPsOption ? (!isClient ? ', ' : '') + allowedIPsOption : ''}\n`;
                       }
@@ -820,7 +835,7 @@ export class WireGuard extends Model {
                   const formatPeerSection = async (peer: any, isDisabled: boolean) => {
                     let section: string;
                     if (isClient) {
-                      const serverIdSql = `SELECT * from wireguard where id = (SELECT wireguard FROM wireguard WHERE id=${wireGuard})`;
+                      const serverIdSql = `SELECT * from ${tableName} where id = (SELECT wireguard FROM wireguard WHERE id=${wireGuard})`;
                       const serverResult = await new Promise((resolve, reject) => {
                         dbCon.query(serverIdSql, (error, result) => {
                           if (error) return reject(error);
@@ -841,9 +856,6 @@ export class WireGuard extends Model {
                     return section + '\n';
                   };
 
-                  const disableOption = Array.isArray(peer.options)
-                    ? peer.options.find((option: any) => option.option_name === '<<disable>>')
-                    : null;
                   wg_cfg += await formatPeerSection(peer, !!disableOption);
                 }
                 resolve({ cfg: wg_cfg });
