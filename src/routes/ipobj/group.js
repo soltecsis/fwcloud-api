@@ -211,7 +211,7 @@ router.put('/addto', async (req, res) => {
 			// Don't allow adding an empty WireGuard server prefix to a group.
 			if ((await WireGuardPrefix.getWireGuardClientsUnderPrefix(
 				req.dbCon,
-				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').openvpn,
+				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').wireguard,
 				req.prefix.find(prefix => prefix.prefix_type === 'wireguard').name)).length < 1) {
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 			}
@@ -220,6 +220,21 @@ router.put('/addto', async (req, res) => {
 			dataIpobj = await WireGuardPrefix.getPrefixWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 402;
+		} else if (req.body.node_type === 'PRI') {
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			// Don't allow adding an empty IP object to a group.
+			/*if ((await IPSecPrefix.getWireGuardClientsUnderPrefix(
+				req.dbCon,
+				req.prefix.find(prefix => prefix.prefix_type === 'ipsec').ipsec,
+				req.prefix.find(prefix => prefix.prefix_type === 'ipsec').name)).length < 1) {
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
+
+			await IPSecPrefix.addPrefixToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
+			dataIpobj = await IPSecPrefix.getPrefixWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
+			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
+			//TODO: check if this is correct, it seems to be a copy-paste error.
+			dataIpobj[0].type = 402;*/
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 
