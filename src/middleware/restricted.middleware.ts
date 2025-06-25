@@ -13,6 +13,8 @@ export class RestrictedMiddleware extends Middleware {
     ) {
       if (req.body.fwcloud && req.body.wireguard) {
         await this.wireguard(req, res, next);
+      } else if (req.body.fwcloud && req.body.prefix) {
+        next();
       }
     } else if (
       req.method === 'PUT' &&

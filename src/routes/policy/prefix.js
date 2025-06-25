@@ -1,23 +1,23 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-	https://soltecsis.com
-	info@soltecsis.com
+  Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  https://soltecsis.com
+  info@soltecsis.com
 
 
-	This file is part of FWCloud (https://fwcloud.net).
+  This file is part of FWCloud (https://fwcloud.net).
 
-	FWCloud is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Affero General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+  FWCloud is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-	FWCloud is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+  FWCloud is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 var express = require('express');
@@ -35,7 +35,7 @@ const utilsModel = require('../../utils/utils.js');
 const fwcError = require('../../utils/error_table');
 
 /* Create New policy_r__openvpn_prefix */
-router.post('/', utilsModel.disableFirewallCompileStatus, async (req, res) => {
+router.post('/:vpnType(openvpn|wireguard|ipsec)?', utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     if (
       (req.prefix.prefix_type == 'openvpn' &&
@@ -80,7 +80,7 @@ router.post('/', utilsModel.disableFirewallCompileStatus, async (req, res) => {
 });
 
 /* Update POSITION policy_r__openvpn_prefix that exist */
-router.put('/move', utilsModel.disableFirewallCompileStatus, async (req, res) => {
+router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     if (
       req.prefix.prefix_type == 'openvpn' &&
@@ -133,16 +133,20 @@ router.put('/move', utilsModel.disableFirewallCompileStatus, async (req, res) =>
 });
 
 /* Update ORDER de policy_r__interface that exist */
-router.put('/order', utilsModel.disableFirewallCompileStatus, (req, res) => {});
+router.put('/:vpnType(openvpn|wireguard|ipsec)?/order', utilsModel.disableFirewallCompileStatus, (req, res) => { });
 
 /* Remove policy_r__openvpn_prefix */
-router.put('/del', utilsModel.disableFirewallCompileStatus, async (req, res) => {
+router.put('/:vpnType(openvpn|wireguard|ipsec)?/del', utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
-    if (req.prefix.prefix_type == 'openvpn') {
-      await PolicyRuleToOpenVPNPrefix.deleteFromRulePosition(req);
-    } else if (req.prefix.prefix_type == 'wireguard') {
-      await PolicyRuleToWireGuardPrefix.deleteFromRulePosition(req);
-    }
+    const vpnType = req.params.vpnType || req.prefix?.prefix_type;
+    if (!vpnType) throw new Error('Tipo de VPN no reconocido');
+
+    await ({
+      openvpn: () => PolicyRuleToOpenVPNPrefix.deleteFromRulePosition(req),
+      wireguard: () => PolicyRuleToWireGuardPrefix.deleteFromRulePosition(req),
+      //ipsec: () => PolicyRuleToIPsecPrefix.deleteFromRulePosition(req),
+    }[vpnType])();
+
     res.status(204).end();
   } catch (error) {
     logger().error('Error removing policy_r__openvpn_prefix: ' + JSON.stringify(error));
