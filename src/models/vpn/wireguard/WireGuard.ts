@@ -232,9 +232,18 @@ export class WireGuard extends Model {
 
   public static addCfgOpt(req: Request, opt: any): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query('insert into wireguard_opt SET ?', opt, (error) => {
-        if (error) return reject(error);
-        resolve();
+      // Try to update first. If no rows are affected, insert.
+      const updateSql = `UPDATE wireguard_opt SET ? WHERE wireguard = ? AND name = ?`;
+      req.dbCon.query(updateSql, [opt, opt.wireguard, opt.name], (updateError, updateResult) => {
+        if (updateError) return reject(updateError);
+        if (updateResult.affectedRows > 0) {
+          return resolve();
+        }
+        // If not updated, insert new
+        req.dbCon.query('INSERT INTO wireguard_opt SET ?', opt, (insertError) => {
+          if (insertError) return reject(insertError);
+          resolve();
+        });
       });
     });
   }
@@ -449,16 +458,19 @@ export class WireGuard extends Model {
     });
   }
 
-  public static getOptData(dbCon: Query, wireGuard: number, name: string) {
+  public static getOptData(dbCon: Query, wireGuard: number, name?: string) {
     return new Promise((resolve, reject) => {
-      const sql =
-        'select * from wireguard_opt where wireguard=' +
-        wireGuard +
-        ' and name=' +
-        dbCon.escape(name);
+      let sql = `select * from wireguard_opt where wireguard=${wireGuard}`;
+      if (name) {
+        sql += ` and name=${dbCon.escape(name)}`;
+      }
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        resolve(result.length === 0 ? null : result[0]);
+        if (name) {
+          resolve(result.length === 0 ? null : result[0]);
+        } else {
+          resolve(result);
+        }
       });
     });
   }
@@ -1560,68 +1572,6 @@ export class WireGuard extends Model {
           resolve({ publicKey, options: rows || [] });
         });
       });
-    });
-  }
-
-  public static updatePeerOptions(
-    dbCon: Query,
-    wireguard: number,
-    wireguard_cli: number,
-    options: any[],
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const sqlUpdate = `
-        UPDATE wireguard_opt
-        SET arg = ?
-        WHERE wireguard = ? AND wireguard_cli = ? AND name = ?
-      `;
-
-      const sqlInsert = `
-      INSERT INTO wireguard_opt (arg, wireguard, wireguard_cli, name, \`order\`, scope)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-
-      const sqlGetMaxOrder = `
-      SELECT MAX(\`order\`) as maxOrder
-      FROM wireguard_opt
-      WHERE wireguard = ? AND wireguard_cli = ?
-    `;
-
-      const promises = options.map((option, index) => {
-        return new Promise<void>((resolve, reject) => {
-          dbCon.query(
-            sqlUpdate,
-            [option.arg, wireguard, wireguard_cli, option.name],
-            (error, result) => {
-              if (error) return reject(error);
-
-              if (result.affectedRows === 0) {
-                dbCon.query(sqlGetMaxOrder, [wireguard, wireguard_cli], (orderErr, orderResult) => {
-                  if (orderErr) return reject(orderErr);
-
-                  const maxOrder = orderResult[0]?.maxOrder ?? -1;
-                  const nextOrder = maxOrder + 1;
-
-                  dbCon.query(
-                    sqlInsert,
-                    [option.arg, wireguard, wireguard_cli, option.name, nextOrder, option.scope],
-                    (insertErr) => {
-                      if (insertErr) return reject(insertErr);
-                      resolve();
-                    },
-                  );
-                });
-              } else {
-                resolve();
-              }
-            },
-          );
-        });
-      });
-
-      Promise.all(promises)
-        .then(() => resolve())
-        .catch((error) => reject(error));
     });
   }
 }
