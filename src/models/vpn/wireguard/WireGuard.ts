@@ -425,7 +425,8 @@ export class WireGuard extends Model {
         if (error) return reject(error);
 
         const data = wireguard_result[0];
-        //IS CLIENT
+        const type = data.wireguard === null ? 322 : 321;
+
         if (data.wireguard !== null) {
           sql = `select * from ${tableName} where id=${data.wireguard}`;
           dbCon.query(sql, async (error, result) => {
@@ -448,6 +449,8 @@ export class WireGuard extends Model {
                 ),
               )
             )[0];
+
+            wireguard_data.type = type;
 
             resolve(wireguard_data);
           } catch (error) {
@@ -655,17 +658,24 @@ export class WireGuard extends Model {
   // Get WireGuard client configuration data.
   public static getWireGuardInfo(dbCon: Query, fwcloud: number, wireGuard: number, type: number) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, O.netmask, FW.cluster cluster_id,
-          IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
-          IF(VPN.wireguard is null,VPN.wireguard,(select crt.cn from wireguard inner join crt on crt.id=wireguard.crt where wireguard.id=VPN.wireguard)) as wireguard_server_cn
-          ${type === 2 ? `,O.netmask` : ``}
-          from wireguard VPN 
-          inner join crt CRT on CRT.id=VPN.crt
-          inner join ca CA on CA.id=CRT.ca
-          inner join firewall FW on FW.id=VPN.firewall
-          inner join wireguard_opt OPT on OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', '<<vpn_network>>')
-          inner join ipobj O on O.id=OPT.ipobj
-          where FW.fwcloud=${fwcloud} and VPN.id=${wireGuard}`;
+      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, 
+            IF(${type} = 322, 
+              (select ipobj.address from wireguard_opt 
+               inner join ipobj on ipobj.id = wireguard_opt.ipobj 
+               where wireguard_opt.wireguard = VPN.id and wireguard_opt.name = '<<vpn_network>>' limit 1), 
+              O.address
+            ) as address,
+            FW.cluster cluster_id,
+            IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
+            IF(VPN.wireguard is null,VPN.wireguard,(select crt.cn from wireguard inner join crt on crt.id=wireguard.crt where wireguard.id=VPN.wireguard)) as wireguard_server_cn
+            ${type === 322 ? `,O.netmask` : ``}
+            from wireguard VPN 
+            inner join crt CRT on CRT.id=VPN.crt
+            inner join ca CA on CA.id=CRT.ca
+            inner join firewall FW on FW.id=VPN.firewall
+            inner join wireguard_opt OPT on OPT.wireguard=${wireGuard}
+            inner join ipobj O on O.id=OPT.ipobj
+            where FW.fwcloud=${fwcloud} and VPN.id=${wireGuard}`;
 
       dbCon.query(sql, (error, result) => {
         if (error) {
