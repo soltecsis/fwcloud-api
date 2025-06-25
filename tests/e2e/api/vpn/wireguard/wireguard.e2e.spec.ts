@@ -951,7 +951,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
             options: [],
           })
           .then((response) => {
-            expect(response.status).to.equal(200);
+            expect(response.status).to.equal(204);
           });
       });
 
@@ -966,7 +966,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
             options: [],
           })
           .then((response) => {
-            expect(response.status).to.equal(200);
+            expect(response.status).to.equal(204);
           });
       });
     });
