@@ -81,15 +81,13 @@ export class WireGuardController extends Controller {
             (max: number, opt: WireGuardOption) => Math.max(max, opt.order),
             0,
           ) + 1;
-        const options = [
-          {
-            name: 'AllowedIPs',
-            wireguard: req.body.wireguard,
-            wireguard_cli: newWireguard,
-            order: order,
-            scope: 3,
-          },
-        ];
+        const options = {
+          name: 'AllowedIPs',
+          wireguard: req.body.wireguard,
+          wireguard_cli: newWireguard,
+          order: order,
+          scope: 3,
+        };
         await WireGuard.addCfgOpt(req, options);
       }
 
