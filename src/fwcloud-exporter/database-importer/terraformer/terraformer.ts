@@ -33,12 +33,15 @@ import { PolicyRuleToIPObj } from '../../../models/policy/PolicyRuleToIPObj';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FirewallTerraformer } from './table-terraformers/firewall.terraformer';
 import { EventEmitter } from 'events';
+import { WireGuardOption } from '../../../models/vpn/wireguard/wireguard-option.model';
+import { WireguardOptTerraformer } from './table-terraformers/wireguard-opt.terraformet';
 
 const TERRAFORMERS: { [tableName: string]: typeof TableTerraformer } = {};
 TERRAFORMERS[FwcTree._getTableName()] = FwcTreeTerraformer;
 TERRAFORMERS[IPObjGroup._getTableName()] = IpObjGroupTerraformer;
 TERRAFORMERS[PolicyRuleToIPObj._getTableName()] = PolicyRuleToIpObjTerraformer;
 TERRAFORMERS[Firewall._getTableName()] = FirewallTerraformer;
+TERRAFORMERS[WireGuardOption._getTableName()] = WireguardOptTerraformer;
 
 export class Terraformer {
   protected _mapper: ImportMapping;
