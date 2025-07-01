@@ -128,6 +128,10 @@ export class WireGuardController extends Controller {
         await WireGuard.createWireGuardServerInterface(req, newWireguard);
       }
 
+      // Mark server as modified (need to be reinstalled)
+      if (req.body.wireguard && req.tree_node.node_type === 'WGS') {
+        await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
+      }
       return ResponseBuilder.buildResponse()
         .status(201)
         .body({ insertId: newWireguard, TreeinsertId: nodeId });
@@ -263,15 +267,20 @@ export class WireGuardController extends Controller {
         await WireGuard.addCfgOpt(req, opt);
       }
 
-      if (
-        req.body.options &&
-        req.body.options.some((option) => option.name === '<<vpn_network>>')
-      ) {
-        // If wireguard server is updated now update the virtual network interface
-        await WireGuard.updateWireGuardServerInterface(req);
-      }
+      // Get current configuration
+      const data = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
 
-      await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
+      const isServer = data.wireguard === null; // Server configuration
+      const isClient = data.wireguard !== null && data.id !== null; // If it has wireguard and id, it is a client configuration
+
+      if (isServer) {
+        // If it is a server: update interface and mark as modified
+        await WireGuard.updateWireGuardServerInterface(req);
+        await WireGuard.updateWireGuardStatus(req.dbCon, data.id, '|1');
+      } else if (isClient) {
+        // If it is a client: force server status to modified (need to be reinstalled)
+        await WireGuard.updateWireGuardStatus(req.dbCon, data.wireguard, '|1');
+      }
 
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
@@ -388,6 +397,9 @@ export class WireGuardController extends Controller {
           req.body.fwcloud,
           req.wireguard.wireguard,
         );
+
+        // Mark server as modified (need to be reinstalled)
+        await WireGuard.updateWireGuardStatus(req.dbCon, req.wireguard.wireguard, '|1');
       } else {
         await Tree.deleteObjFromTree(req.body.fwcloud, req.body.wireguard, 322);
       }
