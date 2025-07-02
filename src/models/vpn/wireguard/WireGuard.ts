@@ -178,11 +178,7 @@ export class WireGuard extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         const keys = await this.generateKeyPair();
-        console.log(
-          'addCfg: ',
-          req.body.wireguard !== null || req.body.wireguard !== undefined,
-          req.body.wireguard,
-        );
+
         const cfg = {
           firewall: req.body.firewall,
           crt: req.body.crt,
