@@ -178,14 +178,18 @@ export class WireGuard extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         const keys = await this.generateKeyPair();
-
+        console.log(
+          'addCfg: ',
+          req.body.wireguard !== null || req.body.wireguard !== undefined,
+          req.body.wireguard,
+        );
         const cfg = {
           firewall: req.body.firewall,
           crt: req.body.crt,
           install_dir: req.body.install_dir,
           install_name: req.body.install_name,
           comment: req.body.comment || null,
-          status: req.body.wireguard !== null ? 0 : 1, // Remove "install" flag for clients.
+          status: req.body.wireguard !== undefined ? 0 : 1, // Remove "install" flag for clients.
           public_key: await utilsModel.encrypt(keys.public_key),
           private_key: await utilsModel.encrypt(keys.private_key),
           wireguard: req.body.wireguard || null,
