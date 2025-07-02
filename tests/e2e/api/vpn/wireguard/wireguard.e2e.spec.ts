@@ -254,7 +254,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
             firewall: fwcProduct.firewall.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
-            wireguard: wireguardId,
+            wireguard: fwcProduct.wireguardServer.id,
             options: [
               {
                 name: 'Address',
@@ -283,7 +283,7 @@ describe(describeName('WireGuard E2E Tests'), () => {
             firewall: fwcProduct.firewall.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
-            wireguard: wireguardId,
+            wireguard: fwcProduct.wireguardServer.id,
             options: [
               {
                 name: 'Address',
