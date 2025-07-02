@@ -81,15 +81,13 @@ export class WireGuardController extends Controller {
             (max: number, opt: WireGuardOption) => Math.max(max, opt.order),
             0,
           ) + 1;
-        const options = [
-          {
-            name: 'AllowedIPs',
-            wireguard: req.body.wireguard,
-            wireguard_cli: newWireguard,
-            order: order,
-            scope: 3,
-          },
-        ];
+        const options = {
+          name: 'AllowedIPs',
+          wireguard: req.body.wireguard,
+          wireguard_cli: newWireguard,
+          order: order,
+          scope: 3,
+        };
         await WireGuard.addCfgOpt(req, options);
       }
 
@@ -258,7 +256,12 @@ export class WireGuardController extends Controller {
     try {
       await WireGuard.updateCfg(req);
 
-      await WireGuard.delCfgOptAll(req);
+      const isServer = await WireGuard.isWireGuardServer(req.dbCon, req.body.wireguard);
+      if (isServer) {
+        await WireGuard.delCfgOptByScope(req, 2);
+      } else {
+        await WireGuard.delCfgOptAll(req);
+      }
 
       let order = 1;
       for (const opt of req.body.options) {
@@ -475,13 +478,28 @@ export class WireGuardController extends Controller {
   @Validate(UpdateOptionsDto)
   async updateClientOptions(req: any): Promise<ResponseBuilder> {
     try {
-      const data = await WireGuard.updatePeerOptions(
+      await WireGuard.delCfgOptByScope(req, 3);
+
+      const clientOptions = (await WireGuard.getOptData(
         req.dbCon,
-        req.body.wireguard,
         req.body.wireguard_cli,
-        req.body.options,
-      );
-      return ResponseBuilder.buildResponse().status(200).body(data);
+      )) as any[];
+      let maxOrder = clientOptions.reduce((max: number, opt: any) => Math.max(max, opt.order), 0);
+      if (maxOrder === 0) {
+        maxOrder = 1; // Start from 1 if no options exist
+      } else {
+        maxOrder++; // Increment to ensure new options are added after existing ones
+      }
+      for (const opt of req.body.options) {
+        // Configure option
+        opt.wireguard = req.body.wireguard;
+        opt.wireguard_cli = req.body.wireguard_cli;
+        opt.ipobj = null;
+        opt.order = maxOrder++;
+        await WireGuard.addCfgOpt(req, opt);
+      }
+
+      return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }

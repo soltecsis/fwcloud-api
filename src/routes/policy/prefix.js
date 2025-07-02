@@ -50,7 +50,7 @@ router.post('/:vpnType(openvpn|wireguard|ipsec)?', utilsModel.disableFirewallCom
         (
           await WireGuardPrefix.getWireGuardClientsUnderPrefix(
             req.dbCon,
-            req.prefix.openvpn,
+            req.prefix.wireguard,
             req.prefix.name,
           )
         ).length < 1)
