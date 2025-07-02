@@ -201,7 +201,7 @@ router.put('/addto', async (req, res) => {
 			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			await WireGuard.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
-			dataIpobj = await WireGuard.getWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			dataIpobj = await WireGuard.getWireGuardInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 321;

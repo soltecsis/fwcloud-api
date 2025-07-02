@@ -1281,7 +1281,7 @@ export class WireGuard extends Model {
 
   public static removeFromGroup(req: Request) {
     return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM wireguard__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND wireguard=${req.body.wireguard}`;
+      const sql = `DELETE FROM wireguard__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND wireguard=${req.body.ipobj}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
