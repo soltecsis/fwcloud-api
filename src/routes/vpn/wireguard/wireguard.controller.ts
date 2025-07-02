@@ -270,14 +270,11 @@ export class WireGuardController extends Controller {
       // Get current configuration
       const data = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
 
-      const isServer = data.wireguard === null; // Server configuration
-      const isClient = data.wireguard !== null && data.id !== null; // If it has wireguard and id, it is a client configuration
-
-      if (isServer) {
+      if (data.wireguard === null) {
         // If it is a server: update interface and mark as modified
         await WireGuard.updateWireGuardServerInterface(req);
         await WireGuard.updateWireGuardStatus(req.dbCon, data.id, '|1');
-      } else if (isClient) {
+      } else if (data.wireguard !== null && data.id !== null) {
         // If it is a client: force server status to modified (need to be reinstalled)
         await WireGuard.updateWireGuardStatus(req.dbCon, data.wireguard, '|1');
       }
