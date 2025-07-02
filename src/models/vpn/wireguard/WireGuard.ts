@@ -706,12 +706,12 @@ export class WireGuard extends Model {
     return new Promise((resolve, reject) => {
       // First obtain the CN of the certificate.
       const sqlCN = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
-              VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
-              INNER JOIN wireguard VPN ON VPN.crt=CRT.id
-              LEFT JOIN wireguard VPNSRV ON VPNSRV.id=VPN.wireguard
-              INNER JOIN firewall FW ON FW.id=VPN.firewall
-              LEFT JOIN cluster CL ON CL.id=FW.cluster
-            WHERE VPN.id=${wireGuard}`;
+                VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
+                INNER JOIN wireguard VPN ON VPN.crt=CRT.id
+                LEFT JOIN wireguard VPNSRV ON VPNSRV.id=VPN.wireguard
+                INNER JOIN firewall FW ON FW.id=VPN.firewall
+                LEFT JOIN cluster CL ON CL.id=FW.cluster
+              WHERE VPN.id=${wireGuard}`;
 
       dbCon.query(sqlCN, async (error, result) => {
         if (error) return reject(error);
@@ -731,10 +731,10 @@ export class WireGuard extends Model {
         wg_cfg += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         const sql = `SELECT *
-                 FROM wireguard WG
-                 LEFT JOIN firewall FW ON FW.id = WG.firewall
-                 LEFT JOIN cluster CL ON CL.id=FW.cluster
-                 WHERE WG.id=${wireGuard}`;
+                  FROM wireguard WG
+                  LEFT JOIN firewall FW ON FW.id = WG.firewall
+                  LEFT JOIN cluster CL ON CL.id=FW.cluster
+                  WHERE WG.id=${wireGuard}`;
         dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
           if (!result || result.length === 0)
@@ -745,10 +745,10 @@ export class WireGuard extends Model {
           wg_cfg += `PrivateKey = ${await utilsModel.decrypt(wgRow.private_key)}\n`;
 
           const sqlOpts = `SELECT *
-                       FROM wireguard_opt OPT
-                       WHERE OPT.wireguard=${wireGuard}
-                       AND OPT.name IN ('Address', 'ListenPort', 'DNS', 'MTU', 'Table', 'PreUp', 'PostUp', 'PreDown', 'PostDown', 'SaveConfig', 'FwMark')
-                       ORDER BY OPT.order`;
+                        FROM wireguard_opt OPT
+                        WHERE OPT.wireguard=${wireGuard}
+                        AND OPT.name IN ('Address', 'ListenPort', 'DNS', 'MTU', 'Table', 'PreUp', 'PostUp', 'PreDown', 'PostDown', 'SaveConfig', 'FwMark')
+                        ORDER BY OPT.order`;
           dbCon.query(sqlOpts, (optError, optResult) => {
             if (optError) return reject(optError);
             const interfaceLines = optResult.map((opt: WireGuardOption) => {
@@ -766,16 +766,16 @@ export class WireGuard extends Model {
               const isClient = result[0].wireguard !== null;
               const sqlPeers = isClient
                 ? `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
-               FROM wireguard_opt OPT
-               INNER JOIN wireguard PEER ON PEER.id=OPT.wireguard
-               WHERE OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', '<<disable>>', 'PresharedKey') AND OPT.wireguard_cli IS NULL
-               ORDER BY OPT.name`
+                FROM wireguard_opt OPT
+                INNER JOIN wireguard PEER ON PEER.id=OPT.wireguard
+                WHERE OPT.wireguard=${wireGuard} AND OPT.name IN ('Address', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive', '<<disable>>', 'PresharedKey') AND OPT.wireguard_cli IS NULL
+                ORDER BY OPT.name`
                 : `SELECT PEER.*, CRT.cn as peer_cn, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
-               FROM wireguard PEER 
-               INNER JOIN wireguard_opt OPT ON OPT.wireguard=PEER.id
-                LEFT JOIN crt CRT ON PEER.crt=CRT.id 
-               WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', 'PresharedKey', '<<disable>>', 'PersistentKeepalive')
-               ORDER BY OPT.name`;
+                FROM wireguard PEER 
+                INNER JOIN wireguard_opt OPT ON OPT.wireguard=PEER.id
+                  LEFT JOIN crt CRT ON PEER.crt=CRT.id 
+                WHERE PEER.wireguard=${wireGuard} AND OPT.name IN ('Address', 'PresharedKey', '<<disable>>', 'PersistentKeepalive')
+                ORDER BY OPT.name`;
 
               dbCon.query(sqlPeers, async (peerError, peerResult) => {
                 if (peerError) return reject(peerError);
@@ -847,8 +847,27 @@ export class WireGuard extends Model {
                         return '';
                       case 'AllowedIPs': {
                         if (isClient && !allowedIPsOption) return '';
-                        return `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${!isClient ? addressOption : ''}${allowedIPsOption ? (!isClient ? ', ' : '') + allowedIPsOption : ''}\n`;
+
+                        let normalizedAddress: string | null = null;
+
+                        if (!isClient && addressOption) {
+                          const [ip] = addressOption.split('/');
+                          normalizedAddress = `${ip}/32`;
+                        }
+
+                        // Build IPs list (duplicated values removed)
+                        const allIPs = [
+                          ...(normalizedAddress ? [normalizedAddress] : []),
+                          ...(allowedIPsOption
+                            ? allowedIPsOption.split(',').map((ip) => ip.trim())
+                            : []),
+                        ];
+
+                        const uniqueIPs = Array.from(new Set(allIPs));
+
+                        return `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${uniqueIPs.join(', ')}\n`;
                       }
+
                       default:
                         return `${comment}${isDisabled ? '# ' : ''}${option.option_name} = ${option.option_value}\n`;
                     }
