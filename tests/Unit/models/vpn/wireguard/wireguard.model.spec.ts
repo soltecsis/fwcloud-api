@@ -357,7 +357,7 @@ describe(WireGuard.name, () => {
       const request: any = {
         dbCon: db.getQuery(),
         body: {
-          wireguard: fwcloudProduct.wireguardServer.id,
+          ipobj: fwcloudProduct.wireguardServer.id,
           ipobj_g: fwcloudProduct.ipobjGroup.id,
         },
       };
