@@ -257,7 +257,7 @@ export class PolicyRuleToWireGuard extends Model {
           for (const row of rows) {
             const data: any = await this.getConfigsUnderWireGuardPrefix(
               dbCon,
-              row.wireGuard,
+              row.wireguard,
               row.name,
             );
             // We are the last WireGuard client config in the prefix used in and WireGuard server and in a rule.
@@ -295,7 +295,7 @@ export class PolicyRuleToWireGuard extends Model {
           for (const row of rows) {
             const data: any = await this.getConfigsUnderWireGuardPrefix(
               dbCon,
-              row.wireGuard,
+              row.wireguard,
               row.name,
             );
             // We are the last wireGuard client config in the prefix used in and WireGuard server and in a rule.
