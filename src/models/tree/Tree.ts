@@ -289,7 +289,6 @@ export class Tree extends Model {
               // Include data for IPSec Nodes Server
               if (nodes[i].node_type == 'ISS' || nodes[i].node_type == 'ISC') {
                 nodes[i] = await this.addSearchInfoIPSec(nodes[i]);
-                console.log('entra dumptree ipsec', nodes[i]);
               }
               // Add the current node children array to the map.
               nodes[i].children = [];
@@ -434,7 +433,6 @@ export class Tree extends Model {
       qb.andWhere('option.name = :name', { name: 'LocalIP' });
     }
     const result: IPObj = await qb.getOne();
-    console.log('entra addsearchinfoipsec', result);
     node.address = result.address ?? '';
 
     return node;

@@ -25,7 +25,7 @@ import Model from '../../Model';
 import { IPObj } from '../../ipobj/IPObj';
 import { IPSec } from './IPSec';
 
-const tableName: string = 'wireguard_opt';
+const tableName: string = 'ipsec_opt';
 
 @Entity(tableName)
 export class IPSecOption extends Model {
