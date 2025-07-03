@@ -128,7 +128,7 @@ export class WireGuard1737018559931 implements MigrationInterface {
             default: null,
           },
         ],
-        uniques: [{ columnNames: ['firewall', 'crt'] }],
+        uniques: [{ columnNames: ['firewall', 'wireguard', 'crt'] }],
         foreignKeys: [
           {
             columnNames: ['crt'],

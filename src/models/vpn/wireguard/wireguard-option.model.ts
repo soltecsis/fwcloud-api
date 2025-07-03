@@ -38,16 +38,25 @@ export class WireGuardOption extends Model {
   @Column({ name: 'ipobj' })
   ipObjId: number;
 
+  @Column({ name: 'wireguard_cli', nullable: true })
+  wireguardCliId: number;
+
   @Column()
   name: string;
 
-  @ManyToOne((type) => WireGuard, (wireGuard) => wireGuard.WireGuardOptions)
+  @ManyToOne(() => WireGuard, (wireGuard) => wireGuard.WireGuardOptions)
   @JoinColumn({
     name: 'wireGuard',
   })
   wireGuard: WireGuard;
 
-  @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsListWireGuard)
+  @ManyToOne(() => WireGuard, (wireGuard) => wireGuard.childs)
+  @JoinColumn({
+    name: 'wireguard_cli',
+  })
+  wireguardCli: WireGuard;
+
+  @ManyToOne(() => IPObj, (ipObj) => ipObj.optionsListWireGuard)
   @JoinColumn({
     name: 'ipobj',
   })

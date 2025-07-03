@@ -263,8 +263,8 @@ export class WireGuardPrefix extends Model {
                 inner join crt CRT on CRT.id=WG.crt
                 inner join ca CA on CA.id=CRT.ca
                 inner join firewall FW on FW.id=WG.firewall 
-                where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
-      dbCon.query(sql, async (error, result) => {
+                where FW.fwcloud=? and P.id=?`;
+      dbCon.query(sql, [fwcloud, prefix], async (error, result) => {
         if (error) return reject(error);
         if (result.length === 0) return reject(fwcError.NOT_FOUND);
         result[0].type = 402;

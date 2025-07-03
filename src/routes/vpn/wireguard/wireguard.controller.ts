@@ -81,15 +81,13 @@ export class WireGuardController extends Controller {
             (max: number, opt: WireGuardOption) => Math.max(max, opt.order),
             0,
           ) + 1;
-        const options = [
-          {
-            name: 'AllowedIPs',
-            wireguard: req.body.wireguard,
-            wireguard_cli: newWireguard,
-            order: order,
-            scope: 3,
-          },
-        ];
+        const options = {
+          name: 'AllowedIPs',
+          wireguard: req.body.wireguard,
+          wireguard_cli: newWireguard,
+          order: order,
+          scope: 3,
+        };
         await WireGuard.addCfgOpt(req, options);
       }
 
@@ -128,6 +126,10 @@ export class WireGuardController extends Controller {
         await WireGuard.createWireGuardServerInterface(req, newWireguard);
       }
 
+      // Mark server as modified (need to be reinstalled)
+      if (req.body.wireguard && req.tree_node.node_type === 'WGS') {
+        await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
+      }
       return ResponseBuilder.buildResponse()
         .status(201)
         .body({ insertId: newWireguard, TreeinsertId: nodeId });
@@ -254,7 +256,12 @@ export class WireGuardController extends Controller {
     try {
       await WireGuard.updateCfg(req);
 
-      await WireGuard.delCfgOptAll(req);
+      const isServer = await WireGuard.isWireGuardServer(req.dbCon, req.body.wireguard);
+      if (isServer) {
+        await WireGuard.delCfgOptByScope(req, 2);
+      } else {
+        await WireGuard.delCfgOptAll(req);
+      }
 
       let order = 1;
       for (const opt of req.body.options) {
@@ -263,15 +270,17 @@ export class WireGuardController extends Controller {
         await WireGuard.addCfgOpt(req, opt);
       }
 
-      if (
-        req.body.options &&
-        req.body.options.some((option) => option.name === '<<vpn_network>>')
-      ) {
-        // If wireguard server is updated now update the virtual network interface
-        await WireGuard.updateWireGuardServerInterface(req);
-      }
+      // Get current configuration
+      const data = await WireGuard.getCfg(req.dbCon, req.body.wireguard);
 
-      await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
+      if (data.wireguard === null) {
+        // If it is a server: update interface and mark as modified
+        await WireGuard.updateWireGuardServerInterface(req);
+        await WireGuard.updateWireGuardStatus(req.dbCon, data.id, '|1');
+      } else if (data.wireguard !== null && data.id !== null) {
+        // If it is a client: force server status to modified (need to be reinstalled)
+        await WireGuard.updateWireGuardStatus(req.dbCon, data.wireguard, '|1');
+      }
 
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
@@ -388,6 +397,9 @@ export class WireGuardController extends Controller {
           req.body.fwcloud,
           req.wireguard.wireguard,
         );
+
+        // Mark server as modified (need to be reinstalled)
+        await WireGuard.updateWireGuardStatus(req.dbCon, req.wireguard.wireguard, '|1');
       } else {
         await Tree.deleteObjFromTree(req.body.fwcloud, req.body.wireguard, 322);
       }
@@ -466,13 +478,28 @@ export class WireGuardController extends Controller {
   @Validate(UpdateOptionsDto)
   async updateClientOptions(req: any): Promise<ResponseBuilder> {
     try {
-      const data = await WireGuard.updatePeerOptions(
+      await WireGuard.delCfgOptByScope(req, 3);
+
+      const clientOptions = (await WireGuard.getOptData(
         req.dbCon,
-        req.body.wireguard,
         req.body.wireguard_cli,
-        req.body.options,
-      );
-      return ResponseBuilder.buildResponse().status(200).body(data);
+      )) as any[];
+      let maxOrder = clientOptions.reduce((max: number, opt: any) => Math.max(max, opt.order), 0);
+      if (maxOrder === 0) {
+        maxOrder = 1; // Start from 1 if no options exist
+      } else {
+        maxOrder++; // Increment to ensure new options are added after existing ones
+      }
+      for (const opt of req.body.options) {
+        // Configure option
+        opt.wireguard = req.body.wireguard;
+        opt.wireguard_cli = req.body.wireguard_cli;
+        opt.ipobj = null;
+        opt.order = maxOrder++;
+        await WireGuard.addCfgOpt(req, opt);
+      }
+
+      return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }

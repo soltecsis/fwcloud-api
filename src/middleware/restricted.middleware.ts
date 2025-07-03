@@ -20,6 +20,8 @@ export class RestrictedMiddleware extends Middleware {
         await this.wireguard(req, res, next);
       } else if (req.body.fwcloud && req.body.ipsec) {
         await this.ipsec(req, res, next);
+      } else if (req.body.fwcloud && req.body.prefix) {
+        next();
       }
     } else if (
       req.method === 'PUT' &&
