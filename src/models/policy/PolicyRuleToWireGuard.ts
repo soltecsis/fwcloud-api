@@ -134,7 +134,7 @@ export class PolicyRuleToWireGuard extends Model {
   public static moveToNewPosition(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
-                WHERE rule=${req.body.rule} AND wireguard=${req.body.wireGuard} AND position=${req.body.position}`;
+                WHERE rule=${req.body.rule} AND wireguard=${req.body.wireguard} AND position=${req.body.position}`;
       req.dbCon.query(sql, async (error, _) => {
         if (error) return reject(error);
         resolve();
