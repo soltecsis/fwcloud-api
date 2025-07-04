@@ -1056,7 +1056,7 @@ export class WireGuard extends Model {
           // Include the rules that use the groups in which the WireGuard is being used.
           search.restrictions.WireGuardInGroupInRule = [];
           for (let i = 0; i < search.restrictions.WireGuardInGroup.length; i++) {
-            const data: any = IPObjGroup.searchGroupUsage(
+            const data: any = await IPObjGroup.searchGroupUsage(
               search.restrictions.WireGuardInGroup[i].group_id,
               fwcloud,
             );
