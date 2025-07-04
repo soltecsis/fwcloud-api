@@ -34,6 +34,8 @@ import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 import db from '../../database/database-manager';
+import { PolicyRuleToWireGuard } from '../../models/policy/PolicyRuleToWireGuard';
+import { PolicyRuleToWireGuardPrefix } from '../../models/policy/PolicyRuleToWireguardPrefix';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -362,6 +364,10 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
 			await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR WireGuard OBJECTS
+			await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR WIREGUARD PREFIXES
+			await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
 
 			resolve(newRuleId);
 		} catch(error) { return reject(error) }
