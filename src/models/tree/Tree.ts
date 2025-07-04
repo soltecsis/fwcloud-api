@@ -941,7 +941,45 @@ export class Tree extends Model {
             } catch (error) {
               return reject(error);
             }
-            resolve();
+
+            sql = `SELECT VPN.id,CRT.cn FROM wireguard__ipobj_g G
+                                        INNER JOIN wireguard VPN ON VPN.id=G.wireguard
+                                        INNER JOIN crt CRT ON CRT.id=VPN.crt
+                                        WHERE G.ipobj_g=${group}`;
+            dbCon.query(sql, async (error, wireguards) => {
+              if (error) return reject(error);
+
+              try {
+                for (const wireguard of wireguards)
+                  await this.newNode(
+                    dbCon,
+                    fwcloud,
+                    wireguard.cn,
+                    node_id,
+                    'WGC',
+                    wireguard.id,
+                    321,
+                  );
+              } catch (error) {
+                return reject(error);
+              }
+
+              sql = `SELECT P.id,P.name FROM wireguard_prefix__ipobj_g G
+                                            INNER JOIN wireguard_prefix P ON P.id=G.prefix
+                                            WHERE G.ipobj_g=${group}`;
+              dbCon.query(sql, async (error, wgPrefixes) => {
+                if (error) return reject(error);
+
+                try {
+                  for (const prefix of wgPrefixes)
+                    await this.newNode(dbCon, fwcloud, prefix.name, node_id, 'PRW', prefix.id, 402);
+                } catch (error) {
+                  return reject(error);
+                }
+
+                resolve();
+              });
+            });
           });
         });
       });
