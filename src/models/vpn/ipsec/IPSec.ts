@@ -641,7 +641,7 @@ export class IPSec extends Model {
   // Get IPSec client configuration data.
   public static getIPSecInfo(dbCon: Query, fwcloud: number, ipSec: number, type: number) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.LocalIP, FW.cluster cluster_id,
+      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.left, FW.cluster cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
                 IF(VPN.ipsec is null,VPN.ipsec,(select crt.cn from ipsec inner join crt on crt.id=ipsec.crt where ipsec.id=VPN.ipsec)) as ipsec_server_cn
                 ${type === 2 ? `,O.netmask` : ``}
@@ -723,8 +723,8 @@ export class IPSec extends Model {
                           FROM ipsec
                           WHERE OPT.ipsec = ${ipSec}
                           AND OPT.name IN (
-                              'LocalIP',
-                              'RemoteIP',
+                              'left',
+                              'right',
                               'DNS1',
                               'DNS2',
                               'IKEVersion',
@@ -920,7 +920,7 @@ export class IPSec extends Model {
       // Search for the VPN LAN and mask.
       let sql = `select OBJ.address,OBJ.netmask from ipsec_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.ipsec=${req.body.ipsec} and OPT.name='LocalIP' and OPT.ipobj is not null`;
+                where OPT.ipsec=${req.body.ipsec} and OPT.name='left' and OPT.ipobj is not null`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
@@ -1233,7 +1233,6 @@ export class IPSec extends Model {
                 INNER JOIN firewall FW on FW.id=VPN.firewall
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
       req.dbCon.query(sql, (error, rows) => {
-        console.log('rows', rows);
         if (error) return reject(error);
         data.ipSec_status = rows;
         resolve(data);
@@ -1269,7 +1268,7 @@ export class IPSec extends Model {
     isUpdate: boolean,
   ): Promise<void> {
     try {
-      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'LocalIP');
+      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'left');
       if (!ipSecOpt) return;
 
       const interfaceName = req.body.install_name.replace(/\.conf$/, '');
@@ -1307,7 +1306,7 @@ export class IPSec extends Model {
         };
 
         await IPObj.updateIpobj(req.dbCon, ipobjData);
-        await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'LocalIP');
+        await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'left');
         await Tree.updateFwc_Tree_OBJ(req, {
           name: interfaceName,
           id: ipobj.id,
@@ -1329,7 +1328,7 @@ export class IPSec extends Model {
           const ipobj = ipobjs.find((i: any) => i.name === interfaceName);
 
           if (ipobj) {
-            await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'LocalIP');
+            await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'left');
           }
           return;
         }
@@ -1403,7 +1402,7 @@ export class IPSec extends Model {
               req.dbCon,
               ipobjId as number,
               cfg ?? req.body.ipsec,
-              'LocalIP',
+              'left',
             );
             await Tree.newNode(
               req.dbCon,
@@ -1490,7 +1489,7 @@ export class IPSec extends Model {
           SELECT IO.*
           FROM ipsec_opt IO
           WHERE (
-            IO.name = 'LocalIP' AND IO.ipsec = ?
+            IO.name = 'left' AND IO.ipsec = ?
           ) OR (
             IO.ipsec = ? AND IO.ipsec_cli = ?
           )
