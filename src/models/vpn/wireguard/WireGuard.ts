@@ -326,7 +326,7 @@ export class WireGuard extends Model {
 
   public static delCfgOptByScope(req, scope: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and wireguard_cli=${req.body.wireguard_cli} and scope=${req.dbCon.escape(scope)}`;
+      const sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and wireguard_cli=${req.body.wireguard_cli ?? null} and scope=${req.dbCon.escape(scope)}`;
       req.dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
