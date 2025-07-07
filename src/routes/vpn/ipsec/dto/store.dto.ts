@@ -21,8 +21,8 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
     if (!value) return true;
 
     switch (option.name) {
-      case 'LocalIP':
-      case 'RemoteIP':
+      case 'left':
+      case 'right':
       case 'DNS1':
       case 'DNS2':
         return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(value); // IPv4 simple
@@ -99,33 +99,30 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 export class IPSecOptionDTO {
   @IsString()
   @IsIn([
-    'LocalIP',
-    'RemoteIP',
-    'DNS1',
-    'DNS2',
-    'IKEVersion',
-    'AuthMethod',
-    'Phase1Encryption',
-    'Phase1Hash',
-    'Phase1DHGroup',
-    'Phase1Lifetime',
-    'Phase2Encryption',
-    'Phase2Hash',
-    'Phase2PFS',
-    'Phase2Lifetime',
-    'PoolStart',
-    'PoolEnd',
-    'NATTraversal',
-    'SplitTunnel',
-    'Mobike',
+    'left',
+    'leftid',
+    'leftsubnet',
+    'right',
+    'rightid',
+    'rightsubnet',
+    'rightsourceip',
+    'rightauth',
+    'ike',
+    'esp',
+    'keyexchange',
+    'leftfirewall',
+    'leftsendcert',
+    'dpdaction',
+    'dpddelay',
+    'rekey',
+    'charondebug',
+    'auto',
     'PSK',
     'Username',
     'Password',
-    'PublicKey',
-    'PrivateKey',
     'Certificate',
+    'PrivateKey',
     'CA Certificate',
-    '<<disable>>',
     '<<vpn_network>>',
   ])
   name: string;
