@@ -854,26 +854,35 @@ export class WireGuard extends Model {
                       case 'Address':
                         return '';
                       case 'AllowedIPs': {
-                        if (isClient && !allowedIPsOption) return '';
+                        const ipsRaw =
+                          allowedIPsOption
+                            ?.split(',')
+                            .map((ip) => ip.trim())
+                            .filter(Boolean) || [];
+                        if (!ipsRaw.length && !(!isClient && addressOption)) return '';
 
-                        let normalizedAddress: string | null = null;
+                        const firstBase = ipsRaw.length > 0 ? ipsRaw[0].split('/')[0] : null;
+                        const normalizedFirst = firstBase ? `${firstBase}/32` : null;
 
-                        if (!isClient && addressOption) {
-                          const [ip] = addressOption.split('/');
-                          normalizedAddress = `${ip}/32`;
-                        }
+                        const baseAddress =
+                          !isClient && addressOption ? `${addressOption.split('/')[0]}/32` : null;
 
-                        // Build IPs list (duplicated values removed)
-                        const allIPs = [
-                          ...(normalizedAddress ? [normalizedAddress] : []),
-                          ...(allowedIPsOption
-                            ? allowedIPsOption.split(',').map((ip) => ip.trim())
-                            : []),
-                        ];
+                        const initial = [];
+                        if (baseAddress && baseAddress !== normalizedFirst)
+                          initial.push(baseAddress);
+                        if (normalizedFirst) initial.push(normalizedFirst);
 
-                        const uniqueIPs = Array.from(new Set(allIPs));
+                        const rest = ipsRaw.slice(1).filter((ip) => {
+                          const base = ip.split('/')[0];
+                          const norm = `${base}/32`;
+                          return norm !== normalizedFirst && norm !== baseAddress;
+                        });
 
-                        return `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${uniqueIPs.join(', ')}\n`;
+                        const allIPs = [...initial, ...rest];
+
+                        return allIPs.length
+                          ? `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${allIPs.join(', ')}\n`
+                          : '';
                       }
 
                       default:
