@@ -233,18 +233,22 @@ export class WireGuard extends Model {
   public static addCfgOpt(req: Request, opt: any): Promise<void> {
     return new Promise((resolve, reject) => {
       // Try to update first. If no rows are affected, insert.
-      const updateSql = `UPDATE wireguard_opt SET ? WHERE wireguard = ? AND name = ?`;
-      req.dbCon.query(updateSql, [opt, opt.wireguard, opt.name], (updateError, updateResult) => {
-        if (updateError) return reject(updateError);
-        if (updateResult.affectedRows > 0) {
-          return resolve();
-        }
-        // If not updated, insert new
-        req.dbCon.query('INSERT INTO wireguard_opt SET ?', opt, (insertError) => {
-          if (insertError) return reject(insertError);
-          resolve();
-        });
-      });
+      const updateSql = `UPDATE wireguard_opt SET ? WHERE wireguard = ? AND wireguard_cli = ? AND name = ?`;
+      req.dbCon.query(
+        updateSql,
+        [opt, opt.wireguard, opt.wireguard_cli, opt.name],
+        (updateError, updateResult) => {
+          if (updateError) return reject(updateError);
+          if (updateResult.affectedRows > 0) {
+            return resolve();
+          }
+          // If not updated, insert new
+          req.dbCon.query('INSERT INTO wireguard_opt SET ?', opt, (insertError) => {
+            if (insertError) return reject(insertError);
+            resolve();
+          });
+        },
+      );
     });
   }
 
@@ -322,7 +326,7 @@ export class WireGuard extends Model {
 
   public static delCfgOptByScope(req, scope: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and scope=${req.dbCon.escape(scope)}`;
+      const sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and wireguard_cli=${req.body.wireguard_cli} and scope=${req.dbCon.escape(scope)}`;
       req.dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
@@ -787,6 +791,7 @@ export class WireGuard extends Model {
                     option_name: peer.option_name,
                     option_value: peer.option_value,
                     option_comment: peer.option_comment,
+                    option_isClient: peer.wireguard_cli !== null,
                   });
                   return groups;
                 }, {});
@@ -836,7 +841,10 @@ export class WireGuard extends Model {
 
                     // Filter by client or server
                     if (!isClient) {
-                      if (!allowedOptionsServer.includes(option.option_name)) {
+                      if (
+                        !allowedOptionsServer.includes(option.option_name) ||
+                        option.option_isClient
+                      ) {
                         return ''; // Don't include options that are not allowed
                       }
                     }
@@ -846,35 +854,26 @@ export class WireGuard extends Model {
                       case 'Address':
                         return '';
                       case 'AllowedIPs': {
-                        const ipsRaw =
-                          allowedIPsOption
-                            ?.split(',')
-                            .map((ip) => ip.trim())
-                            .filter(Boolean) || [];
-                        if (!ipsRaw.length && !(!isClient && addressOption)) return '';
+                        if (isClient && !allowedIPsOption) return '';
 
-                        const firstBase = ipsRaw.length > 0 ? ipsRaw[0].split('/')[0] : null;
-                        const normalizedFirst = firstBase ? `${firstBase}/32` : null;
+                        let normalizedAddress: string | null = null;
 
-                        const baseAddress =
-                          !isClient && addressOption ? `${addressOption.split('/')[0]}/32` : null;
+                        if (!isClient && addressOption) {
+                          const [ip] = addressOption.split('/');
+                          normalizedAddress = `${ip}/32`;
+                        }
 
-                        const initial = [];
-                        if (baseAddress && baseAddress !== normalizedFirst)
-                          initial.push(baseAddress);
-                        if (normalizedFirst) initial.push(normalizedFirst);
+                        // Build IPs list (duplicated values removed)
+                        const allIPs = [
+                          ...(normalizedAddress ? [normalizedAddress] : []),
+                          ...(allowedIPsOption
+                            ? allowedIPsOption.split(',').map((ip) => ip.trim())
+                            : []),
+                        ];
 
-                        const rest = ipsRaw.slice(1).filter((ip) => {
-                          const base = ip.split('/')[0];
-                          const norm = `${base}/32`;
-                          return norm !== normalizedFirst && norm !== baseAddress;
-                        });
+                        const uniqueIPs = Array.from(new Set(allIPs));
 
-                        const allIPs = [...initial, ...rest];
-
-                        return allIPs.length
-                          ? `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${allIPs.join(', ')}\n`
-                          : '';
+                        return `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${uniqueIPs.join(', ')}\n`;
                       }
 
                       default:
