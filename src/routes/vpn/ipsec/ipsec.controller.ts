@@ -388,6 +388,8 @@ export class IPSecController extends Controller {
 
       if (req.ipsec?.type === 1) {
         await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.ipsec.ipsec);
+
+        await IPSec.updateIPSecStatus(req.dbCon, req.ipsec.ipsec, '|1');
       } else {
         await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ipsec, 332);
       }
