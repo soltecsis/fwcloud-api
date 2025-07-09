@@ -41,6 +41,8 @@ import { IPObjTypeToPolicyPosition } from '../ipobj/IPObjTypeToPolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleToWireGuard } from './PolicyRuleToWireGuard';
 import { PolicyRuleToWireGuardPrefix } from './PolicyRuleToWireguardPrefix';
+import { PolicyRuleToIPSec } from './PolicyRuleToIPSec';
+import { PolicyRuleToIPSecPrefix } from './PolicyRuleToIPSecPrefix';
 
 const tableName: string = 'policy_position';
 
@@ -175,6 +177,16 @@ export class PolicyPosition extends Model {
     (policyRuleToWireGuardPrefix) => policyRuleToWireGuardPrefix.policyPosition,
   )
   policyRuleToWireGuardPrefixes: Array<PolicyRuleToWireGuardPrefix>;
+
+  @OneToMany((type) => PolicyRuleToIPSec, (policyRuleToIPSec) => policyRuleToIPSec.policyPosition)
+  policyRuleToIPSecs: Array<PolicyRuleToIPSec>;
+
+  @OneToMany(
+    (type) => PolicyRuleToIPSecPrefix,
+    (policyRuleToIPSecPrefix) => policyRuleToIPSecPrefix.policyPosition,
+  )
+  policyRuleToIPSecPrefixes: Array<PolicyRuleToIPSecPrefix>;
+
   public getTableName(): string {
     return tableName;
   }

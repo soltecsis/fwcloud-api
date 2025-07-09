@@ -38,6 +38,8 @@ import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRuleToWireGuard } from './PolicyRuleToWireGuard';
 import { PolicyRuleToWireGuardPrefix } from './PolicyRuleToWireguardPrefix';
+import { PolicyRuleToIPSec } from './PolicyRuleToIPSec';
+import { PolicyRuleToIPSecPrefix } from './PolicyRuleToIPSecPrefix';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'policy_r';
@@ -191,6 +193,15 @@ export class PolicyRule extends Model {
     (policyRuleToWireGuardPrefix) => policyRuleToWireGuardPrefix.policyRule,
   )
   policyRuleToWireGuardPrefixes: Array<PolicyRuleToWireGuardPrefix>;
+
+  @OneToMany((type) => PolicyRuleToIPSec, (policyRuleToIPSec) => policyRuleToIPSec.policyRule)
+  policyRuleToIPSecs: Array<PolicyRuleToIPSec>;
+
+  @OneToMany(
+    (type) => PolicyRuleToIPSecPrefix,
+    (policyRuleToIPSecPrefix) => policyRuleToIPSecPrefix.policyRule,
+  )
+  policyRuleToIPSecPrefixes: Array<PolicyRuleToIPSecPrefix>;
 
   private static clon_data: any;
 
@@ -909,6 +920,8 @@ export class PolicyRule extends Model {
           await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
           await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rowData.id, newRule);
           await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rowData.id, newRule);
+          await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -1196,6 +1209,8 @@ export class PolicyRule extends Model {
               await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
               await PolicyRuleToWireGuard.deleteFromRule(dbCon, rule);
               await PolicyRuleToWireGuardPrefix.deleteFromRule(dbCon, rule);
+              await PolicyRuleToIPSec.deleteFromRule(dbCon, rule);
+              await PolicyRuleToIPSecPrefix.deleteFromRule(dbCon, rule);
             } catch (error) {
               return reject(error);
             }

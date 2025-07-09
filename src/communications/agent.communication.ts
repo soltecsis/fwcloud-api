@@ -264,6 +264,65 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async installIPSecServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/ipsec/files/upload';
+      const form = new FormData();
+      form.append('dst_dir', dir);
+      form.append('perms', 600);
+
+      configs.forEach((config) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Uploading IPSec configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
+          ),
+        );
+        form.append('data', config.content, config.name);
+      });
+
+      const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+      await axios.post(pathUrl, form, requestConfig);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async uninstallIPSecConfigs(
+    dir: string,
+    files: string[],
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      files.forEach((file) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Removing IPSec configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+          ),
+        );
+      });
+
+      const pathUrl: string = this.url + '/api/v1/ipsec/files/remove';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.data = {
+        dir: dir,
+        files: files,
+      };
+
+      await axios.delete(pathUrl, config);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
   async getFirewallInterfaces(): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/interfaces/info';

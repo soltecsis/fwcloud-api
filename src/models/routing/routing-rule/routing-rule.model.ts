@@ -46,6 +46,8 @@ import { RoutingRuleToIPObj } from './routing-rule-to-ipobj.model';
 import { RoutingRuleToMark } from './routing-rule-to-mark.model';
 import { RoutingRuleToWireGuardPrefix } from './routing-rule-to-wireguard-prefix.model';
 import { RoutingRuleToWireGuard } from './routing-rule-to-wireguard.model';
+import { RoutingRuleToIPSecPrefix } from './routing-rule-to-ipsec-prefix.model';
+import { RoutingRuleToIPSec } from './routing-rule-to-ipsec.model';
 
 const tableName: string = 'routing_r';
 
@@ -148,6 +150,16 @@ export class RoutingRule extends Model {
     cascade: true,
   })
   routingRuleToWireGuards: RoutingRuleToWireGuard[];
+
+  @OneToMany(() => RoutingRuleToIPSecPrefix, (model) => model.routingRule, {
+    cascade: true,
+  })
+  routingRuleToIPSecPrefixes: RoutingRuleToIPSecPrefix[];
+
+  @OneToMany(() => RoutingRuleToIPSec, (model) => model.routingRule, {
+    cascade: true,
+  })
+  routingRuleToIPSecs: RoutingRuleToIPSec[];
 
   public getTableName(): string {
     return tableName;

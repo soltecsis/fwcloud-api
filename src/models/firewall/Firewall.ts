@@ -71,6 +71,8 @@ import { DHCPGroup } from '../system/dhcp/dhcp_g/dhcp_g.model';
 import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
+import { IPSec } from '../vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../vpn/ipsec/IPSecPrefix';
 
 const tableName: string = 'firewall';
 
@@ -211,6 +213,9 @@ export class Firewall extends Model {
 
   @OneToMany((type) => WireGuard, (wireGuard) => wireGuard.firewall)
   wireGuards: Array<WireGuard>;
+
+  @OneToMany((type) => IPSec, (ipSec) => ipSec.firewall)
+  ipSecs: Array<IPSec>;
 
   @OneToMany((type) => PolicyGroup, (policyGroup) => policyGroup.firewall)
   policyGroups: Array<PolicyGroup>;
@@ -1380,6 +1385,8 @@ export class Firewall extends Model {
               await OpenVPN.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
               await WireGuardPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall WireGuard prefixes.
               await WireGuard.delCfgAll(dbCon, fwcloud, firewall); // Remove all WireGuard configurations for this firewall.
+              await IPSecPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall IPSec prefixes.
+              await IPSec.delCfgAll(dbCon, fwcloud, firewall); // Remove all IPSec configurations for this firewall.
               await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
               await Interface.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
               await Tree.deleteFwc_TreeFullNode({
@@ -1560,6 +1567,8 @@ export class Firewall extends Model {
         const r3: any = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
         const r4: any = await WireGuard.searchWireGuardUsageOutOfThisFirewall(req);
         const r5: any = await WireGuardPrefix.searchPrefixUsageOutOfThisFirewall(req);
+        const r6: any = await IPSec.searchIPSecUsageOutOfThisFirewall(req);
+        const r7: any = await IPSecPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
         //TODO: UTILIZAR OBJECTHELERS? utils.mergeObj() is deprectaded. Use ObjectHelers.merge() instead
         if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
@@ -1567,6 +1576,8 @@ export class Firewall extends Model {
         if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
         if (r4) search.restrictions = utilsModel.mergeObj(search.restrictions, r4.restrictions);
         if (r5) search.restrictions = utilsModel.mergeObj(search.restrictions, r5.restrictions);
+        if (r6) search.restrictions = utilsModel.mergeObj(search.restrictions, r6.restrictions);
+        if (r7) search.restrictions = utilsModel.mergeObj(search.restrictions, r7.restrictions);
 
         for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {

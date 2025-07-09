@@ -111,4 +111,20 @@ export class RouteControllerUpdateDto {
   })
   @Type(() => PositionalEntityDto)
   wireGuardPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipSecIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipSecPrefixIds?: PositionalEntityDto[];
 }

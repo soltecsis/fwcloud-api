@@ -33,6 +33,7 @@ import { Channel } from '../../sockets/channels/channel';
 import { logger } from '../../fonaments/abstract-application';
 import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
 import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { IPSec } from '../../models/vpn/ipsec/IPSec';
 const fwcError = require('../../utils/error_table');
 
 
@@ -83,6 +84,11 @@ router.put('/', async (req, res) =>{
         for (let wireguard_srv of wireguard_srv_list) {
           channel.emit('message', new ProgressNoticePayload(`WireGuard server: ${wireguard_srv.cn}\n`));
           await WireGuardPrefix.applyWireGuardPrefixes(req.dbCon,req.body.fwcloud,wireguard_srv.id);
+        }
+        const ipsec_srv_list = await IPSec.getIPSecServersByCloud(req.dbCon,req.body.fwcloud);
+        for (let ipsec_srv of ipsec_srv_list) {
+          channel.emit('message', new ProgressNoticePayload(`IPSec server: ${ipsec_srv.cn}\n`));
+          await IPSecPrefix.applyIPSecPrefixes(req.dbCon,req.body.fwcloud,ipsec_srv.id);
         }
         break;
       }

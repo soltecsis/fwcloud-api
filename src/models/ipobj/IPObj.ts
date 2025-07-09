@@ -44,6 +44,7 @@ import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.m
 import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
 import { IpUtils } from '../../utils/ip-utils';
 import { WireGuardOption } from '../vpn/wireguard/wireguard-option.model';
+import { IPSecOption } from '../vpn/ipsec/ipsec-option.model';
 
 const asyncMod = require('async');
 const host_Data = require('../../models/data/data_ipobj_host');
@@ -156,7 +157,10 @@ export class IPObj extends Model {
   optionsListOpenVPN: Array<OpenVPNOption>;
 
   @OneToMany((type) => WireGuardOption, (options) => options.ipObj)
-  optionsListWireGuard: Array<OpenVPNOption>;
+  optionsListWireGuard: Array<WireGuardOption>;
+
+  @OneToMany((type) => IPSecOption, (options) => options.ipObj)
+  optionsListIPSec: Array<IPSecOption>;
 
   @OneToMany((type) => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObj)
   ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;

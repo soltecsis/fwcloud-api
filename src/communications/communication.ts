@@ -47,6 +47,15 @@ export type WireGuardHistoryRecord = {
   connectedAtTimestampInSeconds: number;
 };
 
+export type IPSecHistoryRecord = {
+  timestamp: number;
+  name: string;
+  address: string;
+  bytesReceived: number;
+  bytesSent: number;
+  connectedAtTimestampInSeconds: number;
+};
+
 export type FwcAgentInfo = {
   fwc_agent_version: string;
   host_name: string;
@@ -86,6 +95,11 @@ export abstract class Communication<ConnectionData> {
     configs: { name: string; content: string }[],
     eventEmitter?: EventEmitter,
   ): Promise<void>;
+  abstract installIPSecServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
   abstract installHAPRoxyConfigs(
     dir: string,
     configs: { name: string; content: string }[],
@@ -110,6 +124,11 @@ export abstract class Communication<ConnectionData> {
     channel?: EventEmitter,
   ): Promise<void>;
   abstract uninstallWireGuardConfigs(
+    dir: string,
+    files: string[],
+    channel?: EventEmitter,
+  ): Promise<void>;
+  abstract uninstallIPSecConfigs(
     dir: string,
     files: string[],
     channel?: EventEmitter,

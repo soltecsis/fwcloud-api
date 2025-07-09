@@ -29,6 +29,7 @@ import { Ca } from '../../models/vpn/pki/Ca';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
 import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { IPSec } from '../../models/vpn/ipsec/IPSec';
 var fwc_tree_node = require("../../models/tree/node.js");
 
 
@@ -63,6 +64,8 @@ var fwc_tree_node = require("../../models/tree/node.js");
  *    "openvpn_info": [],
  *    "wireguard_status": [],
  *    "wireguard_info": [],
+ * 	  "ipsec_status": [],
+ *    "ipsec_info": [],
  * }
  * 
  * @apiErrorExample {json} Error-Response:
@@ -82,6 +85,7 @@ router.put('/firewalls/get', async (req, res) => {
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
 		await WireGuard.getWireGuardStatusNotZero(req,tree);
+		await IPSec.getIPSecStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
 
 		res.status(200).json(tree);

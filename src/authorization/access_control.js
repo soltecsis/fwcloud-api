@@ -119,6 +119,12 @@ accessCtrl.check = async (req, res, next) => {
 				throw fwcError.ACC_WIREGUARD;
 		}
 
+		// Check access to the wireguard indicated in req.body.wireguard.
+		if (req.body.ipsec) {
+			if (!(await checkIpsecAccess(req)))
+				throw fwcError.ACC_IPSEC;
+		}
+
 		// Check access to the CRT prefix indicated in req.body.prefix.
 		if (req.body.prefix) {
 			if (!(await checkPrefixAccess(req)))
@@ -265,7 +271,7 @@ function checkWireguardAccess(req) {
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
-			// Check that fwcloud of the CA of the OpenVPN config is the same fwcloud indicated in the req.body.fwcloud.
+			// Check that fwcloud of the CA of the VPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
 			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
 
@@ -277,6 +283,27 @@ function checkWireguardAccess(req) {
 	});
 };
 
+// Check access to IPSec configuration.
+function checkIpsecAccess(req) {
+	return new Promise((resolve, reject) => {
+		let sql = `select F.fwcloud,I.*,CRT.* FROM ipsec I
+			INNER JOIN firewall F ON I.firewall=F.id
+			INNER JOIN crt CRT ON CRT.id=I.crt
+			WHERE I.id=${req.body.ipsec}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the CA of the VPN config is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the crt info for use in the API call processing.
+			req.ipsec = result[0];
+
+			resolve(true);
+		});
+	});
+};
 
 // Check access to CRT Prefix.
 function checkPrefixAccess(req) {

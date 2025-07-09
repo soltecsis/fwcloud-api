@@ -56,6 +56,9 @@ import { HAProxyController } from '../controllers/system/haproxy/haproxy.control
 import { FirewallWireGuardController } from '../controllers/firewalls/wireguard/wireguard.controller';
 import { WireGuardController } from './vpn/wireguard/wireguard.controller';
 import { WireGuardPrefixController } from './vpn/wireguard/wireguard.prefix.controller';
+import { IPSecController } from './vpn/ipsec/ipsec.controller';
+import { IPSecPrefixController } from './vpn/ipsec/ipsec.prefix.controller';
+import { FirewallIPSecController } from '../controllers/firewalls/ipsec/ipsec.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -164,6 +167,48 @@ export class Routes extends RouteCollection {
               .name('vpn.wireguard.prefix.del');
           });
         });
+
+        router.prefix('/ipsec', (router: RouterParser) => {
+          router.post('/', IPSecController, 'store').name('vpn.ipsec.store');
+          router.put('/', IPSecController, 'update').name('vpn.ipsec.update');
+          router.put('/get', IPSecController, 'get').name('vpn.ipsec.get');
+          router.put('/file/get', IPSecController, 'getFile').name('vpn.ipsec.file.get');
+          router.put('/ipobj/get', IPSecController, 'getIpObj').name('vpn.ipsec.ipobj.get');
+          router.put('/ip/get', IPSecController, 'getIp').name('vpn.ipsec.ip.get');
+          router.put('/info/get', IPSecController, 'getInfo').name('vpn.ipsec.info.get');
+          router
+            .get('/firewall/get', IPSecController, 'getFirewall')
+            .name('vpn.ipsec.firewall.get');
+          router.put('/del', IPSecController, 'delete').name('vpn.ipsec.delete');
+          router.put('/restricted', IPSecController, 'restricted').name('vpn.ipsec.restrictions');
+          router.put('/where', IPSecController, 'where').name('vpn.ipsec.where');
+          router.put('/install', IPSecController, 'install').name('vpn.ipsec.install');
+          router.put('/uninstall', IPSecController, 'uninstall').name('vpn.ipsec.uninstall');
+          router.put('/ccdsync', IPSecController, 'ccdsync').name('vpn.ipsec.ccdsync');
+          router.get('/status/get', IPSecController, 'getStatus').name('vpn.ipsec.status.get');
+          router
+            .put('/config/filename', IPSecController, 'getConfigFilename')
+            .name('vpn.ipsec.config.filename');
+          router
+            .put('/client/options/get', IPSecController, 'getClientOptions')
+            .name('vpn.ipsec.client.options.get');
+          router
+            .put('/client/options/update', IPSecController, 'updateClientOptions')
+            .name('vpn.ipsec.client.options.update');
+          router.put('/clients/get', IPSecController, 'getClients').name('vpn.ipsec.clients.get');
+          router.prefix('/prefix', (router: RouterParser) => {
+            router.post('/', IPSecPrefixController, 'prefix').name('vpn.ipsec.prefix');
+            router.put('/', IPSecPrefixController, 'update').name('vpn.ipsec.prefix.update');
+            router
+              .put('/info/get', IPSecPrefixController, 'getInfo')
+              .name('vpn.ipsec.prefix.info.get');
+            router
+              .put('/restricted', IPSecPrefixController, 'restricted')
+              .name('vpn.ipsec.prefix.restrictions');
+            router.put('/where', IPSecPrefixController, 'where').name('vpn.ipsec.prefix.where');
+            router.put('/del', IPSecPrefixController, 'delete').name('vpn.ipsec.prefix.del');
+          });
+        });
       });
 
       router.prefix('/fwclouds', (router: RouterParser) => {
@@ -227,6 +272,20 @@ export class Routes extends RouteCollection {
                   router
                     .get('/graph', FirewallWireGuardController, 'graph')
                     .name('fwclouds.firewalls.wireguards.graph');
+                });
+              });
+
+              router.prefix('/ipsecs', (router: RouterParser) => {
+                router.prefix('/:ipsec(\\d+)', (router: RouterParser) => {
+                  router
+                    .post('/installer', FirewallIPSecController, 'installer')
+                    .name('fwclouds.firewalls.ipsecs.installer');
+                  router
+                    .get('/history', FirewallIPSecController, 'history')
+                    .name('fwclouds.firewalls.ipsecs.history');
+                  router
+                    .get('/graph', FirewallIPSecController, 'graph')
+                    .name('fwclouds.firewalls.ipsecs.graph');
                 });
               });
 

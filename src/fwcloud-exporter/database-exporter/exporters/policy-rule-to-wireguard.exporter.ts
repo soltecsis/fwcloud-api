@@ -52,7 +52,6 @@ export class PolicyRuleToWireguardExporter extends TableExporter {
         const subquery = qb.subQuery().from(WireGuard, 'wireguard').select('wireguard.id');
 
         return (
-          //TODO: REISAR CAMELCASE
           `${alias}.wireGuardId IN` +
           new WireGuardExporter().getFilterBuilder(subquery, 'wireguard', fwCloudId).getQuery()
         );

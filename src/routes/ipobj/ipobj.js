@@ -307,7 +307,7 @@ router.put('/',
 			options: req.body.options,
 			comment: req.body.comment
 		};
-
+//TODO: FALTA IPSEC AQUI
 		try {
 			const data = await IPObjType.getIpobj_type(req, ipobjData.type);
 
@@ -317,6 +317,7 @@ router.put('/',
 			await IPObj.updateIpobj(req.dbCon, ipobjData);
 			
 			const wireGuardOptions = await WireGuard.checkIpobjInWireGuardOpt(req.dbCon, ipobjData.id);
+			const ipSecOptions = await IPSec.checkIpobjInWireGuardOpt(req.dbCon, ipobjData.id);
 
 			if (wireGuardOptions?.length > 0) {
 				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
@@ -337,10 +338,29 @@ router.put('/',
 
 				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
 				await WireGuard.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
+			} else if (ipSecOptions?.length > 0) {
+				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
+				const [networkIp, networkMask] = networkAddress.split('/');
+
+				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'Address', ipobjData.address + ipobjData.netmask);
+
+				const ipSecConfig = await IPSec.getCfg(req.dbCon, ipSecOptions[0].wireguard);
+				const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "<<vpn_network>>");
+
+				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
+				const updatedIpObjData = {
+					...vpnNetworkIpObj,
+					id: vpnNetworkOption.ipobj,
+					address: networkIp,
+					netmask: '/' + networkMask
+				};
+
+				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
+				await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
 			}
 
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
-
+//TODO: REVISAR SI FALTA IPSEC AQUI
 			if (req.body.options && req.body.options.find(option => option.name === "Address")) {	
 				await WireGuard.updateWireGuardStatusIPOBJ(req, ipobjData.id, "|1");
 			} else {
@@ -352,7 +372,7 @@ router.put('/',
 
 			var data_return = {};
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
-			
+			//TODO: REVISAR SI FALTA IPSEC AQUI
 			if (req.body.options && req.body.options.find(option => option.name === "Address")) {
 				await WireGuard.getWireGuardStatusNotZero(req, data_return);
 			} else {

@@ -29,6 +29,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
 import { WireGuardOption } from '../vpn/wireguard/wireguard-option.model';
+import { IPSecOption } from '../vpn/ipsec/ipsec-option.model';
 const fwcError = require('../../utils/error_table');
 const asyncMod = require('async');
 const _Tree = require('easy-tree');
@@ -51,6 +52,9 @@ export type OpenVPNNode = TreeNode & {
   address: string;
 };
 export type WireGuardNode = TreeNode & {
+  address: string;
+};
+export type IPSecNode = TreeNode & {
   address: string;
 };
 
@@ -282,6 +286,10 @@ export class Tree extends Model {
               if (nodes[i].node_type == 'WGS' || nodes[i].node_type == 'WGC') {
                 nodes[i] = await this.addSearchInfoWireGuard(nodes[i]);
               }
+              // Include data for IPSec Nodes Server
+              if (nodes[i].node_type == 'ISS' || nodes[i].node_type == 'ISC') {
+                nodes[i] = await this.addSearchInfoIPSec(nodes[i]);
+              }
               // Add the current node children array to the map.
               nodes[i].children = [];
               childrenArrayMap.set(nodes[i].id, nodes[i].children);
@@ -407,6 +415,24 @@ export class Tree extends Model {
     }
     const result: IPObj = await qb.getOne();
 
+    node.address = result.address ?? '';
+
+    return node;
+  }
+
+  private static async addSearchInfoIPSec(node: IPSecNode): Promise<IPSecNode> {
+    const qb: SelectQueryBuilder<IPObj> = db
+      .getSource()
+      .manager.getRepository(IPObj)
+      .createQueryBuilder('ipobj')
+      .innerJoin(IPSecOption, 'option', 'option.ipObj = ipobj.id')
+      .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
+      .andWhere('option.ipSecId = :id', { id: node.id_obj });
+
+    if (node.node_type !== 'ISS') {
+      qb.andWhere('option.name = :name', { name: 'right' });
+    }
+    const result: IPObj = await qb.getOne();
     node.address = result.address ?? '';
 
     return node;
@@ -1216,6 +1242,69 @@ export class Tree extends Model {
     });
   }
 
+  //Generate the IPSec client nodes.
+  public static ipsecClientTree(
+    connection: Query,
+    fwcloud: number,
+    firewall: number,
+    server_vpn: number,
+    node: unknown,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id,CRT.cn FROM ipsec VPN
+      INNER JOIN crt CRT on CRT.id=VPN.crt
+      WHERE VPN.firewall=${firewall} and VPN.ipsec=${server_vpn}`;
+      connection.query(sql, async (error, vpns) => {
+        if (error) return reject(error);
+        if (vpns.length === 0) return resolve();
+
+        try {
+          for (const vpn of vpns) {
+            await this.newNode(connection, fwcloud, vpn.cn, node, 'ISC', vpn.id, 331);
+          }
+        } catch (error) {
+          return reject(error);
+        }
+        resolve();
+      });
+    });
+  }
+  //Generate the IPSec server nodes.
+  public static ipsecServerTree(
+    connection: Query,
+    fwcloud: number,
+    firewall: number,
+    node: unknown,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id,CRT.cn FROM ipsec VPN
+      INNER JOIN crt CRT on CRT.id=VPN.crt
+      WHERE VPN.firewall=${firewall} and VPN.ipsec is null`;
+      connection.query(sql, async (error, vpns) => {
+        if (error) return reject(error);
+        if (vpns.length === 0) return resolve();
+
+        try {
+          for (const vpn of vpns) {
+            const newNodeId: unknown = await this.newNode(
+              connection,
+              fwcloud,
+              vpn.cn,
+              node,
+              'ISS',
+              vpn.id,
+              332,
+            );
+            await this.ipsecClientTree(connection, fwcloud, firewall, vpn.id, newNodeId);
+          }
+        } catch (error) {
+          return reject(error);
+        }
+        resolve();
+      });
+    });
+  }
+
   //Generate the routing nodes.
   public static routingTree(
     connection: any,
@@ -1326,7 +1415,17 @@ export class Tree extends Model {
           0,
         );
         await this.wireguardServerTree(connection, fwcloud, firewall, wireGuardNode);
-        await this.newNode(connection, fwcloud, 'IPSec', vpnNode, 'IS', firewall, 0);
+
+        const ipSecNode = await this.newNode(
+          connection,
+          fwcloud,
+          'IPSec',
+          vpnNode,
+          'IS',
+          firewall,
+          0,
+        );
+        await this.ipsecServerTree(connection, fwcloud, firewall, ipSecNode);
 
         resolve();
       } catch (error) {
