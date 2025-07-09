@@ -430,7 +430,7 @@ export class Tree extends Model {
       .andWhere('option.ipSecId = :id', { id: node.id_obj });
 
     if (node.node_type !== 'ISS') {
-      qb.andWhere('option.name = :name', { name: 'LocalIP' });
+      qb.andWhere('option.name = :name', { name: 'right' });
     }
     const result: IPObj = await qb.getOne();
     node.address = result.address ?? '';

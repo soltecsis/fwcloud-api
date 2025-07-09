@@ -25,7 +25,7 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'right':
       case 'DNS1':
       case 'DNS2':
-        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(value); // IPv4 simple
+        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(value); // IPv4
 
       case 'IKEVersion':
         return value === '1' || value === '2';
@@ -71,7 +71,7 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
         return ['yes', 'no'].includes(value.toLowerCase());
 
       case 'PSK':
-        return value.length >= 8; // O la longitud que exijas para claves precompartidas
+        return value.length >= 8; //
 
       case 'Username':
       case 'Password':
@@ -79,7 +79,7 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 
       case 'PublicKey':
       case 'PrivateKey':
-        return value.trim().length > 0; // Podrías usar regex si hay un formato específico
+        return value.trim().length > 0; //
 
       case 'Certificate':
       case 'CA Certificate':
@@ -95,7 +95,6 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
     return `Invalid value for ${option.name}`;
   }
 }
-//TODO: ADAPTAR CON LAS OPCIONES DE IPSEC
 export class IPSecOptionDTO {
   @IsString()
   @IsIn([
