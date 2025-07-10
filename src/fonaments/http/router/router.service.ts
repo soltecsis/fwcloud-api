@@ -115,6 +115,7 @@ export class RouterService extends Service {
       this._express.use('/vpn/openvpn', require('../../../routes/vpn/openvpn/openvpn'));
       this._express.use('/vpn/openvpn/prefix', require('../../../routes/vpn/openvpn/prefix'));
       this._express.use('/policy/wireguard', require('../../../routes/policy/wireguard'));
+      this._express.use('/policy/ipsec', require('../../../routes/policy/ipsec'));
     }
   }
 
