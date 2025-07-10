@@ -367,6 +367,7 @@ export class WireGuardController extends Controller {
         req.body.wireguard,
         wireguardRecord.type,
       );
+
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
