@@ -687,9 +687,8 @@ export class WireGuard extends Model {
             where FW.fwcloud=${fwcloud} and VPN.id=${wireGuard}`;
 
       dbCon.query(sql, (error, result) => {
-        if (error) {
-          return reject(error);
-        }
+        if (error) return reject(error);
+
         for (let i = 0; i < result.length; i++) {
           result[i].type = type === 1 ? 321 : 322;
         }

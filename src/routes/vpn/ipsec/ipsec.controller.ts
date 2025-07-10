@@ -357,6 +357,7 @@ export class IPSecController extends Controller {
         req.body.ipsec,
         ipsecRecord.type,
       );
+
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
