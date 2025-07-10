@@ -182,7 +182,7 @@ export class IPSec extends Model {
           install_dir: req.body.install_dir,
           install_name: req.body.install_name,
           comment: req.body.comment || null,
-          status: 1,
+          status: req.body.ipsec !== undefined ? 0 : 1, // Remove "install" flag for clients
           public_key: await utilsModel.encrypt(keys.public_key),
           private_key: await utilsModel.encrypt(keys.private_key),
           ipsec: req.body.ipsec || null,
@@ -406,6 +406,7 @@ export class IPSec extends Model {
         if (error) return reject(error);
 
         const data = ipsec_result[0];
+        const type = data.ipsec === null ? 332 : 331; // 331 = Server, 332 = Client
         //IS CLIENT
         if (data.ipsec !== null) {
           sql = `select * from ${tableName} where id=${data.ipsec}`;
@@ -427,6 +428,8 @@ export class IPSec extends Model {
                 ipsec_result.map((ipsec: IPSec) => utilsModel.decryptIpsecData(ipsec)),
               )
             )[0];
+
+            ipsec_data.type = type;
 
             resolve(ipsec_data);
           } catch (error) {
@@ -641,21 +644,28 @@ export class IPSec extends Model {
   // Get IPSec client configuration data.
   public static getIPSecInfo(dbCon: Query, fwcloud: number, ipSec: number, type: number) {
     return new Promise((resolve, reject) => {
-      const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.left, FW.cluster cluster_id,
-                IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
-                IF(VPN.ipsec is null,VPN.ipsec,(select crt.cn from ipsec inner join crt on crt.id=ipsec.crt where ipsec.id=VPN.ipsec)) as ipsec_server_cn
-                ${type === 2 ? `,O.netmask` : ``}
-                from ipsec VPN 
-                inner join crt CRT on CRT.id=VPN.crt
-                inner join ca CA on CA.id=CRT.ca
-                inner join firewall FW on FW.id=VPN.firewall
-                inner join ipsec_opt OPT on OPT.ipsec=${ipSec}
-                inner join ipobj O on O.id=OPT.ipobj
-                where FW.fwcloud=${fwcloud} and VPN.id=${ipSec}`;
-      // TODO: Revisar si es necesario filtrar por el tipo de certificado
-      /*${type === 1 ? `and OPT.name='ifconfig-push'` : ``}`;*/
+      const sql = `select IPS.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, 
+            IF(${type} = 332, 
+              (select ipobj.address from ipsec_opt 
+               inner join ipobj on ipobj.id = ipsec_opt.ipobj 
+               where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = '<<vpn_network>>' limit 1), 
+              O.address
+            ) as address,
+            FW.cluster cluster_id,
+            IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
+            IF(IPS.ipsec is null,IPS.ipsec,(select crt.cn from ipsec inner join crt on crt.id=ipsec.crt where ipsec.id=IPS.ipsec)) as ipsec_server_cn
+            ${type === 332 ? `,O.netmask` : ``}
+            from ipsec IPS 
+            inner join crt CRT on CRT.id=IPS.crt
+            inner join ca CA on CA.id=CRT.ca
+            inner join firewall FW on FW.id=IPS.firewall
+            inner join ipsec_opt OPT on OPT.ipsec=${ipSec}
+            inner join ipobj O on O.id=OPT.ipobj
+            where FW.fwcloud=${fwcloud} and IPS.id=${ipSec}`;
+
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
+
         for (let i = 0; i < result.length; i++) {
           result[i].type = type === 1 ? 331 : 332;
         }
@@ -1234,7 +1244,7 @@ export class IPSec extends Model {
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
       req.dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
-        data.ipSec_status = rows;
+        data.ipsec_status = rows;
         resolve(data);
       });
     });
