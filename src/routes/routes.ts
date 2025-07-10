@@ -176,19 +176,17 @@ export class Routes extends RouteCollection {
           router.put('/ipobj/get', IPSecController, 'getIpObj').name('vpn.ipsec.ipobj.get');
           router.put('/ip/get', IPSecController, 'getIp').name('vpn.ipsec.ip.get');
           router.put('/info/get', IPSecController, 'getInfo').name('vpn.ipsec.info.get');
-          router
-            .get('/firewall/get', IPSecController, 'getFirewall')
-            .name('vpn.ipsec.firewall.get');
+          //router.get('/firewall/get', IPSecController, 'getFirewall').name('vpn.ipsec.firewall.get');
           router.put('/del', IPSecController, 'delete').name('vpn.ipsec.delete');
           router.put('/restricted', IPSecController, 'restricted').name('vpn.ipsec.restrictions');
           router.put('/where', IPSecController, 'where').name('vpn.ipsec.where');
           router.put('/install', IPSecController, 'install').name('vpn.ipsec.install');
           router.put('/uninstall', IPSecController, 'uninstall').name('vpn.ipsec.uninstall');
-          router.put('/ccdsync', IPSecController, 'ccdsync').name('vpn.ipsec.ccdsync');
-          router.get('/status/get', IPSecController, 'getStatus').name('vpn.ipsec.status.get');
+          //router.put('/ccdsync', IPSecController, 'ccdsync').name('vpn.ipsec.ccdsync');
           router
             .put('/config/filename', IPSecController, 'getConfigFilename')
             .name('vpn.ipsec.config.filename');
+          //router.get('/status/get', IPSecController, 'getStatus').name('vpn.ipsec.status.get');
           router
             .put('/client/options/get', IPSecController, 'getClientOptions')
             .name('vpn.ipsec.client.options.get');

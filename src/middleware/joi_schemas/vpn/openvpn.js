@@ -286,6 +286,12 @@ schema.validate = req => {
 					|| req.path === '/vpn/wireguard/restricted' || req.path === '/vpn/wireguard/file/get'
 					|| req.path === '/vpn/wireguard/info/get' || req.path === '/vpn/wireguard/where') {
 						schema = schema.append({ wireguard: sharedSch.id });
+			} 
+			else if (req.path === '/vpn/ipsec/get' || req.path === '/vpn/ipsec/del'
+					|| req.path === '/vpn/ipsec/ip/get' || req.path === '/vpn/ipsec/ipobj/get'
+					|| req.path === '/vpn/ipsec/restricted' || req.path === '/vpn/ipsec/file/get'
+					|| req.path === '/vpn/ipsec/info/get' || req.path === '/vpn/ipsec/where') {
+						schema = schema.append({ ipsec: sharedSch.id });
 			}
 			else if (req.path==='/vpn/openvpn/firewall/get') 
 				schema = schema.append({ firewall: sharedSch.id });
