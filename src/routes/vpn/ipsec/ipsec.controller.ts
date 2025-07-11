@@ -125,7 +125,10 @@ export class IPSecController extends Controller {
         // If we are creaing a IPSec server configuration, then create the VPN virtual network interface with its assigned IP.
         await IPSec.createIPSecServerInterface(req, newIpsec);
       }
-
+      // Mark server as modified (need to be reinstalled)
+      if (req.body.wireguard && req.tree_node.node_type === 'ISS') {
+        await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+      }
       return ResponseBuilder.buildResponse()
         .status(201)
         .body({ insertId: newIpsec, TreeinsertId: nodeId });
@@ -253,7 +256,12 @@ export class IPSecController extends Controller {
     try {
       await IPSec.updateCfg(req);
 
-      await IPSec.delCfgOptAll(req);
+      const isServer = await IPSec.isIPSecServer(req.dbCon, req.body.ipsec);
+      if (isServer) {
+        await IPSec.delCfgOptByScope(req, 2);
+      } else {
+        await IPSec.delCfgOptAll(req);
+      }
 
       let order = 1;
       for (const opt of req.body.options) {
@@ -262,15 +270,14 @@ export class IPSecController extends Controller {
         await IPSec.addCfgOpt(req, opt);
       }
 
-      if (
-        req.body.options &&
-        req.body.options.some((option) => option.name === '<<vpn_network>>')
-      ) {
-        // If ipsec server is updated now update the virtual network interface
-        await IPSec.updateIPSecServerInterface(req);
-      }
+      const data = await IPSec.getCfg(req.dbCon, req.body.ipsec);
 
-      await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+      if (data.ipsec === null) {
+        await IPSec.updateIPSecServerInterface(req);
+        await IPSec.updateIPSecStatus(req.dbCon, data.id, '|1');
+      } else if (data.ipsec !== null && data.id !== null) {
+        await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+      }
 
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {

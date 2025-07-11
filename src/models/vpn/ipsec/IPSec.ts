@@ -281,6 +281,18 @@ export class IPSec extends Model {
     });
   }
 
+  public static isIPSecServer(dbCon: Query, ipSec: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT ipsec FROM ${tableName} WHERE id=${ipSec}`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        if (result.length === 0) return resolve(false);
+        // If ipsec is null, it is a server.
+        resolve(result[0].ipsec === null);
+      });
+    });
+  }
+
   public static checkIpobjInIPSecOpt(dbCon: Query, ipobj: number): Promise<any> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT * FROM ipsec_opt WHERE ipobj=${ipobj}`;
@@ -304,6 +316,21 @@ export class IPSec extends Model {
   public static delCfgOptAll(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'delete from ipsec_opt where ipsec=' + req.body.ipsec;
+      req.dbCon.query(sql, (error, _) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  public static delCfgOptByScope(req: Request, scope: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let sql: string;
+      if (scope === 3) {
+        sql = `delete from ipsec_opt where ipsec=${req.body.ipsec} and ipsec_cli=${req.body.ipsec_cli} and scope=${scope}`;
+      } else {
+        sql = `delete from ipsec_opt where ipsec=${req.body.ipsec} and scope=${scope}`;
+      }
       req.dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
@@ -1339,6 +1366,51 @@ export class IPSec extends Model {
 
           if (ipobj) {
             await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'left');
+          } else {
+            const ipobjData = {
+              id: null,
+              fwcloud: req.body.fwcloud,
+              interface: targetInterface.id,
+              name: interfaceName,
+              type: 5,
+              protocol: null,
+              address: interfaceIp.ip,
+              netmask: interfaceIp.netmask,
+              diff_serv: null,
+              ip_version: 4,
+              icmp_code: null,
+              icmp_type: null,
+              tcp_flags_mask: null,
+              tcp_flags_settings: null,
+              range_start: null,
+              range_end: null,
+              source_port_start: 0,
+              source_port_end: 0,
+              destination_port_start: 0,
+              destination_port_end: 0,
+              options: null,
+            };
+
+            const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
+            await IPSec.updateIpObjCfgOpt(
+              req.dbCon,
+              ipobjId as number,
+              cfg ?? req.body.ipsec,
+              'left',
+            );
+            const interfaceNode = (
+              await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'IFF', targetInterface.id)
+            )[0];
+
+            await Tree.newNode(
+              req.dbCon,
+              req.body.fwcloud,
+              `${interfaceName} (${interfaceIp.ip})`,
+              interfaceNode.id,
+              'OIA',
+              ipobjId,
+              5,
+            );
           }
           return;
         }
