@@ -125,7 +125,10 @@ export class IPSecController extends Controller {
         // If we are creaing a IPSec server configuration, then create the VPN virtual network interface with its assigned IP.
         await IPSec.createIPSecServerInterface(req, newIpsec);
       }
-
+      // Mark server as modified (need to be reinstalled)
+      if (req.body.wireguard && req.tree_node.node_type === 'ISS') {
+        await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+      }
       return ResponseBuilder.buildResponse()
         .status(201)
         .body({ insertId: newIpsec, TreeinsertId: nodeId });
