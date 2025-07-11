@@ -28,13 +28,13 @@ const fwcError = require('../../utils/error_table');
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     const item2 = req.path.split('/')[2];
-    if (item2==='rule' || item2==='compile' || item2==='install' || item2==='ipobj' || item2==='interface' 
-      || item2==='group' || item2==='openvpn' || item2==='prefix' || item2==='positions' || item2==='wireguard')
-    try {
-      const item1 = req.url.split('/')[1];
-      return resolve (await require('./'+item1+'/'+item2).validate(req));
-    } catch(error) { return reject(error) }
-  
+    if (item2 === 'rule' || item2 === 'compile' || item2 === 'install' || item2 === 'ipobj' || item2 === 'interface'
+      || item2 === 'group' || item2 === 'openvpn' || item2 === 'prefix' || item2 === 'positions' || item2 === 'wireguard' || item2 === 'ipsec')
+      try {
+        const item1 = req.url.split('/')[1];
+        return resolve(await require('./' + item1 + '/' + item2).validate(req));
+      } catch (error) { return reject(error) }
+
     return reject(fwcError.BAD_API_CALL);
   });
 };
