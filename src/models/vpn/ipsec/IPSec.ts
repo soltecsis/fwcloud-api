@@ -281,6 +281,18 @@ export class IPSec extends Model {
     });
   }
 
+  public static isIPSecServer(dbCon: Query, ipSec: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT ipsec FROM ${tableName} WHERE id=${ipSec}`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        if (result.length === 0) return resolve(false);
+        // If ipsec is null, it is a server.
+        resolve(result[0].ipsec === null);
+      });
+    });
+  }
+
   public static checkIpobjInIPSecOpt(dbCon: Query, ipobj: number): Promise<any> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT * FROM ipsec_opt WHERE ipobj=${ipobj}`;
@@ -304,6 +316,21 @@ export class IPSec extends Model {
   public static delCfgOptAll(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'delete from ipsec_opt where ipsec=' + req.body.ipsec;
+      req.dbCon.query(sql, (error, _) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
+
+  public static delCfgOptByScope(req: Request, scope: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let sql: string;
+      if (scope === 3) {
+        sql = `delete from ipsec_opt where ipsec=${req.body.ipsec} and ipsec_cli=${req.body.ipsec_cli} and scope=${scope}`;
+      } else {
+        sql = `delete from ipsec_opt where ipsec=${req.body.ipsec} and scope=${scope}`;
+      }
       req.dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
         resolve();
