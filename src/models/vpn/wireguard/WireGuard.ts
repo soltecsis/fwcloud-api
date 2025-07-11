@@ -324,13 +324,13 @@ export class WireGuard extends Model {
     });
   }
 
-  public static delCfgOptByScope(req, scope: number): Promise<void> {
+  public static delCfgOptByScope(req: Request, scope: number): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql: string;
       if (scope === 3) {
-        sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and wireguard_cli=${req.body.wireguard_cli} and scope=${req.dbCon.escape(scope)}`;
+        sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and wireguard_cli=${req.body.wireguard_cli} and scope=${scope}`;
       } else {
-        sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and scope=${req.dbCon.escape(scope)}`;
+        sql = `delete from wireguard_opt where wireguard=${req.body.wireguard} and scope=${scope}`;
       }
       req.dbCon.query(sql, (error, _) => {
         if (error) return reject(error);
