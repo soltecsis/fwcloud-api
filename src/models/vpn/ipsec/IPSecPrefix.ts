@@ -323,7 +323,7 @@ export class IPSecPrefix extends Model {
         if (result.length === 0) return resolve();
 
         // Remove from IPSec server node the nodes that match de prefix.
-        sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=321 AND name LIKE '${prefix}%'`;
+        sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=331 AND name LIKE '${prefix}%'`;
         dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
