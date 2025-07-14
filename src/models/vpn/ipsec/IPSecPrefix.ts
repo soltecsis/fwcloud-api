@@ -310,12 +310,12 @@ export class IPSecPrefix extends Model {
             fwcloud,
             prefix_name,
             parent,
-            'PRW',
+            'PRI',
             prefix_id,
             402,
           );
           for (const row of result)
-            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'IPSC', row.id, 321);
+            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'ISC', row.id, 321);
         } catch (error) {
           return reject(error);
         }
@@ -348,7 +348,7 @@ export class IPSecPrefix extends Model {
         // Create all IPSec client config nodes.
         const ipsec_cli_list: any = await IPSec.getIPSecClientsInfo(dbCon, ipsec_srv);
         for (const ipsec_cli of ipsec_cli_list) {
-          await Tree.newNode(dbCon, fwcloud, ipsec_cli.cn, node_id, 'ISC', ipsec_cli.id, 321);
+          await Tree.newNode(dbCon, fwcloud, ipsec_cli.cn, node_id, 'ISC', ipsec_cli.id, 331);
         }
 
         // Create the nodes for all the prefixes.
