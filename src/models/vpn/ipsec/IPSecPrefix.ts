@@ -264,7 +264,7 @@ export class IPSecPrefix extends Model {
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         if (result.length === 0) return reject(fwcError.NOT_FOUND);
-        result[0].type = 402;
+        result[0].type = 403;
         result[0].ipsec_clients = [];
         try {
           const ipsec_clients: any = await this.getIPSecClientsUnderPrefix(
@@ -312,7 +312,7 @@ export class IPSecPrefix extends Model {
             parent,
             'PRI',
             prefix_id,
-            402,
+            403,
           );
           for (const row of result)
             await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'ISC', row.id, 321);
