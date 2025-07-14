@@ -329,6 +329,13 @@ function checkPrefixAccess(req) {
                 INNER JOIN firewall FW ON FW.id=W.firewall
                 WHERE P.id=${req.body.prefix}`;
 		}
+		else if (item[1] === 'vpn' && item[2] === 'ipsec' && item[3] === 'prefix') {
+			sql = `SELECT FW.fwcloud, P.* 
+			FROM ipsec_prefix P
+			INNER JOIN ipsec VPN ON VPN.id = P.ipsec
+			INNER JOIN firewall FW ON FW.id = VPN.firewall
+			WHERE P.id = ${req.body.prefix}`;
+		}
 		else if (item[1] === 'ipobj' && item[2] === 'group' && item[3] === 'addto') {
 			console.log("req.body.node_type: ", req.body.node_type);
 			if (req.body.node_type === 'PRO') {

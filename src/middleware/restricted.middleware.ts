@@ -8,6 +8,7 @@ import { IPSecPrefix } from '../models/vpn/ipsec/IPSecPrefix';
 export class RestrictedMiddleware extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     if (req.method === 'PUT' && req.path.endsWith('policy/wireguard/del')) return next();
+    if (req.method === 'PUT' && req.path.endsWith('policy/ipsec/del')) return next();
 
     if (
       req.method === 'PUT' &&
