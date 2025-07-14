@@ -45,6 +45,9 @@ import db from '../../src/database/database-manager';
 import { WireGuard } from '../../src/models/vpn/wireguard/WireGuard';
 import { WireGuardPrefix } from '../../src/models/vpn/wireguard/WireGuardPrefix';
 import { WireGuardOption } from '../../src/models/vpn/wireguard/wireguard-option.model';
+import { IPSec } from '../../src/models/vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../../src/models/vpn/ipsec/IPSecPrefix';
+import { IPSecOption } from '../../src/models/vpn/ipsec/ipsec-option.model';
 
 const utilsModel = require('../../src/utils/utils.js');
 
@@ -67,6 +70,9 @@ export type FwCloudProduct = {
   routes: Map<string, Route>;
   routingRules: Map<string, RoutingRule>;
   mark: Mark;
+  ipsecServer: IPSec;
+  ipsecClients: Map<string, IPSec>;
+  ipsecPrefix: IPSecPrefix;
 };
 
 export class FwCloudFactory {
@@ -90,6 +96,9 @@ export class FwCloudFactory {
   private _routingRuleRepository: Repository<RoutingRule>;
   private _markRepository: Repository<Mark>;
   private _manager: EntityManager;
+  private _ipsecRepository: Repository<IPSec>;
+  private _ipsecOptRepository: Repository<IPSecOption>;
+  private _ipsecPrefixRepository: Repository<IPSecPrefix>;
 
   public fwc: FwCloudProduct;
 
@@ -116,6 +125,9 @@ export class FwCloudFactory {
     this._routeRepository = this._manager.getRepository(Route);
     this._routingRuleRepository = this._manager.getRepository(RoutingRule);
     this._markRepository = this._manager.getRepository(Mark);
+    this._ipsecRepository = this._manager.getRepository(IPSec);
+    this._ipsecOptRepository = this._manager.getRepository(IPSecOption);
+    this._ipsecPrefixRepository = this._manager.getRepository(IPSecPrefix);
 
     this.fwc = {} as FwCloudProduct;
     this.fwc.ipobjs = new Map<string, IPObj>();
@@ -125,6 +137,7 @@ export class FwCloudFactory {
     this.fwc.wireguardClients = new Map<string, WireGuard>();
     this.fwc.routes = new Map<string, Route>();
     this.fwc.routingRules = new Map<string, RoutingRule>();
+    this.fwc.ipsecClients = new Map<string, IPSec>();
 
     this._ipobjNextId = this.randomId(10, 100000);
   }
@@ -484,6 +497,58 @@ export class FwCloudFactory {
         }),
       ),
     );
+
+    this.fwc.crts.set(
+      'IPSec-Server',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'IPSec-Server',
+          days: 1000,
+          type: 2,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Cli-1',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'IPSec-Cli-1',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Cli-2',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'IPSec-Cli-2',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Cli-3',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'Other-IPSec-Client',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
   }
 
   private async makeVPNs(): Promise<void> {
@@ -685,6 +750,78 @@ export class FwCloudFactory {
         id: this.randomId(10, 100000),
         wireGuardId: this.fwc.wireguardServer.id,
         name: 'WireGuard-Cli-',
+      }),
+    );
+
+    this.fwc.ipsecServer = await this._ipsecRepository.save(
+      this._ipsecRepository.create({
+        id: vpnNextId++,
+        parentId: null,
+        firewallId: this.fwc.firewall.id,
+        crtId: this.fwc.crts.get('IPSec-Server').id,
+        public_key: '',
+        private_key: '',
+      }),
+    );
+
+    await this._ipsecOptRepository.save(
+      this._ipsecOptRepository.create({
+        ipSecId: this.fwc.ipsecServer.id,
+        ipObjId: this.fwc.ipobjs.get('network').id,
+        name: 'Address',
+        arg: this.fwc.ipobjs.get('network').address,
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    this.fwc.ipsecClients.set(
+      'IPSec-Cli-1',
+      await this._ipsecRepository.save(
+        this._ipsecRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.ipsecServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('IPSec-Cli-1').id,
+          public_key: '',
+          private_key: '',
+        }),
+      ),
+    );
+
+    this.fwc.ipsecClients.set(
+      'IPSec-Cli-2',
+      await this._ipsecRepository.save(
+        this._ipsecRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.ipsecServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('IPSec-Cli-2').id,
+          public_key: '',
+          private_key: '',
+        }),
+      ),
+    );
+
+    this.fwc.ipsecClients.set(
+      'IPSec-Cli-3',
+      await this._ipsecRepository.save(
+        this._ipsecRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.ipsecServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('IPSec-Cli-3').id,
+          public_key: '',
+          private_key: '',
+        }),
+      ),
+    );
+
+    this.fwc.ipsecPrefix = await this._ipsecPrefixRepository.save(
+      this._ipsecPrefixRepository.create({
+        id: this.randomId(10, 100000),
+        ipsecId: this.fwc.ipsecServer.id,
+        name: 'IPSec-Cli-',
       }),
     );
   }
