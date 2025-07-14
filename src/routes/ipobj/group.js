@@ -241,7 +241,7 @@ router.put('/addto', async (req, res) => {
 			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			await IPSec.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
-			dataIpobj = await IPSec.getIPSecInfo(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			dataIpobj = await IPSec.getIPSecInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 321;
@@ -309,6 +309,10 @@ router.put('/delfrom', async(req, res) => {
 			await WireGuard.removeFromGroup(req);
 		else if (req.body.obj_type === 402) // WireGuard PREFIX
 			await WireGuardPrefix.removePrefixFromGroup(req);
+		else if (req.body.obj_type === 331) // IPSec CLI
+			await IPSec.removeFromGroup(req);
+		else if (req.body.obj_type === 403) // IPSec PREFIX
+			await IPSecPrefix.removePrefixFromGroup(req);
 		else
 			await IPObjToIPObjGroup.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 
