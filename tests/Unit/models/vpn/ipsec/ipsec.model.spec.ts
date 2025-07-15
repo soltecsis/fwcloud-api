@@ -3,6 +3,7 @@ import { IPSec } from '../../../../../src/models/vpn/ipsec/IPSec';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
 import { expect } from '../../../../mocha/global-setup';
+import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 
 describe(IPSec.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -14,23 +15,297 @@ describe(IPSec.name, () => {
     fwcloudProduct = await new FwCloudFactory().make();
   });
 
-  describe('addCfg', () => {});
+  describe('addCfg', () => {
+    let _crtRepository;
+    beforeEach(async () => {
+      _crtRepository = manager.getRepository(Crt);
+    });
 
-  describe('updateCfg', () => {});
+    it('should insert a new configuration successfully', async () => {
+      const tempcert = await _crtRepository.save(
+        _crtRepository.create({
+          caId: fwcloudProduct.ca.id,
+          cn: 'IPSec-Server-1',
+          type: 2,
+          days: 365,
+        }),
+      );
 
-  describe('addCfgOpt', () => {});
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          crt: tempcert.id,
+          install_dir: '/tmp',
+          install_name: 'addCfgTest',
+        },
+      };
 
-  describe('updateCfgOpt', () => {});
+      const resultId = await IPSec.addCfg(req);
 
-  describe('updateCfgOptByipobj', () => {});
+      expect(resultId).to.exist;
+      expect(resultId).to.be.a('number');
+      expect(resultId).to.be.greaterThan(0);
 
-  describe('updateIpObjCfgOpt', () => {});
+      const result = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: resultId },
+        });
+      expect(result).to.exist;
+      expect(result).to.have.property('id');
+    });
 
-  describe('isIPSecServer', () => {});
+    it('should fail when required fields are missing', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: 'addCfgTest',
+        },
+      };
 
-  describe('checkIpobjInIPSecOpt', () => {});
+      try {
+        await IPSec.addCfg(req);
+      } catch (error) {
+        expect(error).to.exist;
+        expect(error.message).to.equal("Column 'crt' cannot be null");
+      }
+    });
+  });
 
-  describe('addPrefix', () => {});
+  describe('updateCfg', () => {
+    it('should update an existing configuration', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          install_dir: '/tmp',
+          install_name: 'test_updated',
+          comment: 'test',
+          ipsec: fwcloudProduct.ipsecServer.id,
+        },
+      };
+
+      await IPSec.updateCfg(req);
+
+      const result = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      expect(result).to.exist;
+      expect(result).to.have.property('install_name');
+      expect(result.install_name).to.equal(req.body.install_name);
+      expect(result).to.have.property('comment');
+      expect(result.comment).to.equal(req.body.comment);
+    });
+  });
+
+  describe('addCfgOpt', () => {
+    it('should insert a IPSec option', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+
+      const opt = {
+        ipsec: fwcloudProduct.ipsecServer.id,
+        name: 'addCfgOptTest',
+        arg: '1.1.1.1',
+        comment: 'Test addCfgOpt option',
+        order: 1,
+        scope: 0,
+      };
+
+      await IPSec.addCfgOpt(req, opt);
+
+      const result = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
+          fwcloudProduct.ipsecServer.id,
+          'addCfgOptTest',
+        ]);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array').that.is.not.empty;
+      expect(result[0].name).to.equal('addCfgOptTest');
+      expect(result[0].arg).to.equal('1.1.1.1');
+      expect(result[0].comment).to.equal('Test addCfgOpt option');
+      expect(result[0].order).to.equal(1);
+      expect(result[0].scope).to.equal(0);
+    });
+  });
+
+  describe('updateCfgOpt', () => {
+    it('should update a IPSec option', async () => {
+      const resultBefore = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
+          fwcloudProduct.ipsecServer.id,
+          'Address',
+        ]);
+
+      await IPSec.updateCfgOpt(
+        db.getQuery(),
+        fwcloudProduct.ipsecServer.id,
+        'Address',
+        '10.10.10.10',
+      );
+
+      const resultAfter = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
+          fwcloudProduct.ipsecServer.id,
+          'Address',
+        ]);
+
+      expect(resultBefore).to.exist;
+      expect(resultAfter).to.exist;
+      expect(resultBefore).to.be.an('array').that.is.not.empty;
+      expect(resultAfter).to.be.an('array').that.is.not.empty;
+      expect(resultBefore[0]).to.have.property('arg');
+      expect(resultAfter[0]).to.have.property('arg');
+      expect(resultAfter[0].arg).to.not.equal(resultBefore[0].arg);
+    });
+  });
+
+  describe('updateCfgOptByipobj', () => {
+    it('should update a IPSec option', async () => {
+      const resultBefore = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipobj = ? AND name = ?`, [
+          fwcloudProduct.ipobjs.get('network').id,
+          'Address',
+        ]);
+
+      await IPSec.updateCfgOptByipobj(
+        db.getQuery(),
+        fwcloudProduct.ipobjs.get('network').id,
+        'Address',
+        '10.10.10.10',
+      );
+
+      const resultAfter = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipobj = ? AND name = ?`, [
+          fwcloudProduct.ipobjs.get('network').id,
+          'Address',
+        ]);
+
+      expect(resultBefore).to.exist;
+      expect(resultAfter).to.exist;
+      expect(resultBefore).to.be.an('array').that.is.not.empty;
+      expect(resultAfter).to.be.an('array').that.is.not.empty;
+      expect(resultBefore[0]).to.have.property('arg');
+      expect(resultAfter[0]).to.have.property('arg');
+      expect(resultAfter[0].arg).to.not.equal(resultBefore[0].arg);
+    });
+  });
+
+  describe('updateIpObjCfgOpt', () => {
+    it('should change a IPSec option from the given IPSec', async () => {
+      const resultBefore = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
+          fwcloudProduct.ipsecServer.id,
+          'Address',
+        ]);
+
+      await IPSec.updateIpObjCfgOpt(
+        db.getQuery(),
+        fwcloudProduct.ipobjs.get('address').id,
+        fwcloudProduct.ipsecServer.id,
+        'Address',
+      );
+
+      const resultAfter = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
+          fwcloudProduct.ipsecServer.id,
+          'Address',
+        ]);
+
+      expect(resultBefore).to.exist;
+      expect(resultAfter).to.exist;
+      expect(resultBefore).to.be.an('array').that.is.not.empty;
+      expect(resultAfter).to.be.an('array').that.is.not.empty;
+      expect(resultBefore[0]).to.have.property('ipobj');
+      expect(resultAfter[0]).to.have.property('ipobj');
+      expect(resultAfter[0].ipobj).to.not.equal(resultBefore[0].ipobj);
+    });
+  });
+
+  describe('isIPSecServer', () => {
+    it('should return true if the given number corresponds to a IPSec server', async () => {
+      const resultServer = await IPSec.isIPSecServer(db.getQuery(), fwcloudProduct.ipsecServer.id);
+
+      expect(resultServer).to.exist;
+      expect(resultServer).to.be.an('boolean');
+      expect(resultServer).to.be.true;
+    });
+
+    it('should return false if the given number does not corresponds to a IPSec server', async () => {
+      const resultClient = await IPSec.isIPSecServer(
+        db.getQuery(),
+        fwcloudProduct.ipsecClients.get('IPSec-Cli-1').id,
+      );
+
+      expect(resultClient).to.exist;
+      expect(resultClient).to.be.an('boolean');
+      expect(resultClient).to.be.false;
+    });
+  });
+
+  describe('checkIpobjInIPSecOpt', () => {
+    it('should return an array of ipobj options for a given IPSec configuration', async () => {
+      const result = await IPSec.checkIpobjInIPSecOpt(
+        db.getQuery(),
+        fwcloudProduct.ipobjs.get('network').id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array');
+      (result as Array<any>).forEach((item) => {
+        expect(item).to.be.an('object');
+        expect(item).to.have.all.keys(
+          'id',
+          'ipsec',
+          'ipsec_cli',
+          'ipobj',
+          'name',
+          'arg',
+          'order',
+          'scope',
+          'comment',
+        );
+      });
+    });
+  });
+
+  describe('addPrefix', () => {
+    it('should add a IPSec prefix', async () => {
+      const prefix = {
+        name: 'IPSec-Test-',
+      };
+
+      await IPSec.addPrefix(fwcloudProduct.ipsecServer.id, prefix);
+
+      const result = await db
+        .getSource()
+        .query(`SELECT * FROM ipsec_prefix WHERE ipsec = ? AND name = ?`, [
+          fwcloudProduct.ipsecServer.id,
+          prefix.name,
+        ]);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array').that.is.not.empty;
+      expect(result[0].ipsec).to.equal(fwcloudProduct.ipsecServer.id);
+      expect(result[0].name).to.equal('IPSec-Test-');
+    });
+  });
 
   describe('delCfgOptAll', () => {});
 
@@ -71,7 +346,7 @@ describe(IPSec.name, () => {
   });
 
   describe('getOptData', () => {
-    it('should ', async () => {
+    it('should return option data for a given IPSec server ID and data name', async () => {
       const result = await IPSec.getOptData(
         db.getQuery(),
         fwcloudProduct.ipsecServer.id,
@@ -199,11 +474,100 @@ describe(IPSec.name, () => {
 
   describe('dumpCfg', () => {});
 
-  describe('updateIPSecStatus', () => {});
+  describe('updateIPSecStatus', () => {
+    it('should change the status of an IPSec', async () => {
+      const resultBefore = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
 
-  describe('updateIPSecInstallDate', () => {});
+      const res = await IPSec.updateIPSecStatus(db.getQuery(), fwcloudProduct.ipsecServer.id, '|1');
 
-  describe('updateIPSecStatusIPOBJ', () => {});
+      const resultAfter = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      expect(res).to.exist;
+      expect(res).to.be.an('object');
+      expect(res as { result: any }).to.have.property('result');
+      expect((res as { result: any }).result).to.be.true;
+
+      expect(resultBefore).to.exist;
+      expect(resultAfter).to.exist;
+      expect(resultBefore).to.be.an('object');
+      expect(resultAfter).to.be.an('object');
+      expect(resultAfter.status).to.not.equal(resultBefore.status);
+    });
+  });
+
+  describe('updateIPSecInstallDate', () => {
+    it('should change the install date of an IPSec', async () => {
+      const resultBefore = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      const res = await IPSec.updateIPSecInstallDate(db.getQuery(), fwcloudProduct.ipsecServer.id);
+
+      const resultAfter = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      expect(res).to.exist;
+      expect(res).to.be.an('object');
+      expect(res as { result: any }).to.have.property('result');
+      expect((res as { result: any }).result).to.be.true;
+
+      expect(resultBefore).to.exist;
+      expect(resultAfter).to.exist;
+      expect(resultBefore).to.be.an('object');
+      expect(resultAfter).to.be.an('object');
+      expect(resultAfter.installed_at).to.not.equal(resultBefore.installed_at);
+    });
+  });
+
+  describe('updateIPSecStatusIPOBJ', () => {
+    it('should change the status of an IPSec', async () => {
+      const resultBefore = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          fwcloud: fwcloudProduct.fwcloud.id,
+        },
+      };
+
+      await IPSec.updateIPSecStatusIPOBJ(req, fwcloudProduct.ipobjs.get('network').id, '|1');
+
+      const resultAfter = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      expect(resultBefore).to.exist;
+      expect(resultAfter).to.exist;
+      expect(resultBefore).to.be.an('object');
+      expect(resultAfter).to.be.an('object');
+      expect(resultAfter.status).to.not.equal(resultBefore.status);
+    });
+  });
 
   describe('freeVpnIP', () => {});
 
@@ -247,7 +611,18 @@ describe(IPSec.name, () => {
     });
   });
 
-  describe('addToGroup', () => {});
+  describe('addToGroup', () => {
+    it('should insert a relation in ipsec__ipobj_g', async () => {
+      const result = await IPSec.addToGroup(
+        db.getQuery(),
+        fwcloudProduct.ipsecServer.id,
+        fwcloudProduct.ipobjGroup.id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.a('number');
+    });
+  });
 
   describe('removeFromGroup', () => {});
 
