@@ -31,12 +31,13 @@ export class RestrictedMiddleware extends Middleware {
         req.path.endsWith('ipsec/prefix/restricted') ||
         req.path.endsWith('ipsec/prefix/del'))
     ) {
-      //TODO: REVISAR para diferenciar entre wireguard y ipsec
       if (req.body.fwcloud && req.body.prefix) {
-        await this.wireguard_prefix(req, res, next);
-      } /*else  if (req.body.fwcloud && req.body.prefix) {
-        await this.ipsec_prefix(req, res, next);
-      }*/
+        if (req.path.includes('wireguard')) {
+          await this.wireguard_prefix(req, res, next);
+        } else if (req.path.includes('ipsec')) {
+          await this.ipsec_prefix(req, res, next);
+        }
+      }
     } else {
       next();
     }

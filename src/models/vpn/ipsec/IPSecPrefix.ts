@@ -396,7 +396,7 @@ export class IPSecPrefix extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name,
                 O.prefix obj_id, PRE.name obj_name,
-                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=401) as obj_type_id,
+                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=403) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
                 from policy_r__ipsec_prefix O
@@ -416,7 +416,7 @@ export class IPSecPrefix extends Model {
   public static searchPrefixInGroup(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
-                (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name
+                (select id from ipobj_type where id=403) as obj_type_id, PRE.name obj_name
                 from ipsec_prefix__ipobj_g P
                 inner join ipsec_prefix PRE on PRE.id=P.prefix
                 inner join ipobj_g G on G.id=P.ipobj_g
@@ -536,7 +536,7 @@ export class IPSecPrefix extends Model {
       .innerJoinAndSelect('route.routingTable', 'table')
       .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
       .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
-      .innerJoin('ipObjGroup.ipsecPrefixes', 'prefix', 'prefix.id = :prefix', {
+      .innerJoin('ipObjGroup.ipSecPrefixes', 'prefix', 'prefix.id = :prefix', {
         prefix: prefix,
       })
       .innerJoin('table.firewall', 'firewall')
@@ -559,7 +559,7 @@ export class IPSecPrefix extends Model {
       .addSelect('cluster.name', 'cluster_name')
       .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
       .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
-      .innerJoin('ipObjGroup.ipsecPrefixes', 'prefix', 'prefix.id = :prefix', {
+      .innerJoin('ipObjGroup.ipSecPrefixes', 'prefix', 'prefix.id = :prefix', {
         prefix: prefix,
       })
       .innerJoin('routing_rule.routingTable', 'table')
