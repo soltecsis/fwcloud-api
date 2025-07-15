@@ -315,7 +315,7 @@ export class IPSecPrefix extends Model {
             403,
           );
           for (const row of result)
-            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'ISC', row.id, 321);
+            await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'ISC', row.id, 331);
         } catch (error) {
           return reject(error);
         }
