@@ -304,10 +304,13 @@ export class IPSec extends Model {
   }
 
   public static addPrefix(ipsecId: number, prefix: { name: string }): Promise<void> {
+    //Cambiada la forma de inyeccion sql
     return new Promise((resolve, reject) => {
-      const sql = `insert into ipsec_prefix SET ipsec=${ipsecId}, name=${prefix.name}`;
+      const sql = `insert into ipsec_prefix SET ipsec=?, name=?`;
+      //const sql = `insert into ipsec_prefix SET ipsec=${ipsecId}, name=${prefix.name}`;
       db.getSource()
-        .manager.query(sql)
+        .manager.query(sql, [ipsecId, prefix.name])
+        //.manager.query(sql)
         .then((_) => resolve())
         .catch((error) => reject(error));
     });
