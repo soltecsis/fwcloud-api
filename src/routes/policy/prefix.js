@@ -36,7 +36,7 @@ import { IPSecPrefix } from '../../models/vpn/ipsec/IPSecPrefix';
 const utilsModel = require('../../utils/utils.js');
 const fwcError = require('../../utils/error_table');
 
-/* Create New policy_r__VPN_prefix */
+/* Create New policy_r__prefix */
 router.post('/:vpnType(openvpn|wireguard|ipsec)?', utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     if (
@@ -82,45 +82,45 @@ router.post('/:vpnType(openvpn|wireguard|ipsec)?', utilsModel.disableFirewallCom
       await PolicyRuleToOpenVPNPrefix.insertInRule(req);
     } else if (req.prefix.prefix_type == 'wireguard') {
       await PolicyRuleToWireGuardPrefix.insertInRule(req);
-    } else if (req.prefix.prefix_type == 'ipsec') {
+    } else {
       await PolicyRuleToIPSecPrefix.insertInRule(req);
     }
 
     res.status(204).end();
   } catch (error) {
-    logger().error('Error creating new policy_r__openvpn_prefix: ' + JSON.stringify(error));
+    logger().error('Error creating new policy_r__prefix: ' + JSON.stringify(error));
     res.status(400).json(error);
   }
 });
 
-/* Update POSITION policy_r__VPN_prefix that exist */
+/* Update POSITION policy_r__prefix that exist */
 router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     if (
-      req.prefix.prefix_type == 'openvpn' &&
-      (
-        await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(
-          req.dbCon,
-          req.prefix.openvpn,
-          req.prefix.name,
-        )
-      ).length < 1 &&
-      req.prefix.prefix_type == 'wireguard' &&
-      (
-        await WireGuardPrefix.getWireGuardClientsUnderPrefix(
-          req.dbCon,
-          req.prefix.openvpn,
-          req.prefix.name,
-        )
-      ).length < 1 &&
-      req.prefix.prefix_type == 'ipsec' &&
-      (
-        await IPSecPrefix.getIPSecClientsUnderPrefix(
-          req.dbCon,
-          req.prefix.openvpn,
-          req.prefix.name,
-        )
-      ).length < 1
+      (req.prefix.prefix_type == 'openvpn' &&
+        (
+          await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(
+            req.dbCon,
+            req.prefix.openvpn,
+            req.prefix.name,
+          )
+        ).length < 1) ||
+      (req.prefix.prefix_type == 'wireguard' &&
+        (
+          await WireGuardPrefix.getWireGuardClientsUnderPrefix(
+            req.dbCon,
+            req.prefix.openvpn,
+            req.prefix.name,
+          )
+        ).length < 1) ||
+      (req.prefix.prefix_type == 'ipsec' &&
+        (
+          await IPSecPrefix.getIPSecClientsUnderPrefix(
+            req.dbCon,
+            req.prefix.ipsec,
+            req.prefix.name,
+          )
+        ).length < 1)
     ) {
       throw fwcError.IPOBJ_EMPTY_CONTAINER;
     }
@@ -131,7 +131,7 @@ router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewal
       (req.prefix.prefix_type == 'wireguard' &&
         !(await PolicyRuleToWireGuardPrefix.checkPrefixPosition(req.dbCon, req.body.position))) ||
       (req.prefix.prefix_type == 'ipsec' &&
-        !(await PolicyRuleToIPSecPrefix.checkIPSecPrefixPosition(req.dbCon, req.body.position)))
+        !(await PolicyRuleToIPSecPrefix.checkPrefixPosition(req.dbCon, req.body.position)))
     ) {
       throw fwcError.ALREADY_EXISTS;
     }
@@ -146,18 +146,18 @@ router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewal
 
     await Firewall.updateFirewallStatus(req.body.fwcloud, req.body.firewall, '|3');
 
-    // Move VPN configuration object to the new position.
-    if (req.prefix.prefix_type == 'openvpn') {
-      await PolicyRuleToOpenVPNPrefix.moveToNewPosition(req);
-    } else if (req.prefix.prefix_type == 'wireguard') {
-      await PolicyRuleToWireGuardPrefix.moveToNewPosition(req);
-    } else if (req.prefix.prefix_type == 'ipsec') {
-      await PolicyRuleToIPSecPrefix.moveToNewPosition(req);
-    }
+    // Move configuration object to the new position depending on prefix type.
+    const data = await (
+      {
+        openvpn: () => PolicyRuleToOpenVPNPrefix.moveToNewPosition(req),
+        wireguard: () => PolicyRuleToWireGuardPrefix.moveToNewPosition(req),
+        ipsec: () => PolicyRuleToIPSecPrefix.moveToNewPosition(req),
+      }[req.prefix.prefix_type]
+    )();
 
     res.status(204).end();
   } catch (error) {
-    logger().error('Error updating policy_r__openvpn_prefix position: ' + JSON.stringify(error));
+    logger().error('Error updating policy_r__prefix position: ' + JSON.stringify(error));
     res.status(400).json(error);
   }
 });
@@ -165,7 +165,7 @@ router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewal
 /* Update ORDER de policy_r__interface that exist */
 router.put('/:vpnType(openvpn|wireguard|ipsec)?/order', utilsModel.disableFirewallCompileStatus, (req, res) => { });
 
-/* Remove policy_r__VPN_prefix */
+/* Remove policy_r__prefix */
 router.put('/:vpnType(openvpn|wireguard|ipsec)?/del', utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     const vpnType = req.params.vpnType || req.prefix?.prefix_type;
@@ -179,7 +179,7 @@ router.put('/:vpnType(openvpn|wireguard|ipsec)?/del', utilsModel.disableFirewall
 
     res.status(204).end();
   } catch (error) {
-    logger().error('Error removing policy_r__openvpn_prefix: ' + JSON.stringify(error));
+    logger().error('Error removing policy_r__prefix: ' + JSON.stringify(error));
     res.status(400).json(error);
   }
 });
