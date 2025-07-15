@@ -204,30 +204,6 @@ restrictedCheck.openvpn = async(req, res, next) => {
 	} catch (error) { res.status(400).json(error) }
 };
 
-restrictedCheck.wireguard = async(req, res, next) => {
-	try {
-		let data = await WireGuard.searchWireguardChild(req.dbCon, req.body.fwcloud, req.body.wireguard);
-		if (data.result) return res.status(403).json(data);
-
-		data = await WireGuard.searchWireguardUsage(req.dbCon, req.body.fwcloud, req.body.wireguard);
-		if (data.result) return res.status(403).json(data);
-
-		next();
-	} catch (error) { res.status(400).json(error) }
-};
-
-restrictedCheck.ipsec = async(req, res, next) => {
-	try {
-		let data = await IPSec.searchIpsecChild(req.dbCon, req.body.fwcloud, req.body.ipsec);
-		if (data.result) return res.status(403).json(data);
-
-		data = await IPSec.searchIpsecUsage(req.dbCon, req.body.fwcloud, req.body.ipsec);
-		if (data.result) return res.status(403).json(data);
-
-		next();
-	} catch (error) { res.status(400).json(error) }
-};
-
 restrictedCheck.ca = async(req, res, next) => {
 	try {
 		let data = await Ca.searchCAHasCRTs(req.dbCon, req.body.fwcloud, req.body.ca);
@@ -265,22 +241,6 @@ restrictedCheck.crt = async (req, res, next) => {
 restrictedCheck.openvpn_prefix = async(req, res, next) => {
 	try {
 		let data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
-		if (data.result) return res.status(403).json(data);
-
-		next();
-	} catch (error) { res.status(400).json(error) }
-};
-restrictedCheck.wireguard_prefix = async(req, res, next) => {
-	try {
-		let data = await WireGuardPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
-		if (data.result) return res.status(403).json(data);
-
-		next();
-	} catch (error) { res.status(400).json(error) }
-};
-restrictedCheck.ipsec_prefix = async(req, res, next) => {
-	try {
-		let data = await IPSecPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
 		if (data.result) return res.status(403).json(data);
 
 		next();
