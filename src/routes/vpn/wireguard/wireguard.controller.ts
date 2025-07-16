@@ -113,6 +113,16 @@ export class WireGuardController extends Controller {
           newWireguard,
           321,
         );
+        await WireGuardPrefix.applyWireGuardPrefixes(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.wireguard,
+        );
+        await WireGuardPrefix.updateWireGuardClientPrefixesFWStatus(
+          req.dbCon,
+          req.body.fwcloud,
+          newWireguard,
+        );
       }
 
       // Handle prefixes (if necessary)
