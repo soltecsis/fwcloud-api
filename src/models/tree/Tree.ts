@@ -1003,7 +1003,42 @@ export class Tree extends Model {
                   return reject(error);
                 }
 
-                resolve();
+                sql = `SELECT VPN.id,CRT.cn FROM ipsec__ipobj_g G
+                                        INNER JOIN ipsec VPN ON VPN.id=G.ipsec
+                                        INNER JOIN crt CRT ON CRT.id=VPN.crt
+                                        WHERE G.ipobj_g=${group}`;
+                dbCon.query(sql, async (error, ipsecs) => {
+                  if (error) return reject(error);
+                  try {
+                    for (const ipsec of ipsecs)
+                      await this.newNode(dbCon, fwcloud, ipsec.cn, node_id, 'ISC', ipsec.id, 331);
+                  } catch (error) {
+                    return reject(error);
+                  }
+
+                  sql = `SELECT P.id,P.name FROM ipsec_prefix__ipobj_g G
+                                            INNER JOIN ipsec_prefix P ON P.id=G.prefix
+                                            WHERE G.ipobj_g=${group}`;
+                  dbCon.query(sql, async (error, ipsecPrefixes) => {
+                    if (error) return reject(error);
+                    try {
+                      for (const prefix of ipsecPrefixes)
+                        await this.newNode(
+                          dbCon,
+                          fwcloud,
+                          prefix.name,
+                          node_id,
+                          'PRI',
+                          prefix.id,
+                          403,
+                        );
+                    } catch (error) {
+                      return reject(error);
+                    }
+
+                    resolve();
+                  });
+                });
               });
             });
           });
