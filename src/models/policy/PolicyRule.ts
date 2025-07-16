@@ -298,6 +298,17 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
+            union select R.rule, R.position, IPS.id, CRT.cn, "331" as type, R.position_order, '' as labelName,
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name
+            from policy_r__ipsec R
+            inner join ipsec IPS on IPS.id=R.ipsec
+            inner join crt CRT ON CRT.id=IPS.crt
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=IPS.firewall
+            left join cluster CL on CL.id=FW.cluster
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
             union select R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
             from policy_r__openvpn_prefix R 
@@ -317,6 +328,17 @@ export class PolicyRule extends Model {
             inner join wireguard VPN on VPN.id=PRE.wireguard
             inner join firewall FW on FW.id=VPN.firewall  
             left join cluster CL on CL.id=FW.cluster  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
+            union select R.rule, R.position, PRE.id, PRE.name, "403" as type, R.position_order, '' as labelName,
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name
+            from policy_r__ipsec_prefix R
+            inner join ipsec_prefix PRE on PRE.id=R.prefix
+            inner join policy_r PR on PR.id=R.rule
+            inner join ipsec IPS on IPS.id=PRE.ipsec
+            inner join firewall FW on FW.id=IPS.firewall
+            left join cluster CL on CL.id=FW.cluster
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
             

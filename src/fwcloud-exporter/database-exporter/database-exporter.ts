@@ -80,6 +80,17 @@ import { WireGuardToIPObjGroupExporter } from './exporters/wireguard-to-ipobj-gr
 import { WireGuardExporter } from './exporters/wireguard.exporter';
 import { PolicyRuleToWireguardPrefixExporter } from './exporters/policy-rule-to-wireguard-prefix.exporter';
 import { PolicyRuleToWireguardExporter } from './exporters/policy-rule-to-wireguard.exporter';
+import { IPSecOptionExporter } from './exporters/ipsec-option.exporter';
+import { IPSecPrefixExporter } from './exporters/ipsec-prefix.exporter';
+import { IPSecExporter } from './exporters/ipsec.exporter';
+import { IPSecPrefixToIPObjGroupExporter } from './exporters/ipsec-prefix-to-ipobj-group.exporter';
+import { IPSecToIPObjGroupExporter } from './exporters/ipsec-to-ipobj-group.exporter';
+import { PolicyRuleToIpsecExporter } from './exporters/policy-rule-to-ipsec.exporter';
+import { PolicyRuleToIpsecPrefixExporter } from './exporters/policy-rule-to-ipsec-prefix.exporter';
+import { RouteToIPSecPrefixExporter } from './exporters/route-to-ipsec-prefix.exporter';
+import { RouteToIPSecExporter } from './exporters/route-to-ipsec.exporter';
+import { RoutingRuleToIPSecPrefixExporter } from './exporters/routing-rule-to-ipsec-prefix.exporter';
+import { RoutingRuleToIPSecExporter } from './exporters/routing-rule-to-ipsec.exporter';
 
 const EXPORTERS = [
   new CaExporter(),
@@ -102,6 +113,11 @@ const EXPORTERS = [
   new WireGuardPrefixExporter(),
   new WireGuardExporter(),
   new WireGuardPrefixToIPObjGroupExporter(),
+  new IPSecOptionExporter(),
+  new IPSecPrefixExporter(),
+  new IPSecExporter(),
+  new IPSecPrefixToIPObjGroupExporter(),
+  new IPSecToIPObjGroupExporter(),
   new PolicyGroupExporter(),
   new PolicyRuleToInterfaceExporter(),
   new PolicyRuleToIPObjExporter(),
@@ -109,6 +125,8 @@ const EXPORTERS = [
   new PolicyRuleToOpenVPNExporter(),
   new PolicyRuleToWireguardPrefixExporter(),
   new PolicyRuleToWireguardExporter(),
+  new PolicyRuleToIpsecPrefixExporter(),
+  new PolicyRuleToIpsecExporter(),
   new PolicyRuleExporter(),
   new RoutingTableExporter(),
   new RoutingGroupExporter(),
@@ -119,6 +137,8 @@ const EXPORTERS = [
   new RoutingRuleToOpenVPNPrefixExporter(),
   new RoutingRuleToWireGuardExporter(),
   new RoutingRuleToWireGuardPrefixExporter(),
+  new RoutingRuleToIPSecExporter(),
+  new RoutingRuleToIPSecPrefixExporter(),
   new RoutingRuleToMarkExporter(),
   new RouteExporter(),
   new RouteToIPObjExporter(),
@@ -127,6 +147,8 @@ const EXPORTERS = [
   new RouteToOpenVPNPrefixExporter(),
   new RouteToWireGuardExporter(),
   new RouteToWireGuardPrefixExporter(),
+  new RouteToIPSecExporter(),
+  new RouteToIPSecPrefixExporter(),
   new RouteGroupExporter(),
   new HAProxyRuleExporter(),
   new HAProxyRuleToIPObjExporter(),

@@ -28,10 +28,13 @@ export class WireGuardPrefixController extends Controller {
         throw fwcError.ALREADY_EXISTS;
 
       // Create the tree node.
-      const id = await WireGuardPrefix.createPrefix(req);
+      const id = (await WireGuardPrefix.createPrefix(req)) as number;
 
       // Apply the new CRT prefix container.
       await WireGuardPrefix.applyWireGuardPrefixes(req.dbCon, req.body.fwcloud, req.body.wireguard);
+
+      // Mark firewalls using this prefix as needing an update.
+      await this.wireGuardPrefixService.updateAffectedFirewalls(req.body.fwcloud, id);
 
       return ResponseBuilder.buildResponse().status(200).body({ insertId: id });
     } catch (error) {
@@ -47,6 +50,9 @@ export class WireGuardPrefixController extends Controller {
       const data_return = {};
       await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
       await WireGuard.getWireGuardStatusNotZero(req, data_return);
+
+      // Mark firewalls using this prefix as needing an update.
+      await this.wireGuardPrefixService.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
 
       return ResponseBuilder.buildResponse().status(204).body(data_return);
     } catch (error) {
@@ -105,6 +111,9 @@ export class WireGuardPrefixController extends Controller {
         req.body.fwcloud,
         req.prefix.wireguard,
       );
+
+      // Mark firewalls using this prefix as needing an update.
+      await this.wireGuardPrefixService.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
 
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {

@@ -173,7 +173,7 @@ export class PolicyRuleToIPSec extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
                 O.ipsec obj_id, CRT.cn obj_name,
-                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id,
+                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=331) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
             from policy_r__ipsec O
@@ -194,7 +194,7 @@ export class PolicyRuleToIPSec extends Model {
   public static searchIPSecInGroup(dbCon: Query, fwcloud: number, ipsec: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
-                (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name
+                (select id from ipobj_type where id=331) as obj_type_id, CRT.cn obj_name
                 from ipsec__ipobj_g P
                 inner join ipsec VPN on VPN.id=P.ipsec			
                 inner join crt CRT on CRT.id=VPN.crt
@@ -227,7 +227,7 @@ export class PolicyRuleToIPSec extends Model {
   public static searchLastIPSecInPrefixInRule(dbCon: Query, fwcloud: number, ipsec: number) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the IPSec prefixes in rules to which the IPSec configuration belongs.
-      const sql = `select P.rule rule_id, P.prefix, PRE.ipsec, PRE.name, R.type rule_type, (select id from ipobj_type where id=321) as obj_type_id, CRT.cn obj_name,
+      const sql = `select P.rule rule_id, P.prefix, PRE.ipsec, PRE.name, R.type rule_type, (select id from ipobj_type where id=331) as obj_type_id, CRT.cn obj_name,
                 PT.name rule_type_name, P.position rule_position_id, PP.name rule_position_name, R.firewall firewall_id, F.name firewall_name,
                 F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
                 from policy_r__ipsec_prefix P

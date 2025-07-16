@@ -36,6 +36,8 @@ import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 import db from '../../database/database-manager';
 import { PolicyRuleToWireGuard } from '../../models/policy/PolicyRuleToWireGuard';
 import { PolicyRuleToWireGuardPrefix } from '../../models/policy/PolicyRuleToWireguardPrefix';
+import { PolicyRuleToIPSec } from '../../models/policy/PolicyRuleToIPSec';
+import { PolicyRuleToIPSecPrefix } from '../../models/policy/PolicyRuleToIPSecPrefix';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -368,6 +370,10 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR WIREGUARD PREFIXES
 			await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITIONS FOR IPSec OBJECTS
+			await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITIONS FOR IPSec PREFIXES
+			await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
 
 			resolve(newRuleId);
 		} catch(error) { return reject(error) }

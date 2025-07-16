@@ -1286,7 +1286,7 @@ export class IPSec extends Model {
 
   public static removeFromGroup(req: Request) {
     return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM ipsec__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND ipsec=${req.body.ipsec}`;
+      const sql = `DELETE FROM ipsec__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND ipsec=${req.body.ipobj}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
