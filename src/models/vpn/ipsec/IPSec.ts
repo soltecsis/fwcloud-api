@@ -424,7 +424,7 @@ export class IPSec extends Model {
       const sql = `select id from ${tableName} where firewall=${req.body.firewall} and crt=${req.body.crt}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        resolve(result[0].id);
+        resolve(result.length === 0 ? null : result[0].id);
       });
     });
   }
@@ -434,7 +434,7 @@ export class IPSec extends Model {
       let sql = `select * from ${tableName} where id=${ipSec}`;
       dbCon.query(sql, (error, ipsec_result) => {
         if (error) return reject(error);
-
+        if (ipsec_result.length === 0) resolve([]);
         const data = ipsec_result[0];
         const type = data.ipsec === null ? 332 : 331; // 331 = Server, 332 = Client
         //IS CLIENT
