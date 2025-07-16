@@ -56,7 +56,7 @@ export class IPSecPrefixService extends Service {
       .set({
         name: req.body.name,
       })
-      .where('node_type = :type', { type: 'PRI' }) //TODO: REVISAR PREFIX IPSEC
+      .where('node_type = :type', { type: 'PRI' })
       .andWhere('id_obj = :id', { id: req.body.prefix })
       .execute();
 
@@ -93,20 +93,20 @@ export class IPSecPrefixService extends Service {
 
           .leftJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
           .leftJoin('routingRuleToIPObjGroups.ipObjGroup', 'ruleGroup')
-          .leftJoin('ruleGroupipSecPrefixes', 'ruleGroupIPSecPrefix')
+          .leftJoin('ruleGroup.ipSecPrefixes', 'ruleGroupIPSecPrefix')
 
           .leftJoin('rule.routingRuleToIPSecPrefixes', 'routingRuleToIPSecPrefix')
 
           .leftJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
           .leftJoin('routeToIPObjGroups.ipObjGroup', 'routeGroup')
-          .leftJoin('routeGroupipSecPrefixes', 'routeGroupIPSecPrefix')
+          .leftJoin('routeGroup.ipSecPrefixes', 'routeGroupIPSecPrefix')
 
           .leftJoin('route.routeToIPSecPrefixes', 'routeToIPSecPrefix')
 
-          .where('routingRuleToIPSecPrefixipSecPrefixId = :idRoutingRule', {
+          .where('routingRuleToIPSecPrefix.ipSecPrefixId = :idRoutingRule', {
             idRoutingRule: prefixId,
           })
-          .orWhere('routeToIPSecPrefixipSecPrefixId = :idRoute', { idRoute: prefixId })
+          .orWhere('routeToIPSecPrefix.ipSecPrefixId = :idRoute', { idRoute: prefixId })
           .orWhere('ruleGroupIPSecPrefix.id = :idRuleGroupPrefix', {
             idRuleGroupPrefix: prefixId,
           })
