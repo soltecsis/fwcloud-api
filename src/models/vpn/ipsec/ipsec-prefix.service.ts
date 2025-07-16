@@ -103,10 +103,10 @@ export class IPSecPrefixService extends Service {
 
           .leftJoin('route.routeToIPSecPrefixes', 'routeToIPSecPrefix')
 
-          .where('routingRuleToIPSecPrefix.ipSecPrefixId = :idRoutingRule', {
+          .where('routingRuleToIPSecPrefix.ipsecPrefixId = :idRoutingRule', {
             idRoutingRule: prefixId,
           })
-          .orWhere('routeToIPSecPrefix.ipSecPrefixId = :idRoute', { idRoute: prefixId })
+          .orWhere('routeToIPSecPrefix.ipsecPrefixId = :idRoute', { idRoute: prefixId })
           .orWhere('ruleGroupIPSecPrefix.id = :idRuleGroupPrefix', {
             idRuleGroupPrefix: prefixId,
           })
