@@ -244,7 +244,7 @@ router.put('/addto', async (req, res) => {
 			dataIpobj = await IPSec.getIPSecInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;
-			dataIpobj[0].type = 321;
+			dataIpobj[0].type = 331;
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 
