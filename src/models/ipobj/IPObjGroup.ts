@@ -151,17 +151,21 @@ export class IPObjGroup extends Model {
   //Count group items.
   public static countGroupItems(dbCon, group) {
     return new Promise((resolve, reject) => {
-      const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
-            union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
-            union select wireguard as id from wireguard__ipobj_g where ipobj_g=${group}
-            union select ipsec as id from ipsec__ipobj_g where ipobj_g=${group}
-            union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}
-            union select prefix as id from wireguard_prefix__ipobj_g where ipobj_g=${group}
-            union select prefix as id from ipsec_prefix__ipobj_g where ipobj_g=${group}`;
+      const sql = `
+        SELECT (
+          (SELECT COUNT(*) FROM ipobj__ipobjg WHERE ipobj_g=${group}) +
+          (SELECT COUNT(*) FROM openvpn__ipobj_g WHERE ipobj_g=${group}) +
+          (SELECT COUNT(*) FROM wireguard__ipobj_g WHERE ipobj_g=${group}) +
+          (SELECT COUNT(*) FROM openvpn_prefix__ipobj_g WHERE ipobj_g=${group}) +
+          (SELECT COUNT(*) FROM wireguard_prefix__ipobj_g WHERE ipobj_g=${group}) +
+          (SELECT COUNT(*) FROM ipsec__ipobj_g WHERE ipobj_g=${group}) +
+          (SELECT COUNT(*) FROM ipsec_prefix__ipobj_g WHERE ipobj_g=${group})
+        ) AS n`;
+
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
-        resolve(result.length);
+        resolve(Number(result[0].n));
       });
     });
   }
