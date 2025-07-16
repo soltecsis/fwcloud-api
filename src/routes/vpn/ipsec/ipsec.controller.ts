@@ -113,6 +113,8 @@ export class IPSecController extends Controller {
           newIpsec,
           331,
         );
+        await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.body.ipsec);
+        await IPSecPrefix.updateIPSecClientPrefixesFWStatus(req.dbCon, req.body.fwcloud, newIpsec);
       }
 
       // Handle prefixes (if necessary)
