@@ -26,10 +26,13 @@ export class IPSecPrefixController extends Controller {
         throw fwcError.ALREADY_EXISTS;
 
       // Create the tree node.
-      const id = await IPSecPrefix.createPrefix(req);
+      const id = (await IPSecPrefix.createPrefix(req)) as number;
 
       // Apply the new CRT prefix container.
       await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.body.ipsec);
+
+      // Mark firewalls using this prefix as needing an update.
+      await this.ipsecPrefixService.updateAffectedFirewalls(req.body.fwcloud, id);
 
       return ResponseBuilder.buildResponse().status(200).body({ insertId: id });
     } catch (error) {
@@ -45,6 +48,9 @@ export class IPSecPrefixController extends Controller {
       const data_return = {};
       await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
       await IPSec.getIPSecStatusNotZero(req, data_return);
+
+      // Mark firewalls using this prefix as needing an update.
+      await this.ipsecPrefixService.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
 
       return ResponseBuilder.buildResponse().status(204).body(data_return);
     } catch (error) {
@@ -99,6 +105,9 @@ export class IPSecPrefixController extends Controller {
 
       // Regenerate prefixes.
       await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.prefix.ipsec);
+
+      // Mark firewalls using this prefix as needing an update.
+      await this.ipsecPrefixService.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
 
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {

@@ -64,7 +64,7 @@ export class IPSecPrefixService extends Service {
     await this.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
   }
 
-  protected updateAffectedFirewalls(fwcloudId: number, prefixId: number): Promise<void> {
+  public updateAffectedFirewalls(fwcloudId: number, prefixId: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         const search: any = await IPSecPrefix.searchPrefixUsage(
