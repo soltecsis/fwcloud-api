@@ -52,7 +52,7 @@ export class PolicyRuleToIpsecPrefixExporter extends TableExporter {
         const subquery = qb.subQuery().from(IPSecPrefix, 'ipsec_prefix').select('ipsec_prefix.id');
 
         return (
-          `${alias}.ipsecrefixId IN` +
+          `${alias}.ipsecPrefixId IN` +
           new IPSecPrefixExporter().getFilterBuilder(subquery, 'ipsec_prefix', fwCloudId).getQuery()
         );
       });

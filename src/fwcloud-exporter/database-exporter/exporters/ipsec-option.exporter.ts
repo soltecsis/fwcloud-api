@@ -44,7 +44,7 @@ export class IPSecOptionExporter extends TableExporter {
         const subquery = qb.subQuery().from(IPSec, 'ipsec').select('ipsec.id');
 
         return (
-          `${alias}.ipsecId IN ` +
+          `${alias}.ipSecId IN ` +
           new IPSecExporter().getFilterBuilder(subquery, 'ipsec', fwCloudId).getQuery()
         );
       })

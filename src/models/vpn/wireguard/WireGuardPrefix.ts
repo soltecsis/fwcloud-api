@@ -410,7 +410,7 @@ export class WireGuardPrefix extends Model {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name,
                 O.prefix obj_id, PRE.name obj_name,
-                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=401) as obj_type_id,
+                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=402) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
                 from policy_r__wireguard_prefix O
@@ -430,7 +430,7 @@ export class WireGuardPrefix extends Model {
   public static searchPrefixInGroup(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
-                (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name
+                (select id from ipobj_type where id=402) as obj_type_id, PRE.name obj_name
                 from wireguard_prefix__ipobj_g P
                 inner join wireguard_prefix PRE on PRE.id=P.prefix
                 inner join ipobj_g G on G.id=P.ipobj_g

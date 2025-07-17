@@ -34,6 +34,7 @@ import { logger } from '../../fonaments/abstract-application';
 import { WireGuardPrefix } from '../../models/vpn/wireguard/WireGuardPrefix';
 import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
 import { IPSec } from '../../models/vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../../models/vpn/ipsec/IPSecPrefix';
 const fwcError = require('../../utils/error_table');
 
 

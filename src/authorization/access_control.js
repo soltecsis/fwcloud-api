@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -54,19 +54,19 @@ accessCtrl.check = async (req, res, next) => {
 
 
 	// Check access to customer and user creation functionality.
-	if (req.url.substring(0,5)==="/user" || req.url.substring(0,9)==="/customer") {
+	if (req.url.substring(0, 5) === "/user" || req.url.substring(0, 9) === "/customer") {
 		// Allow the logged user to change its own password.
-		if (req.url==='/user/changepass')
+		if (req.url === '/user/changepass')
 			return next();
-		
+
 		// Any user can end the session.
-		if (req.url==='/user/logout')
+		if (req.url === '/user/logout')
 			return next();
 
 		// All other customer and user changes are only allowed to administrator users.
-	 	if (await User.isLoggedUserAdmin(req))
+		if (await User.isLoggedUserAdmin(req))
 			return next();
-		
+
 		logger().debug("Error during access_control: " + JSON.stringify(fwcError.NOT_ADMIN_USER));
 		return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
@@ -84,11 +84,11 @@ accessCtrl.check = async (req, res, next) => {
 		}
 
 		// Check access to the tree cluster indicated in req.body.cluster.
-		if (req.body.cluster || (req.body.clusterData && req.body.clusterData.cluster)) {
-			if (!(await checkClusterAccess(req,req.body.cluster ? req.body.cluster : req.body.clusterData.cluster)))
+		if (req.body.cluster || (req.body.clusterData && req.body.clusterData.cluster)) {
+			if (!(await checkClusterAccess(req, req.body.cluster ? req.body.cluster : req.body.clusterData.cluster)))
 				throw fwcError.ACC_CLUSTER;
 		}
-		
+
 		// Check access to the tree node indicated in req.body.node_id.
 		if (req.body.node_id) {
 			if (!(await checkTreeNodeAccess(req)))
@@ -133,18 +133,18 @@ accessCtrl.check = async (req, res, next) => {
 
 		// Check access to the rule indicated by req.body.rule o req.body.new_rule.
 		if (req.body.rule) {
-			if (!(await checkPolicyRuleAccess(req,req.body.rule)))
+			if (!(await checkPolicyRuleAccess(req, req.body.rule)))
 				throw fwcError.ACC_POLICY_RULE;
 		}
 		if (req.body.new_rule) {
-			if (!(await checkPolicyRuleAccess(req,req.body.new_rule)))
+			if (!(await checkPolicyRuleAccess(req, req.body.new_rule)))
 				throw fwcError.ACC_POLICY_RULE;
 		}
 		if (req.body.rulesIds) {
 			for (let rule of req.body.rulesIds) {
-				if (!(await checkPolicyRuleAccess(req,rule)))
+				if (!(await checkPolicyRuleAccess(req, rule)))
 					throw fwcError.ACC_POLICY_RULE;
-			}	
+			}
 		}
 
 		// Check access to the iptables mark indicated by req.body.mark parameter.
@@ -153,18 +153,18 @@ accessCtrl.check = async (req, res, next) => {
 				throw fwcError.ACC_IPTABLES_MARK;
 		}
 		next()
-	} catch(error) {
+	} catch (error) {
 		logger().debug("Error during access_control: " + JSON.stringify(error));
 		res.status(400).json(error);
 	}
 };
 
 // Check access to the firewalls cluster.
-function checkClusterAccess(req,cluster) {
+function checkClusterAccess(req, cluster) {
 	return new Promise((resolve, reject) => {
 		req.dbCon.query(`select id FROM cluster WHERE id=${cluster} and fwcloud=${req.body.fwcloud}`, (error, result) => {
 			if (error) return reject(error);
-			if (result.length!==1) return resolve(false);
+			if (result.length !== 1) return resolve(false);
 			resolve(true);
 		});
 	});
@@ -175,7 +175,7 @@ function checkIptablesMarkAccess(req) {
 	return new Promise((resolve, reject) => {
 		req.dbCon.query(`select id from mark where id=${req.body.mark} and fwcloud=${req.body.fwcloud}`, (error, result) => {
 			if (error) return reject(error);
-			if (result.length!==1) return resolve(false);
+			if (result.length !== 1) return resolve(false);
 
 			resolve(true);
 		});
@@ -186,13 +186,13 @@ function checkIptablesMarkAccess(req) {
 // Check access to firewall policy rule.
 function checkPolicyRuleAccess(req, rule) {
 	return new Promise((resolve, reject) => {
-	 let sql = `select R.id FROM policy_r R
+		let sql = `select R.id FROM policy_r R
 			INNER JOIN firewall F ON F.id=R.firewall
 			INNER JOIN fwcloud C ON C.id=F.fwcloud
 			WHERE R.id=${rule} AND F.id=${req.body.firewall} and C.id=${req.body.fwcloud}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
-			if (result.length!==1) return resolve(false);
+			if (result.length !== 1) return resolve(false);
 
 			resolve(true);
 		});
@@ -202,13 +202,13 @@ function checkPolicyRuleAccess(req, rule) {
 // Check access to CA.
 function checkCAAccess(req) {
 	return new Promise((resolve, reject) => {
-	 let sql = 'select * FROM ca WHERE id='+req.body.ca;
+		let sql = 'select * FROM ca WHERE id=' + req.body.ca;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
 			// Check that fwcloud of the CA is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
 
 			// Store the ca info for use in the API call processing.
 			req.ca = result[0];
@@ -221,7 +221,7 @@ function checkCAAccess(req) {
 // Check access to certificate.
 function checkCrtAccess(req) {
 	return new Promise((resolve, reject) => {
-	 let sql = `select R.*,A.fwcloud FROM crt R
+		let sql = `select R.*,A.fwcloud FROM crt R
 			INNER JOIN ca A ON R.ca=A.id
 			WHERE R.id=${req.body.crt}`;
 		req.dbCon.query(sql, (error, result) => {
@@ -229,7 +229,7 @@ function checkCrtAccess(req) {
 
 			// Check that fwcloud of the CA of the CRT is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
 
 			// Store the crt info for use in the API call processing.
 			req.crt = result[0];
@@ -251,7 +251,7 @@ function checkOpenVPNAccess(req) {
 
 			// Check that fwcloud of the CA of the OpenVPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
 
 			// Store the crt info for use in the API call processing.
 			req.openvpn = result[0];
@@ -273,7 +273,7 @@ function checkWireguardAccess(req) {
 
 			// Check that fwcloud of the CA of the VPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
 
 			// Store the crt info for use in the API call processing.
 			req.wireguard = result[0];
@@ -295,7 +295,7 @@ function checkIpsecAccess(req) {
 
 			// Check that fwcloud of the CA of the VPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
 
 			// Store the crt info for use in the API call processing.
 			req.ipsec = result[0];
@@ -329,8 +329,14 @@ function checkPrefixAccess(req) {
                 INNER JOIN firewall FW ON FW.id=W.firewall
                 WHERE P.id=${req.body.prefix}`;
 		}
+		else if (item[1] === 'vpn' && item[2] === 'ipsec' && item[3] === 'prefix') {
+			sql = `SELECT FW.fwcloud, P.* 
+			FROM ipsec_prefix P
+			INNER JOIN ipsec VPN ON VPN.id = P.ipsec
+			INNER JOIN firewall FW ON FW.id = VPN.firewall
+			WHERE P.id = ${req.body.prefix}`;
+		}
 		else if (item[1] === 'ipobj' && item[2] === 'group' && item[3] === 'addto') {
-			console.log("req.body.node_type: ", req.body.node_type);
 			if (req.body.node_type === 'PRO') {
 				sql = `SELECT FW.fwcloud, P.*, 'openvpn' as prefix_type FROM openvpn_prefix P
                 INNER JOIN openvpn VPN ON VPN.id = P.openvpn
@@ -383,6 +389,7 @@ function checkPrefixAccess(req) {
 
 				// Store all the prefixes found.
 				req.prefix = result;
+
 				return resolve(true);
 			} else {
 				if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) {
@@ -399,13 +406,13 @@ function checkPrefixAccess(req) {
 // Check access to the tree node.
 function checkTreeNodeAccess(req) {
 	return new Promise((resolve, reject) => {
-		var sql = 'select * FROM fwc_tree WHERE id='+req.body.node_id;
+		var sql = 'select * FROM fwc_tree WHERE id=' + req.body.node_id;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
 			// Check that fwcloud of the node is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
-			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
 
 			// Store the node information for use in the API call processing.
 			req.tree_node = result[0];
@@ -421,7 +428,7 @@ function checkFwCloudAccess(req) {
 		var sql = `select * FROM user__fwcloud WHERE user=${req.session.user_id} and fwcloud=${req.body.fwcloud}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
-			resolve(result.length!==1? false : true);
+			resolve(result.length !== 1 ? false : true);
 		});
 	});
 };
