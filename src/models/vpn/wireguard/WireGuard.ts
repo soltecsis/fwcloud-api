@@ -863,13 +863,19 @@ export class WireGuard extends Model {
                             ?.split(',')
                             .map((ip) => ip.trim())
                             .filter(Boolean) || [];
-                        if (!ipsRaw.length && !(!isClient && addressOption)) return '';
+                        if (isClient) {
+                          if (!ipsRaw.length) return '';
+                          return `${comment}${isDisabled ? '# ' : ''}AllowedIPs = ${ipsRaw.join(', ')}\n`;
+                        }
+
+                        if (!ipsRaw.length && !addressOption) return '';
 
                         const firstBase = ipsRaw.length > 0 ? ipsRaw[0].split('/')[0] : null;
                         const normalizedFirst = firstBase ? `${firstBase}/32` : null;
 
-                        const baseAddress =
-                          !isClient && addressOption ? `${addressOption.split('/')[0]}/32` : null;
+                        const baseAddress = addressOption
+                          ? `${addressOption.split('/')[0]}/32`
+                          : null;
 
                         const initial = [];
                         if (baseAddress && baseAddress !== normalizedFirst)
