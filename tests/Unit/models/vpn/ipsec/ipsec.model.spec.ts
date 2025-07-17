@@ -6,7 +6,7 @@ import { expect } from '../../../../mocha/global-setup';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 
-describe.only(IPSec.name, () => {
+describe(IPSec.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
