@@ -51,6 +51,7 @@ import { Request } from 'express';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import fs from 'fs';
+import { IPSEC_OPTIONS } from '../../../routes/vpn/ipsec/dto/store.dto';
 
 const utilsModel = require('../../../utils/utils.js');
 const sodium = require('libsodium-wrappers');
@@ -755,36 +756,14 @@ export class IPSec extends Model {
 
           ips_cfg += `[Interface]\n`;
           ips_cfg += `PrivateKey = ${await utilsModel.decrypt(ipsRow.private_key)}\n`;
-          //TODO: CAMBIAR OPTIONS
+          // Transform array into an string with ' ' for each option
+          const optionsList = IPSEC_OPTIONS.map((opt) => `'${opt}'`).join(',');
+
           const sqlOpts = `SELECT *
-                          FROM ipsec
-                          WHERE OPT.ipsec = ${ipSec}
-                          AND OPT.name IN (
-                            'left',
-                            'leftid',
-                            'leftcert',
-                            'leftsendcert',
-                            'leftsubnet',
-                            'leftfirewall',
-                            'leftauth',
-                            'leftsourceip',
-                            'right',
-                            'rightid',
-                            'rightauth',
-                            'rightsubnet',
-                            'rightsourceip',
-                            'ike',
-                            'esp',
-                            'keyexchange',
-                            'dpdaction',
-                            'dpddelay',
-                            'rekey',
-                            'charondebug',
-                            'auto',
-                            'CA Certificate',
-                            '<<vpn_network>>',                            
-                          )
-                          ORDER BY OPT.order`;
+                 FROM ipsec
+                 WHERE OPT.ipsec = ${ipSec}
+                 AND OPT.name IN (${optionsList})
+                 ORDER BY OPT.order`;
 
           dbCon.query(sqlOpts, (optError, optResult) => {
             if (optError) return reject(optError);

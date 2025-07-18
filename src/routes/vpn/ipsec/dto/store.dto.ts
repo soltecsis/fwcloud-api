@@ -14,6 +14,34 @@ import {
   ValidationArguments,
 } from 'class-validator';
 
+export const IPSEC_OPTIONS = [
+  'left',
+  'leftid',
+  'leftcert',
+  'leftsendcert',
+  'leftsubnet',
+  'leftfirewall',
+  'leftauth',
+  'leftsourceip',
+  'right',
+  'rightid',
+  'rightauth',
+  'rightsubnet',
+  'rightsourceip',
+  'ike',
+  'esp',
+  'keyexchange',
+  'dpdaction',
+  'dpddelay',
+  'rekey',
+  'charondebug',
+  'auto',
+  'also',
+  'CA Certificate',
+  '<<vpn_network>>',
+] as const;
+
+export type IpsecOptionType = (typeof IPSEC_OPTIONS)[number];
 @ValidatorConstraint({ name: 'IPSecOptionValidator', async: false })
 export class IPSecOptionValidator implements ValidatorConstraintInterface {
   validate(value: string, args: ValidationArguments) {
@@ -97,31 +125,7 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 }
 export class IPSecOptionDTO {
   @IsString()
-  @IsIn([
-    'left',
-    'leftid',
-    'leftcert',
-    'leftsendcert',
-    'leftsubnet',
-    'leftfirewall',
-    'leftauth',
-    'leftsourceip',
-    'right',
-    'rightid',
-    'rightauth',
-    'rightsubnet',
-    'rightsourceip',
-    'ike',
-    'esp',
-    'keyexchange',
-    'dpdaction',
-    'dpddelay',
-    'rekey',
-    'charondebug',
-    'auto',
-    'CA Certificate',
-    '<<vpn_network>>',
-  ])
+  @IsIn(IPSEC_OPTIONS)
   name: string;
 
   @IsOptional()
