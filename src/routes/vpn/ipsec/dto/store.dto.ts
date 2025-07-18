@@ -50,10 +50,11 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 
     switch (option.name) {
       case 'left':
+        // Accept IPv4 with or without CIDR, and %defaultroute for left
+        return /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || value === '%defaultroute';
       case 'right':
-      case 'DNS1':
-      case 'DNS2':
-        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(value); // IPv4
+        // Accept IPv4 with or without CIDR, and %any for right
+        return /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || value === '%any';
 
       case 'IKEVersion':
         return value === '1' || value === '2';
