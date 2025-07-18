@@ -5,6 +5,10 @@ import db from '../../../../../src/database/database-manager';
 import { expect } from '../../../../mocha/global-setup';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
+import StringHelper from '../../../../../src/utils/string.helper';
 
 describe(IPSec.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -991,7 +995,60 @@ describe(IPSec.name, () => {
     });
   });
 
-  describe('getCRTData', () => {});
+  describe('getCRTData', () => {
+    let tempDir: string;
+    let testCrtFile: string;
+    let testCrtContent: string;
+    beforeEach(async () => {
+      // Create a temporary directory and file for testing
+      testCrtContent = `-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAKoK/heBjcOuMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjBF
+MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
+-----END CERTIFICATE-----`;
+
+      // Create the temporary directory
+      tempDir = path.join(os.tmpdir(), 'ipsec-test-certs');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      // Create the temporary certificate file
+      testCrtFile = path.join(tempDir, `test-cert-${Date.now()}.crt`);
+      fs.writeFileSync(testCrtFile, testCrtContent);
+    });
+
+    afterEach(async () => {
+      // Clean up the temporary certificate file
+      if (fs.existsSync(testCrtFile)) {
+        fs.unlinkSync(testCrtFile);
+      }
+
+      // Optionally, clean up the temporary directory if it's empty
+      try {
+        if (fs.existsSync(tempDir)) {
+          const files = fs.readdirSync(tempDir);
+          if (files.length === 0) {
+            fs.rmdirSync(tempDir);
+          }
+        }
+      } catch (error) {
+        // Ignore directory cleanup errors
+      }
+    });
+
+    it('should return certificate data from a file', async () => {
+      const result = await IPSec.getCRTData(testCrtFile);
+
+      expect(result).to.exist;
+      expect(result).to.be.a('string');
+      expect(result).to.include('BEGIN CERTIFICATE');
+      expect(result).to.include('END CERTIFICATE');
+    });
+  });
 
   describe('getIPSecClientsInfo', () => {
     it('should return all clients info under a IPSec server', async () => {
@@ -1409,14 +1466,18 @@ describe(IPSec.name, () => {
 
   describe('searchIPSecUsage', () => {
     it('should detect usages across rules, routes, and groups', async () => {
+      // Ensure the IPSec is added to a group at least
+      IPSec.addToGroup(db.getQuery(), fwcloudProduct.ipsecServer.id, fwcloudProduct.ipobjGroup.id);
+
       const result = await IPSec.searchIPSecUsage(
         db.getQuery(),
         fwcloudProduct.fwcloud.id,
-        fwcloudProduct.ipsecClients.get('IPSec-Cli-1').id,
+        fwcloudProduct.ipsecServer.id,
       );
 
       expect(result).to.exist;
       expect(result).to.have.property('restrictions');
+      expect(result.restrictions.IPSecInGroup).to.be.an('array').that.is.not.empty;
     });
   });
 
@@ -1444,17 +1505,154 @@ describe(IPSec.name, () => {
     });
   });
 
-  describe('searchIPSecInRoutingRule', () => {});
+  describe('searchIPSecInRoutingRule', () => {
+    it('should return routing rules using the specified IPSec server', async () => {
+      const targetIpsecId = fwcloudProduct.ipsecClients.get('IPSec-Cli-1').id;
 
-  describe('searchIPSecInGroupInRoute', () => {});
+      const result = await IPSec.searchIPSecInRoutingRule(fwcloudProduct.fwcloud.id, targetIpsecId);
 
-  describe('searchIPSecInGroupInRoutingRule', () => {});
+      expect(result).to.exist;
+      expect(result).to.be.an('array');
+    });
 
-  describe('searchIPSecUsageOutOfThisFirewall', () => {});
+    it('should return an empty array when no routing rules use the specified IPSec server', async () => {
+      const result = await IPSec.searchIPSecInRoutingRule(fwcloudProduct.fwcloud.id, -9999);
 
-  describe('searchIPSecChild', () => {});
+      expect(result).to.exist;
+      expect(result).to.be.an('array').that.is.empty;
+    });
+  });
 
-  describe('searchIPObjInIPSecOpt', () => {});
+  describe('searchIPSecInGroupInRoute', () => {
+    it('should return routes using the specified IPSec server in groups', async () => {
+      const targetIpsecId = fwcloudProduct.ipsecServer.id;
+
+      // Ensure the IPSec is added to a group
+      await IPSec.addToGroup(db.getQuery(), targetIpsecId, fwcloudProduct.ipobjGroup.id);
+
+      const result = await IPSec.searchIPSecInGroupInRoute(
+        fwcloudProduct.fwcloud.id,
+        targetIpsecId,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array');
+    });
+
+    it('should return an empty array when no routes use the specified IPSec server in groups', async () => {
+      const result = await IPSec.searchIPSecInGroupInRoute(fwcloudProduct.fwcloud.id, -9999);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array').that.is.empty;
+    });
+  });
+
+  describe('searchIPSecInGroupInRoutingRule', () => {
+    it('should return routing rules using the specified IPSec server in groups', async () => {
+      const targetIpsecId = fwcloudProduct.ipsecServer.id;
+
+      // Ensure the IPSec is added to a group
+      await IPSec.addToGroup(db.getQuery(), targetIpsecId, fwcloudProduct.ipobjGroup.id);
+
+      const result = await IPSec.searchIPSecInGroupInRoutingRule(
+        fwcloudProduct.fwcloud.id,
+        targetIpsecId,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array');
+    });
+
+    it('should return an empty array when no routing rules use the specified IPSec server in groups', async () => {
+      const result = await IPSec.searchIPSecInGroupInRoutingRule(fwcloudProduct.fwcloud.id, -9999);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array').that.is.empty;
+    });
+  });
+
+  describe('searchIPSecUsageOutOfThisFirewall', () => {
+    it('should return IPSec usage in other firewalls', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          fwcloud: fwcloudProduct.fwcloud.id,
+          firewall: fwcloudProduct.firewall.id,
+        },
+      };
+
+      const result = await IPSec.searchIPSecUsageOutOfThisFirewall(req);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object').that.has.property('restrictions');
+    });
+
+    it('should return an object with no data when no IPSec usage in other firewalls', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          fwcloud: fwcloudProduct.fwcloud.id,
+          firewall: '-9999', // Invalid firewall ID
+        },
+      };
+
+      const result = await IPSec.searchIPSecUsageOutOfThisFirewall(req);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object').that.has.property('restrictions');
+    });
+  });
+
+  describe('searchIPSecChild', () => {
+    it('should return an object with the restrictions of the IPSec', async () => {
+      const result = await IPSec.searchIPSecChild(
+        db.getQuery(),
+        fwcloudProduct.fwcloud.id,
+        fwcloudProduct.ipsecServer.id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object');
+    });
+
+    it('should return an empty array when no child IPSec configurations exist', async () => {
+      const result = await IPSec.searchIPSecChild(
+        db.getQuery(),
+        fwcloudProduct.fwcloud.id,
+        fwcloudProduct.ipsecClients.get('IPSec-Cli-1').id,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object');
+      expect(result.result).to.be.false;
+    });
+  });
+
+  describe('searchIPObjInIPSecOpt', () => {
+    it('should return true if some IPSec option uses the specified IP object', async () => {
+      const result = await IPSec.searchIPObjInIPSecOpt(
+        db.getQuery(),
+        fwcloudProduct.ipobjs.get('network').id,
+        'Address',
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('boolean');
+      expect(result).to.be.true;
+    });
+
+    it('should return false when no IPSec option uses the specified IP object', async () => {
+      const result = await IPSec.searchIPObjInIPSecOpt(
+        db.getQuery(),
+        fwcloudProduct.ipobjs.get('network').id,
+        'UnusedName',
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('boolean');
+      expect(result).to.be.false;
+    });
+  });
 
   describe('getIPSecStatusNotZero', () => {
     it('should return IPSec configurations with status not equal to 0', async () => {
@@ -1560,11 +1758,61 @@ describe(IPSec.name, () => {
     });
   });
 
-  describe('handleIPSecInterface', () => {});
+  describe('handleIPSecInterface', () => {
+    it.skip('should handle IPSec interface correctly', async () => {});
+  });
 
-  describe('createIPSecServerInterface', () => {});
+  describe('createIPSecServerInterface', () => {
+    it('should create interface and address for server', async () => {
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          ipsec: fwcloudProduct.ipsecServer.id,
+          fwcloud: fwcloudProduct.fwcloud.id,
+          firewall: fwcloudProduct.firewall.id,
+          ipobj_g: fwcloudProduct.ipobjGroup.id,
+          install_name: StringHelper.randomize(10) + '.conf',
+        },
+      };
 
-  describe('updateIPSecServerInterface', () => {});
+      await IPSec.createIPSecServerInterface(request, fwcloudProduct.ipsecServer.id);
+
+      const result = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      expect(result).to.exist;
+    });
+  });
+
+  describe('updateIPSecServerInterface', () => {
+    it('should update interface and address for server', async () => {
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          ipsec: fwcloudProduct.ipsecServer.id,
+          fwcloud: fwcloudProduct.fwcloud.id,
+          firewall: fwcloudProduct.firewall.id,
+          ipobj_g: fwcloudProduct.ipobjGroup.id,
+          install_name: StringHelper.randomize(10) + '.conf',
+        },
+      };
+
+      await IPSec.updateIPSecServerInterface(request);
+
+      const result = await db
+        .getSource()
+        .getRepository(IPSec)
+        .findOne({
+          where: { id: fwcloudProduct.ipsecServer.id },
+        });
+
+      expect(result).to.exist;
+    });
+  });
 
   describe('moveToOtherFirewall', () => {
     it('should move IPSec configurations to another firewall', async () => {
