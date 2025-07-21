@@ -1473,6 +1473,7 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
         db.getQuery(),
         fwcloudProduct.fwcloud.id,
         fwcloudProduct.ipsecServer.id,
+        true, // extended search
       );
 
       expect(result).to.exist;
@@ -1756,10 +1757,6 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
         expect(error).to.exist;
       }
     });
-  });
-
-  describe('handleIPSecInterface', () => {
-    it.skip('should handle IPSec interface correctly', async () => {});
   });
 
   describe('createIPSecServerInterface', () => {
