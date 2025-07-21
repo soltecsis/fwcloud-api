@@ -634,7 +634,6 @@ export class IPSec extends Model {
                   (err, rows) => (err ? rej(err) : res(rows)),
                 );
               });
-              console.log('addressRes', addressRes);
               const address =
                 addressRes.length > 0 ? addressRes[0].address + addressRes[0].netmask : null;
 

@@ -75,7 +75,6 @@ export class IPSecController extends Controller {
       }
       if (req.body.ipsec) {
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
-        console.log('ipsecCfg', ipsecCfg.options);
         const order =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
@@ -263,7 +262,7 @@ export class IPSecController extends Controller {
 
       const isServer = await IPSec.isIPSecServer(req.dbCon, req.body.ipsec);
       if (isServer) {
-        await IPSec.delCfgOptByScope(req, 2);
+        await IPSec.delCfgOptByScope(req, 6);
       } else {
         await IPSec.delCfgOptAll(req);
       }
@@ -294,26 +293,7 @@ export class IPSecController extends Controller {
   async get(req: any): Promise<ResponseBuilder> {
     try {
       const data = await IPSec.getCfg(req.dbCon, req.body.ipsec);
-
       if (data) {
-        if (data.public_key === null) {
-          data.public_key = '';
-        }
-        if (data.private_key === null) {
-          data.private_key = '';
-        }
-
-        const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
-        if (data.public_key) {
-          data.public_key = await pgp.encrypt(data.public_key);
-        }
-        if (data.private_key) {
-          data.private_key = await pgp.encrypt(data.private_key);
-        }
-        if (data.server_public_key) {
-          data.server_public_key = await pgp.encrypt(data.server_public_key);
-        }
-
         return ResponseBuilder.buildResponse().status(200).body(data);
       }
       return ResponseBuilder.buildResponse().status(204);
