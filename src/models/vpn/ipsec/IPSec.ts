@@ -608,11 +608,11 @@ export class IPSec extends Model {
       // First, get all IPSec clients linked to the given server
       const sqlClient = `
         SELECT 
-          VPN.id, 
+          IPS.id, 
           CRT.cn
-        FROM ipsec VPN
-        INNER JOIN crt CRT ON CRT.id = VPN.crt
-        WHERE VPN.ipsec = ?
+        FROM ipsec IPS
+        INNER JOIN crt CRT ON CRT.id = IPS.crt
+        WHERE IPS.ipsec = ?
         ORDER BY CRT.cn
       `;
 
@@ -627,18 +627,18 @@ export class IPSec extends Model {
               const addressRes: any = await new Promise((res, rej) => {
                 dbCon.query(
                   `SELECT IP.address , IP.netmask
-                 FROM ipsec_opt OPT 
-                 INNER JOIN ipobj IP ON IP.id = OPT.ipobj 
+                 FROM ipobj IP 
+                 INNER JOIN ipsec_opt OPT ON IP.id = OPT.ipobj 
                  WHERE OPT.ipsec = ?`,
                   [vpn.id],
                   (err, rows) => (err ? rej(err) : res(rows)),
                 );
               });
-
+              console.log('addressRes', addressRes);
               const address =
                 addressRes.length > 0 ? addressRes[0].address + addressRes[0].netmask : null;
 
-              // Get the AllowedIPs defined for this client from the server's configuration
+              // Get the Rightsubnet defined for this client from the server's configuration
               const rightsubnetRes: any = await new Promise((res, rej) => {
                 dbCon.query(
                   `SELECT * 
