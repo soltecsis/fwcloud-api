@@ -102,14 +102,6 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'PSK':
         return value.length >= 8; //
 
-      case 'Username':
-      case 'Password':
-        return value.trim().length > 0;
-
-      case 'PublicKey':
-      case 'PrivateKey':
-        return value.trim().length > 0; //
-
       case 'Certificate':
       case 'CA Certificate':
         return value.trim().endsWith('.crt') || value.trim().endsWith('.pem');
