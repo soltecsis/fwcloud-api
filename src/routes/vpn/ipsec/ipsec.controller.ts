@@ -75,22 +75,29 @@ export class IPSecController extends Controller {
       }
       if (req.body.ipsec) {
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
+
+        // Find leftsubnet option
+        const leftSubnetOption = ipsecCfg?.options.find(
+          (opt: IPSecOption) => opt.name === 'leftsubnet',
+        );
+        const leftSubnetValue = leftSubnetOption?.arg || '';
+
         const order =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
+
         const options = [
           {
             name: 'rightsubnet',
             ipsec: req.body.ipsec,
             ipsec_cli: newIpsec,
-            arg: '',
+            arg: leftSubnetValue, // Assign leftsubnet value
             order: order,
             scope: 8,
           },
         ];
-        options.map(async (opt) => {
-          await IPSec.addCfgOpt(req, opt);
-        });
+        // Use Promise.all to add all the options concurrently
+        await Promise.all(options.map((opt) => IPSec.addCfgOpt(req, opt)));
       }
 
       // Create node in tree
@@ -137,7 +144,6 @@ export class IPSecController extends Controller {
         .status(201)
         .body({ insertId: newIpsec, TreeinsertId: nodeId });
     } catch (error) {
-      console.log('error', error);
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
