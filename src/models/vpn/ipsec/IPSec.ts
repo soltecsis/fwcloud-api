@@ -1546,7 +1546,7 @@ export class IPSec extends Model {
     dbCon: Query,
     ipSec: number,
     ipsec_cli: number,
-  ): Promise<{ options: any[] }> {
+  ): Promise<{ publicKey?: string; options: any[] }> {
     return new Promise((resolve, reject) => {
       const sqlClient = `SELECT public_key FROM ipsec WHERE id = ? AND ipsec = ?`;
 
@@ -1557,6 +1557,8 @@ export class IPSec extends Model {
         }
 
         try {
+          const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
+
           const sql = `
                     SELECT IO.*
                     FROM ipsec_opt IO
@@ -1566,6 +1568,7 @@ export class IPSec extends Model {
                         IO.name = 'left' AND IO.ipsec = ? AND IO.ipsec_cli IS NULL
                     )
                 `;
+
           dbCon.query(sql, [ipSec, ipsec_cli, ipsec_cli], (error, rows) => {
             if (error) return reject(error);
 
@@ -1573,23 +1576,58 @@ export class IPSec extends Model {
             const leftOption = Array.isArray(rows) ? rows.find((opt) => opt.name === 'left') : null;
             const leftValue = leftOption ? leftOption.arg : '';
 
-            // Create options needed
-            const finalOptions = [
-              rows.find((opt) => opt.name === 'rightsubnet'),
-              {
-                id: null,
+            // Find or create 'right' option
+            let rightOption = Array.isArray(rows)
+              ? rows.find((opt) => opt.name === 'right' && opt.ipsec_cli === ipsec_cli)
+              : null;
+
+            if (!rightOption) {
+              rightOption = {
+                name: 'right',
+                arg: '', // Default value
                 ipsec: ipSec,
                 ipsec_cli: ipsec_cli,
                 ipobj: null,
-                name: 'rightsourceip',
-                arg: leftValue, // Use leftValue here
+                order: 0,
+                scope: 8,
+                comment: null,
+              };
+            }
+
+            // Find 'rightsubnet' option
+            const rightSubnetOption = Array.isArray(rows)
+              ? rows.find((opt) => opt.name === 'rightsubnet')
+              : null;
+
+            // Prepare final options
+            const finalOptions = [
+              rightSubnetOption || {
+                name: 'rightsubnet',
+                arg: '',
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
                 order: 0,
                 scope: 8,
                 comment: null,
               },
-            ];
-
-            resolve({ options: finalOptions });
+              {
+                name: 'rightsourceip',
+                arg: leftValue,
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+              rightOption,
+            ].filter((opt) => opt !== null);
+            console.log('finaloptions', finalOptions);
+            resolve({
+              publicKey,
+              options: finalOptions,
+            });
           });
         } catch (err) {
           reject(err);
@@ -1615,7 +1653,6 @@ export class IPSec extends Model {
         return new Promise<void>((resolve, reject) => {
           dbCon.query(sql, [option.arg, ipsec, ipsec_cli, option.name], (error) => {
             if (error) return reject(error);
-            console.log('option', option);
             resolve();
           });
         });
