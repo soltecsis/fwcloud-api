@@ -285,7 +285,7 @@ describe(IPSecPrefix.name, () => {
 
   describe('fillPrefixNodeIPSec', () => {
     it('should create prefix node and move matching IPSec clients', async () => {
-      // Crear algunos clientes IPSec que coincidan con el prefijo
+      // Create IPSec clients with names that match the prefix
       const parentNode = await Tree.newNode(
         db.getQuery(),
         fwcloudProduct.fwcloud.id,
@@ -296,7 +296,7 @@ describe(IPSecPrefix.name, () => {
         330,
       );
 
-      // Verificar que hay nodos antes de aplicar el prefijo
+      // Verify that there are nodes before applying the prefix
       const nodesBefore = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE obj_type = 331`, [parentNode as number]);
@@ -310,7 +310,7 @@ describe(IPSecPrefix.name, () => {
         parentNode as number,
       );
 
-      // Verificar que se creó el nodo del prefijo
+      // Verify that the prefix node was created
       const prefixNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 403`, [
@@ -320,7 +320,7 @@ describe(IPSecPrefix.name, () => {
       expect(prefixNodes).to.be.an('array').that.is.not.empty;
       expect(prefixNodes[0].name).to.equal('IPSec-Cli-');
 
-      // Verificar que los clientes se movieron bajo el nodo del prefijo
+      // Verify that clients were moved under the prefix node
       const clientNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 331`, [
@@ -330,7 +330,7 @@ describe(IPSecPrefix.name, () => {
       expect(clientNodes).to.be.an('array');
       if (clientNodes.length > 0) {
         clientNodes.forEach((node) => {
-          expect(node.name).to.match(/^1$|^2$/); // Sufijos después de quitar el prefijo
+          expect(node.name).to.match(/^1$|^2$/); // Suffixes after removing the prefix
         });
       }
     });
@@ -355,7 +355,7 @@ describe(IPSecPrefix.name, () => {
         parentNode as number,
       );
 
-      // Verificar que se creó el nodo del prefijo aunque no haya clientes
+      // Verify that the prefix node was created even if there are no clients
       const prefixNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 403`, [
@@ -365,7 +365,7 @@ describe(IPSecPrefix.name, () => {
       expect(prefixNodes).to.be.an('array').that.is.not.empty;
       expect(prefixNodes[0].name).to.equal('NonExistent-Prefix-');
 
-      // Verificar que no hay nodos de cliente bajo el prefijo
+      // Verify that there are no client nodes under the prefix
       const clientNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 331`, [
@@ -385,7 +385,7 @@ describe(IPSecPrefix.name, () => {
         null,
       );
 
-      // Verificar que se creó el nodo del prefijo con parent null
+      // Verify that the prefix node was created with null parent
       const prefixNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent IS NULL AND obj_type = 403 AND name = ?`, [
@@ -399,7 +399,7 @@ describe(IPSecPrefix.name, () => {
       try {
         await IPSecPrefix.fillPrefixNodeIPSec(
           db.getQuery(),
-          -9999, // FWCloud inexistente
+          -9999, // Non-existent FWCloud
           fwcloudProduct.ipsecServer.id,
           'IPSec-Cli-',
           fwcloudProduct.ipsecPrefix.id,
@@ -425,13 +425,13 @@ describe(IPSecPrefix.name, () => {
       await IPSecPrefix.fillPrefixNodeIPSec(
         db.getQuery(),
         fwcloudProduct.fwcloud.id,
-        -9999, // IPSec server inexistente
+        -9999, // Non-existent IPSec server
         'IPSec-Cli-',
         fwcloudProduct.ipsecPrefix.id,
         parentNode as number,
       );
 
-      // Debería crear el nodo prefijo pero sin clientes
+      // It should create the prefix node but without clients
       const prefixNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 403`, [
@@ -482,7 +482,7 @@ describe(IPSecPrefix.name, () => {
             prefixNodes[0].id,
           ]);
 
-        // Verificar que los nombres son sufijos correctos (sin el prefijo)
+        // Verify that the names are correct suffixes (without the prefix)
         clientNodes.forEach((node) => {
           expect(node.name).to.not.include('IPSec-Cli-');
           expect(node.name.length).to.be.greaterThan(0);
@@ -523,27 +523,27 @@ describe(IPSecPrefix.name, () => {
     });
 
     it('should create prefix node with matching certificate entries', async () => {
-      // Crear certificados que coincidan con el prefijo en la tabla crt
+      // Create certificates that match the prefix in the crt table
       const prefix = 'TEST-PREFIX-';
 
-      // Crear certificados con nombres que coincidan con el prefijo
+      // Create certificates with names that match the prefix
       const cert1 = await manager.getRepository(Crt).save({
         cn: `${prefix}client1`,
-        type: 1, // Tipo cliente
+        type: 1, // Client type
         ca: { id: fwcloudProduct.ca.id },
         days: 365,
       });
 
       const cert2 = await manager.getRepository(Crt).save({
         cn: `${prefix}client2`,
-        type: 1, // Tipo cliente
+        type: 1, // Client type
         ca: { id: fwcloudProduct.ca.id },
         days: 365,
       });
 
       let vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
 
-      // Crear clientes IPSec asociados a estos certificados
+      // Create IPSec clients associated with these certificates
       const ipsecClient1 = await manager.getRepository(IPSec).save({
         id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
@@ -562,7 +562,7 @@ describe(IPSecPrefix.name, () => {
         private_key: '',
       });
 
-      // Crear el nodo padre para el servidor IPSec
+      // Create the parent node for the IPSec server
       const parentNode = await Tree.newNode(
         db.getQuery(),
         fwcloudProduct.fwcloud.id,
@@ -573,7 +573,7 @@ describe(IPSecPrefix.name, () => {
         330,
       );
 
-      // Ejecutar la función a probar
+      // Execute the function to test
       await IPSecPrefix.fillPrefixNodeIPSec(
         db.getQuery(),
         fwcloudProduct.fwcloud.id,
@@ -583,7 +583,7 @@ describe(IPSecPrefix.name, () => {
         parentNode as number,
       );
 
-      // Verificar que se creó el nodo del prefijo (tipo PRI - 403)
+      // Verify that the prefix node was created (type PRI - 403)
       const prefixNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 403 AND name = ?`, [
@@ -593,9 +593,9 @@ describe(IPSecPrefix.name, () => {
 
       expect(prefixNodes).to.be.an('array').that.is.not.empty;
       expect(prefixNodes[0].name).to.equal(prefix);
-      expect(prefixNodes[0].obj_type).to.equal(403); // Tipo PRI
+      expect(prefixNodes[0].obj_type).to.equal(403); // Type PRI
 
-      // Verificar que se crearon los nodos hijos de tipo ISC (331) con los nombres correctos
+      // Verify that child nodes of type ISC (331) were created with the correct names
       const clientNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 331 ORDER BY name`, [
@@ -605,11 +605,11 @@ describe(IPSecPrefix.name, () => {
       expect(clientNodes).to.be.an('array');
       expect(clientNodes).to.have.length(2);
 
-      // Verificar que los nombres son los sufijos correctos (sin el prefijo)
+      // Verify that the names are the correct suffixes (without the prefix)
       expect(clientNodes[0].name).to.equal('client1');
       expect(clientNodes[1].name).to.equal('client2');
 
-      // Verificar que los obj_id corresponden a los IPSec clients correctos
+      // Verify that the obj_id correspond to the correct IPSec clients
       const nodeIds = clientNodes.map((node) => node.id_obj).sort();
       const expectedIds = [ipsecClient1.id, ipsecClient2.id].sort();
       expect(nodeIds).to.deep.equal(expectedIds);
@@ -618,7 +618,7 @@ describe(IPSecPrefix.name, () => {
     it('should handle certificates that do not match prefix', async () => {
       const prefix = 'NOMATCH-';
 
-      // Crear certificados que NO coincidan con el prefijo
+      // Create certificates that do not match the prefix
       const cert1 = await manager.getRepository(Crt).save({
         cn: 'DIFFERENT-client1',
         type: 1,
@@ -656,7 +656,7 @@ describe(IPSecPrefix.name, () => {
         parentNode as number,
       );
 
-      // Verificar que se creó el nodo del prefijo
+      // Verify that the prefix node was created
       const prefixNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 403`, [
@@ -665,7 +665,7 @@ describe(IPSecPrefix.name, () => {
 
       expect(prefixNodes).to.be.an('array').that.is.not.empty;
 
-      // Verificar que NO se crearon nodos hijos porque no hay certificados que coincidan
+      // Verify that no child nodes were created because there are no matching certificates
       const clientNodes = await db
         .getSource()
         .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 331`, [
