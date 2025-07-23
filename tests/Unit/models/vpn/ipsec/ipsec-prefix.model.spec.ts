@@ -167,10 +167,17 @@ describe(IPSecPrefix.name, () => {
 
       expect(result).to.exist;
 
-      db.getQuery().query(sql, (error, resultAfter) => {
-        expect(error).to.not.exist;
-        expect(resultAfter).to.exist;
-        expect(resultAfter).to.be.an('array').that.is.empty;
+      await new Promise<void>((resolve, reject) => {
+        db.getQuery().query(sql, (error, resultAfter) => {
+          try {
+            expect(error).to.not.exist;
+            expect(resultAfter).to.exist;
+            expect(resultAfter).to.be.an('array').that.is.empty;
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
       });
     });
   });
