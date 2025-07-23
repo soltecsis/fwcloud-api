@@ -1533,16 +1533,8 @@ export class IPSec extends Model {
     ipsec_cli: number,
   ): Promise<{ publicKey?: string; options: any[] }> {
     return new Promise((resolve, reject) => {
-      const sqlClient = `SELECT public_key FROM ipsec WHERE id = ? AND ipsec = ?`;
-
-      dbCon.query(sqlClient, [ipsec_cli, ipSec], async (error, clientResult) => {
-        if (error) return reject(error);
-        if (!clientResult || clientResult.length === 0) {
-          return resolve({ options: [] });
-        }
-
-        try {
-          const sql = `
+      try {
+        const sql = `
                     SELECT IO.*
                     FROM ipsec_opt IO
                     WHERE (
@@ -1552,68 +1544,47 @@ export class IPSec extends Model {
                     )
                 `;
 
-          dbCon.query(sql, [ipSec, ipsec_cli, ipsec_cli], (error, rows) => {
-            if (error) return reject(error);
+        dbCon.query(sql, [ipSec, ipsec_cli, ipsec_cli], (error, rows) => {
+          if (error) return reject(error);
+          // Find 'left' option
+          const leftOption = Array.isArray(rows) ? rows.find((opt) => opt.name === 'left') : null;
+          const leftValue = leftOption ? leftOption.arg : '';
 
-            // Find 'left' option
-            const leftOption = Array.isArray(rows) ? rows.find((opt) => opt.name === 'left') : null;
-            const leftValue = leftOption ? leftOption.arg : '';
+          // Find 'rightsubnet' option
+          const rightSubnetOption = Array.isArray(rows)
+            ? rows.find((opt) => opt.name === 'rightsubnet')
+            : null;
 
-            // Find or create 'right' option
-            let rightOption = Array.isArray(rows)
-              ? rows.find((opt) => opt.name === 'right' && opt.ipsec_cli === ipsec_cli)
-              : null;
-
-            if (!rightOption) {
-              rightOption = {
-                name: 'right',
-                arg: '', // Default value
-                ipsec: ipSec,
-                ipsec_cli: ipsec_cli,
-                ipobj: null,
-                order: 0,
-                scope: 8,
-                comment: null,
-              };
-            }
-
-            // Find 'rightsubnet' option
-            const rightSubnetOption = Array.isArray(rows)
-              ? rows.find((opt) => opt.name === 'rightsubnet')
-              : null;
-
-            // Prepare final options
-            const finalOptions = [
-              rightSubnetOption || {
-                name: 'rightsubnet',
-                arg: '',
-                ipsec: ipSec,
-                ipsec_cli: ipsec_cli,
-                ipobj: null,
-                order: 0,
-                scope: 8,
-                comment: null,
-              },
-              {
-                name: 'rightsourceip',
-                arg: leftValue,
-                ipsec: ipSec,
-                ipsec_cli: ipsec_cli,
-                ipobj: null,
-                order: 0,
-                scope: 8,
-                comment: null,
-              },
-              rightOption,
-            ].filter((opt) => opt !== null);
-            resolve({
-              options: finalOptions,
-            });
+          // Prepare final options
+          const finalOptions = [
+            rightSubnetOption || {
+              name: 'rightsubnet',
+              arg: '',
+              ipsec: ipSec,
+              ipsec_cli: ipsec_cli,
+              ipobj: null,
+              order: 0,
+              scope: 8,
+              comment: null,
+            },
+            {
+              name: 'rightsourceip',
+              arg: leftValue,
+              ipsec: ipSec,
+              ipsec_cli: ipsec_cli,
+              ipobj: null,
+              order: 0,
+              scope: 8,
+              comment: null,
+            },
+          ].filter((opt) => opt !== null);
+          resolve({
+            options: finalOptions,
           });
-        } catch (err) {
-          reject(err);
-        }
-      });
+        });
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
