@@ -62,16 +62,6 @@ export class IPSec1740582098062 implements MigrationInterface {
             isNullable: false,
           },
           {
-            name: 'public_key',
-            type: 'varchar',
-            isNullable: false,
-          },
-          {
-            name: 'private_key',
-            type: 'varchar',
-            isNullable: false,
-          },
-          {
             name: 'install_dir',
             type: 'varchar',
             isNullable: true,

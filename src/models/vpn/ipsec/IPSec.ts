@@ -175,8 +175,6 @@ export class IPSec extends Model {
   public static addCfg(req: Request): Promise<number> {
     return new Promise(async (resolve, reject) => {
       try {
-        const keys = await this.generateKeyPair();
-
         const cfg = {
           firewall: req.body.firewall,
           crt: req.body.crt,
@@ -184,13 +182,11 @@ export class IPSec extends Model {
           install_name: req.body.install_name,
           comment: req.body.comment || null,
           status: req.body.ipsec !== undefined ? 0 : 1, // Remove "install" flag for clients
-          public_key: await utilsModel.encrypt(keys.public_key),
-          private_key: await utilsModel.encrypt(keys.private_key),
           ipsec: req.body.ipsec || null,
         };
 
         req.dbCon.query(
-          `insert into ${tableName} (firewall, crt, install_dir, install_name, comment, status, public_key, private_key, ipsec) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `insert into ${tableName} (firewall, crt, install_dir, install_name, comment, status, ipsec) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             cfg.firewall,
             cfg.crt,
@@ -198,8 +194,6 @@ export class IPSec extends Model {
             cfg.install_name,
             cfg.comment,
             cfg.status,
-            cfg.public_key,
-            cfg.private_key,
             cfg.ipsec,
           ],
           (error, result) => {
@@ -462,11 +456,7 @@ export class IPSec extends Model {
 
           data.options = result;
           try {
-            const ipsec_data = (
-              await Promise.all(
-                ipsec_result.map((ipsec: IPSec) => utilsModel.decryptIpsecData(ipsec)),
-              )
-            )[0];
+            const ipsec_data = data;
 
             ipsec_data.type = type;
 
@@ -538,11 +528,6 @@ export class IPSec extends Model {
 
         const vpnIds = result.map((vpn) => vpn.id);
         if (vpnIds.length === 0) return resolve(result);
-        try {
-          result = await Promise.all(result.map((vpn) => utilsModel.decryptIpsecData(vpn)));
-        } catch (error) {
-          return reject(error);
-        }
 
         // Second query: Get all the ipsec_opt of these VPNs
         sql = `SELECT * FROM ipsec_opt WHERE ipsec IN (${vpnIds.join(',')})`;
@@ -1557,8 +1542,6 @@ export class IPSec extends Model {
         }
 
         try {
-          const publicKey = await utilsModel.decrypt(clientResult[0].public_key);
-
           const sql = `
                     SELECT IO.*
                     FROM ipsec_opt IO
@@ -1623,9 +1606,7 @@ export class IPSec extends Model {
               },
               rightOption,
             ].filter((opt) => opt !== null);
-            console.log('finaloptions', finalOptions);
             resolve({
-              publicKey,
               options: finalOptions,
             });
           });

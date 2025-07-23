@@ -74,6 +74,7 @@ export class IPSecController extends Controller {
         await IPSec.addCfgOpt(req, opt);
       }
       if (req.body.ipsec) {
+        console.log('Adding rightsubnet option for IPSec client');
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
 
         // Find leftsubnet option
@@ -144,6 +145,7 @@ export class IPSecController extends Controller {
         .status(201)
         .body({ insertId: newIpsec, TreeinsertId: nodeId });
     } catch (error) {
+      console.log('Error in IPSecController.store:', error);
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
