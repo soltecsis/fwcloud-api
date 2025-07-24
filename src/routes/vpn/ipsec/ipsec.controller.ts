@@ -457,7 +457,9 @@ export class IPSecController extends Controller {
     try {
       const data = await IPSec.getPeerOptions(req.dbCon, req.body.ipsec, req.body.ipsec_cli);
       const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
-      data.publicKey = await pgp.encrypt(data.publicKey);
+      if (data.publicKey) {
+        data.publicKey = await pgp.encrypt(data.publicKey);
+      }
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
