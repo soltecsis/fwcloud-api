@@ -510,6 +510,10 @@ export class WireGuardController extends Controller {
         await WireGuard.addCfgOpt(req, opt);
       }
 
+      if (req.body.wireguard) {
+        await WireGuard.updateWireGuardStatus(req.dbCon, req.body.wireguard, '|1');
+      }
+
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
