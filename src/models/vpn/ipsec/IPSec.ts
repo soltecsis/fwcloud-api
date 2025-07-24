@@ -75,12 +75,6 @@ export class IPSec extends Model {
   @Column()
   status: number;
 
-  @Column({ type: 'varchar', length: 255 })
-  public_key: string;
-
-  @Column({ type: 'varchar', length: 255 })
-  private_key: string;
-
   @Column()
   created_at: Date;
 
@@ -155,20 +149,6 @@ export class IPSec extends Model {
 
   public getTableName(): string {
     return tableName;
-  }
-
-  public static async generateKeyPair(): Promise<{ public_key: string; private_key: string }> {
-    // Ensure the library is initialized
-    await sodium.ready;
-
-    // Generate key pair suitable for IPSec (X25519 / curve25519)
-    const { publicKey, privateKey } = sodium.crypto_kx_keypair();
-
-    // Encode to base64 for use in IPS config
-    return {
-      public_key: sodium.to_base64(publicKey, sodium.base64_variants.ORIGINAL),
-      private_key: sodium.to_base64(privateKey, sodium.base64_variants.ORIGINAL),
-    };
   }
 
   // Insert new IPSec configuration register in the database.
