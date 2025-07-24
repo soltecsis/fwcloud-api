@@ -609,7 +609,7 @@ export class IPSec extends Model {
           const enrichedClients = await Promise.all(
             clients.map(async (vpn) => {
               // Get the client's IP address (if any)
-              const addressRes: any = await new Promise((res, rej) => {
+              const rightSourceIpRes: any = await new Promise((res, rej) => {
                 dbCon.query(
                   `SELECT IP.address , IP.netmask
                  FROM ipobj IP 
@@ -619,8 +619,10 @@ export class IPSec extends Model {
                   (err, rows) => (err ? rej(err) : res(rows)),
                 );
               });
-              const address =
-                addressRes.length > 0 ? addressRes[0].address + addressRes[0].netmask : null;
+              const rightsourceip =
+                rightSourceIpRes.length > 0
+                  ? rightSourceIpRes[0].address + rightSourceIpRes[0].netmask
+                  : null;
 
               // Get the Rightsubnet defined for this client from the server's configuration
               const rightsubnetRes: any = await new Promise((res, rej) => {
@@ -635,15 +637,12 @@ export class IPSec extends Model {
               const rightsubnetArg = rightsubnetRes.length > 0 ? rightsubnetRes[0].arg : null;
 
               // Concatenate address and rightsubnet, if both exist
-              const rightsubnet = address
-                ? rightsubnetArg
-                  ? `${address}, ${rightsubnetArg}`
-                  : address
-                : rightsubnetArg || null;
+              const rightsubnet = rightsubnetArg || null;
 
               return {
                 ...vpn,
                 rightsubnet,
+                rightsourceip,
               };
             }),
           );
@@ -1531,57 +1530,81 @@ export class IPSec extends Model {
     dbCon: Query,
     ipSec: number,
     ipsec_cli: number,
-  ): Promise<{ publicKey?: string; options: any[] }> {
-    return new Promise((resolve, reject) => {
+  ): Promise<{ options: any[] }> {
+    return new Promise(async (resolve, reject) => {
       try {
-        const sql = `
-                    SELECT IO.*
+        // Get Rightsourceip from ipobj
+        const rightSourceIpRes: any = await new Promise((res, rej) => {
+          dbCon.query(
+            `SELECT IP.address , IP.netmask
+                 FROM ipobj IP 
+                 INNER JOIN ipsec_opt OPT ON IP.id = OPT.ipobj 
+                 WHERE OPT.ipsec = ?`,
+            [ipsec_cli],
+            (err, rows) => (err ? rej(err) : res(rows)),
+          );
+        });
+
+        // Afterwards get options needed
+        const getOptions = new Promise((res, rej) => {
+          dbCon.query(
+            `SELECT IO.*
                     FROM ipsec_opt IO
                     WHERE (
                         IO.ipsec = ? AND IO.ipsec_cli = ?
                     ) OR (
                         IO.name = 'left' AND IO.ipsec = ? AND IO.ipsec_cli IS NULL
-                    )
-                `;
-
-        dbCon.query(sql, [ipSec, ipsec_cli, ipsec_cli], (error, rows) => {
-          if (error) return reject(error);
-          // Find 'left' option
-          const leftOption = Array.isArray(rows) ? rows.find((opt) => opt.name === 'left') : null;
-          const leftValue = leftOption ? leftOption.arg : '';
-
-          // Find 'rightsubnet' option
-          const rightSubnetOption = Array.isArray(rows)
-            ? rows.find((opt) => opt.name === 'rightsubnet')
-            : null;
-
-          // Prepare final options
-          const finalOptions = [
-            rightSubnetOption || {
-              name: 'rightsubnet',
-              arg: '',
-              ipsec: ipSec,
-              ipsec_cli: ipsec_cli,
-              ipobj: null,
-              order: 0,
-              scope: 8,
-              comment: null,
-            },
-            {
-              name: 'rightsourceip',
-              arg: leftValue,
-              ipsec: ipSec,
-              ipsec_cli: ipsec_cli,
-              ipobj: null,
-              order: 0,
-              scope: 8,
-              comment: null,
-            },
-          ].filter((opt) => opt !== null);
-          resolve({
-            options: finalOptions,
-          });
+                    )`,
+            [ipSec, ipsec_cli, ipSec],
+            (err, rows) => (err ? rej(err) : res(rows)),
+          );
         });
+
+        Promise.all([rightSourceIpRes, getOptions])
+          .then(([rightSourceIpRes, optionsRows]) => {
+            // Find rightsourceip
+            const rightSourceIpRows = rightSourceIpRes as any[];
+            const rightSourceIpValue =
+              rightSourceIpRows.length > 0
+                ? `${rightSourceIpRows[0].address}${rightSourceIpRows[0].netmask}`
+                : '';
+
+            // Find rightsubnet in options
+            const rightSubnetOption = Array.isArray(optionsRows)
+              ? optionsRows.find((opt) => opt.name === 'rightsubnet')
+              : null;
+
+            // Prepare final options
+            const finalOptions = [
+              rightSubnetOption || {
+                name: 'rightsubnet',
+                arg: rightSubnetOption.arg || '',
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+              {
+                name: 'rightsourceip',
+                arg: rightSourceIpValue,
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+            ].filter((opt) => opt !== null);
+
+            resolve({
+              options: finalOptions,
+            });
+          })
+          .catch((err) => {
+            reject(err);
+          });
       } catch (err) {
         reject(err);
       }
