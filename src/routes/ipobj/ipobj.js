@@ -343,7 +343,7 @@ router.put('/',
 
 				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'left', ipobjData.address + ipobjData.netmask);
 				const ipSecConfig = await IPSec.getCfg(req.dbCon, ipSecOptions[0].ipsec);
-				const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "<<vpn_network>>");
+				const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "leftsubnet");
 
 				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
 				const updatedIpObjData = {
@@ -354,7 +354,7 @@ router.put('/',
 				};
 
 				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
-				await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
+				await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, 'leftsubnet', networkAddress);
 			}
 
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);

@@ -14,6 +14,34 @@ import {
   ValidationArguments,
 } from 'class-validator';
 
+export const IPSEC_OPTIONS = [
+  'left',
+  'leftid',
+  'leftcert',
+  'leftsendcert',
+  'leftsubnet',
+  'leftfirewall',
+  'leftauth',
+  'leftsourceip',
+  'right',
+  'rightid',
+  'rightauth',
+  'rightsubnet',
+  'rightsourceip',
+  'ike',
+  'esp',
+  'keyexchange',
+  'dpdaction',
+  'dpddelay',
+  'rekey',
+  'charondebug',
+  'auto',
+  'also',
+  'CA Certificate',
+  '<<vpn_network>>',
+] as const;
+
+export type IpsecOptionType = (typeof IPSEC_OPTIONS)[number];
 @ValidatorConstraint({ name: 'IPSecOptionValidator', async: false })
 export class IPSecOptionValidator implements ValidatorConstraintInterface {
   validate(value: string, args: ValidationArguments) {
@@ -22,10 +50,11 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 
     switch (option.name) {
       case 'left':
+        // Accept IPv4 with or without CIDR, and %defaultroute for left
+        return /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || value === '%defaultroute';
       case 'right':
-      case 'DNS1':
-      case 'DNS2':
-        return /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(value); // IPv4
+        // Accept IPv4 with or without CIDR, and %any for right
+        return /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || value === '%any';
 
       case 'IKEVersion':
         return value === '1' || value === '2';
@@ -73,14 +102,6 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'PSK':
         return value.length >= 8; //
 
-      case 'Username':
-      case 'Password':
-        return value.trim().length > 0;
-
-      case 'PublicKey':
-      case 'PrivateKey':
-        return value.trim().length > 0; //
-
       case 'Certificate':
       case 'CA Certificate':
         return value.trim().endsWith('.crt') || value.trim().endsWith('.pem');
@@ -97,31 +118,7 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 }
 export class IPSecOptionDTO {
   @IsString()
-  @IsIn([
-    'left',
-    'leftid',
-    'leftcert',
-    'leftsendcert',
-    'leftsubnet',
-    'leftfirewall',
-    'leftauth',
-    'leftsourceip',
-    'right',
-    'rightid',
-    'rightauth',
-    'rightsubnet',
-    'rightsourceip',
-    'ike',
-    'esp',
-    'keyexchange',
-    'dpdaction',
-    'dpddelay',
-    'rekey',
-    'charondebug',
-    'auto',
-    'CA Certificate',
-    '<<vpn_network>>',
-  ])
+  @IsIn(IPSEC_OPTIONS)
   name: string;
 
   @IsOptional()

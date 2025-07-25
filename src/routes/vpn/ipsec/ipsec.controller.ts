@@ -73,24 +73,34 @@ export class IPSecController extends Controller {
         opt.order = order++;
         await IPSec.addCfgOpt(req, opt);
       }
-      //TODO: REVISAR QUE HACER CON ALLOWEDIPS PARA IPSEC
-      /* if (req.body.ipsec) {
+      if (req.body.ipsec) {
+        console.log('Adding rightsubnet option for IPSec client');
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
+
+        // Find leftsubnet option
+        const leftSubnetOption = ipsecCfg?.options.find(
+          (opt: IPSecOption) => opt.name === 'leftsubnet',
+        );
+        const leftSubnetValue = leftSubnetOption?.arg || '';
+
         const order =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
+
         const options = [
           {
-            name: 'AllowedIPs',
+            name: 'rightsubnet',
             ipsec: req.body.ipsec,
             ipsec_cli: newIpsec,
+            arg: leftSubnetValue, // Assign leftsubnet value
             order: order,
-            scope: 3,
+            scope: 8,
           },
         ];
-        await IPSec.addCfgOpt(req, options);
+        // Use Promise.all to add all the options concurrently
+        await Promise.all(options.map((opt) => IPSec.addCfgOpt(req, opt)));
       }
-*/
+
       // Create node in tree
       let nodeId: unknown;
       if (req.tree_node.node_type === 'IS') {
@@ -128,14 +138,14 @@ export class IPSecController extends Controller {
         await IPSec.createIPSecServerInterface(req, newIpsec);
       }
       // Mark server as modified (need to be reinstalled)
-      if (req.body.wireguard && req.tree_node.node_type === 'ISS') {
+      if (req.body.ipsec && req.tree_node.node_type === 'ISS') {
         await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
       }
       return ResponseBuilder.buildResponse()
         .status(201)
         .body({ insertId: newIpsec, TreeinsertId: nodeId });
     } catch (error) {
-      console.log('error', error);
+      console.log('Error in IPSecController.store:', error);
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
@@ -260,7 +270,7 @@ export class IPSecController extends Controller {
 
       const isServer = await IPSec.isIPSecServer(req.dbCon, req.body.ipsec);
       if (isServer) {
-        await IPSec.delCfgOptByScope(req, 2);
+        await IPSec.delCfgOptByScope(req, 6);
       } else {
         await IPSec.delCfgOptAll(req);
       }
@@ -291,26 +301,7 @@ export class IPSecController extends Controller {
   async get(req: any): Promise<ResponseBuilder> {
     try {
       const data = await IPSec.getCfg(req.dbCon, req.body.ipsec);
-
       if (data) {
-        if (data.public_key === null) {
-          data.public_key = '';
-        }
-        if (data.private_key === null) {
-          data.private_key = '';
-        }
-
-        const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
-        if (data.public_key) {
-          data.public_key = await pgp.encrypt(data.public_key);
-        }
-        if (data.private_key) {
-          data.private_key = await pgp.encrypt(data.private_key);
-        }
-        if (data.server_public_key) {
-          data.server_public_key = await pgp.encrypt(data.server_public_key);
-        }
-
         return ResponseBuilder.buildResponse().status(200).body(data);
       }
       return ResponseBuilder.buildResponse().status(204);
@@ -456,8 +447,7 @@ export class IPSecController extends Controller {
   async getClientOptions(req: any): Promise<ResponseBuilder> {
     try {
       const data = await IPSec.getPeerOptions(req.dbCon, req.body.ipsec, req.body.ipsec_cli);
-      const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
-      data.publicKey = await pgp.encrypt(data.publicKey);
+
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
@@ -467,13 +457,28 @@ export class IPSecController extends Controller {
   @Validate(UpdateOptionsDto)
   async updateClientOptions(req: any): Promise<ResponseBuilder> {
     try {
-      const data = await IPSec.updatePeerOptions(
-        req.dbCon,
-        req.body.ipsec,
-        req.body.ipsec_cli,
-        req.body.options,
-      );
-      return ResponseBuilder.buildResponse().status(200).body(data);
+      await IPSec.delCfgOptByScope(req, 8);
+
+      const clientOptions = (await IPSec.getOptData(req.dbCon, req.body.ipsec_cli)) as any[];
+      let maxOrder = clientOptions.reduce((max: number, opt: any) => Math.max(max, opt.order), 0);
+      if (maxOrder === 0) {
+        maxOrder = 1; // Start from 1 if no options exist
+      } else {
+        maxOrder++; // Increment to ensure new options are added after existing ones
+      }
+      for (const opt of req.body.options) {
+        if (opt.name === 'rightsourceip') {
+          continue;
+        }
+        // Configure option
+        opt.ipsec = req.body.ipsec;
+        opt.ipsec_cli = req.body.ipsec_cli;
+        opt.ipobj = null;
+        opt.order = maxOrder++;
+        await IPSec.addCfgOpt(req, opt);
+      }
+
+      return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
