@@ -11,6 +11,7 @@ import { Tree } from '../../../../../src/models/tree/Tree';
 import request = require('supertest');
 import { IPSecController } from '../../../../../src/routes/vpn/ipsec/ipsec.controller';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
+import { IPSec } from '../../../../../src/models/vpn/ipsec/IPSec';
 
 let app: Application;
 let ipsecService: IPSecService;
@@ -713,6 +714,23 @@ describe(describeName('IPSec E2E Tests'), () => {
     });
 
     describe('@getClientOptions', async () => {
+      beforeEach(async () => {
+        // Add a option to the client
+        const req: any = {
+          dbCon: db.getQuery(),
+        };
+        const opt = {
+          ipsec: fwcProduct.ipsecServer.id,
+          ipsec_cli: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
+          name: 'rightsubnet',
+          arg: '10.0.0.0/24',
+          comment: 'Test option',
+          order: 1,
+          scope: 2,
+        };
+        await IPSec.addCfgOpt(req, opt);
+      });
+
       it('guest user should not be able to get IPsec client options', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.client.options.get'))
@@ -759,7 +777,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           .send({
             fwcloud: fwcProduct.fwcloud.id,
             ipsec: fwcProduct.ipsecServer.id,
-            ipsec_cli: fwcProduct.ipsecClients.get('IPSec-Cli-2').id,
+            ipsec_cli: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
           })
           .then((response) => {
             expect(response.status).to.equal(200);
