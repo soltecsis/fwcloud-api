@@ -759,8 +759,6 @@ export class FwCloudFactory {
         parentId: null,
         firewallId: this.fwc.firewall.id,
         crtId: this.fwc.crts.get('IPSec-Server').id,
-        public_key: '',
-        private_key: '',
       }),
     );
 
@@ -783,8 +781,6 @@ export class FwCloudFactory {
           parentId: this.fwc.ipsecServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('IPSec-Cli-1').id,
-          public_key: '',
-          private_key: '',
         }),
       ),
     );
@@ -797,8 +793,6 @@ export class FwCloudFactory {
           parentId: this.fwc.ipsecServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('IPSec-Cli-2').id,
-          public_key: '',
-          private_key: '',
         }),
       ),
     );
@@ -811,8 +805,6 @@ export class FwCloudFactory {
           parentId: this.fwc.ipsecServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('IPSec-Cli-3').id,
-          public_key: '',
-          private_key: '',
         }),
       ),
     );
