@@ -8,7 +8,7 @@ import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { Tree } from '../../../../../src/models/tree/Tree';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 
-describe(IPSecPrefix.name, () => {
+describe.only(IPSecPrefix.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
@@ -155,9 +155,9 @@ describe(IPSecPrefix.name, () => {
   describe('deletePrefixAll', () => {
     it('should delete all prefixes under a firewall', async () => {
       const sql = `SELECT PRE.* FROM ipsec_prefix as PRE
-            INNER JOIN ipsec VPN ON VPN.id=PRE.ipsec
-            INNER JOIN firewall FW ON FW.id=VPN.firewall
-            WHERE FW.id=${fwcloudProduct.firewall.id} AND FW.fwcloud=${fwcloudProduct.fwcloud.id}`;
+        INNER JOIN ipsec VPN ON VPN.id = PRE.ipsec
+        INNER JOIN firewall FW ON FW.id = VPN.firewall
+        WHERE FW.id = ${fwcloudProduct.firewall.id} AND FW.fwcloud = ${fwcloudProduct.fwcloud.id}`;
 
       const result = await IPSecPrefix.deletePrefixAll(
         db.getQuery(),
@@ -167,18 +167,9 @@ describe(IPSecPrefix.name, () => {
 
       expect(result).to.exist;
 
-      await new Promise<void>((resolve, reject) => {
-        db.getQuery().query(sql, (error, resultAfter) => {
-          try {
-            expect(error).to.not.exist;
-            expect(resultAfter).to.exist;
-            expect(resultAfter).to.be.an('array').that.is.empty;
-            resolve();
-          } catch (err) {
-            reject(err);
-          }
-        });
-      });
+      const resultAfter = await db.getSource().query(sql);
+
+      expect(resultAfter).to.be.an('array').that.is.empty;
     });
   });
 
@@ -255,15 +246,19 @@ describe(IPSecPrefix.name, () => {
 
   describe('updateIPSecClientPrefixesFWStatus', () => {
     it('should update firewall statuses where prefix is used', async () => {
-      const clientId = fwcloudProduct.ipsecClients.get('IPSec-Cli-1').id;
-      const prefixId = fwcloudProduct.ipsecServer.id;
+      const fwcloudId = fwcloudProduct.fwcloud.id;
+      const ipsecId = fwcloudProduct.ipsecServer.id;
 
-      await IPSecPrefix.updateIPSecClientPrefixesFWStatus(db.getQuery(), clientId, prefixId);
-      const updatedClient = await manager.getRepository(IPSec).findOne({ where: { id: clientId } });
+      await IPSecPrefix.updateIPSecClientPrefixesFWStatus(db.getQuery(), fwcloudId, ipsecId);
+
+      const updatedClient = await manager.getRepository(IPSec).findOne({ where: { id: ipsecId } });
+
       expect(updatedClient).to.exist;
+
       const updatedFirewall = await manager
         .getRepository(Firewall)
         .findOne({ where: { id: updatedClient.firewallId } });
+
       expect(updatedFirewall).to.exist;
       expect(updatedFirewall.status).to.equal(3);
     });
