@@ -8,7 +8,7 @@ import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { Tree } from '../../../../../src/models/tree/Tree';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 
-describe.only(IPSecPrefix.name, () => {
+describe(IPSecPrefix.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
