@@ -83,7 +83,7 @@ export class IPSecController extends Controller {
         );
         const leftSubnetValue = leftSubnetOption?.arg || '';
 
-        const order =
+        let baseOrder =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
 
@@ -93,7 +93,23 @@ export class IPSecController extends Controller {
             ipsec: req.body.ipsec,
             ipsec_cli: newIpsec,
             arg: leftSubnetValue, // Assign leftsubnet value
-            order: order,
+            order: baseOrder,
+            scope: 8,
+          },
+          {
+            name: 'auto',
+            ipsec: req.body.ipsec,
+            ipsec_cli: newIpsec,
+            arg: 'start',
+            order: baseOrder++,
+            scope: 8,
+          },
+          {
+            name: 'also',
+            ipsec: req.body.ipsec,
+            ipsec_cli: newIpsec,
+            arg: 'server_only',
+            order: baseOrder++,
             scope: 8,
           },
         ];
