@@ -61,17 +61,6 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'AuthMethod':
         return ['psk', 'cert'].includes(value);
 
-      case 'Phase1Encryption':
-      case 'Phase2Encryption':
-        return ['aes128', 'aes192', 'aes256', '3des'].includes(value);
-
-      case 'Phase1Hash':
-      case 'Phase2Hash':
-        return ['sha1', 'sha256', 'sha384', 'sha512', 'md5'].includes(value);
-
-      case 'Phase1DHGroup':
-        return ['1', '2', '5', '14', '15', '16', '17', '18'].includes(value);
-
       case 'Phase2PFS':
         return [
           'group1',
@@ -84,19 +73,6 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
           'group18',
           'none',
         ].includes(value);
-
-      case 'Phase1Lifetime':
-      case 'Phase2Lifetime':
-        return /^\d+$/.test(value) && parseInt(value) > 0;
-
-      case 'PoolStart':
-      case 'PoolEnd':
-        return /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
-
-      case 'NATTraversal':
-      case 'SplitTunnel':
-      case 'Mobike':
-        return ['yes', 'no'].includes(value.toLowerCase());
 
       case 'PSK':
         return value.length >= 8; //
