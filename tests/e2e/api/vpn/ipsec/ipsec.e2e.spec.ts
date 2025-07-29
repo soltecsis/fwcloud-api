@@ -142,7 +142,7 @@ describe(describeName('IPSec E2E Tests'), () => {
                 scope: 2,
               },
               {
-                name: '<<vpn_network>>',
+                name: 'leftsubnet',
                 arg: '1.1.1.0/24',
                 scope: 2,
               },
@@ -171,7 +171,7 @@ describe(describeName('IPSec E2E Tests'), () => {
                 scope: 2,
               },
               {
-                name: '<<vpn_network>>',
+                name: 'leftsubnet',
                 arg: '1.1.1.0/24',
                 scope: 2,
               },
