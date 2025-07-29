@@ -336,7 +336,7 @@ export class IPSec extends Model {
       // Get all the ipobj referenced by this IPSec configuration.
       const sql = `select OBJ.id,OBJ.type from ipsec_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.ipsec=${ipSec} and OPT.name!='Endpoint'`;
+                where OPT.ipsec=${ipSec} and OPT.name!='right'`;
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
@@ -655,7 +655,7 @@ export class IPSec extends Model {
             IF(${type} = 332, 
               (select ipobj.address from ipsec_opt 
                inner join ipobj on ipobj.id = ipsec_opt.ipobj 
-               where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = '<<vpn_network>>' limit 1), 
+               where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = 'leftsubnet' limit 1), 
               O.address
             ) as address,
             FW.cluster cluster_id,
@@ -1400,7 +1400,7 @@ export class IPSec extends Model {
           10,
         );
 
-        const vpnNetworkOpt = await this.getOptData(req.dbCon, cfg, '<<vpn_network>>');
+        const vpnNetworkOpt = await this.getOptData(req.dbCon, cfg, 'leftsubnet');
         if ((vpnNetworkOpt as { ipobj: number })?.ipobj) {
           const ipobj: any = await IPObj.getIpobjInfo(
             req.dbCon,
