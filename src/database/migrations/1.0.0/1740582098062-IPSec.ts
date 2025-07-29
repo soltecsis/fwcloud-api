@@ -241,11 +241,6 @@ export class IPSec1740582098062 implements MigrationInterface {
             default: null,
           },
         ],
-        uniques: [
-          {
-            columnNames: ['ipsec', 'ipsec_cli'],
-          },
-        ],
         foreignKeys: [
           {
             columnNames: ['ipobj'],

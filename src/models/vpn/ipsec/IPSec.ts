@@ -1540,14 +1540,33 @@ export class IPSec extends Model {
           );
         });
 
-        Promise.all([rightSourceIpRes, getOptions])
-          .then(([rightSourceIpRes, optionsRows]) => {
+        const getCertCn = new Promise((res, rej) => {
+          dbCon.query(
+            `SELECT CRT.cn
+                    FROM ipsec IPS
+                    INNER JOIN crt CRT ON IPS.crt = CRT.id
+                    WHERE IPS.id = ?`,
+            [ipsec_cli],
+            (err, rows) => (err ? rej(err) : res(rows)),
+          );
+        });
+
+        Promise.all([rightSourceIpRes, getOptions, getCertCn])
+          .then(([rightSourceIpRes, optionsRows, certRows]) => {
             // Find rightsourceip
             const rightSourceIpRows = rightSourceIpRes as any[];
             const rightSourceIpValue =
               rightSourceIpRows.length > 0
                 ? `${rightSourceIpRows[0].address}${rightSourceIpRows[0].netmask}`
                 : '';
+            const autoOption = Array.isArray(optionsRows)
+              ? optionsRows.find((opt) => opt.name === 'auto')
+              : null;
+            const alsoOption = Array.isArray(optionsRows)
+              ? optionsRows.find((opt) => opt.name === 'also')
+              : null;
+            const certCnRows = certRows as any[];
+            const certCn = certCnRows.length > 0 ? certCnRows[0].cn : '';
 
             // Find rightsubnet in options
             const rightSubnetOption = Array.isArray(optionsRows)
@@ -1569,6 +1588,46 @@ export class IPSec extends Model {
               {
                 name: 'rightsourceip',
                 arg: rightSourceIpValue,
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+              {
+                name: 'rightid',
+                arg: certCn ? `CN=${certCn}` : '',
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+              {
+                name: 'rightcert',
+                arg: certCn ? `${certCn}.crt` : '',
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+              {
+                name: 'auto',
+                arg: autoOption ? autoOption.arg : 'add',
+                ipsec: ipSec,
+                ipsec_cli: ipsec_cli,
+                ipobj: null,
+                order: 0,
+                scope: 8,
+                comment: null,
+              },
+              {
+                name: 'also',
+                arg: alsoOption ? alsoOption.arg : '',
                 ipsec: ipSec,
                 ipsec_cli: ipsec_cli,
                 ipobj: null,
