@@ -336,7 +336,7 @@ export class IPSec extends Model {
       // Get all the ipobj referenced by this IPSec configuration.
       const sql = `select OBJ.id,OBJ.type from ipsec_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
-                where OPT.ipsec=${ipSec} and OPT.name!='Endpoint'`;
+                where OPT.ipsec=${ipSec} and OPT.name!='right'`;
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
