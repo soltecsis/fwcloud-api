@@ -1577,7 +1577,7 @@ export class IPSec extends Model {
             const finalOptions = [
               rightSubnetOption || {
                 name: 'rightsubnet',
-                arg: rightSubnetOption.arg || '',
+                arg: rightSubnetOption ? rightSubnetOption.arg : '',
                 ipsec: ipSec,
                 ipsec_cli: ipsec_cli,
                 ipobj: null,

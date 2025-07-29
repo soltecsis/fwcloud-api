@@ -1882,7 +1882,7 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       expect(result).to.have.all.keys('options');
     });
 
-    it.skip('should return empty options when invalid IPSec or IPSec_cli', async () => {
+    it('should return empty options when invalid IPSec or IPSec_cli', async () => {
       const result = await IPSec.getPeerOptions(
         db.getQuery(),
         fwcloudProduct.ipsecServer.id,
