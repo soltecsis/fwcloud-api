@@ -38,7 +38,6 @@ export const IPSEC_OPTIONS = [
   'auto',
   'also',
   'CA Certificate',
-  '<<vpn_network>>',
 ] as const;
 
 export type IpsecOptionType = (typeof IPSEC_OPTIONS)[number];
