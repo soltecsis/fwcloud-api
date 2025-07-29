@@ -1400,7 +1400,7 @@ export class IPSec extends Model {
           10,
         );
 
-        const vpnNetworkOpt = await this.getOptData(req.dbCon, cfg, '<<vpn_network>>');
+        const vpnNetworkOpt = await this.getOptData(req.dbCon, cfg, 'leftsubnet');
         if ((vpnNetworkOpt as { ipobj: number })?.ipobj) {
           const ipobj: any = await IPObj.getIpobjInfo(
             req.dbCon,
