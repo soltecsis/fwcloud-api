@@ -96,7 +96,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to store IPsec', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to store IPsec', async () => {
         await request(app.express)
           .post(_URL().getURL('vpn.ipsec.store'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -197,7 +197,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to install IPsec', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to install IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.install'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -256,7 +256,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to uninstall IPsec', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to uninstall IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.uninstall'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -359,7 +359,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to update IPsec', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to update IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.update', { id: ipsecId }))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -448,7 +448,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -501,7 +501,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec file', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec file', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.file.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -554,7 +554,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec IP object', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec IP object', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.ipobj.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -607,7 +607,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec IP', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec IP', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.ip.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -660,7 +660,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec info', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec info', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.info.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -713,7 +713,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec firewall', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec firewall', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.firewall.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -766,7 +766,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to delete IPsec', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to delete IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.delete'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -806,14 +806,57 @@ describe(describeName('IPSec E2E Tests'), () => {
       });
     });
 
-    describe.skip('@restricted', async () => {
-      it('guest user should not be able to access IPsec restricted', async () => {});
+    describe('@restricted', async () => {
+      it('guest user should not be able to access restricted IPSec', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.restrictions'))
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(401);
+          });
+      });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to access IPsec restricted', async () => {});
+      it('regular user which does not belong to the fwcloud should not be able to access restricted IPSec', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.restrictions'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 99999,
+            ipsec: fwcProduct.ipsecServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
 
-      it('regular user should be able to access IPSec restricted', async () => {});
+      it('regular user should be able to access restricted IPSec', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.restrictions'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+      });
 
-      it('admin user should be able to access IPSec restricted', async () => {});
+      it('admin user should be able to access restricted IPSec', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.restrictions'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+      });
     });
 
     describe('@where', async () => {
@@ -829,7 +872,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec usage', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec usage', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.where'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -882,7 +925,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec config filename', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec config filename', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.config.filename'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -935,7 +978,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec clients', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec clients', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.clients.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -1005,7 +1048,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to get IPsec client options', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get IPsec client options', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.client.options.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -1047,14 +1090,61 @@ describe(describeName('IPSec E2E Tests'), () => {
       });
     });
 
-    describe.skip('@updateClientOptions', async () => {
-      it('guest user should not be able to update IPsec client options', async () => {});
+    describe('@updateClientOptions', async () => {
+      it('guest user should not be able to update IPsec client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(401);
+          });
+      });
 
-      it('regular user wich doest not belong to the fwcloud should not be able to update IPsec client options', async () => {});
+      it('regular user which does not belong to the fwcloud should not be able to update IPsec client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 99999,
+            ipsec: fwcProduct.ipsecServer.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
 
-      it('regular user should be able to update IPSec client options', async () => {});
+      it('regular user should be able to update IPSec client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecServer.id,
+            ipsec_cli: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
+            options: [],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+      });
 
-      it('admin user should be able to update IPSec client options', async () => {});
+      it('admin user should be able to update IPSec client options', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecServer.id,
+            ipsec_cli: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
+            options: [],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+      });
     });
   });
 });
