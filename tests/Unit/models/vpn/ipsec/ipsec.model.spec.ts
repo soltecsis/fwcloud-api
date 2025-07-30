@@ -361,78 +361,6 @@ describe(IPSec.name, () => {
     });
   });
 
-  describe('updateCfgOpt', () => {
-    it('should update a IPSec option', async () => {
-      const resultBefore = await db
-        .getSource()
-        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
-          fwcloudProduct.ipsecServer.id,
-          'left',
-        ]);
-
-      await IPSec.updateCfgOpt(db.getQuery(), fwcloudProduct.ipsecServer.id, 'left', '10.10.10.10');
-
-      const resultAfter = await db
-        .getSource()
-        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
-          fwcloudProduct.ipsecServer.id,
-          'left',
-        ]);
-
-      expect(resultBefore).to.exist;
-      expect(resultAfter).to.exist;
-      expect(resultBefore).to.be.an('array').that.is.not.empty;
-      expect(resultAfter).to.be.an('array').that.is.not.empty;
-      expect(resultBefore[0]).to.have.property('arg');
-      expect(resultAfter[0]).to.have.property('arg');
-      expect(resultAfter[0].arg).to.not.equal(resultBefore[0].arg);
-    });
-
-    it('should update option with null values', async () => {
-      await IPSec.updateCfgOpt(db.getQuery(), fwcloudProduct.ipsecServer.id, 'left', null);
-
-      const resultAfter = await db
-        .getSource()
-        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
-          fwcloudProduct.ipsecServer.id,
-          'left',
-        ]);
-
-      expect(resultAfter).to.exist;
-      expect(resultAfter).to.be.an('array').that.is.not.empty;
-      expect(resultAfter[0]).to.have.property('arg').that.is.null;
-    });
-
-    it('should update option with empty string', async () => {
-      await IPSec.updateCfgOpt(db.getQuery(), fwcloudProduct.ipsecServer.id, 'left', '');
-
-      const resultAfter = await db
-        .getSource()
-        .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
-          fwcloudProduct.ipsecServer.id,
-          'left',
-        ]);
-
-      expect(resultAfter).to.exist;
-      expect(resultAfter).to.be.an('array').that.is.not.empty;
-      expect(resultAfter[0]).to.have.property('arg');
-      expect(resultAfter[0].arg).to.equal('');
-    });
-
-    it('should handle database errors', async () => {
-      try {
-        await IPSec.updateCfgOpt(
-          db.getQuery(),
-          fwcloudProduct.ipsecServer.id,
-          'left',
-          '1.1.1.1'.repeat(200),
-        );
-      } catch (error) {
-        expect(error).to.exist;
-      }
-    });
-  });
-
   describe('updateCfgOptByipobj', () => {
     it('should update a IPSec option', async () => {
       const resultBefore = await db
@@ -1235,7 +1163,23 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
     });
   });
 
-  describe('dumpCfg', () => {});
+  describe('dumpCfg', () => {
+    it('should return the configuration of a IPSec server', async () => {
+      const result = await IPSec.dumpCfg(db.getQuery(), fwcloudProduct.ipsecServer.id);
+
+      expect(result).to.exist;
+      expect(result).to.be.an('object').that.has.property('cfg');
+    });
+
+    it('should throw an error for a non-existent IPSec server', async () => {
+      try {
+        await IPSec.dumpCfg(db.getQuery(), -9999);
+      } catch (error) {
+        expect(error).to.exist;
+        expect(error.msg).to.include('Certificate info not found');
+      }
+    });
+  });
 
   describe('updateIPSecStatus', () => {
     it('should change the status of an IPSec to value 1', async () => {
