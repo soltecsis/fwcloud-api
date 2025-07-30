@@ -1041,7 +1041,7 @@ export class IPSec extends Model {
           // Include the rules that use the groups in which the IPSec is being used.
           search.restrictions.IPSecInGroupInRule = [];
           for (let i = 0; i < search.restrictions.IPSecInGroup.length; i++) {
-            const data: any = IPObjGroup.searchGroupUsage(
+            const data: any = await IPObjGroup.searchGroupUsage(
               search.restrictions.IPSecInGroup[i].group_id,
               fwcloud,
             );
