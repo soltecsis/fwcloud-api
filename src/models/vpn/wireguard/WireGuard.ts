@@ -757,6 +757,7 @@ export class WireGuard extends Model {
                         WHERE OPT.wireguard=${wireGuard}
                         AND OPT.name IN ('Address', 'ListenPort', 'DNS', 'MTU', 'Table', 'PreUp', 'PostUp', 'PreDown', 'PostDown', 'SaveConfig', 'FwMark')
                         ORDER BY OPT.order`;
+
           dbCon.query(sqlOpts, (optError, optResult) => {
             if (optError) return reject(optError);
             const interfaceLines = optResult.map((opt: WireGuardOption) => {
@@ -772,6 +773,7 @@ export class WireGuard extends Model {
               if (result.length === 0)
                 return reject(new Error('WireGuard configuration not found'));
               const isClient = result[0].wireguard !== null;
+
               const sqlPeers = isClient
                 ? `SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
                 FROM wireguard_opt OPT
@@ -901,7 +903,7 @@ export class WireGuard extends Model {
                   };
 
                   const formatPeerSection = async (peer: any, isDisabled: boolean) => {
-                    let section: string;
+                    let section: string = '';
                     if (isClient) {
                       const serverIdSql = `SELECT * from ${tableName} where id = (SELECT wireguard FROM wireguard WHERE id=${wireGuard})`;
                       const serverResult = await new Promise((resolve, reject) => {
