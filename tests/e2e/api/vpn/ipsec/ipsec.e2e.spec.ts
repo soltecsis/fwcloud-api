@@ -12,6 +12,9 @@ import request = require('supertest');
 import { IPSecController } from '../../../../../src/routes/vpn/ipsec/ipsec.controller';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 import { IPSec } from '../../../../../src/models/vpn/ipsec/IPSec';
+import sinon from 'sinon';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { Communication } from '../../../../../src/communications/communication';
 
 let app: Application;
 let ipsecService: IPSecService;
@@ -185,6 +188,24 @@ describe(describeName('IPSec E2E Tests'), () => {
     });
 
     describe('@install', async () => {
+      let installStub: sinon.SinonStub;
+
+      beforeEach(async () => {
+        // Stub of getCommunication to return a fake install method
+        sinon.stub(Firewall.prototype, 'getCommunication').callsFake(async () => {
+          installStub = sinon.stub().resolves();
+          const mockCommunication = {
+            installIPSecServerConfigs: installStub,
+          } as unknown as Communication<unknown>;
+
+          return mockCommunication;
+        });
+      });
+
+      afterEach(() => {
+        sinon.restore();
+      });
+
       it('guest user should not be able to uninstall IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.install'))
@@ -210,7 +231,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it.skip('regular user should be able to install IPSec', async () => {
+      it('regular user should be able to install IPSec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.install'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -226,14 +247,14 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it.skip('admin user should be able to install IPSec', async () => {
+      it('admin user should be able to install IPSec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.install'))
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             fwcloud: fwcProduct.fwcloud.id,
             firewall: fwcProduct.firewall.id,
-            ipsec: fwcProduct.ipsecServer.id,
+            ipsec: fwcProduct.ipsecClients.get('IPSec-Cli-1').id,
             sshuser: '',
             sshpass: '',
           })
@@ -244,6 +265,36 @@ describe(describeName('IPSec E2E Tests'), () => {
     });
 
     describe('@uninstall', async () => {
+      let uninstallStub: sinon.SinonStub;
+
+      beforeEach(async () => {
+        // Create an install_dir and install_name for the IPSec server
+        const req: any = {
+          dbCon: db.getQuery(),
+          body: {
+            install_dir: '/tmp',
+            install_name: 'install_uninstall_test',
+            comment: '',
+            ipsec: fwcProduct.ipsecServer.id,
+          },
+        };
+        await IPSec.updateCfg(req);
+
+        // Stub of getCommunication to return a fake uninstall method
+        sinon.stub(Firewall.prototype, 'getCommunication').callsFake(async () => {
+          uninstallStub = sinon.stub().resolves();
+          const mockCommunication = {
+            uninstallIPSecConfigs: uninstallStub,
+          } as unknown as Communication<unknown>;
+
+          return mockCommunication;
+        });
+      });
+
+      afterEach(() => {
+        sinon.restore();
+      });
+
       it('guest user should not be able to uninstall IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.uninstall'))
@@ -269,7 +320,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it.skip('regular user should be able to uninstall IPSec', async () => {
+      it('regular user should be able to uninstall IPSec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.uninstall'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -285,7 +336,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it.skip('admin user should be able to uninstall IPSec', async () => {
+      it('admin user should be able to uninstall IPSec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.uninstall'))
           .set('Cookie', [attachSession(adminUserSessionId)])
@@ -514,7 +565,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it.skip('regular user should be able to get IPSec file', async () => {
+      it('regular user should be able to get IPSec file', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.file.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -527,7 +578,7 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
-      it.skip('admin user should be able to get IPSec file', async () => {
+      it('admin user should be able to get IPSec file', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.file.get'))
           .set('Cookie', [attachSession(adminUserSessionId)])
