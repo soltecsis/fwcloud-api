@@ -733,6 +733,7 @@ export class IPSec extends Model {
           WHERE OPT.ipsec = ?
             AND OPT.ipsec_cli IS NULL
             AND OPT.name IN (${optionsList})
+            AND OPT.name != '<<disable>>'
           ORDER BY OPT.order
         `;
         const optResult: IPSecOption[] = await new Promise((res, rej) =>
