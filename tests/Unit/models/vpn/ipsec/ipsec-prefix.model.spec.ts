@@ -166,6 +166,7 @@ describe(IPSecPrefix.name, () => {
       );
 
       expect(result).to.exist;
+      expect(result).to.have.property('affectedRows').that.is.equal(1);
 
       const resultAfter = await db.getSource().query(sql);
 
