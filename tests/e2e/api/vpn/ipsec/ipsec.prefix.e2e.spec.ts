@@ -8,7 +8,6 @@ import { attachSession, createUser, generateSession } from '../../../../utils/ut
 import { IPSecPrefixController } from '../../../../../src/routes/vpn/ipsec/ipsec.prefix.controller';
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import request = require('supertest');
-import { Tree } from '../../../../../src/models/tree/Tree';
 import { IPSecPrefixService } from '../../../../../src/models/vpn/ipsec/ipsec-prefix.service';
 
 let app: Application;
@@ -39,12 +38,6 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
     loggedUser.fwClouds = [fwcProduct.fwcloud];
     adminUser.fwClouds = [fwcProduct.fwcloud];
     await manager.getRepository(User).save([loggedUser, adminUser]);
-
-    await Tree.createAllTreeCloud(fwcProduct.fwcloud);
-    await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, 1, fwcProduct.firewall.id);
-    const node = (await Tree.getNodeByNameAndType(fwcProduct.fwcloud.id, 'IPSec', 'IS')) as {
-      id: number;
-    };
   });
 
   describe(IPSecPrefixController.name, () => {
