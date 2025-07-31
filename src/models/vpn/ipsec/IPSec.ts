@@ -278,9 +278,9 @@ export class IPSec extends Model {
 
   public static addPrefix(ipsecId: number, prefix: { name: string }): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `insert into ipsec_prefix SET ipsec=${ipsecId}, name=${prefix.name}`;
+      const sql = `insert into ipsec_prefix SET ipsec=?, name=?`;
       db.getSource()
-        .manager.query(sql)
+        .manager.query(sql, [ipsecId, prefix.name])
         .then((_) => resolve())
         .catch((error) => reject(error));
     });
@@ -394,7 +394,7 @@ export class IPSec extends Model {
       const sql = `select id from ${tableName} where firewall=${req.body.firewall} and crt=${req.body.crt}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        resolve(result[0].id);
+        resolve(result.length === 0 ? null : result[0].id);
       });
     });
   }
@@ -404,7 +404,7 @@ export class IPSec extends Model {
       let sql = `select * from ${tableName} where id=${ipSec}`;
       dbCon.query(sql, (error, ipsec_result) => {
         if (error) return reject(error);
-
+        if (ipsec_result.length === 0) resolve([]);
         const data = ipsec_result[0];
         const type = data.ipsec === null ? 332 : 331; // 332 = Server, 331 = Client
         //IS CLIENT
