@@ -1790,7 +1790,7 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       const result = await IPSec.getConfigFilename(db.getQuery(), -9999);
 
       expect(result).to.exist;
-      expect(result).to.be.a('string');
+      expect(result).to.be.a('string').that.is.equal('ips0.conf');
     });
   });
 
@@ -1836,6 +1836,11 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       expect(result).to.exist;
       expect(result).to.be.a('object');
       expect(result).to.have.all.keys('options');
+      result.options.forEach((element) => {
+        if (element.name !== 'auto') {
+          expect(element).to.have.property('arg').that.is.empty;
+        }
+      });
     });
   });
 
