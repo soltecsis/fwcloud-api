@@ -62,7 +62,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           });
       });
 
-      it('regular user which does not belong to the fwcloud should not be to create a prefix', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to create a prefix', async () => {
         await request(app.express)
           .post(_URL().getURL('vpn.ipsec.prefix'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -119,7 +119,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           });
       });
 
-      it('regular user which does not belong to the fwcloud should not be to update a prefix', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to update a prefix', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.update'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -177,7 +177,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           });
       });
 
-      it('regular user which does not belong to the fwcloud should not be to get prefix info', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get prefix info', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.info.get'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -230,7 +230,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           });
       });
 
-      it('regular user which does not belong to the fwcloud should not be to access restricted endpoint', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to access restricted endpoint', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.restrictions'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -283,7 +283,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           });
       });
 
-      it('regular user which does not belong to the fwcloud should not be to get prefix usage', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to get prefix usage', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.where'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -336,7 +336,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           });
       });
 
-      it('regular user which does not belong to the fwcloud should not be to delete a prefix', async () => {
+      it('regular user which does not belong to the fwcloud should not be able to delete a prefix', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.del'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
