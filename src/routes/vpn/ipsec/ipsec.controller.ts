@@ -57,6 +57,16 @@ export class IPSecController extends Controller {
           'Firewall ID for the new client IPSec configuration must match server IPSec configuration',
         );
       }
+      if (req.crt.type === 2 && !req.body.ipsec) {
+        const exists = (await IPSec.getIPSecServersByFirewall(
+          req.dbCon,
+          req.body.firewall,
+        )) as IPSec[];
+        if (exists.length > 0) {
+          throw new Error('This firewall already has an IPSec server configured');
+        }
+      }
+
       // Create base configuration
       const newIpsec = await IPSec.addCfg(req);
 

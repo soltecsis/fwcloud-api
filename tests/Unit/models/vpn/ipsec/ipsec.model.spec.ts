@@ -2,7 +2,7 @@ import { EntityManager } from 'typeorm';
 import { IPSec } from '../../../../../src/models/vpn/ipsec/IPSec';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
-import { expect } from '../../../../mocha/global-setup';
+import { expect, testSuite } from '../../../../mocha/global-setup';
 import { Crt } from '../../../../../src/models/vpn/pki/Crt';
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import path from 'path';
@@ -16,6 +16,7 @@ describe(IPSec.name, () => {
   let manager: EntityManager;
 
   beforeEach(async () => {
+    await testSuite.resetDatabaseData();
     manager = db.getSource().manager;
     fwcloudProduct = await new FwCloudFactory().make();
   });
