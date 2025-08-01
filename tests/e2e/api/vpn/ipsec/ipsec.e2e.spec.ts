@@ -48,9 +48,11 @@ describe(describeName('IPSec E2E Tests'), () => {
 
     await Tree.createAllTreeCloud(fwcProduct.fwcloud);
     await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, 1, fwcProduct.firewall.id);
-    const node = (await Tree.getNodeByNameAndType(fwcProduct.fwcloud.id, 'IPsec', 'IS')) as {
-      id: number;
-    };
+    const node = (await Tree.getNodeByNameAndType(
+      fwcProduct.fwcloud.id,
+      'IPSec-Server',
+      'ISS',
+    )) as { id: number };
     nodeId = node.id;
   });
 
@@ -62,10 +64,9 @@ describe(describeName('IPSec E2E Tests'), () => {
           await manager.getRepository(Crt).save(
             manager.getRepository(Crt).create({
               caId: fwcProduct.ca.id,
-              cn: 'IPSec-Server-test',
+              cn: 'IPSec-Client-test',
               days: 1000,
-              type: 2,
-              comment: 'testComment',
+              type: 1,
             }),
           )
         ).id;
@@ -77,18 +78,14 @@ describe(describeName('IPSec E2E Tests'), () => {
           .send({
             fwcloud: fwcProduct.fwcloud.id,
             firewall: fwcProduct.firewall.id,
+            ipsec: fwcProduct.ipsecServer.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
             crt: crtId,
             options: [
               {
-                name: 'left',
-                arg: '1.1.1.1/24',
-                scope: 2,
-              },
-              {
-                name: '<<vpn_network>>',
-                arg: '1.1.1.0/24',
+                name: 'right',
+                arg: '10.0.0.1',
                 scope: 2,
               },
             ],
@@ -106,18 +103,14 @@ describe(describeName('IPSec E2E Tests'), () => {
           .send({
             fwcloud: 99999,
             firewall: fwcProduct.firewall.id,
+            ipsec: fwcProduct.ipsecServer.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
             crt: crtId,
             options: [
               {
-                name: 'left',
-                arg: '1.1.1.1/24',
-                scope: 2,
-              },
-              {
-                name: '<<vpn_network>>',
-                arg: '1.1.1.0/24',
+                name: 'right',
+                arg: '10.0.0.1',
                 scope: 2,
               },
             ],
@@ -135,18 +128,14 @@ describe(describeName('IPSec E2E Tests'), () => {
           .send({
             fwcloud: fwcProduct.fwcloud.id,
             firewall: fwcProduct.firewall.id,
+            ipsec: fwcProduct.ipsecServer.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
             crt: crtId,
             options: [
               {
-                name: 'left',
-                arg: '1.1.1.1/24',
-                scope: 2,
-              },
-              {
-                name: 'leftsubnet',
-                arg: '1.1.1.0/24',
+                name: 'right',
+                arg: '10.0.0.1',
                 scope: 2,
               },
             ],
@@ -164,18 +153,14 @@ describe(describeName('IPSec E2E Tests'), () => {
           .send({
             fwcloud: fwcProduct.fwcloud.id,
             firewall: fwcProduct.firewall.id,
+            ipsec: fwcProduct.ipsecServer.id,
             install_dir: '/tmp',
             install_name: 'test.conf',
             crt: crtId,
             options: [
               {
-                name: 'left',
-                arg: '1.1.1.1/24',
-                scope: 2,
-              },
-              {
-                name: 'leftsubnet',
-                arg: '1.1.1.0/24',
+                name: 'right',
+                arg: '10.0.0.1',
                 scope: 2,
               },
             ],
