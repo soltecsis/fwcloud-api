@@ -710,7 +710,7 @@ export class IPSec extends Model {
           certInfo.srv_config2 = certInfo.srv_config2.slice(0, -5);
         ips_cfg += `# IPSec Server: ${certInfo.srv_config1 ? certInfo.srv_config1 : certInfo.srv_config2}\n`;
         ips_cfg += `# Type: ${certInfo.srv_config1 ? 'Server' : 'Client'}\n\n`;
-        ips_cfg += `Config setup\n`;
+        ips_cfg += `config setup\n`;
 
         // Get IPSec config
         const sql = `
@@ -877,10 +877,10 @@ export class IPSec extends Model {
                 err ? rej(err) : res(rows),
               ),
             );
-            const rightsourceip = await IPSec.getRightSourceIp(dbCon, Number(peerId));
+            const rightsourceip = await IPSec.getInterfaceIp(dbCon, Number(peerId));
             peer.options.push({
               option_name: 'rightsourceip',
-              option_value: rightsourceip,
+              option_value: rightsourceip.split('/')[0], // Get only the IP part
               option_comment: '',
             });
             clientOptResult.forEach((opt) => {
@@ -1295,12 +1295,21 @@ export class IPSec extends Model {
     isUpdate: boolean,
   ): Promise<void> {
     try {
-      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'leftsubnet');
+      const ipSecOpt = await this.getOptData(req.dbCon, cfg ?? req.body.ipsec, 'left');
       if (!ipSecOpt) return;
 
       const interfaceName = req.body.install_name.replace(/\.conf$/, '');
-      const [ip, cidr] = (ipSecOpt as { arg: string }).arg.split('/');
-      const interfaceIp = { ip, netmask: `/${cidr}` };
+      const getInterfaceIp = await IPSec.getInterfaceIp(req.dbCon, cfg ?? req.body.ipsec);
+      let ip = '';
+      let netmask = '';
+      if (getInterfaceIp) {
+        const match = getInterfaceIp.match(/^(.+?)(\/\d+)$/);
+        if (match) {
+          ip = match[1];
+          netmask = match[2];
+        }
+      }
+      const interfaceIp = { ip, netmask };
 
       const interfaces = await Interface.getInterfaces(
         req.dbCon,
@@ -1333,7 +1342,7 @@ export class IPSec extends Model {
         };
 
         await IPObj.updateIpobj(req.dbCon, ipobjData);
-        await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'leftsubnet');
+        await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'left');
         await Tree.updateFwc_Tree_OBJ(req, {
           name: interfaceName,
           id: ipobj.id,
@@ -1355,7 +1364,7 @@ export class IPSec extends Model {
           const ipobj = ipobjs.find((i: any) => i.name === interfaceName);
 
           if (ipobj) {
-            await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'leftsubnet');
+            await IPSec.updateIpObjCfgOpt(req.dbCon, ipobj.id, cfg ?? req.body.ipsec, 'left');
           } else {
             const ipobjData = {
               id: null,
@@ -1386,7 +1395,7 @@ export class IPSec extends Model {
               req.dbCon,
               ipobjId as number,
               cfg ?? req.body.ipsec,
-              'leftsubnet',
+              'left',
             );
             const interfaceNode = (
               await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'IFF', targetInterface.id)
@@ -1543,7 +1552,7 @@ export class IPSec extends Model {
     });
   }
 
-  public static async getRightSourceIp(dbCon: Query, ipsec_cli: number): Promise<string | null> {
+  public static async getInterfaceIp(dbCon: Query, ipsec_cli: number): Promise<string | null> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT IP.address, IP.netmask
@@ -1573,7 +1582,7 @@ export class IPSec extends Model {
         const [getPeerOptions, getClientOptions, rightSourceIpValue] = await Promise.all([
           IPSec.getOptData(dbCon, ipSec, undefined, ipsec_cli) as Promise<any[]>,
           IPSec.getOptData(dbCon, ipsec_cli) as Promise<any[]>,
-          IPSec.getRightSourceIp(dbCon, ipsec_cli),
+          IPSec.getInterfaceIp(dbCon, ipsec_cli),
         ]);
 
         const rightSubnet = getPeerOptions.find((opt) => opt.name === 'rightsubnet')?.arg || '';

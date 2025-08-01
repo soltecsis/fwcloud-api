@@ -62,19 +62,6 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'AuthMethod':
         return ['psk', 'cert'].includes(value);
 
-      case 'Phase2PFS':
-        return [
-          'group1',
-          'group2',
-          'group5',
-          'group14',
-          'group15',
-          'group16',
-          'group17',
-          'group18',
-          'none',
-        ].includes(value);
-
       case 'PSK':
         return value.length >= 8; //
 
