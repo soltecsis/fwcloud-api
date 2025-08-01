@@ -118,7 +118,7 @@ export class IPSec1740582098062 implements MigrationInterface {
             default: null,
           },
         ],
-        uniques: [{ columnNames: ['firewall', 'crt'] }],
+        uniques: [{ columnNames: ['firewall', 'ipsec', 'crt'] }],
         foreignKeys: [
           {
             columnNames: ['crt'],
