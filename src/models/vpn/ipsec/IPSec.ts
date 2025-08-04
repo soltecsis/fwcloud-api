@@ -1586,6 +1586,7 @@ export class IPSec extends Model {
         ]);
 
         const rightSubnet = getPeerOptions.find((opt) => opt.name === 'rightsubnet')?.arg || '';
+        const rightSourceIp = rightSourceIpValue ? rightSourceIpValue.split('/')[0] : '';
         const rightId = getClientOptions.find((opt) => opt.name === 'leftid')?.arg || '';
         const rightCert = getClientOptions.find((opt) => opt.name === 'leftcert')?.arg || '';
         const autoOption = getPeerOptions.find((opt) => opt.name === 'auto')?.arg || 'add';
@@ -1604,7 +1605,7 @@ export class IPSec extends Model {
           },
           {
             name: 'rightsourceip',
-            arg: rightSourceIpValue.split('/')[0] || [],
+            arg: rightSourceIp,
             ipsec: ipSec,
             ipsec_cli: ipsec_cli,
             ipobj: null,
