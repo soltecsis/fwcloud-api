@@ -1604,7 +1604,7 @@ export class IPSec extends Model {
           },
           {
             name: 'rightsourceip',
-            arg: rightSourceIpValue || '',
+            arg: rightSourceIpValue.split('/')[0] || [],
             ipsec: ipSec,
             ipsec_cli: ipsec_cli,
             ipobj: null,
@@ -1642,17 +1642,21 @@ export class IPSec extends Model {
             scope: 8,
             comment: null,
           },
-          {
-            name: 'also',
-            arg: alsoOption,
-            ipsec: ipSec,
-            ipsec_cli: ipsec_cli,
-            ipobj: null,
-            order: 0,
-            scope: 8,
-            comment: null,
-          },
-        ].filter((opt) => opt !== null);
+          ...(alsoOption !== undefined && alsoOption !== ''
+            ? [
+                {
+                  name: 'also',
+                  arg: alsoOption,
+                  ipsec: ipSec,
+                  ipsec_cli: ipsec_cli,
+                  ipobj: null,
+                  order: 0,
+                  scope: 8,
+                  comment: null,
+                },
+              ]
+            : []),
+        ];
 
         resolve({
           options: finalOptions,

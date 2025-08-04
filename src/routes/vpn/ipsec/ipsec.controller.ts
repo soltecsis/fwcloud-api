@@ -113,14 +113,6 @@ export class IPSecController extends Controller {
             order: baseOrder++,
             scope: 8,
           },
-          {
-            name: 'also',
-            ipsec: req.body.ipsec,
-            ipsec_cli: newIpsec,
-            arg: 'server_only',
-            order: baseOrder++,
-            scope: 8,
-          },
         ];
         // Use Promise.all to add all the options concurrently
         await Promise.all(options.map((opt) => IPSec.addCfgOpt(req, opt)));
