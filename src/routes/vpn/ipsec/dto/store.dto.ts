@@ -18,13 +18,13 @@ export const IPSEC_OPTIONS = [
   'left',
   'leftid',
   'leftcert',
-  'leftsendcert',
   'leftsubnet',
   'leftfirewall',
   'leftauth',
   'leftsourceip',
   'right',
   'rightid',
+  'rightcert',
   'rightauth',
   'rightsubnet',
   'rightsourceip',
@@ -50,24 +50,87 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 
     switch (option.name) {
       case 'left':
-        // Accept IPv4 with or without CIDR, and %defaultroute for left
-        return /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || value === '%defaultroute';
       case 'right':
-        // Accept IPv4 with or without CIDR, and %any for right
-        return /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || value === '%any';
+        // IP, domain, %any, %defaultroute
+        return (
+          /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || // IPv4 (with optional CIDR)
+          value === '%any' ||
+          value === '%defaultroute' ||
+          /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/.test(value) // domain
+        );
 
-      case 'IKEVersion':
-        return value === '1' || value === '2';
+      case 'leftid':
+      case 'rightid':
+        // "@domain" or DN, allow quoted or unquoted
+        return (
+          /^@[\w.-]+\.\w{2,}$/.test(value) || // unquoted @domain
+          /^"@[\w.-]+\.\w{2,}"$/.test(value) || // quoted @domain
+          /^([a-zA-Z]+=[^,]+,?\s*)+$/.test(value) || // unquoted DN
+          /^"([a-zA-Z]+=[^,]+,?\s*)+"$/.test(value) // quoted DN
+        );
 
-      case 'AuthMethod':
-        return ['psk', 'cert'].includes(value);
-
-      case 'PSK':
-        return value.length >= 8; //
-
+      case 'leftcert':
+      case 'rightcert':
       case 'Certificate':
       case 'CA Certificate':
-        return value.trim().endsWith('.crt') || value.trim().endsWith('.pem');
+        // .crt or .pem
+        return /^[\w.-]+\.(crt|pem)$/.test(value);
+
+      case 'leftsubnet':
+      case 'rightsubnet':
+        // IP/CIDR, comma separated
+        return value
+          .split(',')
+          .map((v) => v.trim())
+          .every((part) =>
+            /^((25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3})\/([0-9]|[1-2][0-9]|3[0-2])$/.test(
+              part,
+            ),
+          );
+
+      case 'leftsourceip':
+      case 'rightsourceip':
+        // %config or IP
+        return value === '%config' || /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
+
+      case 'leftauth':
+      case 'rightauth':
+        // pubkey, psk, eap
+        return ['pubkey', 'psk', 'eap'].includes(value.toLowerCase());
+
+      case 'ike':
+      case 'esp':
+        // proposal: alg-hash[-dhgroup][!]
+        return /^([a-z0-9]+-){1,2}[a-z0-9]+(!)?$/.test(value);
+
+      case 'keyexchange':
+        // ikev1 / ikev2
+        return ['ikev1', 'ikev2'].includes(value);
+
+      case 'dpdaction':
+        // clear, hold, restart, restart-by-peer, none
+        return ['clear', 'hold', 'restart', 'restart-by-peer', 'none'].includes(value);
+
+      case 'dpddelay':
+        // duration: 300s, 10m
+        return /^\d+(s|m)$/.test(value);
+
+      case 'leftfirewall':
+      case 'rekey':
+        // yes/no/true/false
+        return ['yes', 'no', 'true', 'false'].includes(value.toLowerCase());
+
+      case 'charondebug':
+        // e.g. ike 1, knl 2
+        return /^([a-z]{3,5} \d)(,\s*[a-z]{3,5} \d)*$/.test(value);
+
+      case 'auto':
+        // add, start, route, ignore
+        return ['add', 'start', 'route', 'ignore'].includes(value);
+
+      case 'PSK':
+        // min 8 chars
+        return value.length >= 8;
 
       default:
         return true;
