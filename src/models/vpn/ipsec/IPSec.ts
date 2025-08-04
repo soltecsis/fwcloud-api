@@ -1299,16 +1299,16 @@ export class IPSec extends Model {
       if (!ipSecOpt) return;
 
       const interfaceName = req.body.install_name.replace(/\.conf$/, '');
-      const getInterfaceIp = await IPSec.getInterfaceIp(req.dbCon, cfg ?? req.body.ipsec);
       let ip = '';
       let netmask = '';
-      if (getInterfaceIp) {
-        const match = getInterfaceIp.match(/^(.+?)(\/\d+)$/);
-        if (match) {
-          ip = match[1];
-          netmask = match[2];
-        }
+
+      const interfaceIpRaw = await IPSec.getInterfaceIp(req.dbCon, cfg ?? req.body.ipsec);
+      if (interfaceIpRaw) {
+        const [address, mask] = interfaceIpRaw.split('/');
+        ip = ipSecOpt.arg;
+        netmask = mask ? `/${mask}` : '';
       }
+
       const interfaceIp = { ip, netmask };
 
       const interfaces = await Interface.getInterfaces(
