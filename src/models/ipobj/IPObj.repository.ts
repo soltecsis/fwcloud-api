@@ -214,7 +214,7 @@ export class IPObjRepository extends Repository<IPObj> {
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
       .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
-      .innerJoin('wgOpt.wireguard', 'wg');
+      .innerJoin('wgOpt.wireGuard', 'wg');
 
     if (entity === 'route') {
       query
@@ -332,7 +332,7 @@ export class IPObjRepository extends Repository<IPObj> {
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
       .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
-      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wgOpt.wireGuard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')
       .innerJoin('wgServer.wireGuardPrefixes', 'prefix');
@@ -427,7 +427,7 @@ export class IPObjRepository extends Repository<IPObj> {
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
       .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
-      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wgOpt.wireGuard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')
       .innerJoin('wgServer.wireGuardPrefixes', 'prefix')
@@ -524,7 +524,7 @@ export class IPObjRepository extends Repository<IPObj> {
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
       .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
-      .innerJoin('wgOpt.wireguard', 'wg')
+      .innerJoin('wgOpt.wireGuard', 'wg')
       .innerJoin('wg.crt', 'crt')
       .innerJoin('wg.parent', 'wgServer')
       .innerJoin('wgServer.wireGuardPrefixes', 'prefix')

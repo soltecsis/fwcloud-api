@@ -1305,7 +1305,7 @@ export class RoutingRuleService extends Service {
         null,
         rules,
       ),
-      /*this._ipobjRepository.getIpobjsInWireGuardInRouting('rule', fwcloud, firewall, null, rules),
+      this._ipobjRepository.getIpobjsInWireGuardInRouting('rule', fwcloud, firewall, null, rules),
       this._ipobjRepository.getIpobjsInWireGuardPrefixesInRouting(
         'rule',
         fwcloud,
@@ -1326,7 +1326,7 @@ export class RoutingRuleService extends Service {
         firewall,
         null,
         rules,
-      ),*/
+      ),
       this._markRepository.getMarksInRoutingRules(fwcloud, firewall, rules),
     ];
   }
