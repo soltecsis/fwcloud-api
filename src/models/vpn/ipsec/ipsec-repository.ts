@@ -50,7 +50,7 @@ export class IPSecRepository extends Repository<IPSec> {
     let query = this.createQueryBuilder('ips')
       .select('ips.id', 'id')
       .addSelect('crt.cn', 'name')
-      .addSelect('(select id from ipobj_type where id=321)', 'type')
+      .addSelect('(select id from ipobj_type where id=331)', 'type')
       .addSelect('ipsFirewall.id', 'firewall_id')
       .addSelect('ipsFirewall.name', 'firewall_name')
       .addSelect('ipsCluster.id', 'cluster_id')
