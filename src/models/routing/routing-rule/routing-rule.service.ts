@@ -1155,7 +1155,7 @@ export class RoutingRuleService extends Service {
       .getSource()
       .manager.getRepository(WireGuardPrefix)
       .createQueryBuilder('prefix')
-      .innerJoin('prefix.wireguard', 'wireguard')
+      .innerJoin('prefix.wireGuard', 'wireguard')
       .innerJoin('wireguard.firewall', 'firewall')
       .whereInIds(data.wireGuardPrefixIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
@@ -1165,7 +1165,7 @@ export class RoutingRuleService extends Service {
 
     for (let i = 0; i < data.wireGuardPrefixIds.length; i++) {
       if (wireguardprefixes.findIndex((item) => item.id === data.wireGuardPrefixIds[i].id) < 0) {
-        errors[`wireGcleuardPrefixIds.${i}.id`] = ['wireguardPrefix does not exists'];
+        errors[`wireGuardPrefixIds.${i}.id`] = ['wireguardPrefix does not exists'];
       }
     }
 
@@ -1188,7 +1188,7 @@ export class RoutingRuleService extends Service {
       .getSource()
       .manager.getRepository(IPSecPrefix)
       .createQueryBuilder('prefix')
-      .innerJoin('prefix.ipsec', 'ipsec')
+      .innerJoin('prefix.ipSec', 'ipsec')
       .innerJoin('ipsec.firewall', 'firewall')
       .whereInIds(data.ipSecPrefixIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
@@ -1198,7 +1198,7 @@ export class RoutingRuleService extends Service {
 
     for (let i = 0; i < data.ipSecPrefixIds.length; i++) {
       if (ipsecprefixes.findIndex((item) => item.id === data.ipSecPrefixIds[i].id) < 0) {
-        errors[`wireGcleuardPrefixIds.${i}.id`] = ['ipsecPrefix does not exists'];
+        errors[`ipSecPrefixIds.${i}.id`] = ['ipsecPrefix does not exists'];
       }
     }
 
