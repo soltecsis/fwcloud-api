@@ -210,6 +210,19 @@ export class IPSecController extends Controller {
         channel,
       );
 
+      if ((cfgDump as any).ca_cert) {
+        await communication.installIPSecServerConfigs(
+          '/etc/ipsec.d/cacerts',
+          [
+            {
+              content: (cfgDump as any).ca_cert,
+              name: 'ca-cert.crt',
+            },
+          ],
+          channel,
+        );
+      }
+
       // Update the status flag for the Ipsec configuration.
       await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '&~1');
 

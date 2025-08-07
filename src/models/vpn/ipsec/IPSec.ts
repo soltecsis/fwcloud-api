@@ -52,6 +52,7 @@ import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import fs from 'fs';
 import { IPSEC_OPTIONS } from '../../../routes/vpn/ipsec/dto/store.dto';
+import config from '../../../config/config';
 
 const utilsModel = require('../../../utils/utils.js');
 const sodium = require('libsodium-wrappers');
@@ -684,7 +685,7 @@ export class IPSec extends Model {
         // Get certificate and firewall info
         const sqlCN = `
           SELECT CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
-                 VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
+                 FW.fwcloud as fwcloud,VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
           FROM crt CRT
           INNER JOIN ipsec VPN ON VPN.crt=CRT.id
           LEFT JOIN ipsec VPNSRV ON VPNSRV.id=VPN.ipsec
@@ -696,6 +697,10 @@ export class IPSec extends Model {
           dbCon.query(sqlCN, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
         if (!certInfo) return reject(fwcError.other('Certificate info not found'));
+
+        const ca_dir =
+          config.get('pki').data_dir + '/' + certInfo.fwcloud + '/' + certInfo.ca + '/';
+        const ca_crt_path = ca_dir + 'ca.crt';
 
         // Header
         let ips_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
@@ -899,7 +904,10 @@ export class IPSec extends Model {
           );
           ips_cfg += await formatPeerSection(peer, !!disableOption);
         }
-        resolve({ cfg: ips_cfg });
+        resolve({
+          cfg: ips_cfg,
+          ca_cert: (await this.getCRTData(ca_crt_path)) as string,
+        });
       } catch (error) {
         reject(error);
       }
