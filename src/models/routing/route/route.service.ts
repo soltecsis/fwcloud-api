@@ -42,6 +42,10 @@ import { RouteToOpenVPN } from './route-to-openvpn.model';
 import { Route } from './route.model';
 import { RouteRepository } from './route.repository';
 import { DatabaseService } from '../../../database/database.service';
+import { RouteToIPSec } from './route-to-ipsec.model';
+import { RouteToIPSecPrefix } from './route-to-ipsec-prefix.model';
+import { IPSecPrefix } from '../../vpn/ipsec/IPSecPrefix';
+import { IPSec } from '../../vpn/ipsec/IPSec';
 
 interface IFindManyRoutePath {
   firewallId?: number;
@@ -54,6 +58,8 @@ interface IFindOneRoutePath extends IFindManyRoutePath {
 }
 
 export interface ICreateRoute {
+  ipsecIds?: { id: number; order: number }[];
+  ipsecPrefixIds?: { id: number; order: number }[];
   routingTableId: number;
   gatewayId: number;
   interfaceId?: number;
@@ -80,6 +86,8 @@ interface IUpdateRoute {
   ipObjGroupIds?: { id: number; order: number }[];
   openVPNIds?: { id: number; order: number }[];
   openVPNPrefixIds?: { id: number; order: number }[];
+  ipsecIds?: { id: number; order: number }[];
+  ipsecPrefixIds?: { id: number; order: number }[];
 }
 
 interface IBulkUpdateRoute {
@@ -88,6 +96,8 @@ interface IBulkUpdateRoute {
 }
 
 interface IMoveToRoute {
+  ipsecId?: number;
+  ipsecPrefixId?: number;
   fromId: number;
   toId: number;
   ipObjId?: number;
@@ -165,6 +175,8 @@ export class RouteService extends Service {
       openVPNPrefixIds: data.openVPNPrefixIds,
       firewallApplyToId: data.firewallApplyToId,
       interfaceId: data.interfaceId,
+      ipsecIds: data.ipsecIds,
+      ipsecPrefixIds: data.ipsecPrefixIds,
     });
 
     if (
@@ -252,6 +264,32 @@ export class RouteService extends Service {
       );
     }
 
+    if (data.ipsecIds) {
+      await this.validateIPSecs(firewall, data);
+
+      route.routeToIPSecs = data.ipsecIds.map(
+        (item) =>
+          ({
+            routeId: route.id,
+            ipSecId: item.id,
+            order: item.order,
+          }) as RouteToIPSec,
+      );
+    }
+
+    if (data.ipsecPrefixIds) {
+      await this.validateIPSecPrefixes(firewall, data);
+
+      route.routeToIPSecPrefixes = data.ipsecPrefixIds.map(
+        (item) =>
+          ({
+            routeId: route.id,
+            ipsecPrefixId: item.id,
+            order: item.order,
+          }) as RouteToIPSecPrefix,
+      );
+    }
+
     await this.validateFirewallApplyToId(firewall, data);
     route.firewallApplyToId = data.firewallApplyToId;
 
@@ -282,6 +320,8 @@ export class RouteService extends Service {
         'routeToIPObjGroups',
         'routeToOpenVPNs',
         'routeToOpenVPNPrefixes',
+        'routeToIPSecs',
+        'routeToIPSecPrefixes',
       ],
     });
 
@@ -290,6 +330,8 @@ export class RouteService extends Service {
       route.routeToIPObjGroups,
       route.routeToOpenVPNs,
       route.routeToOpenVPNPrefixes,
+      route.routeToIPSecs,
+      route.routeToIPSecPrefixes,
     );
 
     items
@@ -313,6 +355,8 @@ export class RouteService extends Service {
         'routeToIPObjGroups',
         'routeToOpenVPNs',
         'routeToOpenVPNPrefixes',
+        'routeToIPSecs',
+        'routeToIPSecPrefixes',
       ],
     });
 
@@ -397,6 +441,8 @@ export class RouteService extends Service {
           'routeToIPObjGroups',
           'routeToOpenVPNs',
           'routeToOpenVPNPrefixes',
+          'routeToIPSecs',
+          'routeToIPSecPrefixes',
         ],
       });
     const toRule: Route = await db
@@ -411,6 +457,8 @@ export class RouteService extends Service {
           'routeToIPObjGroups',
           'routeToOpenVPNs',
           'routeToOpenVPNPrefixes',
+          'routeToIPSecs',
+          'routeToIPSecPrefixes',
         ],
       });
 
@@ -422,6 +470,8 @@ export class RouteService extends Service {
         toRule.routeToIPObjGroups,
         toRule.routeToOpenVPNs,
         toRule.routeToOpenVPNPrefixes,
+        toRule.routeToIPSecs,
+        toRule.routeToIPSecPrefixes,
       )
       .forEach((item) => {
         lastPosition < item.order ? (lastPosition = item.order) : null;
@@ -480,6 +530,34 @@ export class RouteService extends Service {
           openVPNPrefixId: data.openVPNPrefixId,
           order: lastPosition + 1,
         } as RouteToOpenVPNPrefix);
+      }
+    }
+
+    if (data.ipsecId !== undefined) {
+      const index: number = fromRule.routeToIPSecs.findIndex(
+        (item) => item.ipSecId === data.ipsecId,
+      );
+      if (index >= 0) {
+        fromRule.routeToIPSecs.splice(index, 1);
+        toRule.routeToIPSecs.push({
+          routeId: toRule.id,
+          ipSecId: data.ipsecId,
+          order: lastPosition + 1,
+        } as RouteToIPSec);
+      }
+    }
+
+    if (data.ipsecPrefixId !== undefined) {
+      const index: number = fromRule.routeToIPSecPrefixes.findIndex(
+        (item) => item.ipsecPrefixId === data.ipsecPrefixId,
+      );
+      if (index >= 0) {
+        fromRule.routeToIPSecPrefixes.splice(index, 1);
+        toRule.routeToIPSecPrefixes.push({
+          routeId: toRule.id,
+          ipsecPrefixId: data.ipsecPrefixId,
+          order: lastPosition + 1,
+        } as RouteToIPSecPrefix);
       }
     }
 
@@ -553,6 +631,8 @@ export class RouteService extends Service {
     route.routeToOpenVPNs = [];
     route.routeToIPObjGroups = [];
     route.routeToIPObjs = [];
+    route.routeToIPSecs = [];
+    route.routeToIPSecPrefixes = [];
     await this._repository.save(route);
 
     await this._repository.remove(route);
@@ -655,6 +735,8 @@ export class RouteService extends Service {
           'openVPNs',
           'ipObjToIPObjGroups',
           'ipObjToIPObjGroups.ipObj',
+          'ipSecs',
+          'ipSecPrefixes',
         ],
       });
 
@@ -691,6 +773,10 @@ export class RouteService extends Service {
         }
 
         if (ipObjGroup.openVPNs.length > 0 || ipObjGroup.openVPNPrefixes.length > 0) {
+          valid = true;
+        }
+
+        if (ipObjGroup.ipSecs.length > 0 || ipObjGroup.ipSecPrefixes.length > 0) {
           valid = true;
         }
 
@@ -761,6 +847,68 @@ export class RouteService extends Service {
     for (let i = 0; i < data.openVPNPrefixIds.length; i++) {
       if (openvpnprefixes.findIndex((item) => item.id === data.openVPNPrefixIds[i].id) < 0) {
         errors[`openVPNPrefixIds.${i}.id`] = ['openVPNPrefix does not exists'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
+  protected async validateIPSecs(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.ipsecIds || data.ipsecIds.length === 0) {
+      return;
+    }
+
+    const ipsecs: IPSec[] = await db
+      .getSource()
+      .manager.getRepository(IPSec)
+      .createQueryBuilder('ipsec')
+      .innerJoin('ipsec.crt', 'crt')
+      .innerJoin('ipsec.firewall', 'firewall')
+      .whereInIds(data.ipsecIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .andWhere('ipsec.parentId IS NOT null')
+      .andWhere('crt.type = 1')
+      .getMany();
+
+    for (let i = 0; i < data.ipsecIds.length; i++) {
+      if (ipsecs.findIndex((item) => item.id === data.ipsecIds[i].id) < 0) {
+        errors[`ipsecIds.${i}.id`] = ['ipsec does not exists or is not a client'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
+  protected async validateIPSecPrefixes(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.ipsecPrefixIds || data.ipsecPrefixIds.length === 0) {
+      return;
+    }
+
+    const ipsecprefixes: IPSecPrefix[] = await db
+      .getSource()
+      .manager.getRepository(IPSecPrefix)
+      .createQueryBuilder('prefix')
+      .innerJoin('prefix.ipSec', 'ipsec')
+      .innerJoin('ipsec.firewall', 'firewall')
+      .whereInIds(data.ipsecPrefixIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .getMany();
+
+    for (let i = 0; i < data.ipsecPrefixIds.length; i++) {
+      if (ipsecprefixes.findIndex((item) => item.id === data.ipsecPrefixIds[i].id) < 0) {
+        errors[`ipsecPrefixIds.${i}.id`] = ['ipsecPrefix does not exists'];
       }
     }
 

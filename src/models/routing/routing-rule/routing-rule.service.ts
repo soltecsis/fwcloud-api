@@ -924,12 +924,10 @@ export class RoutingRuleService extends Service {
     const wireguardPrefixes: number = data.wireGuardPrefixIds
       ? data.wireGuardPrefixIds.length
       : rule.routingRuleToWireGuardPrefixes.length;
-    const ipsecs: number = data.ipSecIds
-      ? data.ipSecIds.length
-      : rule.routingRuleToWireGuards.length;
+    const ipsecs: number = data.ipSecIds ? data.ipSecIds.length : rule.routingRuleToIPSecs.length;
     const ipsecPrefixes: number = data.ipSecPrefixIds
       ? data.ipSecPrefixIds.length
-      : rule.routingRuleToWireGuardPrefixes.length;
+      : rule.routingRuleToIPSecPrefixes.length;
     if (
       marks +
         ipObjs +
@@ -1060,8 +1058,8 @@ export class RoutingRuleService extends Service {
     const ipsecs: IPSec[] = await db
       .getSource()
       .manager.getRepository(IPSec)
-      .createQueryBuilder('wireguard')
-      .innerJoin('wireguard.firewall', 'firewall')
+      .createQueryBuilder('ipsec')
+      .innerJoin('ipsec.firewall', 'firewall')
       .whereInIds(data.ipSecIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
         fwcloud: firewall.fwCloudId,
