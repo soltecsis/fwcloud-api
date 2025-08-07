@@ -1335,7 +1335,13 @@ export class RoutingRuleService extends Service {
         null,
         rules,
       ),
-      this._ipobjRepository.getIpobjGroupsInIPSecInRouting('rule', fwcloud, firewall, null, rules),
+      this._ipobjRepository.getIpobjsInIPSecInGroupsInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
       this._ipobjRepository.getIpobjGroupsInIPSecPrefixesInRouting(
         'rule',
         fwcloud,
