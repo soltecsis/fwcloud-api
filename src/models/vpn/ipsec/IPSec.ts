@@ -702,7 +702,8 @@ export class IPSec extends Model {
           config.get('pki').data_dir + '/' + certInfo.fwcloud + '/' + certInfo.ca + '/';
         const ca_crt_path = ca_dir + 'ca.crt';
         const key_path = ca_dir + 'private/' + certInfo.cn + '.key';
-        const crt_path = ca_dir + 'certs/' + certInfo.cn + '.crt';
+        const server_crt_path = ca_dir + 'certs/' + certInfo.cn + '.crt';
+        const clientCerts: Record<string, string> = {};
 
         // Header
         let ips_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
@@ -781,18 +782,18 @@ export class IPSec extends Model {
             SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
             FROM ipsec_opt OPT
             INNER JOIN ipsec PEER ON PEER.id=OPT.ipsec
-            WHERE OPT.ipsec=? 
-              AND OPT.name IN ('<<disable>>') 
+            WHERE OPT.ipsec=?
+              AND OPT.name IN ('<<disable>>')
               AND OPT.ipsec_cli IS NULL
             ORDER BY OPT.name
           `;
         } else {
           sqlPeers = `
-            SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
-            FROM ipsec PEER 
-            INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id 
+            SELECT PEER.*, CRT.cn AS crt_cn, CRT.ca AS crt_ca, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
+            FROM ipsec PEER
+            INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id
             LEFT JOIN crt CRT ON PEER.crt=CRT.id
-            WHERE PEER.ipsec=? 
+            WHERE PEER.ipsec=?
               AND OPT.name IN ('rightsubnet', 'also', 'auto', '<<disable>>')
             ORDER BY OPT.name
           `;
@@ -812,6 +813,17 @@ export class IPSec extends Model {
           });
           return groups;
         }, {});
+
+        if (!isClient) {
+          for (const peerId in peerGroups) {
+            const peer = peerGroups[peerId];
+            if (peer.crt_cn) {
+              clientCerts[peer.crt_cn] = (await this.getCRTData(
+                `${ca_dir}certs/${peer.crt_cn}.crt`,
+              )) as string;
+            }
+          }
+        }
 
         // Helper to format options
         const formatOption = async (option: any, isDisabled: boolean) => {
@@ -911,7 +923,8 @@ export class IPSec extends Model {
           cn: certInfo.cn,
           ca_cert: (await this.getCRTData(ca_crt_path)) as string,
           private_key: (await this.getCRTData(key_path)) as string,
-          cert: (await this.getCRTData(crt_path)) as string,
+          cert: (await this.getCRTData(server_crt_path)) as string,
+          client_certs: clientCerts,
         });
       } catch (error) {
         reject(error);
