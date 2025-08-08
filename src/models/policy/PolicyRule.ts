@@ -490,7 +490,7 @@ export class PolicyRule extends Model {
       // All ipobj under IPSec in type O positions
       `select R.rule,R.position,O.* from policy_r__ipsec R
             inner join ipsec VPN on VPN.id=R.ipsec
-            inner join ipsec_opt OPT on OPT.ipsec=VPN.id
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
             inner join ipobj O on O.id=OPT.ipobj
             inner join policy_r PR on PR.id=R.rule
             where PR.firewall=${firewall} and PR.type=${type}
@@ -500,7 +500,7 @@ export class PolicyRule extends Model {
       `select R.rule,R.position,O.* from policy_r__ipobj R
             inner join ipsec__ipobj_g G on G.ipobj_g=R.ipobj_g
             inner join ipsec VPN on VPN.id=G.ipsec
-            inner join ipsec_opt OPT on OPT.ipsec=VPN.id
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
             inner join ipobj O on O.id=OPT.ipobj
             inner join policy_r PR on PR.id=R.rule
             where PR.firewall=${firewall} and PR.type=${type}
@@ -512,21 +512,21 @@ export class PolicyRule extends Model {
             inner join ipsec_prefix PRE on PRE.id=G.prefix
             inner join ipsec VPN on VPN.ipsec=PRE.ipsec
             inner join crt CRT on CRT.id=VPN.crt
-            inner join ipsec_opt OPT on OPT.ipsec=VPN.id
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
             inner join ipobj O on O.id=OPT.ipobj
             inner join policy_r PR on PR.id=R.rule
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under IPSec prefix into type O positions
-      `select R.rule,R.position,O.* from policy_r__ipsec_prefix R 
+      `select R.rule,R.position,O.* from policy_r__ipsec_prefix R
             inner join ipsec_prefix PRE on PRE.id=R.prefix
             inner join ipsec VPN on VPN.ipsec=PRE.ipsec
             inner join crt CRT on CRT.id=VPN.crt
-            inner join ipsec_opt OPT on OPT.ipsec=VPN.id
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
             inner join ipobj O on O.id=OPT.ipobj
-            inner join policy_r PR on PR.id=R.rule 
-            where PR.firewall=${firewall} and PR.type=${type} 
+            inner join policy_r PR on PR.id=R.rule
+            where PR.firewall=${firewall} and PR.type=${type}
             and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')
             ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
     ];
