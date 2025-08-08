@@ -243,6 +243,17 @@ export class IPSecController extends Controller {
         channel,
       );
 
+      await communication.installIPSecServerConfigs(
+        '/etc',
+        [
+          {
+            content: `:RSA ${cfgDump.cn}.key`,
+            name: 'ipsec.secrets',
+          },
+        ],
+        channel,
+      );
+
       // Update the status flag for the Ipsec configuration.
       await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '&~1');
 
