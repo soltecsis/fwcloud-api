@@ -701,6 +701,7 @@ export class IPSec extends Model {
         const ca_dir =
           config.get('pki').data_dir + '/' + certInfo.fwcloud + '/' + certInfo.ca + '/';
         const ca_crt_path = ca_dir + 'ca.crt';
+        const key_path = ca_dir + 'private/' + certInfo.cn + '.key';
 
         // Header
         let ips_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
@@ -906,7 +907,9 @@ export class IPSec extends Model {
         }
         resolve({
           cfg: ips_cfg,
+          cn: certInfo.cn,
           ca_cert: (await this.getCRTData(ca_crt_path)) as string,
+          private_key: (await this.getCRTData(key_path)) as string,
         });
       } catch (error) {
         reject(error);
