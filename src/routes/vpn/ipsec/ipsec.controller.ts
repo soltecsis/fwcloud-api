@@ -210,38 +210,44 @@ export class IPSecController extends Controller {
         channel,
       );
 
-      await communication.installIPSecServerConfigs(
-        '/etc/ipsec.d/cacerts',
-        [
-          {
-            content: (cfgDump as any).ca_cert,
-            name: 'ca-cert.crt',
-          },
-        ],
-        channel,
-      );
+      if ((cfgDump as any).ca_cert) {
+        await communication.installIPSecServerConfigs(
+          '/etc/ipsec.d/cacerts',
+          [
+            {
+              content: (cfgDump as any).ca_cert,
+              name: 'ca-cert.crt',
+            },
+          ],
+          channel,
+        );
+      }
 
-      await communication.installIPSecServerConfigs(
-        '/etc/ipsec.d/private',
-        [
-          {
-            content: (cfgDump as any).private_key,
-            name: `${cfgDump.cn}.key`,
-          },
-        ],
-        channel,
-      );
+      if ((cfgDump as any).private_key) {
+        await communication.installIPSecServerConfigs(
+          '/etc/ipsec.d/private',
+          [
+            {
+              content: (cfgDump as any).private_key,
+              name: `${cfgDump.cn}.key`,
+            },
+          ],
+          channel,
+        );
+      }
 
-      await communication.installIPSecServerConfigs(
-        '/etc/ipsec.d/certs',
-        [
-          {
-            content: (cfgDump as any).cert,
-            name: `${cfgDump.cn}.crt`,
-          },
-        ],
-        channel,
-      );
+      if ((cfgDump as any).cert) {
+        await communication.installIPSecServerConfigs(
+          '/etc/ipsec.d/certs',
+          [
+            {
+              content: (cfgDump as any).cert,
+              name: `${cfgDump.cn}.crt`,
+            },
+          ],
+          channel,
+        );
+      }
 
       await communication.installIPSecServerConfigs(
         '/etc',
