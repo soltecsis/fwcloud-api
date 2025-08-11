@@ -135,7 +135,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
     ) {
       expect(error).to.eql({
         fwcErr: 999999,
-        msg: 'Translated fields must contain a maximum of one item',
+        msg: "For DNAT 'Translated Destination' is mandatory",
       });
     } else {
       expect(result).to.eql([
@@ -275,7 +275,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -283,7 +283,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -296,7 +296,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -304,7 +304,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -317,7 +317,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -325,7 +325,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -338,7 +338,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -346,7 +346,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -354,20 +354,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
+          '$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -375,7 +392,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -383,7 +400,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -405,7 +422,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -413,7 +430,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -426,7 +443,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -434,7 +451,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -447,7 +464,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -455,7 +472,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -468,7 +485,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -476,7 +493,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -484,20 +501,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
+          '$NFT add rule ip nat POSTROUTING counter masquerade\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -505,7 +539,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -513,7 +547,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -545,7 +579,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -553,7 +587,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -566,7 +600,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -574,7 +608,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -587,7 +621,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -595,7 +629,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -608,7 +642,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -616,7 +650,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -624,20 +658,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
+          '$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -645,7 +696,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -653,7 +704,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -685,7 +736,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -693,7 +744,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -706,7 +757,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -714,7 +765,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -727,7 +778,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -735,7 +786,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -748,7 +799,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -756,7 +807,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -764,20 +815,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
+          '$NFT add rule ip nat POSTROUTING counter masquerade\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -785,7 +853,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -793,7 +861,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -815,7 +883,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -823,7 +891,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -836,7 +904,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -844,7 +912,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -857,7 +925,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -865,7 +933,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -878,7 +946,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -886,7 +954,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -894,20 +962,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
+          '$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(() => {
+        usePrefix = false;
+        manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -915,7 +1000,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -923,7 +1008,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -945,7 +1030,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -953,7 +1038,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -966,7 +1051,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -974,7 +1059,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -987,7 +1072,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -995,7 +1080,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -1008,7 +1093,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -1016,7 +1101,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -1024,20 +1109,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
+          '$NFT add rule ip nat POSTROUTING counter masquerade\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -1045,7 +1147,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -1053,7 +1155,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -1085,7 +1187,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -1093,7 +1195,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -1106,7 +1208,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -1114,7 +1216,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -1127,7 +1229,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
 
@@ -1135,7 +1237,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n`,
+          `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
         );
       });
     });
@@ -1148,7 +1250,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -1156,7 +1258,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
@@ -1164,20 +1266,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
+          '$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -1185,7 +1304,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
@@ -1193,7 +1312,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -1225,7 +1344,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -1233,7 +1352,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -1246,7 +1365,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -1254,7 +1373,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -1267,7 +1386,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
 
@@ -1275,7 +1394,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`,
+          `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
         );
       });
     });
@@ -1288,7 +1407,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -1296,7 +1415,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
+          '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
         );
       });
 
@@ -1304,20 +1423,37 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
+          '$NFT add rule ip nat POSTROUTING counter masquerade\n',
         );
       });
     });
 
     describe('in DNAT', () => {
-      before(() => {
+      before(async () => {
+        vpnCli2 = (
+          await manager.getRepository(IPSec).save(
+            manager.getRepository(IPSec).create({
+              firewallId: ruleData.firewall,
+              crtId: crtCli2,
+              parentId: vpnSrv,
+            }),
+          )
+        ).id;
+        usePrefix = true;
         policy = 'DNAT';
       });
+
+      after(async () => {
+        await manager.getRepository(IPSec).delete(vpnCli2);
+        vpnCli2 = undefined;
+        usePrefix = false;
+      });
+
       it('should include the IPSec client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -1325,7 +1461,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
+          '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
         );
       });
 
@@ -1333,7 +1469,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
+          null,
         );
       });
     });
@@ -1393,7 +1529,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
 
@@ -1401,7 +1537,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
         });
@@ -1414,7 +1550,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
 
@@ -1422,7 +1558,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
         });
@@ -1435,7 +1571,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
 
@@ -1443,7 +1579,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
         });
@@ -1456,7 +1592,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
+              '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
@@ -1464,7 +1600,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
+              '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
@@ -1472,7 +1608,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-              null,
+              '$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n',
             );
           });
         });
@@ -1485,7 +1621,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
+              '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
@@ -1493,7 +1629,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
+              '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
@@ -1522,7 +1658,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
 
@@ -1530,7 +1666,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
         });
@@ -1543,7 +1679,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
 
@@ -1551,7 +1687,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
         });
@@ -1564,7 +1700,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
 
@@ -1572,7 +1708,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`,
+              `$IPTABLES -A ${policy} -m conntrack --ctstate NEW -j ACCEPT\n`,
             );
           });
         });
@@ -1585,7 +1721,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
+              '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
@@ -1593,7 +1729,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
+              '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
@@ -1601,7 +1737,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-              null,
+              '$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n',
             );
           });
         });
@@ -1614,7 +1750,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
+              '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
@@ -1622,7 +1758,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
+              '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
@@ -1657,7 +1793,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
 
@@ -1665,7 +1801,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
         });
@@ -1678,7 +1814,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
 
@@ -1686,7 +1822,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
         });
@@ -1699,7 +1835,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
 
@@ -1707,7 +1843,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
         });
@@ -1720,7 +1856,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n',
+              '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
             );
           });
 
@@ -1728,7 +1864,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n',
+              '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
             );
           });
 
@@ -1736,7 +1872,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-              null,
+              '$NFT add rule ip nat POSTROUTING counter masquerade\n',
             );
           });
         });
@@ -1749,7 +1885,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n',
+              '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
             );
           });
 
@@ -1757,7 +1893,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n',
+              '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
             );
           });
 
@@ -1786,7 +1922,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
 
@@ -1794,7 +1930,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
         });
@@ -1807,7 +1943,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
 
@@ -1815,7 +1951,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
         });
@@ -1828,7 +1964,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              `$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
 
@@ -1836,7 +1972,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              `$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`,
+              `$NFT add rule ip filter ${policy} ct state new counter accept\n`,
             );
           });
         });
@@ -1849,7 +1985,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n',
+              '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
             );
           });
 
@@ -1857,7 +1993,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n',
+              '$NFT add rule ip nat POSTROUTING counter snat to 192.168.0.50\n',
             );
           });
 
@@ -1865,7 +2001,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-              null,
+              '$NFT add rule ip nat POSTROUTING counter masquerade\n',
             );
           });
         });
@@ -1878,7 +2014,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n',
+              '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
             );
           });
 
@@ -1886,7 +2022,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n',
+              '$NFT add rule ip nat PREROUTING counter dnat to 192.168.0.50\n',
             );
           });
 
