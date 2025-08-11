@@ -780,6 +780,11 @@ describe(IPSec.name, () => {
 
       await dbCon.query(`TRUNCATE TABLE ipsec__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await dbCon.query(`TRUNCATE TABLE ipsec_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
       await dbCon.query(`delete from ipsec where ipsec = ${serverId}`);
       await dbCon.query(`delete from ipsec_opt where ipsec = ${serverId}`);
 
@@ -804,6 +809,10 @@ describe(IPSec.name, () => {
       await dbCon.query(`TRUNCATE TABLE ipsec__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE ipsec_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
 
       await IPSec.delCfgAll(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.firewall.id);
 

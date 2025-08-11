@@ -134,12 +134,15 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
       });
 
       it('regular user should be able to update a prefix', async () => {
+        await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.update'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: 'Wi',
-            ipsec: fwcProduct.ipsecServer.id,
+            name: 'IPSPref',
             fwcloud: fwcProduct.fwcloud.id,
             prefix: fwcProduct.ipsecPrefix.id,
           })
@@ -149,11 +152,15 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
       });
 
       it('admin user should be able to update a prefix', async () => {
+        await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.update'))
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
-            name: 'Wi',
+            name: 'IPSPref',
             ipsec: fwcProduct.ipsecServer.id,
             fwcloud: fwcProduct.fwcloud.id,
             prefix: fwcProduct.ipsecPrefix.id,
@@ -244,6 +251,10 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
       });
 
       it('regular user should be able to access restricted endpoint', async () => {
+        await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.restrictions'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -257,6 +268,10 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
       });
 
       it('admin user should be able to access restricted endpoint', async () => {
+        await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.restrictions'))
           .set('Cookie', [attachSession(adminUserSessionId)])
@@ -305,7 +320,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((response) => {
-            expect(response.status).to.equal(204);
+            expect(response.status).to.equal(200);
           });
       });
 
@@ -318,7 +333,7 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((response) => {
-            expect(response.status).to.equal(204);
+            expect(response.status).to.equal(200);
           });
       });
     });
@@ -350,6 +365,10 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
       });
 
       it('regular user should be able to delete a prefix', async () => {
+        await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.del'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -363,6 +382,10 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
       });
 
       it('admin user should be able to delete a prefix', async () => {
+        await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.prefix.del'))
           .set('Cookie', [attachSession(adminUserSessionId)])

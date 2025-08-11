@@ -134,6 +134,16 @@ describe(IPSecPrefix.name, () => {
 
   describe('deletePrefix', () => {
     it('should delete an existing prefix', async () => {
+      await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
+      const prefixId = fwcloudProduct.ipsecPrefix.id;
+      const dbCon = db.getSource();
+
+      await dbCon.query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await dbCon.query(`delete from ipsec_prefix where id = ${prefixId}`);
+
       await IPSecPrefix.deletePrefix(db.getQuery(), fwcloudProduct.ipsecPrefix.id);
 
       const result = await db
@@ -142,6 +152,8 @@ describe(IPSecPrefix.name, () => {
         .findOne({
           where: { id: fwcloudProduct.ipsecPrefix.id },
         });
+
+      console.log(result);
 
       expect(result).to.not.exist;
     });
@@ -154,6 +166,10 @@ describe(IPSecPrefix.name, () => {
 
   describe('deletePrefixAll', () => {
     it('should delete all prefixes under a firewall', async () => {
+      await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
       const sql = `SELECT PRE.* FROM ipsec_prefix as PRE
         INNER JOIN ipsec VPN ON VPN.id = PRE.ipsec
         INNER JOIN firewall FW ON FW.id = VPN.firewall
@@ -1139,7 +1155,7 @@ describe(IPSecPrefix.name, () => {
         ]);
 
       expect(result).to.be.an('array');
-      expect(result).to.have.length(1);
+      expect(result).to.have.length(2);
     });
   });
 

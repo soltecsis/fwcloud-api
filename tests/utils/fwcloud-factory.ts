@@ -1089,6 +1089,8 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route7').id, {

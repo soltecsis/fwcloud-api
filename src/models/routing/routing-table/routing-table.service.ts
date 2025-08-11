@@ -47,6 +47,8 @@ import { WireGuardRepository } from '../../vpn/wireguard/wireguard-repository';
 import { WireGuardPrefixRepository } from '../../vpn/wireguard/WireGuardPrefix.repository';
 import { WireGuard } from '../../vpn/wireguard/WireGuard';
 import { WireGuardPrefix } from '../../vpn/wireguard/WireGuardPrefix';
+import { IPSecRepository } from '../../vpn/ipsec/ipsec-repository';
+import { IPSecPrefixRepository } from '../../vpn/ipsec/IPSecPrefix.repository';
 
 interface IFindManyRoutingTablePath {
   firewallId?: number;
@@ -83,6 +85,8 @@ export class RoutingTableService extends Service {
   private _openvpnPrefixRepository: OpenVPNPrefixRepository;
   private _wireguardRepository: WireGuardRepository;
   private _wireguardPrefixRepository: WireGuardPrefixRepository;
+  private _ipsecRepository: IPSecRepository;
+  private _ipsecPrefixRepository: IPSecPrefixRepository;
   protected _firewallService: FirewallService;
   protected _databaseService: DatabaseService;
   constructor(app: Application) {
@@ -103,6 +107,11 @@ export class RoutingTableService extends Service {
     );
     this._wireguardRepository = new WireGuardRepository(this._databaseService.dataSource.manager);
     this._wireguardPrefixRepository = new WireGuardPrefixRepository(
+      this._databaseService.dataSource.manager,
+    );
+
+    this._ipsecRepository = new IPSecRepository(this._databaseService.dataSource.manager);
+    this._ipsecPrefixRepository = new IPSecPrefixRepository(
       this._databaseService.dataSource.manager,
     );
 
@@ -430,6 +439,34 @@ export class RoutingTableService extends Service {
         routingTable,
         routes,
       ),*/
+      this._ipobjRepository.getIpobjsInIPSecInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
+      this._ipobjRepository.getIpobjsInIPSecInGroupsInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
+      this._ipobjRepository.getIpobjsInIPSecPrefixesInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
+      this._ipobjRepository.getIpobjsInIPSecPrefixesInGroupsInRouting(
+        'route',
+        fwcloud,
+        firewall,
+        routingTable,
+        routes,
+      ),
     ];
   }
 
