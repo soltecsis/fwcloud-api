@@ -146,6 +146,24 @@ describe('Routing route compiler', async () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
     });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
+    });
   });
 
   describe('Compilation of route with objects and firewall apply to', () => {
@@ -219,6 +237,28 @@ describe('Routing route compiler', async () => {
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
   });
 
   describe('Compilation of route with objects group', () => {
@@ -269,6 +309,24 @@ describe('Routing route compiler', async () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
     });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
+    });
   });
 
   describe('Compilation of route with objects group and firewall apply to', () => {
@@ -318,6 +376,24 @@ describe('Routing route compiler', async () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
     });
   });
 
