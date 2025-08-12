@@ -76,13 +76,20 @@ export class IPSecPrefixService extends Service {
         const PrefixInRule: any = search.restrictions.PrefixInRule;
         const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
 
-        for (let j = 0; j < PrefixInRule.length; j++)
-          await Firewall.updateFirewallStatus(fwcloudId, PrefixInRule[j].firewall_id, '|3');
+        const firewallIds: Set<number> = new Set();
+        const clusterIds: Set<number> = new Set();
 
-        for (let j = 0; j < PrefixInGroupIpRule.length; j++)
-          await Firewall.updateFirewallStatus(fwcloudId, PrefixInGroupIpRule[j].firewall_id, '|3');
+        PrefixInRule.forEach((item) => {
+          firewallIds.add(item.firewall_id);
+          if (item.cluster_id) clusterIds.add(item.cluster_id);
+        });
 
-        const firewall: Firewall[] = await db
+        PrefixInGroupIpRule.forEach((item) => {
+          firewallIds.add(item.firewall_id);
+          if (item.cluster_id) clusterIds.add(item.cluster_id);
+        });
+
+        const firewalls: Firewall[] = await db
           .getSource()
           .manager.getRepository(Firewall)
           .createQueryBuilder('firewall')
@@ -113,10 +120,28 @@ export class IPSecPrefixService extends Service {
           .orWhere('routeGroupIPSecPrefix.id = :idRouteGroupPrefix', {
             idRouteGroupPrefix: prefixId,
           })
-
           .getMany();
 
-        await this._firewallService.markAsUncompiled(firewall.map((item) => item.id));
+        firewalls.forEach((fw) => {
+          firewallIds.add(fw.id);
+          if (fw.clusterId) clusterIds.add(fw.clusterId);
+        });
+
+        if (clusterIds.size > 0) {
+          const clusterFirewalls = await db
+            .getSource()
+            .manager.getRepository(Firewall)
+            .createQueryBuilder('firewall')
+            .where('firewall.clusterId IN (:...clusterIds)', {
+              clusterIds: Array.from(clusterIds),
+            })
+            .getMany();
+          clusterFirewalls.forEach((fw) => firewallIds.add(fw.id));
+        }
+
+        if (firewallIds.size > 0) {
+          await this._firewallService.markAsUncompiled(Array.from(firewallIds));
+        }
       } catch (error) {
         return reject(error);
       }
