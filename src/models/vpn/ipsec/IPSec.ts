@@ -53,6 +53,7 @@ import fwcError from '../../../utils/error_table';
 import fs from 'fs';
 import { IPSEC_OPTIONS } from '../../../routes/vpn/ipsec/dto/store.dto';
 import config from '../../../config/config';
+import path from 'path';
 
 const utilsModel = require('../../../utils/utils.js');
 const sodium = require('libsodium-wrappers');
@@ -817,10 +818,18 @@ export class IPSec extends Model {
         if (!isClient) {
           for (const peerId in peerGroups) {
             const peer = peerGroups[peerId];
-            if (peer.crt_cn) {
-              clientCerts[peer.crt_cn] = (await this.getCRTData(
-                `${ca_dir}certs/${peer.crt_cn}.crt`,
-              )) as string;
+            if (peer.crt_cn && peer.crt_ca) {
+              const clientCertPath = path.join(
+                config.get('pki').data_dir,
+                String(certInfo.fwcloud),
+                String(peer.crt_ca),
+                'certs',
+                `${peer.crt_cn}.crt`,
+              );
+              if (fs.existsSync(clientCertPath)) {
+                const clientCert = fs.readFileSync(clientCertPath, 'utf8');
+                clientCerts[peer.crt_cn] = clientCert;
+              }
             }
           }
         }
