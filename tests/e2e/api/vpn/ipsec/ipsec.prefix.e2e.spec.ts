@@ -10,6 +10,7 @@ import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import request = require('supertest');
 import { IPSecPrefixService } from '../../../../../src/models/vpn/ipsec/ipsec-prefix.service';
 import { Tree } from '../../../../../src/models/tree/Tree';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
 
 let app: Application;
 let ipsecPrefixService: IPSecPrefixService;
@@ -396,6 +397,10 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(204);
           });
+        const firewall = await manager
+          .getRepository(Firewall)
+          .findOne({ where: { id: fwcProduct.firewall.id } });
+        expect(firewall.status).to.equal(3);
       });
     });
   });
