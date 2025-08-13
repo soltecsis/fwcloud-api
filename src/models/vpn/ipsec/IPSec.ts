@@ -1585,7 +1585,6 @@ export class IPSec extends Model {
           IPSec.getInterfaceIp(dbCon, ipsec_cli),
         ]);
 
-        const rightSubnet = getPeerOptions.find((opt) => opt.name === 'rightsubnet')?.arg || '';
         const rightSourceIp = rightSourceIpValue ? rightSourceIpValue.split('/')[0] : '';
         const rightId = getClientOptions.find((opt) => opt.name === 'leftid')?.arg || '';
         const rightCert = getClientOptions.find((opt) => opt.name === 'leftcert')?.arg || '';
@@ -1593,16 +1592,6 @@ export class IPSec extends Model {
         const alsoOption = getPeerOptions.find((opt) => opt.name === 'also')?.arg || '';
 
         const finalOptions = [
-          {
-            name: 'rightsubnet',
-            arg: rightSubnet,
-            ipsec: ipSec,
-            ipsec_cli: ipsec_cli,
-            ipobj: null,
-            order: 0,
-            scope: 8,
-            comment: null,
-          },
           {
             name: 'rightsourceip',
             arg: rightSourceIp,
