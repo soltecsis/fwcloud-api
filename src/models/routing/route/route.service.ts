@@ -622,7 +622,7 @@ export class RouteService extends Service {
         } as RouteToIPSecPrefix);
       }
     }
-    console.log(fromRule, toRule);
+
     return (await this._repository.save([fromRule, toRule])) as [Route, Route];
   }
 
