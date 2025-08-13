@@ -193,8 +193,6 @@ export class RouteService extends Service {
       ipSecPrefixIds: data.ipSecPrefixIds,
       firewallApplyToId: data.firewallApplyToId,
       interfaceId: data.interfaceId,
-      ipecIds: data.ipsecIds,
-      ipsecPrefixIds: data.ipsecPrefixIds,
     });
 
     if (
