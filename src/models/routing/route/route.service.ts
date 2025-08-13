@@ -110,6 +110,10 @@ interface IMoveToRoute {
   ipObjGroupId?: number;
   openVPNId?: number;
   openVPNPrefixId?: number;
+  wireGuardId?: number;
+  wireGuardPrefixId?: number;
+  ipSecId?: number;
+  ipSecPrefixId?: number;
 }
 
 interface IMoveToGatewayRoute {
@@ -465,6 +469,10 @@ export class RouteService extends Service {
           'routeToIPObjGroups',
           'routeToOpenVPNs',
           'routeToOpenVPNPrefixes',
+          'routeToWireGuards',
+          'routeToWireGuardPrefixes',
+          'routeToIPSecs',
+          'routeToIPSecPrefixes',
         ],
       });
     const toRule: Route = await db
@@ -479,6 +487,10 @@ export class RouteService extends Service {
           'routeToIPObjGroups',
           'routeToOpenVPNs',
           'routeToOpenVPNPrefixes',
+          'routeToWireGuards',
+          'routeToWireGuardPrefixes',
+          'routeToIPSecs',
+          'routeToIPSecPrefixes',
         ],
       });
 
@@ -490,6 +502,10 @@ export class RouteService extends Service {
         toRule.routeToIPObjGroups,
         toRule.routeToOpenVPNs,
         toRule.routeToOpenVPNPrefixes,
+        toRule.routeToWireGuards,
+        toRule.routeToWireGuardPrefixes,
+        toRule.routeToIPSecs,
+        toRule.routeToIPSecPrefixes,
       )
       .forEach((item) => {
         lastPosition < item.order ? (lastPosition = item.order) : null;
@@ -551,6 +567,62 @@ export class RouteService extends Service {
       }
     }
 
+    if (data.wireGuardId !== undefined) {
+      const index: number = fromRule.routeToWireGuards.findIndex(
+        (item) => item.wireGuardId === data.wireGuardId,
+      );
+      if (index >= 0) {
+        fromRule.routeToWireGuards.splice(index, 1);
+        toRule.routeToWireGuards.push({
+          routeId: toRule.id,
+          wireGuardId: data.wireGuardId,
+          order: lastPosition + 1,
+        } as RouteToWireGuard);
+      }
+    }
+
+    if (data.wireGuardPrefixId !== undefined) {
+      const index: number = fromRule.routeToWireGuardPrefixes.findIndex(
+        (item) => item.wireGuardPrefixId === data.wireGuardPrefixId,
+      );
+      if (index >= 0) {
+        fromRule.routeToWireGuardPrefixes.splice(index, 1);
+        toRule.routeToWireGuardPrefixes.push({
+          routeId: toRule.id,
+          wireGuardPrefixId: data.wireGuardPrefixId,
+          order: lastPosition + 1,
+        } as RouteToWireGuardPrefix);
+      }
+    }
+
+    if (data.ipSecId !== undefined) {
+      const index: number = fromRule.routeToIPSecs.findIndex(
+        (item) => item.ipSecId === data.ipSecId,
+      );
+      if (index >= 0) {
+        fromRule.routeToIPSecs.splice(index, 1);
+        toRule.routeToIPSecs.push({
+          routeId: toRule.id,
+          ipSecId: data.ipSecId,
+          order: lastPosition + 1,
+        } as RouteToIPSec);
+      }
+    }
+
+    if (data.ipSecPrefixId !== undefined) {
+      const index: number = fromRule.routeToIPSecPrefixes.findIndex(
+        (item) => item.ipsecPrefixId === data.ipSecPrefixId,
+      );
+      if (index >= 0) {
+        fromRule.routeToIPSecPrefixes.splice(index, 1);
+        toRule.routeToIPSecPrefixes.push({
+          routeId: toRule.id,
+          ipsecPrefixId: data.ipSecPrefixId,
+          order: lastPosition + 1,
+        } as RouteToIPSecPrefix);
+      }
+    }
+    console.log(fromRule, toRule);
     return (await this._repository.save([fromRule, toRule])) as [Route, Route];
   }
 
