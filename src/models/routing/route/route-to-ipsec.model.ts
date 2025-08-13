@@ -15,7 +15,7 @@ export class RouteToIPSec extends Model {
   @PrimaryColumn({
     name: 'ipsec',
   })
-  openVPNId: number; // TODO: REVISAR, ES OPENVPN O IPSEC? REVISAR TAMBIEN EN WIREGUARD
+  ipSecId: number;
 
   @Column({
     type: Number,

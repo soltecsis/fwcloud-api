@@ -15,7 +15,7 @@ export class RouteToWireGuard extends Model {
   @PrimaryColumn({
     name: 'wireguard',
   })
-  openVPNId: number;
+  wireGuardId: number;
 
   @Column({
     type: Number,
