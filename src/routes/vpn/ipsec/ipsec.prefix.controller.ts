@@ -100,14 +100,14 @@ export class IPSecPrefixController extends Controller {
   @Validate()
   async delete(req: any): Promise<ResponseBuilder> {
     try {
+      // Mark firewalls using this prefix as needing an update.
+      await this.ipsecPrefixService.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
+
       // Delete prefix.
       await IPSecPrefix.deletePrefix(req.dbCon, req.body.prefix);
 
       // Regenerate prefixes.
       await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.prefix.ipsec);
-
-      // Mark firewalls using this prefix as needing an update.
-      await this.ipsecPrefixService.updateAffectedFirewalls(req.body.fwcloud, req.body.prefix);
 
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
