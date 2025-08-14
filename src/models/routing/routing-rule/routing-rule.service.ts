@@ -924,12 +924,10 @@ export class RoutingRuleService extends Service {
     const wireguardPrefixes: number = data.wireGuardPrefixIds
       ? data.wireGuardPrefixIds.length
       : rule.routingRuleToWireGuardPrefixes.length;
-    const ipsecs: number = data.ipSecIds
-      ? data.ipSecIds.length
-      : rule.routingRuleToWireGuards.length;
+    const ipsecs: number = data.ipSecIds ? data.ipSecIds.length : rule.routingRuleToIPSecs.length;
     const ipsecPrefixes: number = data.ipSecPrefixIds
       ? data.ipSecPrefixIds.length
-      : rule.routingRuleToWireGuardPrefixes.length;
+      : rule.routingRuleToIPSecPrefixes.length;
     if (
       marks +
         ipObjs +
