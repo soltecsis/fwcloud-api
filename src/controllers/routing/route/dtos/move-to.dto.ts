@@ -25,5 +25,21 @@ export class RouteMoveToDto {
 
   @IsNumber()
   @IsOptional()
+  wireGuardId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  wireGuardPrefixId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  ipSecId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  ipSecPrefixId?: number;
+
+  @IsNumber()
+  @IsOptional()
   markId?: number;
 }

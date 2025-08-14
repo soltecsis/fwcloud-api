@@ -840,7 +840,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecServer.id,
         ipObjId: this.fwc.ipobjs.get('network').id,
-        name: 'left',
+        name: 'leftsourceip',
         arg: this.fwc.ipobjs.get('network').address,
         order: 1,
         scope: 0,
@@ -939,7 +939,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-1').id,
         ipObjId: this.fwc.ipobjs.get('ipsec-cli1-addr').id,
-        name: 'leftsourceip',
+        name: 'left',
         order: 1,
         scope: 0,
       }),
@@ -949,7 +949,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-2').id,
         ipObjId: this.fwc.ipobjs.get('ipsec-cli2-addr').id,
-        name: 'leftsourceip',
+        name: 'left',
         order: 1,
         scope: 0,
       }),
@@ -959,7 +959,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-3').id,
         ipObjId: this.fwc.ipobjs.get('ipsec-cli3-addr').id,
-        name: 'leftsourceip',
+        name: 'left',
         order: 1,
         scope: 0,
       }),
@@ -1145,10 +1145,8 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
-      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
-      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
-      wireguardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
-      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
+      ipSecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipSecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route2').id, {
@@ -1165,10 +1163,8 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
-      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
-      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
-      wireguardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
-      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
+      ipSecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipSecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route7').id, {

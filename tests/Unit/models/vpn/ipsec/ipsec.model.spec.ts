@@ -368,13 +368,13 @@ describe(IPSec.name, () => {
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipobj = ? AND name = ?`, [
           fwcloudProduct.ipobjs.get('network').id,
-          'left',
+          'leftsourceip',
         ]);
 
       await IPSec.updateCfgOptByipobj(
         db.getQuery(),
         fwcloudProduct.ipobjs.get('network').id,
-        'left',
+        'leftsourceip',
         '10.10.10.10',
       );
 
@@ -382,7 +382,7 @@ describe(IPSec.name, () => {
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipobj = ? AND name = ?`, [
           fwcloudProduct.ipobjs.get('network').id,
-          'left',
+          'leftsourceip',
         ]);
 
       expect(resultBefore).to.exist;
@@ -398,7 +398,7 @@ describe(IPSec.name, () => {
       await IPSec.updateCfgOptByipobj(
         db.getQuery(),
         fwcloudProduct.ipobjs.get('network').id,
-        'left',
+        'leftsourceip',
         null,
       );
 
@@ -406,7 +406,7 @@ describe(IPSec.name, () => {
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipobj = ? AND name = ?`, [
           fwcloudProduct.ipobjs.get('network').id,
-          'left',
+          'leftsourceip',
         ]);
 
       expect(resultAfter).to.exist;
@@ -418,7 +418,7 @@ describe(IPSec.name, () => {
       await IPSec.updateCfgOptByipobj(
         db.getQuery(),
         fwcloudProduct.ipobjs.get('network').id,
-        'left',
+        'leftsourceip',
         '',
       );
 
@@ -426,7 +426,7 @@ describe(IPSec.name, () => {
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipobj = ? AND name = ?`, [
           fwcloudProduct.ipobjs.get('network').id,
-          'left',
+          'leftsourceip',
         ]);
 
       expect(resultAfter).to.exist;
@@ -454,21 +454,21 @@ describe(IPSec.name, () => {
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
           fwcloudProduct.ipsecServer.id,
-          'left',
+          'leftsourceip',
         ]);
 
       await IPSec.updateIpObjCfgOpt(
         db.getQuery(),
         fwcloudProduct.ipobjs.get('address').id,
         fwcloudProduct.ipsecServer.id,
-        'left',
+        'leftsourceip',
       );
 
       const resultAfter = await db
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
           fwcloudProduct.ipsecServer.id,
-          'left',
+          'leftsourceip',
         ]);
 
       expect(resultBefore).to.exist;
@@ -481,13 +481,18 @@ describe(IPSec.name, () => {
     });
 
     it('should update with null ipobj value', async () => {
-      await IPSec.updateIpObjCfgOpt(db.getQuery(), null, fwcloudProduct.ipsecServer.id, 'left');
+      await IPSec.updateIpObjCfgOpt(
+        db.getQuery(),
+        null,
+        fwcloudProduct.ipsecServer.id,
+        'leftsourceip',
+      );
 
       const resultAfter = await db
         .getSource()
         .query(`SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?`, [
           fwcloudProduct.ipsecServer.id,
-          'left',
+          'leftsourceip',
         ]);
 
       expect(resultAfter).to.exist;
@@ -501,7 +506,7 @@ describe(IPSec.name, () => {
           db.getQuery(),
           4294967296, // Out of range
           fwcloudProduct.ipsecServer.id,
-          'left',
+          'leftsourceip',
         );
       } catch (error) {
         expect(error).to.exist;
@@ -896,7 +901,11 @@ describe(IPSec.name, () => {
 
   describe('getOptData', () => {
     it('should return option data for a given IPSec server ID and option name', async () => {
-      const result = await IPSec.getOptData(db.getQuery(), fwcloudProduct.ipsecServer.id, 'left');
+      const result = await IPSec.getOptData(
+        db.getQuery(),
+        fwcloudProduct.ipsecServer.id,
+        'leftsourceip',
+      );
 
       expect(result).to.exist;
       expect(result).to.be.an('object');
@@ -1570,7 +1579,7 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       const result = await IPSec.searchIPObjInIPSecOpt(
         db.getQuery(),
         fwcloudProduct.ipobjs.get('network').id,
-        'left',
+        'leftsourceip',
       );
 
       expect(result).to.exist;
