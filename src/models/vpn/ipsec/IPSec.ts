@@ -52,6 +52,8 @@ import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import fs from 'fs';
 import { IPSEC_OPTIONS } from '../../../routes/vpn/ipsec/dto/store.dto';
+import config from '../../../config/config';
+import path from 'path';
 
 const utilsModel = require('../../../utils/utils.js');
 const sodium = require('libsodium-wrappers');
@@ -684,7 +686,7 @@ export class IPSec extends Model {
         // Get certificate and firewall info
         const sqlCN = `
           SELECT CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
-                 VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
+                 FW.fwcloud as fwcloud,VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
           FROM crt CRT
           INNER JOIN ipsec VPN ON VPN.crt=CRT.id
           LEFT JOIN ipsec VPNSRV ON VPNSRV.id=VPN.ipsec
@@ -696,6 +698,16 @@ export class IPSec extends Model {
           dbCon.query(sqlCN, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
         if (!certInfo) return reject(fwcError.other('Certificate info not found'));
+
+        const ca_dir = path.join(
+          config.get('pki').data_dir,
+          String(certInfo.fwcloud),
+          String(certInfo.ca),
+        );
+        const ca_crt_path = path.join(ca_dir, 'ca.crt');
+        const key_path = path.join(ca_dir, 'private', `${certInfo.cn}.key`);
+        const server_crt_path = path.join(ca_dir, 'issued', `${certInfo.cn}.crt`);
+        const clientCerts: Record<string, string> = {};
 
         // Header
         let ips_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
@@ -774,18 +786,18 @@ export class IPSec extends Model {
             SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
             FROM ipsec_opt OPT
             INNER JOIN ipsec PEER ON PEER.id=OPT.ipsec
-            WHERE OPT.ipsec=? 
-              AND OPT.name IN ('<<disable>>') 
+            WHERE OPT.ipsec=?
+              AND OPT.name IN ('<<disable>>')
               AND OPT.ipsec_cli IS NULL
             ORDER BY OPT.name
           `;
         } else {
           sqlPeers = `
-            SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
-            FROM ipsec PEER 
-            INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id 
+            SELECT PEER.*, CRT.cn AS crt_cn, CRT.ca AS crt_ca, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
+            FROM ipsec PEER
+            INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id
             LEFT JOIN crt CRT ON PEER.crt=CRT.id
-            WHERE PEER.ipsec=? 
+            WHERE PEER.ipsec=?
               AND OPT.name IN ('rightsubnet', 'also', 'auto', '<<disable>>')
             ORDER BY OPT.name
           `;
@@ -805,6 +817,25 @@ export class IPSec extends Model {
           });
           return groups;
         }, {});
+
+        if (!isClient) {
+          for (const peerId in peerGroups) {
+            const peer = peerGroups[peerId];
+            if (peer.crt_cn && peer.crt_ca) {
+              const clientCertPath = path.join(
+                config.get('pki').data_dir,
+                String(certInfo.fwcloud),
+                String(peer.crt_ca),
+                'issued',
+                `${peer.crt_cn}.crt`,
+              );
+              if (fs.existsSync(clientCertPath)) {
+                const clientCert = fs.readFileSync(clientCertPath, 'utf8');
+                clientCerts[peer.crt_cn] = clientCert;
+              }
+            }
+          }
+        }
 
         // Helper to format options
         const formatOption = async (option: any, isDisabled: boolean) => {
@@ -899,7 +930,14 @@ export class IPSec extends Model {
           );
           ips_cfg += await formatPeerSection(peer, !!disableOption);
         }
-        resolve({ cfg: ips_cfg });
+        resolve({
+          cfg: ips_cfg,
+          cn: certInfo.cn,
+          ca_cert: (await this.getCRTData(ca_crt_path)) as string,
+          private_key: (await this.getCRTData(key_path)) as string,
+          cert: (await this.getCRTData(server_crt_path)) as string,
+          client_certs: clientCerts,
+        });
       } catch (error) {
         reject(error);
       }

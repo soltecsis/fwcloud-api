@@ -760,6 +760,8 @@ export class FwCloudFactory {
         parentId: null,
         firewallId: this.fwc.firewall.id,
         crtId: this.fwc.crts.get('IPSec-Server').id,
+        install_dir: '/tmp',
+        install_name: 'ipsec-server.conf',
       }),
     );
 

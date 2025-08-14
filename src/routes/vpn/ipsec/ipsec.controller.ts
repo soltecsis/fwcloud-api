@@ -19,6 +19,10 @@ import { Request } from 'express';
 import { IPSecOption } from '../../../models/vpn/ipsec/ipsec-option.model';
 import { GetOptionsDto } from './dto/get.dto.options';
 import { UpdateOptionsDto } from './dto/update.dto.options';
+import path from 'path';
+import { app } from '../../../fonaments/abstract-application';
+import { FSHelper } from '../../../utils/fs-helper';
+import { promises as fs } from 'fs';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -183,6 +187,7 @@ export class IPSecController extends Controller {
       let { install_dir: installDir, install_name: installName } = req.ipsec;
       let cfgDump = null;
       let isClient = false;
+      let serverId = req.body.ipsec;
       if (!installDir || !installName) {
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
         if (!ipsecCfg.ipsec) {
@@ -192,6 +197,7 @@ export class IPSecController extends Controller {
           installDir = ipsecParentCfg.install_dir;
           installName = ipsecParentCfg.install_name;
           cfgDump = await IPSec.dumpCfg(req.dbCon, ipsecCfg.ipsec);
+          serverId = ipsecCfg.ipsec;
           isClient = true;
         }
       } else {
@@ -209,6 +215,65 @@ export class IPSecController extends Controller {
         ],
         channel,
       );
+
+      if ((cfgDump as any).ca_cert) {
+        const caDir = path.join(installDir, 'cacerts');
+        await communication.installIPSecServerConfigs(
+          caDir,
+          [
+            {
+              content: (cfgDump as any).ca_cert,
+              name: 'ca-cert.crt',
+            },
+          ],
+          channel,
+        );
+      }
+
+      if ((cfgDump as any).cert || (cfgDump as any).client_certs) {
+        const certDir = path.join(installDir, 'certs');
+        const certFiles: Array<{ content: string; name: string }> = [];
+        if ((cfgDump as any).cert) {
+          certFiles.push({
+            content: (cfgDump as any).cert,
+            name: `${(cfgDump as any).cn}.crt`,
+          });
+        }
+        if ((cfgDump as any).client_certs) {
+          for (const [cn, content] of Object.entries((cfgDump as any).client_certs)) {
+            certFiles.push({ content: content as string, name: `${cn}.crt` });
+          }
+        }
+        if (certFiles.length) {
+          await communication.installIPSecServerConfigs(certDir, certFiles, channel);
+        }
+      }
+
+      if ((cfgDump as any).private_key) {
+        const serverName = (cfgDump as any).cn;
+        const privateDir = path.join(installDir, 'private');
+        await communication.installIPSecServerConfigs(
+          privateDir,
+          [
+            {
+              content: (cfgDump as any).private_key,
+              name: `${serverName}.key`,
+            },
+          ],
+          channel,
+        );
+
+        await communication.installIPSecServerConfigs(
+          path.dirname(installDir),
+          [
+            {
+              content: `: RSA ${serverName}.key\n`,
+              name: 'ipsec.secrets',
+            },
+          ],
+          channel,
+        );
+      }
 
       // Update the status flag for the Ipsec configuration.
       await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '&~1');
