@@ -1173,13 +1173,13 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
         String(fwcloudProduct.ca.id),
       );
       fs.mkdirSync(path.join(caDir, 'private'), { recursive: true });
-      fs.mkdirSync(path.join(caDir, 'certs'), { recursive: true });
+      fs.mkdirSync(path.join(caDir, 'issued'), { recursive: true });
       const dummyCert = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n';
       const dummyKey = '-----BEGIN PRIVATE KEY-----\nMIIC\n-----END PRIVATE KEY-----\n';
       fs.writeFileSync(path.join(caDir, 'ca.crt'), dummyCert);
       const cn = fwcloudProduct.crts.get('IPSec-Server').cn;
       fs.writeFileSync(path.join(caDir, 'private', `${cn}.key`), dummyKey);
-      fs.writeFileSync(path.join(caDir, 'certs', `${cn}.crt`), dummyCert);
+      fs.writeFileSync(path.join(caDir, 'issued', `${cn}.crt`), dummyCert);
     });
 
     it('should return the configuration of a IPSec server', async () => {

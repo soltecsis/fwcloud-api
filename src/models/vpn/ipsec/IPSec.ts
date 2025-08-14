@@ -699,10 +699,14 @@ export class IPSec extends Model {
         );
         if (!certInfo) return reject(fwcError.other('Certificate info not found'));
 
-        const ca_dir = config.get('pki').data_dir + certInfo.fwcloud + '/' + certInfo.ca + '/';
-        const ca_crt_path = ca_dir + 'ca.crt';
-        const key_path = ca_dir + 'private/' + certInfo.cn + '.key';
-        const server_crt_path = ca_dir + 'issued/' + certInfo.cn + '.crt';
+        const ca_dir = path.join(
+          config.get('pki').data_dir,
+          String(certInfo.fwcloud),
+          String(certInfo.ca),
+        );
+        const ca_crt_path = path.join(ca_dir, 'ca.crt');
+        const key_path = path.join(ca_dir, 'private', `${certInfo.cn}.key`);
+        const server_crt_path = path.join(ca_dir, 'issued', `${certInfo.cn}.crt`);
         const clientCerts: Record<string, string> = {};
 
         // Header

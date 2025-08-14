@@ -39,14 +39,14 @@ describe(describeName('IPSec E2E Tests'), () => {
     const basePkiDir = path.join('tests', 'playground', 'DATA', 'pki');
     const caDir = path.join(basePkiDir, String(fwcProduct.fwcloud.id), String(fwcProduct.ca.id));
     fs.mkdirSync(path.join(caDir, 'private'), { recursive: true });
-    fs.mkdirSync(path.join(caDir, 'certs'), { recursive: true });
+    fs.mkdirSync(path.join(caDir, 'issued'), { recursive: true });
     const dummyCert = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n';
     const dummyKey = '-----BEGIN PRIVATE KEY-----\nMIIC\n-----END PRIVATE KEY-----\n';
     fs.writeFileSync(path.join(caDir, 'ca.crt'), dummyCert);
     for (const crt of Array.from(fwcProduct.crts.values())) {
       if (crt.cn.startsWith('IPSec')) {
         fs.writeFileSync(path.join(caDir, 'private', `${crt.cn}.key`), dummyKey);
-        fs.writeFileSync(path.join(caDir, 'certs', `${crt.cn}.crt`), dummyCert);
+        fs.writeFileSync(path.join(caDir, 'issued', `${crt.cn}.crt`), dummyCert);
       }
     }
 

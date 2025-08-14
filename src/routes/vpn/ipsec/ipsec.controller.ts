@@ -203,7 +203,7 @@ export class IPSecController extends Controller {
       } else {
         cfgDump = await IPSec.dumpCfg(req.dbCon, req.body.ipsec);
       }
-      console.log('cfgDump', cfgDump);
+
       channel.emit('message', new ProgressPayload('start', false, 'Installing Ipsec'));
       await communication.installIPSecServerConfigs(
         installDir,
