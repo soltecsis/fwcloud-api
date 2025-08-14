@@ -750,6 +750,7 @@ export class FwCloudFactory {
         id: this.randomId(10, 100000),
         wireGuardId: this.fwc.wireguardServer.id,
         name: 'WireGuard-Cli-',
+        ipObjGroups: [this.fwc.ipobjGroup],
       }),
     );
 
@@ -766,7 +767,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecServer.id,
         ipObjId: this.fwc.ipobjs.get('network').id,
-        name: 'left',
+        name: 'leftsourceip',
         arg: this.fwc.ipobjs.get('network').address,
         order: 1,
         scope: 0,
@@ -865,7 +866,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-1').id,
         ipObjId: this.fwc.ipobjs.get('ipsec-cli1-addr').id,
-        name: 'leftsourceip',
+        name: 'left',
         order: 1,
         scope: 0,
       }),
@@ -875,7 +876,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-2').id,
         ipObjId: this.fwc.ipobjs.get('ipsec-cli2-addr').id,
-        name: 'leftsourceip',
+        name: 'left',
         order: 1,
         scope: 0,
       }),
@@ -885,7 +886,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-3').id,
         ipObjId: this.fwc.ipobjs.get('ipsec-cli3-addr').id,
-        name: 'leftsourceip',
+        name: 'left',
         order: 1,
         scope: 0,
       }),

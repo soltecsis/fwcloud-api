@@ -262,7 +262,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
       manager.getRepository(IPSecOption).create({
         ipSecId: vpnCli1,
         ipObjId: vpnCli1IP,
-        name: 'ifconfig-push',
+        name: 'leftsourceip',
         order: 1,
         scope: 0,
       }),
@@ -1388,7 +1388,7 @@ describe(describeName('Policy Compiler Unit Tests - IPSec'), () => {
         manager.getRepository(IPSecOption).create({
           ipSecId: vpnCli2,
           ipObjId: vpnCli2IP,
-          name: 'ifconfig-push',
+          name: 'leftsourceip',
           order: 1,
           scope: 0,
         }),
