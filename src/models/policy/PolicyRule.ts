@@ -515,6 +515,7 @@ export class PolicyRule extends Model {
             inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
             inner join ipobj O on O.id=OPT.ipobj
             inner join policy_r PR on PR.id=R.rule
+            and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
