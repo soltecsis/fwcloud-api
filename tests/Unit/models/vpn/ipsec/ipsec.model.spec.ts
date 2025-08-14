@@ -1165,11 +1165,49 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
   });
 
   describe('dumpCfg', () => {
+    beforeEach(async () => {
+      const basePkiDir = path.join('tests', 'playground', 'DATA', 'pki');
+      const caDir = path.join(
+        basePkiDir,
+        String(fwcloudProduct.fwcloud.id),
+        String(fwcloudProduct.ca.id),
+      );
+      fs.mkdirSync(path.join(caDir, 'private'), { recursive: true });
+      fs.mkdirSync(path.join(caDir, 'issued'), { recursive: true });
+      const dummyCert = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n';
+      const dummyKey = '-----BEGIN PRIVATE KEY-----\nMIIC\n-----END PRIVATE KEY-----\n';
+      fs.writeFileSync(path.join(caDir, 'ca.crt'), dummyCert);
+      const cn = fwcloudProduct.crts.get('IPSec-Server').cn;
+      fs.writeFileSync(path.join(caDir, 'private', `${cn}.key`), dummyKey);
+      fs.writeFileSync(path.join(caDir, 'issued', `${cn}.crt`), dummyCert);
+    });
+
     it('should return the configuration of a IPSec server', async () => {
       const result = await IPSec.dumpCfg(db.getQuery(), fwcloudProduct.ipsecServer.id);
 
       expect(result).to.exist;
       expect(result).to.be.an('object').that.has.property('cfg');
+    });
+
+    it('should include the CA certificate content', async () => {
+      const result: any = await IPSec.dumpCfg(db.getQuery(), fwcloudProduct.ipsecServer.id);
+
+      expect(result).to.have.property('ca_cert');
+      expect(result.ca_cert).to.be.a('string').that.is.not.empty;
+    });
+
+    it('should include the private key content', async () => {
+      const result: any = await IPSec.dumpCfg(db.getQuery(), fwcloudProduct.ipsecServer.id);
+
+      expect(result).to.have.property('private_key');
+      expect(result.private_key).to.be.a('string').that.is.not.empty;
+    });
+
+    it('should include the certificate CN', async () => {
+      const result: any = await IPSec.dumpCfg(db.getQuery(), fwcloudProduct.ipsecServer.id);
+
+      expect(result).to.have.property('cn');
+      expect(result.cn).to.equal('IPSec-Server');
     });
 
     it('should throw an error for a non-existent IPSec server', async () => {
@@ -1617,7 +1655,7 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       await IPSec.getIPSecStatusNotZero(request, data);
 
       expect(data.ipsec_status).to.exist;
-      expect(data.ipsec_status).to.be.an('array').to.be.empty;
+      expect(data.ipsec_status).to.be.an('array').that.is.empty;
     });
   });
 
