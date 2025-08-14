@@ -184,7 +184,6 @@ export class IPSecController extends Controller {
         sshpassword: req.body.sshpass,
       });
 
-      // TODO: Check the problem with the installation
       let { install_dir: installDir, install_name: installName } = req.ipsec;
       let cfgDump = null;
       let isClient = false;
@@ -203,49 +202,6 @@ export class IPSecController extends Controller {
         }
       } else {
         cfgDump = await IPSec.dumpCfg(req.dbCon, req.body.ipsec);
-      }
-      const baseDir = path.join(app().config.get('ipsec').data_dir, serverId.toString());
-      await FSHelper.rmDirectory(baseDir).catch(() => undefined);
-      await FSHelper.mkdir(baseDir);
-      await fs.writeFile(path.join(baseDir, installName), (cfgDump as any).cfg, 'utf8');
-
-      if ((cfgDump as any).ca_cert) {
-        const caDir = path.join(baseDir, 'cacerts');
-        await FSHelper.mkdir(caDir);
-        await fs.writeFile(path.join(caDir, 'ca-cert.crt'), (cfgDump as any).ca_cert, 'utf8');
-      }
-
-      if ((cfgDump as any).cert || (cfgDump as any).client_certs) {
-        const certDir = path.join(baseDir, 'certs');
-        await FSHelper.mkdir(certDir);
-        if ((cfgDump as any).cert) {
-          await fs.writeFile(
-            path.join(certDir, `${(cfgDump as any).cn}.crt`),
-            (cfgDump as any).cert,
-            'utf8',
-          );
-        }
-        if ((cfgDump as any).client_certs) {
-          for (const [cn, content] of Object.entries((cfgDump as any).client_certs)) {
-            await fs.writeFile(path.join(certDir, `${cn}.crt`), content as string, 'utf8');
-          }
-        }
-      }
-
-      if ((cfgDump as any).private_key) {
-        const privDir = path.join(baseDir, 'private');
-        await FSHelper.mkdir(privDir);
-        const serverName = (cfgDump as any).cn;
-        await fs.writeFile(
-          path.join(privDir, `${serverName}.key`),
-          (cfgDump as any).private_key,
-          'utf8',
-        );
-        await fs.writeFile(
-          path.join(baseDir, 'ipsec.secrets'),
-          `: RSA ${serverName}.key\n`,
-          'utf8',
-        );
       }
       console.log('cfgDump', cfgDump);
       channel.emit('message', new ProgressPayload('start', false, 'Installing Ipsec'));

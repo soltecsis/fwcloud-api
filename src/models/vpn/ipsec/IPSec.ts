@@ -699,11 +699,10 @@ export class IPSec extends Model {
         );
         if (!certInfo) return reject(fwcError.other('Certificate info not found'));
 
-        const ca_dir =
-          config.get('pki').data_dir + '/' + certInfo.fwcloud + '/' + certInfo.ca + '/';
+        const ca_dir = config.get('pki').data_dir + certInfo.fwcloud + '/' + certInfo.ca + '/';
         const ca_crt_path = ca_dir + 'ca.crt';
         const key_path = ca_dir + 'private/' + certInfo.cn + '.key';
-        const server_crt_path = ca_dir + 'certs/' + certInfo.cn + '.crt';
+        const server_crt_path = ca_dir + 'issued/' + certInfo.cn + '.crt';
         const clientCerts: Record<string, string> = {};
 
         // Header
@@ -823,7 +822,7 @@ export class IPSec extends Model {
                 config.get('pki').data_dir,
                 String(certInfo.fwcloud),
                 String(peer.crt_ca),
-                'certs',
+                'issued',
                 `${peer.crt_cn}.crt`,
               );
               if (fs.existsSync(clientCertPath)) {
