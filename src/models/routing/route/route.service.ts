@@ -805,6 +805,10 @@ export class RouteService extends Service {
           'fwCloud',
           'openVPNPrefixes',
           'openVPNs',
+          'wireGuardPrefixes',
+          'wireGuards',
+          'ipSecPrefixes',
+          'ipSecs',
           'ipObjToIPObjGroups',
           'ipObjToIPObjGroups.ipObj',
           'ipSecs',
@@ -844,7 +848,14 @@ export class RouteService extends Service {
           }
         }
 
-        if (ipObjGroup.openVPNs.length > 0 || ipObjGroup.openVPNPrefixes.length > 0) {
+        if (
+          ipObjGroup.openVPNs.length > 0 ||
+          ipObjGroup.openVPNPrefixes.length > 0 ||
+          ipObjGroup.wireGuards.length > 0 ||
+          ipObjGroup.wireGuardPrefixes.length > 0 ||
+          ipObjGroup.ipSecs.length > 0 ||
+          ipObjGroup.ipSecPrefixes.length > 0
+        ) {
           valid = true;
         }
 
