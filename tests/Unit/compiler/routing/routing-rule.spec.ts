@@ -65,7 +65,7 @@ describe('Routing rule compiler', () => {
       fwc.fwcloud.id,
       fwc.firewall.id,
     );
-    console.log('Routing rules for compilation:', rules);
+
     compilation = compiler.compile('Rule', rules);
   });
 
@@ -301,7 +301,7 @@ describe('Routing rule compiler', () => {
       );
     });
 
-    it.skip('should include WireGuard prefix data', () => {
+    it('should include WireGuard prefix data', () => {
       expect(cs).to.deep.include(
         `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
       );
@@ -386,7 +386,7 @@ describe('Routing rule compiler', () => {
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
-    it.skip('should include WireGuard prefix data', async () => {
+    it('should include WireGuard prefix data', async () => {
       expect(cs).to.deep.include(
         `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
       );

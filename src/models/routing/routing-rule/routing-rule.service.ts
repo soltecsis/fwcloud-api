@@ -1311,6 +1311,20 @@ export class RoutingRuleService extends Service {
         null,
         rules,
       ),
+      this._ipobjRepository.getIpobjsInWireGuardInGroupsInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjInWireGuardPrefixesInGroupsInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
       this._ipobjRepository.getIpobjGroupsInWireGuardInRouting(
         'rule',
         fwcloud,
