@@ -869,10 +869,10 @@ export class IPSec extends Model {
                 return `${ipOnly}/32`;
               });
               if (!normalizedIps.length) return '';
-              return ` ${comment}${isDisabled ? '# ' : ''}rightsubnet = ${normalizedIps.join(', ')}\n`;
+              return `${comment}${isDisabled ? '#  ' : ' '}rightsubnet = ${normalizedIps.join(', ')}\n`;
             }
             default:
-              return ` ${comment}${isDisabled ? '# ' : ''}${option.option_name} = ${option.option_value}\n`;
+              return `${comment}${isDisabled ? '#  ' : ' '}${option.option_name} = ${option.option_value}\n`;
           }
         };
 
@@ -883,7 +883,9 @@ export class IPSec extends Model {
             const rightcert = peer.options.find(
               (opt: any) => opt.option_name === 'rightcert',
             )?.option_value;
-            if (rightcert) section += `conn ${rightcert.split('.')[0]}\n`;
+            if (rightcert) {
+              section += `${isDisabled ? '# ' : ''}conn ${rightcert.split('.')[0]}\n`;
+            }
           }
           for (const option of peer.options) {
             section += await formatOption(option, isDisabled);
