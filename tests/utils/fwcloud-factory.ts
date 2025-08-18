@@ -769,7 +769,7 @@ export class FwCloudFactory {
       this._ipsecOptRepository.create({
         ipSecId: this.fwc.ipsecServer.id,
         ipObjId: this.fwc.ipobjs.get('network').id,
-        name: 'leftsourceip',
+        name: 'left',
         arg: this.fwc.ipobjs.get('network').address,
         order: 1,
         scope: 0,

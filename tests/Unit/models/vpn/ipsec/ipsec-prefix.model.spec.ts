@@ -153,8 +153,6 @@ describe(IPSecPrefix.name, () => {
           where: { id: fwcloudProduct.ipsecPrefix.id },
         });
 
-      console.log(result);
-
       expect(result).to.not.exist;
     });
 
