@@ -30,7 +30,7 @@ import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 
-describe('Routing rule compiler', () => {
+describe.only('Routing rule compiler', () => {
   let fwc: FwCloudProduct;
 
   let routingRuleService: RoutingRuleService;
@@ -301,7 +301,7 @@ describe('Routing rule compiler', () => {
       );
     });
 
-    it.skip('should include WireGuard prefix data', () => {
+    it('should include WireGuard prefix data', () => {
       expect(cs).to.deep.include(
         `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
       );
@@ -386,7 +386,7 @@ describe('Routing rule compiler', () => {
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
-    it.skip('should include WireGuard prefix data', async () => {
+    it('should include WireGuard prefix data', async () => {
       expect(cs).to.deep.include(
         `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
       );
