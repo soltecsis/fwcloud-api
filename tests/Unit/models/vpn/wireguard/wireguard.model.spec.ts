@@ -1,3 +1,25 @@
+/*!
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { expect } from '../../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
@@ -133,6 +155,11 @@ describe(WireGuard.name, () => {
 
       await dbCon.query(`TRUNCATE TABLE wireguard__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
+      await dbCon.query(`TRUNCATE TABLE wireguard_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
       await dbCon.query(`delete from wireguard where wireguard = ${serverId}`);
       await dbCon.query(`delete from wireguard_opt where wireguard = ${serverId}`);
 
@@ -161,6 +188,10 @@ describe(WireGuard.name, () => {
       await dbCon.query(`TRUNCATE TABLE wireguard__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
 
       await WireGuard.delCfgAll(
         db.getQuery(),
