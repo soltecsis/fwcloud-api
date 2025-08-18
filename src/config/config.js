@@ -327,6 +327,16 @@ const config = convict({
     },
   },
 
+  //IPSec configuration.
+  ipsec: {
+    data_dir: {
+      doc: 'Directory for the IPSec files.',
+      format: String,
+      default: './DATA/ipsec/',
+      env: 'IPSEC_DATA_DIR'
+    },
+  },
+
   // Backup configuration.
   backup: {
     data_dir: {
