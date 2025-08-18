@@ -1,5 +1,5 @@
 /*!
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -1149,6 +1149,8 @@ export class FwCloudFactory {
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
       ipSecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
       ipSecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
+      wireGuardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
+      wireGuardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route2').id, {
@@ -1167,6 +1169,8 @@ export class FwCloudFactory {
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
       ipSecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
       ipSecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
+      wireGuardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
+      wireGuardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route7').id, {

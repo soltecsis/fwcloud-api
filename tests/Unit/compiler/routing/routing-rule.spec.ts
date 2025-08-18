@@ -1,5 +1,5 @@
 /*!
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -65,6 +65,7 @@ describe('Routing rule compiler', () => {
       fwc.fwcloud.id,
       fwc.firewall.id,
     );
+    console.log('Routing rules for compilation:', rules);
     compilation = compiler.compile('Rule', rules);
   });
 
@@ -121,6 +122,24 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
     });
 
     it('should include firewall mark data', () => {
@@ -199,6 +218,28 @@ describe('Routing rule compiler', () => {
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
     it('should include firewall mark data', () => {
       expect(cs).to.deep.include(`$IP rule add fwmark ${fwc.mark.code} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
@@ -252,6 +293,24 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it.skip('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
     });
   });
 
@@ -315,6 +374,28 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it.skip('should include WireGuard prefix data', async () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
