@@ -90,12 +90,6 @@ export class IPSecController extends Controller {
       if (req.body.ipsec) {
         const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
 
-        // Find leftsubnet option
-        const leftSubnetOption = ipsecCfg?.options.find(
-          (opt: IPSecOption) => opt.name === 'leftsubnet',
-        );
-        const leftSubnetValue = leftSubnetOption?.arg || '';
-
         let baseOrder =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
@@ -105,7 +99,7 @@ export class IPSecController extends Controller {
             name: 'rightsubnet',
             ipsec: req.body.ipsec,
             ipsec_cli: newIpsec,
-            arg: leftSubnetValue, // Assign leftsubnet value
+            arg: null, // Empty by default, will be set later
             order: baseOrder,
             scope: 8,
           },
