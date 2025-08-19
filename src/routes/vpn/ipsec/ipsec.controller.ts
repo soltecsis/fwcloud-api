@@ -107,7 +107,7 @@ export class IPSecController extends Controller {
             name: 'auto',
             ipsec: req.body.ipsec,
             ipsec_cli: newIpsec,
-            arg: 'start',
+            arg: 'add',
             order: baseOrder++,
             scope: 8,
           },
