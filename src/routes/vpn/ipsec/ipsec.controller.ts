@@ -211,7 +211,7 @@ export class IPSecController extends Controller {
       );
 
       if ((cfgDump as any).ca_cert) {
-        const caDir = path.join(installDir, 'cacerts');
+        const caDir = path.join(installDir, 'ipsec.d', 'cacerts');
         await communication.installIPSecServerConfigs(
           caDir,
           [
@@ -225,7 +225,7 @@ export class IPSecController extends Controller {
       }
 
       if ((cfgDump as any).cert || (cfgDump as any).client_certs) {
-        const certDir = path.join(installDir, 'certs');
+        const certDir = path.join(installDir, 'ipsec.d', 'certs');
         const certFiles: Array<{ content: string; name: string }> = [];
         if ((cfgDump as any).cert) {
           certFiles.push({
@@ -245,7 +245,7 @@ export class IPSecController extends Controller {
 
       if ((cfgDump as any).private_key) {
         const serverName = (cfgDump as any).cn;
-        const privateDir = path.join(installDir, 'private');
+        const privateDir = path.join(installDir, 'ipsec.d', 'private');
         await communication.installIPSecServerConfigs(
           privateDir,
           [
@@ -258,7 +258,7 @@ export class IPSecController extends Controller {
         );
 
         await communication.installIPSecServerConfigs(
-          path.dirname(installDir),
+          installDir,
           [
             {
               content: `: RSA ${serverName}.key\n`,
