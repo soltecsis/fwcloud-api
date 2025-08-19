@@ -869,12 +869,9 @@ export class IPSec extends Model {
                 .split(',')
                 .map((ip: string) => ip.trim())
                 .filter(Boolean);
-              const normalizedIps = ipsRaw.map((ip: string) => {
-                const ipOnly = ip.split('/')[0];
-                return `${ipOnly}/32`;
-              });
-              if (!normalizedIps.length) return '';
-              return `${comment}${isDisabled ? '#  ' : ' '}rightsubnet = ${normalizedIps.join(', ')}\n`;
+
+              if (!ipsRaw.length) return '';
+              return `${comment}${isDisabled ? '#  ' : ' '}rightsubnet = ${ipsRaw.join(', ')}\n`;
             }
             default:
               return `${comment}${isDisabled ? '#  ' : ' '}${option.option_name} = ${option.option_value}\n`;
