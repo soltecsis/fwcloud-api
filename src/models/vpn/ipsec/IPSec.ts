@@ -685,15 +685,15 @@ export class IPSec extends Model {
       try {
         // Get certificate and firewall info
         const sqlCN = `
-          SELECT CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
-                 FW.fwcloud as fwcloud,VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
-          FROM crt CRT
-          INNER JOIN ipsec VPN ON VPN.crt=CRT.id
-          LEFT JOIN ipsec VPNSRV ON VPNSRV.id=VPN.ipsec
-          INNER JOIN firewall FW ON FW.id=VPN.firewall
-          LEFT JOIN cluster CL ON CL.id=FW.cluster
-          WHERE VPN.id=?
-        `;
+        SELECT CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
+           FW.fwcloud as fwcloud,VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
+        FROM crt CRT
+        INNER JOIN ipsec VPN ON VPN.crt=CRT.id
+        LEFT JOIN ipsec VPNSRV ON VPNSRV.id=VPN.ipsec
+        INNER JOIN firewall FW ON FW.id=VPN.firewall
+        LEFT JOIN cluster CL ON CL.id=FW.cluster
+        WHERE VPN.id=?
+      `;
         const [certInfo] = await new Promise<any[]>((res, rej) =>
           dbCon.query(sqlCN, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
@@ -726,12 +726,12 @@ export class IPSec extends Model {
 
         // Get IPSec config
         const sql = `
-          SELECT *
-          FROM ipsec IPS
-          LEFT JOIN firewall FW ON FW.id = IPS.firewall
-          LEFT JOIN cluster CL ON CL.id=FW.cluster
-          WHERE IPS.id=?
-        `;
+        SELECT *
+        FROM ipsec IPS
+        LEFT JOIN firewall FW ON FW.id = IPS.firewall
+        LEFT JOIN cluster CL ON CL.id=FW.cluster
+        WHERE IPS.id=?
+      `;
         const [ipsecResult] = await new Promise<any[]>((res, rej) =>
           dbCon.query(sql, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
@@ -740,14 +740,14 @@ export class IPSec extends Model {
         // Get options
         const optionsList = IPSEC_OPTIONS.map((opt) => `'${opt}'`).join(',');
         const sqlOpts = `
-          SELECT *
-          FROM ipsec_opt OPT
-          WHERE OPT.ipsec = ?
-            AND OPT.ipsec_cli IS NULL
-            AND OPT.name IN (${optionsList})
-            AND OPT.name != '<<disable>>'
-          ORDER BY OPT.order
-        `;
+        SELECT *
+        FROM ipsec_opt OPT
+        WHERE OPT.ipsec = ?
+        AND OPT.ipsec_cli IS NULL
+        AND OPT.name IN (${optionsList})
+        AND OPT.name != '<<disable>>'
+        ORDER BY OPT.order
+      `;
         const optResult: IPSecOption[] = await new Promise((res, rej) =>
           dbCon.query(sqlOpts, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
@@ -783,24 +783,24 @@ export class IPSec extends Model {
         let sqlPeers: string;
         if (isClient) {
           sqlPeers = `
-            SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
-            FROM ipsec_opt OPT
-            INNER JOIN ipsec PEER ON PEER.id=OPT.ipsec
-            WHERE OPT.ipsec=?
-              AND OPT.name IN ('<<disable>>')
-              AND OPT.ipsec_cli IS NULL
-            ORDER BY OPT.name
-          `;
+        SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
+        FROM ipsec_opt OPT
+        INNER JOIN ipsec PEER ON PEER.id=OPT.ipsec
+        WHERE OPT.ipsec=?
+          AND OPT.name IN ('<<disable>>')
+          AND OPT.ipsec_cli IS NULL
+        ORDER BY OPT.name
+        `;
         } else {
           sqlPeers = `
-            SELECT PEER.*, CRT.cn AS crt_cn, CRT.ca AS crt_ca, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
-            FROM ipsec PEER
-            INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id
-            LEFT JOIN crt CRT ON PEER.crt=CRT.id
-            WHERE PEER.ipsec=?
-              AND OPT.name IN ('rightsubnet', 'also', 'auto', '<<disable>>')
-            ORDER BY OPT.name
-          `;
+        SELECT PEER.*, CRT.cn AS crt_cn, CRT.ca AS crt_ca, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
+        FROM ipsec PEER
+        INNER JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id
+        LEFT JOIN crt CRT ON PEER.crt=CRT.id
+        WHERE PEER.ipsec=?
+          AND OPT.name IN ('rightsubnet', 'also', 'auto', '<<disable>>')
+        ORDER BY OPT.name
+        `;
         }
         const peerResult: any[] = await new Promise((res, rej) =>
           dbCon.query(sqlPeers, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
@@ -838,7 +838,11 @@ export class IPSec extends Model {
         }
 
         // Helper to format options
-        const formatOption = async (option: any, isDisabled: boolean) => {
+        const formatOption = async (
+          option: any,
+          isDisabled: boolean,
+          alreadyAdded: Set<string>,
+        ) => {
           const comment = option.option_comment
             ? `# ${option.option_comment.replace(/\n/g, '\n# ')}\n`
             : '';
@@ -850,6 +854,7 @@ export class IPSec extends Model {
             'also',
             'auto',
           ];
+          // Avoid duplicate rightid/rightcert for server
           if (!isClient) {
             if (!allowedOptionsServer.includes(option.option_name) || option.option_isClient) {
               return '';
@@ -864,29 +869,29 @@ export class IPSec extends Model {
                 .split(',')
                 .map((ip: string) => ip.trim())
                 .filter(Boolean);
-              const normalizedIps = ipsRaw.map((ip: string) => {
-                const ipOnly = ip.split('/')[0];
-                return `${ipOnly}/32`;
-              });
-              if (!normalizedIps.length) return '';
-              return ` ${comment}${isDisabled ? '# ' : ''}rightsubnet = ${normalizedIps.join(', ')}\n`;
+
+              if (!ipsRaw.length) return '';
+              return `${comment}${isDisabled ? '#  ' : ' '}rightsubnet = ${ipsRaw.join(', ')}\n`;
             }
             default:
-              return ` ${comment}${isDisabled ? '# ' : ''}${option.option_name} = ${option.option_value}\n`;
+              return `${comment}${isDisabled ? '#  ' : ' '}${option.option_name} = ${option.option_value}\n`;
           }
         };
 
         // Helper to format peer section
         const formatPeerSection = async (peer: any, isDisabled: boolean) => {
           let section = '';
+          const alreadyAdded = new Set<string>();
           if (!isClient) {
             const rightcert = peer.options.find(
               (opt: any) => opt.option_name === 'rightcert',
             )?.option_value;
-            if (rightcert) section += `conn ${rightcert.split('.')[0]}\n`;
+            if (rightcert) {
+              section += `${isDisabled ? '# ' : ''}conn ${rightcert.split('.')[0]}\n`;
+            }
           }
           for (const option of peer.options) {
-            section += await formatOption(option, isDisabled);
+            section += await formatOption(option, isDisabled, alreadyAdded);
           }
           return section + '\n';
         };
@@ -897,12 +902,12 @@ export class IPSec extends Model {
           if (!isClient) {
             // Get client options and rightsourceip for server
             const sqlClientOpts = `
-              SELECT * FROM ipsec_opt 
-              WHERE 
-                (ipsec_cli = ? AND ipsec = ?)
-                OR 
-                (ipsec = ? AND name IN ('leftid', 'leftcert'))
-            `;
+          SELECT * FROM ipsec_opt 
+          WHERE 
+          (ipsec_cli = ? AND ipsec = ?)
+          OR 
+          (ipsec = ? AND name IN ('leftid', 'leftcert'))
+        `;
             const clientOptResult: any[] = await new Promise((res, rej) =>
               dbCon.query(sqlClientOpts, [peerId, ipSec, peerId], (err, rows) =>
                 err ? rej(err) : res(rows),
@@ -911,13 +916,20 @@ export class IPSec extends Model {
             const rightsourceip = await IPSec.getInterfaceIp(dbCon, Number(peerId));
             peer.options.push({
               option_name: 'rightsourceip',
-              option_value: rightsourceip.split('/')[0], // Get only the IP part
+              option_value: rightsourceip ? rightsourceip.split('/')[0] : '', // Get only the IP part
               option_comment: '',
             });
             clientOptResult.forEach((opt) => {
               let optionName = opt.name;
               if (optionName === 'leftid') optionName = 'rightid';
               if (optionName === 'leftcert') optionName = 'rightcert';
+              // Only add rightid/rightcert if not already present
+              if (
+                (optionName === 'rightid' || optionName === 'rightcert') &&
+                peer.options.some((o: any) => o.option_name === optionName)
+              ) {
+                return;
+              }
               peer.options.push({
                 option_name: optionName,
                 option_value: opt.arg,
@@ -1623,6 +1635,7 @@ export class IPSec extends Model {
           IPSec.getInterfaceIp(dbCon, ipsec_cli),
         ]);
 
+        const rightSubnet = getPeerOptions.find((opt) => opt.name === 'rightsubnet')?.arg || '';
         const rightSourceIp = rightSourceIpValue ? rightSourceIpValue.split('/')[0] : '';
         const rightId = getClientOptions.find((opt) => opt.name === 'leftid')?.arg || '';
         const rightCert = getClientOptions.find((opt) => opt.name === 'leftcert')?.arg || '';
@@ -1630,6 +1643,16 @@ export class IPSec extends Model {
         const alsoOption = getPeerOptions.find((opt) => opt.name === 'also')?.arg || '';
 
         const finalOptions = [
+          {
+            name: 'rightsubnet',
+            arg: rightSubnet,
+            ipsec: ipSec,
+            ipsec_cli: ipsec_cli,
+            ipobj: null,
+            order: 0,
+            scope: 8,
+            comment: null,
+          },
           {
             name: 'rightsourceip',
             arg: rightSourceIp,
