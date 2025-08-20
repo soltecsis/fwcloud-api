@@ -627,7 +627,7 @@ export class IPObjRepository extends Repository<IPObj> {
     }
 
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
-      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and ipsOpt.name='left'",
+      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and ipsOpt.name IN ('left','leftsourceip')",
     );
   }
   // All ipobj under a position excluding hosts.
