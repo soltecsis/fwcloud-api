@@ -322,7 +322,6 @@ export class IPSecController extends Controller {
         if (!installDir) throw new Error('Empty install dir');
 
         const certDir = path.join(installDir, 'ipsec.d', 'certs');
-        console.log(`Uninstalling IPSec client certificate from ${certDir}`);
         await communication.uninstallIPSecConfigs(certDir, [`${req.ipsec.cn}.crt`], channel);
       } else {
         if (!req.ipsec.install_dir || !req.ipsec.install_name)
