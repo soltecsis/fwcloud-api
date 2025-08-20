@@ -310,16 +310,53 @@ export class IPSecController extends Controller {
 
       channel.emit('message', new ProgressPayload('start', false, 'Uninstalling Ipsec'));
 
-      if (!req.ipsec.install_dir || !req.ipsec.install_name)
-        throw new Error('Empty install dir or install name');
+      if (req.ipsec.type === 1) {
+        // Uninstalling an IPSec client: remove its certificate
+        let installDir = req.ipsec.install_dir;
+        if (!installDir) {
+          // Get install dir from parent IPSec configuration
+          const parentCfg = await IPSec.getCfg(req.dbCon, req.ipsec.ipsec);
+          installDir = parentCfg.install_dir;
+        }
 
-      await communication.uninstallIPSecConfigs(
-        req.ipsec.install_dir,
-        [req.ipsec.install_name],
-        channel,
-      );
+        if (!installDir) throw new Error('Empty install dir');
 
-      // Update the status flag for the OpenVPN configuration.
+        const certDir = path.join(installDir, 'ipsec.d', 'certs');
+        console.log(`Uninstalling IPSec client certificate from ${certDir}`);
+        await communication.uninstallIPSecConfigs(certDir, [`${req.ipsec.cn}.crt`], channel);
+      } else {
+        if (!req.ipsec.install_dir || !req.ipsec.install_name)
+          throw new Error('Empty install dir or install name');
+
+        const installDir = req.ipsec.install_dir;
+        const serverName = req.ipsec.cn;
+
+        // Remove main configuration file and secrets
+        await communication.uninstallIPSecConfigs(
+          installDir,
+          [req.ipsec.install_name, 'ipsec.secrets'],
+          channel,
+        );
+
+        // Remove server and client certificates
+        const certDir = path.join(installDir, 'ipsec.d', 'certs');
+        const certFiles = [`${serverName}.crt`];
+        const cfgDump = await IPSec.dumpCfg(req.dbCon, req.body.ipsec);
+        if ((cfgDump as any).client_certs) {
+          certFiles.push(...Object.keys((cfgDump as any).client_certs).map((cn) => `${cn}.crt`));
+        }
+        await communication.uninstallIPSecConfigs(certDir, certFiles, channel);
+
+        // Remove CA certificate
+        const caDir = path.join(installDir, 'ipsec.d', 'cacerts');
+        await communication.uninstallIPSecConfigs(caDir, ['ca-cert.crt'], channel);
+
+        // Remove private key
+        const privateDir = path.join(installDir, 'ipsec.d', 'private');
+        await communication.uninstallIPSecConfigs(privateDir, [`${serverName}.key`], channel);
+      }
+
+      // Update the status flag for the IPSec configuration.
       await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
 
       channel.emit('message', new ProgressPayload('end', false, 'Uninstalling Ipsec'));
