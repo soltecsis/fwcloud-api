@@ -28,7 +28,7 @@ export default class Query {
   public query(query: string, params: Array<any>, callback: (err: any, result: any) => void): void;
   public query(
     query: string,
-    params: Record<string, never>,
+    params: Record<string, any>,
     callback: (err: any, result: any) => void,
   ): void;
   public query(query: string, callback: (err: any, result: any) => void): void;
@@ -40,8 +40,28 @@ export default class Query {
       params = [];
     }
 
+    let sql = query;
+    const values: any[] = [];
+
+    if (Array.isArray(params)) {
+      for (const param of params) {
+        if (
+          param &&
+          typeof param === 'object' &&
+          !(param instanceof Date) &&
+          !Buffer.isBuffer(param)
+        ) {
+          sql = sqlstring.format(sql, param);
+        } else {
+          values.push(param);
+        }
+      }
+    } else if (query.includes('?') && params && typeof params === 'object') {
+      sql = sqlstring.format(query, params);
+    }
+
     queryRunner
-      .query(query, params)
+      .query(sql, values)
       .then(async (result) => {
         await queryRunner.release();
         if (callback) {
