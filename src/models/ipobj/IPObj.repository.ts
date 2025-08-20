@@ -454,10 +454,7 @@ export class IPObjRepository extends Repository<IPObj> {
     const query = this.routingSelects(entity)
       .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
       .innerJoin('wgOpt.wireGuard', 'wg')
-      .innerJoin('wg.crt', 'crt')
-      .innerJoin('wg.parent', 'wgServer')
-      .innerJoin('wgServer.wireGuardPrefixes', 'prefix')
-      .innerJoin('prefix.ipObjGroups', 'ipobjGroup');
+      .innerJoin('wg.ipObjGroups', 'ipobjGroup');
 
     if (entity === 'route') {
       query
@@ -472,7 +469,7 @@ export class IPObjRepository extends Repository<IPObj> {
     }
 
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
-      "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and wgOpt.name='address'",
+      "wgOpt.name='address'",
     );
   }
 
