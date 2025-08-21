@@ -93,25 +93,59 @@ export class IPSecController extends Controller {
         let baseOrder =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
-
-        const options = [
-          {
-            name: 'rightsubnet',
-            ipsec: req.body.ipsec,
-            ipsec_cli: newIpsec,
-            arg: null, // Empty by default, will be set later
-            order: baseOrder,
-            scope: 8,
-          },
-          {
-            name: 'auto',
-            ipsec: req.body.ipsec,
-            ipsec_cli: newIpsec,
-            arg: 'add',
-            order: baseOrder++,
-            scope: 8,
-          },
-        ];
+        // If cloning, use the clone parameter to fetch options from the specified client
+        let options = [];
+        if (req.body.clone_id) {
+          const clientOptions = await IPSec.getOptData(
+            req.dbCon,
+            req.body.ipsec,
+            undefined,
+            req.body.clone_id,
+          );
+          const rightsubnetArg =
+            clientOptions.find((opt: IPSecOption) => opt.name === 'rightsubnet')?.arg ?? null;
+          const autoArg =
+            clientOptions.find((opt: IPSecOption) => opt.name === 'auto')?.arg ?? 'add';
+          options = [
+            {
+              name: 'auto',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: autoArg,
+              order: baseOrder + 1,
+              scope: 8,
+            },
+            {
+              name: 'rightsubnet',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: rightsubnetArg,
+              order: baseOrder,
+              scope: 8,
+            },
+          ];
+          baseOrder += 2;
+        } else {
+          options = [
+            {
+              name: 'auto',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: 'add',
+              order: baseOrder + 1,
+              scope: 8,
+            },
+            {
+              name: 'rightsubnet',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: null,
+              order: baseOrder,
+              scope: 8,
+            },
+          ];
+          baseOrder += 2;
+        }
         // Use Promise.all to add all the options concurrently
         await Promise.all(options.map((opt) => IPSec.addCfgOpt(req, opt)));
       }
@@ -570,13 +604,12 @@ export class IPSecController extends Controller {
     try {
       await IPSec.delCfgOptByScope(req, 8);
 
-      const clientOptions = (await IPSec.getOptData(req.dbCon, req.body.ipsec_cli)) as any[];
-      let maxOrder = clientOptions.reduce((max: number, opt: any) => Math.max(max, opt.order), 0);
-      if (maxOrder === 0) {
-        maxOrder = 1; // Start from 1 if no options exist
-      } else {
-        maxOrder++; // Increment to ensure new options are added after existing ones
-      }
+      const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
+
+      let baseOrder =
+        ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
+        1;
+
       for (const opt of req.body.options) {
         if (opt.name === 'rightsourceip') {
           continue;
@@ -585,7 +618,7 @@ export class IPSecController extends Controller {
         opt.ipsec = req.body.ipsec;
         opt.ipsec_cli = req.body.ipsec_cli;
         opt.ipobj = null;
-        opt.order = maxOrder++;
+        opt.order = baseOrder++;
         await IPSec.addCfgOpt(req, opt);
       }
 
