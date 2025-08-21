@@ -399,7 +399,7 @@ export class IPSecController extends Controller {
         await IPSec.updateIPSecServerInterface(req);
         await IPSec.updateIPSecStatus(req.dbCon, data.id, '|1');
       } else if (data.ipsec !== null && data.id !== null) {
-        await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+        await IPSec.updateIPSecStatus(req.dbCon, data.ipsec, '|1');
       }
 
       return ResponseBuilder.buildResponse().status(204);
