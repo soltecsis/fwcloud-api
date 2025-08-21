@@ -47,6 +47,8 @@ import { Offset } from '../../../../../src/offset';
 import { Mark } from '../../../../../src/models/ipobj/Mark';
 import { RoutingRuleMoveFromDto } from '../../../../../src/controllers/routing/routing-rule/dtos/move-from.dto';
 import db from '../../../../../src/database/database-manager';
+import { IPSec } from '../../../../../src/models/vpn/ipsec/IPSec';
+import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
 
 describe(describeName('Routing Rule E2E Tests'), () => {
   let app: Application;
@@ -1081,6 +1083,120 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             routingTableId: table.id,
             comment: 'other_route',
             openVPNIds: [openvpn.id],
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(422);
+      });
+
+      it('should thrown a validation exception if ipsec certificate type is not valid', async () => {
+        const ipsec = await manager.getRepository(IPSec).save(
+          manager.getRepository(IPSec).create({
+            firewallId: firewall.id,
+            crt: await manager.getRepository(Crt).save(
+              manager.getRepository(Crt).create({
+                cn: StringHelper.randomize(10),
+                days: 100,
+                type: 0,
+                ca: await manager.getRepository(Ca).save(
+                  manager.getRepository(Ca).create({
+                    fwCloud: fwCloud,
+                    cn: StringHelper.randomize(10),
+                    days: 100,
+                  }),
+                ),
+              }),
+            ),
+            parent: await manager.getRepository(IPSec).save(
+              manager.getRepository(IPSec).create({
+                firewallId: firewall.id,
+                crt: await manager.getRepository(Crt).save(
+                  manager.getRepository(Crt).create({
+                    cn: StringHelper.randomize(10),
+                    days: 100,
+                    type: 0,
+                    ca: await manager.getRepository(Ca).save(
+                      manager.getRepository(Ca).create({
+                        fwCloud: fwCloud,
+                        cn: StringHelper.randomize(10),
+                        days: 100,
+                      }),
+                    ),
+                  }),
+                ),
+              }),
+            ),
+          }),
+        );
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingRule: rule.id,
+            }),
+          )
+          .send({
+            routingTableId: table.id,
+            comment: 'other_route',
+            ipsecIds: [ipsec.id],
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(422);
+      });
+
+      it('should thrown a validation exception if wireguard certificate type is not valid', async () => {
+        const wireguard = await manager.getRepository(WireGuard).save(
+          manager.getRepository(WireGuard).create({
+            firewallId: firewall.id,
+            crt: await manager.getRepository(Crt).save(
+              manager.getRepository(Crt).create({
+                cn: StringHelper.randomize(10),
+                days: 100,
+                type: 0,
+                ca: await manager.getRepository(Ca).save(
+                  manager.getRepository(Ca).create({
+                    fwCloud: fwCloud,
+                    cn: StringHelper.randomize(10),
+                    days: 100,
+                  }),
+                ),
+              }),
+            ),
+            parent: await manager.getRepository(WireGuard).save(
+              manager.getRepository(WireGuard).create({
+                firewallId: firewall.id,
+                crt: await manager.getRepository(Crt).save(
+                  manager.getRepository(Crt).create({
+                    cn: StringHelper.randomize(10),
+                    days: 100,
+                    type: 0,
+                    ca: await manager.getRepository(Ca).save(
+                      manager.getRepository(Ca).create({
+                        fwCloud: fwCloud,
+                        cn: StringHelper.randomize(10),
+                        days: 100,
+                      }),
+                    ),
+                  }),
+                ),
+              }),
+            ),
+          }),
+        );
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingRule: rule.id,
+            }),
+          )
+          .send({
+            routingTableId: table.id,
+            comment: 'other_route',
+            wireguardIds: [wireguard.id],
           })
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(422);
