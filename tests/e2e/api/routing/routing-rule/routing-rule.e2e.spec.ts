@@ -1180,8 +1180,12 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     ),
                   }),
                 ),
+                public_key: '',
+                private_key: '',
               }),
             ),
+            public_key: '',
+            private_key: '',
           }),
         );
 
