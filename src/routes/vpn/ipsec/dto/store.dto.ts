@@ -207,4 +207,8 @@ export class StoreDto {
   @IsNotEmpty()
   @IsNumber()
   node_id: number;
+
+  @IsOptional()
+  @IsNumber()
+  clone_id?: number;
 }
