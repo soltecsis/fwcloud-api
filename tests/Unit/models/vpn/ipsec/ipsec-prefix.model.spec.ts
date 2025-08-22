@@ -38,6 +38,16 @@ describe(IPSecPrefix.name, () => {
 
       expect(exists).to.be.false;
     });
+
+    it('should return false for non-existent IPSec server', async () => {
+      const exists = await IPSecPrefix.existsPrefix(
+        db.getQuery(),
+        -9999, // Non-existent IPSec server ID
+        'IPSec-Cli-',
+      );
+
+      expect(exists).to.be.false;
+    });
   });
 
   describe('createPrefix', () => {
