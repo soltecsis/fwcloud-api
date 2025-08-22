@@ -53,22 +53,63 @@ describe(WireGuard.name, () => {
       _crtRepository = manager.getRepository(Crt);
     });
 
-    it('should insert a new configuration successfully', async () => {
-      const tempcert = await _crtRepository.save(
+    it('should create a server configuration with null parentId', async () => {
+      const serverCert = await _crtRepository.save(
         _crtRepository.create({
           caId: fwcloudProduct.ca.id,
-          cn: 'WireGuard-Server-1',
-          type: 2,
+          cn: 'WireGuard-Server-Test',
+          type: 2, // Server type
           days: 365,
         }),
       );
+
       const request: any = {
         dbCon: db.getQuery(),
         body: {
           firewall: fwcloudProduct.firewall.id,
-          crt: tempcert.id,
+          crt: serverCert.id,
           install_dir: '/tmp',
-          install_name: 'test',
+          install_name: 'server_test',
+        },
+      };
+
+      const resultId = await WireGuard.addCfg(request);
+
+      const result = await db
+        .getSource()
+        .getRepository(WireGuard)
+        .findOne({
+          where: { id: resultId },
+        });
+
+      expect(result).to.exist;
+      expect(result.parentId).to.be.null; // Server should have null parentId
+      expect(result.status).to.equal(1);
+
+      const associatedCert = await _crtRepository.findOne({
+        where: { id: result.crtId },
+      });
+      expect(associatedCert.type).to.equal(2); // Server type
+    });
+
+    it('should create a client configuration with correct parentId and status', async () => {
+      const clientCert = await _crtRepository.save(
+        _crtRepository.create({
+          caId: fwcloudProduct.ca.id,
+          cn: 'WireGuard-Client-Test',
+          type: 1, // Client type
+          days: 365,
+        }),
+      );
+
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          crt: clientCert.id,
+          install_dir: '/tmp',
+          install_name: 'client_test',
+          wireguard: fwcloudProduct.wireguardServer.id, // Parent server ID
         },
       };
 
@@ -77,14 +118,27 @@ describe(WireGuard.name, () => {
       expect(resultId).to.exist;
       expect(resultId).to.be.a('number');
       expect(resultId).to.be.greaterThan(0);
+
       const result = await db
         .getSource()
         .getRepository(WireGuard)
         .findOne({
           where: { id: resultId },
         });
+
       expect(result).to.exist;
       expect(result).to.have.property('id');
+      expect(result).to.have.property('parentId');
+      expect(result).to.have.property('status');
+
+      expect(result.parentId).to.equal(fwcloudProduct.wireguardServer.id);
+
+      expect(result.status).to.equal(0);
+
+      const associatedCert = await _crtRepository.findOne({
+        where: { id: result.crtId },
+      });
+      expect(associatedCert.type).to.equal(1); // Client type
     });
 
     it('should fail when required fields are missing', async () => {
