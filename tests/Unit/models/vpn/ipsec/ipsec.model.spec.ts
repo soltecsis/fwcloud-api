@@ -379,6 +379,41 @@ describe(IPSec.name, () => {
         expect(error).to.exist;
       }
     });
+
+    it('should handle duplicate options with the same values correctly', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+
+      // Same values as the one created in fwcloud-factory
+      const opt = {
+        ipsec: fwcloudProduct.ipsecServer.id,
+        name: 'left',
+        arg: '10.20.30.0',
+        ipobj: fwcloudProduct.ipobjs.get('network').id,
+        order: 1,
+        scope: 0,
+      };
+
+      await IPSec.addCfgOpt(req, opt);
+    });
+
+    it('should handle partially duplicate options correctly', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+
+      const opt = {
+        ipsec: fwcloudProduct.ipsecServer.id,
+        name: 'left',
+        arg: '10.10.10.10', // Different arg
+        ipobj: fwcloudProduct.ipobjs.get('network').id,
+        order: 1,
+        scope: 0,
+      };
+
+      await IPSec.addCfgOpt(req, opt);
+    });
   });
 
   describe('updateCfgOptByipobj', () => {
