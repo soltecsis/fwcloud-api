@@ -396,6 +396,9 @@ export class IPSecController extends Controller {
 
       // Update the status flag for the IPSec configuration.
       await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+      if (req.ipsec.type === 1 && req.ipsec.ipsec) {
+        await IPSec.updateIPSecStatus(req.dbCon, req.ipsec.ipsec, '|1');
+      }
 
       channel.emit('message', new ProgressPayload('end', false, 'Uninstalling Ipsec'));
 
@@ -407,9 +410,11 @@ export class IPSecController extends Controller {
           .body({ message: error.message });
       }
 
-      if (error.message)
-        return ResponseBuilder.buildResponse().status(400).body({ message: error.message });
-      else return ResponseBuilder.buildResponse().status(400).body(error);
+      const message = (error as any).message ?? (error as any).msg;
+      if (message) {
+        return ResponseBuilder.buildResponse().status(400).body({ message });
+      }
+      return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
 
@@ -615,8 +620,14 @@ export class IPSecController extends Controller {
         ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
         1;
 
+      let shouldRestart = false;
+
       for (const opt of req.body.options) {
         if (opt.name === 'rightsourceip') {
+          continue;
+        }
+        if (opt.name === '<<disable>>') {
+          shouldRestart = true;
           continue;
         }
         // Configure option
@@ -625,6 +636,15 @@ export class IPSecController extends Controller {
         opt.ipobj = null;
         opt.order = baseOrder++;
         await IPSec.addCfgOpt(req, opt);
+      }
+
+      if (shouldRestart) {
+        const firewall = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: req.body.firewall } });
+        const communication = await firewall.getCommunication();
+        await communication.systemctlManagement('restart', 'strongswan-starter');
       }
 
       return ResponseBuilder.buildResponse().status(204);
