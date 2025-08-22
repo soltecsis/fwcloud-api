@@ -274,6 +274,25 @@ describe(IPSec.name, () => {
 
       expect(result).to.exist;
     });
+
+    it('should handle non-existent IPSec ID gracefully', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          install_dir: '/tmp',
+          install_name: 'test_updated',
+          comment: 'test',
+          ipsec: -9999, // Non-existent IPSec ID
+        },
+      };
+
+      await IPSec.updateCfg(req);
+      // Verify that no rows were affected
+      const result = await db
+        .getSource()
+        .query(`SELECT COUNT(*) as count FROM ipsec WHERE id = ?`, [-9999]);
+      expect(result[0].count).to.equal('0');
+    });
   });
 
   describe('addCfgOpt', () => {
