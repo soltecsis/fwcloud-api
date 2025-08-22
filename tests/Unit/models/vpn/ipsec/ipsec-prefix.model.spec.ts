@@ -67,6 +67,7 @@ describe(IPSecPrefix.name, () => {
 
       try {
         await IPSecPrefix.createPrefix(req);
+        expect.fail('Should have thrown an error for duplicate prefix');
       } catch (error) {
         expect(error).to.exist;
         expect(error.message).to.include('Duplicate entry');
