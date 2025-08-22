@@ -104,6 +104,32 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
             expect(response.status).to.equal(200);
           });
       });
+
+      it('should not allow creating a prefix with duplicate name in the same fwcloud', async () => {
+        // First, create a prefix
+        await request(app.express)
+          .post(_URL().getURL('vpn.ipsec.prefix'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'duplicate-test',
+            ipsec: fwcProduct.ipsecServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .expect(200);
+
+        // Try to create another prefix with the same name
+        await request(app.express)
+          .post(_URL().getURL('vpn.ipsec.prefix'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'duplicate-test',
+            ipsec: fwcProduct.ipsecServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(403);
+          });
+      });
     });
 
     describe('@update', () => {
@@ -401,6 +427,32 @@ describe(describeName('IPSec Prefix E2E Tests'), () => {
           .getRepository(Firewall)
           .findOne({ where: { id: fwcProduct.firewall.id } });
         expect(firewall.status).to.equal(3);
+      });
+
+      it('should not be able to delete a non-existent prefix', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.prefix.del'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            prefix: 99999,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('should not be able to delete a prefix that is in use', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.prefix.del'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            prefix: fwcProduct.ipsecPrefix.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(403);
+          });
       });
     });
   });
