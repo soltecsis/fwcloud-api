@@ -319,6 +319,94 @@ describe(describeName('WireGuard E2E Tests'), () => {
             expect(response.status).to.equal(204);
           });
       });
+
+      it('should return 422 when updating with invalid wireguard ID', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: 99999 }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.2/24',
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(422);
+          });
+      });
+
+      it('should return 400 when updating with invalid firewall ID', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: 99999,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.2/24',
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('should return 422 when updating with empty install_name', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: '',
+            options: [
+              {
+                name: 'Address',
+                arg: '1.1.1.2/24',
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(422);
+          });
+      });
+
+      it('should return 422 when updating with invalid IP address format', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.update', { id: wireguardId }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            install_dir: '/tmp',
+            install_name: 'test.conf',
+            options: [
+              {
+                name: 'Address',
+                arg: 'invalid-ip-format',
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(422);
+          });
+      });
     });
 
     describe('@get', async () => {
@@ -634,6 +722,32 @@ describe(describeName('WireGuard E2E Tests'), () => {
           })
           .then((response) => {
             expect(response.status).to.equal(204);
+          });
+      });
+
+      it('should return 400 when trying to delete with invalid wireguard ID', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.delete'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            wireguard: 99999,
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
+          });
+      });
+
+      it('should return 400 when trying to delete with invalid data types', async () => {
+        await request(app.express)
+          .put(_URL().getURL('vpn.wireguard.delete'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: 'invalid-fwcloud-id',
+            wireguard: 'invalid-wireguard-id',
+          })
+          .then((response) => {
+            expect(response.status).to.equal(400);
           });
       });
     });
