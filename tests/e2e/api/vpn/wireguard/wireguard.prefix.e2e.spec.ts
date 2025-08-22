@@ -103,6 +103,34 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
             expect(res.status).to.equal(200);
           });
       });
+
+      it('should not allow creating duplicate prefixes with same name', async () => {
+        // Create the initial prefix
+        await request(app.express)
+          .post(_URL().getURL('vpn.wireguard.prefix'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'duplicate-test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+
+        // Try to create a duplicate
+        await request(app.express)
+          .post(_URL().getURL('vpn.wireguard.prefix'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'duplicate-test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(403);
+          });
+      });
     });
 
     describe('@update', () => {
