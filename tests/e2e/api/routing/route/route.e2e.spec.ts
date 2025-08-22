@@ -298,6 +298,48 @@ describe(describeName('Route E2E Tests'), () => {
             .route_order,
         ).to.eq(4);
       });
+
+      it('should fail when trying to move non-existent routes', async () => {
+        const nonExistentRouteId = 99999;
+        const data = {
+          routes: [nonExistentRouteId],
+          to: routeOrder3.id,
+          offset: Offset.Above,
+        };
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(data)
+          .expect(500);
+      });
+
+      it('should fail when trying to move routes to non-existent target', async () => {
+        const nonExistentTargetId = 99999;
+        const data = {
+          routes: [routeOrder1.id],
+          to: nonExistentTargetId,
+          offset: Offset.Above,
+        };
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(data)
+          .expect(404);
+      });
     });
 
     describe('@moveTo', () => {
@@ -922,6 +964,48 @@ describe(describeName('Route E2E Tests'), () => {
         expect(await manager.getRepository(Route).count({ where: { comment: 'comment2' } })).to.eq(
           2,
         );
+      });
+
+      it('should fail when trying to copy non-existent routes', async () => {
+        const nonExistentRouteId = 99999;
+        const data = {
+          routes: [nonExistentRouteId],
+          to: (await new RouteRepository(manager).getLastRouteInRoutingTable(table.id)).id,
+          offset: Offset.Below,
+        };
+
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send(data)
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(404);
+      });
+
+      it('should fail when trying to copy routes to non-existent target', async () => {
+        const nonExistentTargetId = 99999;
+        const data = {
+          routes: [routeOrder1.id],
+          to: nonExistentTargetId,
+          offset: Offset.Below,
+        };
+
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send(data)
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(404);
       });
     });
 
