@@ -374,6 +374,44 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             expect(response.body.data).to.have.length(2);
           });
       });
+
+      it('should return 500 when trying to move non-existent rules', async () => {
+        const invalidData = {
+          rules: [99999, 88888],
+          to: ruleOrder3.id,
+          offset: Offset.Above,
+        };
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.move', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(invalidData)
+          .expect(500);
+      });
+
+      it('should return 404 when trying to move to non-existent rule', async () => {
+        const invalidData = {
+          rules: [ruleOrder1.id, ruleOrder2.id],
+          to: 99999,
+          offset: Offset.Above,
+        };
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.move', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(invalidData)
+          .expect(404);
+      });
     });
 
     describe('@moveFrom', () => {
@@ -478,6 +516,44 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .then((response) => {
             expect(response.body.data).to.have.length(2);
           });
+      });
+
+      it('should return 404 when trying to move from non-existent rule', async () => {
+        const invalidData = {
+          fromId: 99999,
+          toId: rule2.id,
+          markId: data.markId,
+        };
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(invalidData)
+          .expect(404);
+      });
+
+      it('should return 404 when trying to move to non-existent rule', async () => {
+        const invalidData = {
+          fromId: rule1.id,
+          toId: 99999,
+          markId: data.markId,
+        };
+
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(invalidData)
+          .expect(404);
       });
     });
 
@@ -1205,6 +1281,40 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(422);
       });
+
+      it('should return 500 when trying to update with invalid routing table ID', async () => {
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingRule: rule.id,
+            }),
+          )
+          .send({
+            routingTableId: 99999,
+            comment: 'route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(500);
+      });
+
+      it('should return 404 when trying to update non-existent rule', async () => {
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingRule: 99999,
+            }),
+          )
+          .send({
+            routingTableId: table.id,
+            comment: 'route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(404);
+      });
     });
 
     describe('@bulkUpdate', () => {
@@ -1330,6 +1440,22 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           (await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id } }))
             .style,
         ).to.eq('style!');
+      });
+
+      it('should return 404 when trying to bulk update non-existent rules', async () => {
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .query({
+            rules: [99999, 88888],
+          })
+          .send(data)
+          .expect(404);
       });
     });
 
