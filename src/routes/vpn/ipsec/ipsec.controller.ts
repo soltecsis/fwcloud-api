@@ -93,25 +93,59 @@ export class IPSecController extends Controller {
         let baseOrder =
           ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
           1;
-
-        const options = [
-          {
-            name: 'rightsubnet',
-            ipsec: req.body.ipsec,
-            ipsec_cli: newIpsec,
-            arg: null, // Empty by default, will be set later
-            order: baseOrder,
-            scope: 8,
-          },
-          {
-            name: 'auto',
-            ipsec: req.body.ipsec,
-            ipsec_cli: newIpsec,
-            arg: 'add',
-            order: baseOrder++,
-            scope: 8,
-          },
-        ];
+        // If cloning, use the clone parameter to fetch options from the specified client
+        let options = [];
+        if (req.body.clone_id) {
+          const clientOptions = await IPSec.getOptData(
+            req.dbCon,
+            req.body.ipsec,
+            undefined,
+            req.body.clone_id,
+          );
+          const rightsubnetArg =
+            clientOptions.find((opt: IPSecOption) => opt.name === 'rightsubnet')?.arg ?? null;
+          const autoArg =
+            clientOptions.find((opt: IPSecOption) => opt.name === 'auto')?.arg ?? 'add';
+          options = [
+            {
+              name: 'auto',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: autoArg,
+              order: baseOrder + 1,
+              scope: 8,
+            },
+            {
+              name: 'rightsubnet',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: rightsubnetArg,
+              order: baseOrder,
+              scope: 8,
+            },
+          ];
+          baseOrder += 2;
+        } else {
+          options = [
+            {
+              name: 'auto',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: 'add',
+              order: baseOrder + 1,
+              scope: 8,
+            },
+            {
+              name: 'rightsubnet',
+              ipsec: req.body.ipsec,
+              ipsec_cli: newIpsec,
+              arg: null,
+              order: baseOrder,
+              scope: 8,
+            },
+          ];
+          baseOrder += 2;
+        }
         // Use Promise.all to add all the options concurrently
         await Promise.all(options.map((opt) => IPSec.addCfgOpt(req, opt)));
       }
@@ -199,6 +233,9 @@ export class IPSecController extends Controller {
       }
 
       channel.emit('message', new ProgressPayload('start', false, 'Installing Ipsec'));
+
+      const configOnly = req.body.configOnly || false;
+
       await communication.installIPSecServerConfigs(
         installDir,
         [
@@ -210,63 +247,65 @@ export class IPSecController extends Controller {
         channel,
       );
 
-      if ((cfgDump as any).ca_cert) {
-        const caDir = path.join(installDir, 'ipsec.d', 'cacerts');
-        await communication.installIPSecServerConfigs(
-          caDir,
-          [
-            {
-              content: (cfgDump as any).ca_cert,
-              name: 'ca-cert.crt',
-            },
-          ],
-          channel,
-        );
-      }
-
-      if ((cfgDump as any).cert || (cfgDump as any).client_certs) {
-        const certDir = path.join(installDir, 'ipsec.d', 'certs');
-        const certFiles: Array<{ content: string; name: string }> = [];
-        if ((cfgDump as any).cert) {
-          certFiles.push({
-            content: (cfgDump as any).cert,
-            name: `${(cfgDump as any).cn}.crt`,
-          });
+      if (!configOnly) {
+        if ((cfgDump as any).ca_cert) {
+          const caDir = path.join(installDir, 'ipsec.d', 'cacerts');
+          await communication.installIPSecServerConfigs(
+            caDir,
+            [
+              {
+                content: (cfgDump as any).ca_cert,
+                name: 'ca-cert.crt',
+              },
+            ],
+            channel,
+          );
         }
-        if ((cfgDump as any).client_certs) {
-          for (const [cn, content] of Object.entries((cfgDump as any).client_certs)) {
-            certFiles.push({ content: content as string, name: `${cn}.crt` });
+
+        if ((cfgDump as any).cert || (cfgDump as any).client_certs) {
+          const certDir = path.join(installDir, 'ipsec.d', 'certs');
+          const certFiles: Array<{ content: string; name: string }> = [];
+          if ((cfgDump as any).cert) {
+            certFiles.push({
+              content: (cfgDump as any).cert,
+              name: `${(cfgDump as any).cn}.crt`,
+            });
+          }
+          if ((cfgDump as any).client_certs) {
+            for (const [cn, content] of Object.entries((cfgDump as any).client_certs)) {
+              certFiles.push({ content: content as string, name: `${cn}.crt` });
+            }
+          }
+          if (certFiles.length) {
+            await communication.installIPSecServerConfigs(certDir, certFiles, channel);
           }
         }
-        if (certFiles.length) {
-          await communication.installIPSecServerConfigs(certDir, certFiles, channel);
+
+        if ((cfgDump as any).private_key) {
+          const serverName = (cfgDump as any).cn;
+          const privateDir = path.join(installDir, 'ipsec.d', 'private');
+          await communication.installIPSecServerConfigs(
+            privateDir,
+            [
+              {
+                content: (cfgDump as any).private_key,
+                name: `${serverName}.key`,
+              },
+            ],
+            channel,
+          );
+
+          await communication.installIPSecServerConfigs(
+            installDir,
+            [
+              {
+                content: `: RSA ${serverName}.key\n`,
+                name: 'ipsec.secrets',
+              },
+            ],
+            channel,
+          );
         }
-      }
-
-      if ((cfgDump as any).private_key) {
-        const serverName = (cfgDump as any).cn;
-        const privateDir = path.join(installDir, 'ipsec.d', 'private');
-        await communication.installIPSecServerConfigs(
-          privateDir,
-          [
-            {
-              content: (cfgDump as any).private_key,
-              name: `${serverName}.key`,
-            },
-          ],
-          channel,
-        );
-
-        await communication.installIPSecServerConfigs(
-          installDir,
-          [
-            {
-              content: `: RSA ${serverName}.key\n`,
-              name: 'ipsec.secrets',
-            },
-          ],
-          channel,
-        );
       }
 
       // Update the status flag for the Ipsec configuration.
@@ -399,7 +438,7 @@ export class IPSecController extends Controller {
         await IPSec.updateIPSecServerInterface(req);
         await IPSec.updateIPSecStatus(req.dbCon, data.id, '|1');
       } else if (data.ipsec !== null && data.id !== null) {
-        await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
+        await IPSec.updateIPSecStatus(req.dbCon, data.ipsec, '|1');
       }
 
       return ResponseBuilder.buildResponse().status(204);
@@ -570,13 +609,12 @@ export class IPSecController extends Controller {
     try {
       await IPSec.delCfgOptByScope(req, 8);
 
-      const clientOptions = (await IPSec.getOptData(req.dbCon, req.body.ipsec_cli)) as any[];
-      let maxOrder = clientOptions.reduce((max: number, opt: any) => Math.max(max, opt.order), 0);
-      if (maxOrder === 0) {
-        maxOrder = 1; // Start from 1 if no options exist
-      } else {
-        maxOrder++; // Increment to ensure new options are added after existing ones
-      }
+      const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
+
+      let baseOrder =
+        ipsecCfg?.options.reduce((max: number, opt: IPSecOption) => Math.max(max, opt.order), 0) +
+        1;
+
       for (const opt of req.body.options) {
         if (opt.name === 'rightsourceip') {
           continue;
@@ -585,7 +623,7 @@ export class IPSecController extends Controller {
         opt.ipsec = req.body.ipsec;
         opt.ipsec_cli = req.body.ipsec_cli;
         opt.ipobj = null;
-        opt.order = maxOrder++;
+        opt.order = baseOrder++;
         await IPSec.addCfgOpt(req, opt);
       }
 
