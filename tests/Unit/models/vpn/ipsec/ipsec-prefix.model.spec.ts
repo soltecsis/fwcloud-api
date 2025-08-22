@@ -160,6 +160,35 @@ describe(IPSecPrefix.name, () => {
       const nonExistentId = -9999; // Non-existent prefix ID
       await IPSecPrefix.deletePrefix(db.getQuery(), nonExistentId);
     });
+
+    it('should throw error when deleting a prefix referenced by routes or objects', async () => {
+      // Create a new prefix to ensure it is not referenced
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          name: 'Test-Referenced-Prefix-',
+          ipsec: fwcloudProduct.ipsecServer.id,
+        },
+      };
+
+      const prefixId = await IPSecPrefix.createPrefix(req);
+
+      // Add the prefix to a group to create a reference
+      await IPSecPrefix.addPrefixToGroup(
+        db.getQuery(),
+        prefixId as number,
+        fwcloudProduct.ipobjGroup.id,
+      );
+
+      try {
+        await IPSecPrefix.deletePrefix(db.getQuery(), prefixId as number);
+        expect.fail('Should have thrown an error due to existing references');
+      } catch (error) {
+        expect(error).to.exist;
+        // Verify that the error is due to foreign key constraint
+        expect(error.message).to.match(/foreign key constraint|Cannot delete/i);
+      }
+    });
   });
 
   describe('deletePrefixAll', () => {
