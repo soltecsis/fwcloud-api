@@ -185,6 +185,28 @@ describe(WireGuard.name, () => {
       expect(result).to.have.property('comment');
       expect(result.comment).to.equal(request.body.comment);
     });
+
+    it('should not fail when trying to update with invalid wireguard ID', async () => {
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          wireguard: -9999, // invalid ID
+          comment: 'test',
+          install_dir: '/tmp',
+          install_name: 'test_updated',
+        },
+      };
+
+      await WireGuard.updateCfg(request);
+
+      const resultAfter = await db
+        .getSource()
+        .query(`SELECT * FROM wireguard WHERE id = ?`, [request.body.wireguard]);
+
+      expect(resultAfter).to.exist;
+      expect(resultAfter).to.be.an('array').that.is.empty;
+    });
   });
 
   describe('delCfg', () => {
