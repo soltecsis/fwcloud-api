@@ -116,6 +116,11 @@ export class RoutingTableService extends Service {
       this._databaseService.dataSource.manager,
     );
 
+    this._ipsecRepository = new IPSecRepository(this._databaseService.dataSource.manager);
+    this._ipsecPrefixRepository = new IPSecPrefixRepository(
+      this._databaseService.dataSource.manager,
+    );
+
     return this;
   }
 

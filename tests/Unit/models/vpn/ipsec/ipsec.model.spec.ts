@@ -274,6 +274,25 @@ describe(IPSec.name, () => {
 
       expect(result).to.exist;
     });
+
+    it('should handle non-existent IPSec ID gracefully', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          install_dir: '/tmp',
+          install_name: 'test_updated',
+          comment: 'test',
+          ipsec: -9999, // Non-existent IPSec ID
+        },
+      };
+
+      await IPSec.updateCfg(req);
+      // Verify that no rows were affected
+      const result = await db
+        .getSource()
+        .query(`SELECT COUNT(*) as count FROM ipsec WHERE id = ?`, [-9999]);
+      expect(result[0].count).to.equal('0');
+    });
   });
 
   describe('addCfgOpt', () => {
@@ -359,6 +378,41 @@ describe(IPSec.name, () => {
       } catch (error) {
         expect(error).to.exist;
       }
+    });
+
+    it('should handle duplicate options with the same values correctly', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+
+      // Same values as the one created in fwcloud-factory
+      const opt = {
+        ipsec: fwcloudProduct.ipsecServer.id,
+        name: 'left',
+        arg: '10.20.30.0',
+        ipobj: fwcloudProduct.ipobjs.get('network').id,
+        order: 1,
+        scope: 0,
+      };
+
+      await IPSec.addCfgOpt(req, opt);
+    });
+
+    it('should handle partially duplicate options correctly', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+
+      const opt = {
+        ipsec: fwcloudProduct.ipsecServer.id,
+        name: 'left',
+        arg: '10.10.10.10', // Different arg
+        ipobj: fwcloudProduct.ipobjs.get('network').id,
+        order: 1,
+        scope: 0,
+      };
+
+      await IPSec.addCfgOpt(req, opt);
     });
   });
 
@@ -501,7 +555,7 @@ describe(IPSec.name, () => {
           db.getQuery(),
           4294967296, // Out of range
           fwcloudProduct.ipsecServer.id,
-          'left',
+          'leftsourceip',
         );
       } catch (error) {
         expect(error).to.exist;
@@ -780,6 +834,11 @@ describe(IPSec.name, () => {
 
       await dbCon.query(`TRUNCATE TABLE ipsec__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await dbCon.query(`TRUNCATE TABLE ipsec_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
       await dbCon.query(`delete from ipsec where ipsec = ${serverId}`);
       await dbCon.query(`delete from ipsec_opt where ipsec = ${serverId}`);
 
@@ -804,6 +863,10 @@ describe(IPSec.name, () => {
       await dbCon.query(`TRUNCATE TABLE ipsec__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE ipsec_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
 
       await IPSec.delCfgAll(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.firewall.id);
 

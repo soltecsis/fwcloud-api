@@ -62,6 +62,8 @@ interface IFindOneRoutePath extends IFindManyRoutePath {
 }
 
 export interface ICreateRoute {
+  ipsecIds?: { id: number; order: number }[];
+  ipsecPrefixIds?: { id: number; order: number }[];
   routingTableId: number;
   gatewayId: number;
   interfaceId?: number;
@@ -79,6 +81,8 @@ export interface ICreateRoute {
   ipSecPrefixIds?: { id: number; order: number }[];
   to?: number; //Reference where create the route
   offset?: Offset;
+  wireguardIds?: { id: number; order: number }[];
+  wireguardPrefixIds?: { id: number; order: number }[];
 }
 
 interface IUpdateRoute {
@@ -104,6 +108,8 @@ interface IBulkUpdateRoute {
 }
 
 interface IMoveToRoute {
+  ipsecId?: number;
+  ipsecPrefixId?: number;
   fromId: number;
   toId: number;
   ipObjId?: number;
@@ -324,6 +330,32 @@ export class RouteService extends Service {
       );
     }
 
+    if (data.wireGuardIds) {
+      await this.validateWireGuards(firewall, data);
+
+      route.routeToWireGuards = data.wireGuardIds.map(
+        (item) =>
+          ({
+            routeId: route.id,
+            wireGuardId: item.id,
+            order: item.order,
+          }) as RouteToWireGuard,
+      );
+    }
+
+    if (data.wireGuardPrefixIds) {
+      await this.validateWireGuardPrefixes(firewall, data);
+
+      route.routeToWireGuardPrefixes = data.wireGuardPrefixIds.map(
+        (item) =>
+          ({
+            routeId: route.id,
+            wireGuardPrefixId: item.id,
+            order: item.order,
+          }) as RouteToWireGuardPrefix,
+      );
+    }
+
     await this.validateFirewallApplyToId(firewall, data);
     route.firewallApplyToId = data.firewallApplyToId;
 
@@ -354,6 +386,10 @@ export class RouteService extends Service {
         'routeToIPObjGroups',
         'routeToOpenVPNs',
         'routeToOpenVPNPrefixes',
+        'routeToIPSecs',
+        'routeToIPSecPrefixes',
+        'routeToWireGuards',
+        'routeToWireGuardPrefixes',
       ],
     });
 
@@ -362,6 +398,10 @@ export class RouteService extends Service {
       route.routeToIPObjGroups,
       route.routeToOpenVPNs,
       route.routeToOpenVPNPrefixes,
+      route.routeToIPSecs,
+      route.routeToIPSecPrefixes,
+      route.routeToWireGuards,
+      route.routeToWireGuardPrefixes,
     );
 
     items
@@ -385,6 +425,10 @@ export class RouteService extends Service {
         'routeToIPObjGroups',
         'routeToOpenVPNs',
         'routeToOpenVPNPrefixes',
+        'routeToIPSecs',
+        'routeToIPSecPrefixes',
+        'routeToWireGuards',
+        'routeToWireGuardPrefixes',
       ],
     });
 
@@ -473,6 +517,8 @@ export class RouteService extends Service {
           'routeToWireGuardPrefixes',
           'routeToIPSecs',
           'routeToIPSecPrefixes',
+          'routeToWireGuards',
+          'routeToWireGuardPrefixes',
         ],
       });
     const toRule: Route = await db
@@ -491,6 +537,8 @@ export class RouteService extends Service {
           'routeToWireGuardPrefixes',
           'routeToIPSecs',
           'routeToIPSecPrefixes',
+          'routeToWireGuards',
+          'routeToWireGuardPrefixes',
         ],
       });
 
@@ -506,6 +554,8 @@ export class RouteService extends Service {
         toRule.routeToWireGuardPrefixes,
         toRule.routeToIPSecs,
         toRule.routeToIPSecPrefixes,
+        toRule.routeToWireGuards,
+        toRule.routeToWireGuardPrefixes,
       )
       .forEach((item) => {
         lastPosition < item.order ? (lastPosition = item.order) : null;
@@ -623,6 +673,34 @@ export class RouteService extends Service {
       }
     }
 
+    if (data.wireGuardId !== undefined) {
+      const index: number = fromRule.routeToWireGuards.findIndex(
+        (item) => item.wireGuardId === data.wireGuardId,
+      );
+      if (index >= 0) {
+        fromRule.routeToWireGuards.splice(index, 1);
+        toRule.routeToWireGuards.push({
+          routeId: toRule.id,
+          wireGuardId: data.wireGuardId,
+          order: lastPosition + 1,
+        } as RouteToWireGuard);
+      }
+    }
+
+    if (data.wireGuardPrefixId !== undefined) {
+      const index: number = fromRule.routeToWireGuardPrefixes.findIndex(
+        (item) => item.wireGuardPrefixId === data.wireGuardPrefixId,
+      );
+      if (index >= 0) {
+        fromRule.routeToWireGuardPrefixes.splice(index, 1);
+        toRule.routeToWireGuardPrefixes.push({
+          routeId: toRule.id,
+          wireGuardPrefixId: data.wireGuardPrefixId,
+          order: lastPosition + 1,
+        } as RouteToWireGuardPrefix);
+      }
+    }
+
     return (await this._repository.save([fromRule, toRule])) as [Route, Route];
   }
 
@@ -693,6 +771,10 @@ export class RouteService extends Service {
     route.routeToOpenVPNs = [];
     route.routeToIPObjGroups = [];
     route.routeToIPObjs = [];
+    route.routeToIPSecs = [];
+    route.routeToIPSecPrefixes = [];
+    route.routeToWireGuards = [];
+    route.routeToWireGuardPrefixes = [];
     await this._repository.save(route);
 
     await this._repository.remove(route);
@@ -799,6 +881,10 @@ export class RouteService extends Service {
           'ipSecs',
           'ipObjToIPObjGroups',
           'ipObjToIPObjGroups.ipObj',
+          'ipSecs',
+          'ipSecPrefixes',
+          'wireGuards',
+          'wireGuardPrefixes',
         ],
       });
 
@@ -842,6 +928,14 @@ export class RouteService extends Service {
           ipObjGroup.ipSecs.length > 0 ||
           ipObjGroup.ipSecPrefixes.length > 0
         ) {
+          valid = true;
+        }
+
+        if (ipObjGroup.ipSecs.length > 0 || ipObjGroup.ipSecPrefixes.length > 0) {
+          valid = true;
+        }
+
+        if (ipObjGroup.wireGuards.length > 0 || ipObjGroup.wireGuardPrefixes.length > 0) {
           valid = true;
         }
 
@@ -1036,6 +1130,38 @@ export class RouteService extends Service {
     for (let i = 0; i < data.ipSecPrefixIds.length; i++) {
       if (ipSecPrefixes.findIndex((item) => item.id === data.ipSecPrefixIds[i].id) < 0) {
         errors[`ipSecPrefixIds.${i}.id`] = ['ipSecPrefix does not exists'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
+  protected async validateWireGuards(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.wireGuardIds || data.wireGuardIds.length === 0) {
+      return;
+    }
+
+    const wireguards: WireGuard[] = await db
+      .getSource()
+      .manager.getRepository(WireGuard)
+      .createQueryBuilder('wireguard')
+      .innerJoin('wireguard.crt', 'crt')
+      .innerJoin('wireguard.firewall', 'firewall')
+      .whereInIds(data.wireGuardIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .andWhere('wireguard.parentId IS NOT null')
+      .andWhere('crt.type = 1')
+      .getMany();
+
+    for (let i = 0; i < data.wireGuardIds.length; i++) {
+      if (wireguards.findIndex((item) => item.id === data.wireGuardIds[i].id) < 0) {
+        errors[`wireGuardIds.${i}.id`] = ['wireguard does not exists or is not a client'];
       }
     }
 

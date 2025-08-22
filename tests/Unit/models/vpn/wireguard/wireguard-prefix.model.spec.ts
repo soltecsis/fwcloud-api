@@ -1,3 +1,25 @@
+/*!
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { EntityManager } from 'typeorm';
 import { WireGuardPrefix } from '../../../../../src/models/vpn/wireguard/WireGuardPrefix';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
@@ -163,16 +185,9 @@ describe(WireGuardPrefix.name, () => {
         }),
       );
 
-      await db.getSource().query(
-        `DELETE FROM wireguard_prefix__ipobj_g 
-                 WHERE prefix IN (
-                   SELECT id FROM wireguard_prefix 
-                   WHERE wireguard IN (
-                     SELECT id FROM wireguard WHERE firewall = ?
-                   )
-                 )`,
-        [fwcloudProduct.firewall.id],
-      );
+      await db.getSource().query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
+      await db.getSource().query(`TRUNCATE TABLE route__wireguard_prefix`);
+      await db.getSource().query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
 
       await WireGuardPrefix.deletePrefixAll(
         db.getQuery(),
@@ -302,7 +317,7 @@ describe(WireGuardPrefix.name, () => {
         ]);
 
       expect(result).to.be.an('array');
-      expect(result).to.have.length(1);
+      expect(result).to.have.length(2);
     });
   });
 

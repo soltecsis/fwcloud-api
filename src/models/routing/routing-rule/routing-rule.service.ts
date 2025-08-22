@@ -1058,8 +1058,8 @@ export class RoutingRuleService extends Service {
     const ipsecs: IPSec[] = await db
       .getSource()
       .manager.getRepository(IPSec)
-      .createQueryBuilder('wireguard')
-      .innerJoin('wireguard.firewall', 'firewall')
+      .createQueryBuilder('ipsec')
+      .innerJoin('ipsec.firewall', 'firewall')
       .whereInIds(data.ipSecIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
         fwcloud: firewall.fwCloudId,
@@ -1305,6 +1305,20 @@ export class RoutingRuleService extends Service {
       ),
       this._ipobjRepository.getIpobjsInWireGuardInRouting('rule', fwcloud, firewall, null, rules),
       this._ipobjRepository.getIpobjsInWireGuardPrefixesInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjsInWireGuardInGroupsInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjInWireGuardPrefixesInGroupsInRouting(
         'rule',
         fwcloud,
         firewall,

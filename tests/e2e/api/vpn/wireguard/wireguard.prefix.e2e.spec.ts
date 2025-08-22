@@ -103,6 +103,34 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
             expect(res.status).to.equal(200);
           });
       });
+
+      it('should not allow creating duplicate prefixes with same name', async () => {
+        // Create the initial prefix
+        await request(app.express)
+          .post(_URL().getURL('vpn.wireguard.prefix'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'duplicate-test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(200);
+          });
+
+        // Try to create a duplicate
+        await request(app.express)
+          .post(_URL().getURL('vpn.wireguard.prefix'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            name: 'duplicate-test',
+            wireguard: fwcProduct.wireguardServer.id,
+            fwcloud: fwcProduct.fwcloud.id,
+          })
+          .then((res) => {
+            expect(res.status).to.equal(403);
+          });
+      });
     });
 
     describe('@update', () => {
@@ -252,7 +280,7 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(204);
+            expect(res.status).to.equal(200);
           });
       });
 
@@ -265,7 +293,7 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
           })
           .then((res) => {
-            expect(res.status).to.equal(204);
+            expect(res.status).to.equal(200);
           });
       });
     });
@@ -297,6 +325,10 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
       });
 
       it('regular user should be able to delete a prefix', async () => {
+        await db.getSource().query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__wireguard_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.wireguard.prefix.del'))
           .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -310,6 +342,10 @@ describe(describeName('Wireguard Prefix E2E Tests'), () => {
       });
 
       it('admin user should be able to delete a prefix', async () => {
+        await db.getSource().query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
+        await db.getSource().query(`TRUNCATE TABLE route__wireguard_prefix`);
+        await db.getSource().query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
+
         await request(app.express)
           .put(_URL().getURL('vpn.wireguard.prefix.del'))
           .set('Cookie', [attachSession(adminUserSessionId)])

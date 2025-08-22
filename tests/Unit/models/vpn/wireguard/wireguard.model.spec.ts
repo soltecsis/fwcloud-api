@@ -1,3 +1,25 @@
+/*!
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { expect } from '../../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
@@ -31,22 +53,63 @@ describe(WireGuard.name, () => {
       _crtRepository = manager.getRepository(Crt);
     });
 
-    it('should insert a new configuration successfully', async () => {
-      const tempcert = await _crtRepository.save(
+    it('should create a server configuration with null parentId', async () => {
+      const serverCert = await _crtRepository.save(
         _crtRepository.create({
           caId: fwcloudProduct.ca.id,
-          cn: 'WireGuard-Server-1',
-          type: 2,
+          cn: 'WireGuard-Server-Test',
+          type: 2, // Server type
           days: 365,
         }),
       );
+
       const request: any = {
         dbCon: db.getQuery(),
         body: {
           firewall: fwcloudProduct.firewall.id,
-          crt: tempcert.id,
+          crt: serverCert.id,
           install_dir: '/tmp',
-          install_name: 'test',
+          install_name: 'server_test',
+        },
+      };
+
+      const resultId = await WireGuard.addCfg(request);
+
+      const result = await db
+        .getSource()
+        .getRepository(WireGuard)
+        .findOne({
+          where: { id: resultId },
+        });
+
+      expect(result).to.exist;
+      expect(result.parentId).to.be.null; // Server should have null parentId
+      expect(result.status).to.equal(1);
+
+      const associatedCert = await _crtRepository.findOne({
+        where: { id: result.crtId },
+      });
+      expect(associatedCert.type).to.equal(2); // Server type
+    });
+
+    it('should create a client configuration with correct parentId and status', async () => {
+      const clientCert = await _crtRepository.save(
+        _crtRepository.create({
+          caId: fwcloudProduct.ca.id,
+          cn: 'WireGuard-Client-Test',
+          type: 1, // Client type
+          days: 365,
+        }),
+      );
+
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          crt: clientCert.id,
+          install_dir: '/tmp',
+          install_name: 'client_test',
+          wireguard: fwcloudProduct.wireguardServer.id, // Parent server ID
         },
       };
 
@@ -55,14 +118,27 @@ describe(WireGuard.name, () => {
       expect(resultId).to.exist;
       expect(resultId).to.be.a('number');
       expect(resultId).to.be.greaterThan(0);
+
       const result = await db
         .getSource()
         .getRepository(WireGuard)
         .findOne({
           where: { id: resultId },
         });
+
       expect(result).to.exist;
       expect(result).to.have.property('id');
+      expect(result).to.have.property('parentId');
+      expect(result).to.have.property('status');
+
+      expect(result.parentId).to.equal(fwcloudProduct.wireguardServer.id);
+
+      expect(result.status).to.equal(0);
+
+      const associatedCert = await _crtRepository.findOne({
+        where: { id: result.crtId },
+      });
+      expect(associatedCert.type).to.equal(1); // Client type
     });
 
     it('should fail when required fields are missing', async () => {
@@ -109,6 +185,28 @@ describe(WireGuard.name, () => {
       expect(result).to.have.property('comment');
       expect(result.comment).to.equal(request.body.comment);
     });
+
+    it('should not fail when trying to update with invalid wireguard ID', async () => {
+      const request: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          wireguard: -9999, // invalid ID
+          comment: 'test',
+          install_dir: '/tmp',
+          install_name: 'test_updated',
+        },
+      };
+
+      await WireGuard.updateCfg(request);
+
+      const resultAfter = await db
+        .getSource()
+        .query(`SELECT * FROM wireguard WHERE id = ?`, [request.body.wireguard]);
+
+      expect(resultAfter).to.exist;
+      expect(resultAfter).to.be.an('array').that.is.empty;
+    });
   });
 
   describe('delCfg', () => {
@@ -133,6 +231,11 @@ describe(WireGuard.name, () => {
 
       await dbCon.query(`TRUNCATE TABLE wireguard__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
+      await dbCon.query(`TRUNCATE TABLE wireguard_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
       await dbCon.query(`delete from wireguard where wireguard = ${serverId}`);
       await dbCon.query(`delete from wireguard_opt where wireguard = ${serverId}`);
 
@@ -161,6 +264,10 @@ describe(WireGuard.name, () => {
       await dbCon.query(`TRUNCATE TABLE wireguard__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_prefix__ipobj_g`);
       await dbCon.query(`TRUNCATE TABLE wireguard_opt`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE route__wireguard_prefix`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard`);
+      await dbCon.query(`TRUNCATE TABLE routing_r__wireguard_prefix`);
 
       await WireGuard.delCfgAll(
         db.getQuery(),

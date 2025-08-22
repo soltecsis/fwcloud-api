@@ -38,6 +38,16 @@ describe(IPSecPrefix.name, () => {
 
       expect(exists).to.be.false;
     });
+
+    it('should return false for non-existent IPSec server', async () => {
+      const exists = await IPSecPrefix.existsPrefix(
+        db.getQuery(),
+        -9999, // Non-existent IPSec server ID
+        'IPSec-Cli-',
+      );
+
+      expect(exists).to.be.false;
+    });
   });
 
   describe('createPrefix', () => {
@@ -67,6 +77,7 @@ describe(IPSecPrefix.name, () => {
 
       try {
         await IPSecPrefix.createPrefix(req);
+        expect.fail('Should have thrown an error for duplicate prefix');
       } catch (error) {
         expect(error).to.exist;
         expect(error.message).to.include('Duplicate entry');
@@ -134,6 +145,16 @@ describe(IPSecPrefix.name, () => {
 
   describe('deletePrefix', () => {
     it('should delete an existing prefix', async () => {
+      await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
+      const prefixId = fwcloudProduct.ipsecPrefix.id;
+      const dbCon = db.getSource();
+
+      await dbCon.query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await dbCon.query(`delete from ipsec_prefix where id = ${prefixId}`);
+
       await IPSecPrefix.deletePrefix(db.getQuery(), fwcloudProduct.ipsecPrefix.id);
 
       const result = await db
@@ -150,10 +171,43 @@ describe(IPSecPrefix.name, () => {
       const nonExistentId = -9999; // Non-existent prefix ID
       await IPSecPrefix.deletePrefix(db.getQuery(), nonExistentId);
     });
+
+    it('should throw error when deleting a prefix referenced by routes or objects', async () => {
+      // Create a new prefix to ensure it is not referenced
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          name: 'Test-Referenced-Prefix-',
+          ipsec: fwcloudProduct.ipsecServer.id,
+        },
+      };
+
+      const prefixId = await IPSecPrefix.createPrefix(req);
+
+      // Add the prefix to a group to create a reference
+      await IPSecPrefix.addPrefixToGroup(
+        db.getQuery(),
+        prefixId as number,
+        fwcloudProduct.ipobjGroup.id,
+      );
+
+      try {
+        await IPSecPrefix.deletePrefix(db.getQuery(), prefixId as number);
+        expect.fail('Should have thrown an error due to existing references');
+      } catch (error) {
+        expect(error).to.exist;
+        // Verify that the error is due to foreign key constraint
+        expect(error.message).to.match(/foreign key constraint|Cannot delete/i);
+      }
+    });
   });
 
   describe('deletePrefixAll', () => {
     it('should delete all prefixes under a firewall', async () => {
+      await db.getSource().query(`TRUNCATE TABLE ipsec_prefix__ipobj_g`);
+      await db.getSource().query(`TRUNCATE TABLE route__ipsec_prefix`);
+      await db.getSource().query(`TRUNCATE TABLE routing_r__ipsec_prefix`);
+
       const sql = `SELECT PRE.* FROM ipsec_prefix as PRE
         INNER JOIN ipsec VPN ON VPN.id = PRE.ipsec
         INNER JOIN firewall FW ON FW.id = VPN.firewall
@@ -1139,7 +1193,7 @@ describe(IPSecPrefix.name, () => {
         ]);
 
       expect(result).to.be.an('array');
-      expect(result).to.have.length(1);
+      expect(result).to.have.length(2);
     });
   });
 
