@@ -40,7 +40,7 @@ export class IPSecPrefixRepository extends Repository<IPSecPrefix> {
     const query = this.createQueryBuilder('vpnPrefix')
       .select('vpnPrefix.id', 'id')
       .addSelect('vpnPrefix.name', 'name')
-      .addSelect('(select id from ipobj_type where id=401)', 'type')
+      .addSelect('(select id from ipobj_type where id=403)', 'type')
       .addSelect('vpnFirewall.id', 'firewall_id')
       .addSelect('vpnFirewall.name', 'firewall_name')
       .addSelect('vpnCluster.id', 'cluster_id')
