@@ -25,19 +25,19 @@ export class RouteMoveToDto {
 
   @IsNumber()
   @IsOptional()
-  wireGuardId?: number;
+  wireguardId?: number;
 
   @IsNumber()
   @IsOptional()
-  wireGuardPrefixId?: number;
+  wireguardPrefixId?: number;
 
   @IsNumber()
   @IsOptional()
-  ipSecId?: number;
+  ipsecId?: number;
 
   @IsNumber()
   @IsOptional()
-  ipSecPrefixId?: number;
+  ipsecPrefixId?: number;
 
   @IsNumber()
   @IsOptional()

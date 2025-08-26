@@ -102,7 +102,7 @@ export class RouteControllerUpdateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
-  wireGuardIds?: PositionalEntityDto[];
+  wireguardIds?: PositionalEntityDto[];
 
   @IsArray()
   @IsOptional()
@@ -110,7 +110,7 @@ export class RouteControllerUpdateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
-  wireGuardPrefixIds?: PositionalEntityDto[];
+  wireguardPrefixIds?: PositionalEntityDto[];
 
   @IsArray()
   @IsOptional()
@@ -118,7 +118,7 @@ export class RouteControllerUpdateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
-  ipSecIds?: PositionalEntityDto[];
+  ipsecIds?: PositionalEntityDto[];
 
   @IsArray()
   @IsOptional()
@@ -126,5 +126,5 @@ export class RouteControllerUpdateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
-  ipSecPrefixIds?: PositionalEntityDto[];
+  ipsecPrefixIds?: PositionalEntityDto[];
 }

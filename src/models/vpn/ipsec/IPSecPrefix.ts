@@ -85,7 +85,7 @@ export class IPSecPrefix extends Model {
   @OneToMany(() => RoutingRuleToIPSecPrefix, (model) => model.ipsecPrefix)
   routingRuleToIPSecPrefixes: RoutingRuleToIPSecPrefix[];
 
-  @OneToMany(() => RouteToIPSecPrefix, (model) => model.ipsecPrefix)
+  @OneToMany(() => RouteToIPSecPrefix, (model) => model.ipSecPrefix)
   routeToIPSecPrefixes: RouteToIPSecPrefix[];
 
   public getTableName(): string {
