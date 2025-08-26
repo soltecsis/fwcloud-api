@@ -62,8 +62,6 @@ interface IFindOneRoutePath extends IFindManyRoutePath {
 }
 
 export interface ICreateRoute {
-  ipsecIds?: { id: number; order: number }[];
-  ipsecPrefixIds?: { id: number; order: number }[];
   routingTableId: number;
   gatewayId: number;
   interfaceId?: number;
@@ -108,18 +106,16 @@ interface IBulkUpdateRoute {
 }
 
 interface IMoveToRoute {
-  ipsecId?: number;
-  ipsecPrefixId?: number;
   fromId: number;
   toId: number;
   ipObjId?: number;
   ipObjGroupId?: number;
   openVPNId?: number;
   openVPNPrefixId?: number;
-  wireGuardId?: number;
-  wireGuardPrefixId?: number;
-  ipSecId?: number;
-  ipSecPrefixId?: number;
+  wireguardId?: number;
+  wireguardPrefixId?: number;
+  ipsecId?: number;
+  ipsecPrefixId?: number;
 }
 
 interface IMoveToGatewayRoute {
@@ -324,7 +320,7 @@ export class RouteService extends Service {
         (item) =>
           ({
             routeId: route.id,
-            ipsecPrefixId: item.id,
+            ipSecPrefixId: item.id,
             order: item.order,
           }) as RouteToIPSecPrefix,
       );
@@ -517,8 +513,6 @@ export class RouteService extends Service {
           'routeToWireGuardPrefixes',
           'routeToIPSecs',
           'routeToIPSecPrefixes',
-          'routeToWireGuards',
-          'routeToWireGuardPrefixes',
         ],
       });
     const toRule: Route = await db
@@ -537,8 +531,6 @@ export class RouteService extends Service {
           'routeToWireGuardPrefixes',
           'routeToIPSecs',
           'routeToIPSecPrefixes',
-          'routeToWireGuards',
-          'routeToWireGuardPrefixes',
         ],
       });
 
@@ -617,87 +609,59 @@ export class RouteService extends Service {
       }
     }
 
-    if (data.wireGuardId !== undefined) {
+    if (data.wireguardId !== undefined) {
       const index: number = fromRule.routeToWireGuards.findIndex(
-        (item) => item.wireGuardId === data.wireGuardId,
+        (item) => item.wireGuardId === data.wireguardId,
       );
       if (index >= 0) {
         fromRule.routeToWireGuards.splice(index, 1);
         toRule.routeToWireGuards.push({
           routeId: toRule.id,
-          wireGuardId: data.wireGuardId,
+          wireGuardId: data.wireguardId,
           order: lastPosition + 1,
         } as RouteToWireGuard);
       }
     }
 
-    if (data.wireGuardPrefixId !== undefined) {
+    if (data.wireguardPrefixId !== undefined) {
       const index: number = fromRule.routeToWireGuardPrefixes.findIndex(
-        (item) => item.wireGuardPrefixId === data.wireGuardPrefixId,
+        (item) => item.wireGuardPrefixId === data.wireguardPrefixId,
       );
       if (index >= 0) {
         fromRule.routeToWireGuardPrefixes.splice(index, 1);
         toRule.routeToWireGuardPrefixes.push({
           routeId: toRule.id,
-          wireGuardPrefixId: data.wireGuardPrefixId,
+          wireGuardPrefixId: data.wireguardPrefixId,
           order: lastPosition + 1,
         } as RouteToWireGuardPrefix);
       }
     }
 
-    if (data.ipSecId !== undefined) {
+    if (data.ipsecId !== undefined) {
       const index: number = fromRule.routeToIPSecs.findIndex(
-        (item) => item.ipSecId === data.ipSecId,
+        (item) => item.ipSecId === data.ipsecId,
       );
       if (index >= 0) {
         fromRule.routeToIPSecs.splice(index, 1);
         toRule.routeToIPSecs.push({
           routeId: toRule.id,
-          ipSecId: data.ipSecId,
+          ipSecId: data.ipsecId,
           order: lastPosition + 1,
         } as RouteToIPSec);
       }
     }
 
-    if (data.ipSecPrefixId !== undefined) {
+    if (data.ipsecPrefixId !== undefined) {
       const index: number = fromRule.routeToIPSecPrefixes.findIndex(
-        (item) => item.ipsecPrefixId === data.ipSecPrefixId,
+        (item) => item.ipSecPrefixId === data.ipsecPrefixId,
       );
       if (index >= 0) {
         fromRule.routeToIPSecPrefixes.splice(index, 1);
         toRule.routeToIPSecPrefixes.push({
           routeId: toRule.id,
-          ipsecPrefixId: data.ipSecPrefixId,
+          ipSecPrefixId: data.ipsecPrefixId,
           order: lastPosition + 1,
         } as RouteToIPSecPrefix);
-      }
-    }
-
-    if (data.wireGuardId !== undefined) {
-      const index: number = fromRule.routeToWireGuards.findIndex(
-        (item) => item.wireGuardId === data.wireGuardId,
-      );
-      if (index >= 0) {
-        fromRule.routeToWireGuards.splice(index, 1);
-        toRule.routeToWireGuards.push({
-          routeId: toRule.id,
-          wireGuardId: data.wireGuardId,
-          order: lastPosition + 1,
-        } as RouteToWireGuard);
-      }
-    }
-
-    if (data.wireGuardPrefixId !== undefined) {
-      const index: number = fromRule.routeToWireGuardPrefixes.findIndex(
-        (item) => item.wireGuardPrefixId === data.wireGuardPrefixId,
-      );
-      if (index >= 0) {
-        fromRule.routeToWireGuardPrefixes.splice(index, 1);
-        toRule.routeToWireGuardPrefixes.push({
-          routeId: toRule.id,
-          wireGuardPrefixId: data.wireGuardPrefixId,
-          order: lastPosition + 1,
-        } as RouteToWireGuardPrefix);
       }
     }
 
@@ -883,8 +847,6 @@ export class RouteService extends Service {
           'ipObjToIPObjGroups.ipObj',
           'ipSecs',
           'ipSecPrefixes',
-          'wireGuards',
-          'wireGuardPrefixes',
         ],
       });
 
