@@ -320,7 +320,7 @@ export class RouteService extends Service {
         (item) =>
           ({
             routeId: route.id,
-            ipSecPrefixId: item.id,
+            ipsecPrefixId: item.id,
             order: item.order,
           }) as RouteToIPSecPrefix,
       );
@@ -653,13 +653,13 @@ export class RouteService extends Service {
 
     if (data.ipsecPrefixId !== undefined) {
       const index: number = fromRule.routeToIPSecPrefixes.findIndex(
-        (item) => item.ipSecPrefixId === data.ipsecPrefixId,
+        (item) => item.ipsecPrefixId === data.ipsecPrefixId,
       );
       if (index >= 0) {
         fromRule.routeToIPSecPrefixes.splice(index, 1);
         toRule.routeToIPSecPrefixes.push({
           routeId: toRule.id,
-          ipSecPrefixId: data.ipsecPrefixId,
+          ipsecPrefixId: data.ipsecPrefixId,
           order: lastPosition + 1,
         } as RouteToIPSecPrefix);
       }

@@ -15,7 +15,7 @@ export class RouteToIPSecPrefix extends Model {
   @PrimaryColumn({
     name: 'ipsec_prefix',
   })
-  ipSecPrefixId: number;
+  ipsecPrefixId: number;
 
   @Column({
     type: Number,
@@ -36,7 +36,7 @@ export class RouteToIPSecPrefix extends Model {
   @JoinColumn({
     name: 'ipsec_prefix',
   })
-  ipSecPrefix: IPSecPrefix;
+  ipsecPrefix: IPSecPrefix;
 
   public getTableName(): string {
     return tableName;
