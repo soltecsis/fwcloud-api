@@ -579,44 +579,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       this.handleRequestException(error);
     }
   }
-  async getWireGuardHistoryFile(filepath: string): Promise<WireGuardHistoryRecord[]> {
-    try {
-      const filename: string = path.basename(filepath);
-      const dir: string = path.dirname(filepath);
-      const pathUrl: string = this.url + '/api/v1/openvpn/get/status';
-
-      const config: AxiosRequestConfig = Object.assign({}, this.config);
-      config.headers['Content-Type'] = 'application/json';
-
-      const response: AxiosResponse<string> = await axios.put(
-        pathUrl,
-        {
-          dir,
-          files: [filename],
-        },
-        config,
-      );
-
-      if (response.status === 200) {
-        return response.data
-          .split('\n')
-          .filter((item) => item !== '')
-          .slice(1)
-          .map((item) => ({
-            timestamp: parseInt(item.split(',')[0]),
-            name: item.split(',')[1],
-            address: item.split(',')[2],
-            bytesReceived: parseInt(item.split(',')[3]),
-            bytesSent: parseInt(item.split(',')[4]),
-            connectedAtTimestampInSeconds: parseInt(item.split(',')[5]),
-          }));
-      }
-
-      throw new Error('Unexpected getWireGuardHistoryFile response');
-    } catch (error) {
-      this.handleRequestException(error);
-    }
-  }
 
   async systemctlManagement(command: string, service: string): Promise<string> {
     try {
