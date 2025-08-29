@@ -6,7 +6,6 @@ import * as fs from 'fs-extra';
 import { InstallerGenerator } from '../../../src/openvpn-installer/installer-generator';
 import { InvalidConnectionNameException } from './exceptions/invalid-connection-name.exception';
 import sinon from 'sinon';
-import { app } from '../../../src/fonaments/abstract-application';
 
 describe(describeName('InstallerGenerator Unit Tests'), () => {
   let workspace: string;
@@ -107,23 +106,25 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
   });
 
   describe('generate()', () => {
-    it('should generate the ovpn file which filename is the connection name', () => {
+    it('should clean files if script throws an exception', () => {
+      stubGenerateCommand.restore();
       //@ts-ignore
-      const removeStub = sinon
-        .stub(InstallerGenerator.prototype, 'removeConfigFile' as keyof InstallerGenerator)
-        .returns(null as never);
+      stubGenerateCommand = sinon
+        .stub(InstallerGenerator.prototype, 'generateExecutable' as keyof InstallerGenerator)
+        .callsFake(() => {
+          throw new Error();
+        });
+
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
 
-      generator.generate();
+      const f = () => {
+        generator.generate();
+      };
 
+      expect(f).to.throw(Error);
+      expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'))).to.be.false;
       expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn'))).to.be
-        .true;
-      expect(fs.statSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn')).isFile()).to
-        .be.true;
-      expect(
-        fs.readFileSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn')).toString(),
-      ).to.be.eq('<test></test>');
-      removeStub.restore();
+        .false;
     });
 
     it('should remove the ovpn file after generate installer', () => {
