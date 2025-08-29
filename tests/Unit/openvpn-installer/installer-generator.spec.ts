@@ -6,7 +6,6 @@ import * as fs from 'fs-extra';
 import { InstallerGenerator } from '../../../src/openvpn-installer/installer-generator';
 import { InvalidConnectionNameException } from './exceptions/invalid-connection-name.exception';
 import sinon from 'sinon';
-import { app } from '../../../src/fonaments/abstract-application';
 
 describe(describeName('InstallerGenerator Unit Tests'), () => {
   let workspace: string;
@@ -110,9 +109,6 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
     it('should clean files if script throws an exception', () => {
       stubGenerateCommand.restore();
       //@ts-ignore
-      const removeStub = sinon
-        .stub(InstallerGenerator.prototype, 'removeConfigFile' as keyof InstallerGenerator)
-        .returns(null as never);
       stubGenerateCommand = sinon
         .stub(InstallerGenerator.prototype, 'generateExecutable' as keyof InstallerGenerator)
         .callsFake(() => {
@@ -122,7 +118,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
 
       const f = () => {
-        const _path: string = generator.generate();
+        generator.generate();
       };
 
       expect(f).to.throw(Error);
