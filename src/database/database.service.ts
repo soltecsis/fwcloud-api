@@ -101,6 +101,9 @@ import { RoutingRuleToIPSec } from '../models/routing/routing-rule/routing-rule-
 import { IPSec } from '../models/vpn/ipsec/IPSec';
 import { IPSecOption } from '../models/vpn/ipsec/ipsec-option.model';
 import { IPSecPrefix } from '../models/vpn/ipsec/IPSecPrefix';
+import { AIModel } from '../models/ai-assistant/ai-assistant-models.model';
+import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.model';
+import { AI } from '../models/ai-assistant/ai-assistant.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -375,6 +378,9 @@ export class DatabaseService extends Service {
         KeepalivedRule,
         KeepalivedGroup,
         KeepalivedToIPObj,
+        AICredentials,
+        AIModel,
+        AI,
       ],
     };
   }

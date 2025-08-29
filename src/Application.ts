@@ -84,6 +84,7 @@ import { WireGuardPrefixServiceProvider } from './models/vpn/wireguard/wireguard
 import { WireGuardServiceProvider } from './models/vpn/wireguard/wireguard.provider';
 import { IPSecServiceProvider } from './models/vpn/ipsec/ipsec.provider';
 import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.provider';
+import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -165,6 +166,7 @@ export class Application extends HTTPApplication {
       DHCPGroupServiceProvider,
       KeepalivedRuleServiceProvider,
       KeepalivedGroupServiceProvider,
+      AIAssistantProvider,
       OpenVPNPrefixServiceProvider,
       OpenVPNStatusHistoryServiceProvider,
       HAProxyRuleServiceProvider,
