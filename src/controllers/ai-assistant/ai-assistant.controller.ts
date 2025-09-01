@@ -48,7 +48,7 @@ export class AIassistantController extends Controller {
       if (!config) {
         return ResponseBuilder.buildResponse()
           .status(404)
-          .body({ error: 'No AI assistant configuration found.' });
+          .body({ message: 'No AI assistant configuration found.' });
       } else {
         const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
         if (config[0].apiKey !== null) {
@@ -60,7 +60,7 @@ export class AIassistantController extends Controller {
     } catch (error) {
       return ResponseBuilder.buildResponse()
         .status(500)
-        .body({ error: 'Failed to fetch AI assistant configuration.' });
+        .body({ message: 'Failed to fetch AI assistant configuration.' });
     }
   }
 
@@ -92,7 +92,7 @@ export class AIassistantController extends Controller {
         if (!isValidApiKey) {
           return ResponseBuilder.buildResponse()
             .status(400)
-            .body({ error: 'Invalid OpenAI API Key.' });
+            .body({ message: 'Invalid OpenAI API Key.' });
         }
       }
 
@@ -105,7 +105,7 @@ export class AIassistantController extends Controller {
     } catch (error) {
       return ResponseBuilder.buildResponse()
         .status(500)
-        .body({ error: 'Failed to update AI assistant configuration.' });
+        .body({ message: 'Failed to update AI assistant configuration.' });
     }
   }
 
@@ -117,7 +117,7 @@ export class AIassistantController extends Controller {
     } catch (error) {
       return ResponseBuilder.buildResponse()
         .status(500)
-        .body({ error: 'Failed to delete AI assistant configuration.' });
+        .body({ message: 'Failed to delete AI assistant configuration.' });
     }
   }
 
@@ -133,8 +133,9 @@ export class AIassistantController extends Controller {
       console.log('checkPolicyScript', req.body);
       const { prompt } = req.body;
       if (!prompt) {
-        res.status(400).send({ error: 'Prompt text is required.' });
-        return;
+        return ResponseBuilder.buildResponse()
+          .status(400)
+          .body({ message: 'Prompt text is required.' });
       }
 
       const policyScript = await this._aiAssistantService.getPolicyScript(
@@ -151,8 +152,9 @@ export class AIassistantController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(response);
     } catch (error) {
-      console.error('Error:', error);
-      return error;
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ message: error?.message || String(error) });
     }
   }
 
@@ -167,8 +169,9 @@ export class AIassistantController extends Controller {
     try {
       const { prompt } = req.body;
       if (!prompt) {
-        res.status(400).send({ error: 'Prompt text is required.' });
-        return;
+        return ResponseBuilder.buildResponse()
+          .status(400)
+          .body({ message: 'Prompt text is required.' });
       }
       // Proccess rulesIds that URL includes
       const queryString = req.url.split('?')[1]; // Take ruleIds after "?" character
@@ -212,8 +215,9 @@ export class AIassistantController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(response);
     } catch (error) {
-      console.error('Error:', error);
-      return error;
+      return ResponseBuilder.buildResponse()
+        .status(500)
+        .body({ message: error.message || String(error) });
     }
   }
 }
