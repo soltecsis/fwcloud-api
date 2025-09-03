@@ -29,6 +29,9 @@ function findAndRenameRecursive(
   filename: string,
   renameFn: (filePath: string) => void,
 ) {
+  if (!fs.existsSync(dir)) {
+    return;
+  }
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
