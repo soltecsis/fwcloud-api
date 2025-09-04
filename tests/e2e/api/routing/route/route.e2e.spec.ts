@@ -887,7 +887,6 @@ describe(describeName('Route E2E Tests'), () => {
       });
 
       it('admin user should create a route with IPSec', async () => {
-        // Suponiendo que existe un cliente IPSec válido
         const ipsecIds: { id: number; order: number }[] = Array.from(
           fwcProduct.ipsecClients.values(),
         ).map((c, index) => ({ id: c.id, order: index + 1 }));
@@ -911,7 +910,6 @@ describe(describeName('Route E2E Tests'), () => {
       });
 
       it('admin user should create a route with WireGuard', async () => {
-        // Suponiendo que existe un cliente WireGuard válido
         const wireguardIds: { id: number; order: number }[] = Array.from(
           fwcProduct.wireguardClients.values(),
         ).map((c, index) => ({ id: c.id, order: index + 1 }));
