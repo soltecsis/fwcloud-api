@@ -116,11 +116,15 @@ describe('Routing rules data fetch for compiler or grid', () => {
         expect(items).to.deep.include(item);
       });
 
-      it('should include OpenVPN Prefix data', () => {
+      it('should include IPSec data', () => {
         item.type = 5;
-        item.address = fwc.ipobjs.get('openvpn-cli1-addr').address;
+        item.address = fwc.ipobjs.get('ipsec-cli3-addr').address;
         expect(items).to.deep.include(item);
-        item.address = fwc.ipobjs.get('openvpn-cli2-addr').address;
+      });
+
+      it('should include WireGuard data', () => {
+        item.type = 5;
+        item.address = fwc.ipobjs.get('wireguard-cli3-addr').address;
         expect(items).to.deep.include(item);
       });
 
@@ -181,11 +185,15 @@ describe('Routing rules data fetch for compiler or grid', () => {
         expect(items).to.deep.include(item);
       });
 
-      it('should include OpenVPN Prefix data', () => {
+      it('should include IPSec data', () => {
         item.type = 5;
-        item.address = fwc.ipobjs.get('openvpn-cli1-addr').address;
+        item.address = fwc.ipobjs.get('ipsec-cli3-addr').address;
         expect(items).to.deep.include(item);
-        item.address = fwc.ipobjs.get('openvpn-cli2-addr').address;
+      });
+
+      it('should include WireGuard data', () => {
+        item.type = 5;
+        item.address = fwc.ipobjs.get('wireguard-cli3-addr').address;
         expect(items).to.deep.include(item);
       });
     });

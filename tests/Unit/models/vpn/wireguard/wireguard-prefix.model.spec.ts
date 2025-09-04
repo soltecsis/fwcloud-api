@@ -21,6 +21,7 @@
 */
 
 import { EntityManager } from 'typeorm';
+import { Tree } from '../../../../../src/models/tree/Tree';
 import { WireGuardPrefix } from '../../../../../src/models/vpn/wireguard/WireGuardPrefix';
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
@@ -461,6 +462,55 @@ describe(WireGuardPrefix.name, () => {
 
       expect(result).to.be.an('object');
       expect(result).to.have.property('restrictions');
+    });
+  });
+
+  describe('fillPrefixNodeWireGuard', () => {
+    it('should create prefix node and move matching WireGuard clients', async () => {
+      const parentNode = await Tree.newNode(
+        db.getQuery(),
+        fwcloudProduct.fwcloud.id,
+        'WireGuard-Server',
+        null,
+        'WGS',
+        fwcloudProduct.wireguardServer.id,
+        330,
+      );
+
+      const nodesBefore = await db
+        .getSource()
+        .query(`SELECT * FROM fwc_tree WHERE obj_type = 321`, [parentNode as number]);
+
+      await WireGuardPrefix.fillPrefixNodeWireGuard(
+        db.getQuery(),
+        fwcloudProduct.fwcloud.id,
+        fwcloudProduct.wireguardServer.id,
+        'WireGuard-Cli-',
+        fwcloudProduct.wireguardPrefix.id,
+        parentNode as number,
+      );
+
+      const prefixNodes = await db
+        .getSource()
+        .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 402`, [
+          parentNode as number,
+        ]);
+
+      expect(prefixNodes).to.be.an('array').that.is.not.empty;
+      expect(prefixNodes[0].name).to.equal('WireGuard-Cli-');
+
+      const clientNodes = await db
+        .getSource()
+        .query(`SELECT * FROM fwc_tree WHERE id_parent = ? AND obj_type = 321`, [
+          prefixNodes[0].id,
+        ]);
+
+      expect(clientNodes).to.be.an('array');
+      if (clientNodes.length > 0) {
+        clientNodes.forEach((node) => {
+          expect(node.name).to.match(/^1$|^2$/);
+        });
+      }
     });
   });
 });

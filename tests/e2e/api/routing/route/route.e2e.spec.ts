@@ -51,6 +51,7 @@ import { RouteMoveToGatewayDto } from '../../../../../src/controllers/routing/ro
 import db from '../../../../../src/database/database-manager';
 import { IPSec } from '../../../../../src/models/vpn/ipsec/IPSec';
 import { WireGuard } from '../../../../../src/models/vpn/wireguard/WireGuard';
+import { comment } from '../../../../../src/middleware/joi_schemas/shared';
 
 describe(describeName('Route E2E Tests'), () => {
   let app: Application;
@@ -861,6 +862,140 @@ describe(describeName('Route E2E Tests'), () => {
             expect(response.body.data.routingTableId).to.eq(table.id);
           });
       });
+
+      it('admin user should create a route with OpenVPN', async () => {
+        const openVPNIds: { id: number; order: number }[] = Array.from(
+          fwcProduct.openvpnClients.values(),
+        ).map((c, index) => ({ id: c.id, order: index + 1 }));
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            openVPNIds: openVPNIds,
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data.routingTableId).to.eq(table.id);
+          });
+      });
+
+      it('admin user should create a route with IPSec', async () => {
+        // Suponiendo que existe un cliente IPSec válido
+        const ipsecIds: { id: number; order: number }[] = Array.from(
+          fwcProduct.ipsecClients.values(),
+        ).map((c, index) => ({ id: c.id, order: index + 1 }));
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            ipsecIds: ipsecIds,
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data.routingTableId).to.eq(table.id);
+          });
+      });
+
+      it('admin user should create a route with WireGuard', async () => {
+        // Suponiendo que existe un cliente WireGuard válido
+        const wireguardIds: { id: number; order: number }[] = Array.from(
+          fwcProduct.wireguardClients.values(),
+        ).map((c, index) => ({ id: c.id, order: index + 1 }));
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            wireguardIds: wireguardIds,
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data.routingTableId).to.eq(table.id);
+          });
+      });
+
+      it('admin user should create a route with OpenVPN prefix', async () => {
+        const openvpnPrefixId = fwcProduct.openvpnPrefix.id;
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            openVPNPrefixIds: [{ id: openvpnPrefixId, order: 1 }],
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data.routingTableId).to.eq(table.id);
+          });
+      });
+
+      it('admin user should create a route with IPSec prefix', async () => {
+        const ipsecPrefixId = fwcProduct.ipsecPrefix.id;
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            ipsecPrefixIds: [{ id: ipsecPrefixId, order: 1 }],
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data.routingTableId).to.eq(table.id);
+          });
+      });
+
+      it('admin user should create a route with WireGuard prefix', async () => {
+        const wireguardPrefixId = fwcProduct.wireguardPrefix.id;
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            wireguardPrefixIds: [{ id: wireguardPrefixId, order: 1 }],
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data.routingTableId).to.eq(table.id);
+          });
+      });
     });
 
     describe('@copy', () => {
@@ -1035,7 +1170,7 @@ describe(describeName('Route E2E Tests'), () => {
           .expect(401);
       });
 
-      it('regular user which does not belong to the fwcloud should not create a route', async () => {
+      it('regular user which does not belong to the fwcloud should not update a route', async () => {
         return await request(app.express)
           .put(
             _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
@@ -1077,7 +1212,7 @@ describe(describeName('Route E2E Tests'), () => {
           });
       });
 
-      it('admin user should create a route', async () => {
+      it('admin user should update a route', async () => {
         return await request(app.express)
           .put(
             _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
@@ -1089,6 +1224,150 @@ describe(describeName('Route E2E Tests'), () => {
           )
           .send({
             gatewayId: gateway.id,
+            comment: 'other_route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.comment).to.eq('other_route');
+          });
+      });
+
+      it('admin user should update a route with OpenVPN client', async () => {
+        const openVPNIds: { id: number; order: number }[] = Array.from(
+          fwcProduct.openvpnClients.values(),
+        ).map((c, index) => ({ id: c.id, order: index + 1 }));
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+              route: route.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            openVPNIds: openVPNIds,
+            comment: 'other_route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.comment).to.eq('other_route');
+          });
+      });
+
+      it('admin user should update a route with IPSec client', async () => {
+        const ipsecIds: { id: number; order: number }[] = Array.from(
+          fwcProduct.ipsecClients.values(),
+        ).map((c, index) => ({ id: c.id, order: index + 1 }));
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+              route: route.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            ipsecIds: ipsecIds,
+            comment: 'other_route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.comment).to.eq('other_route');
+          });
+      });
+
+      it('admin user should update a route with WireGuard client', async () => {
+        const wireguardIds: { id: number; order: number }[] = Array.from(
+          fwcProduct.wireguardClients.values(),
+        ).map((c, index) => ({ id: c.id, order: index + 1 }));
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+              route: route.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            wireguardIds: wireguardIds,
+            comment: 'other_route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.comment).to.eq('other_route');
+          });
+      });
+
+      it('admin user should update a route with OpenVPN prefix', async () => {
+        const openvpnPrefixId = fwcProduct.openvpnPrefix.id;
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+              route: route.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            openVPNPrefixIds: [{ id: openvpnPrefixId, order: 1 }],
+            comment: 'other_route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.comment).to.eq('other_route');
+          });
+      });
+
+      it('admin user should update a route with IPSec prefix', async () => {
+        const ipsecPrefixId = fwcProduct.ipsecPrefix.id;
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+              route: route.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            ipsecPrefixIds: [{ id: ipsecPrefixId, order: 1 }],
+            comment: 'other_route',
+          })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.comment).to.eq('other_route');
+          });
+      });
+
+      it('admin user should update a route with WireGuard prefix', async () => {
+        const wireguardPrefixId = fwcProduct.wireguardPrefix.id;
+        return await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+              route: route.id,
+            }),
+          )
+          .send({
+            gatewayId: gateway.id,
+            wireguardPrefixIds: [{ id: wireguardPrefixId, order: 1 }],
             comment: 'other_route',
           })
           .set('Cookie', [attachSession(adminUserSessionId)])
