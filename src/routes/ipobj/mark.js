@@ -84,8 +84,9 @@ router.put('/', async (req, res) => {
 			.andWhere('id_obj = :id', {id: req.body.mark})
 			.execute();
 
-		const mark = await db.getSource().manager.getRepository(Mark).findOneOrFail(req.body.mark, {
-			relations: ['policyRules', 'routingRuleToMarks', 'routingRuleToMarks.routingRule', 'routingRuleToMarks.routingRule.routingTable']
+		const mark = await db.getSource().manager.getRepository(Mark).findOneOrFail({
+				where: { id: req.body.mark },
+				relations: ['policyRules', 'routingRuleToMarks', 'routingRuleToMarks.routingRule', 'routingRuleToMarks.routingRule.routingTable']
 		});
 
 		const firewallService = await app().getService(FirewallService.name);

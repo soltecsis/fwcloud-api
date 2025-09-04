@@ -72,6 +72,9 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
       ipobjData[key] = null;
     }
     ipobjData.fwcloud = fwCloud.id;
+
+    fwCloud.locked = false;
+    fwCloud.save();
   });
 
   describe('IpobjDuplicity', () => {

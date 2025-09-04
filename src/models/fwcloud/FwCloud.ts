@@ -1,23 +1,23 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-	https://soltecsis.com
-	info@soltecsis.com
+  Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  https://soltecsis.com
+  info@soltecsis.com
 
 
-	This file is part of FWCloud (https://fwcloud.net).
+  This file is part of FWCloud (https://fwcloud.net).
 
-	FWCloud is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Affero General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+  FWCloud is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-	FWCloud is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+  FWCloud is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Model from '../Model';
@@ -50,6 +50,14 @@ import { IPObjGroup } from '../ipobj/IPObjGroup';
 
 const tableName: string = 'fwcloud';
 
+export interface Lock {
+  access: boolean;
+  locked: boolean;
+  locked_at: string;
+  locked_by: number;
+  mylock: boolean;
+}
+
 @Entity(tableName)
 export class FwCloud extends Model {
   @PrimaryGeneratedColumn()
@@ -74,10 +82,10 @@ export class FwCloud extends Model {
   locked_at: Date;
 
   @Column()
-  locked_by: number;
+  locked_by: string;
 
   @Column()
-  locked: number;
+  locked: boolean;
 
   @Column()
   image: string;
@@ -183,6 +191,10 @@ export class FwCloud extends Model {
         `delete PO from policy_r__ipobj PO inner join policy_r RULE on RULE.id=PO.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PVPN from policy_r__openvpn PVPN inner join policy_r RULE on RULE.id=PVPN.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PPRE from policy_r__openvpn_prefix PPRE inner join policy_r RULE on RULE.id=PPRE.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
+        `delete PWG from policy_r__wireguard PWG inner join policy_r RULE on RULE.id=PWG.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
+        `delete PPREWG from policy_r__wireguard_prefix PPREWG inner join policy_r RULE on RULE.id=PPREWG.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
+        `delete PIPSEC from policy_r__ipsec PIPSEC inner join policy_r RULE on RULE.id=PIPSEC.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
+        `delete PPREIPSEC from policy_r__ipsec_prefix PPREIPSEC inner join policy_r RULE on RULE.id=PPREIPSEC.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete RULE from policy_r RULE inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PG from policy_g PG inner join firewall FW on FW.id=PG.firewall where FW.fwcloud=${this.id};`,
 
@@ -191,6 +203,10 @@ export class FwCloud extends Model {
         `delete RROG from routing_r__ipobj_g RROG inner join routing_r RULE on RULE.id=RROG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRVPN from routing_r__openvpn RRVPN inner join routing_r RULE on RULE.id=RRVPN.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRPRE from routing_r__openvpn_prefix RRPRE inner join routing_r RULE on RULE.id=RRPRE.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RRWG from routing_r__wireguard RRWG inner join routing_r RULE on RULE.id=RRWG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RRPREWG from routing_r__wireguard_prefix RRPREWG inner join routing_r RULE on RULE.id=RRPREWG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RRIPSEC from routing_r__ipsec RRIPSEC inner join routing_r RULE on RULE.id=RRIPSEC.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RRPREIPSEC from routing_r__ipsec_prefix RRPREIPSEC inner join routing_r RULE on RULE.id=RRPREIPSEC.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRM from routing_r__mark RRM inner join routing_r RULE on RULE.id=RRM.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RR from routing_r RR inner join routing_table RT on RT.id=RR.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RRG from routing_g RRG inner join firewall FW on FW.id=RRG.firewall where FW.fwcloud=${this.id};`,
@@ -200,6 +216,10 @@ export class FwCloud extends Model {
         `delete ROG from route__ipobj_g ROG inner join route ROUTE on ROUTE.id=ROG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RVPN from route__openvpn RVPN inner join route ROUTE on ROUTE.id=RVPN.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RPRE from route__openvpn_prefix RPRE inner join route ROUTE on ROUTE.id=RPRE.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RWG from route__wireguard RWG inner join route ROUTE on ROUTE.id=RWG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RPREWG from route__wireguard_prefix RPREWG inner join route ROUTE on ROUTE.id=RPREWG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RIPSEC from route__ipsec RIPSEC inner join route ROUTE on ROUTE.id=RIPSEC.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
+        `delete RIPSECPRE from route__ipsec_prefix RIPSECPRE inner join route ROUTE on ROUTE.id=RIPSECPRE.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete ROUTE from route ROUTE inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RT from routing_table RT inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};`,
         `delete RG from route_g RG inner join firewall FW on FW.id=RG.firewall where FW.fwcloud=${this.id};`,
@@ -226,6 +246,22 @@ export class FwCloud extends Model {
         `delete PRE from openvpn_prefix PRE inner join openvpn VPN on VPN.id=PRE.openvpn inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
         `delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where VPN.openvpn is not null and FW.fwcloud=${this.id};`,
         `delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+
+        // Next the WireGuard entities of the database.
+        `delete OPT from wireguard_opt OPT inner join wireguard VPN on VPN.id=OPT.wireguard inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+        `delete VPN from wireguard__ipobj_g VPN inner join ipobj_g G on G.id=VPN.ipobj_g where G.fwcloud=${this.id};`,
+        `delete PRE from wireguard_prefix__ipobj_g PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};`,
+        `delete PRE from wireguard_prefix PRE inner join wireguard VPN on VPN.id=PRE.wireguard inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+        `delete VPN from wireguard VPN inner join firewall FW on FW.id=VPN.firewall where VPN.wireguard is not null and FW.fwcloud=${this.id};`,
+        `delete VPN from wireguard VPN inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+
+        // Next the IPSec entities of the database.
+        `delete OPT from ipsec_opt OPT inner join ipsec VPN on VPN.id=OPT.ipsec inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+        `delete VPN from ipsec__ipobj_g VPN inner join ipobj_g G on G.id=VPN.ipobj_g where G.fwcloud=${this.id};`,
+        `delete PRE from ipsec_prefix__ipobj_g PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};`,
+        `delete PRE from ipsec_prefix PRE inner join ipsec VPN on VPN.id=PRE.ipsec inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
+        `delete VPN from ipsec VPN inner join firewall FW on FW.id=VPN.firewall where VPN.ipsec is not null and FW.fwcloud=${this.id};`,
+        `delete VPN from ipsec VPN inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`,
 
         // Now the PKI entities.
         `delete CRT from crt CRT inner join ca CA on CA.id=CRT.ca where CA.fwcloud=${this.id};`,
@@ -339,9 +375,9 @@ export class FwCloud extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFwclouds(dbCon, user) {
+  public static getFwclouds(dbCon, user): Promise<FwCloud[]> {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT distinctrow C.* FROM ${tableName} C
+      const sql = `SELECT DISTINCT C.* FROM ${tableName} C
 				INNER JOIN user__fwcloud U ON C.id=U.fwcloud
 				WHERE U.user=${user} ORDER BY C.name`;
       dbCon.query(sql, (error, rows) => {
@@ -379,16 +415,14 @@ export class FwCloud extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      const sql =
-        'SELECT distinctrow C.* FROM ' +
-        tableName +
-        ' C  ' +
-        ' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
-        ' WHERE U.user=' +
-        connection.escape(iduser) +
-        ' AND C.id=' +
-        connection.escape(fwcloud);
-      connection.query(sql, (error, row) => {
+      const sql = `
+        SELECT DISTINCT C.* 
+        FROM ${tableName} C  
+        INNER JOIN user__fwcloud U ON C.id=U.fwcloud 
+        WHERE U.user=? 
+        AND C.id=?
+      `;
+      connection.query(sql, [iduser, fwcloud], (error, row) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -409,60 +443,58 @@ export class FwCloud extends Model {
    * @return {Boolean} Returns `LOCKED STATUS`
    *
    */
-  public static getFwcloudAccess(iduser, fwcloud) {
+  public static getFwcloudAccess(iduser, fwcloud, lock_session_id): Promise<Lock> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
-        const sql =
-          'SELECT distinctrow C.* FROM ' +
-          tableName +
-          ' C  ' +
-          ' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
-          ' WHERE U.user=' +
-          connection.escape(iduser) +
-          ' AND C.id=' +
-          connection.escape(fwcloud);
+        const sql = `
+          SELECT DISTINCT C.* 
+          FROM ${tableName} C 
+          INNER JOIN user__fwcloud U ON C.id=U.fwcloud 
+          WHERE U.user=${connection.escape(iduser)} 
+          AND C.id=${connection.escape(fwcloud)}
+        `;
         connection.query(sql, (error, row) => {
           if (error) reject(false);
           else if (row && row.length > 0) {
             //logger().debug(row[0]);
             logger().debug('IDUSER: ' + iduser);
-            if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser)) {
+            if (row[0].locked === 1 && row[0].locked_by === lock_session_id) {
               //Access OK, LOCKED by USER
               resolve({
                 access: true,
                 locked: true,
-                mylock: true,
                 locked_at: row[0].locked_at,
                 locked_by: row[0].locked_by,
+                mylock: true,
               });
-            } else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser)) {
-              //Access OK, LOCKED by OTHER USER
+            } else if (row[0].locked === 1 && row[0].locked_by !== lock_session_id) {
+              //Access OK, LOCKED by ANOTHER USER or SESSION
               resolve({
                 access: true,
                 locked: true,
-                mylock: false,
                 locked_at: row[0].locked_at,
                 locked_by: row[0].locked_by,
+                mylock: false,
               });
             } else if (row[0].locked === 0) {
               //Access OK, NOT LOCKED
               resolve({
                 access: true,
                 locked: false,
-                mylock: false,
                 locked_at: '',
-                locked_by: '',
+                locked_by: null,
+                mylock: false,
               });
             }
           } else {
             //Access ERROR, NOT LOCKED
             resolve({
               access: false,
-              locked: '',
-              mylock: false,
+              locked: false,
               locked_at: '',
-              locked_by: '',
+              locked_by: null,
+              mylock: false,
             });
           }
         });
@@ -471,51 +503,87 @@ export class FwCloud extends Model {
   }
 
   /**
-   * Check Fwcloud locked timeout
+   * Checks if the lock on the FwCloud instance has timed out and unlocks it if necessary.
    *
-   * @method getFwcloudLockedTimeout
+   * This method performs the following steps:
+   * 1. Queries the database to check if the FwCloud instance is locked.
+   * 2. If locked, it checks if the session file associated with the lock exists.
+   * 3. If the session file exists, it reads the file to determine if the lock has expired based on the keepalive timestamp.
+   * 4. If the lock has expired or the session file does not exist, it updates the database to unlock the FwCloud instance.
    *
-   * @param {Function} callback    Function callback response
-   *
-   *       callback(error, Rows)
-   *
-   * @return {Boolean} Returns `RESULT UNLOCKED`
-   *
+   * @param fwcloudId - The ID of the FwCloud instance to check.
+   * @returns A promise that resolves when the check is complete.
+   * @throws An error if there is an issue with the database query, file system operations, or JSON parsing.
    */
-  public static checkFwcloudLockTimeout(timeout, callback) {
+  static async checkFwcloudLockTimeout(fwcloudId: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
-        if (error) return reject(false);
-        const sql =
-          'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' +
-          tableName +
-          ' C WHERE C.locked=1 HAVING dif>' +
-          timeout;
-        connection.query(sql, (error, rows) => {
-          if (error) reject(false);
-          else if (rows && rows.length > 0) {
-            //UNLOCK ALL
-            for (let i = 0; i < rows.length; i++) {
-              const row = rows[i];
-              const sqlupdate = 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
-              connection.query(sqlupdate, (error, result) => {
-                logger().info(
-                  '-----> UNLOCK FWCLOUD: ' +
-                    row.id +
-                    ' BY TIMEOT INACTIVITY of ' +
-                    row.dif +
-                    '  Min LAST UPDATE: ' +
-                    row.updated_at +
-                    '  LAST LOCK: ' +
-                    row.locked_at +
-                    '  BY: ' +
-                    row.locked_by,
-                );
+      const locked = 1;
+      const unlocked = 0;
+
+      db.get(async (error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `
+          SELECT locked_by
+          FROM ${tableName} 
+          WHERE id = ${connection.escape(fwcloudId)} 
+          AND locked = ${connection.escape(locked)}
+        `;
+
+        connection.query(sql, async (error, result) => {
+          if (error) return reject(error);
+          if (result.length === 0) return resolve();
+
+          const sessionFilePath = path.join(
+            app().config.get('session').files_path,
+            result[0].locked_by + '.json',
+          );
+
+          try {
+            const exists = await fs.pathExists(sessionFilePath);
+            const sqlUpdate = `
+              UPDATE ${tableName}
+              SET locked = ${connection.escape(unlocked)}
+              WHERE id = ${connection.escape(fwcloudId)}
+            `;
+
+            if (exists) {
+              logger().info(`Checking lock timeout for session ${sessionFilePath}`);
+
+              fs.readFile(sessionFilePath, 'utf8', (err, data) => {
+                if (err) return reject(err);
+
+                try {
+                  const sessionData = JSON.parse(data);
+                  const elapsed_ms: number = Date.now() - sessionData.keepalive_ts;
+                  const keepalive_ms: number = app().config.get('session').keepalive_ms;
+
+                  if (elapsed_ms > keepalive_ms) {
+                    logger().info(
+                      `Session file ${sessionFilePath} has expired, unlocking FwCloud ${fwcloudId}`,
+                    );
+                    connection.query(sqlUpdate, (err, result) => {
+                      if (err) return reject(err);
+                      resolve();
+                    });
+                  } else {
+                    resolve();
+                  }
+                } catch (parseError) {
+                  reject(parseError);
+                }
+              });
+            } else {
+              logger().info(
+                `Session file ${sessionFilePath} not found, unlocking FwCloud ${fwcloudId}`,
+              );
+              connection.query(sqlUpdate, (err, result) => {
+                if (err) return reject(err);
+                resolve();
               });
             }
-            resolve(true);
-          } else {
-            reject(false);
+          } catch (fsError) {
+            reject(fsError);
           }
         });
       });
@@ -598,63 +666,84 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static updateFwcloudLock(fwcloudData) {
-    return new Promise((resolve, reject) => {
+  public static updateFwcloudLock(
+    fwcloudData,
+  ): Promise<{ result: boolean; lockByUser?: string; lockedAt?: string }> {
+    return new Promise(async (resolve, reject) => {
+      await FwCloud.checkFwcloudLockTimeout(fwcloudData.fwcloud);
+
       const locked = 1;
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        //Check if FWCloud is unlocked or locked by the same user
-        const sqlExists =
-          'SELECT id FROM ' +
-          tableName +
-          '  ' +
-          ' WHERE id = ' +
-          connection.escape(fwcloudData.fwcloud) +
-          ' AND (locked=0 OR (locked=1 AND locked_by=' +
-          connection.escape(fwcloudData.iduser) +
-          ')) ';
+        // Check if FWCloud is unlocked or locked by the same user and if the user has access
+        const sql = `
+          SELECT C.id, C.locked_by, C.locked_at, U.user
+          FROM ${tableName} C
+          INNER JOIN user__fwcloud U ON U.fwcloud = C.id
+          WHERE C.id = ${connection.escape(fwcloudData.fwcloud)}
+          AND U.user = ${connection.escape(fwcloudData.iduser)}
+          AND (C.locked = 0 OR (C.locked = 1 AND C.locked_by = ${connection.escape(fwcloudData.lock_session_id)}))
+        `;
 
-        connection.query(sqlExists, (error, row) => {
-          if (row && row.length > 0) {
-            //Check if there are FWCloud with Access and Edit permissions
-            const sqlExists =
-              'SELECT C.id FROM ' +
-              tableName +
-              ' C ' +
-              ' INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=' +
-              connection.escape(fwcloudData.iduser) +
-              ' WHERE C.id = ' +
-              connection.escape(fwcloudData.fwcloud);
-            logger().debug(sqlExists);
-            connection.query(sqlExists, (error, row) => {
-              if (row && row.length > 0) {
-                const sql =
-                  'UPDATE ' +
-                  tableName +
-                  ' SET locked = ' +
-                  connection.escape(locked) +
-                  ',' +
-                  'locked_at = CURRENT_TIMESTAMP ,' +
-                  'locked_by = ' +
-                  connection.escape(fwcloudData.iduser) +
-                  ' ' +
-                  ' WHERE id = ' +
-                  fwcloudData.fwcloud;
-                logger().debug(sql);
-                connection.query(sql, (error, result) => {
-                  if (error) {
-                    reject(error);
-                  } else {
-                    resolve({ result: true });
+        connection.query(sql, async (error, rows) => {
+          if (error) return reject(error);
+
+          if (rows && rows.length > 0) {
+            const sqlUpdate = `
+          UPDATE ${tableName}
+          SET locked = ${connection.escape(locked)},
+          locked_at = CURRENT_TIMESTAMP,
+          locked_by = ${connection.escape(fwcloudData.lock_session_id)}
+          WHERE id = ${connection.escape(fwcloudData.fwcloud)}
+        `;
+            connection.query(sqlUpdate, (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve({ result: true });
+              }
+            });
+          } else {
+            const sqlLockedBy = `
+          SELECT locked_by, locked_at FROM ${tableName}
+          WHERE id = ${connection.escape(fwcloudData.fwcloud)}
+          AND locked = ${connection.escape(locked)}
+        `;
+
+            connection.query(sqlLockedBy, async (error, row) => {
+              if (error) {
+                return reject(error);
+              } else if (row && row.length > 0) {
+                const sessionFilePath = path.join(
+                  app().config.get('session').files_path,
+                  row[0].locked_by + '.json',
+                );
+
+                try {
+                  const exists = await fs.pathExists(sessionFilePath);
+                  if (exists) {
+                    fs.readFile(sessionFilePath, 'utf8', (err, data) => {
+                      if (err) return reject(err);
+                      try {
+                        const sessionData = JSON.parse(data);
+                        resolve({
+                          result: false,
+                          lockByUser: sessionData.username,
+                          lockedAt: row[0].locked_at,
+                        });
+                      } catch (fsError) {
+                        reject(fsError);
+                      }
+                    });
                   }
-                });
+                } catch (fsError) {
+                  reject(fsError);
+                }
               } else {
                 resolve({ result: false });
               }
             });
-          } else {
-            resolve({ result: false });
           }
         });
       });
@@ -687,46 +776,46 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static updateFwcloudUnlock(fwcloudData, callback) {
+  public static updateFwcloudUnlock(fwcloudData): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
-      const locked = 0;
+      const locked = 1;
+      const unlocked = 0;
       db.get((error, connection) => {
         if (error) reject(error);
-        const sqlExists =
-          'SELECT id FROM ' +
-          tableName +
-          '  ' +
-          ' WHERE id = ' +
-          connection.escape(fwcloudData.id) +
-          ' AND (locked=1 AND locked_by=' +
-          connection.escape(fwcloudData.iduser) +
-          ') ';
-        connection.query(sqlExists, (error, row) => {
-          //If exists Id from fwcloud to remove
-          if (row && row.length > 0) {
-            const sql =
-              'UPDATE ' +
-              tableName +
-              ' SET locked = ' +
-              connection.escape(locked) +
-              ',' +
-              'locked_at = CURRENT_TIMESTAMP ,' +
-              'locked_by = ' +
-              connection.escape(fwcloudData.iduser) +
-              ' ' +
-              ' WHERE id = ' +
-              fwcloudData.id;
-
-            connection.query(sql, (error, result) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve({ result: true });
-              }
-            });
+        const sql = `
+          UPDATE ${tableName}
+          SET locked = ${connection.escape(unlocked)}, locked_at = null, locked_by = null
+          WHERE id = ${connection.escape(fwcloudData.id)}
+          AND locked = ${connection.escape(locked)}
+          AND locked_by = ${connection.escape(fwcloudData.lock_session_id)}
+        `;
+        connection.query(sql, (error, result) => {
+          if (error) {
+            reject(error);
           } else {
-            resolve({ result: false });
+            resolve({ result: result.affectedRows > 0 });
           }
+        });
+      });
+    });
+  }
+
+  public static unlockAllLockedFwclouds(sessionID): Promise<FwCloud[]> {
+    return new Promise((resolve, reject) => {
+      const locked = 1;
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `
+          UPDATE ${tableName}
+          SET locked = 0, locked_at = null, locked_by = null
+          WHERE locked = ${connection.escape(locked)}
+          AND locked_by = ${connection.escape(sessionID)}
+        `;
+
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows);
         });
       });
     });

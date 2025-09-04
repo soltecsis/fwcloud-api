@@ -64,9 +64,19 @@ export class StandardServicesAddCommand extends Command {
     },
   ];
 
+  private UDP_services: {
+    id: number;
+    name: string;
+    port: number;
+    comment: string;
+  }[] = [
+    { id: 40034, name: 'WireGuard', port: 51820, comment: 'WireGuard VPN' },
+    { id: 40035, name: 'NAT-T', port: 4500, comment: 'NAT Traversal' },
+  ];
+
   private dataSource: DataSource;
 
-  private async getTreeNodes(): Promise<any> {
+  private async getTCPTreeNodes(): Promise<any> {
     const sql = `select SOON.id from fwc_tree SOON 
             inner join fwc_tree FATHER on SOON.id_parent=FATHER.id 
             where FATHER.name='TCP' and FATHER.node_type='SOT' 
@@ -79,39 +89,52 @@ export class StandardServicesAddCommand extends Command {
     return await this.dataSource.query(sql);
   }
 
-  private async addStandardTCPServices(): Promise<void> {
-    for (const service of this.TCP_services) {
-      // Make sure that the service doesn't exists.
-      const exists = await this.dataSource.query(`SELECT id from ipobj where id=${service.id}`);
+  private async getUDPTreeNodes(): Promise<any> {
+    const sql = `select SOON.id from fwc_tree SOON 
+            inner join fwc_tree FATHER on SOON.id_parent=FATHER.id 
+            where FATHER.name='UDP' and FATHER.node_type='SOU' 
+            and FATHER.id_obj is null and FATHER.obj_type=4 
+            and FATHER.fwcloud is not null 
+            and SOON.name='Standard' and SOON.node_type='STD' 
+            and SOON.id_obj is null and SOON.obj_type is null 
+            and SOON.fwcloud is not null`;
 
-      // If service already exists, then don't create it.
+    return await this.dataSource.query(sql);
+  }
+
+  private async addStandardServices(
+    services: { id: number; name: string; port: number; comment: string }[],
+    getTreeNodes: () => Promise<any>,
+    objType: number,
+    nodeType: string,
+  ): Promise<void> {
+    for (const service of services) {
+      // Make sure that the service doesn't exist.
+      const exists = await this.dataSource.query(`SELECT id from ipobj where id=${service.id}`);
       if (exists.length) {
         continue;
       }
-
-      this.output.success(`Creating new standard TCP service: ${service.name}`);
+      this.output.success(
+        `Creating new standard ${nodeType === 'SOT' ? 'TCP' : 'UDP'} service: ${service.name}`,
+      );
       await this.dataSource.query(
-        `INSERT INTO ipobj VALUES(${service.id},NULL,NULL,'${service.name}',2,6,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,${service.port},${service.port},NULL,'${service.comment}',NOW(),NOW(),0,0)`,
+        `INSERT INTO ipobj VALUES(${service.id},NULL,NULL,'${service.name}',${objType},${objType === 2 ? 6 : 17},NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,${service.port},${service.port},NULL,'${service.comment}',NOW(),NOW(),0,0)`,
       );
     }
 
-    // Add new TCP services to the TCP Standard node of al fwcloud's services tree.
-    const nodes = await this.getTreeNodes();
+    // Add new services to the Standard node of all fwcloud's services tree.
+    const nodes = await getTreeNodes();
     for (const node of nodes) {
-      for (const service of this.TCP_services) {
-        // Make sure that we don't already have a node for this TCP service.
-        let sql = `SELECT id from fwc_tree
-                    where id_parent=${node.id} and id_obj=${service.id}`;
+      for (const service of services) {
+        // Make sure that we don't already have a node for this service.
+        let sql = `SELECT id from fwc_tree where id_parent=${node.id} and id_obj=${service.id}`;
         const exists = await this.dataSource.query(sql);
-
-        // If the node for this service object already exists, then don't create it.
         if (exists.length) {
           continue;
         }
-
         sql = `INSERT INTO fwc_tree
-                    (name, id_parent, node_type, id_obj, obj_type) 
-                    VALUES ('${service.name}', ${node.id}, 'SOT', ${service.id}, 2)`;
+                (name, id_parent, node_type, id_obj, obj_type) 
+                VALUES ('${service.name}', ${node.id}, '${nodeType}', ${service.id}, ${objType})`;
         await this.dataSource.query(sql);
       }
     }
@@ -123,6 +146,7 @@ export class StandardServicesAddCommand extends Command {
     );
     this.dataSource = await databaseService.getDataSource({ name: 'cli' });
 
-    await this.addStandardTCPServices();
+    await this.addStandardServices(this.TCP_services, this.getTCPTreeNodes.bind(this), 2, 'SOT');
+    await this.addStandardServices(this.UDP_services, this.getUDPTreeNodes.bind(this), 4, 'SOU');
   }
 }

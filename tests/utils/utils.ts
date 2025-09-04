@@ -70,6 +70,7 @@ export function generateSession(user: User): string {
       user_id: user.id,
       username: user.username,
       __lastAccess: moment().valueOf(),
+      keepalive_ts: moment().valueOf(),
     }),
   );
 

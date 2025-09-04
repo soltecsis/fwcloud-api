@@ -53,6 +53,13 @@ import { KeepalivedGroupController } from '../controllers/system/keepalived-grou
 import { KeepalivedController } from '../controllers/system/keepalived/keepalived.controller';
 import { HAProxyGroupController } from '../controllers/system/haproxy-group/haproxy-group.controller';
 import { HAProxyController } from '../controllers/system/haproxy/haproxy.controller';
+import { FirewallWireGuardController } from '../controllers/firewalls/wireguard/wireguard.controller';
+import { WireGuardController } from './vpn/wireguard/wireguard.controller';
+import { WireGuardPrefixController } from './vpn/wireguard/wireguard.prefix.controller';
+import { IPSecController } from './vpn/ipsec/ipsec.controller';
+import { IPSecPrefixController } from './vpn/ipsec/ipsec.prefix.controller';
+import { FirewallIPSecController } from '../controllers/firewalls/ipsec/ipsec.controller';
+import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -111,6 +118,98 @@ export class Routes extends RouteCollection {
         .post('/systemctl', SystemCtlController, 'systemctlCommunication')
         .name('systemctl.communication');
 
+      //VPN routes
+      router.prefix('/vpn', (router: RouterParser) => {
+        router.prefix('/wireguard', (router: RouterParser) => {
+          router.post('/', WireGuardController, 'store').name('vpn.wireguard.store');
+          router.put('/', WireGuardController, 'update').name('vpn.wireguard.update');
+          router.put('/get', WireGuardController, 'get').name('vpn.wireguard.get');
+          router.put('/file/get', WireGuardController, 'getFile').name('vpn.wireguard.file.get');
+          router.put('/ipobj/get', WireGuardController, 'getIpObj').name('vpn.wireguard.ipobj.get');
+          router.put('/ip/get', WireGuardController, 'getIp').name('vpn.wireguard.ip.get');
+          router.put('/info/get', WireGuardController, 'getInfo').name('vpn.wireguard.info.get');
+          router.put('/del', WireGuardController, 'delete').name('vpn.wireguard.delete');
+          router
+            .put('/restricted', WireGuardController, 'restricted')
+            .name('vpn.wireguard.restrictions');
+          router.put('/where', WireGuardController, 'where').name('vpn.wireguard.where');
+          router.put('/install', WireGuardController, 'install').name('vpn.wireguard.install');
+          router
+            .put('/uninstall', WireGuardController, 'uninstall')
+            .name('vpn.wireguard.uninstall');
+          router
+            .put('/config/filename', WireGuardController, 'getConfigFilename')
+            .name('vpn.wireguard.config.filename');
+          router
+            .put('/client/options/get', WireGuardController, 'getClientOptions')
+            .name('vpn.wireguard.client.options.get');
+          router
+            .put('/client/options/update', WireGuardController, 'updateClientOptions')
+            .name('vpn.wireguard.client.options.update');
+          router
+            .put('/clients/get', WireGuardController, 'getClients')
+            .name('vpn.wireguard.clients.get');
+          router.prefix('/prefix', (router: RouterParser) => {
+            router.post('/', WireGuardPrefixController, 'prefix').name('vpn.wireguard.prefix');
+            router
+              .put('/', WireGuardPrefixController, 'update')
+              .name('vpn.wireguard.prefix.update');
+            router
+              .put('/info/get', WireGuardPrefixController, 'getInfo')
+              .name('vpn.wireguard.prefix.info.get');
+            router
+              .put('/restricted', WireGuardPrefixController, 'restricted')
+              .name('vpn.wireguard.prefix.restrictions');
+            router
+              .put('/where', WireGuardPrefixController, 'where')
+              .name('vpn.wireguard.prefix.where');
+            router
+              .put('/del', WireGuardPrefixController, 'delete')
+              .name('vpn.wireguard.prefix.del');
+          });
+        });
+
+        router.prefix('/ipsec', (router: RouterParser) => {
+          router.post('/', IPSecController, 'store').name('vpn.ipsec.store');
+          router.put('/', IPSecController, 'update').name('vpn.ipsec.update');
+          router.put('/get', IPSecController, 'get').name('vpn.ipsec.get');
+          router.put('/file/get', IPSecController, 'getFile').name('vpn.ipsec.file.get');
+          router.put('/ipobj/get', IPSecController, 'getIpObj').name('vpn.ipsec.ipobj.get');
+          router.put('/ip/get', IPSecController, 'getIp').name('vpn.ipsec.ip.get');
+          router.put('/info/get', IPSecController, 'getInfo').name('vpn.ipsec.info.get');
+          //router.get('/firewall/get', IPSecController, 'getFirewall').name('vpn.ipsec.firewall.get');
+          router.put('/del', IPSecController, 'delete').name('vpn.ipsec.delete');
+          router.put('/restricted', IPSecController, 'restricted').name('vpn.ipsec.restrictions');
+          router.put('/where', IPSecController, 'where').name('vpn.ipsec.where');
+          router.put('/install', IPSecController, 'install').name('vpn.ipsec.install');
+          router.put('/uninstall', IPSecController, 'uninstall').name('vpn.ipsec.uninstall');
+          //router.put('/ccdsync', IPSecController, 'ccdsync').name('vpn.ipsec.ccdsync');
+          router
+            .put('/config/filename', IPSecController, 'getConfigFilename')
+            .name('vpn.ipsec.config.filename');
+          //router.get('/status/get', IPSecController, 'getStatus').name('vpn.ipsec.status.get');
+          router
+            .put('/client/options/get', IPSecController, 'getClientOptions')
+            .name('vpn.ipsec.client.options.get');
+          router
+            .put('/client/options/update', IPSecController, 'updateClientOptions')
+            .name('vpn.ipsec.client.options.update');
+          router.put('/clients/get', IPSecController, 'getClients').name('vpn.ipsec.clients.get');
+          router.prefix('/prefix', (router: RouterParser) => {
+            router.post('/', IPSecPrefixController, 'prefix').name('vpn.ipsec.prefix');
+            router.put('/', IPSecPrefixController, 'update').name('vpn.ipsec.prefix.update');
+            router
+              .put('/info/get', IPSecPrefixController, 'getInfo')
+              .name('vpn.ipsec.prefix.info.get');
+            router
+              .put('/restricted', IPSecPrefixController, 'restricted')
+              .name('vpn.ipsec.prefix.restrictions');
+            router.put('/where', IPSecPrefixController, 'where').name('vpn.ipsec.prefix.where');
+            router.put('/del', IPSecPrefixController, 'delete').name('vpn.ipsec.prefix.del');
+          });
+        });
+      });
+
       router.prefix('/fwclouds', (router: RouterParser) => {
         router.post('/', FwCloudController, 'store').name('fwclouds.store');
         router.post('/import', FwCloudExportController, 'import').name('fwclouds.exports.import');
@@ -158,6 +257,34 @@ export class Routes extends RouteCollection {
                   router
                     .get('/graph', OpenVPNController, 'graph')
                     .name('fwclouds.firewalls.openvpns.graph');
+                });
+              });
+
+              router.prefix('/wireguards', (router: RouterParser) => {
+                router.prefix('/:wireguard(\\d+)', (router: RouterParser) => {
+                  router
+                    .post('/installer', FirewallWireGuardController, 'installer')
+                    .name('fwclouds.firewalls.wireguards.installer');
+                  router
+                    .get('/history', FirewallWireGuardController, 'history')
+                    .name('fwclouds.firewalls.wireguards.history');
+                  router
+                    .get('/graph', FirewallWireGuardController, 'graph')
+                    .name('fwclouds.firewalls.wireguards.graph');
+                });
+              });
+
+              router.prefix('/ipsecs', (router: RouterParser) => {
+                router.prefix('/:ipsec(\\d+)', (router: RouterParser) => {
+                  router
+                    .post('/installer', FirewallIPSecController, 'installer')
+                    .name('fwclouds.firewalls.ipsecs.installer');
+                  router
+                    .get('/history', FirewallIPSecController, 'history')
+                    .name('fwclouds.firewalls.ipsecs.history');
+                  router
+                    .get('/graph', FirewallIPSecController, 'graph')
+                    .name('fwclouds.firewalls.ipsecs.graph');
                 });
               });
 
@@ -232,6 +359,15 @@ export class Routes extends RouteCollection {
                     });
                   });
                 });
+              });
+
+              router.prefix('/AIassistant', (router: RouterParser) => {
+                router
+                  .post('/', AIassistantController, 'checkPolicyScript')
+                  .name('AIassistant.checkPolicyScript');
+                router
+                  .post('/rules', AIassistantController, 'checkCompiledRules')
+                  .name('AIassistant.checkCompiledRules');
               });
 
               router.prefix('/system', (router: RouterParser) => {
@@ -573,6 +709,12 @@ export class Routes extends RouteCollection {
         router.post('/', TfaController, 'setup').name('profile.tfa.setup');
         router.delete('/', TfaController, 'deleteSetup').name('profile.tfa.setup.delete');
       });
+    });
+
+    router.prefix('/aiassistant', (router: RouterParser) => {
+      router.get('/', AIassistantController, 'getConfig').name('aiassistant.get');
+      router.put('/', AIassistantController, 'updateConfig').name('aiassistant.update');
+      router.delete('/', AIassistantController, 'deleteConfig').name('aiassistant.delete');
     });
 
     router.prefix('/config', (router: RouterParser) => {

@@ -29,7 +29,8 @@ import db from '../database/database-manager';
 import { Firewall } from '../models/firewall/Firewall';
 import { logger } from '../fonaments/abstract-application';
 import console from 'console';
-import { json } from 'body-parser';
+import fwcError from './error_table';
+import { allow } from 'joi';
 const config = require('../config/config');
 var crypto = require('crypto');
 const fs = require('fs');
@@ -168,6 +169,64 @@ utilsModel.decryptFirewallData = (data) => {
 		}
 	});
 };
+
+utilsModel.decryptWireguardData = async (data) => {
+  return new Promise((resolve, reject) => {
+		try {
+			const algorithm = config.get('crypt').algorithm;
+			const secret = config.get('crypt').secret;
+			const key = crypto.scryptSync(secret, 'salt', 32); // Derive a 32-byte key
+			const iv = Buffer.alloc(16, 0); // Initialization vector (IV), 16 bytes in length
+
+			if (data.public_key !== null) {
+				const decipher = crypto.createDecipheriv(algorithm, key, iv);
+				let decUser = decipher.update(data.public_key, 'hex', 'utf8');
+				decUser += decipher.final('utf8');
+				data.public_key = decUser;
+			}
+
+			if (data.private_key !== null) {
+				const decipherPass = crypto.createDecipheriv(algorithm, key, iv);
+				let decPass = decipherPass.update(data.private_key, 'hex', 'utf8');
+				decPass += decipherPass.final('utf8');
+				data.private_key = decPass;
+			}
+
+			resolve(data);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+utilsModel.decryptIpsecData = async (data) => {
+	return new Promise((resolve, reject) => {
+		  try {
+			  const algorithm = config.get('crypt').algorithm;
+			  const secret = config.get('crypt').secret;
+			  const key = crypto.scryptSync(secret, 'salt', 32); // Derive a 32-byte key
+			  const iv = Buffer.alloc(16, 0); // Initialization vector (IV), 16 bytes in length
+  
+			  if (data.public_key !== null) {
+				  const decipher = crypto.createDecipheriv(algorithm, key, iv);
+				  let decUser = decipher.update(data.public_key, 'hex', 'utf8');
+				  decUser += decipher.final('utf8');
+				  data.public_key = decUser;
+			  }
+  
+			  if (data.private_key !== null) {
+				  const decipherPass = crypto.createDecipheriv(algorithm, key, iv);
+				  let decPass = decipherPass.update(data.private_key, 'hex', 'utf8');
+				  decPass += decipherPass.final('utf8');
+				  data.private_key = decPass;
+			  }
+  
+			  resolve(data);
+		  } catch (e) {
+			  reject(e);
+		  }
+	  });
+  };
 
 utilsModel.getDbConnection = () => {
 	return new Promise((resolve, reject) => {

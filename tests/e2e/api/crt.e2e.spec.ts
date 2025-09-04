@@ -57,6 +57,11 @@ describe(describeName('Crt E2E Test'), () => {
         comment: 'testComment',
       }),
     );
+
+    loggedUser.fwClouds = [fwCloud];
+    adminUser.fwClouds = [fwCloud];
+    await manager.getRepository(User).save([loggedUser, adminUser]);
+
     service = await app.getService<CrtService>(CrtService.name);
   });
 
@@ -73,6 +78,9 @@ describe(describeName('Crt E2E Test'), () => {
         .expect(401);
     });
     it('regular user should not update a comment of crt if it does not belong to the fwcloud', async () => {
+      loggedUser.fwClouds = [];
+      await manager.getRepository(User).save(loggedUser);
+
       return await request(app.express)
         .put(
           _URL().getURL('fwclouds.cas.crts.update', {
@@ -85,9 +93,6 @@ describe(describeName('Crt E2E Test'), () => {
         .expect(401);
     });
     it('regular user should update a comment of crt if it does belong to the fwcloud', async () => {
-      loggedUser.fwClouds = [fwCloud];
-      await manager.getRepository(User).save(loggedUser);
-
       return await request(app.express)
         .put(
           _URL().getURL('fwclouds.cas.crts.update', {

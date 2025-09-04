@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-08-04
+### Added 
+- Exclusive write access to fwclouds. Only one user can edit a fwcloud at a time; additional users accessing the same fwcloud will be placed in read-only mode.
+- Integration with AI API to query firewall policies. Users can now ask questions about the rules within a policy and receive AI-generated responses.
+- Configuration section for AI integration. Administrators can set up and manage the communication parameters with the AI API directly from FWCloud.
+- New plugins are available to install and configure WireGuard and IPsec (based on strongSwan) directly from FWCloud.
+- Multi-VPN support. In addition to OpenVPN, FWCloud can now manage WireGuard and IPsec (strongSwan) VPNs in the same way as OpenVPN.
+- Systemctl management for WireGuard and IPsec (strongSwan) services, allowing direct control (start, stop, restart, status, etc.) from FWCloud.
+- Database schema migrations to support new features. Includes updates to tables and indexes required for recent functionality.
+- Test coverage for new features, including unit and integration tests to ensure stability and prevent regressions.
+
+### Fixed
+- Multiple bugs resolved, improving overall stability and performance.
+- Firewall mark modification bug.
+- Updated Node.js packages to the latest versions.
+
+
 ## [2.0.16] - 2024-12-02
 ### Fixed
 - IPTables6 missing command bug reported in FWCloud forum: https://forum.fwcloud.net/threads/nft-only-system-missing-iptables-command.136/

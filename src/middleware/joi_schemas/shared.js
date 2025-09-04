@@ -74,6 +74,7 @@ sharedSchema.ipv6_netmask = Joi.string().regex(/^(\/([0-9]|[1-9][0-9]|1[0-1][0-9
 
 sharedSchema.u8bits = Joi.number().integer().min(0).max(255);
 sharedSchema.u16bits = Joi.number().integer().min(0).max(65535);
+sharedSchema.u32bits = Joi.number().integer().min(0).max(4294967295);
 
 sharedSchema.rule_action = Joi.number().integer().min(1).max(5);
 sharedSchema.rule_position = Joi.number().integer().min(1).max(61);

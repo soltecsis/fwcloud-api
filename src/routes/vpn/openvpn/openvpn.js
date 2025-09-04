@@ -216,11 +216,11 @@ router.put('/ipobj/get', async(req, res) => {
 /**
  * Get next VPN LAN free IP.
  */
-router.put('/ip/get', async(req, res) => {
+router.put('/ip/get', async (req, res) => {
 	try {
 		const freeIP = await OpenVPN.freeVpnIP(req);
 		res.status(200).json(freeIP);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting openvpn free ip: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}

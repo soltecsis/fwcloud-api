@@ -1,5 +1,5 @@
 /*!
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -65,6 +65,7 @@ describe('Routing rule compiler', () => {
       fwc.fwcloud.id,
       fwc.firewall.id,
     );
+
     compilation = compiler.compile('Rule', rules);
   });
 
@@ -111,6 +112,34 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include IPSec data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+    });
+
+    it('should include IPSec prefix data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
     });
 
     it('should include firewall mark data', () => {
@@ -175,6 +204,42 @@ describe('Routing rule compiler', () => {
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
+    it('should include IPSec data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include IPSec prefix data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
     it('should include firewall mark data', () => {
       expect(cs).to.deep.include(`$IP rule add fwmark ${fwc.mark.code} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
@@ -218,6 +283,34 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include IPSec data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+    });
+
+    it('should include IPSec prefix data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include WireGuard prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
     });
   });
 
@@ -270,6 +363,42 @@ describe('Routing rule compiler', () => {
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
+
+    it('should include IPSec data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include IPSec prefix data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli1-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli2-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('ipsec-cli3-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include WireGuard prefix data', async () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli1-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli2-addr').address} ${tail}`,
+      );
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('wireguard-cli3-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
   });
 
   describe('Compile only some routing rules', () => {
@@ -303,6 +432,44 @@ describe('Routing rule compiler', () => {
       expect(compilation.length).to.equal(2);
       expect(compilation[0].id).to.equal(ids[0]);
       expect(compilation[1].id).to.equal(ids[1]);
+    });
+
+    it('should handle invalid rule data gracefully', async () => {
+      const invalidRule: any = { id: null, ipobjs: null, mark: null };
+      let errorCaught = false;
+      try {
+        compiler.compile('Rule', [invalidRule]);
+      } catch (err) {
+        errorCaught = true;
+      }
+      expect(errorCaught).to.be.true;
+    });
+
+    it('should throw if compiling a rule with no objects', async () => {
+      const emptyRule: any = {
+        id: 99999,
+        ipobjs: [],
+        mark: null,
+      };
+      let errorCaught = false;
+      try {
+        compiler.compile('Rule', [emptyRule]);
+      } catch (err) {
+        errorCaught = true;
+      }
+      expect(errorCaught).to.be.true;
+    });
+
+    it('should return empty compilation for non-existent rule IDs', async () => {
+      const ids = [999999, 888888]; // IDs that do not exist
+      const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        ids,
+      );
+      const compilation = compiler.compile('Rule', rules);
+      expect(compilation).to.be.an('array').with.length(0);
     });
   });
 });

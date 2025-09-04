@@ -117,7 +117,21 @@ export class IPObjToIPObjGroup extends Model {
               `DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${ipobj_g}`,
               (error, result) => {
                 if (error) return reject(error);
-                resolve();
+
+                dbCon.query(
+                  `DELETE FROM wireguard_prefix__ipobj_g WHERE ipobj_g=${ipobj_g}`,
+                  (error, result) => {
+                    if (error) return reject(error);
+
+                    dbCon.query(
+                      `DELETE FROM wireguard__ipobj_g WHERE ipobj_g=${ipobj_g}`,
+                      (error, result) => {
+                        if (error) return reject(error);
+                        resolve();
+                      },
+                    );
+                  },
+                );
               },
             );
           },

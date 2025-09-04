@@ -35,6 +35,10 @@ import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
+import { RouteToIPSec } from '../../../../src/models/routing/route/route-to-ipsec.model';
+import { RouteToWireGuard } from '../../../../src/models/routing/route/route-to-wireguard.model';
+import { RouteToIPSecPrefix } from '../../../../src/models/routing/route/route-to-ipsec-prefix.model';
+import { RouteToWireGuardPrefix } from '../../../../src/models/routing/route/route-to-wireguard-prefix.model';
 
 describe('Routing table data fetch for compiler or grid', () => {
   let routeService: RouteService;
@@ -118,6 +122,18 @@ describe('Routing table data fetch for compiler or grid', () => {
         expect(items).to.deep.include(item);
       });
 
+      it('should include IPSec data', () => {
+        item.type = 5;
+        item.address = fwc.ipobjs.get('ipsec-cli3-addr').address;
+        expect(items).to.deep.include(item);
+      });
+
+      it('should include WireGuard data', () => {
+        item.type = 5;
+        item.address = fwc.ipobjs.get('wireguard-cli3-addr').address;
+        expect(items).to.deep.include(item);
+      });
+
       it('should include OpenVPN Prefix data', () => {
         item.type = 5;
         item.address = fwc.ipobjs.get('openvpn-cli1-addr').address;
@@ -173,6 +189,18 @@ describe('Routing table data fetch for compiler or grid', () => {
       it('should include OpenVPN data', () => {
         item.type = 5;
         item.address = fwc.ipobjs.get('openvpn-cli3-addr').address;
+        expect(items).to.deep.include(item);
+      });
+
+      it('should include IPSec data', () => {
+        item.type = 5;
+        item.address = fwc.ipobjs.get('ipsec-cli3-addr').address;
+        expect(items).to.deep.include(item);
+      });
+
+      it('should include WireGuard data', () => {
+        item.type = 5;
+        item.address = fwc.ipobjs.get('wireguard-cli3-addr').address;
         expect(items).to.deep.include(item);
       });
 
@@ -298,6 +326,40 @@ describe('Routing table data fetch for compiler or grid', () => {
         expect(items).to.deep.include(item);
       });
 
+      it('should include IPSec data', async () => {
+        item.id = fwc.ipsecClients.get('IPSec-Cli-3').id;
+        item.type = 331;
+        item.name = fwc.crts.get('IPSec-Cli-3').cn;
+        item.firewall_id = fwc.firewall.id;
+        item.firewall_name = fwc.firewall.name;
+        item._order = (
+          await manager.getRepository(RouteToIPSec).findOneOrFail({
+            where: {
+              routeId: fwc.routes.get('route1').id,
+              ipSecId: item.id,
+            },
+          })
+        ).order;
+        expect(items).to.deep.include(item);
+      });
+
+      it('should include WireGuard data', async () => {
+        item.id = fwc.wireguardClients.get('WireGuard-Cli-3').id;
+        item.type = 321;
+        item.name = fwc.crts.get('WireGuard-Cli-3').cn;
+        item.firewall_id = fwc.firewall.id;
+        item.firewall_name = fwc.firewall.name;
+        item._order = (
+          await manager.getRepository(RouteToWireGuard).findOneOrFail({
+            where: {
+              routeId: fwc.routes.get('route1').id,
+              wireGuardId: item.id,
+            },
+          })
+        ).order;
+        expect(items).to.deep.include(item);
+      });
+
       it('should include OpenVPN Prefix data', async () => {
         item.id = fwc.openvpnPrefix.id;
         item.type = 401;
@@ -314,8 +376,41 @@ describe('Routing table data fetch for compiler or grid', () => {
         ).order;
         expect(items).to.deep.include(item);
       });
-    });
 
+      it('should include IPSec Prefix data', async () => {
+        item.id = fwc.ipsecPrefix.id;
+        item.type = 403;
+        item.name = fwc.ipsecPrefix.name;
+        item.firewall_id = fwc.firewall.id;
+        item.firewall_name = fwc.firewall.name;
+        item._order = (
+          await manager.getRepository(RouteToIPSecPrefix).findOneOrFail({
+            where: {
+              routeId: fwc.routes.get('route1').id,
+              ipsecPrefixId: item.id,
+            },
+          })
+        ).order;
+        expect(items).to.deep.include(item);
+      });
+
+      it('should include WireGuard Prefix data', async () => {
+        item.id = fwc.wireguardPrefix.id;
+        item.type = 402;
+        item.name = fwc.wireguardPrefix.name;
+        item.firewall_id = fwc.firewall.id;
+        item.firewall_name = fwc.firewall.name;
+        item._order = (
+          await manager.getRepository(RouteToWireGuardPrefix).findOneOrFail({
+            where: {
+              routeId: fwc.routes.get('route1').id,
+              wireGuardPrefixId: item.id,
+            },
+          })
+        ).order;
+        expect(items).to.deep.include(item);
+      });
+    });
     describe('Into group', () => {
       beforeEach(() => {
         items = routes[1].items; // This route has the group of objects.

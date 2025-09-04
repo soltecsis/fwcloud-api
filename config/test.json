@@ -43,6 +43,9 @@
     "pki": {
         "data_dir": "tests/playground/DATA/pki"
     },
+    "ipsec": {
+        "data_dir": "tests/playground/DATA/ipsec"
+    },
     "api_server": {
         "https": false
     },

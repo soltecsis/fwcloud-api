@@ -96,5 +96,37 @@ export class RoutingRuleControllerUpdateDto {
     each: true,
   })
   @Type(() => PositionalEntityDto)
+  wireguardIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  wireguardPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipsecIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipsecPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
   markIds?: PositionalEntityDto[];
 }

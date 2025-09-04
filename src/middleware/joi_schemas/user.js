@@ -41,6 +41,8 @@ schema.validate = req => {
 					authCode: sharedSch.authCode,
 					publicKey: Joi.string()
 				});
+			} else if (req.url === '/user/logout') {
+				return resolve();
 			}
 		} else if (req.url === '/user' && (req.method === 'POST' || req.method === 'PUT')) {
 			schema = Joi.object().keys({

@@ -23,7 +23,7 @@
 import { TableExporter } from './table-exporter';
 import Model from '../../../models/Model';
 import { FwcTree } from '../../../models/tree/fwc-tree.model';
-import { SelectQueryBuilder, Connection, QueryRunner, In, IsNull } from 'typeorm';
+import { SelectQueryBuilder, QueryRunner, In, IsNull, DataSource } from 'typeorm';
 
 export class FwcTreeExporter extends TableExporter {
   protected _ids: Array<number>;
@@ -32,7 +32,7 @@ export class FwcTreeExporter extends TableExporter {
     return FwcTree;
   }
 
-  public async bootstrap(connection: Connection, fwcloudId: number) {
+  public async bootstrap(connection: DataSource, fwcloudId: number) {
     this._ids = await FwcTreeExporter.getNodesId(connection, fwcloudId);
   }
 
@@ -56,7 +56,7 @@ export class FwcTreeExporter extends TableExporter {
    * @param fwCloudId
    */
   public static async getNodesId(
-    connection: Connection,
+    connection: DataSource,
     fwCloudId: number,
   ): Promise<Array<number>> {
     const queryRunner: QueryRunner = connection.createQueryRunner();
