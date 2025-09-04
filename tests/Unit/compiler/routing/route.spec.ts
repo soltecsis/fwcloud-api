@@ -444,5 +444,43 @@ describe('Routing route compiler', async () => {
       expect(compilation[0].id).to.equal(ids[0]);
       expect(compilation[1].id).to.equal(ids[1]);
     });
+
+    it('should throw if compiling an invalid or corrupt route', () => {
+      const invalidRoute: any = { id: null, ipobjs: null };
+      let errorCaught = false;
+      try {
+        compiler.compile('Route', [invalidRoute]);
+      } catch (err) {
+        errorCaught = true;
+      }
+      expect(errorCaught).to.be.true;
+    });
+
+    it('should throw if compiling a route with no objects', () => {
+      const emptyRoute: any = {
+        id: 99999,
+        ipobjs: [],
+      };
+      let errorCaught = false;
+      try {
+        compiler.compile('Route', [emptyRoute]);
+      } catch (err) {
+        errorCaught = true;
+      }
+      expect(errorCaught).to.be.true;
+    });
+
+    it('should return empty compilation for non-existent route IDs', async () => {
+      const ids = [999999, 888888]; // IDs that do not exist
+      const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        fwc.routingTable.id,
+        ids,
+      );
+      const compilation = compiler.compile('Route', routes);
+      expect(compilation).to.be.an('array').with.length(0);
+    });
   });
 });
