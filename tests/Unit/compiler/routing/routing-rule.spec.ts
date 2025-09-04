@@ -433,5 +433,43 @@ describe('Routing rule compiler', () => {
       expect(compilation[0].id).to.equal(ids[0]);
       expect(compilation[1].id).to.equal(ids[1]);
     });
+
+    it('should handle invalid rule data gracefully', async () => {
+      const invalidRule: any = { id: null, ipobjs: null, mark: null };
+      let errorCaught = false;
+      try {
+        compiler.compile('Rule', [invalidRule]);
+      } catch (err) {
+        errorCaught = true;
+      }
+      expect(errorCaught).to.be.true;
+    });
+
+    it('should throw if compiling a rule with no objects', async () => {
+      const emptyRule: any = {
+        id: 99999,
+        ipobjs: [],
+        mark: null,
+      };
+      let errorCaught = false;
+      try {
+        compiler.compile('Rule', [emptyRule]);
+      } catch (err) {
+        errorCaught = true;
+      }
+      expect(errorCaught).to.be.true;
+    });
+
+    it('should return empty compilation for non-existent rule IDs', async () => {
+      const ids = [999999, 888888]; // IDs that do not exist
+      const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        ids,
+      );
+      const compilation = compiler.compile('Rule', rules);
+      expect(compilation).to.be.an('array').with.length(0);
+    });
   });
 });
