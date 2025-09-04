@@ -27,7 +27,6 @@ import { ValidationException } from '../../../fonaments/exceptions/validation-ex
 import { Service } from '../../../fonaments/services/service';
 import { ErrorBag } from '../../../fonaments/validation/validator';
 import { Offset } from '../../../offset';
-import { Cluster } from '../../firewall/Cluster';
 import { Firewall } from '../../firewall/Firewall';
 import { FirewallService } from '../../firewall/firewall.service';
 import { Interface } from '../../interface/Interface';
@@ -63,6 +62,18 @@ import {
 import { RoutingGroup } from '../routing-group/routing-group.model';
 import { RoutingGroupService } from '../routing-group/routing-group.service';
 import { DatabaseService } from '../../../database/database.service';
+import { WireGuardRepository } from '../../vpn/wireguard/wireguard-repository';
+import { WireGuardPrefixRepository } from '../../vpn/wireguard/WireGuardPrefix.repository';
+import { RoutingRuleToWireGuard } from './routing-rule-to-wireguard.model';
+import { RoutingRuleToWireGuardPrefix } from './routing-rule-to-wireguard-prefix.model';
+import { WireGuardPrefix } from '../../vpn/wireguard/WireGuardPrefix';
+import { WireGuard } from '../../vpn/wireguard/WireGuard';
+import { IPSecRepository } from '../../vpn/ipsec/ipsec-repository';
+import { IPSecPrefixRepository } from '../../vpn/ipsec/IPSecPrefix.repository';
+import { RoutingRuleToIPSecPrefix } from './routing-rule-to-ipsec-prefix.model';
+import { RoutingRuleToIPSec } from './routing-rule-to-ipsec.model';
+import { IPSec } from '../../vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../../vpn/ipsec/IPSecPrefix';
 
 export interface ICreateRoutingRule {
   routingTableId: number;
@@ -74,6 +85,10 @@ export interface ICreateRoutingRule {
   ipObjGroupIds?: { id: number; order: number }[];
   openVPNIds?: { id: number; order: number }[];
   openVPNPrefixIds?: { id: number; order: number }[];
+  wireguardIds?: { id: number; order: number }[];
+  wireguardPrefixIds?: { id: number; order: number }[];
+  ipsecIds?: { id: number; order: number }[];
+  ipsecPrefixIds?: { id: number; order: number }[];
   markIds?: { id: number; order: number }[];
   to?: number; //Reference where create the rule
   offset?: Offset;
@@ -90,6 +105,10 @@ interface IUpdateRoutingRule {
   ipObjGroupIds?: { id: number; order: number }[];
   openVPNIds?: { id: number; order: number }[];
   openVPNPrefixIds?: { id: number; order: number }[];
+  wireguardIds?: { id: number; order: number }[];
+  wireguardPrefixIds?: { id: number; order: number }[];
+  ipsecIds?: { id: number; order: number }[];
+  ipsecPrefixIds?: { id: number; order: number }[];
   markIds?: { id: number; order: number }[];
 }
 
@@ -111,6 +130,10 @@ interface IMoveFromRoutingRule {
   ipObjGroupId?: number;
   openVPNId?: number;
   openVPNPrefixId?: number;
+  wireguardId?: number;
+  wireguardPrefixId?: number;
+  ipsecId?: number;
+  ipsecPrefixId?: number;
   markId?: number;
 }
 
@@ -125,6 +148,10 @@ export class RoutingRuleService extends Service {
   protected _firewallService: FirewallService;
   private _groupService: RoutingGroupService;
   private _databaseService: DatabaseService;
+  private _wireguardRepository: WireGuardRepository;
+  private _wireguardPrefixRepository: WireGuardPrefixRepository;
+  private _ipsecRepository: IPSecRepository;
+  private _ipsecPrefixRepository: IPSecPrefixRepository;
 
   constructor(app: Application) {
     super(app);
@@ -138,6 +165,14 @@ export class RoutingRuleService extends Service {
     this._ipobjGroupRepository = new IPObjGroupRepository(this._databaseService.dataSource.manager);
     this._openvpnRepository = new OpenVPNRepository(this._databaseService.dataSource.manager);
     this._openvpnPrefixRepository = new OpenVPNPrefixRepository(
+      this._databaseService.dataSource.manager,
+    );
+    this._wireguardRepository = new WireGuardRepository(this._databaseService.dataSource.manager);
+    this._wireguardPrefixRepository = new WireGuardPrefixRepository(
+      this._databaseService.dataSource.manager,
+    );
+    this._ipsecRepository = new IPSecRepository(this._databaseService.dataSource.manager);
+    this._ipsecPrefixRepository = new IPSecPrefixRepository(
       this._databaseService.dataSource.manager,
     );
     this._markRepository = new MarkRepository(this._databaseService.dataSource.manager);
@@ -182,13 +217,16 @@ export class RoutingRuleService extends Service {
     routingRuleData.rule_order = rule_order;
 
     let persisted: RoutingRule = await this._repository.save(routingRuleData);
-
     try {
       persisted = await this.update(persisted.id, {
         ipObjIds: data.ipObjIds,
         ipObjGroupIds: data.ipObjGroupIds,
         openVPNIds: data.openVPNIds,
         openVPNPrefixIds: data.openVPNPrefixIds,
+        wireguardIds: data.wireguardIds,
+        wireguardPrefixIds: data.wireguardPrefixIds,
+        ipsecIds: data.ipsecIds,
+        ipsecPrefixIds: data.ipsecPrefixIds,
         firewallApplyToId: data.firewallApplyToId,
         markIds: data.markIds,
       });
@@ -225,6 +263,10 @@ export class RoutingRuleService extends Service {
         'routingRuleToIPObjGroups',
         'routingRuleToOpenVPNs',
         'routingRuleToOpenVPNPrefixes',
+        'routingRuleToWireGuards',
+        'routingRuleToWireGuardPrefixes',
+        'routingRuleToIPSecs',
+        'routingRuleToIPSecPrefixes',
       ],
     });
 
@@ -267,7 +309,6 @@ export class RoutingRuleService extends Service {
         relations: ['routingTable', 'routingTable.firewall'],
       })
     ).routingTable.firewall;
-
     await this.validateFromRestriction(rule.id, data);
 
     if (data.ipObjIds) {
@@ -320,6 +361,54 @@ export class RoutingRuleService extends Service {
       );
     }
 
+    if (data.wireguardIds) {
+      await this.validateWireGuards(firewall, data);
+      rule.routingRuleToWireGuards = data.wireguardIds.map(
+        (item) =>
+          ({
+            routingRuleId: rule.id,
+            wireGuardId: item.id,
+            order: item.order,
+          }) as RoutingRuleToWireGuard,
+      );
+    }
+
+    if (data.wireguardPrefixIds) {
+      await this.validateWireGuardPrefixes(firewall, data);
+      rule.routingRuleToWireGuardPrefixes = data.wireguardPrefixIds.map(
+        (item) =>
+          ({
+            routingRuleId: rule.id,
+            wireGuardPrefixId: item.id,
+            order: item.order,
+          }) as RoutingRuleToWireGuardPrefix,
+      );
+    }
+
+    if (data.ipsecIds) {
+      await this.validateIPSecs(firewall, data);
+      rule.routingRuleToIPSecs = data.ipsecIds.map(
+        (item) =>
+          ({
+            routingRuleId: rule.id,
+            ipsecId: item.id,
+            order: item.order,
+          }) as RoutingRuleToIPSec,
+      );
+    }
+
+    if (data.ipsecPrefixIds) {
+      await this.validateIPSecPrefixes(firewall, data);
+      rule.routingRuleToIPSecPrefixes = data.ipsecPrefixIds.map(
+        (item) =>
+          ({
+            routingRuleId: rule.id,
+            ipsecPrefixId: item.id,
+            order: item.order,
+          }) as RoutingRuleToIPSecPrefix,
+      );
+    }
+
     await this.validateFirewallApplyToId(firewall, data);
     rule.firewallApplyToId = data.firewallApplyToId;
 
@@ -354,6 +443,8 @@ export class RoutingRuleService extends Service {
         'routingRuleToIPObjGroups',
         'routingRuleToOpenVPNs',
         'routingRuleToOpenVPNPrefixes',
+        'routingRuleToWireGuards',
+        'routingRuleToWireGuardPrefixes',
       ],
     });
 
@@ -363,6 +454,8 @@ export class RoutingRuleService extends Service {
       rule.routingRuleToMarks,
       rule.routingRuleToOpenVPNPrefixes,
       rule.routingRuleToOpenVPNs,
+      rule.routingRuleToWireGuards,
+      rule.routingRuleToWireGuardPrefixes,
     );
 
     items
@@ -474,6 +567,10 @@ export class RoutingRuleService extends Service {
           'routingRuleToIPObjGroups',
           'routingRuleToOpenVPNs',
           'routingRuleToOpenVPNPrefixes',
+          'routingRuleToWireGuards',
+          'routingRuleToWireGuardPrefixes',
+          'routingRuleToIPSecs',
+          'routingRuleToIPSecPrefixes',
         ],
       });
     const toRule: RoutingRule = await db
@@ -487,6 +584,10 @@ export class RoutingRuleService extends Service {
           'routingRuleToIPObjGroups',
           'routingRuleToOpenVPNs',
           'routingRuleToOpenVPNPrefixes',
+          'routingRuleToWireGuards',
+          'routingRuleToWireGuardPrefixes',
+          'routingRuleToIPSecs',
+          'routingRuleToIPSecPrefixes',
         ],
       });
 
@@ -499,6 +600,10 @@ export class RoutingRuleService extends Service {
         toRule.routingRuleToOpenVPNs,
         toRule.routingRuleToOpenVPNPrefixes,
         toRule.routingRuleToMarks,
+        toRule.routingRuleToWireGuards,
+        toRule.routingRuleToWireGuardPrefixes,
+        toRule.routingRuleToIPSecs,
+        toRule.routingRuleToIPSecPrefixes,
       )
       .forEach((item) => {
         lastPosition < item.order ? (lastPosition = item.order) : null;
@@ -560,6 +665,62 @@ export class RoutingRuleService extends Service {
       }
     }
 
+    if (data.wireguardId !== undefined) {
+      const index: number = fromRule.routingRuleToWireGuards.findIndex(
+        (item) => item.wireGuardId === data.wireguardId,
+      );
+      if (index >= 0) {
+        fromRule.routingRuleToWireGuards.splice(index, 1);
+        toRule.routingRuleToWireGuards.push({
+          routingRuleId: toRule.id,
+          wireGuardId: data.wireguardId,
+          order: lastPosition + 1,
+        } as RoutingRuleToWireGuard);
+      }
+    }
+
+    if (data.wireguardPrefixId !== undefined) {
+      const index: number = fromRule.routingRuleToWireGuardPrefixes.findIndex(
+        (item) => item.wireGuardPrefixId === data.wireguardPrefixId,
+      );
+      if (index >= 0) {
+        fromRule.routingRuleToWireGuardPrefixes.splice(index, 1);
+        toRule.routingRuleToWireGuardPrefixes.push({
+          routingRuleId: toRule.id,
+          wireGuardPrefixId: data.wireguardPrefixId,
+          order: lastPosition + 1,
+        } as RoutingRuleToWireGuardPrefix);
+      }
+    }
+
+    if (data.ipsecId !== undefined) {
+      const index: number = fromRule.routingRuleToIPSecs.findIndex(
+        (item) => item.ipsecId === data.ipsecId,
+      );
+      if (index >= 0) {
+        fromRule.routingRuleToIPSecs.splice(index, 1);
+        toRule.routingRuleToIPSecs.push({
+          routingRuleId: toRule.id,
+          ipsecId: data.ipsecId,
+          order: lastPosition + 1,
+        } as RoutingRuleToIPSec);
+      }
+    }
+
+    if (data.ipsecPrefixId !== undefined) {
+      const index: number = fromRule.routingRuleToIPSecPrefixes.findIndex(
+        (item) => item.ipsecPrefixId === data.ipsecPrefixId,
+      );
+      if (index >= 0) {
+        fromRule.routingRuleToIPSecPrefixes.splice(index, 1);
+        toRule.routingRuleToIPSecPrefixes.push({
+          routingRuleId: toRule.id,
+          ipsecPrefixId: data.ipsecPrefixId,
+          order: lastPosition + 1,
+        } as RoutingRuleToIPSecPrefix);
+      }
+    }
+
     if (data.markId !== undefined) {
       const index: number = fromRule.routingRuleToMarks.findIndex(
         (item) => item.markId === data.markId,
@@ -592,6 +753,10 @@ export class RoutingRuleService extends Service {
     rule.routingRuleToIPObjGroups = [];
     rule.routingRuleToIPObjs = [];
     rule.routingRuleToMarks = [];
+    rule.routingRuleToWireGuards = [];
+    rule.routingRuleToWireGuardPrefixes = [];
+    rule.routingRuleToIPSecs = [];
+    rule.routingRuleToIPSecPrefixes = [];
 
     await this._repository.save(rule);
 
@@ -734,6 +899,10 @@ export class RoutingRuleService extends Service {
         'routingRuleToIPObjGroups',
         'routingRuleToOpenVPNs',
         'routingRuleToOpenVPNPrefixes',
+        'routingRuleToWireGuards',
+        'routingRuleToWireGuardPrefixes',
+        'routingRuleToIPSecs',
+        'routingRuleToIPSecPrefixes',
       ],
     });
 
@@ -749,8 +918,23 @@ export class RoutingRuleService extends Service {
     const openVPNPrefixes: number = data.openVPNPrefixIds
       ? data.openVPNPrefixIds.length
       : rule.routingRuleToOpenVPNPrefixes.length;
-
-    if (marks + ipObjs + ipObjGroups + openVPNs + openVPNPrefixes > 0) {
+    const wireguards: number = data.wireguardIds
+      ? data.wireguardIds.length
+      : rule.routingRuleToWireGuards.length;
+    const wireguardPrefixes: number = data.wireguardPrefixIds
+      ? data.wireguardPrefixIds.length
+      : rule.routingRuleToWireGuardPrefixes.length;
+    const ipsecs: number = data.ipsecIds ? data.ipsecIds.length : rule.routingRuleToIPSecs.length;
+    const ipsecPrefixes: number = data.ipsecPrefixIds
+      ? data.ipsecPrefixIds.length
+      : rule.routingRuleToIPSecPrefixes.length;
+    if (
+      marks +
+        ipObjs +
+        ipObjGroups +
+        (openVPNs + openVPNPrefixes || wireguards + wireguardPrefixes || ipsecs + ipsecPrefixes) >
+      0
+    ) {
       return;
     }
 
@@ -768,6 +952,22 @@ export class RoutingRuleService extends Service {
 
     if (data.openVPNPrefixIds && data.openVPNPrefixIds.length === 0) {
       errors['markIds'] = ['From should contain at least one item'];
+    }
+
+    if (data.wireguardIds && data.wireguardIds.length === 0) {
+      errors['wireguardIds'] = ['From should contain at least one item'];
+    }
+
+    if (data.wireguardPrefixIds && data.wireguardPrefixIds.length === 0) {
+      errors['wireguardPrefixIds'] = ['From should contain at least one item'];
+    }
+
+    if (data.ipsecIds && data.ipsecIds.length === 0) {
+      errors['ipsecIds'] = ['From should contain at least one item'];
+    }
+
+    if (data.ipsecPrefixIds && data.ipsecPrefixIds.length === 0) {
+      errors['ipsecPrefixIds'] = ['From should contain at least one item'];
     }
 
     throw new ValidationException('The given data was invalid', errors);
@@ -848,6 +1048,64 @@ export class RoutingRuleService extends Service {
     }
   }
 
+  protected async validateIPSecs(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.ipsecIds || data.ipsecIds.length === 0) {
+      return;
+    }
+
+    const ipsecs: IPSec[] = await db
+      .getSource()
+      .manager.getRepository(IPSec)
+      .createQueryBuilder('ipsec')
+      .innerJoin('ipsec.firewall', 'firewall')
+      .whereInIds(data.ipsecIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .getMany();
+
+    for (let i = 0; i < data.ipsecIds.length; i++) {
+      if (ipsecs.findIndex((item) => item.id === data.ipsecIds[i].id) < 0) {
+        errors[`ipsecIds.${i}.id`] = ['ipsec does not exists'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
+  protected async validateWireGuards(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.wireguardIds || data.wireguardIds.length === 0) {
+      return;
+    }
+
+    const wireguards: WireGuard[] = await db
+      .getSource()
+      .manager.getRepository(WireGuard)
+      .createQueryBuilder('wireguard')
+      .innerJoin('wireguard.firewall', 'firewall')
+      .whereInIds(data.wireguardIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .getMany();
+
+    for (let i = 0; i < data.wireguardIds.length; i++) {
+      if (wireguards.findIndex((item) => item.id === data.wireguardIds[i].id) < 0) {
+        errors[`wireguardIds.${i}.id`] = ['wireguard does not exists'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
   protected async validateOpenVPNPrefixes(
     firewall: Firewall,
     data: IUpdateRoutingRule,
@@ -873,6 +1131,72 @@ export class RoutingRuleService extends Service {
     for (let i = 0; i < data.openVPNPrefixIds.length; i++) {
       if (openvpnprefixes.findIndex((item) => item.id === data.openVPNPrefixIds[i].id) < 0) {
         errors[`openVPNPrefixIds.${i}.id`] = ['openVPNPrefix does not exists'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
+  protected async validateWireGuardPrefixes(
+    firewall: Firewall,
+    data: IUpdateRoutingRule,
+  ): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.wireguardPrefixIds || data.wireguardPrefixIds.length === 0) {
+      return;
+    }
+
+    const wireguardprefixes: WireGuardPrefix[] = await db
+      .getSource()
+      .manager.getRepository(WireGuardPrefix)
+      .createQueryBuilder('prefix')
+      .innerJoin('prefix.wireGuard', 'wireguard')
+      .innerJoin('wireguard.firewall', 'firewall')
+      .whereInIds(data.wireguardPrefixIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .getMany();
+
+    for (let i = 0; i < data.wireguardPrefixIds.length; i++) {
+      if (wireguardprefixes.findIndex((item) => item.id === data.wireguardPrefixIds[i].id) < 0) {
+        errors[`wireguardPrefixIds.${i}.id`] = ['wireguardPrefix does not exists'];
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data was invalid', errors);
+    }
+  }
+
+  protected async validateIPSecPrefixes(
+    firewall: Firewall,
+    data: IUpdateRoutingRule,
+  ): Promise<void> {
+    const errors: ErrorBag = {};
+
+    if (!data.ipsecPrefixIds || data.ipsecPrefixIds.length === 0) {
+      return;
+    }
+
+    const ipsecprefixes: IPSecPrefix[] = await db
+      .getSource()
+      .manager.getRepository(IPSecPrefix)
+      .createQueryBuilder('prefix')
+      .innerJoin('prefix.ipSec', 'ipsec')
+      .innerJoin('ipsec.firewall', 'firewall')
+      .whereInIds(data.ipsecPrefixIds.map((item) => item.id))
+      .andWhere('firewall.fwCloudId = :fwcloud', {
+        fwcloud: firewall.fwCloudId,
+      })
+      .getMany();
+
+    for (let i = 0; i < data.ipsecPrefixIds.length; i++) {
+      if (ipsecprefixes.findIndex((item) => item.id === data.ipsecPrefixIds[i].id) < 0) {
+        errors[`ipsecPrefixIds.${i}.id`] = ['ipsecPrefix does not exists'];
       }
     }
 
@@ -979,6 +1303,50 @@ export class RoutingRuleService extends Service {
         null,
         rules,
       ),
+      this._ipobjRepository.getIpobjsInWireGuardInRouting('rule', fwcloud, firewall, null, rules),
+      this._ipobjRepository.getIpobjsInWireGuardPrefixesInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjsInWireGuardInGroupsInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjGroupsInWireGuardPrefixesInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjsInIPSecInRouting('rule', fwcloud, firewall, null, rules),
+      this._ipobjRepository.getIpobjsInIPSecPrefixesInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjsInIPSecInGroupsInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
+      this._ipobjRepository.getIpobjGroupsInIPSecPrefixesInRouting(
+        'rule',
+        fwcloud,
+        firewall,
+        null,
+        rules,
+      ),
       this._markRepository.getMarksInRoutingRules(fwcloud, firewall, rules),
     ];
   }
@@ -986,13 +1354,41 @@ export class RoutingRuleService extends Service {
   private buildSQLsForGrid(
     fwcloud: number,
     firewall: number,
-  ): SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark>[] {
+  ): SelectQueryBuilder<
+    | IPObj
+    | IPObjGroup
+    | OpenVPN
+    | OpenVPNPrefix
+    | Mark
+    | WireGuard
+    | WireGuardPrefix
+    | IPSec
+    | IPSecPrefix
+  >[] {
     return [
       this._ipobjRepository.getIpobjsInRouting_ForGrid('rule', fwcloud, firewall),
       this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid('rule', fwcloud, firewall),
       this._openvpnRepository.getOpenVPNInRouting_ForGrid('rule', fwcloud, firewall),
       this._openvpnPrefixRepository.getOpenVPNPrefixInRouting_ForGrid('rule', fwcloud, firewall),
       this._markRepository.getMarksInRoutingRules_ForGrid(fwcloud, firewall),
-    ];
+      this._wireguardRepository.getWireGuardInRouting_ForGrid('rule', fwcloud, firewall),
+      this._wireguardPrefixRepository.getWireGuardPrefixInRouting_ForGrid(
+        'rule',
+        fwcloud,
+        firewall,
+      ),
+      this._ipsecRepository.getIPSecInRouting_ForGrid('rule', fwcloud, firewall),
+      this._ipsecPrefixRepository.getIPSecPrefixInRouting_ForGrid('rule', fwcloud, firewall),
+    ] as SelectQueryBuilder<
+      | IPObj
+      | IPObjGroup
+      | OpenVPN
+      | OpenVPNPrefix
+      | Mark
+      | WireGuard
+      | WireGuardPrefix
+      | IPSec
+      | IPSecPrefix
+    >[];
   }
 }

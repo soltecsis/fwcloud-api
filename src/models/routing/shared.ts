@@ -26,6 +26,10 @@ import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Mark } from '../ipobj/Mark';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../vpn/openvpn/OpenVPNPrefix';
+import { WireGuard } from '../vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../vpn/wireguard/WireGuardPrefix';
+import { IPSec } from '../vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../vpn/ipsec/IPSecPrefix';
 
 export type AvailableDestinations = 'grid' | 'compiler';
 
@@ -65,7 +69,17 @@ export class RoutingUtils {
   public static async mapEntityData<
     T extends ItemForGrid | RouteItemForCompiler | RoutingRuleItemForCompiler,
   >(
-    sql: SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark>,
+    sql: SelectQueryBuilder<
+      | IPObj
+      | IPObjGroup
+      | OpenVPN
+      | OpenVPNPrefix
+      | Mark
+      | WireGuard
+      | WireGuardPrefix
+      | IPSec
+      | IPSecPrefix
+    >,
     ItemsArrayMap: Map<number, T[]>,
   ): Promise<void> {
     //console.log(sql.getQueryAndParameters());

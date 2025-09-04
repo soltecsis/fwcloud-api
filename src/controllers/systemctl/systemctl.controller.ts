@@ -37,7 +37,7 @@ export class SystemCtlController extends Controller {
   @Validate(SystemCtlDto)
   async systemctlCommunication(req: Request) {
     (
-      await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud, req.body.firewall)
+      await SystemctlPolicy.communicate(req.session.user, req.body.fwcloud, req.body.firewall)
     ).authorize();
     const firewall = await db
       .getSource()

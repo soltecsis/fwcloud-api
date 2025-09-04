@@ -98,6 +98,38 @@ export class RouteControllerStoreDto {
   @Type(() => PositionalEntityDto)
   openVPNPrefixIds?: PositionalEntityDto[];
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  wireguardIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  wireguardPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipsecIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipsecPrefixIds?: PositionalEntityDto[];
+
   @IsNumber()
   @IsPositive()
   @IsOptional()

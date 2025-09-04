@@ -24,6 +24,8 @@ import Model from '../../Model';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Ca } from './Ca';
 import { OpenVPN } from '../openvpn/OpenVPN';
+import { WireGuard } from '../wireguard/WireGuard';
+import { IPSec } from '../ipsec/IPSec';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -69,6 +71,12 @@ export class Crt extends Model {
 
   @OneToMany((type) => OpenVPN, (openVPN) => openVPN.crt)
   openVPNs: Array<OpenVPN>;
+
+  @OneToMany((type) => WireGuard, (wireGuard) => wireGuard.crt)
+  wireGuards: Array<WireGuard>;
+
+  @OneToMany((type) => IPSec, (ipsec) => ipsec.crt)
+  ipSecs: Array<IPSec>;
 
   public getTableName(): string {
     return tableName;
@@ -160,6 +168,37 @@ export class Crt extends Model {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { crtUsedInOpenvpn: true } });
+        else resolve({ result: false });
+      });
+    });
+  }
+
+  public static searchCRTInWireguard(dbCon, fwcloud, crt) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id FROM wireguard VPN
+        INNER JOIN crt CRT ON CRT.id=VPN.crt
+        INNER JOIN ca CA ON CA.id=CRT.ca
+        WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
+      dbCon.query(sql, async (error, result) => {
+        if (error) return reject(error);
+
+        if (result.length > 0)
+          resolve({ result: true, restrictions: { crtUsedInWireguard: true } });
+        else resolve({ result: false });
+      });
+    });
+  }
+
+  public static searchCRTInIpsec(dbCon, fwcloud, crt) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id FROM ipsec VPN
+        INNER JOIN crt CRT ON CRT.id=VPN.crt
+        INNER JOIN ca CA ON CA.id=CRT.ca
+        WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
+      dbCon.query(sql, async (error, result) => {
+        if (error) return reject(error);
+
+        if (result.length > 0) resolve({ result: true, restrictions: { crtUsedInIpsec: true } });
         else resolve({ result: false });
       });
     });

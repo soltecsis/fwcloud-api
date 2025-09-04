@@ -22,7 +22,7 @@
 
 import { TableExporter } from './table-exporter';
 import Model from '../../../models/Model';
-import { Connection, QueryRunner } from 'typeorm';
+import { DataSource, QueryRunner } from 'typeorm';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNExporter } from './openvpn.exporter';
 import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
@@ -37,7 +37,7 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
     return 'openvpn__ipobj_g';
   }
 
-  protected async getRows(connection: Connection, fwCloudId: number): Promise<any> {
+  protected async getRows(connection: DataSource, fwCloudId: number): Promise<any> {
     const qr: QueryRunner = connection.createQueryRunner();
 
     const data = await qr.query(
@@ -54,7 +54,7 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
     return data;
   }
 
-  protected getOpenVPNIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
+  protected getOpenVPNIds(connection: DataSource, fwCloudId: number): [string, Array<any>] {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
@@ -65,7 +65,7 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
       .getQueryAndParameters();
   }
 
-  protected getIpObjGruopIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
+  protected getIpObjGruopIds(connection: DataSource, fwCloudId: number): [string, Array<any>] {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()

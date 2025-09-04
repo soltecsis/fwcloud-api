@@ -141,16 +141,54 @@ export class Ca extends Model {
    */
   public static storePkiInfo(req, tree): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
-                FROM crt CRT
-                INNER JOIN openvpn VPN on VPN.crt=CRT.id
-                INNER JOIN firewall FW on FW.id=VPN.firewall
-                LEFT JOIN openvpn_opt OPT on OPT.openvpn=VPN.id and OPT.name='disable'
-                WHERE FW.fwcloud=${req.body.fwcloud}`;
+      let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
+                  FROM crt CRT
+                  INNER JOIN openvpn VPN on VPN.crt=CRT.id
+                  INNER JOIN firewall FW on FW.id=VPN.firewall
+                  LEFT JOIN openvpn_opt OPT on OPT.openvpn=VPN.id and OPT.name='disable'
+                  WHERE FW.fwcloud=${req.body.fwcloud}`;
+
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
+
         tree.openvpn_info = result;
-        resolve();
+
+        sql = `SELECT VPN.id as wireguard,VPN.wireguard as wireguard_parent,CRT.id as crt,CRT.ca, OPT.name as wireguard_disabled
+                FROM crt CRT
+                INNER JOIN wireguard VPN on VPN.crt=CRT.id
+                INNER JOIN firewall FW on FW.id=VPN.firewall
+                LEFT JOIN wireguard_opt OPT on OPT.wireguard=VPN.id and OPT.name='<<disable>>'
+                WHERE FW.fwcloud=${req.body.fwcloud}`;
+
+        req.dbCon.query(sql, (error, result) => {
+          if (error) return reject(error);
+
+          tree.wireguard_info = result;
+
+          //resolve();
+          sql = `SELECT VPN.id as ipsec,VPN.ipsec as ipsec_parent,CRT.id as crt,CRT.ca, OPT.name as ipsec_disabled
+          FROM crt CRT
+          INNER JOIN ipsec VPN on VPN.crt=CRT.id
+          INNER JOIN firewall FW on FW.id=VPN.firewall
+          LEFT JOIN ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name='<<disable>>'
+          WHERE FW.fwcloud=${req.body.fwcloud}`;
+
+          req.dbCon.query(sql, (error, result) => {
+            if (error) return reject(error);
+
+            tree.ipsec_info = result;
+
+            resolve();
+          });
+        });
+      });
+    });
+  }
+  private static executeQuery(dbCon, sql): Promise<any> {
+    return new Promise((resolve, reject) => {
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
       });
     });
   }

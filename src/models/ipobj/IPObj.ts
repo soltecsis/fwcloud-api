@@ -43,6 +43,8 @@ import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
 import { IpUtils } from '../../utils/ip-utils';
+import { WireGuardOption } from '../vpn/wireguard/wireguard-option.model';
+import { IPSecOption } from '../vpn/ipsec/ipsec-option.model';
 
 const asyncMod = require('async');
 const host_Data = require('../../models/data/data_ipobj_host');
@@ -152,7 +154,13 @@ export class IPObj extends Model {
   interface: Interface;
 
   @OneToMany((type) => OpenVPNOption, (options) => options.ipObj)
-  optionsList: Array<OpenVPNOption>;
+  optionsListOpenVPN: Array<OpenVPNOption>;
+
+  @OneToMany((type) => WireGuardOption, (options) => options.ipObj)
+  optionsListWireGuard: Array<WireGuardOption>;
+
+  @OneToMany((type) => IPSecOption, (options) => options.ipObj)
+  optionsListIPSec: Array<IPSecOption>;
 
   @OneToMany((type) => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObj)
   ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
@@ -674,11 +682,14 @@ export class IPObj extends Model {
     });
   }
 
-  public static getIpobjInfo(dbCon, fwcloud, ipobj) {
+  public static getIpobjInfo(dbCon, fwcloud, ipobj): Promise<IPObj> {
     return new Promise((resolve, reject) => {
       const sql = 'SELECT * FROM ipobj WHERE fwcloud=' + fwcloud + ' AND id=' + ipobj;
       dbCon.query(sql, (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          console.log('Error: ', error);
+          return reject(error);
+        }
         if (result.length < 1) return reject(fwcError.NOT_FOUND);
 
         resolve(result[0]);
@@ -769,7 +780,7 @@ export class IPObj extends Model {
    * #### JSON RESPONSE ERROR:
    *      {result: false}
    * */
-  public static updateIpobj(req, ipobjData): Promise<void> {
+  public static updateIpobj(dbCon, ipobjData): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
         'UPDATE ' +
@@ -779,70 +790,70 @@ export class IPObj extends Model {
         ipobjData.fwcloud +
         ',' +
         'interface = ' +
-        req.dbCon.escape(ipobjData.interface) +
+        dbCon.escape(ipobjData.interface) +
         ',' +
         'name = ' +
-        req.dbCon.escape(ipobjData.name) +
+        dbCon.escape(ipobjData.name) +
         ',' +
         'type = ' +
-        req.dbCon.escape(ipobjData.type) +
+        dbCon.escape(ipobjData.type) +
         ',' +
         'protocol = ' +
-        req.dbCon.escape(ipobjData.protocol) +
+        dbCon.escape(ipobjData.protocol) +
         ',' +
         'address = ' +
-        req.dbCon.escape(ipobjData.address) +
+        dbCon.escape(ipobjData.address) +
         ',' +
         'netmask = ' +
-        req.dbCon.escape(ipobjData.netmask) +
+        dbCon.escape(ipobjData.netmask) +
         ',' +
         'diff_serv = ' +
-        req.dbCon.escape(ipobjData.diff_serv) +
+        dbCon.escape(ipobjData.diff_serv) +
         ',' +
         'ip_version = ' +
-        req.dbCon.escape(ipobjData.ip_version) +
+        dbCon.escape(ipobjData.ip_version) +
         ',' +
         'icmp_code = ' +
-        req.dbCon.escape(ipobjData.icmp_code) +
+        dbCon.escape(ipobjData.icmp_code) +
         ',' +
         'icmp_type = ' +
-        req.dbCon.escape(ipobjData.icmp_type) +
+        dbCon.escape(ipobjData.icmp_type) +
         ',' +
         'tcp_flags_mask = ' +
-        req.dbCon.escape(ipobjData.tcp_flags_mask) +
+        dbCon.escape(ipobjData.tcp_flags_mask) +
         ',' +
         'tcp_flags_settings = ' +
-        req.dbCon.escape(ipobjData.tcp_flags_settings) +
+        dbCon.escape(ipobjData.tcp_flags_settings) +
         ',' +
         'range_start = ' +
-        req.dbCon.escape(ipobjData.range_start) +
+        dbCon.escape(ipobjData.range_start) +
         ',' +
         'range_end = ' +
-        req.dbCon.escape(ipobjData.range_end) +
+        dbCon.escape(ipobjData.range_end) +
         ',' +
         'source_port_start = ' +
-        req.dbCon.escape(ipobjData.source_port_start) +
+        dbCon.escape(ipobjData.source_port_start) +
         ',' +
         'source_port_end = ' +
-        req.dbCon.escape(ipobjData.source_port_end) +
+        dbCon.escape(ipobjData.source_port_end) +
         ',' +
         'destination_port_start = ' +
-        req.dbCon.escape(ipobjData.destination_port_start) +
+        dbCon.escape(ipobjData.destination_port_start) +
         ',' +
         'destination_port_end = ' +
-        req.dbCon.escape(ipobjData.destination_port_end) +
+        dbCon.escape(ipobjData.destination_port_end) +
         ',' +
         'options = ' +
-        req.dbCon.escape(ipobjData.options) +
+        dbCon.escape(ipobjData.options) +
         ',' +
         'comment = ' +
-        req.dbCon.escape(ipobjData.comment) +
+        dbCon.escape(ipobjData.comment) +
         ' ' +
         ' WHERE id = ' +
         ipobjData.id +
         ' AND fwcloud=' +
         ipobjData.fwcloud;
-      req.dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1112,6 +1123,7 @@ export class IPObj extends Model {
           fwcloud,
         ); //SEARCH IPOBJ GROUP IN RULES
         search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+        search.restrictions.IpobjInWireguard = await this.searchIpobjInWireguard(id, type, fwcloud); //SEARCH IPOBJ IN Wireguard CONFIG
 
         search.restrictions.IpobjInRoute = await this.searchIpobjInRoute(id, fwcloud);
         search.restrictions.IpobjInRouteAsGateway = await this.searchIpobjInRouteAsGateway(
@@ -1147,6 +1159,11 @@ export class IPObj extends Model {
             id,
           );
           search.restrictions.AddrHostInOpenvpn = await this.searchAddrHostInOpenvpn(
+            dbCon,
+            fwcloud,
+            id,
+          );
+          search.restrictions.AddrHostInWireguard = await this.searchAddrHostInWireguard(
             dbCon,
             fwcloud,
             id,
@@ -1469,6 +1486,29 @@ export class IPObj extends Model {
     });
   }
 
+  public static searchIpobjInWireguard(ipobj, type, fwcloud) {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `SELECT WG.*, CRT.cn,
+        C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
+        F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+        FROM wireguard AS WG
+        inner join crt CRT on CRT.id=WG.crt
+        INNER JOIN wireguard_opt OPT on OPT.wireguard=WG.id
+        INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+        INNER JOIN firewall F on F.id=WG.firewall
+        inner join fwcloud C on C.id=F.fwcloud
+        WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows);
+        });
+      });
+    });
+  }
+
   //check if IPOBJ exists in and OpenVPN configuration
   public static addrInIfconfigPushOpenVPN(ipobj, fwcloud) {
     return new Promise((resolve, reject) => {
@@ -1515,6 +1555,31 @@ export class IPObj extends Model {
     });
   }
 
+  //check if interface ipobj exists in and WireGuard configuration
+  public static searchIpobjInterfaceInWireguard(_interface, fwcloud, diff_firewall) {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `SELECT VPN.*, CRT.cn,
+				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM wireguard AS VPN
+				inner join crt CRT on CRT.id=VPN.crt
+				INNER JOIN wireguard_opt OPT on OPT.wireguard=VPN.id
+				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+				INNER JOIN firewall F on F.id=VPN.firewall
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE OBJ.interface=${_interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
+				${diff_firewall ? `AND F.id<>${diff_firewall}` : ''}`;
+
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows);
+        });
+      });
+    });
+  }
   //check if interface ipobj exists in and OpenVPN configuration
   public static searchAddrHostInOpenvpn(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {
@@ -1529,6 +1594,26 @@ export class IPObj extends Model {
 			INNER JOIN firewall F on F.id=VPN.firewall
 			inner join fwcloud C on C.id=F.fwcloud
 			WHERE II.ipobj=${host} AND F.fwcloud=${fwcloud}`;
+      dbCon.query(sql, (error, rows) => {
+        if (error) return reject(error);
+        resolve(rows);
+      });
+    });
+  }
+
+  public static searchAddrHostInWireguard(dbCon, fwcloud, host) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT WG.*, CRT.cn,
+      C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
+      F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+      FROM wireguard AS WG
+      inner join crt CRT on CRT.id=WG.crt
+      INNER JOIN wireguard_opt OPT on OPT.wireguard=WG.id
+      INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+      inner join interface__ipobj II on II.interface=OBJ.interface
+      INNER JOIN firewall F on F.id=WG.firewall
+      inner join fwcloud C on C.id=F.fwcloud
+      WHERE II.ipobj=${host} AND F.fwcloud=${fwcloud}`;
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
         resolve(rows);

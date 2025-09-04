@@ -59,7 +59,7 @@ schema.validate = req => {
 				fwmaster: sharedSch._0_1,
 				install_port: Joi.number().port(),
 				options: sharedSch.u16bits,
-				plugins: sharedSch.u16bits
+				plugins: sharedSch.u32bits
 			});
 			if (req.method === 'PUT') schema = schema.append({ firewall: sharedSch.id });
 			else if (req.method === 'POST') schema = schema.append({ node_id: sharedSch.id });

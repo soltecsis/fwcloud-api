@@ -67,7 +67,7 @@ schema.validate = req => {
 				name: sharedSch.name,
 				comment: sharedSch.comment,
 				options: sharedSch.u16bits,
-				plugins: sharedSch.u16bits
+				plugins: sharedSch.u32bits
 			});
 
 			schema = Joi.object().keys({ fwcloud: sharedSch.id });

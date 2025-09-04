@@ -327,6 +327,16 @@ const config = convict({
     },
   },
 
+  //IPSec configuration.
+  ipsec: {
+    data_dir: {
+      doc: 'Directory for the IPSec files.',
+      format: String,
+      default: './DATA/ipsec/',
+      env: 'IPSEC_DATA_DIR'
+    },
+  },
+
   // Backup configuration.
   backup: {
     data_dir: {
@@ -618,6 +628,23 @@ const config = convict({
       format: Boolean,
       env: 'SSH_COMMUNICATION_ENABLED',
       default: true
+    }
+  },
+  //FwCloud - OpenAI Assistant
+  openai_assistant: {
+    openai: {
+      apiKey: {
+        doc: 'OpenAI API Key',
+        format: String,
+        default: '',
+        env: 'OPENAI_API_KEY'
+      },
+      organization:{
+        doc: 'OpenAI API Key Organization',
+        format: String,
+        default: '',
+        env: 'OPENAI_ORGANIZATION'
+      }
     }
   }
 });

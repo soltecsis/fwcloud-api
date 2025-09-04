@@ -186,6 +186,8 @@ export class ResponseBuilder {
       return this._response;
     }
 
+    if (this._status === 204 || this._status === 304) return this._response;
+
     this._response.send();
   }
 

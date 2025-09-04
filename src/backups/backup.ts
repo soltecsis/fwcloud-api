@@ -460,13 +460,12 @@ export class Backup implements Responsable {
         await this._openvpnRepository.markAllAsUninstalled();
 
         if (!this.isHashCompatible()) {
-          await this._dataSource.manager.getRepository(Firewall).update(
-            {},
-            {
-              install_user: null,
-              install_pass: null,
-            },
-          );
+          await this._dataSource.manager
+            .getRepository(Firewall)
+            .createQueryBuilder()
+            .update(Firewall)
+            .set({ install_user: null, install_pass: null })
+            .execute();
         }
 
         resolve();

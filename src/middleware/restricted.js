@@ -36,9 +36,13 @@ import { OpenVPNPrefix } from '../models/vpn/openvpn/OpenVPNPrefix';
 import { Ca } from '../models/vpn/pki/Ca';
 import { Crt } from '../models/vpn/pki/Crt';
 import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
+import { WireGuard } from '../models/vpn/wireguard/WireGuard';
+import { IPSec } from '../models/vpn/ipsec/IPSec';
 import { IPObj } from '../models/ipobj/IPObj';
 import  db  from '../database/database-manager'
 import { SimpleConsoleLogger } from 'typeorm';
+import { WireGuardPrefix } from '../models/vpn/wireguard/WireGuardPrefix';
+import { IPSecPrefix } from '../models/vpn/ipsec/IPSecPrefix';
 
 
 restrictedCheck.customer = async(req, res, next) => {
@@ -200,7 +204,6 @@ restrictedCheck.openvpn = async(req, res, next) => {
 	} catch (error) { res.status(400).json(error) }
 };
 
-
 restrictedCheck.ca = async(req, res, next) => {
 	try {
 		let data = await Ca.searchCAHasCRTs(req.dbCon, req.body.fwcloud, req.body.ca);
@@ -213,12 +216,26 @@ restrictedCheck.ca = async(req, res, next) => {
 	} catch (error) { res.status(400).json(error) }
 };
 
-restrictedCheck.crt = async(req, res, next) => {
+restrictedCheck.crt = async (req, res, next) => {
 	try {
-		let data = await Crt.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
-		if (data.result) return res.status(403).json(data);
+		const openvpnData = await Crt.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (openvpnData.result) {
+			return res.status(403).json(openvpnData);
+		}
+
+		const wireguardData = await Crt.searchCRTInWireguard(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (wireguardData.result) {
+			return res.status(403).json(wireguardData);
+		}
+
+		const ipsecData = await Crt.searchCRTInIpsec(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (ipsecData.result) {
+			return res.status(403).json(ipsecData);
+		}
 		next();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		res.status(400).json(error);
+	}
 };
 
 restrictedCheck.openvpn_prefix = async(req, res, next) => {

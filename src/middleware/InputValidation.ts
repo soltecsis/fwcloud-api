@@ -74,6 +74,9 @@ export class InputValidation extends Middleware {
       'profile',
       'openvpnarchives',
       'systemctl',
+      'vpn',
+      'aiassistant',
+      'AIassistant',
     ];
 
     // Verify that item1 is in the valid list.
@@ -102,7 +105,9 @@ export class InputValidation extends Middleware {
       (req.method === 'GET' && req.url === '/ipobj/positions/policy') ||
       (req.method === 'GET' && req.url === '/policy/types') ||
       (req.method === 'GET' && req.url === '/stream') ||
-      (req.method === 'GET' && req.url === '/config')
+      (req.method === 'GET' && req.url === '/config') ||
+      (req.method === 'PUT' && req.url.startsWith('/fwcloud/lock')) ||
+      (req.method === 'PUT' && req.url.startsWith('/fwcloud/unlock'))
     )
       return next();
 

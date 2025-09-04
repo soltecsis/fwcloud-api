@@ -35,7 +35,7 @@ import { OpenVPNServiceProvider } from '../models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from '../models/fwcloud/fwcloud.provider';
 import { CLIApplication } from '../fonaments/cli-application';
 import { RouterService } from '../fonaments/http/router/router.service';
-import { Routes } from '../routes/routes';
+import { WireGuardServiceProvider } from '../models/vpn/wireguard/wireguard.provider';
 
 export class Application extends CLIApplication {
   public static async run(path?: string): Promise<Application> {
@@ -64,6 +64,7 @@ export class Application extends CLIApplication {
       FwCloudExportServiceProvider,
       OpenVPNServiceProvider,
       FwCloudServiceProvider,
+      WireGuardServiceProvider,
     ];
   }
 

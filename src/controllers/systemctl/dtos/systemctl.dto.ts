@@ -38,9 +38,12 @@ export class SystemCtlDto {
   command: string;
 
   @IsString()
-  @Matches(/^(openvpn|openvpn@[a-zA-Z0-9-_]+|isc-dhcp-server|keepalived|haproxy)$/, {
-    message: 'Invalid service',
-  })
+  @Matches(
+    /^(openvpn|openvpn@[a-zA-Z0-9-_]+|isc-dhcp-server|keepalived|haproxy|wg-quick|wg-quick@[a-zA-Z0-9-_]+|strongswan-starter)$/,
+    {
+      message: 'Invalid service',
+    },
+  )
   service: string;
 
   @IsOptional()

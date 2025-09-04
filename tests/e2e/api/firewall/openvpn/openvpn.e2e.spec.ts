@@ -184,7 +184,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
             }),
           )
           .send({
-            connection_name: '-' + connectioName,
+            connection_name: 'invalid?name',
           })
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(422);

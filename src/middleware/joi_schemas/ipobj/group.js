@@ -70,6 +70,8 @@ schema.validate = req => {
 			// With this, the access control middleware will verify the openvpn and prefix objects.
 			if (req.body.node_type === 'OCL') req.body.openvpn = req.body.ipobj;
 			else if (req.body.node_type==='PRO') req.body.prefix = req.body.ipobj;
+			else if (req.body.node_type==='PRW') req.body.prefix = req.body.ipobj;
+			else if (req.body.node_type==='PRI') req.body.prefix = req.body.ipobj;
 			
 			resolve();
 		} catch (error) { return reject(error) }

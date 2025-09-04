@@ -27,6 +27,7 @@ import {
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   SystemCtlInfo,
+  WireGuardHistoryRecord,
 } from './communication';
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import {
@@ -137,7 +138,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       configs.forEach((config) => {
         eventEmitter.emit(
           'message',
-          new ProgressNoticePayload(
+          new ProgressInfoPayload(
             `Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
           ),
         );
@@ -191,6 +192,124 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.data = {
+        dir: dir,
+        files: files,
+      };
+
+      await axios.delete(pathUrl, config);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async installWireGuardServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/wireguard/files/upload';
+      const form = new FormData();
+      form.append('dst_dir', dir);
+      form.append('perms', 600);
+
+      configs.forEach((config) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Uploading WireGuard configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
+          ),
+        );
+        form.append('data', config.content, config.name);
+      });
+
+      const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+      await axios.post(pathUrl, form, requestConfig);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async uninstallWireGuardConfigs(
+    dir: string,
+    files: string[],
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      files.forEach((file) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Removing Wireguard configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+          ),
+        );
+      });
+
+      const pathUrl: string = this.url + '/api/v1/wireguard/files/remove';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.data = {
+        dir: dir,
+        files: files,
+      };
+
+      await axios.delete(pathUrl, config);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async installIPSecServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/ipsec/files/upload';
+      const form = new FormData();
+      form.append('dst_dir', dir);
+      form.append('perms', 600);
+
+      configs.forEach((config) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Uploading IPSec configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
+          ),
+        );
+        form.append('data', config.content, config.name);
+      });
+
+      const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+      await axios.post(pathUrl, form, requestConfig);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async uninstallIPSecConfigs(
+    dir: string,
+    files: string[],
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      files.forEach((file) => {
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload(
+            `Removing IPSec configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
+          ),
+        );
+      });
+
+      const pathUrl: string = this.url + '/api/v1/ipsec/files/remove';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
       config.data = {
@@ -319,7 +438,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       // Disable timeout and manage it from the WebSocket events.
       requestConfig.timeout = 0;
 
-      axios
+      await axios
         .post(pathUrl, params, requestConfig)
         .then((_) => {
           const endMessage: ProgressPayload = new ProgressPayload(
@@ -333,10 +452,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             : this.eventEmitterWSClose.on('close', () => eventEmitter.emit('message', endMessage));
         })
         .catch((err) => {
-          eventEmitter.emit(
-            'message',
-            new ProgressPayload('error', false, 'Plugin action failed: ' + err.message),
-          );
+          this.handleRequestException(err, eventEmitter);
         });
 
       return '';
@@ -463,6 +579,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       this.handleRequestException(error);
     }
   }
+
   async systemctlManagement(command: string, service: string): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/systemctl';
@@ -486,6 +603,22 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
         eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Timeout\n`));
         throw new HttpException(`ECONNABORTED: Timeout`, 400);
+      }
+
+      if (error.code === 'ERR_BAD_REQUEST') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ERROR: Bad Request: ${error.response.data.message}\n`),
+        );
+        throw new HttpException(`ERR_BAD_REQUEST: ${error.response.data.message}\n`, 400);
+      }
+
+      if (error.code === 'ERR_BAD_REQUEST') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ERROR: Bad Request: ${error.response.data.message}\n`),
+        );
+        throw new HttpException(`ERR_BAD_REQUEST: ${error.response.data.message}\n`, 400);
       }
 
       if (error.response?.data?.message) {
