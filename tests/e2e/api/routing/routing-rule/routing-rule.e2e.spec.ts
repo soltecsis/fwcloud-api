@@ -412,6 +412,36 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .send(invalidData)
           .expect(404);
       });
+
+      it('should preserve order and integrity after move', async () => {
+        loggedUser.fwClouds = [fwCloud];
+        await manager.getRepository(User).save(loggedUser);
+
+        let allRules = await manager.getRepository(RoutingRule).find({
+          where: { routingTableId: table.id },
+          order: { id: 'ASC' },
+        });
+        const initialOrder = allRules.map((r) => r.id);
+
+        await request(app.express)
+          .put(
+            _URL().getURL('fwclouds.firewalls.routing.rules.move', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send(data)
+          .expect(200);
+
+        allRules = await manager.getRepository(RoutingRule).find({
+          where: { routingTableId: table.id },
+          order: { id: 'ASC' },
+        });
+        const newOrder = allRules.map((r) => r.id);
+        expect(new Set(newOrder).size).to.eq(newOrder.length);
+        expect(newOrder.length).to.eq(initialOrder.length);
+      });
     });
 
     describe('@moveFrom', () => {
@@ -956,6 +986,30 @@ describe(describeName('Routing Rule E2E Tests'), () => {
         expect(
           await manager.getRepository(RoutingRule).count({ where: { comment: 'comment2' } }),
         ).to.eq(2);
+      });
+
+      it('should preserve order and integrity after copy', async () => {
+        loggedUser.fwClouds = [fwCloud];
+        await manager.getRepository(User).save(loggedUser);
+
+        await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send(data)
+          .expect(201);
+
+        const allRules = await manager.getRepository(RoutingRule).find({
+          where: { routingTableId: table.id },
+          order: { id: 'ASC' },
+        });
+        const comments = allRules.map((r) => r.comment);
+        expect(comments.filter((c) => c === 'comment1')).to.have.length(2);
+        expect(comments.filter((c) => c === 'comment2')).to.have.length(2);
       });
     });
 
