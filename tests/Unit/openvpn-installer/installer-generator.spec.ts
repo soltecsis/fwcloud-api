@@ -6,7 +6,6 @@ import * as fs from 'fs-extra';
 import { InstallerGenerator } from '../../../src/openvpn-installer/installer-generator';
 import { InvalidConnectionNameException } from './exceptions/invalid-connection-name.exception';
 import sinon from 'sinon';
-import { app } from '../../../src/fonaments/abstract-application';
 
 describe(describeName('InstallerGenerator Unit Tests'), () => {
   let workspace: string;
@@ -35,80 +34,47 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
   });
 
   describe('constructor()', () => {
-    it('should throw an exception if the connection name starts with an invalid character', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, '-connection', '', outputPath);
-      };
+    it('should NOT throw for valid connection names with allowed special characters', () => {
+      const validNames = [
+        '_connection',
+        '-connection',
+        '.connection',
+        'conn_name',
+        'conn-name',
+        'conn.name',
+        'a'.repeat(64), // exactly 64 chars
+      ];
 
-      expect(f).to.throw(InvalidConnectionNameException);
+      for (const name of validNames) {
+        const f = () => new InstallerGenerator(workspace, name, '', outputPath);
+        expect(f).to.not.throw();
+      }
+    });
 
-      f = () => {
-        generator = new InstallerGenerator(workspace, ' connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '_connection', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, '$connection', '', outputPath);
-      };
-
+    it('should throw for connection names longer than 64 characters', () => {
+      const invalidName = 'a'.repeat(65); // 65 characters
+      const f = () => new InstallerGenerator(workspace, invalidName, '', outputPath);
       expect(f).to.throw(InvalidConnectionNameException);
     });
 
-    it('should throw an exception if the connection name ends with an invalid character', () => {
-      let f = () => {
-        generator = new InstallerGenerator(workspace, 'connection-', '', outputPath);
-      };
+    it('should throw for connection names with disallowed characters', () => {
+      const invalidNames = [
+        '?connection',
+        '$connection',
+        'conn name', // spaces
+        'conn@name',
+        'conn!name',
+        'name#', // any non a-zA-Z0-9._-
+      ];
 
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection ', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection_', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connection$', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connec$tion', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
-
-      f = () => {
-        generator = new InstallerGenerator(workspace, 'connec Tion', '', outputPath);
-      };
-
-      expect(f).to.throw(InvalidConnectionNameException);
+      for (const name of invalidNames) {
+        const f = () => new InstallerGenerator(workspace, name, '', outputPath);
+        expect(f).to.throw(InvalidConnectionNameException);
+      }
     });
 
-    it('should throw an exception if the connection name length reaches the limit', () => {
-      const f = () => {
-        generator = new InstallerGenerator(
-          workspace,
-          'connectionconnectionconnectionconnection',
-          '',
-          outputPath,
-        );
-      };
-
+    it('should throw for empty connection names', () => {
+      const f = () => new InstallerGenerator(workspace, '', '', outputPath);
       expect(f).to.throw(InvalidConnectionNameException);
     });
 
@@ -140,23 +106,25 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
   });
 
   describe('generate()', () => {
-    it('should generate the ovpn file which filename is the connection name', () => {
+    it('should clean files if script throws an exception', () => {
+      stubGenerateCommand.restore();
       //@ts-ignore
-      const removeStub = sinon
-        .stub(InstallerGenerator.prototype, 'removeConfigFile' as keyof InstallerGenerator)
-        .returns(null);
+      stubGenerateCommand = sinon
+        .stub(InstallerGenerator.prototype, 'generateExecutable' as keyof InstallerGenerator)
+        .callsFake(() => {
+          throw new Error();
+        });
+
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
 
-      generator.generate();
+      const f = () => {
+        generator.generate();
+      };
 
+      expect(f).to.throw(Error);
+      expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'))).to.be.false;
       expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn'))).to.be
-        .true;
-      expect(fs.statSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn')).isFile()).to
-        .be.true;
-      expect(
-        fs.readFileSync(path.join(workspace, 'fwcloud-vpn', connectionName + '.ovpn')).toString(),
-      ).to.be.eq('<test></test>');
-      removeStub.restore();
+        .false;
     });
 
     it('should remove the ovpn file after generate installer', () => {

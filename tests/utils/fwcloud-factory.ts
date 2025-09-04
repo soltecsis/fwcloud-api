@@ -1,5 +1,5 @@
 /*!
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -42,6 +42,14 @@ import { RoutingRule } from '../../src/models/routing/routing-rule/routing-rule.
 import { RoutingRuleService } from '../../src/models/routing/routing-rule/routing-rule.service';
 import { Mark } from '../../src/models/ipobj/Mark';
 import db from '../../src/database/database-manager';
+import { WireGuard } from '../../src/models/vpn/wireguard/WireGuard';
+import { WireGuardPrefix } from '../../src/models/vpn/wireguard/WireGuardPrefix';
+import { WireGuardOption } from '../../src/models/vpn/wireguard/wireguard-option.model';
+import { IPSec } from '../../src/models/vpn/ipsec/IPSec';
+import { IPSecPrefix } from '../../src/models/vpn/ipsec/IPSecPrefix';
+import { IPSecOption } from '../../src/models/vpn/ipsec/ipsec-option.model';
+
+const utilsModel = require('../../src/utils/utils.js');
 
 export type FwCloudProduct = {
   dhcpGroup: any;
@@ -55,10 +63,16 @@ export type FwCloudProduct = {
   openvpnServer: OpenVPN;
   openvpnClients: Map<string, OpenVPN>;
   openvpnPrefix: OpenVPNPrefix;
+  wireguardServer: WireGuard;
+  wireguardClients: Map<string, WireGuard>;
+  wireguardPrefix: WireGuardPrefix;
   routingTable: RoutingTable;
   routes: Map<string, Route>;
   routingRules: Map<string, RoutingRule>;
   mark: Mark;
+  ipsecServer: IPSec;
+  ipsecClients: Map<string, IPSec>;
+  ipsecPrefix: IPSecPrefix;
 };
 
 export class FwCloudFactory {
@@ -74,11 +88,17 @@ export class FwCloudFactory {
   private _openvpnRepository: Repository<OpenVPN>;
   private _openvpnOptRepository: Repository<OpenVPNOption>;
   private _openvpnPrefixRepository: Repository<OpenVPNPrefix>;
+  private _wireguardRepository: Repository<WireGuard>;
+  private _wireguardOptRepository: Repository<WireGuardOption>;
+  private _wireguardPrefixRepository: Repository<WireGuardPrefix>;
   private _routingTableRepository: Repository<RoutingTable>;
   private _routeRepository: Repository<Route>;
   private _routingRuleRepository: Repository<RoutingRule>;
   private _markRepository: Repository<Mark>;
   private _manager: EntityManager;
+  private _ipsecRepository: Repository<IPSec>;
+  private _ipsecOptRepository: Repository<IPSecOption>;
+  private _ipsecPrefixRepository: Repository<IPSecPrefix>;
 
   public fwc: FwCloudProduct;
 
@@ -98,18 +118,26 @@ export class FwCloudFactory {
     this._openvpnRepository = this._manager.getRepository(OpenVPN);
     this._openvpnOptRepository = this._manager.getRepository(OpenVPNOption);
     this._openvpnPrefixRepository = this._manager.getRepository(OpenVPNPrefix);
+    this._wireguardRepository = this._manager.getRepository(WireGuard);
+    this._wireguardOptRepository = this._manager.getRepository(WireGuardOption);
+    this._wireguardPrefixRepository = this._manager.getRepository(WireGuardPrefix);
     this._routingTableRepository = this._manager.getRepository(RoutingTable);
     this._routeRepository = this._manager.getRepository(Route);
     this._routingRuleRepository = this._manager.getRepository(RoutingRule);
     this._markRepository = this._manager.getRepository(Mark);
+    this._ipsecRepository = this._manager.getRepository(IPSec);
+    this._ipsecOptRepository = this._manager.getRepository(IPSecOption);
+    this._ipsecPrefixRepository = this._manager.getRepository(IPSecPrefix);
 
     this.fwc = {} as FwCloudProduct;
     this.fwc.ipobjs = new Map<string, IPObj>();
     this.fwc.interfaces = new Map<string, Interface>();
     this.fwc.crts = new Map<string, Crt>();
     this.fwc.openvpnClients = new Map<string, OpenVPN>();
+    this.fwc.wireguardClients = new Map<string, WireGuard>();
     this.fwc.routes = new Map<string, Route>();
     this.fwc.routingRules = new Map<string, RoutingRule>();
+    this.fwc.ipsecClients = new Map<string, IPSec>();
 
     this._ipobjNextId = this.randomId(10, 100000);
   }
@@ -417,6 +445,110 @@ export class FwCloudFactory {
         }),
       ),
     );
+
+    this.fwc.crts.set(
+      'Wireguard-Server',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'Wireguard-Server',
+          days: 1000,
+          type: 2,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'WireGuard-Cli-1',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'WireGuard-Cli-1',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'WireGuard-Cli-2',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'WireGuard-Cli-2',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'WireGuard-Cli-3',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'Other-WireGuard-Client',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Server',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'IPSec-Server',
+          days: 1000,
+          type: 2,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Cli-1',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'IPSec-Cli-1',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Cli-2',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'IPSec-Cli-2',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
+
+    this.fwc.crts.set(
+      'IPSec-Cli-3',
+      await this._crtRepository.save(
+        this._crtRepository.create({
+          id: crtNextId++,
+          caId: this.fwc.ca.id,
+          cn: 'Other-IPSec-Client',
+          days: 1000,
+          type: 1,
+        }),
+      ),
+    );
   }
 
   private async makeVPNs(): Promise<void> {
@@ -546,6 +678,292 @@ export class FwCloudFactory {
         openVPNId: this.fwc.openvpnServer.id,
         name: 'OpenVPN-Cli-',
         ipObjGroups: [this.fwc.ipobjGroup],
+      }),
+    );
+
+    this.fwc.wireguardServer = await this._wireguardRepository.save(
+      this._wireguardRepository.create({
+        id: vpnNextId++,
+        parentId: null,
+        firewallId: this.fwc.firewall.id,
+        crtId: this.fwc.crts.get('Wireguard-Server').id,
+        public_key: '',
+        private_key: '',
+      }),
+    );
+
+    await this._wireguardOptRepository.save(
+      this._wireguardOptRepository.create({
+        wireGuardId: this.fwc.wireguardServer.id,
+        ipObjId: this.fwc.ipobjs.get('network').id,
+        name: 'Address',
+        arg: this.fwc.ipobjs.get('network').address,
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    this.fwc.wireguardClients.set(
+      'WireGuard-Cli-1',
+      await this._wireguardRepository.save(
+        this._wireguardRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.wireguardServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('WireGuard-Cli-1').id,
+          public_key: '',
+          private_key: '',
+        }),
+      ),
+    );
+
+    this.fwc.wireguardClients.set(
+      'WireGuard-Cli-2',
+      await this._wireguardRepository.save(
+        this._wireguardRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.wireguardServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('WireGuard-Cli-2').id,
+          public_key: '',
+          private_key: '',
+        }),
+      ),
+    );
+
+    this.fwc.wireguardClients.set(
+      'WireGuard-Cli-3',
+      await this._wireguardRepository.save(
+        this._wireguardRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.wireguardServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('WireGuard-Cli-3').id,
+          public_key: '',
+          private_key: '',
+          ipObjGroups: [this.fwc.ipobjGroup],
+        }),
+      ),
+    );
+
+    this.fwc.ipobjs.set(
+      'wireguard-cli1-addr',
+      await this._ipobjRepository.save(
+        this._ipobjRepository.create({
+          id: this._ipobjNextId++,
+          name: 'WireGuard Cli1 address',
+          address: '10.200.47.7',
+          ipObjTypeId: 5,
+          interfaceId: null,
+          fwCloudId: this.fwc.fwcloud.id,
+        }),
+      ),
+    );
+
+    this.fwc.ipobjs.set(
+      'wireguard-cli2-addr',
+      await this._ipobjRepository.save(
+        this._ipobjRepository.create({
+          id: this._ipobjNextId++,
+          name: 'WireGuard Cli2 address',
+          address: '10.200.47.64',
+          ipObjTypeId: 5,
+          interfaceId: null,
+          fwCloudId: this.fwc.fwcloud.id,
+        }),
+      ),
+    );
+
+    this.fwc.ipobjs.set(
+      'wireguard-cli3-addr',
+      await this._ipobjRepository.save(
+        this._ipobjRepository.create({
+          id: this._ipobjNextId++,
+          name: 'WireGuard Cli3 address',
+          address: '10.200.201.80',
+          ipObjTypeId: 5,
+          interfaceId: null,
+          fwCloudId: this.fwc.fwcloud.id,
+        }),
+      ),
+    );
+
+    await this._wireguardOptRepository.save(
+      this._wireguardOptRepository.create({
+        wireGuardId: this.fwc.wireguardClients.get('WireGuard-Cli-1').id,
+        ipObjId: this.fwc.ipobjs.get('wireguard-cli1-addr').id,
+        name: 'address',
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    await this._wireguardOptRepository.save(
+      this._wireguardOptRepository.create({
+        wireGuardId: this.fwc.wireguardClients.get('WireGuard-Cli-2').id,
+        ipObjId: this.fwc.ipobjs.get('wireguard-cli2-addr').id,
+        name: 'address',
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    await this._wireguardOptRepository.save(
+      this._wireguardOptRepository.create({
+        wireGuardId: this.fwc.wireguardClients.get('WireGuard-Cli-3').id,
+        ipObjId: this.fwc.ipobjs.get('wireguard-cli3-addr').id,
+        name: 'address',
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    this.fwc.wireguardPrefix = await this._wireguardPrefixRepository.save(
+      this._wireguardPrefixRepository.create({
+        id: this.randomId(10, 100000),
+        wireGuardId: this.fwc.wireguardServer.id,
+        name: 'WireGuard-Cli-',
+        ipObjGroups: [this.fwc.ipobjGroup],
+      }),
+    );
+
+    this.fwc.ipsecServer = await this._ipsecRepository.save(
+      this._ipsecRepository.create({
+        id: vpnNextId++,
+        parentId: null,
+        firewallId: this.fwc.firewall.id,
+        crtId: this.fwc.crts.get('IPSec-Server').id,
+        install_dir: '/tmp',
+        install_name: 'ipsec-server.conf',
+      }),
+    );
+
+    await this._ipsecOptRepository.save(
+      this._ipsecOptRepository.create({
+        ipSecId: this.fwc.ipsecServer.id,
+        ipObjId: this.fwc.ipobjs.get('network').id,
+        name: 'left',
+        arg: this.fwc.ipobjs.get('network').address,
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    this.fwc.ipsecClients.set(
+      'IPSec-Cli-1',
+      await this._ipsecRepository.save(
+        this._ipsecRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.ipsecServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('IPSec-Cli-1').id,
+        }),
+      ),
+    );
+
+    this.fwc.ipsecClients.set(
+      'IPSec-Cli-2',
+      await this._ipsecRepository.save(
+        this._ipsecRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.ipsecServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('IPSec-Cli-2').id,
+        }),
+      ),
+    );
+
+    this.fwc.ipsecClients.set(
+      'IPSec-Cli-3',
+      await this._ipsecRepository.save(
+        this._ipsecRepository.create({
+          id: vpnNextId++,
+          parentId: this.fwc.ipsecServer.id,
+          firewallId: this.fwc.firewall.id,
+          crtId: this.fwc.crts.get('IPSec-Cli-3').id,
+          ipObjGroups: [this.fwc.ipobjGroup],
+        }),
+      ),
+    );
+
+    this.fwc.ipobjs.set(
+      'ipsec-cli1-addr',
+      await this._ipobjRepository.save(
+        this._ipobjRepository.create({
+          id: this._ipobjNextId++,
+          name: 'IPSec Cli1 address',
+          address: '10.200.47.6',
+          ipObjTypeId: 5,
+          interfaceId: null,
+          fwCloudId: this.fwc.fwcloud.id,
+        }),
+      ),
+    );
+
+    this.fwc.ipobjs.set(
+      'ipsec-cli2-addr',
+      await this._ipobjRepository.save(
+        this._ipobjRepository.create({
+          id: this._ipobjNextId++,
+          name: 'IPSec Cli2 address',
+          address: '10.200.47.63',
+          ipObjTypeId: 5,
+          interfaceId: null,
+          fwCloudId: this.fwc.fwcloud.id,
+        }),
+      ),
+    );
+
+    this.fwc.ipobjs.set(
+      'ipsec-cli3-addr',
+      await this._ipobjRepository.save(
+        this._ipobjRepository.create({
+          id: this._ipobjNextId++,
+          name: 'IPSec Cli3 address',
+          address: '10.200.201.79',
+          ipObjTypeId: 5,
+          interfaceId: null,
+          fwCloudId: this.fwc.fwcloud.id,
+        }),
+      ),
+    );
+
+    this.fwc.ipsecPrefix = await this._ipsecPrefixRepository.save(
+      this._ipsecPrefixRepository.create({
+        id: this.randomId(10, 100000),
+        ipsecId: this.fwc.ipsecServer.id,
+        name: 'IPSec-Cli-',
+        ipObjGroups: [this.fwc.ipobjGroup],
+      }),
+    );
+
+    await this._ipsecOptRepository.save(
+      this._ipsecOptRepository.create({
+        ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-1').id,
+        ipObjId: this.fwc.ipobjs.get('ipsec-cli1-addr').id,
+        name: 'left',
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    await this._ipsecOptRepository.save(
+      this._ipsecOptRepository.create({
+        ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-2').id,
+        ipObjId: this.fwc.ipobjs.get('ipsec-cli2-addr').id,
+        name: 'left',
+        order: 1,
+        scope: 0,
+      }),
+    );
+
+    await this._ipsecOptRepository.save(
+      this._ipsecOptRepository.create({
+        ipSecId: this.fwc.ipsecClients.get('IPSec-Cli-3').id,
+        ipObjId: this.fwc.ipobjs.get('ipsec-cli3-addr').id,
+        name: 'left',
+        order: 1,
+        scope: 0,
       }),
     );
   }
@@ -729,6 +1147,10 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
+      wireguardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
+      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route2').id, {
@@ -745,6 +1167,10 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
+      wireguardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
+      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
     });
 
     await routeService.update(this.fwc.routes.get('route7').id, {
@@ -761,6 +1187,10 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
+      wireguardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
+      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
       markIds: [
         {
           id: this.fwc.mark.id,
@@ -779,6 +1209,10 @@ export class FwCloudFactory {
       ],
       openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      ipsecIds: [{ id: this.fwc.ipsecClients.get('IPSec-Cli-3').id, order: 6 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 7 }],
+      wireguardIds: [{ id: this.fwc.wireguardClients.get('WireGuard-Cli-3').id, order: 6 }],
+      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 7 }],
       markIds: [
         {
           id: this.fwc.mark.id,
@@ -789,10 +1223,16 @@ export class FwCloudFactory {
 
     await routingRuleService.update(this.fwc.routingRules.get('routing-rule-2').id, {
       ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
+      openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 2 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 3 }],
+      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 4 }],
     });
 
     await routingRuleService.update(this.fwc.routingRules.get('routing-rule-5').id, {
       ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
+      openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 2 }],
+      ipsecPrefixIds: [{ id: this.fwc.ipsecPrefix.id, order: 3 }],
+      wireguardPrefixIds: [{ id: this.fwc.wireguardPrefix.id, order: 4 }],
     });
   }
 

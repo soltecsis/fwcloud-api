@@ -5,7 +5,7 @@ import { InvalidConnectionNameException } from '../../tests/Unit/openvpn-install
 import { app, logger } from '../fonaments/abstract-application';
 
 export class InstallerGenerator {
-  static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9]{1}([a-zA-Z0-9-_]{2,30})[a-zA-Z0-9]{1}$/);
+  static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9\-_.]{1,64}$/);
   protected _workspace: string;
   protected _configFilename: string;
   protected _configPath: string;

@@ -28,6 +28,8 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { IPSec } from '../../models/vpn/ipsec/IPSec';
 var fwc_tree_node = require("../../models/tree/node.js");
 
 
@@ -59,7 +61,11 @@ var fwc_tree_node = require("../../models/tree/node.js");
  *    "children": [],
  *    "fw_status": [],
  *    "openvpn_status": [],
- *    "openvpn_info": []
+ *    "openvpn_info": [],
+ *    "wireguard_status": [],
+ *    "wireguard_info": [],
+ * 	  "ipsec_status": [],
+ *    "ipsec_info": [],
  * }
  * 
  * @apiErrorExample {json} Error-Response:
@@ -78,6 +84,8 @@ router.put('/firewalls/get', async (req, res) => {
 
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
+		await WireGuard.getWireGuardStatusNotZero(req,tree);
+		await IPSec.getIPSecStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
 
 		res.status(200).json(tree);
@@ -137,13 +145,14 @@ router.put('/objects/get', async (req, res) => {
 	try {
 		const treeObjects = await Tree.dumpTree(req.dbCon, 'OBJECTS', req.body.fwcloud);
 		const treeCountries = await Tree.dumpTree(req.dbCon, 'COUNTRIES', req.body.fwcloud);
+
 		await Tree.stdFoldersFirst(treeObjects);
-		 const tree = [
+		const tree = [
 			treeObjects,
 			treeCountries
-		] 
+		]
 		res.status(200).json(tree);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting object tree: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}

@@ -78,13 +78,16 @@ import { IPObjType } from '../../models/ipobj/IPObjType';
 import { Firewall } from '../../models/firewall/Firewall';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
+import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
+import { IpUtils } from '../../utils/ip-utils';
+import { IPSec } from '../../models/vpn/ipsec/IPSec';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
 
 
-//FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
+//TODO: FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
 /**
  * #### Create new ipobj
  * Crea un nuevo objeto en el Cloud que se le pasa.
@@ -304,22 +307,77 @@ router.put('/',
 			options: req.body.options,
 			comment: req.body.comment
 		};
-
 		try {
 			const data = await IPObjType.getIpobj_type(req, ipobjData.type);
 
 			if (data && data[0].protocol_number !== null)
 				ipobjData.protocol = data[0].protocol_number;
 
-			await IPObj.updateIpobj(req, ipobjData);
+			await IPObj.updateIpobj(req.dbCon, ipobjData);
+			
+			const wireGuardOptions = await WireGuard.checkIpobjInWireGuardOpt(req.dbCon, ipobjData.id);
+			const ipSecOptions = await IPSec.checkIpobjInIPSecOpt(req.dbCon, ipobjData.id);
+
+			if (wireGuardOptions?.length > 0) {
+				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
+				const [networkIp, networkMask] = networkAddress.split('/');
+
+				await WireGuard.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'Address', ipobjData.address + ipobjData.netmask);
+
+				const wireGuardConfig = await WireGuard.getCfg(req.dbCon, wireGuardOptions[0].wireguard);
+				const vpnNetworkOption = wireGuardConfig.options.find(option => option.name === "<<vpn_network>>");
+
+				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
+				const updatedIpObjData = {
+					...vpnNetworkIpObj,
+					id: vpnNetworkOption.ipobj,
+					address: networkIp,
+					netmask: '/' + networkMask
+				};
+
+				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
+				await WireGuard.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
+			} else if (ipSecOptions?.length > 0) {
+				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
+				const [networkIp, networkMask] = networkAddress.split('/');
+
+				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'left', ipobjData.address + ipobjData.netmask);
+				const ipSecConfig = await IPSec.getCfg(req.dbCon, ipSecOptions[0].ipsec);
+				const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "leftsubnet");
+
+				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
+				const updatedIpObjData = {
+					...vpnNetworkIpObj,
+					id: vpnNetworkOption.ipobj,
+					address: networkIp,
+					netmask: '/' + networkMask
+				};
+
+				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
+				await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, 'leftsubnet', networkAddress);
+			}
+
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
-			await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
+			if (req.body.options && req.body.options.find(option => option.name === "Address")) {	
+				await WireGuard.updateWireGuardStatusIPOBJ(req, ipobjData.id, "|1");
+			} else if (req.body.options && req.body.options.find(option => option.name === "left")) {
+				await IPSec.updateIPSecStatusIPOBJ(req, ipobjData.id, "|1");
+			} else {
+				await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
+			}
+
 			await IPObj.UpdateHOST(ipobjData.id);
 			await IPObj.UpdateINTERFACE(ipobjData.id);
 
 			var data_return = {};
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
-			await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
+			if (req.body.options && req.body.options.find(option => option.name === "Address")) {
+				await WireGuard.getWireGuardStatusNotZero(req, data_return);
+			} else if(req.body.options && req.body.options.find(option => option.name === "left")) {
+				await IPSec.getIPSecStatusNotZero(req, data_return);
+			} else {
+				await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
+			}
 
 			await Tree.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
 

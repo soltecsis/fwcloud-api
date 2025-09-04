@@ -323,7 +323,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
               const sessionData = await fs.readJson(sessionFilePath);
               sessionData.keepalive_ts = sessionData.keepalive_ts - 1200000;
               await fs.writeJson(sessionFilePath, sessionData);
-              console.log(sessionData);
               resolve();
             } catch (error) {
               console.error('Error updating session file:', error);

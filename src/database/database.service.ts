@@ -83,6 +83,27 @@ import { DHCPRuleToIPObj } from '../models/system/dhcp/dhcp_r/dhcp_r-to-ipobj.mo
 import { KeepalivedRule } from '../models/system/keepalived/keepalived_r/keepalived_r.model';
 import { KeepalivedGroup } from '../models/system/keepalived/keepalived_g/keepalived_g.model';
 import { KeepalivedToIPObj } from '../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj';
+import { WireGuard } from '../models/vpn/wireguard/WireGuard';
+import { WireGuardOption } from '../models/vpn/wireguard/wireguard-option.model';
+import { WireGuardPrefix } from '../models/vpn/wireguard/WireGuardPrefix';
+import { PolicyRuleToWireGuard } from '../models/policy/PolicyRuleToWireGuard';
+import { PolicyRuleToWireGuardPrefix } from '../models/policy/PolicyRuleToWireguardPrefix';
+import { RouteToWireGuardPrefix } from '../models/routing/route/route-to-wireguard-prefix.model';
+import { RouteToWireGuard } from '../models/routing/route/route-to-wireguard.model';
+import { RoutingRuleToWireGuardPrefix } from '../models/routing/routing-rule/routing-rule-to-wireguard-prefix.model';
+import { RoutingRuleToWireGuard } from '../models/routing/routing-rule/routing-rule-to-wireguard.model';
+import { PolicyRuleToIPSec } from '../models/policy/PolicyRuleToIPSec';
+import { PolicyRuleToIPSecPrefix } from '../models/policy/PolicyRuleToIPSecPrefix';
+import { RouteToIPSecPrefix } from '../models/routing/route/route-to-ipsec-prefix.model';
+import { RouteToIPSec } from '../models/routing/route/route-to-ipsec.model';
+import { RoutingRuleToIPSecPrefix } from '../models/routing/routing-rule/routing-rule-to-ipsec-prefix.model';
+import { RoutingRuleToIPSec } from '../models/routing/routing-rule/routing-rule-to-ipsec.model';
+import { IPSec } from '../models/vpn/ipsec/IPSec';
+import { IPSecOption } from '../models/vpn/ipsec/ipsec-option.model';
+import { IPSecPrefix } from '../models/vpn/ipsec/IPSecPrefix';
+import { AIModel } from '../models/ai-assistant/ai-assistant-models.model';
+import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.model';
+import { AI } from '../models/ai-assistant/ai-assistant.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -303,11 +324,19 @@ export class DatabaseService extends Service {
         PolicyRuleToIPObj,
         PolicyRuleToOpenVPN,
         PolicyRuleToOpenVPNPrefix,
+        PolicyRuleToWireGuard,
+        PolicyRuleToWireGuardPrefix,
+        PolicyRuleToIPSec,
+        PolicyRuleToIPSecPrefix,
         PolicyType,
         RouteToIPObjGroup,
         RouteToIPObj,
         RouteToOpenVPNPrefix,
         RouteToOpenVPN,
+        RouteToWireGuardPrefix,
+        RouteToWireGuard,
+        RouteToIPSecPrefix,
+        RouteToIPSec,
         Route,
         RouteGroup,
         RoutingGroup,
@@ -316,6 +345,10 @@ export class DatabaseService extends Service {
         RoutingRuleToMark,
         RoutingRuleToOpenVPNPrefix,
         RoutingRuleToOpenVPN,
+        RoutingRuleToWireGuardPrefix,
+        RoutingRuleToWireGuard,
+        RoutingRuleToIPSecPrefix,
+        RoutingRuleToIPSec,
         RoutingRule,
         RoutingRuleToInterface,
         RoutingTable,
@@ -326,6 +359,12 @@ export class DatabaseService extends Service {
         OpenVPN,
         OpenVPNPrefix,
         OpenVPNStatusHistory,
+        WireGuardOption,
+        WireGuard,
+        WireGuardPrefix,
+        IPSecOption,
+        IPSec,
+        IPSecPrefix,
         Ca,
         CaPrefix,
         Crt,
@@ -339,6 +378,9 @@ export class DatabaseService extends Service {
         KeepalivedRule,
         KeepalivedGroup,
         KeepalivedToIPObj,
+        AICredentials,
+        AIModel,
+        AI,
       ],
     };
   }

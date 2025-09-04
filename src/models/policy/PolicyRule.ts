@@ -36,6 +36,10 @@ import { PolicyType } from './PolicyType';
 import { Firewall, FireWallOptMask } from '../firewall/Firewall';
 import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import { PolicyRuleToWireGuard } from './PolicyRuleToWireGuard';
+import { PolicyRuleToWireGuardPrefix } from './PolicyRuleToWireguardPrefix';
+import { PolicyRuleToIPSec } from './PolicyRuleToIPSec';
+import { PolicyRuleToIPSecPrefix } from './PolicyRuleToIPSecPrefix';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'policy_r';
@@ -178,6 +182,27 @@ export class PolicyRule extends Model {
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
+  @OneToMany(
+    (type) => PolicyRuleToWireGuard,
+    (policyRuleToWireGuard) => policyRuleToWireGuard.policyRule,
+  )
+  policyRuleToWireGuards: Array<PolicyRuleToWireGuard>;
+
+  @OneToMany(
+    (type) => PolicyRuleToWireGuardPrefix,
+    (policyRuleToWireGuardPrefix) => policyRuleToWireGuardPrefix.policyRule,
+  )
+  policyRuleToWireGuardPrefixes: Array<PolicyRuleToWireGuardPrefix>;
+
+  @OneToMany((type) => PolicyRuleToIPSec, (policyRuleToIPSec) => policyRuleToIPSec.policyRule)
+  policyRuleToIPSecs: Array<PolicyRuleToIPSec>;
+
+  @OneToMany(
+    (type) => PolicyRuleToIPSecPrefix,
+    (policyRuleToIPSecPrefix) => policyRuleToIPSecPrefix.policyRule,
+  )
+  policyRuleToIPSecPrefixes: Array<PolicyRuleToIPSecPrefix>;
+
   private static clon_data: any;
 
   public getTableName(): string {
@@ -262,6 +287,28 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
+            union select R.rule, R.position, VPN.id, CRT.cn, "321" as type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__wireguard R
+            inner join wireguard VPN on VPN.id=R.wireguard
+            inner join crt CRT ON CRT.id=VPN.crt
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=VPN.firewall  
+            left join cluster CL on CL.id=FW.cluster  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
+            union select R.rule, R.position, IPS.id, CRT.cn, "331" as type, R.position_order, '' as labelName,
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name
+            from policy_r__ipsec R
+            inner join ipsec IPS on IPS.id=R.ipsec
+            inner join crt CRT ON CRT.id=IPS.crt
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=IPS.firewall
+            left join cluster CL on CL.id=FW.cluster
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
             union select R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
             from policy_r__openvpn_prefix R 
@@ -270,6 +317,28 @@ export class PolicyRule extends Model {
             inner join openvpn VPN on VPN.id=PRE.openvpn
             inner join firewall FW on FW.id=VPN.firewall  
             left join cluster CL on CL.id=FW.cluster  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
+            union select R.rule, R.position, PRE.id, PRE.name, "402" as type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__wireguard_prefix R 
+            inner join wireguard_prefix PRE on PRE.id=R.prefix
+            inner join policy_r PR on PR.id=R.rule 
+            inner join wireguard VPN on VPN.id=PRE.wireguard
+            inner join firewall FW on FW.id=VPN.firewall  
+            left join cluster CL on CL.id=FW.cluster  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
+
+            union select R.rule, R.position, PRE.id, PRE.name, "403" as type, R.position_order, '' as labelName,
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name
+            from policy_r__ipsec_prefix R
+            inner join ipsec_prefix PRE on PRE.id=R.prefix
+            inner join policy_r PR on PR.id=R.rule
+            inner join ipsec IPS on IPS.id=PRE.ipsec
+            inner join firewall FW on FW.id=IPS.firewall
+            left join cluster CL on CL.id=FW.cluster
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
             
@@ -372,6 +441,94 @@ export class PolicyRule extends Model {
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} 
             and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%') and OPT.name='ifconfig-push'
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under WireGuards in type O positions
+      `select R.rule,R.position,O.* from policy_r__wireguard R 
+            inner join wireguard VPN on VPN.id=R.wireguard 
+            inner join wireguard_opt OPT on OPT.wireguard=VPN.id
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under WireGuards in groups into type O positions
+      `select R.rule,R.position,O.* from policy_r__ipobj R
+            inner join wireguard__ipobj_g G on G.ipobj_g=R.ipobj_g
+            inner join wireguard VPN on VPN.id=G.wireguard 
+            inner join wireguard_opt OPT on OPT.wireguard=VPN.id
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under WireGuard prefix in groups into type O positions
+      `select R.rule,R.position,O.* from policy_r__ipobj R
+            inner join wireguard_prefix__ipobj_g G on G.ipobj_g=R.ipobj_g
+            inner join wireguard_prefix PRE on PRE.id=G.prefix
+            inner join wireguard VPN on VPN.wireguard=PRE.wireguard
+            inner join crt CRT on CRT.id=VPN.crt
+            inner join wireguard_opt OPT on OPT.wireguard=VPN.id
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} 
+            and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under WireGuard prefix into type O positions
+      `select R.rule,R.position,O.* from policy_r__wireguard_prefix R 
+            inner join wireguard_prefix PRE on PRE.id=R.prefix
+            inner join wireguard VPN on VPN.wireguard=PRE.wireguard
+            inner join crt CRT on CRT.id=VPN.crt
+            inner join wireguard_opt OPT on OPT.wireguard=VPN.id
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} 
+            and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under IPSec in type O positions
+      `select R.rule,R.position,O.* from policy_r__ipsec R
+            inner join ipsec VPN on VPN.id=R.ipsec
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under IPSec in groups into type O positions
+      `select R.rule,R.position,O.* from policy_r__ipobj R
+            inner join ipsec__ipobj_g G on G.ipobj_g=R.ipobj_g
+            inner join ipsec VPN on VPN.id=G.ipsec
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under IPSec prefix in groups into type O positions
+      `select R.rule,R.position,O.* from policy_r__ipobj R
+            inner join ipsec_prefix__ipobj_g G on G.ipobj_g=R.ipobj_g
+            inner join ipsec_prefix PRE on PRE.id=G.prefix
+            inner join ipsec VPN on VPN.ipsec=PRE.ipsec
+            inner join crt CRT on CRT.id=VPN.crt
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule
+            and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under IPSec prefix into type O positions
+      `select R.rule,R.position,O.* from policy_r__ipsec_prefix R
+            inner join ipsec_prefix PRE on PRE.id=R.prefix
+            inner join ipsec VPN on VPN.ipsec=PRE.ipsec
+            inner join crt CRT on CRT.id=VPN.crt
+            inner join ipsec_opt OPT on OPT.ipsec=VPN.id and OPT.name IN ('left','leftsourceip')
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule
+            where PR.firewall=${firewall} and PR.type=${type}
+            and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')
             ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
     ];
   }
@@ -827,6 +984,10 @@ export class PolicyRule extends Model {
           await this.clonePolicyInterface(dbCon, rowData.firewall, rowData.id, newRule);
           await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
           await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rowData.id, newRule);
+          await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rowData.id, newRule);
+          await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -1112,6 +1273,10 @@ export class PolicyRule extends Model {
             try {
               await PolicyRuleToOpenVPN.deleteFromRule(dbCon, rule);
               await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
+              await PolicyRuleToWireGuard.deleteFromRule(dbCon, rule);
+              await PolicyRuleToWireGuardPrefix.deleteFromRule(dbCon, rule);
+              await PolicyRuleToIPSec.deleteFromRule(dbCon, rule);
+              await PolicyRuleToIPSecPrefix.deleteFromRule(dbCon, rule);
             } catch (error) {
               return reject(error);
             }

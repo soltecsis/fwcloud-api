@@ -74,6 +74,8 @@ var errorTable = {
   "ACC_CA":               {"fwcErr": 7004, "msg": "CA access not allowed"},
   "ACC_CRT":              {"fwcErr": 7005, "msg": "CRT access not allowed"},
   "ACC_OPENVPN":          {"fwcErr": 7006, "msg": "OpenVPN access not allowed"},
+  "ACC_WIREGUARD":        {"fwcErr": 7006, "msg": "WireGuard access not allowed"},
+  "ACC_IPSEC":            {"fwcErr": 7006, "msg": "IPSec access not allowed"},
   "ACC_CRT_PREFIX":       {"fwcErr": 7007, "msg": "CRT prefix access not allowed"},
   "ACC_POLICY_RULE":      {"fwcErr": 7008, "msg": "Policy rule access not allowed"},
   "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},

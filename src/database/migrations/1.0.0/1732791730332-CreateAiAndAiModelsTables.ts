@@ -69,7 +69,7 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
           },
           {
             name: 'api_key',
-            type: 'varchar',
+            type: 'text',
             isNullable: false,
           },
           {
@@ -96,6 +96,12 @@ export class CreateAiAndAiModelsTables1732791730332 implements MigrationInterfac
 
     await queryRunner.query(`
       INSERT INTO ai_models (name,ai_id) VALUES
+      ('gpt-5',1),
+      ('gpt-5-mini',1),
+      ('gpt-5-nano',1),
+      ('gpt-4.1',1),
+      ('gpt-4.1-mini',1),
+      ('gpt-4.1-nano',1),
       ('gpt-4',1),
       ('gpt-4-turbo',1),
       ('gpt-4o',1),
