@@ -668,7 +668,7 @@ export class FwCloud extends Model {
    */
   public static updateFwcloudLock(
     fwcloudData,
-  ): Promise<{ result: boolean; lockByUser?: string; lockedAt?: string }> {
+  ): Promise<{ result: boolean; lockByUser?: string; lockedAt?: string; remoteAddr?: string }> {
     return new Promise(async (resolve, reject) => {
       await FwCloud.checkFwcloudLockTimeout(fwcloudData.fwcloud);
 
@@ -731,6 +731,7 @@ export class FwCloud extends Model {
                           result: false,
                           lockByUser: sessionData.username,
                           lockedAt: row[0].locked_at,
+                          remoteAddr: sessionData.remote_addr,
                         });
                       } catch (fsError) {
                         reject(fsError);

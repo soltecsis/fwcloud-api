@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -311,7 +311,7 @@ router.put('/lock', async (req, res) => {
 				message: 'NOT ACCESS FOR LOCKING',
 				info: {
 					locked_by: data.lockByUser,
-					ip_user: req.socket.remoteAddress,
+					ip_user: data.remoteAddr,
 					locked_at: data.lockedAt,
 				}
 			});
