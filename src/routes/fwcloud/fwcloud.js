@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -62,7 +62,7 @@ var router = express.Router();
  * 
  * 
  */
-import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { FwCloud, FwcData } from '../../models/fwcloud/FwCloud';
 
 
 var utilsModel = require('../../utils/utils');
@@ -295,8 +295,8 @@ router.put('/lock', async (req, res) => {
     const fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
 
     try {
-        const data = await FwCloud.updateFwcloudLock(fwcloudData);
-        if (data.result) {
+        const lockData = await FwCloud.updateFwcloudLock(fwcloudData);
+        if (lockData.result) {
             logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
             channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'success', 'FWCLOUD LOCKED OK'));
             return res.status(200).json({
@@ -310,9 +310,10 @@ router.put('/lock', async (req, res) => {
 				result: false,
 				message: 'NOT ACCESS FOR LOCKING',
 				info: {
-					locked_by: data.lockByUser,
-					ip_user: req.socket.remoteAddress,
-					locked_at: data.lockedAt,
+					locked_by: lockData.lockByUser,
+					ip_user: lockData.remoteAddr,
+					ip_name: lockData.remoteAddrName,
+					locked_at: lockData.lockedAt,
 				}
 			});
         }

@@ -797,4 +797,45 @@ export class IPObjRepository extends Repository<IPObj> {
 
     return query;
   }
+
+  async getNameByAddress(address: string): Promise<string | undefined> {
+    const result = await this.createQueryBuilder('ipobj')
+      .select('ipobj.name', 'name')
+      .where('ipobj.address = :address', { address })
+      .getRawOne<{ name: string }>();
+    return result?.name;
+  }
+
+  async getNameByAddressOpenVPN(address: string): Promise<string | undefined> {
+    const result = await this.createQueryBuilder('ipobj')
+      .innerJoin('ipobj.optionsListOpenVPN', 'vpnOpt')
+      .innerJoin('vpnOpt.openVPN', 'vpn')
+      .innerJoin('vpn.crt', 'crt')
+      .select('crt.cn', 'name')
+      .where('ipobj.address = :address', { address })
+      .getRawOne<{ name: string }>();
+    return result?.name;
+  }
+
+  async getNameByAddressWireGuard(address: string): Promise<string | undefined> {
+    const result = await this.createQueryBuilder('ipobj')
+      .innerJoin('ipobj.optionsListWireGuard', 'wgOpt')
+      .innerJoin('wgOpt.wireGuard', 'vpn')
+      .innerJoin('vpn.crt', 'crt')
+      .select('crt.cn', 'name')
+      .where('ipobj.address = :address', { address })
+      .getRawOne<{ name: string }>();
+    return result?.name;
+  }
+
+  async getNameByAddressIPSec(address: string): Promise<string | undefined> {
+    const result = await this.createQueryBuilder('ipobj')
+      .innerJoin('ipobj.optionsListIPSec', 'ipsOpt')
+      .innerJoin('ipsOpt.ipSec', 'vpn')
+      .innerJoin('vpn.crt', 'crt')
+      .select('crt.cn', 'name')
+      .where('ipobj.address = :address', { address })
+      .getRawOne<{ name: string }>();
+    return result?.name;
+  }
 }
