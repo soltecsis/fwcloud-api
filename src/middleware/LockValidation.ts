@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Middleware } from '../fonaments/http/middleware/Middleware';
-import { FwCloud, Lock } from '../models/fwcloud/FwCloud';
+import { FwCloud, FwcData, FwcLock } from '../models/fwcloud/FwCloud';
 import fwcError from '../utils/error_table';
 import { logger } from '../fonaments/abstract-application';
 
@@ -41,7 +41,7 @@ export class LockValidation extends Middleware {
 
         if (!fwcloudId) throw fwcError.other('Error locking FWCloud');
 
-        const accessResult: Lock = await FwCloud.getFwcloudAccess(
+        const accessResult: FwcLock = await FwCloud.getFwcloudAccess(
           req.session.user_id,
           fwcloudId,
           req.sessionID,
@@ -60,14 +60,14 @@ export class LockValidation extends Middleware {
           }
         }
 
-        const fwcloudData = {
+        const fwcloudData: FwcData = {
           fwcloud: fwcloudId,
           iduser: req.session.user_id,
           lock_session_id: req.sessionID,
         };
 
-        const update = await FwCloud.updateFwcloudLock(fwcloudData);
-        if (update.result) {
+        const lockResult = await FwCloud.updateFwcloudLock(fwcloudData);
+        if (lockResult.result) {
           logger().info(`FWCLOUD: ${fwcloudData.fwcloud} LOCKED BY USER: ${fwcloudData.iduser}`);
           return next();
         } else {

@@ -1,5 +1,5 @@
-/*!
-    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+/*
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -20,18 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { User } from '../models/user/User';
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
-declare module 'express-session' {
-  interface SessionData {
-    customer_id: number;
-    user_id: number;
-    username: string;
-    user: User;
-    keepalive_ts: number;
-    uiPublicKey?: string;
-    remote_addr: string;
-    pgp: { public: string; private: string };
-    socketId: string;
+const idx1 = 'IDX_d7b2160056e34241a9a98ac36a';
+
+export class AddIpobjAddressIndex1757404263501 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE ipobj ADD INDEX ${idx1} (address)`);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE ipobj DROP INDEX ${idx1}`);
   }
 }

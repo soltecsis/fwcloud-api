@@ -1,5 +1,5 @@
 /*
-  Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
   https://soltecsis.com
   info@soltecsis.com
 
@@ -28,7 +28,6 @@ import {
   ManyToMany,
   JoinTable,
   OneToMany,
-  ManyToOne,
   AfterRemove,
   AfterInsert,
   RemoveOptions,
@@ -47,15 +46,31 @@ import { IPObj } from '../ipobj/IPObj';
 import { Mark } from '../ipobj/Mark';
 import { FSHelper } from '../../utils/fs-helper';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
+import { IPObjRepository } from '../ipobj/IPObj.repository';
+import { DatabaseService } from '../../database/database.service';
 
 const tableName: string = 'fwcloud';
 
-export interface Lock {
+export interface FwcData {
+  fwcloud: number;
+  iduser: number;
+  lock_session_id: string;
+}
+
+export interface FwcLock {
   access: boolean;
   locked: boolean;
   locked_at: string;
   locked_by: number;
   mylock: boolean;
+}
+
+export interface FwcLockData {
+  result: boolean;
+  lockByUser?: string;
+  lockedAt?: string;
+  remoteAddr?: string;
+  remoteAddrName?: string;
 }
 
 @Entity(tableName)
@@ -443,7 +458,7 @@ export class FwCloud extends Model {
    * @return {Boolean} Returns `LOCKED STATUS`
    *
    */
-  public static getFwcloudAccess(iduser, fwcloud, lock_session_id): Promise<Lock> {
+  public static getFwcloudAccess(iduser, fwcloud, lock_session_id): Promise<FwcLock> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
@@ -666,9 +681,7 @@ export class FwCloud extends Model {
    *       callback(error, null);
    *
    */
-  public static updateFwcloudLock(
-    fwcloudData,
-  ): Promise<{ result: boolean; lockByUser?: string; lockedAt?: string }> {
+  public static updateFwcloudLock(fwcloudData: FwcData): Promise<FwcLockData> {
     return new Promise(async (resolve, reject) => {
       await FwCloud.checkFwcloudLockTimeout(fwcloudData.fwcloud);
 
@@ -723,14 +736,38 @@ export class FwCloud extends Model {
                 try {
                   const exists = await fs.pathExists(sessionFilePath);
                   if (exists) {
-                    fs.readFile(sessionFilePath, 'utf8', (err, data) => {
+                    fs.readFile(sessionFilePath, 'utf8', async (err, data) => {
                       if (err) return reject(err);
                       try {
                         const sessionData = JSON.parse(data);
+                        const databaseService = (await app().getService(
+                          DatabaseService.name,
+                        )) as DatabaseService;
+                        const ipobjRepository = new IPObjRepository(
+                          databaseService.dataSource.manager,
+                        );
+
+                        const remoteAddrName =
+                          sessionData.remote_addr != '127.0.0.1'
+                            ? (await ipobjRepository.getNameByAddressOpenVPN(
+                                sessionData.remote_addr,
+                              )) ||
+                              (await ipobjRepository.getNameByAddressWireGuard(
+                                sessionData.remote_addr,
+                              )) ||
+                              (await ipobjRepository.getNameByAddressIPSec(
+                                sessionData.remote_addr,
+                              )) ||
+                              (await ipobjRepository.getNameByAddress(sessionData.remote_addr)) ||
+                              ''
+                            : '';
+
                         resolve({
                           result: false,
                           lockByUser: sessionData.username,
-                          lockedAt: row[0].locked_at,
+                          lockedAt: row[0]?.locked_at ?? null,
+                          remoteAddr: sessionData.remote_addr,
+                          remoteAddrName: remoteAddrName,
                         });
                       } catch (fsError) {
                         reject(fsError);
