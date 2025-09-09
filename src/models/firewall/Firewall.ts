@@ -1511,6 +1511,7 @@ export class Firewall extends Model {
 
         if (compilerNumber == 0x0000) resolve('IPTables');
         else if (compilerNumber == 0x1000) resolve('NFTables');
+        else if (compilerNumber == 0x2000) resolve('VyOS');
         else reject(fwcError.NOT_FOUND);
       } catch (error) {
         reject(error);
