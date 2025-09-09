@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.1] - 2025-09-09
+## [2.1.2] - 2025-09-09
 ### Added
 - Use the header `x-forwarded-for` to store the user's IP in the session information.
 - Return the user's IP and name in the answer to a failed FWCloud lock request, this way it can be shown this information y the tooltip.
@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded npm packages to the latest versions.
+- Upgracde Node.js version in Docker CI from 16 to 18.
 
 
 ## [2.1.0] - 2025-09-04
