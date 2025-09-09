@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use the header `x-forwarded-for` to store the user's IP in the session information.
 - Return the user's IP and name in the answer to a failed FWCloud lock request, this way it can be shown this information y the tooltip.
 - Migration for add and index to the `address` field for the `ipobj` table.
+- Standard TCP ports for `Proxmox` and `Checkmk` services.
 
 ### Fixed
 - Upgraded npm packages to the latest versions.
