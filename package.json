@@ -39,7 +39,7 @@
     "convict-format-with-moment": "6.2.0",
     "cors": "2.8.5",
     "cron": "4.3.3",
-    "dotenv": "17.2.2",
+    "dotenv": "16.6.1",
     "easy-tree": "0.0.3",
     "express": "4.21.2",
     "express-session": "1.18.2",
