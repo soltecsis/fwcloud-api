@@ -166,23 +166,19 @@ router.post('/', async(req, res) => {
 	};
 
 	try {
+		// Check limits
 		if(!req.body.cluster) {
-			let firewalls = await Firewall.getFirewallCloud(req)
-			firewalls = firewalls.filter(item => item.cluster==null)
-
-			if(firewalls.length >= app().config.get('limits').firewalls && app().config.get('limits').firewalls>0) {
+			const max_firewalls = app().config.get('limits').firewalls;
+			if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(firewallData.fwcloud)) > max_firewalls) {
 				throw fwcError.LIMIT_FIREWALLS
-			}
+			}			
 		} else {
-			let nodes = await Firewall.getFirewallCloud(req)
-			let cluster = await Cluster.getCluster(req)
-			nodes = nodes.filter(item => item.cluster !=null && item.cluster == cluster.id)
-			if(nodes.length >= app().config.get('limits').nodes && app().config.get('limits').nodes > 0) {
-				throw fwcError.LIMIT_NODES
-			}
+			const max_cluster_nodes = app().config.get('limits').nodes;
+			if(max_cluster_nodes > 0 && (await Firewall.getCountNodesInCluster(firewallData.fwcloud, firewallData.cluster)) > max_cluster_nodes) {
+				throw fwcError.LIMIT_FIREWALLS
+			}			
 		}
 		
-
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
 		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
 			throw fwcError.BAD_TREE_NODE_TYPE;
@@ -475,15 +471,8 @@ router.put('/get', async (req, res) => {
  */
 router.put('/cloud/get', async (req, res) => {
 	try {
-		let data = await Firewall.getFirewallCloud(req);
+		let data = await Firewall.getFirewallsInFWCloud(req);
 		if (data && data.length > 0) {
-
-			for (let i=0; i<data.length; i++) {
-				// Remove ssh data.
-				delete data[i].install_user;
-				delete data[i].install_pass;
-			}
-			
 			res.status(200).json(data);
 		}
 		else
@@ -641,12 +630,10 @@ router.put('/cluster/get', (req, res) => {
 router.put('/clone', async (req, res) => {
 	try {
 		if(!req.body.cluster) {
-			let firewalls = await Firewall.getFirewallCloud(req)
-			firewalls = firewalls.filter(item => item.cluster==null)
-
-			if(firewalls.length >= app().config.get('limits').firewalls && app().config.get('limits').firewalls>0) {
+			const max_firewalls = app().config.get('limits').firewalls;
+			if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(req.body.fwcloud)) > max_firewalls) {
 				throw fwcError.LIMIT_FIREWALLS
-			}
+			}			
 		}
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
 		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
