@@ -167,4 +167,70 @@ describe(describeName('Policy Compiler VyOS'), () => {
       expect(result).to.include('set firewall name FORWARD rule 100 action accept');
     });
   });
+
+  describe('Inactive rules', () => {
+    it('should compile a single inactive rule and emit progress notice', async () => {
+      const ruleData = {
+        id: 1,
+        active: 0,
+        comment: '',
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+      };
+
+      const emitter: EventEmitter = new EventEmitter();
+      const spy = sinon.spy(emitter, 'emit');
+
+      const result = await PolicyCompiler.compile('VyOS', [ruleData], emitter);
+
+      expect(result).to.have.lengthOf(1);
+      expect(result[0].cs).to.not.be.empty;
+      expect(spy.calledOnce).to.be.true;
+      expect(spy.firstCall.args[0]).to.equal('message');
+      expect(spy.firstCall.args[1]).to.be.instanceOf(ProgressNoticePayload);
+      expect((spy.firstCall.args[1] as ProgressNoticePayload).message).to.equal(
+        `Rule 1 (ID: 1) [DISABLED]`,
+      );
+    });
+
+    it('should emit once per rule and skip compilation for inactive rules when multiple provided', async () => {
+      const rulesData = [
+        {
+          id: 1,
+          active: 1,
+          comment: '',
+          type: PolicyTypesMap.get('IPv4:INPUT'),
+          action: 1,
+          options: 0,
+          firewall_options: 0,
+        },
+        {
+          id: 2,
+          active: 0,
+          comment: '',
+          type: PolicyTypesMap.get('IPv4:INPUT'),
+          action: 1,
+          options: 0,
+          firewall_options: 0,
+        },
+      ];
+
+      const emitter: EventEmitter = new EventEmitter();
+      const spy = sinon.spy(emitter, 'emit');
+
+      const result = await PolicyCompiler.compile('VyOS', rulesData, emitter);
+
+      expect(result).to.have.lengthOf(2);
+      expect(result[0].cs).to.not.be.empty;
+      expect(result[1].cs).to.equal('');
+
+      expect(spy.callCount).to.equal(2);
+      expect((spy.getCall(0).args[1] as ProgressNoticePayload).message).to.equal(`Rule 1 (ID: 1)`);
+      expect((spy.getCall(1).args[1] as ProgressNoticePayload).message).to.equal(
+        `Rule 2 (ID: 2) [DISABLED]`,
+      );
+    });
+  });
 });
