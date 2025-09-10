@@ -433,19 +433,22 @@ export class Firewall extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFirewallCloud(req) {
+  public static getFirewallsInFWCloud(req) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
-			FROM ${tableName} T INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
-			LEFT join interface I on I.id=T.install_interface
-			LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
-			WHERE T.fwcloud=${req.body.fwcloud}`;
+      // Excluded in the firewall table the fields: install_user, install_pass, install_protocol, install_apikey
+      const sql = `SELECT 
+        T.id, T.cluster, T.fwcloud, T.name, T.comment, T.created_at, T.updated_at, T.compiled_at, T.installed_at, T.by_user, T.status, 
+        T.save_user_pass, T.install_interface, T.install_ipobj, T.fwmaster, T.install_port, T.options, T.install_communication, T.plugins, 
+        I.name as interface_name, O.name as ip_name, O.address as ip
+        FROM ${tableName} T 
+        INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
+        LEFT JOIN interface I ON I.id=T.install_interface
+        LEFT JOIN ipobj O ON O.id=T.install_ipobj AND O.interface=I.id
+        WHERE T.fwcloud=${req.body.fwcloud}`;
 
       req.dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
-        Promise.all(rows.map((data) => utilsModel.decryptFirewallData(data)))
-          .then((data) => resolve(data))
-          .catch((error) => reject(error));
+        return resolve(rows);
       });
     });
   }
@@ -735,6 +738,36 @@ export class Firewall extends Model {
             data.fw_status = rows;
             resolve(data);
           } else resolve(rows);
+        });
+      });
+    });
+  }
+
+  // Get the amount of firewalls in a FWCloud.
+  public static getCountFirewallsInFWCloud(fwcloud: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `SELECT COUNT(*) as count FROM ${tableName} WHERE cluster is NULL AND fwcloud=${fwcloud}`;
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows[0].count);
+        });
+      });
+    });
+  }
+
+  // Get the amount of firewalls in a FWCloud.
+  public static getCountNodesInCluster(fwcloud: number, cluster: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        const sql = `SELECT COUNT(*) as count FROM ${tableName} WHERE cluster=${cluster} AND fwcloud=${fwcloud}`;
+        connection.query(sql, (error, rows) => {
+          if (error) return reject(error);
+          resolve(rows[0].count);
         });
       });
     });

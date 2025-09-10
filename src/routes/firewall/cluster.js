@@ -509,10 +509,9 @@ router.put('/clustertofw', async (req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var idCluster = req.body.cluster;
 	try {
-		let firewalls = await Firewall.getFirewallCloud(req)
-		firewalls = firewalls.filter(item => item.cluster==null)
-
-		if(firewalls.length >= app().config.get('limits').firewalls && app().config.get('limits').firewalls>0) {
+		// Check limits
+		const max_firewalls = app().config.get('limits').firewalls;
+		if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(fwcloud)) > max_firewalls) {
 			throw fwcError.LIMIT_FIREWALLS
 		}
 		Firewall.getFirewallClusterMaster(iduser, idCluster, (error, firewallDataArry) => {
