@@ -25,6 +25,9 @@ import { EventEmitter } from 'events';
 import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { VyOSCompiler } from '../../../../src/compiler/policy/vyos/vyos-compiler';
 import { ProgressNoticePayload } from '../../../../src/sockets/messages/socket-message';
+import { FireWallOptMask } from '../../../../src/models/firewall/Firewall';
+import { PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 
 describe.only(describeName('Policy Compiler VyOS'), () => {
   const compiler = new VyOSCompiler({ type: 0 });
@@ -90,5 +93,74 @@ describe.only(describeName('Policy Compiler VyOS'), () => {
   it('returns undefined for undefined input', () => {
     const result = (compiler as any).formatAddress(undefined);
     expect(result).to.equal(undefined);
+  });
+
+  it('should build rule with interfaces, geoip, networks, ranges, services and options', () => {
+    const ruleData: any = {
+      id: 100,
+      type: PolicyTypesMap.get('IPv4:FORWARD'),
+      action: 1,
+      options: PolicyRuleOptMask.STATEFUL,
+      firewall_options: FireWallOptMask.STATEFUL,
+      mark_code: '25',
+      positions: [
+        { ipobjs: [{ name: 'eth0' }] },
+        { ipobjs: [{ name: 'eth1' }] },
+        {
+          ipobjs: [
+            { type: 24, code: 'ES' },
+            { type: 7, address: '192.168.1.0', netmask: '/24' },
+            { type: 6, range_start: '10.0.0.1', range_end: '10.0.0.10' },
+          ],
+        },
+        {
+          ipobjs: [
+            { type: 7, address: '172.16.0.0', netmask: '/16' },
+            { type: 6, range_start: '192.0.2.1', range_end: '192.0.2.5' },
+          ],
+        },
+        {
+          ipobjs: [
+            {
+              protocol: 6,
+              source_port_start: 1000,
+              source_port_end: 1000,
+              destination_port_start: 80,
+              destination_port_end: 80,
+            },
+            { protocol: 17, destination_port_start: 53, destination_port_end: 53 },
+            { protocol: 1, icmp_type: 8, icmp_code: 0 },
+          ],
+        },
+      ],
+    };
+
+    const compiler = new VyOSCompiler(ruleData);
+    const result = compiler.ruleCompile();
+
+    expect(result).to.include('set firewall name FORWARD rule 100 inbound-interface eth0');
+    expect(result).to.include('set firewall name FORWARD rule 100 outbound-interface eth1');
+    expect(result).to.include('set firewall name FORWARD rule 100 source geoip country-code ES');
+    expect(result).to.include('set firewall name FORWARD rule 100 source address 192.168.1.0/24');
+    expect(result).to.include(
+      'set firewall name FORWARD rule 100 source address 10.0.0.1-10.0.0.10',
+    );
+    expect(result).to.include(
+      'set firewall name FORWARD rule 100 destination address 172.16.0.0/16',
+    );
+    expect(result).to.include(
+      'set firewall name FORWARD rule 100 destination address 192.0.2.1-192.0.2.5',
+    );
+    expect(result).to.include('set firewall name FORWARD rule 100 protocol tcp');
+    expect(result).to.include('set firewall name FORWARD rule 100 source port 1000');
+    expect(result).to.include('set firewall name FORWARD rule 100 destination port 80');
+    expect(result).to.include('set firewall name FORWARD rule 100 protocol udp');
+    expect(result).to.include('set firewall name FORWARD rule 100 destination port 53');
+    expect(result).to.include('set firewall name FORWARD rule 100 protocol icmp');
+    expect(result).to.include('set firewall name FORWARD rule 100 icmp type 8');
+    expect(result).to.include('set firewall name FORWARD rule 100 icmp code 0');
+    expect(result).to.include('set firewall name FORWARD rule 100 state new enable');
+    expect(result).to.include('set firewall name FORWARD rule 100 set-mark 25');
+    expect(result).to.include('set firewall name FORWARD rule 100 action accept');
   });
 });
