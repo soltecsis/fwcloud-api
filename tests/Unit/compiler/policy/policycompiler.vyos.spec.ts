@@ -26,7 +26,9 @@ import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { VyOSCompiler } from '../../../../src/compiler/policy/vyos/vyos-compiler';
 import { ProgressNoticePayload } from '../../../../src/sockets/messages/socket-message';
 
-describe(describeName('Policy Compiler VyOS'), () => {
+describe.only(describeName('Policy Compiler VyOS'), () => {
+  const compiler = new VyOSCompiler({ type: 0 });
+
   afterEach(() => {
     sinon.restore();
   });
@@ -58,5 +60,35 @@ describe(describeName('Policy Compiler VyOS'), () => {
     expect((emitStub.secondCall.args[1] as ProgressNoticePayload).message).to.equal(
       'Rule 2 (ID: 2) [DISABLED]',
     );
+  });
+
+  it('should return DNS name', () => {
+    const result = (compiler as any).formatAddress({ type: 9, name: 'example.com' });
+    expect(result).to.equal('example.com');
+  });
+
+  it('should return single address', () => {
+    const result = (compiler as any).formatAddress({ type: 5, address: '192.0.2.1' });
+    expect(result).to.equal('192.0.2.1');
+  });
+
+  it('should return network objects', () => {
+    const obj = { type: 7, address: '10.0.0.0', netmask: '255.255.255.0' };
+    const result = (compiler as any).formatAddress(obj);
+    expect(result).to.equal('10.0.0.0/24');
+  });
+
+  it('should return range objects', () => {
+    const result = (compiler as any).formatAddress({
+      type: 6,
+      range_start: '192.0.2.1',
+      range_end: '192.0.2.10',
+    });
+    expect(result).to.equal('192.0.2.1-192.0.2.10');
+  });
+
+  it('returns undefined for undefined input', () => {
+    const result = (compiler as any).formatAddress(undefined);
+    expect(result).to.equal(undefined);
   });
 });
