@@ -9,7 +9,7 @@ import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 import sinon from 'sinon';
 
-describe.only(describeName('Firewall Model Unit Tests'), () => {
+describe(describeName('Firewall Model Unit Tests'), () => {
   let fwCloud: FwCloud;
   let manager: EntityManager;
 
