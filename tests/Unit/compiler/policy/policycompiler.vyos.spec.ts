@@ -29,7 +29,7 @@ import { FireWallOptMask } from '../../../../src/models/firewall/Firewall';
 import { PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 
-describe.only(describeName('Policy Compiler VyOS'), () => {
+describe(describeName('Policy Compiler VyOS'), () => {
   const compiler = new VyOSCompiler({ type: 0 });
 
   afterEach(() => {
