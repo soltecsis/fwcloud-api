@@ -169,12 +169,16 @@ router.post('/', async(req, res) => {
 		// Check limits
 		if(!req.body.cluster) {
 			const max_firewalls = app().config.get('limits').firewalls;
-			if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(firewallData.fwcloud)) > max_firewalls) {
+			// Disallow creating a new firewall when the current amount
+			// is already at or above the configured limit.
+			if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(firewallData.fwcloud)) >= max_firewalls) {
 				throw fwcError.LIMIT_FIREWALLS
 			}			
 		} else {
 			const max_cluster_nodes = app().config.get('limits').nodes;
-			if(max_cluster_nodes > 0 && (await Firewall.getCountNodesInCluster(firewallData.fwcloud, firewallData.cluster)) > max_cluster_nodes) {
+			// Disallow adding a node when the current amount is already
+			// at or above the configured limit for cluster nodes.
+			if(max_cluster_nodes > 0 && (await Firewall.getCountNodesInCluster(firewallData.fwcloud, firewallData.cluster)) >= max_cluster_nodes) {
 				throw fwcError.LIMIT_FIREWALLS
 			}			
 		}
