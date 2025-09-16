@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -76,7 +76,7 @@ import { PgpHelper } from '../../../utils/pgp';
 /**
  * Create a new OpenVPN configuration in firewall.
  */
-router.post('/', async(req, res) => {
+router.post('/', async (req, res) => {
 	try {
 		// Verify that the node tree type is correct.
 		if (req.tree_node.node_type !== 'OPN' && req.tree_node.node_type !== 'OSR')
@@ -84,24 +84,24 @@ router.post('/', async(req, res) => {
 
 		// Verify that the OpenVPN configuration is the same indicated in the tree node.
 		if (req.body.openvpn && req.body.openvpn != req.tree_node.id_obj)
-			throw {'msg': 'Information in node tree and in API request don\'t match'};
+			throw { 'msg': 'Information in node tree and in API request don\'t match' };
 
 		// Verify that we are using the correct type of certificate.
 		// 1=Client certificate, 2=Server certificate.
-		if (req.crt.type===1 && !req.body.openvpn)
-			throw {'msg': 'When using client certificates you must indicate the OpenVPN server configuration'};
-		if (req.crt.type===2 && req.body.openvpn)
-			throw {'msg': 'When using server certificates you must not indicate the OpenVPN server configuration'};
+		if (req.crt.type === 1 && !req.body.openvpn)
+			throw { 'msg': 'When using client certificates you must indicate the OpenVPN server configuration' };
+		if (req.crt.type === 2 && req.body.openvpn)
+			throw { 'msg': 'When using server certificates you must not indicate the OpenVPN server configuration' };
 
 		// The client certificate for a new OpenVPN client configuration must belong to the same CA
 		// that the OpenVPN server configuration to which we are vinculationg this new client VPN.
-		if (req.crt.type===1 && req.crt.ca!==req.openvpn.ca) 
-			throw {'msg': 'CRT for a new client OpenVPN configuration must has the same CA that the server OpenVPN configuration to which it belongs'};
+		if (req.crt.type === 1 && req.crt.ca !== req.openvpn.ca)
+			throw { 'msg': 'CRT for a new client OpenVPN configuration must has the same CA that the server OpenVPN configuration to which it belongs' };
 
 		// The firewall id for the new OpenVPN client configuration must be the same firewall id of
 		// the server OpenVPN configuration.
-		if (req.crt.type===1 && req.body.firewall!==req.openvpn.firewall) 
-			throw {'msg': 'Firewall ID for the new client OpenVPN configuration must match server OpenVPN configuration'};
+		if (req.crt.type === 1 && req.body.firewall !== req.openvpn.firewall)
+			throw { 'msg': 'Firewall ID for the new client OpenVPN configuration must match server OpenVPN configuration' };
 
 		const newOpenvpn = await OpenVPN.addCfg(req);
 
@@ -119,7 +119,7 @@ router.post('/', async(req, res) => {
 			nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', newOpenvpn, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
-			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
+			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
 			// Update the compilation status of all the firewalls that use the VPN Prefixes to which this new OpenVPN
 			// connection will belong.
@@ -127,11 +127,11 @@ router.post('/', async(req, res) => {
 		}
 
 		// If we are creaing an OpenVPN server configuration, then create the VPN virtual network interface with its assigned IP.
-		if (req.crt.type===2) // 1=Client certificate, 2=Server certificate.
-			await OpenVPN.createOpenvpnServerInterface(req,newOpenvpn);
+		if (req.crt.type === 2) // 1=Client certificate, 2=Server certificate.
+			await OpenVPN.createOpenvpnServerInterface(req, newOpenvpn);
 
-		res.status(200).json({insertId: newOpenvpn, TreeinsertId: nodeId});
-	} catch(error) {
+		res.status(200).json({ insertId: newOpenvpn, TreeinsertId: nodeId });
+	} catch (error) {
 		logger().error('Error creating a new openvpn: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -141,7 +141,7 @@ router.post('/', async(req, res) => {
 /**
  * Update configuration options.
  */
-router.put('/', async(req, res) => {
+router.put('/', async (req, res) => {
 	try {
 		await OpenVPN.updateCfg(req);
 
@@ -157,10 +157,10 @@ router.put('/', async(req, res) => {
 		}
 
 		// Update the status flag for the OpenVPN configuration.
-		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "|1");
 
 		res.status(204).end();
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error updating an openvpn: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -170,11 +170,11 @@ router.put('/', async(req, res) => {
 /**
  * Get OpenVPN configuration data.
  */
-router.put('/get', async(req, res) => {
+router.put('/get', async (req, res) => {
 	try {
 		const data = await OpenVPN.getCfg(req);
 		res.status(200).json(data);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting an openvpn: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -184,11 +184,11 @@ router.put('/get', async(req, res) => {
 /**
  * Get OpenVPN configuration files.
  */
-router.put('/file/get', async(req, res) => {
+router.put('/file/get', async (req, res) => {
 	try {
-		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
- 		res.status(200).json(cfgDump);
-	} catch(error) {
+		const cfgDump = await OpenVPN.dumpCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		res.status(200).json(cfgDump);
+	} catch (error) {
 		logger().error('Error getting openvpn configuration: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -198,16 +198,16 @@ router.put('/file/get', async(req, res) => {
 /**
  * Get OpenVPN ipobj data.
  */
-router.put('/ipobj/get', async(req, res) => {
+router.put('/ipobj/get', async (req, res) => {
 	try {
 		const cfgData = await OpenVPN.getCfg(req);
 		let data = [];
 		for (let openvpn_opt of cfgData.options) {
 			if (openvpn_opt.ipobj)
-				data.push(await IPObj.getIpobjInfo(req.dbCon,req.body.fwcloud,openvpn_opt.ipobj));
+				data.push(await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, openvpn_opt.ipobj));
 		}
 		res.status(200).json(data);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting openvpn ipobj: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -231,11 +231,11 @@ router.put('/ip/get', async (req, res) => {
 /**
  * Get OpenVPN configuration metadata.
  */
-router.put('/info/get', async(req, res) => {
+router.put('/info/get', async (req, res) => {
 	try {
-		const data = await OpenVPN.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.openvpn,req.openvpn.type);
+		const data = await OpenVPN.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.openvpn, req.openvpn.type);
 		res.status(200).json(data[0]);
-	} catch(error) { 
+	} catch (error) {
 		logger().error('Error getting openvpn metadata: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -245,11 +245,11 @@ router.put('/info/get', async(req, res) => {
 /**
  * Get OpenVPN server's data under given firewall.
  */
-router.put('/firewall/get', async(req, res) => {
+router.put('/firewall/get', async (req, res) => {
 	try {
-		const data = await OpenVPN.getOpenvpnServersByFirewall(req.dbCon,req.body.firewall);
+		const data = await OpenVPN.getOpenvpnServersByFirewall(req.dbCon, req.body.firewall);
 		res.status(200).json(data);
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting openvpn firewall data: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -260,32 +260,32 @@ router.put('/firewall/get', async(req, res) => {
  * Delete OpenVPN configuration.
  */
 router.put('/del',
-restrictedCheck.openvpn,
-async(req, res) => {
-	try {
-		// Update the compilation status of all the firewalls that use the VPN Prefixes to which this OpenVPN
-		// connection belongs. It must be done before the OpenVPN deletion.
-		if (req.openvpn.type === 1) await OpenVPNPrefix.updateOpenvpnClientPrefixesFWStatus(req.dbCon, req.body.fwcloud, req.body.openvpn);
-		
-		// Delete the configuration from de database.
-		await OpenVPN.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
+	restrictedCheck.openvpn,
+	async (req, res) => {
+		try {
+			// Update the compilation status of all the firewalls that use the VPN Prefixes to which this OpenVPN
+			// connection belongs. It must be done before the OpenVPN deletion.
+			if (req.openvpn.type === 1) await OpenVPNPrefix.updateOpenvpnClientPrefixesFWStatus(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
-		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
-			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
-			// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
-			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.openvpn.openvpn);
+			// Delete the configuration from de database.
+			await OpenVPN.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
-		} else { // Server OpenVPN configuration.
-			// Delete the openvpn node from the tree.
-			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);
+			if (req.openvpn.type === 1) { // Client OpenVPN configuration.
+				// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
+				// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
+				await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.openvpn.openvpn);
+
+			} else { // Server OpenVPN configuration.
+				// Delete the openvpn node from the tree.
+				await Tree.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);
+			}
+
+			res.status(204).end();
+		} catch (error) {
+			logger().error('Error removing openvpn: ' + JSON.stringify(error));
+			res.status(400).json(error);
 		}
-
-		res.status(204).end();
-	} catch(error) {
-		logger().error('Error removing openvpn: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
-});
+	});
 
 // API call for check deleting restrictions.
 router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204).end());
@@ -294,16 +294,16 @@ router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204)
 router.put('/where', async (req, res) => {
 	try {
 		const data = await OpenVPN.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn, true);
-    if (data.result > 0)
-      res.status(200).json(data);
-    else
+		if (data.result > 0)
+			res.status(200).json(data);
+		else
 			res.status(204).end();
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting openvpn references: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
 });
-	
+
 
 /**
  * Install OpenVPN configuration in the destination firewall.
@@ -386,11 +386,11 @@ router.put('/install', async (req, res, next) => {
 /**
  * Uninstall OpenVPN configuration from the destination firewall.
  */
-router.put('/uninstall', async(req, res, next) => {
+router.put('/uninstall', async (req, res, next) => {
 	try {
-		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: req.body.firewall } });
 		const channel = await Channel.fromRequest(req);
-		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
 		let communication;
 		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
 			const pgp = new PgpHelper(req.session.pgp);
@@ -419,23 +419,23 @@ router.put('/uninstall', async(req, res, next) => {
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
-			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			const openvpn_opt = await OpenVPN.getOptData(req.dbCon, req.openvpn.openvpn, 'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await communication.uninstallOpenVPNConfigs(openvpn_opt.arg,[crt.cn], channel);
+			await communication.uninstallOpenVPNConfigs(openvpn_opt.arg, [crt.cn], channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
-				throw {'msg': 'Empty install dir or install name'};
-			await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir,[req.openvpn.install_name], channel);
+				throw { 'msg': 'Empty install dir or install name' };
+			await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir, [req.openvpn.install_name], channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
-		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "|1");
 
 		channel.emit('message', new ProgressPayload('end', false, 'Uninstalling OpenVPN'));
 
 		res.status(200).send().end();
-	} catch(error) { 
+	} catch (error) {
 		logger().error('Error uninstalling openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 
 		if (error instanceof HttpException) {
@@ -443,7 +443,7 @@ router.put('/uninstall', async(req, res, next) => {
 		}
 
 		if (error.message)
-			res.status(400).json({message: error.message});
+			res.status(400).json({ message: error.message });
 		else
 			res.status(400).json(error);
 	}
@@ -548,27 +548,27 @@ router.put('/ccdsync', async (req, res, next) => {
 		const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
 		if (toBeInstalled.length > 0) {
 			let communication;
-		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-			const pgp = new PgpHelper(req.session.pgp);
-			communication = new SSHCommunication({
-				host: (
-					await db
-						.getSource()
-						.manager.getRepository(IPObj)
-						.findOneOrFail({ where: { id: firewall.install_ipobj } })
-				).address,
-				port: firewall.install_port,
-				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
-					? await pgp.decrypt(req.body.sshuser)
-					: await pgp.decrypt(firewall.install_user),
-				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
-					? await pgp.decrypt(req.body.sshpass)
-					: await pgp.decrypt(firewall.install_pass),
-				options: null,
-			});
-		} else {
-			communication = await firewall.getCommunication();
-		}
+			if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+				const pgp = new PgpHelper(req.session.pgp);
+				communication = new SSHCommunication({
+					host: (
+						await db
+							.getSource()
+							.manager.getRepository(IPObj)
+							.findOneOrFail({ where: { id: firewall.install_ipobj } })
+					).address,
+					port: firewall.install_port,
+					username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+						? await pgp.decrypt(req.body.sshuser)
+						: await pgp.decrypt(firewall.install_user),
+					password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+						? await pgp.decrypt(req.body.sshpass)
+						: await pgp.decrypt(firewall.install_pass),
+					options: null,
+				});
+			} else {
+				communication = await firewall.getCommunication();
+			}
 			const toBeInstalledOpenVPNs = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
 				.innerJoinAndSelect('openvpn.crt', 'crt')
 				.where('openvpn.parentId = :openvpn', { openvpn: openvpn.id })
@@ -593,27 +593,27 @@ router.put('/ccdsync', async (req, res, next) => {
 		const toBeUnInstalled = compare.onlyRemote;
 		if (toBeUnInstalled.length > 0) {
 			let communication;
-		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-			const pgp = new PgpHelper(req.session.pgp);
-			communication = new SSHCommunication({
-				host: (
-					await db
-						.getSource()
-						.manager.getRepository(IPObj)
-						.findOneOrFail({ where: { id: firewall.install_ipobj } })
-				).address,
-				port: firewall.install_port,
-				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
-					? await pgp.decrypt(req.body.sshuser)
-					: await pgp.decrypt(firewall.install_user),
-				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
-					? await pgp.decrypt(req.body.sshpass)
-					: await pgp.decrypt(firewall.install_pass),
-				options: null,
-			});
-		} else {
-			communication = await firewall.getCommunication();
-		}
+			if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+				const pgp = new PgpHelper(req.session.pgp);
+				communication = new SSHCommunication({
+					host: (
+						await db
+							.getSource()
+							.manager.getRepository(IPObj)
+							.findOneOrFail({ where: { id: firewall.install_ipobj } })
+					).address,
+					port: firewall.install_port,
+					username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+						? await pgp.decrypt(req.body.sshuser)
+						: await pgp.decrypt(firewall.install_user),
+					password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+						? await pgp.decrypt(req.body.sshpass)
+						: await pgp.decrypt(firewall.install_pass),
+					options: null,
+				});
+			} else {
+				communication = await firewall.getCommunication();
+			}
 			await communication.uninstallOpenVPNConfigs(client_config_dir, toBeUnInstalled, channel);
 		}
 
@@ -646,17 +646,17 @@ router.put('/ccdsync', async (req, res, next) => {
 /**
  * Get the OpenVPN server status log file.
  */
-router.put('/status/get', async(req, res, next) => {
+router.put('/status/get', async (req, res, next) => {
 	try {
 		const firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
-			.where(`firewall.id = :id`, {id: req.body.firewall})
-			.andWhere(`firewall.fwCloudId = :fwcloud`, {fwcloud: req.body.fwcloud})
+			.where(`firewall.id = :id`, { id: req.body.firewall })
+			.andWhere(`firewall.fwCloudId = :fwcloud`, { fwcloud: req.body.fwcloud })
 			.getOneOrFail();
 		let communication = null;
 
 		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
 			communication = new SSHCommunication({
-				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await db.getSource().manager.getRepository(IPObj).findOneOrFail({where: {id: firewall.install_ipobj}})).address,
+				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: firewall.install_ipobj } })).address,
 				port: Object.prototype.hasOwnProperty.call(req.body, "port") ? req.body.port : firewall.install_port,
 				username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? req.body.sshuser : utilsModel.decrypt(firewall.install_user),
 				password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? req.body.sshpass : utilsModel.decrypt(firewall.install_pass),
@@ -667,19 +667,19 @@ router.put('/status/get', async(req, res, next) => {
 		}
 
 
-		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
 
 		// Obtain the status log file option of the OpenVPN server configuration.
-		const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.body.openvpn,'status');
+		const openvpn_opt = await OpenVPN.getOptData(req.dbCon, req.body.openvpn, 'status');
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_STATUS;
 		const status_file_path = openvpn_opt.arg;
 
 		const data = await communication.getRealtimeStatus(status_file_path);
 
 		res.status(200).json(data);
-	} catch(error) { 
+	} catch (error) {
 		logger().error('Error getting openvpn log file: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 
 		if (error instanceof HttpException) {
@@ -687,7 +687,7 @@ router.put('/status/get', async(req, res, next) => {
 		}
 
 		if (error.message)
-			res.status(400).json({message: error.message});
+			res.status(400).json({ message: error.message });
 		else
 			res.status(400).json(error);
 	}
