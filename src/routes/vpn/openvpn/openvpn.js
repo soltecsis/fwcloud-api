@@ -71,6 +71,7 @@ import * as crypto from "crypto";
 import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { SSHCommunication } from '../../../communications/ssh.communication';
+import { PgpHelper } from '../../../utils/pgp';
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -307,45 +308,67 @@ router.put('/where', async (req, res) => {
 /**
  * Install OpenVPN configuration in the destination firewall.
  */
-router.put('/install', async(req, res, next) => {
+router.put('/install', async (req, res, next) => {
 	try {
 		const channel = await Channel.fromRequest(req);
-		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
-		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
-		
+		const cfgDump = await OpenVPN.dumpCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: req.body.firewall } });
+
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = new SSHCommunication({
+				host: (
+					await db
+						.getSource()
+						.manager.getRepository(IPObj)
+						.findOneOrFail({ where: { id: firewall.install_ipobj } })
+				).address,
+				port: firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: await pgp.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: await pgp.decrypt(firewall.install_pass),
+				options: null,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
+
 		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
-			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			const openvpn_opt = await OpenVPN.getOptData(req.dbCon, req.openvpn.openvpn, 'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
 			await communication.installOpenVPNClientConfigs(openvpn_opt.arg, [{
 				content: cfgDump.ccd,
-				name:  crt.cn
+				name: crt.cn
 			}], channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
-				throw {'msg': 'Empty install dir or install name'};
-				await communication.installOpenVPNServerConfigs(req.openvpn.install_dir, [{
-					content: cfgDump.cfg,
-					name: req.openvpn.install_name
-				}], channel);
+				throw { 'msg': 'Empty install dir or install name' };
+			await communication.installOpenVPNServerConfigs(req.openvpn.install_dir, [{
+				content: cfgDump.cfg,
+				name: req.openvpn.install_name
+			}], channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
-		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
 
 		// Update the install date.
 		await OpenVPN.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
 
 		channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
 		res.status(200).send();
-	} catch(error) { 
+	} catch (error) {
 		logger().error('Error installing openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 
 		if (error instanceof HttpException) {
@@ -353,7 +376,7 @@ router.put('/install', async(req, res, next) => {
 		}
 
 		if (error.message)
-			res.status(400).json({message: error.message});
+			res.status(400).json({ message: error.message });
 		else
 			res.status(400).json(error);
 	}
