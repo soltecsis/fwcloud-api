@@ -391,7 +391,28 @@ router.put('/uninstall', async(req, res, next) => {
 		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({where: {id: req.body.firewall}});
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = new SSHCommunication({
+				host: (
+					await db
+						.getSource()
+						.manager.getRepository(IPObj)
+						.findOneOrFail({ where: { id: firewall.install_ipobj } })
+				).address,
+				port: firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: await pgp.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: await pgp.decrypt(firewall.install_pass),
+				options: null,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
 
 		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
 
@@ -482,7 +503,28 @@ router.put('/ccdsync', async (req, res, next) => {
 			.where('openvpn.parentId = :parentId', { parentId: openvpn.id })
 			.getMany();
 
-		let communication = await firewall.getCommunication({ sshuser: req.body.sshuser, sshpassword: req.body.sshpass });
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = new SSHCommunication({
+				host: (
+					await db
+						.getSource()
+						.manager.getRepository(IPObj)
+						.findOneOrFail({ where: { id: firewall.install_ipobj } })
+				).address,
+				port: firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: await pgp.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: await pgp.decrypt(firewall.install_pass),
+				options: null,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
 		const ccdRemoteHashes = await communication.ccdHashList(client_config_dir, channel);
 		const ccdLocalHashes = [];
 		for (let client of clients) {
@@ -505,7 +547,28 @@ router.put('/ccdsync', async (req, res, next) => {
 		// Unsynced and onlyLocal certificates must be installed
 		const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
 		if (toBeInstalled.length > 0) {
-			communication = await firewall.getCommunication({ sshuser: req.body.sshuser, sshpassword: req.body.sshpass });
+			let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = new SSHCommunication({
+				host: (
+					await db
+						.getSource()
+						.manager.getRepository(IPObj)
+						.findOneOrFail({ where: { id: firewall.install_ipobj } })
+				).address,
+				port: firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: await pgp.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: await pgp.decrypt(firewall.install_pass),
+				options: null,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
 			const toBeInstalledOpenVPNs = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
 				.innerJoinAndSelect('openvpn.crt', 'crt')
 				.where('openvpn.parentId = :openvpn', { openvpn: openvpn.id })
@@ -529,8 +592,28 @@ router.put('/ccdsync', async (req, res, next) => {
 		//onlyRemote certificates must be uninstalled
 		const toBeUnInstalled = compare.onlyRemote;
 		if (toBeUnInstalled.length > 0) {
-			communication = await firewall.getCommunication({ sshuser: req.body.sshuser, sshpassword: req.body.sshpass });
-
+			let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = new SSHCommunication({
+				host: (
+					await db
+						.getSource()
+						.manager.getRepository(IPObj)
+						.findOneOrFail({ where: { id: firewall.install_ipobj } })
+				).address,
+				port: firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: await pgp.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: await pgp.decrypt(firewall.install_pass),
+				options: null,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
 			await communication.uninstallOpenVPNConfigs(client_config_dir, toBeUnInstalled, channel);
 		}
 
