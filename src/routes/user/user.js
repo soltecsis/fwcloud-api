@@ -97,6 +97,10 @@ router.post('/login', async (req, res) => {
 			req.session.admin_role = await User.isLoggedUserAdmin(req);
 			req.session.keepalive_ts = Date.now();
 
+			const xff = req.headers['x-forwarded-for'];
+			const first_ip = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+			req.session.remote_addr = first_ip || req.socket.remoteAddress || '';
+
 			const pgp = new PgpHelper;
 			await pgp.init(config.get('session').pgp_rsa_bits);
 			req.session.pgp = {

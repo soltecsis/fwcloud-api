@@ -62,6 +62,30 @@ export class StandardServicesAddCommand extends Command {
       port: 8096,
       comment: 'DNS Safety user interface',
     },
+    {
+      id: 20100,
+      name: 'Proxmox PVE',
+      port: 8006,
+      comment: 'Proxmox Virtual Environment',
+    },
+    {
+      id: 20101,
+      name: 'Proxmox PBS',
+      port: 8007,
+      comment: 'Proxmox Backup Server',
+    },
+    {
+      id: 20102,
+      name: 'Checkmk Agent',
+      port: 6556,
+      comment: 'Checkmk Agent',
+    },
+    {
+      id: 20103,
+      name: 'Checkmk Sync',
+      port: 6557,
+      comment: 'Checkmk sites synchronization',
+    },
   ];
 
   private UDP_services: {

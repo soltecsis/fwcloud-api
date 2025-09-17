@@ -4,7 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - 2025-08-04
+
+## [2.1.4] - 2025-09-11
+### Fixed
+- Performance problem in `/firewall/cloud/get` API call. It was causing delays in the load of firewalls/clusters tree in FWClouds with lot of firewalls/clusters.
+- Optimized the code for checking amount of firewalls and cluster nodes limits.
+
+
+## [2.1.2] - 2025-09-09
+### Added
+- Use the header `x-forwarded-for` to store the user's IP in the session information.
+- Return the user's IP and name in the answer to a failed FWCloud lock request, this way it can be shown this information y the tooltip.
+- Migration for add and index to the `address` field for the `ipobj` table.
+- Standard TCP ports for `Proxmox` and `Checkmk` services.
+
+### Fixed
+- Upgraded npm packages to the latest versions.
+- Upgracde Node.js version in Docker CI from 16 to 18.
+
+
+## [2.1.0] - 2025-09-04
 ### Added 
 - Exclusive write access to fwclouds. Only one user can edit a fwcloud at a time; additional users accessing the same fwcloud will be placed in read-only mode.
 - Integration with AI API to query firewall policies. Users can now ask questions about the rules within a policy and receive AI-generated responses.

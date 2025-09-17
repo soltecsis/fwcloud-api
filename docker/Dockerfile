@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:18
 
 RUN apt update && apt install -y default-mysql-client
 RUN wget -c -O /tmp/fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
