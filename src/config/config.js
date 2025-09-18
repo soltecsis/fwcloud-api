@@ -310,6 +310,11 @@ const config = convict({
       format: String,
       default: './config/policy/footer.txt'
     },
+    dangerous_rules: {
+      doc: 'File that contains dangerous rules that need confirmation.',
+      format: String,
+      default: './config/policy/dangerous_rules.json'
+    }
   },
 
   // PKI configuration.

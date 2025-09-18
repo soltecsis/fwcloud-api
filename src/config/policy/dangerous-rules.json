@@ -1,0 +1,48 @@
+{
+  "ipv4": {
+    "iptables": {
+      "INPUT": [],
+      "OUTPUT": [],
+      "FORWARD": [],
+      "DNAT": [],
+      "SNAT": []
+    },
+    "nftables": {
+      "INPUT": [],
+      "OUTPUT": [],
+      "FORWARD": [],
+      "DNAT": [],
+      "SNAT": []
+    },
+    "vyos": {
+      "INPUT": [],
+      "OUTPUT": [],
+      "FORWARD": [],
+      "DNAT": [],
+      "SNAT": []
+    }
+  },
+  "ipv6": {
+    "iptables": {
+      "INPUT": [],
+      "OUTPUT": [],
+      "FORWARD": [],
+      "DNAT": [],
+      "SNAT": []
+    },
+    "nftables": {
+      "INPUT": [],
+      "OUTPUT": [],
+      "FORWARD": [],
+      "DNAT": [],
+      "SNAT": []
+    },
+    "vyos": {
+      "INPUT": [],
+      "OUTPUT": [],
+      "FORWARD": [],
+      "DNAT": [],
+      "SNAT": []
+    }
+  }
+}
