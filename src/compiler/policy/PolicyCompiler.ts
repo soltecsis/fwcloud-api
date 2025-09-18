@@ -25,11 +25,10 @@ import { NFTablesCompiler } from './nftables/nftables-compiler';
 import { RuleCompilationResult } from './PolicyCompilerTools';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import {
-  ProgressErrorPayload,
   ProgressNoticePayload,
   ProgressWarningPayload,
 } from '../../sockets/messages/socket-message';
-import dangerousRules from '../../config/policy/dangerousRules';
+import { dangerousRules, typeMap } from '../../config/policy/dangerousRules';
 
 export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
@@ -57,7 +56,6 @@ export class PolicyCompiler {
         if (!rulesData) return resolve(result);
 
         for (let i = 0; i < rulesData.length; i++) {
-          let dangerous = false;
           let compiler: PolicyCompilerClasses;
           const ruleType = rulesData[i].type;
 
@@ -67,34 +65,22 @@ export class PolicyCompiler {
 
           const compiledRule = compiler.ruleCompile();
 
+          // Check if rule is dangerous
+          const { ipType, chain } = typeMap[ruleType];
+          const dangerousRulesArray = dangerousRules[ipType][compileFor.toLowerCase()][chain];
+          const dangerous = dangerousRulesArray.isEmpty
+            ? false
+            : this.checkRuleSafety(compiledRule, dangerousRulesArray);
+
           result.push({
             id: rulesData[i].id,
             active: rulesData[i].active,
             comment: rulesData[i].comment,
             cs: rulesData[i].active || rulesData.length === 1 ? compiledRule : '',
+            ...(dangerous ? { dangerous: true } : {}), // Only add 'dangerous' property if true
           });
 
           if (eventEmitter) {
-            // Check if rule is dangerous
-            // Mapping of type to ipType and chain
-            const typeMap = {
-              1: { ipType: 'ipv4', chain: 'INPUT' },
-              2: { ipType: 'ipv4', chain: 'OUTPUT' },
-              3: { ipType: 'ipv4', chain: 'FORWARD' },
-              4: { ipType: 'ipv4', chain: 'SNAT' },
-              5: { ipType: 'ipv4', chain: 'DNAT' },
-              61: { ipType: 'ipv6', chain: 'INPUT' },
-              62: { ipType: 'ipv6', chain: 'OUTPUT' },
-              63: { ipType: 'ipv6', chain: 'FORWARD' },
-              64: { ipType: 'ipv6', chain: 'SNAT' },
-              65: { ipType: 'ipv6', chain: 'DNAT' },
-            };
-            const { ipType, chain } = typeMap[ruleType];
-
-            const dangerousRulesArray = dangerousRules[ipType][compileFor.toLowerCase()][chain];
-
-            dangerous = this.checkRuleSafety(compiledRule, dangerousRulesArray);
-
             if (!dangerous)
               eventEmitter.emit(
                 'message',
@@ -105,7 +91,7 @@ export class PolicyCompiler {
             else
               eventEmitter.emit(
                 'message',
-                new ProgressErrorPayload(`Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]`),
+                new ProgressWarningPayload(`Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]`),
               );
           }
         }

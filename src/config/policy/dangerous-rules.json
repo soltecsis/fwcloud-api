@@ -1,7 +1,7 @@
 {
   "ipv4": {
     "iptables": {
-      "INPUT": [],
+      "INPUT": ["$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT"],
       "OUTPUT": [],
       "FORWARD": [],
       "DNAT": [],
