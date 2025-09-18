@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -25,10 +25,11 @@ import { NFTablesCompiler } from './nftables/nftables-compiler';
 import { RuleCompilationResult } from './PolicyCompilerTools';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import {
+  ProgressErrorPayload,
   ProgressNoticePayload,
   ProgressWarningPayload,
 } from '../../sockets/messages/socket-message';
-import { PolicyRule } from '../../models/policy/PolicyRule';
+import dangerousRules from '../../config/policy/dangerousRules';
 
 export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
@@ -55,15 +56,10 @@ export class PolicyCompiler {
 
         if (!rulesData) return resolve(result);
 
-        // TODO: Move list to database and load it from there
-        const dangerousRules: string[] = [
-          '$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT',
-          '$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT',
-        ];
-
         for (let i = 0; i < rulesData.length; i++) {
           let dangerous = false;
           let compiler: PolicyCompilerClasses;
+          const ruleType = rulesData[i].type;
 
           if (compileFor == 'IPTables') compiler = new IPTablesCompiler(rulesData[i]);
           // NFTables
@@ -80,7 +76,24 @@ export class PolicyCompiler {
 
           if (eventEmitter) {
             // Check if rule is dangerous
-            dangerous = this.checkRuleSafety(compiledRule, dangerousRules);
+            // Mapping of type to ipType and chain
+            const typeMap = {
+              1: { ipType: 'ipv4', chain: 'INPUT' },
+              2: { ipType: 'ipv4', chain: 'OUTPUT' },
+              3: { ipType: 'ipv4', chain: 'FORWARD' },
+              4: { ipType: 'ipv4', chain: 'SNAT' },
+              5: { ipType: 'ipv4', chain: 'DNAT' },
+              61: { ipType: 'ipv6', chain: 'INPUT' },
+              62: { ipType: 'ipv6', chain: 'OUTPUT' },
+              63: { ipType: 'ipv6', chain: 'FORWARD' },
+              64: { ipType: 'ipv6', chain: 'SNAT' },
+              65: { ipType: 'ipv6', chain: 'DNAT' },
+            };
+            const { ipType, chain } = typeMap[ruleType];
+
+            const dangerousRulesArray = dangerousRules[ipType][compileFor.toLowerCase()][chain];
+
+            dangerous = this.checkRuleSafety(compiledRule, dangerousRulesArray);
 
             if (!dangerous)
               eventEmitter.emit(
@@ -92,7 +105,7 @@ export class PolicyCompiler {
             else
               eventEmitter.emit(
                 'message',
-                new ProgressWarningPayload(`Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]`),
+                new ProgressErrorPayload(`Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]`),
               );
           }
         }
