@@ -68,9 +68,10 @@ export class PolicyCompiler {
           // Check if rule is dangerous
           const { ipType, chain } = typeMap[ruleType];
           const dangerousRulesArray = dangerousRules[ipType][compileFor.toLowerCase()][chain];
-          const dangerous = dangerousRulesArray.isEmpty
-            ? false
-            : this.checkRuleSafety(compiledRule, dangerousRulesArray);
+          const dangerous =
+            dangerousRulesArray.length === 0
+              ? false
+              : this.checkRuleSafety(compiledRule, dangerousRulesArray);
 
           result.push({
             id: rulesData[i].id,

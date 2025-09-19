@@ -3,14 +3,14 @@
     "iptables": {
       "INPUT": ["$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT"],
       "OUTPUT": [],
-      "FORWARD": [],
+      "FORWARD": ["$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT"],
       "DNAT": [],
       "SNAT": []
     },
     "nftables": {
-      "INPUT": [],
+      "INPUT": ["$NFT add rule ip filter INPUT ct state new counter accept"],
       "OUTPUT": [],
-      "FORWARD": [],
+      "FORWARD": ["$NFT add rule ip filter FORWARD ct state new counter accept"],
       "DNAT": [],
       "SNAT": []
     },
@@ -24,16 +24,16 @@
   },
   "ipv6": {
     "iptables": {
-      "INPUT": [],
+      "INPUT": ["$IP6TABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT"],
       "OUTPUT": [],
-      "FORWARD": [],
+      "FORWARD": ["$IP6TABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT"],
       "DNAT": [],
       "SNAT": []
     },
     "nftables": {
-      "INPUT": [],
+      "INPUT": ["$NFT add rule ip6 filter INPUT ct state new counter accept"],
       "OUTPUT": [],
-      "FORWARD": [],
+      "FORWARD": ["$NFT add rule ip6 filter FORWARD ct state new counter accept"],
       "DNAT": [],
       "SNAT": []
     },
