@@ -38,6 +38,17 @@ export class VyOSCompiler extends PolicyCompilerTools {
     return name.replace(/[^A-Za-z0-9_-]/g, '_');
   }
 
+  private formatNegatedValue(value: string, negated: boolean): string {
+    if (!negated || !value) return value;
+    return value.startsWith('!') ? value : `!${value}`;
+  }
+
+  private isPositionNegated(positionIndex: number | undefined): boolean {
+    if (positionIndex === undefined) return false;
+    const positionId = this._ruleData.positions?.[positionIndex]?.id;
+    return PolicyCompilerTools.isPositionNegated(this._ruleData.negate, positionId);
+  }
+
   private buildGroupName(suffix: string): string {
     const chain = POLICY_TYPE[this._policyType] || 'RULE';
     return this.sanitizeName(`FWC_${chain}_${this._ruleData.id}_${suffix}`);
@@ -102,12 +113,20 @@ export class VyOSCompiler extends PolicyCompilerTools {
 
     // Interface IN
     const inIfs = this._ruleData.positions?.[0]?.ipobjs || [];
+    const inboundNegated = this.isPositionNegated(0);
     const inboundNames = inIfs.map((iface: any) => iface?.name).filter(Boolean);
     if (inboundNames.length === 1) {
-      this._cs += `${base('inbound-interface')} ${inboundNames[0]}\n`;
+      this._cs += `${base('inbound-interface')} ${this.formatNegatedValue(
+        inboundNames[0],
+        inboundNegated,
+      )}\n`;
     } else if (inboundNames.length > 1) {
       const groupName = this.defineGroup('interface-group', 'interface', inboundNames, 'IN_IF');
-      if (groupName) this._cs += `${base('inbound-interface group')} ${groupName}\n`;
+      if (groupName)
+        this._cs += `${base('inbound-interface group')} ${this.formatNegatedValue(
+          groupName,
+          inboundNegated,
+        )}\n`;
     }
 
     // Interface OUT for FORWARD rules
@@ -116,12 +135,20 @@ export class VyOSCompiler extends PolicyCompilerTools {
       this._policyType === PolicyTypesMap.get('IPv6:FORWARD')
     ) {
       const outIfs = this._ruleData.positions?.[1]?.ipobjs || [];
+      const outboundNegated = this.isPositionNegated(1);
       const outboundNames = outIfs.map((iface: any) => iface?.name).filter(Boolean);
       if (outboundNames.length === 1) {
-        this._cs += `${base('outbound-interface')} ${outboundNames[0]}\n`;
+        this._cs += `${base('outbound-interface')} ${this.formatNegatedValue(
+          outboundNames[0],
+          outboundNegated,
+        )}\n`;
       } else if (outboundNames.length > 1) {
         const groupName = this.defineGroup('interface-group', 'interface', outboundNames, 'OUT_IF');
-        if (groupName) this._cs += `${base('outbound-interface group')} ${groupName}\n`;
+        if (groupName)
+          this._cs += `${base('outbound-interface group')} ${this.formatNegatedValue(
+            groupName,
+            outboundNegated,
+          )}\n`;
       }
     }
 
@@ -135,53 +162,85 @@ export class VyOSCompiler extends PolicyCompilerTools {
 
     // Source
     const srcObjs = this._ruleData.positions?.[srcPos]?.ipobjs || [];
+    const srcNegated = this.isPositionNegated(srcPos);
     const srcAddresses: string[] = [];
     for (const obj of srcObjs) {
       if (obj?.type === 24) {
         const cc = obj.name || obj.code;
-        if (cc) this._cs += `${base('source geoip country-code')} ${cc}\n`;
+        if (cc)
+          this._cs += `${base('source geoip country-code')} ${this.formatNegatedValue(
+            cc,
+            srcNegated,
+          )}\n`;
         continue;
       }
       const srcAddr = this.formatAddress(obj);
       if (srcAddr) srcAddresses.push(srcAddr);
     }
     if (srcAddresses.length === 1) {
-      this._cs += `${base('source address')} ${srcAddresses[0]}\n`;
+      this._cs += `${base('source address')} ${this.formatNegatedValue(
+        srcAddresses[0],
+        srcNegated,
+      )}\n`;
     } else if (srcAddresses.length > 1) {
       const { v4, v6 } = this.splitByFamily(srcAddresses);
       if (v4.length) {
         const groupName = this.defineGroup('address-group', 'address', v4, 'SRC_ADDR_V4');
-        if (groupName) this._cs += `${base('source group address-group')} ${groupName}\n`;
+        if (groupName)
+          this._cs += `${base('source group address-group')} ${this.formatNegatedValue(
+            groupName,
+            srcNegated,
+          )}\n`;
       }
       if (v6.length) {
         const groupName = this.defineGroup('ipv6-address-group', 'address', v6, 'SRC_ADDR_V6');
-        if (groupName) this._cs += `${base('source group address-group')} ${groupName}\n`;
+        if (groupName)
+          this._cs += `${base('source group address-group')} ${this.formatNegatedValue(
+            groupName,
+            srcNegated,
+          )}\n`;
       }
     }
 
     // Destination
     const dstObjs = this._ruleData.positions?.[dstPos]?.ipobjs || [];
+    const dstNegated = this.isPositionNegated(dstPos);
     const dstAddresses: string[] = [];
     for (const obj of dstObjs) {
       if (obj?.type === 24) {
         const cc = obj.name || obj.code;
-        if (cc) this._cs += `${base('destination geoip country-code')} ${cc}\n`;
+        if (cc)
+          this._cs += `${base('destination geoip country-code')} ${this.formatNegatedValue(
+            cc,
+            dstNegated,
+          )}\n`;
         continue;
       }
       const dstAddr = this.formatAddress(obj);
       if (dstAddr) dstAddresses.push(dstAddr);
     }
     if (dstAddresses.length === 1) {
-      this._cs += `${base('destination address')} ${dstAddresses[0]}\n`;
+      this._cs += `${base('destination address')} ${this.formatNegatedValue(
+        dstAddresses[0],
+        dstNegated,
+      )}\n`;
     } else if (dstAddresses.length > 1) {
       const { v4, v6 } = this.splitByFamily(dstAddresses);
       if (v4.length) {
         const groupName = this.defineGroup('address-group', 'address', v4, 'DST_ADDR_V4');
-        if (groupName) this._cs += `${base('destination group address-group')} ${groupName}\n`;
+        if (groupName)
+          this._cs += `${base('destination group address-group')} ${this.formatNegatedValue(
+            groupName,
+            dstNegated,
+          )}\n`;
       }
       if (v6.length) {
         const groupName = this.defineGroup('ipv6-address-group', 'address', v6, 'DST_ADDR_V6');
-        if (groupName) this._cs += `${base('destination group address-group')} ${groupName}\n`;
+        if (groupName)
+          this._cs += `${base('destination group address-group')} ${this.formatNegatedValue(
+            groupName,
+            dstNegated,
+          )}\n`;
       }
     }
 
