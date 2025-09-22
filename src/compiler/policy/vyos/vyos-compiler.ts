@@ -34,6 +34,41 @@ export class VyOSCompiler extends PolicyCompilerTools {
     this._cs = '';
   }
 
+  private sanitizeName(name: string): string {
+    return name.replace(/[^A-Za-z0-9_-]/g, '_');
+  }
+
+  private buildGroupName(suffix: string): string {
+    const chain = POLICY_TYPE[this._policyType] || 'RULE';
+    return this.sanitizeName(`FWC_${chain}_${this._ruleData.id}_${suffix}`);
+  }
+
+  private defineGroup(
+    groupType: string,
+    valueKeyword: string,
+    values: string[],
+    suffix: string,
+  ): string | undefined {
+    const uniqueValues = Array.from(new Set(values.filter((value) => value)));
+    if (!uniqueValues.length) return;
+
+    const groupName = this.buildGroupName(suffix);
+    this._cs += `delete firewall group ${groupType} ${groupName}\n`;
+    for (const value of uniqueValues) {
+      this._cs += `set firewall group ${groupType} ${groupName} ${valueKeyword} ${value}\n`;
+    }
+    return groupName;
+  }
+
+  private splitByFamily(addresses: string[]): { v4: string[]; v6: string[] } {
+    const result = { v4: [] as string[], v6: [] as string[] };
+    for (const address of addresses) {
+      if (address && address.includes(':')) result.v6.push(address);
+      else if (address) result.v4.push(address);
+    }
+    return result;
+  }
+
   private buildComment(): string {
     const metaData: any = {};
     let comment: string = this._ruleData.comment ? this._ruleData.comment : '';
@@ -67,8 +102,12 @@ export class VyOSCompiler extends PolicyCompilerTools {
 
     // Interface IN
     const inIfs = this._ruleData.positions?.[0]?.ipobjs || [];
-    for (const iface of inIfs) {
-      if (iface?.name) this._cs += `${base('inbound-interface')} ${iface.name}\n`;
+    const inboundNames = inIfs.map((iface: any) => iface?.name).filter(Boolean);
+    if (inboundNames.length === 1) {
+      this._cs += `${base('inbound-interface')} ${inboundNames[0]}\n`;
+    } else if (inboundNames.length > 1) {
+      const groupName = this.defineGroup('interface-group', 'interface', inboundNames, 'IN_IF');
+      if (groupName) this._cs += `${base('inbound-interface group')} ${groupName}\n`;
     }
 
     // Interface OUT for FORWARD rules
@@ -77,8 +116,12 @@ export class VyOSCompiler extends PolicyCompilerTools {
       this._policyType === PolicyTypesMap.get('IPv6:FORWARD')
     ) {
       const outIfs = this._ruleData.positions?.[1]?.ipobjs || [];
-      for (const iface of outIfs) {
-        if (iface?.name) this._cs += `${base('outbound-interface')} ${iface.name}\n`;
+      const outboundNames = outIfs.map((iface: any) => iface?.name).filter(Boolean);
+      if (outboundNames.length === 1) {
+        this._cs += `${base('outbound-interface')} ${outboundNames[0]}\n`;
+      } else if (outboundNames.length > 1) {
+        const groupName = this.defineGroup('interface-group', 'interface', outboundNames, 'OUT_IF');
+        if (groupName) this._cs += `${base('outbound-interface group')} ${groupName}\n`;
       }
     }
 
@@ -92,6 +135,7 @@ export class VyOSCompiler extends PolicyCompilerTools {
 
     // Source
     const srcObjs = this._ruleData.positions?.[srcPos]?.ipobjs || [];
+    const srcAddresses: string[] = [];
     for (const obj of srcObjs) {
       if (obj?.type === 24) {
         const cc = obj.name || obj.code;
@@ -99,11 +143,25 @@ export class VyOSCompiler extends PolicyCompilerTools {
         continue;
       }
       const srcAddr = this.formatAddress(obj);
-      if (srcAddr) this._cs += `${base('source address')} ${srcAddr}\n`;
+      if (srcAddr) srcAddresses.push(srcAddr);
+    }
+    if (srcAddresses.length === 1) {
+      this._cs += `${base('source address')} ${srcAddresses[0]}\n`;
+    } else if (srcAddresses.length > 1) {
+      const { v4, v6 } = this.splitByFamily(srcAddresses);
+      if (v4.length) {
+        const groupName = this.defineGroup('address-group', 'address', v4, 'SRC_ADDR_V4');
+        if (groupName) this._cs += `${base('source group address-group')} ${groupName}\n`;
+      }
+      if (v6.length) {
+        const groupName = this.defineGroup('ipv6-address-group', 'address', v6, 'SRC_ADDR_V6');
+        if (groupName) this._cs += `${base('source group address-group')} ${groupName}\n`;
+      }
     }
 
     // Destination
     const dstObjs = this._ruleData.positions?.[dstPos]?.ipobjs || [];
+    const dstAddresses: string[] = [];
     for (const obj of dstObjs) {
       if (obj?.type === 24) {
         const cc = obj.name || obj.code;
@@ -111,7 +169,20 @@ export class VyOSCompiler extends PolicyCompilerTools {
         continue;
       }
       const dstAddr = this.formatAddress(obj);
-      if (dstAddr) this._cs += `${base('destination address')} ${dstAddr}\n`;
+      if (dstAddr) dstAddresses.push(dstAddr);
+    }
+    if (dstAddresses.length === 1) {
+      this._cs += `${base('destination address')} ${dstAddresses[0]}\n`;
+    } else if (dstAddresses.length > 1) {
+      const { v4, v6 } = this.splitByFamily(dstAddresses);
+      if (v4.length) {
+        const groupName = this.defineGroup('address-group', 'address', v4, 'DST_ADDR_V4');
+        if (groupName) this._cs += `${base('destination group address-group')} ${groupName}\n`;
+      }
+      if (v6.length) {
+        const groupName = this.defineGroup('ipv6-address-group', 'address', v6, 'DST_ADDR_V6');
+        if (groupName) this._cs += `${base('destination group address-group')} ${groupName}\n`;
+      }
     }
 
     // Service / protocol
