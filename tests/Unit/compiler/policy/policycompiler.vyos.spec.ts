@@ -22,18 +22,54 @@
 import { describeName, expect } from '../../../mocha/global-setup';
 import sinon from 'sinon';
 import { EventEmitter } from 'events';
+import fs from 'fs';
 import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { VyOSCompiler } from '../../../../src/compiler/policy/vyos/vyos-compiler';
+import { PolicyScript } from '../../../../src/compiler/policy/PolicyScript';
 import { ProgressNoticePayload } from '../../../../src/sockets/messages/socket-message';
-import { FireWallOptMask } from '../../../../src/models/firewall/Firewall';
-import { PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
+import { FireWallOptMask, Firewall } from '../../../../src/models/firewall/Firewall';
+import { PolicyRule, PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import config from '../../../../src/config/config';
 
 describe(describeName('Policy Compiler VyOS'), () => {
   const compiler = new VyOSCompiler({ type: 0 });
 
   afterEach(() => {
     sinon.restore();
+  });
+
+  it('should use the VyOS header and footer templates when compiling scripts', async () => {
+    const policyConfig = config.get('policy');
+    const readFileStub = sinon.stub(fs, 'readFileSync');
+    readFileStub.withArgs(policyConfig.vyos_header_file, 'utf8').returns('');
+    readFileStub.withArgs(policyConfig.vyos_footer_file, 'utf8').returns('');
+
+    const fakeStream: any = {
+      write: sinon.stub().returns(true),
+      end: sinon.stub(),
+      on(event: string, handler: () => void | Promise<void>) {
+        if (event === 'open') handler();
+        return this;
+      },
+    };
+
+    sinon.stub(fs, 'createWriteStream').returns(fakeStream);
+    sinon.stub(Firewall, 'getFirewallCompiler').resolves('VyOS');
+    sinon.stub(Firewall, 'updateFirewallStatus').resolves();
+    sinon.stub(Firewall, 'updateFirewallCompileDate').resolves();
+    sinon.stub(PolicyRule, 'firewallWithMarkRules').resolves(false);
+
+    const script = new PolicyScript({}, 1, 1);
+    sinon.stub(script as any, 'greetingMessage').resolves();
+    sinon.stub(script as any, 'dumpFirewallOptions').resolves();
+    sinon.stub(script as any, 'dumpCompilation').resolves();
+    sinon.stub(script as any, 'dumpRouting').resolves();
+
+    await script.dump();
+
+    expect(readFileStub.calledWith(policyConfig.vyos_header_file, 'utf8')).to.be.true;
+    expect(readFileStub.calledWith(policyConfig.vyos_footer_file, 'utf8')).to.be.true;
   });
 
   it('should compile active rules and emit progress messages', async () => {
