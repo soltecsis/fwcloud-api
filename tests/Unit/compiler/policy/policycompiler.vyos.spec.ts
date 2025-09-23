@@ -144,15 +144,25 @@ describe(describeName('Policy Compiler VyOS'), () => {
       expect(result).to.include('set firewall name FORWARD rule 100 inbound-interface eth0');
       expect(result).to.include('set firewall name FORWARD rule 100 outbound-interface eth1');
       expect(result).to.include('set firewall name FORWARD rule 100 source geoip country-code ES');
-      expect(result).to.include('set firewall name FORWARD rule 100 source address 192.168.1.0/24');
+      expect(result).to.include('delete firewall group address-group FWC_FORWARD_100_SRC_ADDR_V4');
       expect(result).to.include(
-        'set firewall name FORWARD rule 100 source address 10.0.0.1-10.0.0.10',
+        'set firewall group address-group FWC_FORWARD_100_SRC_ADDR_V4 address 192.168.1.0/24',
       );
       expect(result).to.include(
-        'set firewall name FORWARD rule 100 destination address 172.16.0.0/16',
+        'set firewall group address-group FWC_FORWARD_100_SRC_ADDR_V4 address 10.0.0.1-10.0.0.10',
       );
       expect(result).to.include(
-        'set firewall name FORWARD rule 100 destination address 192.0.2.1-192.0.2.5',
+        'set firewall name FORWARD rule 100 source group address-group FWC_FORWARD_100_SRC_ADDR_V4',
+      );
+      expect(result).to.include('delete firewall group address-group FWC_FORWARD_100_DST_ADDR_V4');
+      expect(result).to.include(
+        'set firewall group address-group FWC_FORWARD_100_DST_ADDR_V4 address 172.16.0.0/16',
+      );
+      expect(result).to.include(
+        'set firewall group address-group FWC_FORWARD_100_DST_ADDR_V4 address 192.0.2.1-192.0.2.5',
+      );
+      expect(result).to.include(
+        'set firewall name FORWARD rule 100 destination group address-group FWC_FORWARD_100_DST_ADDR_V4',
       );
       expect(result).to.include('set firewall name FORWARD rule 100 protocol tcp');
       expect(result).to.include('set firewall name FORWARD rule 100 source port 1000');
@@ -165,6 +175,235 @@ describe(describeName('Policy Compiler VyOS'), () => {
       expect(result).to.include('set firewall name FORWARD rule 100 state new enable');
       expect(result).to.include('set firewall name FORWARD rule 100 set-mark 25');
       expect(result).to.include('set firewall name FORWARD rule 100 action accept');
+    });
+
+    it('should use interface and address groups when multiple inbound interfaces and sources exist', () => {
+      const ruleData: any = {
+        id: 42,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        negate: '',
+        positions: [
+          { id: 101, ipobjs: [{ name: 'ens18' }, { name: 'ens19' }] },
+          {
+            id: 102,
+            ipobjs: [
+              { type: 5, address: '78.128.113.67' },
+              { type: 5, address: '185.143.223.5' },
+            ],
+          },
+          { id: 103, ipobjs: [] },
+          { id: 104, ipobjs: [] },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      expect(result).to.include('delete firewall group interface-group FWC_INPUT_42_IN_IF');
+      expect(result).to.include(
+        'set firewall group interface-group FWC_INPUT_42_IN_IF interface ens18',
+      );
+      expect(result).to.include(
+        'set firewall group interface-group FWC_INPUT_42_IN_IF interface ens19',
+      );
+      expect(result).to.include(
+        'set firewall name INPUT rule 42 inbound-interface group FWC_INPUT_42_IN_IF',
+      );
+      expect(result).to.include('delete firewall group address-group FWC_INPUT_42_SRC_ADDR_V4');
+      expect(result).to.include(
+        'set firewall group address-group FWC_INPUT_42_SRC_ADDR_V4 address 78.128.113.67',
+      );
+      expect(result).to.include(
+        'set firewall group address-group FWC_INPUT_42_SRC_ADDR_V4 address 185.143.223.5',
+      );
+      expect(result).to.include(
+        'set firewall name INPUT rule 42 source group address-group FWC_INPUT_42_SRC_ADDR_V4',
+      );
+    });
+
+    it('should prefix negation on single selector values', () => {
+      const ruleData: any = {
+        id: 55,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        negate: '201 203',
+        positions: [
+          { id: 201, ipobjs: [{ name: 'ens18' }] },
+          { id: 202, ipobjs: [{ type: 5, address: '10.1.1.10' }] },
+          { id: 203, ipobjs: [{ type: 5, address: '203.0.113.8' }] },
+          { id: 204, ipobjs: [] },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      expect(result).to.include('set firewall name INPUT rule 55 inbound-interface !ens18');
+      expect(result).to.include('set firewall name INPUT rule 55 source address 10.1.1.10');
+      expect(result).to.include('set firewall name INPUT rule 55 destination address !203.0.113.8');
+    });
+
+    it('should prefix negation on generated address groups', () => {
+      const ruleData: any = {
+        id: 56,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        negate: '302',
+        positions: [
+          { id: 301, ipobjs: [] },
+          {
+            id: 302,
+            ipobjs: [
+              { type: 5, address: '10.0.0.1' },
+              { type: 5, address: '10.0.0.2' },
+            ],
+          },
+          { id: 303, ipobjs: [] },
+          { id: 304, ipobjs: [] },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      expect(result).to.include('delete firewall group address-group FWC_INPUT_56_SRC_ADDR_V4');
+      expect(result).to.include(
+        'set firewall name INPUT rule 56 source group address-group !FWC_INPUT_56_SRC_ADDR_V4',
+      );
+    });
+
+    it('should split IPv4 and IPv6 sources into separate groups', () => {
+      const ruleData: any = {
+        id: 60,
+        type: PolicyTypesMap.get('IPv6:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        negate: '',
+        positions: [
+          { id: 401, ipobjs: [] },
+          {
+            id: 402,
+            ipobjs: [
+              { type: 5, address: '192.0.2.10' },
+              { type: 5, address: '198.51.100.5' },
+              { type: 7, address: '2001:db8::', netmask: '/64' },
+              { type: 7, address: '2001:db8:1::', netmask: '/64' },
+            ],
+          },
+          { id: 403, ipobjs: [] },
+          { id: 404, ipobjs: [] },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      expect(result).to.include('delete firewall group address-group FWC_INPUT_60_SRC_ADDR_V4');
+      expect(result).to.include(
+        'set firewall group address-group FWC_INPUT_60_SRC_ADDR_V4 address 192.0.2.10',
+      );
+      expect(result).to.include(
+        'set firewall group address-group FWC_INPUT_60_SRC_ADDR_V4 address 198.51.100.5',
+      );
+      expect(result).to.include(
+        'set firewall name INPUT rule 60 source group address-group FWC_INPUT_60_SRC_ADDR_V4',
+      );
+
+      expect(result).to.include(
+        'delete firewall group ipv6-address-group FWC_INPUT_60_SRC_ADDR_V6',
+      );
+      expect(result).to.include(
+        'set firewall group ipv6-address-group FWC_INPUT_60_SRC_ADDR_V6 address 2001:db8::/64',
+      );
+      expect(result).to.include(
+        'set firewall group ipv6-address-group FWC_INPUT_60_SRC_ADDR_V6 address 2001:db8:1::/64',
+      );
+      expect(result).to.include(
+        'set firewall name INPUT rule 60 source group address-group FWC_INPUT_60_SRC_ADDR_V6',
+      );
+    });
+
+    it('should avoid duplicates and empty values when defining groups', () => {
+      const ruleData: any = {
+        id: 70,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        negate: '',
+        positions: [
+          { id: 501, ipobjs: [] },
+          {
+            id: 502,
+            ipobjs: [
+              { type: 5, address: '198.51.100.5' },
+              { type: 5, address: '198.51.100.5' },
+              { type: 5, address: '' },
+              { type: 5, address: '203.0.113.10' },
+            ],
+          },
+          { id: 503, ipobjs: [] },
+          { id: 504, ipobjs: [] },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      const firstAddressOccurrences = result.match(
+        /set firewall group address-group FWC_INPUT_70_SRC_ADDR_V4 address 198\.51\.100\.5/g,
+      );
+      const secondAddressOccurrences = result.match(
+        /set firewall group address-group FWC_INPUT_70_SRC_ADDR_V4 address 203\.0\.113\.10/g,
+      );
+
+      expect(firstAddressOccurrences).to.have.lengthOf(1);
+      expect(secondAddressOccurrences).to.have.lengthOf(1);
+    });
+
+    it('should include metadata in description and escape quotes', () => {
+      const ruleData: any = {
+        id: 61,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        comment: '  comment "with quotes"  ',
+        style: 'rule-style',
+        group_name: 'groupA',
+        group_style: 'styleA',
+        positions: [
+          { id: 601, ipobjs: [{ name: 'eth0' }] },
+          { id: 602, ipobjs: [] },
+          { id: 603, ipobjs: [] },
+          { id: 604, ipobjs: [] },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      const meta = { fwc_rs: 'rule-style', fwc_rgn: 'groupA', fwc_rgs: 'styleA' };
+      const rawComment = `${JSON.stringify(meta)}${ruleData.comment}`;
+      const expectedDescription = `set firewall name INPUT rule 61 description "${rawComment
+        .trim()
+        .replace(/"/g, '\\"')}"`;
+
+      expect(result).to.include(expectedDescription);
     });
   });
 
