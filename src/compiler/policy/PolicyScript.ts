@@ -161,7 +161,12 @@ export class PolicyScript {
           try {
             /* Generate the policy script. */
             this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
-            this.stream.write(fs.readFileSync(config.get('policy').header_file, 'utf8'));
+            const policyConfig = config.get('policy');
+            const headerFilePath =
+              this.policyCompiler === 'VyOS' && policyConfig.vyos_header_file
+                ? policyConfig.vyos_header_file
+                : policyConfig.header_file;
+            this.stream.write(fs.readFileSync(headerFilePath, 'utf8'));
             this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
             await this.greetingMessage();
             await this.dumpFirewallOptions();
@@ -281,7 +286,11 @@ export class PolicyScript {
             await this.dumpRouting();
 
             // Footer file.
-            this.stream.write(fs.readFileSync(config.get('policy').footer_file, 'utf8'));
+            const footerFilePath =
+              this.policyCompiler === 'VyOS' && policyConfig.vyos_footer_file
+                ? policyConfig.vyos_footer_file
+                : policyConfig.footer_file;
+            this.stream.write(fs.readFileSync(footerFilePath, 'utf8'));
 
             /* Close stream. */
             this.stream.end();

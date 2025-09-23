@@ -310,6 +310,16 @@ const config = convict({
       format: String,
       default: './config/policy/footer.txt'
     },
+    vyos_header_file: {
+      doc: 'Header file for VyOS compilation scripts.',
+      format: String,
+      default: './config/policy/header_VyOS.txt'
+    },
+    vyos_footer_file: {
+      doc: 'Footer file for VyOS compilation scripts.',
+      format: String,
+      default: './config/policy/footer_VyOS.txt'
+    },
   },
 
   // PKI configuration.
