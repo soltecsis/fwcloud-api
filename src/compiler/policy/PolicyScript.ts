@@ -1,23 +1,23 @@
 /*
-	Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-	https://soltecsis.com
-	info@soltecsis.com
+  Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  https://soltecsis.com
+  info@soltecsis.com
 
 
-	This file is part of FWCloud (https://fwcloud.net).
+  This file is part of FWCloud (https://fwcloud.net).
 
-	FWCloud is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Affero General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+  FWCloud is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-	FWCloud is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+  FWCloud is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /**
@@ -29,6 +29,7 @@
 import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
 import { ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
+import { RuleCompilationResult } from './PolicyCompilerTools';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { RoutingCompiled, RoutingCompiler } from '../routing/RoutingCompiler';
@@ -126,8 +127,26 @@ export class PolicyScript {
     return;
   }
 
-  private async dumpCompilation(type: number): Promise<void> {
-    // Compile all rules of the same type.
+  private async dumpCompilation(type: number, options: { plain?: boolean } = {}): Promise<void> {
+    const rulesCompiled = await this.compileRules(type);
+
+    let cs = '';
+    for (let i = 0; i < rulesCompiled.length; i++) {
+      const rule = rulesCompiled[i];
+      if (options.plain) {
+        if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
+        if (rule.active) cs += rule.cs;
+      } else {
+        cs += `\necho "Rule ${i + 1} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n`;
+        if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
+        if (rule.active) cs += rule.cs;
+      }
+    }
+    this.stream.write(cs);
+    return;
+  }
+
+  private async compileRules(type: number): Promise<RuleCompilationResult[]> {
     const rulesData: any = await PolicyRule.getPolicyData(
       'compiler',
       this.dbCon,
@@ -137,20 +156,172 @@ export class PolicyScript {
       null,
       null,
     );
-    const rulesCompiled = await PolicyCompiler.compile(
-      this.policyCompiler,
-      rulesData,
-      this.channel,
-    );
+
+    return PolicyCompiler.compile(this.policyCompiler, rulesData, this.channel);
+  }
+
+  private async dumpVyOSPolicy(): Promise<void> {
+    type ProgressNoticeConfig = { text: string; highlight?: boolean };
+    type VyOSChainConfig = {
+      title: string;
+      underline: string;
+      type: number;
+      progress?: ProgressNoticeConfig[];
+    };
+    type VyOSSectionConfig = {
+      banner: string[];
+      progress?: ProgressNoticeConfig[];
+      chains: VyOSChainConfig[];
+    };
+
+    const sections: VyOSSectionConfig[] = [
+      {
+        banner: [
+          'echo',
+          'echo "***********************"',
+          'echo "* FILTER TABLE (IPv4) *"',
+          'echo "***********************"',
+        ],
+        progress: [{ text: 'FILTER TABLE (IPv4):', highlight: true }],
+        chains: [
+          {
+            title: 'INPUT CHAIN',
+            underline: '-----------',
+            type: PolicyTypesMap.get('IPv4:INPUT'),
+            progress: [{ text: 'INPUT CHAIN:', highlight: true }],
+          },
+          {
+            title: 'OUTPUT CHAIN',
+            underline: '------------',
+            type: PolicyTypesMap.get('IPv4:OUTPUT'),
+            progress: [{ text: 'OUTPUT CHAIN:', highlight: true }],
+          },
+          {
+            title: 'FORWARD CHAIN',
+            underline: '-------------',
+            type: PolicyTypesMap.get('IPv4:FORWARD'),
+            progress: [{ text: 'FORWARD CHAIN:', highlight: true }],
+          },
+        ],
+      },
+      {
+        banner: [
+          'echo',
+          'echo "********************"',
+          'echo "* NAT TABLE (IPv4) *"',
+          'echo "********************"',
+        ],
+        progress: [{ text: 'NAT TABLE (IPv4):', highlight: true }],
+        chains: [
+          {
+            title: 'SNAT',
+            underline: '----',
+            type: PolicyTypesMap.get('IPv4:SNAT'),
+            progress: [{ text: 'SNAT:', highlight: true }],
+          },
+          {
+            title: 'DNAT',
+            underline: '----',
+            type: PolicyTypesMap.get('IPv4:DNAT'),
+            progress: [{ text: 'DNAT:', highlight: true }],
+          },
+        ],
+      },
+      {
+        banner: [
+          'echo',
+          'echo "***********************"',
+          'echo "* FILTER TABLE (IPv6) *"',
+          'echo "***********************"',
+        ],
+        progress: [{ text: '' }, { text: '' }, { text: 'FILTER TABLE (IPv6):', highlight: true }],
+        chains: [
+          {
+            title: 'INPUT CHAIN',
+            underline: '-----------',
+            type: PolicyTypesMap.get('IPv6:INPUT'),
+            progress: [{ text: 'INPUT CHAIN:', highlight: true }],
+          },
+          {
+            title: 'OUTPUT CHAIN',
+            underline: '------------',
+            type: PolicyTypesMap.get('IPv6:OUTPUT'),
+            progress: [{ text: 'OUTPUT CHAIN:', highlight: true }],
+          },
+          {
+            title: 'FORWARD CHAIN',
+            underline: '-------------',
+            type: PolicyTypesMap.get('IPv6:FORWARD'),
+            progress: [{ text: 'FORWARD CHAIN:', highlight: true }],
+          },
+        ],
+      },
+      {
+        banner: [
+          'echo',
+          'echo "********************"',
+          'echo "* NAT TABLE (IPv6) *"',
+          'echo "********************"',
+        ],
+        progress: [{ text: 'NAT TABLE (IPv6):', highlight: true }],
+        chains: [
+          {
+            title: 'SNAT',
+            underline: '----',
+            type: PolicyTypesMap.get('IPv6:SNAT'),
+            progress: [{ text: 'SNAT:', highlight: true }],
+          },
+          {
+            title: 'DNAT',
+            underline: '----',
+            type: PolicyTypesMap.get('IPv6:DNAT'),
+            progress: [{ text: 'DNAT:', highlight: true }],
+          },
+        ],
+      },
+    ];
+
+    let firstSection = true;
+    for (const section of sections) {
+      this.stream.write(firstSection ? '\n' : '\n\n');
+      firstSection = false;
+      for (const line of section.banner) this.stream.write(`${line}\n`);
+      this.emitProgressNotices(section.progress);
+
+      for (const chain of section.chains) {
+        this.stream.write('\n\n');
+        this.stream.write(`echo "${chain.title}"\n`);
+        this.stream.write(`echo "${chain.underline}"\n`);
+        this.emitProgressNotices(chain.progress);
+        await this.dumpVyOSRules(chain.type);
+      }
+    }
+  }
+
+  private emitProgressNotices(notices?: { text: string; highlight?: boolean }[]): void {
+    if (!notices) return;
+    for (const notice of notices) {
+      this.channel.emit(
+        'message',
+        new ProgressNoticePayload(notice.text, notice.highlight ?? false),
+      );
+    }
+  }
+
+  private async dumpVyOSRules(type: number): Promise<void> {
+    const rules = await this.compileRules(type);
 
     let cs = '';
-    for (let i = 0; i < rulesCompiled.length; i++) {
-      cs += `\necho "Rule ${i + 1} (ID: ${rulesCompiled[i].id})${!rulesCompiled[i].active ? ' [DISABLED]' : ''}"\n`;
-      if (rulesCompiled[i].comment) cs += `# ${rulesCompiled[i].comment.replace(/\n/g, '\n# ')}\n`;
-      if (rulesCompiled[i].active) cs += rulesCompiled[i].cs;
+    for (let i = 0; i < rules.length; i++) {
+      const rule = rules[i];
+      if (!rule.active) continue;
+
+      cs += `\n# Rule ${i + 1} (ID: ${rule.id})\n`;
+      if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
+      cs += rule.cs;
     }
-    this.stream.write(cs);
-    return;
+
+    if (cs) this.stream.write(cs);
   }
 
   public dump(): Promise<void> {
@@ -167,123 +338,131 @@ export class PolicyScript {
                 ? policyConfig.vyos_header_file
                 : policyConfig.header_file;
             this.stream.write(fs.readFileSync(headerFilePath, 'utf8'));
-            this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
-            await this.greetingMessage();
-            await this.dumpFirewallOptions();
 
-            this.stream.write('policy_load() {\n');
+            const isVyOS = this.policyCompiler === 'VyOS';
 
-            if (this.policyCompiler == 'NFTables') {
-              await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
+            if (!isVyOS) {
+              this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
+              await this.greetingMessage();
+              await this.dumpFirewallOptions();
 
-              this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
-              this.stream.write('# How do they interact?\n');
-              this.stream.write(
-                '#    nft       Empty     Accept  Accept      Block        Blank\n',
-              );
-              this.stream.write(
-                '#    iptables  Empty     Empty   Block       Accept       Accept\n',
-              );
-              this.stream.write(
-                '#    Results   Pass      Pass    Unreachable Unreachable  Pass \n',
-              );
-              this.stream.write(
-                '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
-              );
-              this.stream.write('iptables_default_filter_policy ACCEPT\n');
+              this.stream.write('policy_load() {\n');
+
+              if (this.policyCompiler == 'NFTables') {
+                await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
+
+                this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
+                this.stream.write('# How do they interact?\n');
+                this.stream.write(
+                  '#    nft       Empty     Accept  Accept      Block        Blank\n',
+                );
+                this.stream.write(
+                  '#    iptables  Empty     Empty   Block       Accept       Accept\n',
+                );
+                this.stream.write(
+                  '#    Results   Pass      Pass    Unreachable Unreachable  Pass \n',
+                );
+                this.stream.write(
+                  '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
+                );
+                this.stream.write('iptables_default_filter_policy ACCEPT\n');
+              } else {
+                // IPTables compiler.
+                this.stream.write('\n# Default IPTables chains policy.\n');
+                this.stream.write('iptables_default_filter_policy DROP\n');
+              }
+
+              if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
+                await this.dumpMangeTableRules(); // Generate default rules for mangle table
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "***********************"\n');
+              this.stream.write('echo "* FILTER TABLE (IPv4) *"\n');
+              this.stream.write('echo "***********************"\n');
+              this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv4):', true));
+              this.stream.write('\n\necho "INPUT CHAIN"\n');
+              this.stream.write('echo "-----------"\n');
+              this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "OUTPUT CHAIN"\n');
+              this.stream.write('echo "------------"\n');
+              this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "FORWARD CHAIN"\n');
+              this.stream.write('echo "-------------"\n');
+              this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "********************"\n');
+              this.stream.write('echo "* NAT TABLE (IPv4) *"\n');
+              this.stream.write('echo "********************"\n');
+              this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv4):', true));
+              this.stream.write('\n\necho "SNAT"\n');
+              this.stream.write('echo "----"\n');
+              this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "DNAT"\n');
+              this.stream.write('echo "----"\n');
+              this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT'));
+
+              this.stream.write('\n\n');
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo\n');
+              this.stream.write('echo "***********************"\n');
+              this.stream.write('echo "* FILTER TABLE (IPv6) *"\n');
+              this.stream.write('echo "***********************"\n');
+              this.channel.emit('message', new ProgressNoticePayload(''));
+              this.channel.emit('message', new ProgressNoticePayload(''));
+              this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv6):', true));
+              this.stream.write('\n\necho "INPUT CHAIN"\n');
+              this.stream.write('echo "-----------"\n');
+              this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "OUTPUT CHAIN"\n');
+              this.stream.write('echo "------------"\n');
+              this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "FORWARD CHAIN"\n');
+              this.stream.write('echo "-------------"\n');
+              this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "********************"\n');
+              this.stream.write('echo "* NAT TABLE (IPv6) *"\n');
+              this.stream.write('echo "********************"\n');
+              this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv6):', true));
+              this.stream.write('\n\necho "SNAT"\n');
+              this.stream.write('echo "----"\n');
+              this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT'));
+
+              this.stream.write('\n\necho\n');
+              this.stream.write('echo "DNAT"\n');
+              this.stream.write('echo "----"\n');
+              this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
+              await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'));
+
+              this.stream.write('\n}\n\n');
+
+              await this.dumpRouting();
             } else {
-              // IPTables compiler.
-              this.stream.write('\n# Default IPTables chains policy.\n');
-              this.stream.write('iptables_default_filter_policy DROP\n');
+              await this.dumpVyOSPolicy();
+              this.stream.write('\n');
             }
-
-            if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
-              await this.dumpMangeTableRules(); // Generate default rules for mangle table
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "***********************"\n');
-            this.stream.write('echo "* FILTER TABLE (IPv4) *"\n');
-            this.stream.write('echo "***********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv4):', true));
-            this.stream.write('\n\necho "INPUT CHAIN"\n');
-            this.stream.write('echo "-----------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "OUTPUT CHAIN"\n');
-            this.stream.write('echo "------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "FORWARD CHAIN"\n');
-            this.stream.write('echo "-------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "********************"\n');
-            this.stream.write('echo "* NAT TABLE (IPv4) *"\n');
-            this.stream.write('echo "********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv4):', true));
-            this.stream.write('\n\necho "SNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "DNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT'));
-
-            this.stream.write('\n\n');
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo\n');
-            this.stream.write('echo "***********************"\n');
-            this.stream.write('echo "* FILTER TABLE (IPv6) *"\n');
-            this.stream.write('echo "***********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload(''));
-            this.channel.emit('message', new ProgressNoticePayload(''));
-            this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv6):', true));
-            this.stream.write('\n\necho "INPUT CHAIN"\n');
-            this.stream.write('echo "-----------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "OUTPUT CHAIN"\n');
-            this.stream.write('echo "------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "FORWARD CHAIN"\n');
-            this.stream.write('echo "-------------"\n');
-            this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "********************"\n');
-            this.stream.write('echo "* NAT TABLE (IPv6) *"\n');
-            this.stream.write('echo "********************"\n');
-            this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv6):', true));
-            this.stream.write('\n\necho "SNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT'));
-
-            this.stream.write('\n\necho\n');
-            this.stream.write('echo "DNAT"\n');
-            this.stream.write('echo "----"\n');
-            this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-            await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'));
-
-            this.stream.write('\n}\n\n');
-
-            await this.dumpRouting();
 
             // Footer file.
             const footerFilePath =

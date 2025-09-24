@@ -61,15 +61,16 @@ describe(describeName('Policy Compiler VyOS'), () => {
     sinon.stub(PolicyRule, 'firewallWithMarkRules').resolves(false);
 
     const script = new PolicyScript({}, 1, 1);
-    sinon.stub(script as any, 'greetingMessage').resolves();
-    sinon.stub(script as any, 'dumpFirewallOptions').resolves();
-    sinon.stub(script as any, 'dumpCompilation').resolves();
-    sinon.stub(script as any, 'dumpRouting').resolves();
+    sinon.stub(script as any, 'dumpVyOSPolicy').resolves();
 
     await script.dump();
 
     expect(readFileStub.calledWith(policyConfig.vyos_header_file, 'utf8')).to.be.true;
     expect(readFileStub.calledWith(policyConfig.vyos_footer_file, 'utf8')).to.be.true;
+    const wrotePolicyCompilerLine = fakeStream.write
+      .getCalls()
+      .some((call: sinon.SinonSpyCall<[string]>) => /POLICY_COMPILER/.test(call.args[0] ?? ''));
+    expect(wrotePolicyCompilerLine).to.be.false;
   });
 
   it('should compile active rules and emit progress messages', async () => {
