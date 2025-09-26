@@ -72,6 +72,9 @@ export type RuleCompilationResult = {
   active: number;
   comment: string;
   cs: string;
+  dangerous?: boolean;
+  ruleIPType?: string;
+  ruleChainType?: string;
 };
 
 type CompiledPosition = {

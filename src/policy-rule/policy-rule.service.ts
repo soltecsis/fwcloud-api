@@ -5,6 +5,7 @@ import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { PolicyScript } from '../compiler/policy/PolicyScript';
 import db from '../database/database-manager';
 import fs from 'fs';
+import { RuleCompilationResult } from '../compiler/policy/PolicyCompilerTools';
 
 export class PolicyRuleService extends Service {
   protected _dbCon: DatabaseQuery.default;
@@ -19,9 +20,9 @@ export class PolicyRuleService extends Service {
     fwcloudId: number,
     firewallId: number,
     channel?: EventEmitter,
-  ): Promise<void> {
+  ): Promise<Array<RuleCompilationResult>> {
     const policyScript = this.getPolicyScript(fwcloudId, firewallId, channel);
-    await policyScript.dump();
+    return await policyScript.dump();
   }
 
   public content(fwcloudId: number, firewallId: number): Promise<string> {

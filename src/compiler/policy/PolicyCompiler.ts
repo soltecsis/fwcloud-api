@@ -78,7 +78,8 @@ export class PolicyCompiler {
             active: rulesData[i].active,
             comment: rulesData[i].comment,
             cs: rulesData[i].active || rulesData.length === 1 ? compiledRule : '',
-            ...(dangerous ? { dangerous: true } : {}), // Only add 'dangerous' property if true
+            ...(dangerous ? { dangerous: true } : {}), // Only add 'dangerous' properties if rule is dangerous
+            ...(dangerous ? { ruleIPType: ipType, ruleChainType: chain } : {}),
           });
 
           if (eventEmitter) {
