@@ -34,6 +34,12 @@ export class VyOSCompiler extends PolicyCompilerTools {
     this._cs = '';
   }
 
+  private isIPv6Policy(): boolean {
+    const ipv6Input = PolicyTypesMap.get('IPv6:INPUT');
+    if (ipv6Input === undefined) return false;
+    return typeof this._policyType === 'number' && this._policyType >= ipv6Input;
+  }
+
   private sanitizeName(name: string): string {
     return name.replace(/[^A-Za-z0-9_-]/g, '_');
   }
@@ -109,7 +115,10 @@ export class VyOSCompiler extends PolicyCompilerTools {
 
   public ruleCompile(): string {
     const chain = POLICY_TYPE[this._policyType];
-    const base = (opt: string) => `set firewall name ${chain} rule ${this._ruleData.id} ${opt}`;
+    const firewallKeyword = this.isIPv6Policy() ? 'ipv6-name' : 'name';
+    const base = (opt: string) =>
+      `set firewall ${firewallKeyword} ${chain} rule ${this._ruleData.id} ${opt}`;
+    const isIPv6Rule = this.isIPv6Policy();
 
     // Interface IN
     const inIfs = this._ruleData.positions?.[0]?.ipobjs || [];
@@ -248,13 +257,26 @@ export class VyOSCompiler extends PolicyCompilerTools {
     const svcObjs = this._ruleData.positions?.[svcPos]?.ipobjs || [];
     for (const svc of svcObjs) {
       const proto = svc.protocol;
-      const protoName = proto === 6 ? 'tcp' : proto === 17 ? 'udp' : proto === 1 ? 'icmp' : proto;
+      let protoName: string;
+      if (typeof proto === 'number') {
+        if (proto === 6) protoName = 'tcp';
+        else if (proto === 17) protoName = 'udp';
+        else if (proto === 1 || proto === 58) protoName = isIPv6Rule ? 'ipv6-icmp' : 'icmp';
+        else protoName = `${proto}`;
+      } else if (typeof proto === 'string') {
+        const normalized = proto.toLowerCase();
+        if (normalized === 'icmp' || normalized === 'ipv6-icmp')
+          protoName = isIPv6Rule ? 'ipv6-icmp' : 'icmp';
+        else protoName = proto;
+      } else protoName = `${proto}`;
       this._cs += `${base('protocol')} ${protoName}\n`;
-      if (proto === 1) {
+      if (protoName === 'icmp' || protoName === 'ipv6-icmp') {
+        const typeKeyword = isIPv6Rule ? 'icmpv6 type' : 'icmp type';
+        const codeKeyword = isIPv6Rule ? 'icmpv6 code' : 'icmp code';
         if (svc.icmp_type !== undefined && svc.icmp_type !== -1)
-          this._cs += `${base('icmp type')} ${svc.icmp_type}\n`;
+          this._cs += `${base(typeKeyword)} ${svc.icmp_type}\n`;
         if (svc.icmp_code !== undefined && svc.icmp_code !== -1)
-          this._cs += `${base('icmp code')} ${svc.icmp_code}\n`;
+          this._cs += `${base(codeKeyword)} ${svc.icmp_code}\n`;
       }
       if (svc.source_port_end && svc.source_port_end !== 0) {
         const srange =
