@@ -28,7 +28,11 @@ import { VyOSCompiler } from '../../../../src/compiler/policy/vyos/vyos-compiler
 import { PolicyScript } from '../../../../src/compiler/policy/PolicyScript';
 import { ProgressNoticePayload } from '../../../../src/sockets/messages/socket-message';
 import { FireWallOptMask, Firewall } from '../../../../src/models/firewall/Firewall';
-import { PolicyRule, PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
+import {
+  PolicyRule,
+  PolicyRuleOptMask,
+  SpecialPolicyRules,
+} from '../../../../src/models/policy/PolicyRule';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 import config from '../../../../src/config/config';
 
@@ -100,6 +104,36 @@ describe(describeName('Policy Compiler VyOS'), () => {
     expect((emitStub.secondCall.args[1] as ProgressNoticePayload).message).to.equal(
       'Rule 2 (ID: 2) [DISABLED]',
     );
+  });
+
+  it('should compile hook script rules using the IPTables output format', async () => {
+    const runBefore = 'echo "Hook script"';
+    const rules = [
+      {
+        id: 5,
+        active: 1,
+        comment: null,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        special: SpecialPolicyRules.HOOKSCRIPT,
+        run_before: runBefore,
+        run_after: 'echo "ignored"',
+        positions: [{ ipobjs: [] }, { ipobjs: [] }, { ipobjs: [] }, { ipobjs: [] }],
+      },
+    ];
+
+    const result = await PolicyCompiler.compile('VyOS', rules);
+
+    expect(result).to.eql([
+      {
+        id: 5,
+        active: 1,
+        comment: null,
+        cs: `###########################\n# Hook script rule code:\n${runBefore}\n###########################\n`,
+      },
+    ]);
   });
 
   describe('formatAddress()', () => {
@@ -355,7 +389,7 @@ describe(describeName('Policy Compiler VyOS'), () => {
         'set firewall group address-group FWC_INPUT_60_SRC_ADDR_V4 address 198.51.100.5',
       );
       expect(result).to.include(
-        'set firewall name INPUT rule 60 source group address-group FWC_INPUT_60_SRC_ADDR_V4',
+        'set firewall ipv6-name INPUT rule 60 source group address-group FWC_INPUT_60_SRC_ADDR_V4',
       );
 
       expect(result).to.include(
@@ -368,8 +402,42 @@ describe(describeName('Policy Compiler VyOS'), () => {
         'set firewall group ipv6-address-group FWC_INPUT_60_SRC_ADDR_V6 address 2001:db8:1::/64',
       );
       expect(result).to.include(
-        'set firewall name INPUT rule 60 source group address-group FWC_INPUT_60_SRC_ADDR_V6',
+        'set firewall ipv6-name INPUT rule 60 source group address-group FWC_INPUT_60_SRC_ADDR_V6',
       );
+    });
+
+    it('should use IPv6-specific keywords for IPv6 ICMP services', () => {
+      const ruleData: any = {
+        id: 200,
+        type: PolicyTypesMap.get('IPv6:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        mark_code: '0',
+        negate: '',
+        positions: [
+          { id: 701, ipobjs: [] },
+          { id: 702, ipobjs: [] },
+          { id: 703, ipobjs: [] },
+          {
+            id: 704,
+            ipobjs: [
+              {
+                protocol: 1,
+                icmp_type: 128,
+                icmp_code: 0,
+              },
+            ],
+          },
+        ],
+      };
+
+      const compiler = new VyOSCompiler(ruleData);
+      const result = compiler.ruleCompile();
+
+      expect(result).to.include('set firewall ipv6-name INPUT rule 200 protocol ipv6-icmp');
+      expect(result).to.include('set firewall ipv6-name INPUT rule 200 icmpv6 type 128');
+      expect(result).to.include('set firewall ipv6-name INPUT rule 200 icmpv6 code 0');
     });
 
     it('should avoid duplicates and empty values when defining groups', () => {
