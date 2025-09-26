@@ -8,6 +8,7 @@ on:
     branches:
       - devel
       - multivpn
+      - fixes
 
 jobs:
   test:
