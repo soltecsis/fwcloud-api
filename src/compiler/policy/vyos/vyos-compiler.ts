@@ -22,7 +22,7 @@
 import { PolicyCompilerTools, POLICY_TYPE } from '../PolicyCompilerTools';
 import { PolicyTypesMap } from '../../../models/policy/PolicyType';
 import { FireWallOptMask } from '../../../models/firewall/Firewall';
-import { PolicyRuleOptMask } from '../../../models/policy/PolicyRule';
+import { PolicyRuleOptMask, SpecialPolicyRules } from '../../../models/policy/PolicyRule';
 import { IpUtils } from '../../../utils/ip-utils';
 
 export class VyOSCompiler extends PolicyCompilerTools {
@@ -113,7 +113,23 @@ export class VyOSCompiler extends PolicyCompilerTools {
     return;
   }
 
+  private compileHookScript(): string {
+    const runBefore = this._ruleData.run_before ? `${this._ruleData.run_before}` : '';
+    let script = '###########################\n# Hook script rule code:\n';
+    script += `${runBefore}\n###########################\n`;
+
+    if (this._ruleData.fw_apply_to && this._ruleData.firewall_name)
+      return `if [ "$HOSTNAME" = "${this._ruleData.firewall_name}" ]; then\n${script}fi\n`;
+
+    return script;
+  }
+
   public ruleCompile(): string {
+    const special = Number.isInteger(this._ruleData.special)
+      ? this._ruleData.special
+      : parseInt(this._ruleData.special, 10);
+    if (special === SpecialPolicyRules.HOOKSCRIPT) return this.compileHookScript();
+
     const chain = POLICY_TYPE[this._policyType];
     const firewallKeyword = this.isIPv6Policy() ? 'ipv6-name' : 'name';
     const base = (opt: string) =>

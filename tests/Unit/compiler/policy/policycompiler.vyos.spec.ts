@@ -28,7 +28,11 @@ import { VyOSCompiler } from '../../../../src/compiler/policy/vyos/vyos-compiler
 import { PolicyScript } from '../../../../src/compiler/policy/PolicyScript';
 import { ProgressNoticePayload } from '../../../../src/sockets/messages/socket-message';
 import { FireWallOptMask, Firewall } from '../../../../src/models/firewall/Firewall';
-import { PolicyRule, PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
+import {
+  PolicyRule,
+  PolicyRuleOptMask,
+  SpecialPolicyRules,
+} from '../../../../src/models/policy/PolicyRule';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 import config from '../../../../src/config/config';
 
@@ -100,6 +104,36 @@ describe(describeName('Policy Compiler VyOS'), () => {
     expect((emitStub.secondCall.args[1] as ProgressNoticePayload).message).to.equal(
       'Rule 2 (ID: 2) [DISABLED]',
     );
+  });
+
+  it('should compile hook script rules using the IPTables output format', async () => {
+    const runBefore = 'echo "Hook script"';
+    const rules = [
+      {
+        id: 5,
+        active: 1,
+        comment: null,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        action: 1,
+        options: 0,
+        firewall_options: 0,
+        special: SpecialPolicyRules.HOOKSCRIPT,
+        run_before: runBefore,
+        run_after: 'echo "ignored"',
+        positions: [{ ipobjs: [] }, { ipobjs: [] }, { ipobjs: [] }, { ipobjs: [] }],
+      },
+    ];
+
+    const result = await PolicyCompiler.compile('VyOS', rules);
+
+    expect(result).to.eql([
+      {
+        id: 5,
+        active: 1,
+        comment: null,
+        cs: `###########################\n# Hook script rule code:\n${runBefore}\n###########################\n`,
+      },
+    ]);
   });
 
   describe('formatAddress()', () => {
