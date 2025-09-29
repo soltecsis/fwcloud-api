@@ -25,10 +25,10 @@ import { NFTablesCompiler } from './nftables/nftables-compiler';
 import { RuleCompilationResult } from './PolicyCompilerTools';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
-import { PolicyRule } from '../../models/policy/PolicyRule';
+import { VyOSCompiler } from './vyos/vyos-compiler';
 
-export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
-export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
+export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler | VyOSCompiler;
+export type AvailablePolicyCompilers = 'IPTables' | 'NFTables' | 'VyOS';
 
 export class PolicyCompiler {
   public static compile(
@@ -54,8 +54,8 @@ export class PolicyCompiler {
           let compiler: PolicyCompilerClasses;
 
           if (compileFor == 'IPTables') compiler = new IPTablesCompiler(rulesData[i]);
-          // NFTables
-          else compiler = new NFTablesCompiler(rulesData[i]);
+          else if (compileFor == 'NFTables') compiler = new NFTablesCompiler(rulesData[i]);
+          else compiler = new VyOSCompiler(rulesData[i]);
 
           result.push({
             id: rulesData[i].id,
