@@ -857,4 +857,27 @@ export class FwCloud extends Model {
       });
     });
   }
+
+  public static updateFwcloudForceLock(fwcloudData): Promise<{ result: boolean }> {
+    return new Promise((resolve, reject) => {
+      const locked = 1;
+      db.get((error, connection) => {
+        if (error) reject(error);
+        const sql = `
+          UPDATE ${tableName}
+          SET locked = ${connection.escape(locked)},
+          locked_at = CURRENT_TIMESTAMP,
+          locked_by = ${connection.escape(fwcloudData.lock_session_id)}
+          WHERE id = ${connection.escape(fwcloudData.fwcloud)}
+        `;
+        connection.query(sql, (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve({ result: result.affectedRows > 0 });
+          }
+        });
+      });
+    });
+  }
 }

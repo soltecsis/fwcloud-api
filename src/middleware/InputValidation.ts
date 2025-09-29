@@ -107,7 +107,8 @@ export class InputValidation extends Middleware {
       (req.method === 'GET' && req.url === '/stream') ||
       (req.method === 'GET' && req.url === '/config') ||
       (req.method === 'PUT' && req.url.startsWith('/fwcloud/lock')) ||
-      (req.method === 'PUT' && req.url.startsWith('/fwcloud/unlock'))
+      (req.method === 'PUT' && req.url.startsWith('/fwcloud/unlock')) ||
+      (req.method === 'PUT' && req.url.startsWith('/fwcloud/forcelock'))
     )
       return next();
 
