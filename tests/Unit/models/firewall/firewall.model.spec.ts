@@ -7,6 +7,7 @@ import { Mark } from '../../../../src/models/ipobj/Mark';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
+import sinon from 'sinon';
 
 describe(describeName('Firewall Model Unit Tests'), () => {
   let fwCloud: FwCloud;
@@ -160,6 +161,32 @@ describe(describeName('Firewall Model Unit Tests'), () => {
       );
 
       expect(await firewall.hasMarkedRules()).to.be.true;
+    });
+  });
+
+  describe('getFirewallCompiler()', () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it('should return IPTables if firewall options indicate it', async () => {
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(0x0000);
+      await expect(Firewall.getFirewallCompiler(1, 1)).to.eventually.equal('IPTables');
+    });
+
+    it('should return NFTables if firewall options indicate it', async () => {
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(0x1000);
+      await expect(Firewall.getFirewallCompiler(1, 1)).to.eventually.equal('NFTables');
+    });
+
+    it('should return VyOS if firewall options indicate it', async () => {
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(0x2000);
+      await expect(Firewall.getFirewallCompiler(1, 1)).to.eventually.equal('VyOS');
+    });
+
+    it('should reject if firewall options value is unknown', async () => {
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(0x3000);
+      await expect(Firewall.getFirewallCompiler(1, 1)).to.be.rejected;
     });
   });
 });
