@@ -387,6 +387,61 @@ router.put('/unlock', async (req, res) => {
 	}
 });
 
+/**
+ * Force Unlock fwcloud status
+ * 
+ * 
+ * > ROUTE CALL:  __/fwcloud/fwcloud/forceunlock__      
+ * > METHOD:  __PUT__
+ * 
+ * @method UpdateFwcloudForceUnlock
+ * 
+ * @param {Integer} fwcloud Fwcloud cloud
+ * @optional
+ * @param {Integer} iduser User identifier
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *	
+ *       {"data" : [
+ *          {		
+ * 		  "msg : "success",   //result
+ * 		}
+ * 	   ]
+ */
+router.put('/forcelock', async (req, res) => {
+	// Save fwcloud data into object
+	const fwcloudData = { fwcloud: req.body.fwcloud, lock_session_id: req.sessionID };
+	try {
+		// Only users with the administrator role can force unlock a fwcloud.
+		if (!await User.isLoggedUserAdmin(req))
+			throw fwcError.NOT_ADMIN_USER;
+		console.log('Passed admin check');
+		console.log('Fwcloud data: ' + JSON.stringify(fwcloudData));
+		const data = await FwCloud.updateFwcloudForceLock(fwcloudData);
+		if (data.result) {
+			logger().info("FWCLOUD: " + fwcloudData.id + "  FORCE UNLOCKED BY USER: " + fwcloudData.iduser);
+			res.status(200).json({
+				result: true,
+				message: 'FWCLOUD FORCE UNLOCKED OK',
+			});
+		} else {
+			logger().info("NOT ACCESS FOR FORCE UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+			res.status(200).json({
+				result: false,
+				message: 'NOT ACCESS FOR FORCE UNLOCKING',
+			});
+		}
+	} catch (error) {
+		logger().info("ERROR FORCE UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+		res.status(200).json({
+			result: false,
+			message: 'ERROR FORCE UNLOCKING: ' + error,
+		});
+	}
+});
+
 /* Get locked Status of fwcloud by Id */
 /**
  * Get Locked status of Fwcloud by ID and User

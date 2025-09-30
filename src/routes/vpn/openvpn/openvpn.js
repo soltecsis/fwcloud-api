@@ -145,6 +145,7 @@ router.put('/', async (req, res) => {
 	try {
 		await OpenVPN.updateCfg(req);
 
+		const currentOptions = await OpenVPN.getCfg(req).then(data => data.options);
 		// First remove all the current configuration options.
 		await OpenVPN.delCfgOptAll(req);
 
@@ -156,8 +157,14 @@ router.put('/', async (req, res) => {
 			await OpenVPN.addCfgOpt(req, opt);
 		}
 
-		// Update the status flag for the OpenVPN configuration.
-		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "|1");
+		// Update the status flag for the OpenVPN configuration only if any option has scope === 0 (CCD options).
+		const hasCCDOptionsChanged = req.body.options.some(newOpt => {
+			const currentOpt = currentOptions.find(opt => opt.name === newOpt.name);
+			return newOpt.scope === 0 && (!currentOpt || currentOpt.value !== newOpt.value);
+		});
+		if (hasCCDOptionsChanged) {
+			await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "|1");
+		}
 
 		res.status(204).end();
 	} catch (error) {

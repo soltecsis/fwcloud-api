@@ -27,6 +27,7 @@ export class LockValidation extends Middleware {
       (req.method === 'PUT' && req.url === '/ping') ||
       (req.method === 'PUT' && req.url === '/fwcloud/lock') ||
       (req.method === 'PUT' && req.url === '/fwcloud/unlock') ||
+      (req.method === 'PUT' && req.url === '/fwcloud/forcelock') ||
       (req.method === 'PUT' && req.url === '/aiassistant') ||
       (req.method === 'DELETE' && req.url === '/aiassistant')
     ) {
