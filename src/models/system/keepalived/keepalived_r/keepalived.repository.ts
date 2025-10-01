@@ -255,7 +255,9 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       .getSource()
       .manager.getRepository(KeepalivedRule)
       .createQueryBuilder('keepalived');
-    qb.innerJoin('keepalived.firewall', 'firewall').innerJoin('firewall.fwCloud', 'fwcloud');
+    qb.innerJoin('keepalived.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoinAndSelect('keepalived.firewallApplyTo', 'firewallApplyTo');
 
     if (path.firewallId) {
       qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
@@ -328,6 +330,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       .leftJoinAndSelect('keepalived_r.group', 'group')
       .leftJoinAndSelect('keepalived_r.interface', 'interface')
       .leftJoinAndSelect('keepalived_r.masterNode', 'masterNode')
+      .leftJoinAndSelect('keepalived_r.firewallApplyTo', 'firewallApplyTo')
       .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
       .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
       .leftJoinAndSelect('interface.hosts', 'hosts')

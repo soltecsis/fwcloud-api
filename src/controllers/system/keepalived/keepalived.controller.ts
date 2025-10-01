@@ -228,7 +228,11 @@ export class KeepalivedController extends Controller {
         this._firewall.id,
       );
 
-    new KeepalivedCompiler().compile(rules);
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === this._firewall.id,
+    );
+
+    new KeepalivedCompiler().compile(filteredRules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
@@ -254,6 +258,8 @@ export class KeepalivedController extends Controller {
           .andWhere('firewall.fwmaster = 1')
           .getOneOrFail()
       ).id;
+    } else {
+      firewallId = firewall.id;
     }
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
@@ -263,8 +269,12 @@ export class KeepalivedController extends Controller {
         firewallId,
       );
 
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === firewallId,
+    );
+
     const content: string = new KeepalivedCompiler()
-      .compile(rules, channel)
+      .compile(filteredRules, channel)
       .map((item) => item.cs)
       .join('\n');
 
