@@ -30,6 +30,7 @@ type ServiceTable = {
 const services: ServiceTable[] = [
   { name: 'haproxy_r', fkName: 'FK_haproxy_r_fw_apply_to_firewall_id' },
   { name: 'keepalived_r', fkName: 'FK_keepalived_r_fw_apply_to_firewall_id' },
+  { name: 'dhcp_r', fkName: 'FK_dhcp_r_fw_apply_to_firewall_id' },
 ];
 
 export class SystemServicesApplyTo1758000000000 implements MigrationInterface {
