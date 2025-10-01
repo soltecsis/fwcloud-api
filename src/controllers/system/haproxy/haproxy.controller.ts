@@ -226,7 +226,11 @@ export class HAProxyController extends Controller {
         [this._haproxyRule.id],
       );
 
-    new HAProxyCompiler().compile(rules);
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === this._firewall.id,
+    );
+
+    new HAProxyCompiler().compile(filteredRules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
@@ -259,8 +263,12 @@ export class HAProxyController extends Controller {
     const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
       await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, firewallId);
 
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === firewallId,
+    );
+
     const content: string = new HAProxyCompiler()
-      .compile(rules, channel)
+      .compile(filteredRules, channel)
       .map((item) => item.cs)
       .join('\n');
 

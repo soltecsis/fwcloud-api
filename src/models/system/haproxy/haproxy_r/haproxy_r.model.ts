@@ -75,6 +75,21 @@ export class HAProxyRule extends Model {
   @JoinColumn({ name: 'firewall' })
   firewall: Firewall;
 
+  @Column({ name: 'fw_apply_to', nullable: true })
+  fw_apply_to?: number;
+
+  @ManyToOne(() => Firewall)
+  @JoinColumn({ name: 'fw_apply_to' })
+  firewallApplyTo?: Firewall;
+
+  get firewallApplyToId(): number | undefined {
+    return this.fw_apply_to;
+  }
+
+  set firewallApplyToId(value: number | undefined) {
+    this.fw_apply_to = value;
+  }
+
   @Column({ type: 'text' })
   cfg_text: string;
 
