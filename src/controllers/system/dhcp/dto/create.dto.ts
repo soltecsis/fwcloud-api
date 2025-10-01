@@ -29,6 +29,7 @@ import {
   IsIn,
 } from 'class-validator';
 import { Offset } from '../../../../offset';
+import { Transform } from 'class-transformer';
 
 export class DHCPRuleCreateDto {
   @IsBoolean()
@@ -42,6 +43,25 @@ export class DHCPRuleCreateDto {
   @IsNumber()
   @IsOptional()
   firewallId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value, obj }) => {
+    const candidate =
+      value ?? obj.firewallApplyToId ?? obj.fw_apply_to ?? obj.applyTo ?? obj.apply_to;
+
+    delete obj.firewallApplyToId;
+    delete obj.fw_apply_to;
+    delete obj.applyTo;
+    delete obj.apply_to;
+
+    if (candidate === undefined || candidate === null || candidate === '') {
+      return undefined;
+    }
+
+    return Number(candidate);
+  })
+  firewallApplyToId?: number;
 
   @IsString()
   @IsOptional()
