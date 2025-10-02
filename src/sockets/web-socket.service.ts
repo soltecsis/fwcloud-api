@@ -58,6 +58,10 @@ export class WebSocketService extends Service {
     return this._socketIO.sockets.sockets.get(socketId) || null;
   }
 
+  public getSocketIO(): io.Server {
+    return this._socketIO;
+  }
+
   public setSocketIO(socketIO: io.Server) {
     this._socketIO = socketIO;
 
@@ -102,6 +106,10 @@ export class WebSocketService extends Service {
           `WebSocket: User connected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`,
         );
 
+        socket.join(socket.request.session.id);
+
+        logger().info(`WebSocket: User joined to room ${socket.request.session.id}`);
+
         socket.on('disconnect', () => {
           logger().info(
             `WebSocket: User disconnected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`,
@@ -109,5 +117,26 @@ export class WebSocketService extends Service {
         });
       });
     });
+  }
+
+  public get socketIO(): io.Server {
+    return this._socketIO;
+  }
+
+  public emitToRoom(sessionId: string, event: string, payload: any): void {
+    if (!this._socketIO) {
+      logger().warn(
+        `WebSocket: emitToRoom skipped because socket server is not ready (event: ${event}).`,
+      );
+      return;
+    }
+
+    if (!sessionId) {
+      logger().warn(`WebSocket: emitToRoom skipped due to missing sessionId (event: ${event}).`);
+      return;
+    }
+
+    this._socketIO.to(sessionId).emit(event, payload);
+    logger().info(`WebSocket: Emitted ${event} to room ${sessionId}.`);
   }
 }
