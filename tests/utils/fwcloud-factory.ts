@@ -99,7 +99,6 @@ export class FwCloudFactory {
   private _ipsecRepository: Repository<IPSec>;
   private _ipsecOptRepository: Repository<IPSecOption>;
   private _ipsecPrefixRepository: Repository<IPSecPrefix>;
-  private _openvpnClientPrefix: string;
 
   public fwc: FwCloudProduct;
 
@@ -167,8 +166,6 @@ export class FwCloudFactory {
         locked_by: null,
       }),
     );
-
-    this._openvpnClientPrefix = `OpenVPN-Cli-${this.fwc.fwcloud.id}-`;
 
     this.fwc.firewall = await this._firewallRepository.save(
       this._firewallRepository.create({
@@ -397,7 +394,7 @@ export class FwCloudFactory {
       await this._crtRepository.save(
         this._crtRepository.create({
           caId: this.fwc.ca.id,
-          cn: `${this._openvpnClientPrefix}1`,
+          cn: 'OpenVPN-Cli-1',
           days: 1000,
           type: 1,
         }),
@@ -409,7 +406,7 @@ export class FwCloudFactory {
       await this._crtRepository.save(
         this._crtRepository.create({
           caId: this.fwc.ca.id,
-          cn: `${this._openvpnClientPrefix}2`,
+          cn: 'OpenVPN-Cli-2',
           days: 1000,
           type: 1,
         }),
@@ -640,7 +637,7 @@ export class FwCloudFactory {
     this.fwc.openvpnPrefix = await this._openvpnPrefixRepository.save(
       this._openvpnPrefixRepository.create({
         openVPNId: this.fwc.openvpnServer.id,
-        name: this._openvpnClientPrefix,
+        name: 'OpenVPN-Cli-',
         ipObjGroups: [this.fwc.ipobjGroup],
       }),
     );
