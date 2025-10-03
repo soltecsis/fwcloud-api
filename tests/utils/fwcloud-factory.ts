@@ -99,6 +99,7 @@ export class FwCloudFactory {
   private _ipsecRepository: Repository<IPSec>;
   private _ipsecOptRepository: Repository<IPSecOption>;
   private _ipsecPrefixRepository: Repository<IPSecPrefix>;
+  private _openvpnClientPrefix: string;
 
   public fwc: FwCloudProduct;
 
@@ -140,6 +141,7 @@ export class FwCloudFactory {
     this.fwc.ipsecClients = new Map<string, IPSec>();
 
     this._ipobjNextId = this.randomId(10, 100000);
+    this._openvpnClientPrefix = '';
   }
 
   async make(): Promise<FwCloudProduct> {
@@ -169,6 +171,8 @@ export class FwCloudFactory {
         locked_by: null,
       }),
     );
+
+    this._openvpnClientPrefix = `OpenVPN-Cli-${this.fwc.fwcloud.id}-`;
 
     this.fwc.firewall = await this._firewallRepository.save(
       this._firewallRepository.create({
@@ -413,7 +417,7 @@ export class FwCloudFactory {
         this._crtRepository.create({
           id: crtNextId++,
           caId: this.fwc.ca.id,
-          cn: 'OpenVPN-Cli-1',
+          cn: `${this._openvpnClientPrefix}1`,
           days: 1000,
           type: 1,
         }),
@@ -426,7 +430,7 @@ export class FwCloudFactory {
         this._crtRepository.create({
           id: crtNextId++,
           caId: this.fwc.ca.id,
-          cn: 'OpenVPN-Cli-2',
+          cn: `${this._openvpnClientPrefix}2`,
           days: 1000,
           type: 1,
         }),
@@ -676,7 +680,7 @@ export class FwCloudFactory {
       this._openvpnPrefixRepository.create({
         id: this.randomId(10, 100000),
         openVPNId: this.fwc.openvpnServer.id,
-        name: 'OpenVPN-Cli-',
+        name: this._openvpnClientPrefix,
         ipObjGroups: [this.fwc.ipobjGroup],
       }),
     );
