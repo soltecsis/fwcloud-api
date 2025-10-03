@@ -22,7 +22,7 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
-describe(RoutingRuleService.name, () => {
+describe.only(RoutingRuleService.name, () => {
   let service: RoutingRuleService;
   let fwcProduct: FwCloudProduct;
   let fwCloud: FwCloud;
@@ -551,10 +551,12 @@ describe(RoutingRuleService.name, () => {
       let mark2: Mark;
 
       beforeEach(async () => {
+        const baseCode: number = fwCloud.id + 1;
+
         mark1 = await manager.getRepository(Mark).save(
           manager.getRepository(Mark).create({
             fwCloudId: fwCloud.id,
-            code: 1,
+            code: baseCode,
             name: '1',
           }),
         );
@@ -562,7 +564,7 @@ describe(RoutingRuleService.name, () => {
         mark2 = await manager.getRepository(Mark).save(
           manager.getRepository(Mark).create({
             fwCloudId: fwCloud.id,
-            code: 2,
+            code: baseCode + 1,
             name: '2',
           }),
         );
@@ -1302,10 +1304,12 @@ describe(RoutingRuleService.name, () => {
       let mark2: Mark;
 
       beforeEach(async () => {
+        const baseCode: number = fwCloud.id + 1;
+
         mark1 = await manager.getRepository(Mark).save(
           manager.getRepository(Mark).create({
             fwCloudId: fwCloud.id,
-            code: 1,
+            code: baseCode,
             name: '1',
           }),
         );
@@ -1313,7 +1317,7 @@ describe(RoutingRuleService.name, () => {
         mark2 = await manager.getRepository(Mark).save(
           manager.getRepository(Mark).create({
             fwCloudId: fwCloud.id,
-            code: 2,
+            code: baseCode + 1,
             name: '2',
           }),
         );
@@ -1532,7 +1536,7 @@ describe(RoutingRuleService.name, () => {
 
     beforeEach(async () => {
       mark2 = await manager.getRepository(Mark).save({
-        code: 2,
+        code: fwcProduct.fwcloud.id + 1,
         name: 'test',
         fwCloudId: fwcProduct.fwcloud.id,
       });

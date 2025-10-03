@@ -136,8 +136,6 @@ export class FwCloudFactory {
     this.fwc.routes = new Map<string, Route>();
     this.fwc.routingRules = new Map<string, RoutingRule>();
     this.fwc.ipsecClients = new Map<string, IPSec>();
-
-    this._openvpnClientPrefix = '';
   }
 
   async make(): Promise<FwCloudProduct> {

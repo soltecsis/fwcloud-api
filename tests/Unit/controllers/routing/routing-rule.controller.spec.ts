@@ -40,13 +40,13 @@ describe(RoutingRuleController.name, () => {
     firewall = fwcProduct.firewall;
 
     mark = await manager.getRepository(Mark).save({
-      code: 1,
+      code: fwcProduct.fwcloud.id + 1,
       name: 'test',
       fwCloudId: fwcProduct.fwcloud.id,
     });
 
     mark2 = await manager.getRepository(Mark).save({
-      code: 2,
+      code: fwcProduct.fwcloud.id + 2,
       name: 'test',
       fwCloudId: fwcProduct.fwcloud.id,
     });
