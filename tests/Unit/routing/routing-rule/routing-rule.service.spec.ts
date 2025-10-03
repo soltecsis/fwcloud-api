@@ -22,7 +22,7 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
-describe.only(RoutingRuleService.name, () => {
+describe(RoutingRuleService.name, () => {
   let service: RoutingRuleService;
   let fwcProduct: FwCloudProduct;
   let fwCloud: FwCloud;
