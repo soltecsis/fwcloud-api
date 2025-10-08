@@ -55,7 +55,7 @@ export class AuditLog1759918517845 implements MigrationInterface {
           },
           {
             name: 'data',
-            type: 'json',
+            type: 'longtext',
             isNullable: false,
           },
           {
