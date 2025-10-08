@@ -240,7 +240,11 @@ export class DhcpController extends Controller {
         [this._dhcprule.id],
       );
 
-    new DHCPCompiler().compile(rules);
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === this._firewall.id,
+    );
+
+    new DHCPCompiler().compile(filteredRules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
@@ -273,8 +277,12 @@ export class DhcpController extends Controller {
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
       await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, firewallId);
 
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === firewallId,
+    );
+
     const content: string = new DHCPCompiler()
-      .compile(rules, channel)
+      .compile(filteredRules, channel)
       .map((item) => item.cs)
       .join('\n');
 

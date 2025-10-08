@@ -204,7 +204,11 @@ export class FirewallController extends Controller {
           : undefined,
       );
 
-    const compilation = new HAProxyCompiler().compile(rules);
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === firewall.id,
+    );
+
+    const compilation = new HAProxyCompiler().compile(filteredRules);
 
     return ResponseBuilder.buildResponse().status(200).body(compilation);
   }
