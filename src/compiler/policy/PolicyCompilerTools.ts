@@ -75,6 +75,7 @@ export type RuleCompilationResult = {
   dangerous?: boolean;
   ruleIPType?: string;
   ruleChainType?: string;
+  ruleOrder?: number;
 };
 
 type CompiledPosition = {
