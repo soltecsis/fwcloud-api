@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class AuditLog1759918517845 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -22,28 +22,58 @@ export class AuditLog1759918517845 implements MigrationInterface {
             default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: 'user',
-            type: 'int',
-            length: '11',
-            isNullable: false,
-          },
-          {
-            name: 'fwcloud',
-            type: 'int',
-            length: '11',
-            isNullable: false,
-          },
-          {
-            name: 'firewall',
+            name: 'user_id',
             type: 'int',
             length: '11',
             isNullable: true,
             default: null,
           },
           {
-            name: 'cluster',
+            name: 'user_name',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'fwcloud_id',
             type: 'int',
             length: '11',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'fwcloud_name',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'firewall_id',
+            type: 'int',
+            length: '11',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'firewall_name',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'cluster_id',
+            type: 'int',
+            length: '11',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'cluster_name',
+            type: 'varchar',
+            length: '255',
             isNullable: true,
             default: null,
           },
@@ -59,34 +89,9 @@ export class AuditLog1759918517845 implements MigrationInterface {
             isNullable: false,
           },
           {
-            name: 'text',
+            name: 'desc',
             type: 'text',
             isNullable: false,
-          },
-        ],
-        foreignKeys: [
-          {
-            columnNames: ['user'],
-            referencedTableName: 'user',
-            referencedColumnNames: ['id'],
-            onDelete: 'RESTRICT',
-          },
-          {
-            columnNames: ['fwcloud'],
-            referencedTableName: 'fwcloud',
-            referencedColumnNames: ['id'],
-          },
-          {
-            columnNames: ['firewall'],
-            referencedTableName: 'firewall',
-            referencedColumnNames: ['id'],
-            onDelete: 'SET NULL',
-          },
-          {
-            columnNames: ['cluster'],
-            referencedTableName: 'cluster',
-            referencedColumnNames: ['id'],
-            onDelete: 'SET NULL',
           },
         ],
       }),
