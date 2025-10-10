@@ -33,6 +33,7 @@ import { beforeEach } from 'mocha';
 import { IPObj } from '../../../../../src/models/ipobj/IPObj';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 
 describe(KeepalivedRuleService.name, () => {
   let service: KeepalivedRuleService;
@@ -203,6 +204,51 @@ describe(KeepalivedRuleService.name, () => {
 
       expect(result.rule_order).to.be.equal(6);
       getLastKeepalivedRuleInFirewallStub.restore();
+    });
+
+    it('should store firewall apply to when provided', async () => {
+      const data: ICreateKeepalivedRule = {
+        group: group.id,
+        firewallId: firewall.id,
+        firewallApplyToId: firewall.id,
+        interfaceId: 1,
+        virtualIpsIds: [],
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastKeepalivedRuleInFirewall')
+        .resolves(null);
+
+      const result = await service.store(data);
+
+      expect(result.firewallApplyToId).to.equal(firewall.id);
+
+      getLastStub.restore();
+    });
+
+    it('should throw when firewall apply to does not belong to the same cluster', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      const data: ICreateKeepalivedRule = {
+        group: group.id,
+        firewallId: firewall.id,
+        firewallApplyToId: anotherFirewall.id,
+        interfaceId: 1,
+        virtualIpsIds: [],
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastKeepalivedRuleInFirewall')
+        .resolves(null);
+
+      await expect(service.store(data)).to.be.rejectedWith(ValidationException);
+
+      getLastStub.restore();
     });
 
     it('should move the stored rule to a new position', async () => {
@@ -460,17 +506,19 @@ describe(KeepalivedRuleService.name, () => {
   });
 
   describe('update', () => {
-    let keepalivedRule;
-    let repositoryStub;
+    let keepalivedRule: KeepalivedRule;
+    let repositoryStub: sinon.SinonStub;
 
     beforeEach(() => {
       keepalivedRule = {
         id: 1,
         rule_order: 1,
-        group: { id: 1 },
-      };
+        group: { id: 1 } as KeepalivedGroup,
+        firewall: firewall,
+      } as unknown as KeepalivedRule;
 
       repositoryStub = sinon.stub(service['_repository'], 'findOne').resolves(keepalivedRule);
+      sinon.stub(service['_repository'], 'save').resolvesArg(0);
     });
 
     afterEach(() => {
@@ -494,6 +542,30 @@ describe(KeepalivedRuleService.name, () => {
 
       await expect(service.update(keepalivedRule.id, {})).to.be.rejectedWith('Update error');
     });
+
+    it('should update firewall apply to when provided', async () => {
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+
+      await service.update(keepalivedRule.id, { firewallApplyToId: firewall.id });
+
+      sinon.assert.calledOnceWithExactly(validateStub, keepalivedRule.firewall, firewall.id);
+      expect(keepalivedRule.firewallApplyToId).to.equal(firewall.id);
+    });
+
+    it('should throw when firewall apply to validation fails', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      await expect(
+        service.update(keepalivedRule.id, { firewallApplyToId: anotherFirewall.id }),
+      ).to.be.rejectedWith(ValidationException);
+    });
   });
 
   describe('remove', () => {
@@ -515,6 +587,32 @@ describe(KeepalivedRuleService.name, () => {
   });
 
   describe('bulkUpdate', () => {
+    it('should update firewall apply to across multiple rules', async () => {
+      const ids = [keepalivedRule.id];
+
+      const repoFindOneStub = sinon.stub(service['_repository'], 'findOne').resolves({
+        group: { rules: [keepalivedRule] } as KeepalivedGroup,
+        firewall: firewall,
+      } as unknown as KeepalivedRule);
+      const repoUpdateStub = sinon.stub(service['_repository'], 'update').resolves();
+      const repoFindStub = sinon
+        .stub(service['_repository'], 'find')
+        .resolves([keepalivedRule] as KeepalivedRule[]);
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+
+      await service.bulkUpdate(ids, { firewallApplyToId: firewall.id });
+
+      sinon.assert.calledOnceWithExactly(validateStub, firewall, firewall.id);
+      expect(repoUpdateStub.calledOnce).to.be.true;
+
+      repoFindOneStub.restore();
+      repoUpdateStub.restore();
+      repoFindStub.restore();
+      validateStub.restore();
+    });
+
     it('should update multiple KeepalivedRules', async () => {
       const ids = [1, 2, 3];
       const data = { rule_order: 2 };

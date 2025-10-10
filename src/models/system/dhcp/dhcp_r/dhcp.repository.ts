@@ -241,7 +241,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
       .createQueryBuilder('dhcp')
       .innerJoin('dhcp.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
-      .leftJoinAndSelect('dhcp.group', 'group');
+      .leftJoinAndSelect('dhcp.group', 'group')
+      .leftJoinAndSelect('dhcp.firewallApplyTo', 'firewallApplyTo');
 
     if (path.firewallId) {
       qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
@@ -326,6 +327,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
       .leftJoinAndSelect('interface.hosts', 'hosts')
       .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
+      .leftJoinAndSelect('dhcp_r.firewallApplyTo', 'firewallApplyTo')
       .leftJoinAndSelect('dhcp_r.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
       .where('firewall.id = :firewallId', { firewallId: firewall })

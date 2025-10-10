@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Offset } from '../../../../offset';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class HAProxyRuleCreateDto {
@@ -24,6 +24,25 @@ export class HAProxyRuleCreateDto {
   @IsNumber()
   @IsOptional()
   firewallId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value, obj }) => {
+    const candidate =
+      value ?? obj.firewallApplyToId ?? obj.fw_apply_to ?? obj.applyTo ?? obj.apply_to;
+
+    delete obj.firewallApplyToId;
+    delete obj.fw_apply_to;
+    delete obj.applyTo;
+    delete obj.apply_to;
+
+    if (candidate === undefined || candidate === null || candidate === '') {
+      return undefined;
+    }
+
+    return Number(candidate);
+  })
+  firewallApplyToId?: number;
 
   @IsString()
   @IsOptional()

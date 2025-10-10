@@ -38,6 +38,7 @@ import { IPObj } from '../../../../../src/models/ipobj/IPObj';
 import { DHCPRuleCreateDto } from '../../../../../src/controllers/system/dhcp/dto/create.dto';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 
 describe(DHCPRuleService.name, () => {
   let service: DHCPRuleService;
@@ -277,6 +278,50 @@ describe(DHCPRuleService.name, () => {
       expect(result).to.have.property('rule_order', 6);
 
       getLastDHCPRuleInGroupStub.restore();
+    });
+
+    it('should store firewall apply to when provided', async () => {
+      const data: ICreateDHCPRule = {
+        firewallId: firewall.id,
+        firewallApplyToId: firewall.id,
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastDHCPRuleInFirewall')
+        .resolves(null);
+      const saveStub = sinon
+        .stub(service['_repository'], 'save')
+        .callsFake(async (payload) => payload as DHCPRule);
+
+      const result = await service.store(data);
+
+      expect(saveStub.firstCall.args[0].firewallApplyToId).to.equal(firewall.id);
+      expect(result.firewallApplyToId).to.equal(firewall.id);
+
+      getLastStub.restore();
+      saveStub.restore();
+    });
+
+    it('should throw when firewall apply to does not belong to the same cluster', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      const data: ICreateDHCPRule = {
+        firewallId: firewall.id,
+        firewallApplyToId: anotherFirewall.id,
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastDHCPRuleInFirewall')
+        .resolves(null);
+
+      await expect(service.store(data)).to.be.rejectedWith(ValidationException);
+
+      getLastStub.restore();
     });
 
     it('should move the stored DHCPRule to a new position', async () => {
@@ -726,6 +771,58 @@ describe(DHCPRuleService.name, () => {
         service.update(dhcpRule.id, dhcpRule as Partial<DHCPRuleCreateDto>),
       ).to.be.rejectedWith(Error, 'IP version mismatch');
     });
+
+    it('should update firewall apply to when provided', async () => {
+      const rule = manager.getRepository(DHCPRule).create({
+        id: 1,
+        firewall: firewall,
+        firewallId: firewall.id,
+        group: { id: 1 } as DHCPGroup,
+        rule_order: 1,
+        dhcpRuleToIPObjs: [],
+      });
+
+      const findOneStub = sinon.stub(service['_repository'], 'findOne').resolves(rule);
+      const saveStub = sinon
+        .stub(service['_repository'], 'save')
+        .callsFake(async (entity) => entity as DHCPRule);
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+
+      await service.update(rule.id, { firewallApplyToId: firewall.id });
+
+      sinon.assert.calledOnceWithExactly(validateStub, rule.firewall, firewall.id);
+      expect(rule.firewallApplyToId).to.equal(firewall.id);
+
+      findOneStub.restore();
+      saveStub.restore();
+      validateStub.restore();
+    });
+
+    it('should throw when firewall apply to does not belong to the same cluster', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      const rule = manager.getRepository(DHCPRule).create({
+        id: 1,
+        firewall: firewall,
+        firewallId: firewall.id,
+        group: { id: 1 } as DHCPGroup,
+        rule_order: 1,
+        dhcpRuleToIPObjs: [],
+      });
+
+      sinon.stub(service['_repository'], 'findOne').resolves(rule);
+
+      await expect(
+        service.update(rule.id, { firewallApplyToId: anotherFirewall.id }),
+      ).to.be.rejectedWith(ValidationException);
+    });
   });
 
   describe('remove', () => {
@@ -787,6 +884,52 @@ describe(DHCPRuleService.name, () => {
       await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(Error, 'Bulk update error');
 
       bulkUpdateStub.restore();
+    });
+
+    it('should update firewall apply to across multiple rules', async () => {
+      const firstRule = manager.getRepository(DHCPRule).create({
+        group: { rules: [dhcpRule] } as unknown as DHCPGroup,
+        firewall: firewall,
+      });
+
+      const repoFindOneStub = sinon.stub(service['_repository'], 'findOne').resolves(firstRule);
+      const repoUpdateStub = sinon.stub(service['_repository'], 'update').resolves();
+      const repoFindStub = sinon
+        .stub(service['_repository'], 'find')
+        .resolves([dhcpRule] as DHCPRule[]);
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+
+      await service.bulkUpdate([dhcpRule.id], { firewallApplyToId: firewall.id });
+
+      sinon.assert.calledOnceWithExactly(validateStub, firewall, firewall.id);
+      expect(repoUpdateStub.calledOnce).to.be.true;
+
+      repoFindOneStub.restore();
+      repoUpdateStub.restore();
+      repoFindStub.restore();
+      validateStub.restore();
+    });
+
+    it('should throw when firewall apply to is not compatible with firewall', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      const firstRule = manager.getRepository(DHCPRule).create({
+        group: { rules: [dhcpRule] } as unknown as DHCPGroup,
+        firewall: firewall,
+      });
+
+      sinon.stub(service['_repository'], 'findOne').resolves(firstRule);
+
+      await expect(
+        service.bulkUpdate([dhcpRule.id], { firewallApplyToId: anotherFirewall.id }),
+      ).to.be.rejectedWith(ValidationException);
     });
   });
 

@@ -56,6 +56,8 @@ export interface ICreateDHCPRule {
   ipObjIds?: { id: number; order: number }[];
   rule_type?: number;
   firewallId?: number;
+  firewallApplyToId?: number;
+  fw_apply_to?: number;
   networkId?: number;
   rangeId?: number;
   routerId?: number;
@@ -81,6 +83,9 @@ export interface IUpdateDHCPRule {
   comment?: string;
   rule_order?: number;
   group?: number;
+  firewallId?: number;
+  firewallApplyToId?: number;
+  fw_apply_to?: number;
 }
 
 export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> extends DHCPRule {
@@ -163,6 +168,25 @@ export class DHCPRuleService extends Service {
         .findOneOrFail({ where: { id: data.firewallId } });
     }
 
+    const rawFirewallApplyToId =
+      data.firewallApplyToId !== undefined ? data.firewallApplyToId : (data as any)?.fw_apply_to;
+    const normalizedFirewallApplyToId =
+      rawFirewallApplyToId === null ||
+      rawFirewallApplyToId === undefined ||
+      (typeof rawFirewallApplyToId === 'string' && rawFirewallApplyToId === '')
+        ? undefined
+        : Number(rawFirewallApplyToId);
+
+    await this.validateFirewallApplyTo(dhcpRuleData.firewall, normalizedFirewallApplyToId);
+
+    if (normalizedFirewallApplyToId !== undefined) {
+      dhcpRuleData.firewallApplyTo = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({ where: { id: normalizedFirewallApplyToId } });
+      dhcpRuleData.firewallApplyToId = normalizedFirewallApplyToId;
+    }
+
     if (
       dhcpRuleData.rule_type === 1 &&
       (dhcpRuleData.network?.ip_version !== dhcpRuleData.range?.ip_version ||
@@ -197,6 +221,7 @@ export class DHCPRuleService extends Service {
         'group',
         'firewall',
         'firewall.fwCloud',
+        'firewallApplyTo',
         'network',
         'range',
         'router',
@@ -286,11 +311,27 @@ export class DHCPRuleService extends Service {
   async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
     let dhcpRule: DHCPRule | undefined = await this._repository.findOne({
       where: { id: id },
-      relations: ['group', 'firewall', 'network', 'range', 'router'],
+      relations: [
+        'group',
+        'firewall',
+        'firewallApplyTo',
+        'network',
+        'range',
+        'router',
+        'interface',
+      ],
     });
 
     if (!dhcpRule) {
       throw new Error('DHCPRule not found');
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'fw_apply_to') &&
+      data.firewallApplyToId === undefined
+    ) {
+      data.firewallApplyToId = (data as any).fw_apply_to as number;
+      delete (data as Record<string, unknown>).fw_apply_to;
     }
 
     Object.assign(dhcpRule, {
@@ -323,32 +364,156 @@ export class DHCPRuleService extends Service {
           }) as DHCPRuleToIPObj,
       );
     } else {
-      const fieldsToUpdate: string[] = [
-        'networkId',
-        'rangeId',
-        'routerId',
-        'interfaceId',
-        'firewallId',
-      ];
-
-      for (const field of fieldsToUpdate) {
-        if (data[field]) {
-          if (field === 'interfaceId') {
+      const fieldHandlers: Array<{
+        key: keyof (ICreateDHCPRule & IUpdateDHCPRule);
+        apply: (value: unknown) => Promise<void>;
+      }> = [
+        {
+          key: 'networkId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'networkId')) {
+              return;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === 'string' && value === '')
+            ) {
+              dhcpRule.network = null;
+              dhcpRule.networkId = null;
+              return;
+            }
+            const network = await db
+              .getSource()
+              .manager.getRepository(IPObj)
+              .findOneOrFail({ where: { id: Number(value) } });
+            dhcpRule.network = network;
+            dhcpRule.networkId = network.id;
+          },
+        },
+        {
+          key: 'rangeId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'rangeId')) {
+              return;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === 'string' && value === '')
+            ) {
+              dhcpRule.range = null;
+              dhcpRule.rangeId = null;
+              return;
+            }
+            const range = await db
+              .getSource()
+              .manager.getRepository(IPObj)
+              .findOneOrFail({ where: { id: Number(value) } });
+            dhcpRule.range = range;
+            dhcpRule.rangeId = range.id;
+          },
+        },
+        {
+          key: 'routerId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'routerId')) {
+              return;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === 'string' && value === '')
+            ) {
+              dhcpRule.router = null;
+              dhcpRule.routerId = null;
+              return;
+            }
+            const router = await db
+              .getSource()
+              .manager.getRepository(IPObj)
+              .findOneOrFail({ where: { id: Number(value) } });
+            dhcpRule.router = router;
+            dhcpRule.routerId = router.id;
+          },
+        },
+        {
+          key: 'interfaceId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'interfaceId')) {
+              return;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === 'string' && value === '')
+            ) {
+              dhcpRule.interface = null;
+              dhcpRule.interfaceId = null;
+              return;
+            }
             const interfaceData = await db
               .getSource()
               .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: data[field] } });
-            if (interfaceData.mac === '' || !interfaceData.mac) {
+              .findOneOrFail({ where: { id: Number(value) } });
+            if (!interfaceData.mac || interfaceData.mac === '') {
               throw new Error('Interface mac is not defined');
             }
-            dhcpRule[field.slice(0, -2)] = interfaceData;
-          } else {
-            dhcpRule[field.slice(0, -2)] = (await db
+            dhcpRule.interface = interfaceData;
+            dhcpRule.interfaceId = interfaceData.id;
+          },
+        },
+        {
+          key: 'firewallId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'firewallId')) {
+              return;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === 'string' && value === '')
+            ) {
+              throw new ValidationException('The given data was invalid', {
+                firewallId: ['Firewall is required'],
+              });
+            }
+            const firewallEntity = await db
               .getSource()
-              .manager.getRepository(field === 'firewallId' ? Firewall : IPObj)
-              .findOneOrFail({ where: { id: data[field] } })) as Firewall | IPObj;
-          }
-        }
+              .manager.getRepository(Firewall)
+              .findOneOrFail({ where: { id: Number(value) } });
+            dhcpRule.firewall = firewallEntity;
+            dhcpRule.firewallId = firewallEntity.id;
+          },
+        },
+        {
+          key: 'firewallApplyToId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId')) {
+              return;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              (typeof value === 'string' && value === '')
+            ) {
+              dhcpRule.firewallApplyTo = null;
+              dhcpRule.firewallApplyToId = null;
+              return;
+            }
+            const numericValue = Number(value);
+            await this.validateFirewallApplyTo(dhcpRule.firewall, numericValue);
+            dhcpRule.firewallApplyTo = await db
+              .getSource()
+              .manager.getRepository(Firewall)
+              .findOneOrFail({ where: { id: numericValue } });
+            dhcpRule.firewallApplyToId = numericValue;
+          },
+        },
+      ];
+
+      for (const handler of fieldHandlers) {
+        await handler.apply((data as Record<string, unknown>)[handler.key as string]);
       }
     }
 
@@ -359,6 +524,10 @@ export class DHCPRuleService extends Service {
         dhcpRule.range?.ip_version !== dhcpRule.router?.ip_version)
     ) {
       throw new Error('IP version mismatch');
+    }
+
+    if (Object.prototype.hasOwnProperty.call(data, 'firewallId') && dhcpRule.firewallApplyToId) {
+      await this.validateFirewallApplyTo(dhcpRule.firewall, dhcpRule.firewallApplyToId);
     }
 
     dhcpRule = await this._repository.save(dhcpRule);
@@ -399,7 +568,8 @@ export class DHCPRuleService extends Service {
       .getRepository(DHCPRule)
       .createQueryBuilder('dhcp')
       .innerJoinAndSelect('dhcp.firewall', 'firewall')
-      .innerJoinAndSelect('firewall.fwCloud', 'fwcloud');
+      .innerJoinAndSelect('firewall.fwCloud', 'fwcloud')
+      .leftJoinAndSelect('dhcp.firewallApplyTo', 'firewallApplyTo');
 
     if (path.firewallId) {
       qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
@@ -485,16 +655,52 @@ export class DHCPRuleService extends Service {
         { ...data, group: { id: data.group } },
       );
     } else {
-      const group: DHCPGroup = (
-        await this._repository.findOne({
-          where: {
-            id: ids[0],
-          },
-          relations: ['group'],
-        })
-      ).group;
+      const firstRule = await this._repository.findOne({
+        where: {
+          id: ids[0],
+        },
+        relations: ['group', 'firewall'],
+      });
+
+      if (!firstRule) {
+        throw new Error('DHCP rule not found');
+      }
+
+      const group: DHCPGroup = firstRule.group;
+      let targetFirewall: Firewall = firstRule.firewall;
+
       if (data.group !== undefined && group && group.rules.length - ids.length < 1) {
         await this._groupService.remove({ id: group.id });
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(data, 'fw_apply_to') &&
+        data.firewallApplyToId === undefined
+      ) {
+        data.firewallApplyToId = data.fw_apply_to as number;
+      }
+      delete (data as Record<string, unknown>).fw_apply_to;
+
+      const hasFirewallApplyToId = Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId');
+
+      if (typeof data.firewallId !== 'undefined') {
+        data.firewallId = Number(data.firewallId);
+        targetFirewall = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: data.firewallId } });
+      }
+
+      if (hasFirewallApplyToId) {
+        const value = data.firewallApplyToId as unknown;
+        const isEmpty =
+          value === null || value === undefined || (typeof value === 'string' && value === '');
+        const normalized = isEmpty ? null : Number(value);
+        data.firewallApplyToId = normalized;
+        await this.validateFirewallApplyTo(
+          targetFirewall,
+          normalized === null ? undefined : normalized,
+        );
       }
 
       await this._repository.update(
@@ -538,6 +744,42 @@ export class DHCPRuleService extends Service {
     firewall: number,
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall)];
+  }
+
+  protected async validateFirewallApplyTo(
+    firewall: Firewall,
+    firewallApplyToId?: number,
+  ): Promise<void> {
+    if (!firewallApplyToId) {
+      return;
+    }
+
+    const targetFirewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({ where: { id: firewallApplyToId } });
+
+    if (!targetFirewall) {
+      throw new ValidationException('The given data was invalid', {
+        firewallApplyToId: ['Firewall not found'],
+      });
+    }
+
+    if (!firewall) {
+      return;
+    }
+
+    const sameFirewall = firewall.id === targetFirewall.id;
+    const sameCluster =
+      firewall.clusterId !== null &&
+      firewall.clusterId !== undefined &&
+      firewall.clusterId === targetFirewall.clusterId;
+
+    if (!sameFirewall && !sameCluster) {
+      throw new ValidationException('The given data was invalid', {
+        firewallApplyToId: ['This firewall does not belong to cluster'],
+      });
+    }
   }
 
   async validateUpdateIpObjIds(firewall: Firewall, data: IUpdateDHCPRule): Promise<void> {
