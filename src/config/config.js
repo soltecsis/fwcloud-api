@@ -314,7 +314,17 @@ const config = convict({
       doc: 'File that contains dangerous rules that need confirmation.',
       format: String,
       default: './config/policy/dangerous_rules.json'
-    }
+    },
+    vyos_header_file: {
+      doc: 'Header file for VyOS compilation scripts.',
+      format: String,
+      default: './config/policy/header_VyOS.txt'
+    },
+    vyos_footer_file: {
+      doc: 'Footer file for VyOS compilation scripts.',
+      format: String,
+      default: './config/policy/footer_VyOS.txt'
+    },
   },
 
   // PKI configuration.

@@ -30,6 +30,7 @@ import { HAProxyGroup } from '../../../../../src/models/system/haproxy/haproxy_g
 import { Offset } from '../../../../../src/offset';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 
 describe(HAProxyRuleService.name, () => {
   let service: HAProxyRuleService;
@@ -233,6 +234,57 @@ describe(HAProxyRuleService.name, () => {
       getLastHAProxyRuleInFirewallStub.restore();
       saveStub.restore();
       moveStub.restore();
+    });
+
+    it('should store firewall apply to when provided', async () => {
+      const data: ICreateHAProxyRule = {
+        active: true,
+        style: 'default',
+        rule_order: 1,
+        rule_type: 1,
+        firewallId: firewall.id,
+        frontendIpId: 1,
+        frontendPortId: 1,
+        firewallApplyToId: firewall.id,
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
+        .resolves(null);
+
+      const result = await service.store(data);
+
+      expect(result.firewallApplyToId).to.equal(firewall.id);
+
+      getLastStub.restore();
+    });
+
+    it('should throw when firewall apply to is not in the same cluster', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      const data: ICreateHAProxyRule = {
+        active: true,
+        style: 'default',
+        rule_order: 1,
+        rule_type: 1,
+        firewallId: firewall.id,
+        frontendIpId: 1,
+        frontendPortId: 1,
+        firewallApplyToId: anotherFirewall.id,
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
+        .resolves(null);
+
+      await expect(service.store(data)).to.be.rejectedWith(ValidationException);
+
+      getLastStub.restore();
     });
 
     it('should throw an error for invalid IP version combination', async () => {

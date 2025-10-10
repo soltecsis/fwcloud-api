@@ -29,9 +29,10 @@ import {
   ProgressWarningPayload,
 } from '../../sockets/messages/socket-message';
 import { dangerousRules, typeMap } from '../../config/policy/dangerousRules';
+import { VyOSCompiler } from './vyos/vyos-compiler';
 
-export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
-export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
+export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler | VyOSCompiler;
+export type AvailablePolicyCompilers = 'IPTables' | 'NFTables' | 'VyOS';
 
 export class PolicyCompiler {
   private static checkRuleSafety(rule: string, dangerousRules: any[]): boolean {
@@ -60,8 +61,8 @@ export class PolicyCompiler {
           const ruleType = rulesData[i].type;
 
           if (compileFor == 'IPTables') compiler = new IPTablesCompiler(rulesData[i]);
-          // NFTables
-          else compiler = new NFTablesCompiler(rulesData[i]);
+          else if (compileFor == 'NFTables') compiler = new NFTablesCompiler(rulesData[i]);
+          else compiler = new VyOSCompiler(rulesData[i]);
 
           const compiledRule = compiler.ruleCompile();
 

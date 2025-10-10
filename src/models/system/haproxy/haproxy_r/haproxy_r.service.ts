@@ -52,6 +52,8 @@ export interface ICreateHAProxyRule {
   style?: string;
   rule_type?: number;
   firewallId?: number;
+  firewallApplyToId?: number;
+  fw_apply_to?: number;
   frontendIpId?: number;
   frontendPortId?: number;
   backendIpsIds?: { id: number; order: number }[];
@@ -69,6 +71,8 @@ export interface IUpdateHAProxyRule {
   style?: string;
   rule_type?: number;
   firewallId?: number;
+  firewallApplyToId?: number;
+  fw_apply_to?: number;
   frontendIpId?: number;
   frontendPortId?: number;
   backendIpsIds?: { id: number; order: number }[];
@@ -146,6 +150,15 @@ export class HAProxyRuleService extends Service {
         .manager.getRepository(Firewall)
         .findOneOrFail({ where: { id: data.firewallId } });
     }
+    const firewallApplyToId = data.firewallApplyToId ?? data.fw_apply_to;
+    await this.validateFirewallApplyTo(haProxyRule.firewall, firewallApplyToId);
+    if (firewallApplyToId !== undefined && firewallApplyToId !== null) {
+      haProxyRule.firewallApplyTo = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({ where: { id: firewallApplyToId } });
+      haProxyRule.firewallApplyToId = firewallApplyToId;
+    }
     if (data.backendIpsIds) {
       await this.validateBackendIps(haProxyRule.firewall, data);
       haProxyRule.backendIps = await Promise.all(
@@ -218,6 +231,7 @@ export class HAProxyRuleService extends Service {
         'group',
         'firewall',
         'firewall.fwCloud',
+        'firewallApplyTo',
         'frontendIp',
         'frontendPort',
         'backendIps',
@@ -312,7 +326,15 @@ export class HAProxyRuleService extends Service {
       where: {
         id,
       },
-      relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort', 'firewall'],
+      relations: [
+        'group',
+        'frontendIp',
+        'frontendPort',
+        'backendIps',
+        'backendPort',
+        'firewall',
+        'firewallApplyTo',
+      ],
     });
     if (!haProxyRule) {
       throw new Error('HAProxy rule not found');
@@ -347,19 +369,41 @@ export class HAProxyRuleService extends Service {
           }) as HAProxyRuleToIPObj,
       );
     } else {
-      const fieldsToUpdate: string[] = [
-        'frontendIpId',
-        'frontendPortId',
-        'backendPortId',
-        'firewallId',
+      const fieldMappings: Array<{
+        payloadKey: keyof (IUpdateHAProxyRule & ICreateHAProxyRule);
+        property: keyof HAProxyRule;
+        entity: typeof Firewall | typeof IPObj;
+      }> = [
+        { payloadKey: 'frontendIpId', property: 'frontendIp', entity: IPObj },
+        { payloadKey: 'frontendPortId', property: 'frontendPort', entity: IPObj },
+        { payloadKey: 'backendPortId', property: 'backendPort', entity: IPObj },
+        { payloadKey: 'firewallId', property: 'firewall', entity: Firewall },
+        { payloadKey: 'firewallApplyToId', property: 'firewallApplyTo', entity: Firewall },
+        { payloadKey: 'fw_apply_to', property: 'firewallApplyTo', entity: Firewall },
       ];
 
-      for (const field of fieldsToUpdate) {
-        if (data[field] !== undefined) {
-          haProxyRule[field.slice(0, -2)] = (await db
-            .getSource()
-            .manager.getRepository(field === 'firewallId' ? Firewall : IPObj)
-            .findOneOrFail(data[field])) as Firewall | IPObj;
+      for (const { payloadKey, property, entity } of fieldMappings) {
+        if (Object.prototype.hasOwnProperty.call(data, payloadKey)) {
+          const value = (data as Record<string, unknown>)[payloadKey as string];
+
+          if (value === null || value === undefined || value === '') {
+            (haProxyRule as unknown as Record<string, unknown>)[property as string] = null;
+            if (property === 'firewallApplyTo') {
+              haProxyRule.firewallApplyToId = null;
+            }
+          } else {
+            const repository = db.getSource().manager.getRepository(entity);
+            if (property === 'firewallApplyTo') {
+              await this.validateFirewallApplyTo(haProxyRule.firewall, Number(value));
+            }
+            (haProxyRule as unknown as Record<string, unknown>)[property as string] =
+              (await repository.findOneOrFail({
+                where: { id: Number(value) },
+              })) as Firewall | IPObj;
+            if (property === 'firewallApplyTo') {
+              haProxyRule.firewallApplyToId = Number(value);
+            }
+          }
         }
       }
     }
@@ -521,16 +565,53 @@ export class HAProxyRuleService extends Service {
         { ...data, group: { id: data.group } },
       );
     } else {
-      const group = (
-        await this._repository.findOne({
-          where: {
-            id: ids[0],
-          },
-          relations: ['group'],
-        })
-      ).group;
+      const firstRule = await this._repository.findOne({
+        where: {
+          id: ids[0],
+        },
+        relations: ['group', 'firewall'],
+      });
+
+      if (!firstRule) {
+        throw new Error('HAProxy rule not found');
+      }
+
+      const group = firstRule.group;
+      let targetFirewall: Firewall = firstRule.firewall;
       if (data.group !== undefined && group && group.rules.length - ids.length < 1) {
         await this._groupService.remove({ id: group.id });
+      }
+
+      const hasFirewallApplyToId = Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId');
+      const hasFwApplyTo = Object.prototype.hasOwnProperty.call(data, 'fw_apply_to');
+
+      if (hasFirewallApplyToId) {
+        const value = data.firewallApplyToId;
+        data.fw_apply_to =
+          value === null || value === undefined || (typeof value === 'string' && value === '')
+            ? null
+            : Number(value);
+        delete data.firewallApplyToId;
+      }
+
+      if (hasFwApplyTo && !hasFirewallApplyToId) {
+        const value = data.fw_apply_to;
+        data.fw_apply_to =
+          value === null || value === undefined || (typeof value === 'string' && value === '')
+            ? null
+            : Number(value);
+      }
+
+      if (typeof data.firewallId !== 'undefined') {
+        data.firewallId = Number(data.firewallId);
+        targetFirewall = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: data.firewallId } });
+      }
+
+      if (Object.prototype.hasOwnProperty.call(data, 'fw_apply_to')) {
+        await this.validateFirewallApplyTo(targetFirewall, data.fw_apply_to as number);
       }
 
       await this._repository.update(
@@ -574,6 +655,42 @@ export class HAProxyRuleService extends Service {
     firewall: number,
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIPObjsInHAProxy_ForGrid('rule', fwcloud, firewall)];
+  }
+
+  protected async validateFirewallApplyTo(
+    firewall: Firewall,
+    firewallApplyToId?: number,
+  ): Promise<void> {
+    if (!firewallApplyToId) {
+      return;
+    }
+
+    const targetFirewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({ where: { id: firewallApplyToId } });
+
+    if (!targetFirewall) {
+      throw new ValidationException('The given data was invalid', {
+        firewallApplyToId: ['Firewall not found'],
+      });
+    }
+
+    if (!firewall) {
+      return;
+    }
+
+    const sameFirewall = firewall.id === targetFirewall.id;
+    const sameCluster =
+      firewall.clusterId !== null &&
+      firewall.clusterId !== undefined &&
+      firewall.clusterId === targetFirewall.clusterId;
+
+    if (!sameFirewall && !sameCluster) {
+      throw new ValidationException('The given data was invalid', {
+        firewallApplyToId: ['This firewall does not belong to cluster'],
+      });
+    }
   }
 
   async validateBackendIps(firewall: Firewall, data: IUpdateHAProxyRule): Promise<void> {

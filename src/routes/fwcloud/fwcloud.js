@@ -1,23 +1,23 @@
 /*
-    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -68,11 +68,11 @@ import { FwCloud, FwcData } from '../../models/fwcloud/FwCloud';
 var utilsModel = require('../../utils/utils');
 const restrictedCheck = require('../../middleware/restricted');
 import { User } from '../../models/user/User'
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 const EventEmitter = require('events');
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 const fwcError = require('../../utils/error_table');
-
+import { WebSocketService } from '../../sockets/web-socket.service';
 /**
  * @api {GET} /fwcloud/get Get allowed fwclouds
  * @apiName GetAllowedFwclouds
@@ -122,7 +122,7 @@ router.get('/all/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting all fwcloud: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -233,27 +233,27 @@ router.put('/restricted', restrictedCheck.fwcloud, (req, res) => res.status(204)
  * }
  */
 router.put('/del',
-restrictedCheck.fwcloud,
-async(req, res) => {
-	try {
-		// Only users with the administrator role can delete a fwcloud.
-		if (!await User.isLoggedUserAdmin(req))
-			throw fwcError.NOT_ADMIN_USER;
+	restrictedCheck.fwcloud,
+	async (req, res) => {
+		try {
+			// Only users with the administrator role can delete a fwcloud.
+			if (!await User.isLoggedUserAdmin(req))
+				throw fwcError.NOT_ADMIN_USER;
 
-		// Remove all the fwcloud database related information.
-		const fwc = new FwCloud();
-		fwc.id = req.body.fwcloud;
-		await fwc.remove();
+			// Remove all the fwcloud database related information.
+			const fwc = new FwCloud();
+			fwc.id = req.body.fwcloud;
+			await fwc.remove();
 
-		// Remove the fwcloud data dir.
-		await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
+			// Remove the fwcloud data dir.
+			await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
 
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error removing a fwcloud: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
-});
+			res.status(204).end();
+		} catch (error) {
+			logger().error('Error removing a fwcloud: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
+	});
 
 
 /**
@@ -291,21 +291,21 @@ async(req, res) => {
  *       };
  */
 router.put('/lock', async (req, res) => {
-    const channel = new EventEmitter();
-    const fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
+	const channel = new EventEmitter();
+	const fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
 
-    try {
-        const lockData = await FwCloud.updateFwcloudLock(fwcloudData);
-        if (lockData.result) {
-            logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
-            channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'success', 'FWCLOUD LOCKED OK'));
-            return res.status(200).json({
-                result: true,
-                message: 'FWCLOUD LOCKED OK',
-            });
-        } else {
-            logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-            channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'error', 'NOT ACCESS FOR LOCKING'));
+	try {
+		const lockData = await FwCloud.updateFwcloudLock(fwcloudData);
+		if (lockData.result) {
+			logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
+			channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'success', 'FWCLOUD LOCKED OK'));
+			return res.status(200).json({
+				result: true,
+				message: 'FWCLOUD LOCKED OK',
+			});
+		} else {
+			logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+			channel.emit('progress', new ProgressPayload('fwcloud', 'lock', 'error', 'NOT ACCESS FOR LOCKING'));
 			return res.status(200).json({
 				result: false,
 				message: 'NOT ACCESS FOR LOCKING',
@@ -316,14 +316,14 @@ router.put('/lock', async (req, res) => {
 					locked_at: lockData.lockedAt,
 				}
 			});
-        }
-    } catch (error) {
-        logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-        return res.status(200).json({
-            result: false,
-            message: 'ERROR LOCKING: ' + error,
-        });
-    }
+		}
+	} catch (error) {
+		logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+		return res.status(200).json({
+			result: false,
+			message: 'ERROR LOCKING: ' + error,
+		});
+	}
 });
 
 /**
@@ -383,6 +383,68 @@ router.put('/unlock', async (req, res) => {
 		res.status(200).json({
 			result: false,
 			message: 'ERROR UNLOCKING: ' + error,
+		});
+	}
+});
+
+/**
+ * Force Unlock fwcloud status
+ * 
+ * 
+ * > ROUTE CALL:  __/fwcloud/fwcloud/forceunlock__      
+ * > METHOD:  __PUT__
+ * 
+ * @method UpdateFwcloudForceUnlock
+ * 
+ * @param {Integer} fwcloud Fwcloud cloud
+ * @optional
+ * @param {Integer} iduser User identifier
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *	
+ *       {"data" : [
+ *          {		
+ * 		  "msg : "success",   //result
+ * 		}
+ * 	   ]
+ */
+router.put('/forcelock', async (req, res) => {
+	// Save fwcloud data into object
+	const fwcloudData = { fwcloud: req.body.fwcloud, id_user: req.session.user_id, lock_session_id: req.sessionID };
+	try {
+		// Only users with the administrator role can force unlock a fwcloud.
+		if (!await User.isLoggedUserAdmin(req))
+			throw fwcError.NOT_ADMIN_USER;
+
+		const data = await FwCloud.updateFwcloudForceLock(fwcloudData);
+		if (data.result) {
+			if (data.previousLockedBy) {
+				try {
+					const wsService = await app().getService(WebSocketService.name);
+					wsService.emitToRoom(data.previousLockedBy, 'fwcloud:forceUnlock', {});
+					logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  FORCE UNLOCKED BY USER: " + fwcloudData.id_user);
+				} catch (error) {
+					logger().error('Error emitting fwcloud:forceUnlock event: ' + JSON.stringify(error));
+				}
+			}
+			res.status(200).json({
+				result: true,
+				message: 'FWCLOUD FORCE UNLOCKED OK',
+			});
+		} else {
+			logger().info("NOT ACCESS FOR FORCE UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+			res.status(200).json({
+				result: false,
+				message: 'NOT ACCESS FOR FORCE UNLOCKING',
+			});
+		}
+	} catch (error) {
+		logger().info("ERROR FORCE UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+		res.status(200).json({
+			result: false,
+			message: 'ERROR FORCE UNLOCKING: ' + error,
 		});
 	}
 });

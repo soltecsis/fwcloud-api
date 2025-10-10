@@ -93,6 +93,21 @@ export class DHCPRule extends Model {
   @JoinColumn({ name: 'firewall' })
   firewall: Firewall;
 
+  @Column({ name: 'fw_apply_to', nullable: true })
+  fw_apply_to?: number;
+
+  @ManyToOne(() => Firewall)
+  @JoinColumn({ name: 'fw_apply_to' })
+  firewallApplyTo?: Firewall;
+
+  get firewallApplyToId(): number | undefined {
+    return this.fw_apply_to;
+  }
+
+  set firewallApplyToId(value: number | undefined) {
+    this.fw_apply_to = value;
+  }
+
   @Column({ type: 'int', unsigned: true, default: 86400 })
   max_lease: number;
 

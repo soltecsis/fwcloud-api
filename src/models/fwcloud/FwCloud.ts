@@ -857,4 +857,46 @@ export class FwCloud extends Model {
       });
     });
   }
+
+  public static updateFwcloudForceLock(
+    fwcloudData,
+  ): Promise<{ result: boolean; previousLockedBy: string }> {
+    return new Promise((resolve, reject) => {
+      const locked = 1;
+      db.get((error, connection) => {
+        if (error) return reject(error);
+
+        // 1. Obtener el locked_by actual
+        const selectSql = `
+      SELECT locked_by FROM ${tableName}
+      WHERE id = ${connection.escape(fwcloudData.fwcloud)}
+    `;
+        connection.query(selectSql, (error, rows) => {
+          if (error) return reject(error);
+
+          const previousLockedBy = rows && rows.length > 0 ? rows[0].locked_by : null;
+
+          // 2. Hacer el update
+          const updateSql = `
+        UPDATE ${tableName}
+        SET locked = ${connection.escape(locked)},
+        locked_at = CURRENT_TIMESTAMP,
+        locked_by = ${connection.escape(fwcloudData.lock_session_id)}
+        WHERE id = ${connection.escape(fwcloudData.fwcloud)}
+      `;
+          connection.query(updateSql, (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              // 3. Devolver el resultado y el locked_by anterior
+              resolve({
+                result: result.affectedRows > 0,
+                previousLockedBy,
+              });
+            }
+          });
+        });
+      });
+    });
+  }
 }
