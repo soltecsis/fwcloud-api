@@ -29,6 +29,13 @@ export class AuditLog1759918517845 implements MigrationInterface {
             default: null,
           },
           {
+            name: 'session_id',
+            type: 'int',
+            length: '11',
+            isNullable: true,
+            default: null,
+          },
+          {
             name: 'user_name',
             type: 'varchar',
             length: '255',
