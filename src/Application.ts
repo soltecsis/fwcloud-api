@@ -85,6 +85,7 @@ import { WireGuardServiceProvider } from './models/vpn/wireguard/wireguard.provi
 import { IPSecServiceProvider } from './models/vpn/ipsec/ipsec.provider';
 import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.provider';
 import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
+import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -193,6 +194,7 @@ export class Application extends HTTPApplication {
       AuthorizationMiddleware,
       AttachDatabaseConnection,
       SessionMiddleware,
+      AuditLogMiddleware,
       CORS,
       this.config.get('env') !== 'test' ? Authorization : AuthorizationTest,
       ConfirmationToken,
