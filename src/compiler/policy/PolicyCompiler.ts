@@ -35,13 +35,27 @@ export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler | VyOSCo
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables' | 'VyOS';
 
 export class PolicyCompiler {
-  private static checkRuleSafety(rule: string, dangerousRules: any[]): boolean {
+  private static checkRuleSafety(rule: string, dangerousRules: any[], compiler: string): boolean {
     let processedRule = rule;
     if (processedRule.endsWith('\n')) {
       processedRule = processedRule.slice(0, -1);
     }
-    // Remove '-m comment --comment "string_comment"' from the rule if present
-    processedRule = processedRule.replace(/-m comment --comment\s+'[^']*'\s*/g, '');
+    if (compiler === 'iptables') {
+      // Remove "-m comment --comment 'string_comment'" from the rule if present
+      processedRule = processedRule.replace(/-m comment --comment\s+'[^']*'\s*/g, '');
+    } else if (compiler === 'nftables') {
+      // Remove 'comment \"string_comment\"' from the rule if present
+      processedRule = processedRule.replace(/\s*comment\s+\\"[^\\"]*\\"\s*/g, '');
+    } else if (compiler === 'vyos') {
+      // Remove 'description "string_comment"' from the rule if present
+      let ruleLines = processedRule.split('\n');
+      ruleLines = ruleLines.filter((line) => !line.trim().includes('description '));
+
+      // Remove 'rule <number>' from each line
+      ruleLines = ruleLines.map((line) => line.replace(/rule\s+\d+\s*/, '').trim());
+      processedRule = ruleLines.join('\n');
+    }
+
     return dangerousRules.includes(processedRule);
   }
 
@@ -72,15 +86,16 @@ export class PolicyCompiler {
           const dangerous =
             dangerousRulesArray.length === 0
               ? false
-              : this.checkRuleSafety(compiledRule, dangerousRulesArray);
+              : this.checkRuleSafety(compiledRule, dangerousRulesArray, compileFor.toLowerCase());
 
           result.push({
             id: rulesData[i].id,
             active: rulesData[i].active,
             comment: rulesData[i].comment,
             cs: rulesData[i].active || rulesData.length === 1 ? compiledRule : '',
-            ...(dangerous ? { dangerous: true } : {}), // Only add 'dangerous' properties if rule is dangerous
-            ...(dangerous ? { ruleIPType: ipType, ruleChainType: chain, ruleOrder: i + 1 } : {}),
+            ...(dangerous
+              ? { dangerous: true, ruleIPType: ipType, ruleChainType: chain, ruleOrder: i + 1 }
+              : {}), // Only add 'dangerous' properties if rule is dangerous
           });
 
           if (eventEmitter) {
@@ -94,7 +109,9 @@ export class PolicyCompiler {
             else
               eventEmitter.emit(
                 'message',
-                new ProgressWarningPayload(`Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]`),
+                new ProgressWarningPayload(
+                  `Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]${!rulesData[i].active ? ' [DISABLED]' : ''}`,
+                ),
               );
           }
         }
