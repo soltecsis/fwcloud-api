@@ -67,9 +67,19 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
       auditLog.sessionId = this.resolveSessionId(req);
 
-      const fwCloudId = this.extractIdentifier(req, ['fwcloud', 'fwcloud_id', 'id_fwcloud']);
-      const firewallId = this.extractIdentifier(req, ['firewall', 'firewall_id', 'id_firewall']);
-      const clusterId = this.extractIdentifier(req, ['cluster', 'cluster_id', 'id_cluster']);
+      const fwCloudId = this.extractIdentifier(req, [
+        'fwcloud',
+        'fwcloud_id',
+        'fwcloudId',
+        'fwCloudId',
+      ]);
+      const firewallId = this.extractIdentifier(req, [
+        'firewall',
+        'firewall_id',
+        'id_firewall',
+        'firewallId',
+      ]);
+      const clusterId = this.extractIdentifier(req, ['cluster', 'cluster_id', 'clusterId']);
 
       auditLog.fwCloudId = fwCloudId;
       auditLog.firewallId = firewallId;
