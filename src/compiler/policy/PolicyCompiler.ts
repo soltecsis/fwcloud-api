@@ -91,7 +91,6 @@ export class PolicyCompiler {
                 : this.checkRuleSafety(compiledRule, dangerousRulesArray, compileFor.toLowerCase());
           }
 
-          console.log('Rule.special:', rulesData[i].special, 'Dangerous:', dangerous);
           result.push({
             id: rulesData[i].id,
             active: rulesData[i].active,
