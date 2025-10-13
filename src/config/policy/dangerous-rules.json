@@ -15,9 +15,9 @@
       "SNAT": []
     },
     "vyos": {
-      "INPUT": [],
+      "INPUT": ["set firewall name INPUT state new enable\nset firewall name INPUT action accept"],
       "OUTPUT": [],
-      "FORWARD": [],
+      "FORWARD": ["set firewall name FORWARD state new enable\nset firewall name FORWARD action accept"],
       "DNAT": [],
       "SNAT": []
     }
@@ -38,9 +38,9 @@
       "SNAT": []
     },
     "vyos": {
-      "INPUT": [],
+      "INPUT": ["set firewall ipv6-name INPUT state new enable\nset firewall ipv6-name INPUT action accept"],
       "OUTPUT": [],
-      "FORWARD": [],
+      "FORWARD": ["set firewall ipv6-name FORWARD state new enable\nset firewall ipv6-name FORWARD action accept"],
       "DNAT": [],
       "SNAT": []
     }
