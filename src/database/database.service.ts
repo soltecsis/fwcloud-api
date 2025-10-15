@@ -104,6 +104,7 @@ import { IPSecPrefix } from '../models/vpn/ipsec/IPSecPrefix';
 import { AIModel } from '../models/ai-assistant/ai-assistant-models.model';
 import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.model';
 import { AI } from '../models/ai-assistant/ai-assistant.model';
+import { AuditLog } from '../models/audit/AuditLog';
 
 export interface DatabaseConfig {
   host: string;
@@ -378,6 +379,7 @@ export class DatabaseService extends Service {
         KeepalivedRule,
         KeepalivedGroup,
         KeepalivedToIPObj,
+        AuditLog,
         AICredentials,
         AIModel,
         AI,
