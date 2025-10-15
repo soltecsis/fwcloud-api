@@ -29,7 +29,7 @@ import db from '../../../src/database/database-manager';
 import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
 
-describe.only('AuditLogMiddleware', () => {
+describe('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const waitForAuditLogs = async (expectedCount: number = 1): Promise<AuditLog[]> => {
