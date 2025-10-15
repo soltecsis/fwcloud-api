@@ -160,4 +160,124 @@ describe('AuditLogMiddleware', () => {
     expect(entry.description).to.contain('status=204');
     expect(entry.description).to.not.contain('user=');
   });
+
+  describe('network object actions', () => {
+    const createNetworkObjectApp = () => {
+      const app = express();
+      const middleware = new AuditLogMiddleware();
+
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).session = { user_id: 202, username: 'net-admin' };
+        (req as any).sessionID = '5566';
+        next();
+      });
+      app.use((req, res, next) => middleware.handle(req, res, next));
+
+      return app;
+    };
+
+    it('should store audit data when creating a network object', async () => {
+      const app = createNetworkObjectApp();
+
+      app.post('/network-objects', (req, res) => {
+        res.status(201).json({ created: req.body.name });
+      });
+
+      await request(app).post('/network-objects').send({
+        fwcloud: 77,
+        name: 'office-network',
+        address: '10.0.0.0',
+        netmask: '/24',
+      });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry).to.exist;
+      expect(entry.call).to.equal('POST /network-objects');
+      expect(entry.fwCloudId).to.equal(77);
+      expect(entry.userId).to.equal(202);
+      expect(entry.description).to.contain('status=201');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('POST');
+      expect(payload.body.name).to.equal('office-network');
+      expect(payload.body.netmask).to.equal('/24');
+    });
+
+    it('should store audit data when reading a network object', async () => {
+      const app = createNetworkObjectApp();
+
+      app.get('/network-objects/:fwcloudId/:objectId', (req, res) => {
+        res.status(200).json({ id: Number.parseInt(req.params.objectId, 10) });
+      });
+
+      await request(app)
+        .get('/network-objects/88/501')
+        .set('X-Forwarded-For', '198.51.100.1')
+        .query({ include: 'details' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry).to.exist;
+      expect(entry.call).to.equal('GET /network-objects/88/501?include=details');
+      expect(entry.fwCloudId).to.equal(88);
+      expect(entry.userId).to.equal(202);
+      expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('ip=198.51.100.1');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('GET');
+      expect(payload.params.fwcloudId).to.equal('88');
+      expect(payload.params.objectId).to.equal('501');
+      expect(payload.query.include).to.equal('details');
+    });
+
+    it('should store audit data when updating a network object', async () => {
+      const app = createNetworkObjectApp();
+
+      app.put('/network-objects/:objectId', (req, res) => {
+        res.status(200).json({ updated: req.params.objectId });
+      });
+
+      await request(app).put('/network-objects/901').send({
+        fwcloud: 66,
+        name: 'branch-network',
+        netmask: '/25',
+      });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry).to.exist;
+      expect(entry.call).to.equal('PUT /network-objects/901');
+      expect(entry.fwCloudId).to.equal(66);
+      expect(entry.userId).to.equal(202);
+      expect(entry.description).to.contain('status=200');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('PUT');
+      expect(payload.body.name).to.equal('branch-network');
+      expect(payload.body.netmask).to.equal('/25');
+      expect(payload.params.objectId).to.equal('901');
+    });
+
+    it('should store audit data when deleting a network object', async () => {
+      const app = createNetworkObjectApp();
+
+      app.delete('/network-objects/:objectId', (req, res) => {
+        res.status(204).end();
+      });
+
+      await request(app).delete('/network-objects/1234').query({ fwcloud: '55' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry).to.exist;
+      expect(entry.call).to.equal('DELETE /network-objects/1234?fwcloud=55');
+      expect(entry.fwCloudId).to.equal(55);
+      expect(entry.userId).to.equal(202);
+      expect(entry.description).to.contain('status=204');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('DELETE');
+      expect(payload.params.objectId).to.equal('1234');
+      expect(payload.query.fwcloud).to.equal('55');
+    });
+  });
 });
