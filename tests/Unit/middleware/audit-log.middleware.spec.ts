@@ -29,7 +29,7 @@ import db from '../../../src/database/database-manager';
 import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
 
-describe('AuditLogMiddleware', () => {
+describe.only('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const waitForAuditLogs = async (expectedCount: number = 1): Promise<AuditLog[]> => {
@@ -160,6 +160,48 @@ describe('AuditLogMiddleware', () => {
     expect(entry.firewallId).to.equal(21);
     expect(entry.description).to.contain('status=204');
     expect(entry.description).to.not.contain('user=');
+  });
+
+  it('should redact sensitive data from audit payloads', async () => {
+    const app = express();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 77, username: 'redactor' };
+      (req as any).sessionID = 'sess-77';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+
+    app.post('/sensitive', (req, res) => {
+      res.status(201).json({ ok: true });
+    });
+
+    await request(app)
+      .post('/sensitive')
+      .set('X-API-Key', 'top-secret-key')
+      .query({ token: 'query-token' })
+      .send({
+        password: 'plain-text',
+        tokens: ['one', 'two'],
+        nested: {
+          apiKey: 'nested-key',
+          details: {
+            secretValue: 'hidden',
+          },
+        },
+      });
+
+    const [entry] = await waitForAuditLogs();
+    const payload = JSON.parse(entry.data);
+
+    expect(payload.headers['x-api-key']).to.equal('[REDACTED]');
+    expect(payload.query.token).to.equal('[REDACTED]');
+    expect(payload.body.password).to.equal('[REDACTED]');
+    expect(payload.body.tokens).to.equal('[REDACTED]');
+    expect(payload.body.nested.apiKey).to.equal('[REDACTED]');
+    expect(payload.body.nested.details.secretValue).to.equal('[REDACTED]');
   });
 
   describe('network object actions', () => {

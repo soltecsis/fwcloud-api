@@ -46,6 +46,21 @@ type DescriptionContext = {
   cluster?: NamedEntityContext;
 };
 
+const SENSITIVE_KEY_PATTERNS = [
+  'password',
+  'passcode',
+  'passwd',
+  'secret',
+  'token',
+  'apikey',
+  'api_key',
+  'accesskey',
+  'access_key',
+  'auth',
+  'credential',
+  'otp',
+];
+
 export class AuditLogMiddleware extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     const start = Date.now();
@@ -233,6 +248,11 @@ export class AuditLogMiddleware extends Middleware {
       const output: Record<string, any> = {};
       for (const key of Object.keys(input)) {
         const value = input[key];
+        if (this.isSensitiveKey(key)) {
+          output[key] = '[REDACTED]';
+          continue;
+        }
+
         try {
           output[key] = this.sanitize(value, seen);
         } catch (error) {
@@ -246,9 +266,27 @@ export class AuditLogMiddleware extends Middleware {
     return String(input);
   }
 
+  private isSensitiveKey(key: string | null | undefined): boolean {
+    if (!key) {
+      return false;
+    }
+
+    const normalized = key.toLowerCase();
+    return SENSITIVE_KEY_PATTERNS.some(
+      (pattern) => normalized === pattern || normalized.includes(pattern),
+    );
+  }
+
   private filterHeaders(headers: Request['headers']): Record<string, string> {
     const sanitized: Record<string, string> = {};
-    const redacted = new Set(['authorization', 'cookie', 'set-cookie', 'x-auth-token']);
+    const redacted = new Set([
+      'authorization',
+      'cookie',
+      'set-cookie',
+      'x-auth-token',
+      'x-api-key',
+      'x-access-token',
+    ]);
 
     for (const [key, value] of Object.entries(headers)) {
       if (value === undefined) {
