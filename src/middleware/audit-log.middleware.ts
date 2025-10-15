@@ -33,6 +33,19 @@ import { createHash } from 'crypto';
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_SIGNED_INT = 2147483647;
 
+type NamedEntityContext = {
+  id?: number | null;
+  name?: string | null;
+};
+
+type DescriptionContext = {
+  userId?: number | null;
+  userName?: string | null;
+  fwCloud?: NamedEntityContext;
+  firewall?: NamedEntityContext;
+  cluster?: NamedEntityContext;
+};
+
 export class AuditLogMiddleware extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     const start = Date.now();
@@ -62,7 +75,6 @@ export class AuditLogMiddleware extends Middleware {
 
       auditLog.call = this.buildCall(req);
       auditLog.data = this.buildPayload(req, res, start);
-      auditLog.description = this.buildDescription(req, res);
       auditLog.userId = this.getNumeric(req.session?.user_id);
       auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
       auditLog.sessionId = this.resolveSessionId(req);
@@ -95,6 +107,14 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.firewallName = firewall?.name ?? null;
       auditLog.clusterName = cluster?.name ?? null;
 
+      auditLog.description = this.buildDescription(req, res, {
+        userId: auditLog.userId,
+        userName: auditLog.userName,
+        fwCloud: { id: auditLog.fwCloudId, name: auditLog.fwCloudName },
+        firewall: { id: auditLog.firewallId, name: auditLog.firewallName },
+        cluster: { id: auditLog.clusterId, name: auditLog.clusterName },
+      });
+
       await dataSource.manager.getRepository(AuditLog).save(auditLog);
     } catch (error) {
       logger().error(`Unexpected error while creating audit log: ${error?.message ?? error}`);
@@ -106,13 +126,50 @@ export class AuditLogMiddleware extends Middleware {
     return base.length <= 255 ? base : `${base.substring(0, 252)}...`;
   }
 
-  private buildDescription(req: Request, res: Response): string {
+  private buildDescription(req: Request, res: Response, context: DescriptionContext = {}): string {
+    const resolveEntityValue = (entity?: NamedEntityContext): string | null => {
+      if (!entity) {
+        return null;
+      }
+
+      if (entity.name && entity.name.trim() !== '') {
+        return entity.name;
+      }
+
+      if (entity.id !== null && entity.id !== undefined) {
+        return String(entity.id);
+      }
+
+      return null;
+    };
+
     const pieces: string[] = [];
     pieces.push(`${req.method.toUpperCase()} ${req.originalUrl}`);
     pieces.push(`status=${res.statusCode}`);
 
-    if (req.session?.user_id) {
-      pieces.push(`user=${req.session.user_id}`);
+    const trimmedUserName =
+      typeof context.userName === 'string' ? context.userName.trim() : undefined;
+    const userLabel = trimmedUserName && trimmedUserName.length > 0 ? trimmedUserName : null;
+    const fallbackUserLabel =
+      context.userId !== null && context.userId !== undefined ? String(context.userId) : null;
+
+    if (userLabel || fallbackUserLabel) {
+      pieces.push(`user=${userLabel ?? fallbackUserLabel}`);
+    }
+
+    const fwCloudLabel = resolveEntityValue(context?.fwCloud);
+    if (fwCloudLabel) {
+      pieces.push(`fwcloud=${fwCloudLabel}`);
+    }
+
+    const firewallLabel = resolveEntityValue(context?.firewall);
+    if (firewallLabel) {
+      pieces.push(`firewall=${firewallLabel}`);
+    }
+
+    const clusterLabel = resolveEntityValue(context?.cluster);
+    if (clusterLabel) {
+      pieces.push(`cluster=${clusterLabel}`);
     }
 
     const ip = this.getClientIp(req);

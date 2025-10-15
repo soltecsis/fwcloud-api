@@ -29,7 +29,7 @@ import db from '../../../src/database/database-manager';
 import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
 
-describe('AuditLogMiddleware', () => {
+describe.only('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const waitForAuditLogs = async (expectedCount: number = 1): Promise<AuditLog[]> => {
@@ -94,7 +94,8 @@ describe('AuditLogMiddleware', () => {
     expect(entry.clusterId).to.equal(3);
     expect(entry.call).to.equal('POST /audit/7?cluster=3');
     expect(entry.description).to.contain('status=201');
-    expect(entry.description).to.contain('user=99');
+    expect(entry.description).to.contain('user=tester');
+    expect(entry.description).to.not.contain('user=99');
     expect(entry.description).to.contain('ip=203.0.113.10');
 
     const payload = JSON.parse(entry.data);
@@ -197,6 +198,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.fwCloudId).to.equal(77);
       expect(entry.userId).to.equal(202);
       expect(entry.description).to.contain('status=201');
+      expect(entry.description).to.contain('user=net-admin');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('POST');
@@ -222,6 +224,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.fwCloudId).to.equal(88);
       expect(entry.userId).to.equal(202);
       expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('user=net-admin');
       expect(entry.description).to.contain('ip=198.51.100.1');
 
       const payload = JSON.parse(entry.data);
@@ -250,6 +253,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.fwCloudId).to.equal(66);
       expect(entry.userId).to.equal(202);
       expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('user=net-admin');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('PUT');
@@ -273,6 +277,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.fwCloudId).to.equal(55);
       expect(entry.userId).to.equal(202);
       expect(entry.description).to.contain('status=204');
+      expect(entry.description).to.contain('user=net-admin');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('DELETE');
