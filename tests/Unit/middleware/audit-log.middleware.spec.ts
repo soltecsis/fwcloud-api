@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from 'express';
+import express, { Request } from 'express';
 import request from 'supertest';
 import { expect } from 'chai';
 import { AuditLogMiddleware } from '../../../src/middleware/audit-log.middleware';
@@ -202,6 +202,91 @@ describe.only('AuditLogMiddleware', () => {
     expect(payload.body.tokens).to.equal('[REDACTED]');
     expect(payload.body.nested.apiKey).to.equal('[REDACTED]');
     expect(payload.body.nested.details.secretValue).to.equal('[REDACTED]');
+  });
+
+  describe('authentication events', () => {
+    const createAuthApp = (initializer?: (req: Request) => void) => {
+      const app = express();
+      const middleware = new AuditLogMiddleware();
+
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).session = (req as any).session ?? {};
+        if (initializer) {
+          initializer(req);
+        }
+        next();
+      });
+      app.use((req, res, next) => middleware.handle(req, res, next));
+
+      return app;
+    };
+
+    it('should log successful login attempts with user info', async () => {
+      const app = createAuthApp();
+
+      app.post('/login', (req, res) => {
+        (req as any).session.user_id = 888;
+        (req as any).session.username = 'auth-user';
+        (req as any).sessionID = 'login-session';
+        res.status(200).json({ ok: true });
+      });
+
+      await request(app).post('/login').send({ username: 'auth-user', password: 'secret' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('POST /login');
+      expect(entry.userId).to.equal(888);
+      expect(entry.userName).to.equal('auth-user');
+      expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('user=auth-user');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('POST');
+      expect(payload.body.username).to.equal('auth-user');
+      expect(payload.body.password).to.equal('[REDACTED]');
+    });
+
+    it('should log failed login attempts without user info', async () => {
+      const app = createAuthApp();
+
+      app.post('/login', (_req, res) => {
+        res.status(401).json({ error: 'invalid credentials' });
+      });
+
+      await request(app).post('/login').send({ username: 'auth-user', password: 'wrong' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.userId).to.be.null;
+      expect(entry.userName).to.be.null;
+      expect(entry.description).to.contain('status=401');
+      expect(entry.description).to.not.contain('user=');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('POST');
+      expect(payload.body.password).to.equal('[REDACTED]');
+    });
+
+    it('should log logout events with existing session info', async () => {
+      const app = createAuthApp((req) => {
+        (req as any).session.user_id = 777;
+        (req as any).session.username = 'auth-user';
+        (req as any).sessionID = 'logout-session';
+      });
+
+      app.post('/logout', (_req, res) => {
+        res.status(204).end();
+      });
+
+      await request(app).post('/logout');
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('POST /logout');
+      expect(entry.userId).to.equal(777);
+      expect(entry.userName).to.equal('auth-user');
+      expect(entry.description).to.contain('status=204');
+      expect(entry.description).to.contain('user=auth-user');
+    });
   });
 
   describe('network object actions', () => {
