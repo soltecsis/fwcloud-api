@@ -60,6 +60,7 @@ import { IPSecController } from './vpn/ipsec/ipsec.controller';
 import { IPSecPrefixController } from './vpn/ipsec/ipsec.prefix.controller';
 import { FirewallIPSecController } from '../controllers/firewalls/ipsec/ipsec.controller';
 import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.controller';
+import { AuditLogController } from '../controllers/audit/audit-log.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -111,6 +112,10 @@ export class Routes extends RouteCollection {
           router.put('/api', UpdateController, 'proxy').name('updates.fwcloud-api');
           router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
         });
+      });
+
+      router.prefix('/audit-logs', (router: RouterParser) => {
+        router.put('/', AuditLogController, 'list').name('auditlogs.list');
       });
 
       //Systemctl routes

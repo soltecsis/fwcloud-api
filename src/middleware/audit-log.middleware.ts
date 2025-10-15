@@ -28,10 +28,9 @@ import db from '../database/database-manager';
 import { FwCloud } from '../models/fwcloud/FwCloud';
 import { Firewall } from '../models/firewall/Firewall';
 import { Cluster } from '../models/firewall/Cluster';
-import { createHash } from 'crypto';
+import { AuditLogHelper } from '../models/audit/audit-log.helper';
 
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
-const MAX_SIGNED_INT = 2147483647;
 
 type NamedEntityContext = {
   id?: number | null;
@@ -91,9 +90,9 @@ export class AuditLogMiddleware extends Middleware {
 
       auditLog.call = this.buildCall(req);
       auditLog.data = this.buildPayload(req, res, start, instrumentationContext);
-      auditLog.userId = this.getNumeric(req.session?.user_id);
+      auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
       auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
-      auditLog.sessionId = this.resolveSessionId(req);
+      auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
 
       const fwCloudId = this.extractIdentifier(req, [
         'fwcloud',
@@ -386,7 +385,7 @@ export class AuditLogMiddleware extends Middleware {
       return null;
     }
 
-    const numeric = this.getNumeric(value);
+    const numeric = AuditLogHelper.getNumeric(value);
     if (numeric !== null) {
       return numeric;
     }
@@ -461,7 +460,7 @@ export class AuditLogMiddleware extends Middleware {
     for (const source of sources) {
       for (const key of keys) {
         if (Object.prototype.hasOwnProperty.call(source, key) && source[key] !== undefined) {
-          const extracted = this.getNumeric(source[key]);
+          const extracted = AuditLogHelper.getNumeric(source[key]);
           if (extracted !== null) {
             return extracted;
           }
@@ -472,7 +471,7 @@ export class AuditLogMiddleware extends Middleware {
     if (req.inputs) {
       for (const key of keys) {
         if (req.inputs.has(key)) {
-          const extracted = this.getNumeric(req.inputs.get(key));
+          const extracted = AuditLogHelper.getNumeric(req.inputs.get(key));
           if (extracted !== null) {
             return extracted;
           }
@@ -481,51 +480,5 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     return null;
-  }
-
-  private getNumeric(value: any): number | null {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return Math.trunc(value);
-    }
-
-    if (typeof value === 'string' && value.trim() !== '') {
-      const parsed = Number.parseInt(value, 10);
-      return Number.isNaN(parsed) ? null : parsed;
-    }
-
-    if (typeof value === 'object' && value !== null) {
-      if ('id' in value) {
-        return this.getNumeric(value.id);
-      }
-    }
-
-    return null;
-  }
-
-  private resolveSessionId(req: Request): number | null {
-    if (!req.session?.user_id || !req.sessionID) {
-      return null;
-    }
-
-    const rawSessionId = req.sessionID;
-
-    const numeric = this.getNumeric(rawSessionId);
-    if (numeric !== null) {
-      return numeric;
-    }
-
-    try {
-      const hash = createHash('sha1').update(rawSessionId).digest('hex');
-      const firstBytes = hash.slice(0, 8);
-      const hashedValue = Number.parseInt(firstBytes, 16);
-      if (Number.isNaN(hashedValue)) {
-        return null;
-      }
-
-      return hashedValue % MAX_SIGNED_INT;
-    } catch (error) {
-      logger().warn(`Unable to derive numeric session id: ${error?.message ?? error}`);
-      return null;
-    }
   }
 }
