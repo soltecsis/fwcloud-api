@@ -289,6 +289,81 @@ describe.only('AuditLogMiddleware', () => {
     });
   });
 
+  describe('firewall policy instrumentation actions', () => {
+    const createPolicyInstrumentationApp = () => {
+      const app = express();
+      const middleware = new AuditLogMiddleware();
+
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).session = { user_id: 909, username: 'policy-admin' };
+        (req as any).sessionID = 'policy-session';
+        next();
+      });
+      app.use((req, res, next) => middleware.handle(req, res, next));
+
+      return app;
+    };
+
+    it('should log policy attachment events with context', async () => {
+      const app = createPolicyInstrumentationApp();
+
+      app.post('/firewalls/:firewallId/policies/:policyId/attach', (req, res) => {
+        res.status(200).json({ attached: true, device: req.body.deviceId });
+      });
+
+      await request(app)
+        .post('/firewalls/45/policies/91/attach')
+        .query({ scope: 'cluster' })
+        .send({ deviceId: 3101, fwcloud: 12 });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('POST /firewalls/45/policies/91/attach?scope=cluster');
+      expect(entry.userName).to.equal('policy-admin');
+      expect(entry.description).to.contain('firewall=45');
+      expect(entry.description).to.contain('policy=91');
+      expect(entry.description).to.contain('device=3101');
+      expect(entry.description).to.contain('scope=cluster');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.context.device).to.equal(3101);
+      expect(payload.context.firewall).to.equal(45);
+      expect(payload.context.policy).to.equal(91);
+      expect(payload.context.scope).to.equal('cluster');
+    });
+
+    it('should log policy detachment events with context', async () => {
+      const app = createPolicyInstrumentationApp();
+
+      app.delete('/firewalls/:firewallId/policies/:policyId/attach', (req, res) => {
+        res.status(204).end();
+      });
+
+      await request(app)
+        .delete('/firewalls/60/policies/32/attach')
+        .query({ target_scope: 'firewall', target: 'edge' })
+        .send({ device_id: 'dev-9' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal(
+        'DELETE /firewalls/60/policies/32/attach?target_scope=firewall&target=edge',
+      );
+      expect(entry.userName).to.equal('policy-admin');
+      expect(entry.description).to.contain('firewall=60');
+      expect(entry.description).to.contain('policy=32');
+      expect(entry.description).to.contain('device=dev-9');
+      expect(entry.description).to.contain('scope=firewall');
+      expect(entry.description).to.contain('target=edge');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.context.device).to.equal('dev-9');
+      expect(payload.context.firewall).to.equal(60);
+      expect(payload.context.policy).to.equal(32);
+      expect(payload.context.scope).to.equal('firewall');
+      expect(payload.context.target).to.equal('edge');
+    });
+  });
+
   describe('network object actions', () => {
     const createNetworkObjectApp = () => {
       const app = express();

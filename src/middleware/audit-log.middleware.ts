@@ -87,9 +87,10 @@ export class AuditLogMiddleware extends Middleware {
     try {
       const dataSource = db.getSource();
       const auditLog = new AuditLog();
+      const instrumentationContext = this.extractAuditContext(req);
 
       auditLog.call = this.buildCall(req);
-      auditLog.data = this.buildPayload(req, res, start);
+      auditLog.data = this.buildPayload(req, res, start, instrumentationContext);
       auditLog.userId = this.getNumeric(req.session?.user_id);
       auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
       auditLog.sessionId = this.resolveSessionId(req);
@@ -122,13 +123,18 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.firewallName = firewall?.name ?? null;
       auditLog.clusterName = cluster?.name ?? null;
 
-      auditLog.description = this.buildDescription(req, res, {
-        userId: auditLog.userId,
-        userName: auditLog.userName,
-        fwCloud: { id: auditLog.fwCloudId, name: auditLog.fwCloudName },
-        firewall: { id: auditLog.firewallId, name: auditLog.firewallName },
-        cluster: { id: auditLog.clusterId, name: auditLog.clusterName },
-      });
+      auditLog.description = this.buildDescription(
+        req,
+        res,
+        {
+          userId: auditLog.userId,
+          userName: auditLog.userName,
+          fwCloud: { id: auditLog.fwCloudId, name: auditLog.fwCloudName },
+          firewall: { id: auditLog.firewallId, name: auditLog.firewallName },
+          cluster: { id: auditLog.clusterId, name: auditLog.clusterName },
+        },
+        instrumentationContext,
+      );
 
       await dataSource.manager.getRepository(AuditLog).save(auditLog);
     } catch (error) {
@@ -141,7 +147,12 @@ export class AuditLogMiddleware extends Middleware {
     return base.length <= 255 ? base : `${base.substring(0, 252)}...`;
   }
 
-  private buildDescription(req: Request, res: Response, context: DescriptionContext = {}): string {
+  private buildDescription(
+    req: Request,
+    res: Response,
+    context: DescriptionContext = {},
+    instrumentation: Record<string, string | number> = {},
+  ): string {
     const resolveEntityValue = (entity?: NamedEntityContext): string | null => {
       if (!entity) {
         return null;
@@ -159,8 +170,10 @@ export class AuditLogMiddleware extends Middleware {
     };
 
     const pieces: string[] = [];
+    const usedLabels = new Set<string>();
     pieces.push(`${req.method.toUpperCase()} ${req.originalUrl}`);
     pieces.push(`status=${res.statusCode}`);
+    usedLabels.add('status');
 
     const trimmedUserName =
       typeof context.userName === 'string' ? context.userName.trim() : undefined;
@@ -170,32 +183,65 @@ export class AuditLogMiddleware extends Middleware {
 
     if (userLabel || fallbackUserLabel) {
       pieces.push(`user=${userLabel ?? fallbackUserLabel}`);
+      usedLabels.add('user');
     }
 
     const fwCloudLabel = resolveEntityValue(context?.fwCloud);
     if (fwCloudLabel) {
       pieces.push(`fwcloud=${fwCloudLabel}`);
+      usedLabels.add('fwcloud');
     }
 
     const firewallLabel = resolveEntityValue(context?.firewall);
     if (firewallLabel) {
       pieces.push(`firewall=${firewallLabel}`);
+      usedLabels.add('firewall');
     }
 
     const clusterLabel = resolveEntityValue(context?.cluster);
     if (clusterLabel) {
       pieces.push(`cluster=${clusterLabel}`);
+      usedLabels.add('cluster');
     }
 
     const ip = this.getClientIp(req);
     if (ip) {
       pieces.push(`ip=${ip}`);
+      usedLabels.add('ip');
+    }
+
+    for (const [label, value] of Object.entries(instrumentation)) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      if (usedLabels.has(label)) {
+        continue;
+      }
+
+      const rendered =
+        typeof value === 'string'
+          ? value.trim()
+          : Number.isFinite(value)
+            ? String(value)
+            : String(value);
+
+      if (rendered.length === 0) {
+        continue;
+      }
+
+      pieces.push(`${label}=${rendered}`);
     }
 
     return pieces.join(' | ');
   }
 
-  private buildPayload(req: Request, res: Response, start: number): string {
+  private buildPayload(
+    req: Request,
+    res: Response,
+    start: number,
+    instrumentation: Record<string, string | number> = {},
+  ): string {
     const payload = {
       method: req.method,
       url: req.originalUrl,
@@ -206,6 +252,7 @@ export class AuditLogMiddleware extends Middleware {
       query: this.sanitize(req.query),
       params: this.sanitize(req.params),
       body: this.sanitize(req.body),
+      context: this.sanitize(instrumentation),
     };
 
     const serialized = JSON.stringify(payload);
@@ -264,6 +311,92 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     return String(input);
+  }
+
+  private extractAuditContext(req: Request): Record<string, string | number> {
+    const contextEntries: Array<{ label: string; keys: string[] }> = [
+      { label: 'device', keys: ['deviceId', 'device_id', 'device'] },
+      { label: 'policy', keys: ['policyId', 'policy_id', 'policy'] },
+      { label: 'scope', keys: ['scope', 'targetScope', 'target_scope'] },
+      { label: 'target', keys: ['target', 'targetId', 'target_id'] },
+    ];
+
+    const context: Record<string, string | number> = {};
+
+    for (const entry of contextEntries) {
+      const rawValue = this.findFirstValue(req, entry.keys);
+      const normalized = this.normalizeContextValue(rawValue);
+      if (normalized !== null) {
+        context[entry.label] = normalized;
+      }
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(context, 'policy')) {
+      const policyFallback = this.findFirstValue(req, ['policy', 'policyId', 'policy_id']);
+      const normalizedPolicy = this.normalizeContextValue(policyFallback);
+      if (normalizedPolicy !== null) {
+        context.policy = normalizedPolicy;
+      }
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(context, 'firewall')) {
+      const firewallValue = this.findFirstValue(req, [
+        'firewall',
+        'firewallId',
+        'firewall_id',
+        'id_firewall',
+      ]);
+      const normalizedFirewall = this.normalizeContextValue(firewallValue);
+      if (normalizedFirewall !== null) {
+        context.firewall = normalizedFirewall;
+      }
+    }
+
+    return context;
+  }
+
+  private findFirstValue(req: Request, keys: string[]): any {
+    const sources = [
+      typeof req.body === 'object' && req.body ? req.body : null,
+      typeof req.params === 'object' && req.params ? req.params : null,
+      typeof req.query === 'object' && req.query ? req.query : null,
+    ].filter((source): source is Record<string, any> => source !== null);
+
+    for (const source of sources) {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(source, key) && source[key] !== undefined) {
+          return source[key];
+        }
+      }
+    }
+
+    if (req.inputs) {
+      for (const key of keys) {
+        if (req.inputs.has(key)) {
+          return req.inputs.get(key);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeContextValue(value: any): string | number | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const numeric = this.getNumeric(value);
+    if (numeric !== null) {
+      return numeric;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+
+    return null;
   }
 
   private isSensitiveKey(key: string | null | undefined): boolean {
