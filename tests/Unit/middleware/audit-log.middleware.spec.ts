@@ -29,7 +29,7 @@ import db from '../../../src/database/database-manager';
 import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
 
-describe.only('AuditLogMiddleware', () => {
+describe('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const waitForAuditLogs = async (expectedCount: number = 1): Promise<AuditLog[]> => {
@@ -283,6 +283,236 @@ describe.only('AuditLogMiddleware', () => {
       expect(payload.method).to.equal('DELETE');
       expect(payload.params.objectId).to.equal('1234');
       expect(payload.query.fwcloud).to.equal('55');
+    });
+  });
+
+  describe('user, role and permission actions', () => {
+    const createAccountManagementApp = () => {
+      const app = express();
+      const middleware = new AuditLogMiddleware();
+
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).session = { user_id: 303, username: 'security-admin' };
+        (req as any).sessionID = '8877';
+        next();
+      });
+      app.use((req, res, next) => middleware.handle(req, res, next));
+
+      return app;
+    };
+
+    it('should store audit data when creating a user', async () => {
+      const app = createAccountManagementApp();
+
+      app.post('/users', (req, res) => {
+        res.status(201).json({ id: 501, username: req.body.username });
+      });
+
+      await request(app).post('/users').send({
+        customer: 4,
+        username: 'jdoe',
+        email: 'jdoe@example.com',
+        role: 'analyst',
+      });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('POST /users');
+      expect(entry.description).to.contain('status=201');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('POST');
+      expect(payload.body.username).to.equal('jdoe');
+      expect(payload.body.role).to.equal('analyst');
+    });
+
+    it('should store audit data when updating a user', async () => {
+      const app = createAccountManagementApp();
+
+      app.patch('/users/:userId', (req, res) => {
+        res.status(200).json({ updated: req.params.userId });
+      });
+
+      await request(app).patch('/users/41').send({
+        email: 'new-email@example.com',
+        role: 'manager',
+      });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('PATCH /users/41');
+      expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('PATCH');
+      expect(payload.params.userId).to.equal('41');
+      expect(payload.body.role).to.equal('manager');
+    });
+
+    it('should store audit data when deleting a user', async () => {
+      const app = createAccountManagementApp();
+
+      app.delete('/users/:userId', (req, res) => {
+        res.status(204).end();
+      });
+
+      await request(app).delete('/users/99').query({ force: 'true' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('DELETE /users/99?force=true');
+      expect(entry.description).to.contain('status=204');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('DELETE');
+      expect(payload.params.userId).to.equal('99');
+      expect(payload.query.force).to.equal('true');
+    });
+
+    it('should store audit data when creating a role', async () => {
+      const app = createAccountManagementApp();
+
+      app.post('/roles', (req, res) => {
+        res.status(201).json({ id: 12, name: req.body.name });
+      });
+
+      await request(app)
+        .post('/roles')
+        .send({
+          name: 'ReadOnly',
+          description: 'Read-only access role',
+          permissions: ['view-report'],
+        });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('POST /roles');
+      expect(entry.description).to.contain('status=201');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('POST');
+      expect(payload.body.name).to.equal('ReadOnly');
+      expect(payload.body.permissions).to.deep.equal(['view-report']);
+    });
+
+    it('should store audit data when updating a role', async () => {
+      const app = createAccountManagementApp();
+
+      app.put('/roles/:roleId', (req, res) => {
+        res.status(200).json({ updated: req.params.roleId });
+      });
+
+      await request(app)
+        .put('/roles/55')
+        .send({
+          name: 'Operations',
+          description: 'Operations team role',
+          permissions: ['deploy', 'restore'],
+        });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('PUT /roles/55');
+      expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('PUT');
+      expect(payload.params.roleId).to.equal('55');
+      expect(payload.body.permissions).to.deep.equal(['deploy', 'restore']);
+    });
+
+    it('should store audit data when deleting a role', async () => {
+      const app = createAccountManagementApp();
+
+      app.delete('/roles/:roleId', (req, res) => {
+        res.status(204).end();
+      });
+
+      await request(app).delete('/roles/23').query({ reassignedTo: 'manager' });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('DELETE /roles/23?reassignedTo=manager');
+      expect(entry.description).to.contain('status=204');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('DELETE');
+      expect(payload.params.roleId).to.equal('23');
+      expect(payload.query.reassignedTo).to.equal('manager');
+    });
+
+    it('should store audit data when creating a permission', async () => {
+      const app = createAccountManagementApp();
+
+      app.post('/permissions', (req, res) => {
+        res.status(201).json({ id: 'perm.deploy', description: req.body.description });
+      });
+
+      await request(app).post('/permissions').send({
+        id: 'perm.deploy',
+        description: 'Allow deployment operations',
+      });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('POST /permissions');
+      expect(entry.description).to.contain('status=201');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('POST');
+      expect(payload.body.id).to.equal('perm.deploy');
+      expect(payload.body.description).to.equal('Allow deployment operations');
+    });
+
+    it('should store audit data when updating a permission', async () => {
+      const app = createAccountManagementApp();
+
+      app.patch('/permissions/:permissionId', (req, res) => {
+        res.status(200).json({ updated: req.params.permissionId });
+      });
+
+      await request(app).patch('/permissions/perm.view').send({
+        description: 'Updated description',
+      });
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('PATCH /permissions/perm.view');
+      expect(entry.description).to.contain('status=200');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('PATCH');
+      expect(payload.params.permissionId).to.equal('perm.view');
+      expect(payload.body.description).to.equal('Updated description');
+    });
+
+    it('should store audit data when deleting a permission', async () => {
+      const app = createAccountManagementApp();
+
+      app.delete('/permissions/:permissionId', (req, res) => {
+        res.status(204).end();
+      });
+
+      await request(app).delete('/permissions/perm.revoke');
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.call).to.equal('DELETE /permissions/perm.revoke');
+      expect(entry.description).to.contain('status=204');
+      expect(entry.description).to.contain('user=security-admin');
+      expect(entry.description).to.not.contain('user=303');
+
+      const payload = JSON.parse(entry.data);
+      expect(payload.method).to.equal('DELETE');
+      expect(payload.params.permissionId).to.equal('perm.revoke');
     });
   });
 });
