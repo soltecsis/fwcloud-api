@@ -77,6 +77,7 @@ export class InputValidation extends Middleware {
       'vpn',
       'aiassistant',
       'AIassistant',
+      'audit-logs',
     ];
 
     // Verify that item1 is in the valid list.
