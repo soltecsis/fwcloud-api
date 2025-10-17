@@ -1,46 +1,46 @@
 {
   "ipv4": {
     "iptables": {
-      "INPUT": ["$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT", "$IPTABLES -A INPUT -j ACCEPT"],
+      "INPUT": ["$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT", "$IPTABLES -A INPUT -j ACCEPT", "$IPTABLES -A INPUT -j DROP", "$IPTABLES -A INPUT -j REJECT"],
       "OUTPUT": [],
-      "FORWARD": ["$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT", "$IPTABLES -A FORWARD -j ACCEPT"],
+      "FORWARD": ["$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT", "$IPTABLES -A FORWARD -j ACCEPT", "$IPTABLES -A FORWARD -j DROP", "$IPTABLES -A FORWARD -j REJECT"],
       "DNAT": [],
       "SNAT": []
     },
     "nftables": {
-      "INPUT": ["$NFT add rule ip filter INPUT ct state new counter accept", "$NFT add rule ip filter INPUT counter accept"],
+      "INPUT": ["$NFT add rule ip filter INPUT ct state new counter accept", "$NFT add rule ip filter INPUT counter accept", "$NFT add rule ip filter INPUT counter drop", "$NFT add rule ip filter INPUT counter reject"],
       "OUTPUT": [],
-      "FORWARD": ["$NFT add rule ip filter FORWARD ct state new counter accept", "$NFT add rule ip filter FORWARD counter accept"],
+      "FORWARD": ["$NFT add rule ip filter FORWARD ct state new counter accept", "$NFT add rule ip filter FORWARD counter accept", "$NFT add rule ip filter FORWARD counter drop", "$NFT add rule ip filter FORWARD counter reject"],
       "DNAT": [],
       "SNAT": []
     },
     "vyos": {
-      "INPUT": ["set firewall name INPUT state new enable\nset firewall name INPUT action accept", "set firewall name INPUT action accept"],
+      "INPUT": ["set firewall name INPUT state new enable\nset firewall name INPUT action accept", "set firewall name INPUT action accept", "set firewall name INPUT action drop", "set firewall name INPUT action reject"],
       "OUTPUT": [],
-      "FORWARD": ["set firewall name FORWARD state new enable\nset firewall name FORWARD action accept", "set firewall name FORWARD action accept"],
+      "FORWARD": ["set firewall name FORWARD state new enable\nset firewall name FORWARD action accept", "set firewall name FORWARD action accept", "set firewall name FORWARD action drop", "set firewall name FORWARD action reject"],
       "DNAT": [],
       "SNAT": []
     }
   },
   "ipv6": {
     "iptables": {
-      "INPUT": ["$IP6TABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT", "$IP6TABLES -A INPUT -j ACCEPT"],
+      "INPUT": ["$IP6TABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT", "$IP6TABLES -A INPUT -j ACCEPT", "$IP6TABLES -A INPUT -j DROP", "$IP6TABLES -A INPUT -j REJECT"],
       "OUTPUT": [],
-      "FORWARD": ["$IP6TABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT", "$IP6TABLES -A FORWARD -j ACCEPT"],
+      "FORWARD": ["$IP6TABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT", "$IP6TABLES -A FORWARD -j ACCEPT", "$IP6TABLES -A FORWARD -j DROP", "$IP6TABLES -A FORWARD -j REJECT"],
       "DNAT": [],
       "SNAT": []
     },
     "nftables": {
-      "INPUT": ["$NFT add rule ip6 filter INPUT ct state new counter accept", "$NFT add rule ip6 filter INPUT counter accept"],
+      "INPUT": ["$NFT add rule ip6 filter INPUT ct state new counter accept", "$NFT add rule ip6 filter INPUT counter accept", "$NFT add rule ip6 filter INPUT counter drop", "$NFT add rule ip6 filter INPUT counter reject"],
       "OUTPUT": [],
-      "FORWARD": ["$NFT add rule ip6 filter FORWARD ct state new counter accept", "$NFT add rule ip6 filter FORWARD counter accept"],
+      "FORWARD": ["$NFT add rule ip6 filter FORWARD ct state new counter accept", "$NFT add rule ip6 filter FORWARD counter accept", "$NFT add rule ip6 filter FORWARD counter drop", "$NFT add rule ip6 filter FORWARD counter reject"],
       "DNAT": [],
       "SNAT": []
     },
     "vyos": {
-      "INPUT": ["set firewall ipv6-name INPUT state new enable\nset firewall ipv6-name INPUT action accept", "set firewall ipv6-name INPUT action accept"],
+      "INPUT": ["set firewall ipv6-name INPUT state new enable\nset firewall ipv6-name INPUT action accept", "set firewall ipv6-name INPUT action accept", "set firewall ipv6-name INPUT action drop", "set firewall ipv6-name INPUT action reject"],
       "OUTPUT": [],
-      "FORWARD": ["set firewall ipv6-name FORWARD state new enable\nset firewall ipv6-name FORWARD action accept", "set firewall ipv6-name FORWARD action accept"],
+      "FORWARD": ["set firewall ipv6-name FORWARD state new enable\nset firewall ipv6-name FORWARD action accept", "set firewall ipv6-name FORWARD action accept", "set firewall ipv6-name FORWARD action drop", "set firewall ipv6-name FORWARD action reject"],
       "DNAT": [],
       "SNAT": []
     }
