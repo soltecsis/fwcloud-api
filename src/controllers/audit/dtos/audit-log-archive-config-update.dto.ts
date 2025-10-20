@@ -20,20 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from '../../fonaments/abstract-application';
-import { ServiceBound, ServiceContainer } from '../../fonaments/services/service-container';
-import { ServiceProvider } from '../../fonaments/services/service-provider';
-import { AuditLogService } from './AuditLog.service';
-import { AuditLogArchiverService } from './AuditLogArchiver.service';
+import { IsNumber, IsPositive } from 'class-validator';
 
-export class AuditLogServiceProvider extends ServiceProvider {
-  public register(serviceContainer: ServiceContainer): ServiceBound {
-    serviceContainer.singleton(AuditLogService.name, (app: AbstractApplication) => {
-      return AuditLogService.make(app);
-    });
+export class AuditLogArchiveConfigUpdateDto {
+  @IsNumber()
+  @IsPositive()
+  archive_days: number;
 
-    return serviceContainer.singleton(AuditLogArchiverService.name, (app: AbstractApplication) => {
-      return AuditLogArchiverService.make(app);
-    });
-  }
+  @IsNumber()
+  @IsPositive()
+  retention_days: number;
 }

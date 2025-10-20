@@ -13,6 +13,7 @@ export class LockValidation extends Middleware {
       req.url.startsWith('/backups') ||
       req.url.startsWith('/config') ||
       req.url.startsWith('/openvpnarchives') ||
+      req.url.startsWith('/auditlogarchives') ||
       req.url.startsWith('/updates') ||
       req.url.startsWith('/systemctl') ||
       req.url.startsWith('/profile') ||

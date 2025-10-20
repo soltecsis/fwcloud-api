@@ -61,6 +61,8 @@ import { IPSecPrefixController } from './vpn/ipsec/ipsec.prefix.controller';
 import { FirewallIPSecController } from '../controllers/firewalls/ipsec/ipsec.controller';
 import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.controller';
 import { AuditLogController } from '../controllers/audit/audit-log.controller';
+import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
+import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -111,6 +113,18 @@ export class Routes extends RouteCollection {
           router.put('/ui', UpdateController, 'proxy').name('updates.fwcloud-updater');
           router.put('/api', UpdateController, 'proxy').name('updates.fwcloud-api');
           router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
+        });
+      });
+
+      router.prefix('/auditlogarchives', (router: RouterParser) => {
+        router.post('/', AuditLogArchiveController, 'store').name('auditlogarchives.store');
+        router.prefix('/config', (router: RouterParser) => {
+          router
+            .get('/', AuditLogArchiveConfigController, 'show')
+            .name('auditlogarchives.config.show');
+          router
+            .put('/', AuditLogArchiveConfigController, 'update')
+            .name('auditlogarchives.config.update');
         });
       });
 

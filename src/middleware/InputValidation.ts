@@ -73,6 +73,7 @@ export class InputValidation extends Middleware {
       'ping',
       'profile',
       'openvpnarchives',
+      'auditlogarchives',
       'systemctl',
       'vpn',
       'aiassistant',
