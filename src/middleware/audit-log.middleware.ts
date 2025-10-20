@@ -60,7 +60,117 @@ const SENSITIVE_KEY_PATTERNS = [
   'otp',
 ];
 
+type AuditRouteMetadata = {
+  httpMethod?: string | null;
+  path?: string | null;
+  controller?: string | null;
+  action?: string | null;
+  name?: string | null;
+};
+
 export class AuditLogMiddleware extends Middleware {
+  private static readonly MUTATION_KEYWORDS = new Set<string>([
+    'add',
+    'archive',
+    'assign',
+    'attach',
+    'bulkremove',
+    'bulkupdate',
+    'ccdsync',
+    'clone',
+    'copy',
+    'create',
+    'deactivate',
+    'del',
+    'delete',
+    'deleteconfig',
+    'deletesetup',
+    'deploy',
+    'destroy',
+    'detach',
+    'disable',
+    'enable',
+    'generate',
+    'import',
+    'install',
+    'lock',
+    'merge',
+    'move',
+    'movefrom',
+    'patch',
+    'prefix',
+    'publish',
+    'register',
+    'remove',
+    'rename',
+    'replace',
+    'reset',
+    'restore',
+    'run',
+    'save',
+    'set',
+    'setup',
+    'store',
+    'sync',
+    'unassign',
+    'uninstall',
+    'unlock',
+    'unregister',
+    'update',
+    'updateconfig',
+    'upgrade',
+    'upload',
+  ]);
+
+  private static readonly READ_KEYWORDS = new Set<string>([
+    'check',
+    'colors',
+    'compare',
+    'details',
+    'diff',
+    'describe',
+    'download',
+    'export',
+    'fetch',
+    'get',
+    'grid',
+    'health',
+    'history',
+    'index',
+    'info',
+    'inspect',
+    'list',
+    'login',
+    'logout',
+    'logs',
+    'monitor',
+    'options',
+    'ping',
+    'preview',
+    'proxy',
+    'read',
+    'report',
+    'restricted',
+    'refresh',
+    'search',
+    'show',
+    'status',
+    'test',
+    'token',
+    'validate',
+    'verify',
+    'where',
+  ]);
+
+  private static readonly OPERATION_HINT_KEYS = [
+    'action',
+    'op',
+    'operation',
+    'task',
+    'mode',
+    'type',
+  ];
+
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     const start = Date.now();
     let handled = false;
@@ -84,6 +194,10 @@ export class AuditLogMiddleware extends Middleware {
 
   private async persistAuditLog(req: Request, res: Response, start: number): Promise<void> {
     try {
+      if (!this.shouldPersistAuditLog(req, res)) {
+        return;
+      }
+
       const dataSource = db.getSource();
       const auditLog = new AuditLog();
       const instrumentationContext = this.extractAuditContext(req);
@@ -396,6 +510,161 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     return null;
+  }
+
+  private shouldPersistAuditLog(req: Request, res: Response): boolean {
+    const metadata = this.resolveRouteMetadata(req, res);
+    const classification = this.classifyOperation(req, metadata);
+
+    if (classification === 'mutation') {
+      return true;
+    }
+
+    if (classification === 'read') {
+      return false;
+    }
+
+    const method = typeof req.method === 'string' ? req.method.toUpperCase() : 'GET';
+    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+      return false;
+    }
+
+    if (method === 'DELETE') {
+      return true;
+    }
+
+    return true;
+  }
+
+  private resolveRouteMetadata(req: Request, res: Response): AuditRouteMetadata | null {
+    const direct = (req as Request & { __fwcRouteMeta?: AuditRouteMetadata }).__fwcRouteMeta;
+    if (direct) {
+      return direct;
+    }
+
+    if (res?.locals && typeof res.locals === 'object' && res.locals.__fwcRouteMeta) {
+      return res.locals.__fwcRouteMeta as AuditRouteMetadata;
+    }
+
+    return null;
+  }
+
+  private classifyOperation(
+    req: Request,
+    metadata: AuditRouteMetadata | null,
+  ): 'mutation' | 'read' | 'unknown' {
+    const tokenSources: string[] = [];
+
+    if (metadata?.action) {
+      tokenSources.push(metadata.action);
+    }
+
+    if (metadata?.name) {
+      tokenSources.push(metadata.name);
+    }
+
+    if (metadata?.path) {
+      tokenSources.push(metadata.path);
+    }
+
+    const routePath = req.route?.path;
+    if (typeof routePath === 'string') {
+      tokenSources.push(routePath);
+    }
+
+    if (req.baseUrl) {
+      tokenSources.push(req.baseUrl);
+    }
+
+    if (req.path) {
+      tokenSources.push(req.path);
+    }
+
+    if (req.originalUrl) {
+      tokenSources.push(req.originalUrl.split('?')[0]);
+    }
+
+    const queryHint = this.extractOperationHint(req.query);
+    if (queryHint) {
+      tokenSources.push(queryHint);
+    }
+
+    const paramsHint = this.extractOperationHint(req.params);
+    if (paramsHint) {
+      tokenSources.push(paramsHint);
+    }
+
+    const bodyHint = this.extractOperationHint(req.body);
+    if (bodyHint) {
+      tokenSources.push(bodyHint);
+    }
+
+    const tokensCache = new Map<string, string[]>();
+
+    if (this.containsKeyword(tokenSources, tokensCache, AuditLogMiddleware.MUTATION_KEYWORDS)) {
+      return 'mutation';
+    }
+
+    if (this.containsKeyword(tokenSources, tokensCache, AuditLogMiddleware.READ_KEYWORDS)) {
+      return 'read';
+    }
+
+    return 'unknown';
+  }
+
+  private extractOperationHint(source: unknown): string | null {
+    if (!source || typeof source !== 'object') {
+      return null;
+    }
+
+    for (const key of AuditLogMiddleware.OPERATION_HINT_KEYS) {
+      const value = (source as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  private containsKeyword(
+    sources: string[],
+    cache: Map<string, string[]>,
+    keywords: ReadonlySet<string>,
+  ): boolean {
+    for (const source of sources) {
+      if (!source || !source.trim()) {
+        continue;
+      }
+
+      if (!cache.has(source)) {
+        cache.set(source, this.tokenize(source));
+      }
+
+      const tokens = cache.get(source) ?? [];
+      if (tokens.length === 0) {
+        continue;
+      }
+
+      if (tokens.some((token) => keywords.has(token))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private tokenize(raw: string): string[] {
+    if (!raw || raw.length === 0) {
+      return [];
+    }
+
+    const spaced = raw
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .toLowerCase();
+
+    return spaced.split(' ').filter((value) => value.length > 0);
   }
 
   private isSensitiveKey(key: string | null | undefined): boolean {
