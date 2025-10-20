@@ -47,6 +47,17 @@ describe('AuditLogMiddleware', () => {
     throw new Error('Timed out waiting for audit logs to be persisted');
   };
 
+  const expectNoAuditLogs = async (): Promise<void> => {
+    const repository = db.getSource().manager.getRepository(AuditLog);
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const entries = await repository.find();
+      if (entries.length > 0) {
+        throw new Error(`Unexpected audit log entries were persisted: ${entries.length}`);
+      }
+      await wait(10);
+    }
+  };
+
   const computeHashedSessionId = (sessionId: string): number => {
     const hash = createHash('sha1').update(sessionId).digest('hex');
     const firstBytes = hash.slice(0, 8);
@@ -122,11 +133,14 @@ describe('AuditLogMiddleware', () => {
       next();
     });
     app.use((req, res, next) => middleware.handle(req, res, next));
-    app.get('/resource/:firewallId', (_req, res) => {
+    app.post('/resource/:firewallId/update', (_req, res) => {
       res.status(200).json({ ok: true });
     });
 
-    await request(app).get('/resource/15').query({ fwcloud: '42' });
+    await request(app)
+      .post('/resource/15/update')
+      .query({ fwcloud: '42' })
+      .send({ action: 'update' });
 
     const [entry] = await waitForAuditLogs();
     expect(entry.sessionId).to.equal(expectedHashedSessionId);
@@ -222,7 +236,7 @@ describe('AuditLogMiddleware', () => {
       return app;
     };
 
-    it('should log successful login attempts with user info', async () => {
+    it('should not log successful login attempts', async () => {
       const app = createAuthApp();
 
       app.post('/login', (req, res) => {
@@ -234,20 +248,10 @@ describe('AuditLogMiddleware', () => {
 
       await request(app).post('/login').send({ username: 'auth-user', password: 'secret' });
 
-      const [entry] = await waitForAuditLogs();
-      expect(entry.call).to.equal('POST /login');
-      expect(entry.userId).to.equal(888);
-      expect(entry.userName).to.equal('auth-user');
-      expect(entry.description).to.contain('status=200');
-      expect(entry.description).to.contain('user=auth-user');
-
-      const payload = JSON.parse(entry.data);
-      expect(payload.method).to.equal('POST');
-      expect(payload.body.username).to.equal('auth-user');
-      expect(payload.body.password).to.equal('[REDACTED]');
+      await expectNoAuditLogs();
     });
 
-    it('should log failed login attempts without user info', async () => {
+    it('should not log failed login attempts', async () => {
       const app = createAuthApp();
 
       app.post('/login', (_req, res) => {
@@ -256,18 +260,10 @@ describe('AuditLogMiddleware', () => {
 
       await request(app).post('/login').send({ username: 'auth-user', password: 'wrong' });
 
-      const [entry] = await waitForAuditLogs();
-      expect(entry.userId).to.be.null;
-      expect(entry.userName).to.be.null;
-      expect(entry.description).to.contain('status=401');
-      expect(entry.description).to.not.contain('user=');
-
-      const payload = JSON.parse(entry.data);
-      expect(payload.method).to.equal('POST');
-      expect(payload.body.password).to.equal('[REDACTED]');
+      await expectNoAuditLogs();
     });
 
-    it('should log logout events with existing session info', async () => {
+    it('should not log logout events', async () => {
       const app = createAuthApp((req) => {
         (req as any).session.user_id = 777;
         (req as any).session.username = 'auth-user';
@@ -280,12 +276,7 @@ describe('AuditLogMiddleware', () => {
 
       await request(app).post('/logout');
 
-      const [entry] = await waitForAuditLogs();
-      expect(entry.call).to.equal('POST /logout');
-      expect(entry.userId).to.equal(777);
-      expect(entry.userName).to.equal('auth-user');
-      expect(entry.description).to.contain('status=204');
-      expect(entry.description).to.contain('user=auth-user');
+      await expectNoAuditLogs();
     });
   });
 
@@ -408,7 +399,7 @@ describe('AuditLogMiddleware', () => {
       expect(payload.body.netmask).to.equal('/24');
     });
 
-    it('should store audit data when reading a network object', async () => {
+    it('should skip audit logging when reading a network object', async () => {
       const app = createNetworkObjectApp();
 
       app.get('/network-objects/:fwcloudId/:objectId', (req, res) => {
@@ -420,20 +411,33 @@ describe('AuditLogMiddleware', () => {
         .set('X-Forwarded-For', '198.51.100.1')
         .query({ include: 'details' });
 
-      const [entry] = await waitForAuditLogs();
-      expect(entry).to.exist;
-      expect(entry.call).to.equal('GET /network-objects/88/501?include=details');
-      expect(entry.fwCloudId).to.equal(88);
-      expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('status=200');
-      expect(entry.description).to.contain('user=net-admin');
-      expect(entry.description).to.contain('ip=198.51.100.1');
+      await expectNoAuditLogs();
+    });
 
-      const payload = JSON.parse(entry.data);
-      expect(payload.method).to.equal('GET');
-      expect(payload.params.fwcloudId).to.equal('88');
-      expect(payload.params.objectId).to.equal('501');
-      expect(payload.query.include).to.equal('details');
+    it('should skip audit logging for read-only PUT endpoints', async () => {
+      const app = createNetworkObjectApp();
+
+      app.put('/network-objects/:fwcloudId/:objectId/info', (req, res) => {
+        res.status(200).json({ id: Number.parseInt(req.params.objectId, 10), info: req.body });
+      });
+
+      await request(app)
+        .put('/network-objects/42/100/info')
+        .send({ fwcloud: 42, include: 'details' });
+
+      await expectNoAuditLogs();
+    });
+
+    it('should skip audit logging for GET-style PUT endpoints', async () => {
+      const app = createNetworkObjectApp();
+
+      app.put('/network-objects/:fwcloudId/:objectId/get', (req, res) => {
+        res.status(200).json({ id: Number.parseInt(req.params.objectId, 10), info: req.body });
+      });
+
+      await request(app).put('/network-objects/42/200/get').send({ fwcloud: 42, op: 'get' });
+
+      await expectNoAuditLogs();
     });
 
     it('should store audit data when updating a network object', async () => {

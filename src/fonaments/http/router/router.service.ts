@@ -23,6 +23,7 @@
 import express from 'express';
 import { Service } from '../../services/service';
 import { Request, Response, NextFunction } from 'express';
+import { PathParams } from 'express-serve-static-core';
 import { RouteCollection as RouteDefinition } from './route-collection';
 import { RouterParser } from './router-parser';
 import { Route } from './route';
@@ -35,6 +36,14 @@ import { getFWCloudMetadata } from '../../../metadata/metadata';
 import { HTTPApplication } from '../../http-application';
 import { ClassConstructor } from 'class-transformer';
 import { Routes } from '../../../routes/routes';
+
+type AuditRouteMetadata = {
+  httpMethod: HttpMethod;
+  path: string | null;
+  controller?: string;
+  action?: string;
+  name?: string | null;
+};
 
 export type HttpMethod = 'ALL' | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
 export type ArgumentTypes<F extends (...args: any) => any> = F extends (...args: infer A) => any
@@ -157,6 +166,18 @@ export class RouterService extends Service {
       route.pathParams,
       async (request: Request, response: Response, next?: NextFunction) => {
         try {
+          const auditMetadata: AuditRouteMetadata = {
+            httpMethod: route.httpMethod,
+            path: this.normalizeRoutePath(route.pathParams),
+            controller: route.controllerSignature?.controller?.name,
+            action: route.controllerSignature?.method,
+            name: route.name ?? null,
+          };
+
+          (request as Request & { __fwcRouteMeta?: AuditRouteMetadata }).__fwcRouteMeta =
+            auditMetadata;
+          response.locals.__fwcRouteMeta = auditMetadata;
+
           if (
             !route.controllerSignature.controller.methodExists(route.controllerSignature.method)
           ) {
@@ -194,6 +215,34 @@ export class RouterService extends Service {
     );
 
     return route;
+  }
+
+  private normalizeRoutePath(pathParams: PathParams): string | null {
+    if (typeof pathParams === 'string') {
+      return pathParams;
+    }
+
+    if (pathParams instanceof RegExp) {
+      return pathParams.source;
+    }
+
+    if (Array.isArray(pathParams)) {
+      return pathParams
+        .map((entry) =>
+          typeof entry === 'string'
+            ? entry
+            : entry instanceof RegExp
+              ? entry.source
+              : String(entry),
+        )
+        .join('|');
+    }
+
+    if (typeof pathParams === 'object' && pathParams !== null) {
+      return String(pathParams);
+    }
+
+    return null;
   }
 
   protected async checkGates(route: Route, request: Request): Promise<void> {
