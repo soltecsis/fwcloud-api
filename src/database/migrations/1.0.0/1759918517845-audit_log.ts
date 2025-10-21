@@ -101,6 +101,48 @@ export class AuditLog1759918517845 implements MigrationInterface {
             isNullable: false,
           },
         ],
+        indices: [
+          {
+            name: 'IDX_audit_logs_ts',
+            columnNames: ['ts'],
+          },
+          {
+            name: 'IDX_audit_logs_user_id',
+            columnNames: ['user_id'],
+          },
+          {
+            name: 'IDX_audit_logs_user_name',
+            columnNames: ['user_name'],
+          },
+          {
+            name: 'IDX_audit_logs_session_id',
+            columnNames: ['session_id'],
+          },
+          {
+            name: 'IDX_audit_logs_fwcloud_id',
+            columnNames: ['fwcloud_id'],
+          },
+          {
+            name: 'IDX_audit_logs_fwcloud_name',
+            columnNames: ['fwcloud_name'],
+          },
+          {
+            name: 'IDX_audit_logs_firewall_id',
+            columnNames: ['firewall_id'],
+          },
+          {
+            name: 'IDX_audit_logs_firewall_name',
+            columnNames: ['firewall_name'],
+          },
+          {
+            name: 'IDX_audit_logs_cluster_id',
+            columnNames: ['cluster_id'],
+          },
+          {
+            name: 'IDX_audit_logs_cluster_name',
+            columnNames: ['cluster_name'],
+          },
+        ],
       }),
       true,
     );
