@@ -24,22 +24,20 @@ import { Request } from 'express';
 import { Validate } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
-import { AuditLogArchiverService } from '../../models/audit/AuditLogArchiver.service';
+import { AuditLogService } from '../../models/audit/AuditLog.service';
 import { Channel } from '../../sockets/channels/channel';
 
 export class AuditLogArchiveController extends Controller {
-  protected _auditLogArchiverService: AuditLogArchiverService;
+  protected _auditLogService: AuditLogService;
 
   public async make(): Promise<void> {
-    this._auditLogArchiverService = await this._app.getService<AuditLogArchiverService>(
-      AuditLogArchiverService.name,
-    );
+    this._auditLogService = await this._app.getService<AuditLogService>(AuditLogService.name);
   }
 
   @Validate()
   public async store(request: Request): Promise<ResponseBuilder> {
     const channel = await Channel.fromRequest(request);
-    const archivedRows = await this._auditLogArchiverService.archiveHistory(channel);
+    const archivedRows = await this._auditLogService.archiveHistory(channel);
 
     return ResponseBuilder.buildResponse().status(201).body({
       rows: archivedRows,

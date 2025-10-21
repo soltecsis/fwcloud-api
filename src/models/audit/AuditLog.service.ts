@@ -25,10 +25,49 @@ import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
 import { AuditLog } from './AuditLog';
+import * as fs from 'fs-extra';
+import path from 'path';
+import { EventEmitter } from 'events';
+import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
+import { getMetadataArgsStorage } from 'typeorm';
+import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
+import { Zip } from '../../utils/zip';
+import ObjectHelpers from '../../utils/object-helpers';
+import {
+  ProgressInfoPayload,
+  ProgressNoticePayload,
+  ProgressPayload,
+} from '../../sockets/messages/socket-message';
+
+export type AuditLogArchiveConfig = {
+  data_dir: string;
+  archive_schedule: string;
+  archive_days: number;
+  retention_schedule: string;
+  retention_days: number;
+};
+
+export type AuditLogArchiverUpdateableConfig = {
+  archive_days: number;
+  retention_days: number;
+};
 
 export class AuditLogService extends Service {
+  protected _config: AuditLogArchiveConfig;
+  protected _archiveMutex = new Mutex();
+
   private get auditLogRepository() {
     return db.getSource().manager.getRepository(AuditLog);
+  }
+
+  public async build(): Promise<AuditLogService> {
+    this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
+
+    if (!fs.existsSync(this._config.data_dir)) {
+      fs.mkdirpSync(this._config.data_dir);
+    }
+
+    return this;
   }
 
   public async listAuditLogs(options: {
@@ -102,5 +141,279 @@ export class AuditLogService extends Service {
     });
 
     return entries;
+  }
+
+  public getCustomizedConfig(): AuditLogArchiverUpdateableConfig {
+    this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
+
+    return {
+      archive_days: this._config.archive_days,
+      retention_days: this._config.retention_days,
+    };
+  }
+
+  public async archiveHistory(eventEmitter: EventEmitter = new EventEmitter()): Promise<number> {
+    try {
+      return await tryAcquire(this._archiveMutex).runExclusive(() => {
+        return new Promise<number>(async (resolve, reject) => {
+          try {
+            this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
+            const repository = this.auditLogRepository;
+
+            eventEmitter.emit(
+              'message',
+              new ProgressInfoPayload('Starting audit log history archiver'),
+            );
+            eventEmitter.emit(
+              'message',
+              new ProgressNoticePayload('Checking expired audit log entries'),
+            );
+
+            const expirationDate = new Date();
+            expirationDate.setDate(expirationDate.getDate() - this._config.archive_days);
+
+            const getExpiredAuditLogsQuery = () =>
+              repository
+                .createQueryBuilder('auditLog')
+                .where('auditLog.ts <= :timestamp', { timestamp: expirationDate })
+                .orderBy('auditLog.id', 'ASC');
+
+            const totalExpiredLogs = await getExpiredAuditLogsQuery().getCount();
+
+            if (totalExpiredLogs === 0) {
+              eventEmitter.emit('message', new ProgressNoticePayload('Nothing to archive'));
+              eventEmitter.emit('message', new ProgressPayload('end', false, ''));
+              return resolve(0);
+            }
+
+            const now = new Date();
+            const yearDir = now.getFullYear().toString();
+            const monthDir = this.pad(now.getMonth() + 1);
+            const fileName = `audit_logs_history-${this.getDateForFile(now)}.sql`;
+            const archiveDir = path.join(this._config.data_dir, yearDir, monthDir);
+            const sqlFilePath = path.join(archiveDir, fileName);
+            const zipFilePath = `${sqlFilePath}.zip`;
+
+            if (await fs.pathExists(zipFilePath)) {
+              eventEmitter.emit(
+                'message',
+                new ProgressNoticePayload('Decompressing existing audit log archive'),
+              );
+
+              await Zip.unzip(zipFilePath, archiveDir);
+              await fs.remove(zipFilePath);
+            } else {
+              fs.mkdirpSync(archiveDir);
+            }
+
+            eventEmitter.emit(
+              'message',
+              new ProgressNoticePayload(
+                `Archiving entries older than ${this.getDateForLog(expirationDate)}`,
+              ),
+            );
+            eventEmitter.emit(
+              'message',
+              new ProgressNoticePayload(`Entries to be archived: ${totalExpiredLogs}`),
+            );
+
+            const table =
+              getMetadataArgsStorage().tables.find((item) => item.target === AuditLog)?.name ??
+              AuditLog.name;
+            const columns: ColumnMetadataArgs[] = getMetadataArgsStorage().columns.filter(
+              (item) => item.target === AuditLog,
+            );
+            const insertColumnDef = columns
+              .map((item) => `\`${item.options.name ?? item.propertyName}\``)
+              .join(',');
+
+            let processed = 0;
+
+            while (true) {
+              const logs = await getExpiredAuditLogsQuery().limit(2000).getMany();
+
+              if (!logs.length) {
+                eventEmitter.emit(
+                  'message',
+                  new ProgressNoticePayload('Compressing audit log archive file'),
+                );
+                await Zip.zip(sqlFilePath);
+                await fs.remove(sqlFilePath);
+                eventEmitter.emit('message', new ProgressPayload('end', false, ''));
+                return resolve(processed);
+              }
+
+              const content = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${logs
+                .map(
+                  (log) =>
+                    `(${columns
+                      .map((column) => this.formatValue(log[column.propertyName]))
+                      .join(',')})`,
+                )
+                .join(',')};\n`;
+
+              await fs.writeFile(sqlFilePath, content, { flag: 'a' });
+              await repository.delete(logs.map((log) => log.id));
+
+              processed += logs.length;
+              eventEmitter.emit(
+                'message',
+                new ProgressNoticePayload(`Progress: ${processed} of ${totalExpiredLogs} entries`),
+              );
+            }
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+    } catch (error) {
+      if (error === E_ALREADY_LOCKED) {
+        eventEmitter.emit(
+          'message',
+          new ProgressPayload(
+            'error',
+            false,
+            'There is another audit log history archiver running',
+          ),
+        );
+        throw new Error('There is another audit log history archiver running');
+      }
+
+      throw error;
+    }
+  }
+
+  public async removeExpiredFiles(): Promise<number> {
+    return new Promise<number>(async (resolve, reject) => {
+      try {
+        const allFiles: { file: string; path: string }[] = [];
+        fs.readdirSync(this._config.data_dir).forEach((dirent) => {
+          if (fs.existsSync(path.join(this._config.data_dir, dirent))) {
+            fs.readdirSync(path.join(this._config.data_dir, dirent)).forEach((subDirent) => {
+              if (fs.existsSync(path.join(this._config.data_dir, dirent, subDirent))) {
+                fs.readdirSync(path.join(this._config.data_dir, dirent, subDirent)).forEach(
+                  (file) => {
+                    allFiles.push({
+                      file,
+                      path: path.join(this._config.data_dir, dirent, subDirent),
+                    });
+                  },
+                );
+              }
+            });
+          }
+        });
+
+        const filesToRemove = allFiles
+          .filter((file) => /audit_logs_history-[0-9]{8}\.sql\.zip/.test(file.file))
+          .filter((file) => {
+            const date = this.getDateFromArchiveFilename(file);
+            const limit = new Date();
+            limit.setDate(limit.getDate() - this._config.retention_days);
+            return date < limit;
+          });
+
+        filesToRemove.forEach((file) => fs.unlinkSync(path.join(file.path, file.file)));
+
+        resolve(filesToRemove.length);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  public async updateArchiveConfig(
+    customConfig: AuditLogArchiverUpdateableConfig,
+  ): Promise<AuditLogArchiverUpdateableConfig> {
+    await this.writeCustomizedConfig(customConfig);
+    this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
+
+    return {
+      archive_days: this._config.archive_days,
+      retention_days: this._config.retention_days,
+    };
+  }
+
+  protected loadCustomizedConfig(baseConfig: AuditLogArchiveConfig): AuditLogArchiveConfig {
+    let config: AuditLogArchiveConfig = baseConfig;
+
+    const customConfigFile = path.join(baseConfig.data_dir, 'config.json');
+
+    if (fs.existsSync(customConfigFile)) {
+      const customConfig = JSON.parse(fs.readFileSync(customConfigFile, 'utf8'));
+      config = ObjectHelpers.deepMerge<AuditLogArchiveConfig>(config, customConfig);
+    }
+
+    return config;
+  }
+
+  protected async writeCustomizedConfig(
+    customConfig: AuditLogArchiverUpdateableConfig,
+  ): Promise<void> {
+    if (!fs.existsSync(this._config.data_dir)) {
+      await fs.mkdirp(this._config.data_dir);
+    }
+
+    const customConfigFile = path.join(this._config.data_dir, 'config.json');
+    await fs.writeFile(customConfigFile, JSON.stringify(customConfig), 'utf8');
+  }
+
+  protected formatValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return 'NULL';
+    }
+
+    if (value instanceof Date) {
+      return "'" + this.formatDateTime(value) + "'";
+    }
+
+    if (typeof value === 'string') {
+      return "'" + this.escapeString(value) + "'";
+    }
+
+    if (typeof value === 'number' || typeof value === 'bigint') {
+      return value.toString();
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? '1' : '0';
+    }
+
+    if (typeof value === 'symbol' || typeof value === 'function') {
+      return "'" + this.escapeString(value.toString()) + "'";
+    }
+
+    if (typeof value === 'object') {
+      const serialized = JSON.stringify(value);
+      return "'" + this.escapeString(serialized ?? '') + "'";
+    }
+
+    const exhaustiveCheck: never = value as never;
+    throw new Error('Unsupported audit log archive value type');
+  }
+
+  protected formatDateTime(date: Date): string {
+    return `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())} ${this.pad(date.getHours())}:${this.pad(date.getMinutes())}:${this.pad(date.getSeconds())}`;
+  }
+
+  protected getDateForFile(date: Date): string {
+    return `${date.getFullYear()}${this.pad(date.getMonth() + 1)}${this.pad(date.getDate())}`;
+  }
+
+  protected getDateForLog(date: Date): string {
+    return `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())}`;
+  }
+
+  protected pad(value: number): string {
+    return value.toString().padStart(2, '0');
+  }
+
+  protected getDateFromArchiveFilename(filename: { path: string; file: string }): Date {
+    const stats = fs.lstatSync(path.join(filename.path, filename.file));
+    return stats.birthtime;
+  }
+
+  protected escapeString(raw: string): string {
+    return raw.replace(/\\/g, '\\\\').replace(/'/g, "''");
   }
 }

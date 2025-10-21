@@ -25,23 +25,21 @@ import { Validate } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import {
-  AuditLogArchiverService,
+  AuditLogService,
   AuditLogArchiverUpdateableConfig,
-} from '../../models/audit/AuditLogArchiver.service';
+} from '../../models/audit/AuditLog.service';
 import { AuditLogArchiveConfigUpdateDto } from './dtos/audit-log-archive-config-update.dto';
 
 export class AuditLogArchiveConfigController extends Controller {
-  protected _auditLogArchiverService: AuditLogArchiverService;
+  protected _auditLogService: AuditLogService;
 
   public async make(): Promise<void> {
-    this._auditLogArchiverService = await this._app.getService<AuditLogArchiverService>(
-      AuditLogArchiverService.name,
-    );
+    this._auditLogService = await this._app.getService<AuditLogService>(AuditLogService.name);
   }
 
   @Validate()
   public async show(): Promise<ResponseBuilder> {
-    const config = this._auditLogArchiverService.getCustomizedConfig();
+    const config = this._auditLogService.getCustomizedConfig();
 
     return ResponseBuilder.buildResponse().status(200).body({
       archive_days: config.archive_days,
@@ -51,7 +49,7 @@ export class AuditLogArchiveConfigController extends Controller {
 
   @Validate(AuditLogArchiveConfigUpdateDto)
   public async update(request: Request): Promise<ResponseBuilder> {
-    const config = await this._auditLogArchiverService.updateArchiveConfig(
+    const config = await this._auditLogService.updateArchiveConfig(
       request.body as AuditLogArchiverUpdateableConfig,
     );
 

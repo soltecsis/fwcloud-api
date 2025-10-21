@@ -24,16 +24,11 @@ import { AbstractApplication } from '../../fonaments/abstract-application';
 import { ServiceBound, ServiceContainer } from '../../fonaments/services/service-container';
 import { ServiceProvider } from '../../fonaments/services/service-provider';
 import { AuditLogService } from './AuditLog.service';
-import { AuditLogArchiverService } from './AuditLogArchiver.service';
 
 export class AuditLogServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {
-    serviceContainer.singleton(AuditLogService.name, (app: AbstractApplication) => {
+    return serviceContainer.singleton(AuditLogService.name, (app: AbstractApplication) => {
       return AuditLogService.make(app);
-    });
-
-    return serviceContainer.singleton(AuditLogArchiverService.name, (app: AbstractApplication) => {
-      return AuditLogArchiverService.make(app);
     });
   }
 }
