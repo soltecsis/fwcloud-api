@@ -442,6 +442,37 @@ const config = convict({
     }
   },
 
+  auditLogs: {
+    archive: {
+      data_dir: {
+        doc: 'Directory for storing audit log archive files.',
+        format: String,
+        default: './DATA/audit-logs/archive',
+        env: 'AUDIT_LOG_ARCHIVE_DATA_DIR'
+      },
+      archive_schedule: {
+        doc: 'Default archive cron task schedule for audit logs.',
+        format: String,
+        default: '0 30 2 * * *'
+      },
+      retention_schedule: {
+        doc: 'Default remove archive files cron task schedule for audit logs.',
+        format: String,
+        default: '0 30 2 * * *'
+      },
+      archive_days: {
+        doc: 'Date range for archive audit log entries.',
+        format: Number,
+        default: 180
+      },
+      retention_days: {
+        doc: 'Retention period, in days, for audit log archive files.',
+        format: Number,
+        default: 720
+      }
+    }
+  },
+
   // OpenVPN configuration
   openvpn: {
     installer: {
