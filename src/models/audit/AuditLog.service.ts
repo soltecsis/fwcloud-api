@@ -95,30 +95,14 @@ export class AuditLogService extends Service {
     auditLogs: AuditLog[];
     total: number;
   }> {
-    const cursorFilter = options.cursor
-      ? (() => {
-          const cursorTimestamp =
-            options.cursor.timestamp instanceof Date
-              ? options.cursor.timestamp
-              : new Date(options.cursor.timestamp);
-
-          if (Number.isNaN(cursorTimestamp.getTime())) {
-            throw new Error('Invalid cursor timestamp supplied for audit log pagination');
-          }
-
-          const cursorId = Number(options.cursor.id);
-
-          if (!Number.isFinite(cursorId)) {
-            throw new Error('Invalid cursor id supplied for audit log pagination');
-          }
-
-          return { cursorTimestamp, cursorId };
-        })()
-      : null;
-
-    const accessRestrictions: Array<{ clause: string; params: Record<string, unknown> }> = [];
+    const query = this.auditLogRepository
+      .createQueryBuilder('auditLog')
+      .orderBy('auditLog.timestamp', 'DESC')
+      .addOrderBy('auditLog.id', 'DESC');
 
     if (!options.isAdmin) {
+      const accessRestrictions: Array<{ clause: string; params: Record<string, unknown> }> = [];
+
       if (options.sessionId !== null && options.sessionId !== undefined) {
         accessRestrictions.push({
           clause: 'auditLog.sessionId = :currentSessionId',
@@ -136,104 +120,92 @@ export class AuditLogService extends Service {
       if (!accessRestrictions.length) {
         return { auditLogs: [], total: 0 };
       }
+
+      query.andWhere(
+        new Brackets((qb) => {
+          accessRestrictions.forEach((restriction, index) => {
+            if (index === 0) {
+              qb.where(restriction.clause, restriction.params);
+            } else {
+              qb.orWhere(restriction.clause, restriction.params);
+            }
+          });
+        }),
+      );
     }
 
-    const applyFilters = (qb: SelectQueryBuilder<AuditLog>) => {
-      qb.orderBy('auditLog.timestamp', 'DESC').addOrderBy('auditLog.id', 'DESC');
+    if (options.timestampFrom instanceof Date) {
+      query.andWhere('auditLog.timestamp >= :timestampFrom', {
+        timestampFrom: options.timestampFrom,
+      });
+    }
 
-      if (!options.isAdmin) {
-        qb.andWhere(
-          new Brackets((accessQb) => {
-            accessRestrictions.forEach((restriction, index) => {
-              if (index === 0) {
-                accessQb.where(restriction.clause, restriction.params);
-              } else {
-                accessQb.orWhere(restriction.clause, restriction.params);
-              }
-            });
-          }),
-        );
-      }
+    if (options.timestampTo instanceof Date) {
+      query.andWhere('auditLog.timestamp <= :timestampTo', {
+        timestampTo: options.timestampTo,
+      });
+    }
 
-      if (options.timestampFrom instanceof Date) {
-        qb.andWhere('auditLog.timestamp >= :timestampFrom', {
-          timestampFrom: options.timestampFrom,
-        });
-      }
-
-      if (options.timestampTo instanceof Date) {
-        qb.andWhere('auditLog.timestamp <= :timestampTo', {
-          timestampTo: options.timestampTo,
-        });
-      }
-
-      const applyTextFilter = (field: string, param: string, value: string) => {
-        qb.andWhere(`LOWER(${field}) LIKE :${param}`, {
-          [param]: `%${value.toLowerCase()}%`,
-        });
-      };
-
-      if (typeof options.userName === 'string' && options.userName.trim() !== '') {
-        applyTextFilter('auditLog.userName', 'userName', options.userName);
-      }
-
-      if (typeof options.fwCloudName === 'string' && options.fwCloudName.trim() !== '') {
-        applyTextFilter('auditLog.fwCloudName', 'fwCloudName', options.fwCloudName);
-      }
-
-      if (typeof options.firewallName === 'string' && options.firewallName.trim() !== '') {
-        applyTextFilter('auditLog.firewallName', 'firewallName', options.firewallName);
-      }
-
-      if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
-        applyTextFilter('auditLog.clusterName', 'clusterName', options.clusterName);
-      }
-
-      if (
-        options.sessionIdFilter !== null &&
-        options.sessionIdFilter !== undefined &&
-        Number.isFinite(options.sessionIdFilter)
-      ) {
-        qb.andWhere('auditLog.sessionId = :filterSessionId', {
-          filterSessionId: options.sessionIdFilter,
-        });
-      }
-
-      if (cursorFilter) {
-        qb.andWhere(
-          new Brackets((cursorQb) => {
-            cursorQb.where('auditLog.timestamp < :cursorTimestamp', {
-              cursorTimestamp: cursorFilter.cursorTimestamp,
-            });
-            cursorQb.orWhere(
-              new Brackets((cursorTieBreakerQb) => {
-                cursorTieBreakerQb.where('auditLog.timestamp = :cursorTimestamp', {
-                  cursorTimestamp: cursorFilter.cursorTimestamp,
-                });
-                cursorTieBreakerQb.andWhere('auditLog.id < :cursorId', {
-                  cursorId: cursorFilter.cursorId,
-                });
-              }),
-            );
-          }),
-        );
-      }
-
-      return qb;
+    const applyTextFilter = (field: string, param: string, value: string) => {
+      query.andWhere(`LOWER(${field}) LIKE :${param}`, {
+        [param]: `%${value.toLowerCase()}%`,
+      });
     };
 
-    const dataQuery = applyFilters(this.auditLogRepository.createQueryBuilder('auditLog'));
-    const countQuery = applyFilters(this.auditLogRepository.createQueryBuilder('auditLog'));
+    if (typeof options.userName === 'string' && options.userName.trim() !== '') {
+      applyTextFilter('auditLog.userName', 'userName', options.userName);
+    }
+
+    if (typeof options.fwCloudName === 'string' && options.fwCloudName.trim() !== '') {
+      applyTextFilter('auditLog.fwCloudName', 'fwCloudName', options.fwCloudName);
+    }
+
+    if (typeof options.firewallName === 'string' && options.firewallName.trim() !== '') {
+      applyTextFilter('auditLog.firewallName', 'firewallName', options.firewallName);
+    }
+
+    if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
+      applyTextFilter('auditLog.clusterName', 'clusterName', options.clusterName);
+    }
+
+    if (
+      options.sessionIdFilter !== null &&
+      options.sessionIdFilter !== undefined &&
+      Number.isFinite(options.sessionIdFilter)
+    ) {
+      query.andWhere('auditLog.sessionId = :filterSessionId', {
+        filterSessionId: options.sessionIdFilter,
+      });
+    }
+
+    if (options.cursor) {
+      const cursor = options.cursor;
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('auditLog.timestamp < :cursorTimestamp', {
+            cursorTimestamp: cursor.timestamp,
+          }).orWhere(
+            new Brackets((inner) => {
+              inner
+                .where('auditLog.timestamp = :cursorTimestamp', {
+                  cursorTimestamp: cursor.timestamp,
+                })
+                .andWhere('auditLog.id < :cursorId', { cursorId: cursor.id });
+            }),
+          );
+        }),
+      );
+    }
 
     if (typeof options.skip === 'number' && options.skip > 0) {
-      dataQuery.skip(options.skip);
+      query.skip(options.skip);
     }
 
     if (typeof options.take === 'number' && options.take > 0) {
-      dataQuery.take(options.take);
+      query.take(options.take);
     }
 
-    const [auditLogs, total] = await Promise.all([dataQuery.getMany(), countQuery.getCount()]);
+    const [auditLogs, total] = await query.getManyAndCount();
 
     return { auditLogs, total };
   }
