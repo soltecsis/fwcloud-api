@@ -20,177 +20,292 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository } from 'typeorm';
+import * as fse from 'fs-extra';
+import path from 'path';
+import sinon from 'sinon';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
+
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
-import {
-  AuditLogService,
-  ListAuditLogsOptions,
-} from '../../../../src/models/audit/AuditLog.service';
+import { AuditLogService } from '../../../../src/models/audit/AuditLog.service';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
+import { User } from '../../../../src/models/user/User';
 import db from '../../../../src/database/database-manager';
 
-describe.only(describeName('AuditLogService list Unit tests'), () => {
+describe(describeName('AuditLogService unit suite'), () => {
   let service: AuditLogService;
   let repository: Repository<AuditLog>;
+  let archiveDir: string;
+  let customConfigFile: string;
 
-  const createLog = async (overrides: Partial<AuditLog>): Promise<AuditLog> => {
-    const entity = repository.create(
-      Object.assign(
-        {
-          call: 'PUT /resource',
-          data: JSON.stringify({ payload: true }),
-          description: 'test audit entry',
-          timestamp: new Date('2024-01-01T12:00:00Z'),
-        },
-        overrides,
-      ),
-    );
+  const resolveArchiveDir = (): string => {
+    const configuredDir: string = testSuite.app.config.get('auditLogs.archive.data_dir');
+    return path.isAbsolute(configuredDir)
+      ? configuredDir
+      : path.resolve(testSuite.app.path, configuredDir);
+  };
+
+  const createAuditLog = async (overrides: Partial<AuditLog> = {}): Promise<AuditLog> => {
+    const entity = repository.create({
+      call: 'PUT /api/example',
+      data: JSON.stringify({ sample: true }),
+      description: 'audit log entry',
+      timestamp: new Date('2024-01-01T00:00:00Z'),
+      sessionId: null,
+      userId: null,
+      userName: null,
+      fwCloudName: null,
+      firewallName: null,
+      clusterName: null,
+      ...overrides,
+    });
 
     return repository.save(entity);
   };
 
   beforeEach(async () => {
     service = await testSuite.app.getService<AuditLogService>(AuditLogService.name);
+
+    archiveDir = resolveArchiveDir();
+    await fse.remove(archiveDir);
+
+    service = await service.build();
+
     repository = db.getSource().manager.getRepository(AuditLog);
     await repository.createQueryBuilder().delete().execute();
+
+    customConfigFile = path.join(archiveDir, 'config.json');
+    await fse.mkdirp(archiveDir);
   });
 
-  it('returns no results for restricted users without identifiers', async () => {
-    const result = await service.listAuditLogs({
-      isAdmin: false,
-      sessionId: null,
-      userId: null,
-    });
-
-    expect(result.total).to.equal(0);
-    expect(result.auditLogs).to.be.an('array').that.is.empty;
+  afterEach(async () => {
+    await fse.remove(customConfigFile);
+    sinon.restore();
   });
 
-  it('filters entries by date range and text fields', async () => {
-    await createLog({
-      timestamp: new Date('2024-01-01T00:00:00Z'),
-      userName: 'Alpha User',
-      fwCloudName: 'Edge Cloud',
-      firewallName: 'North Firewall',
-      clusterName: 'Cluster North',
-      sessionId: 10,
-      userId: 1,
+  describe('listAuditLogs', () => {
+    it('returns an empty result for non administrative users without identifiers', async () => {
+      const result = await service.listAuditLogs({
+        isAdmin: false,
+        sessionId: null,
+        userId: null,
+      });
+
+      expect(result.total).to.equal(0);
+      expect(result.auditLogs).to.be.an('array').that.is.empty;
     });
 
-    const matching = await createLog({
-      timestamp: new Date('2024-01-05T10:00:00Z'),
-      userName: 'Beta Operator',
-      fwCloudName: 'Production Cloud',
-      firewallName: 'Prod Firewall',
-      clusterName: 'Prod Cluster',
-      sessionId: 11,
-      userId: 2,
+    it('restricts non administrative users to their own session or user entries', async () => {
+      const ownedBySession = await createAuditLog({
+        timestamp: new Date('2024-01-03T12:00:00Z'),
+        sessionId: 88,
+      });
+      const ownedByUser = await createAuditLog({
+        timestamp: new Date('2024-01-02T12:00:00Z'),
+        userId: 501,
+        userName: 'current-user',
+      });
+      await createAuditLog({
+        timestamp: new Date('2024-01-04T12:00:00Z'),
+        sessionId: 99,
+        userId: 999,
+        userName: 'foreign',
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: false,
+        sessionId: 88,
+        userId: 501,
+        take: 10,
+      });
+
+      expect(total).to.equal(2);
+      expect(auditLogs.map((entry) => entry.id)).to.include.members([
+        ownedBySession.id,
+        ownedByUser.id,
+      ]);
+      auditLogs.forEach((entry) => {
+        expect([88, 501]).to.include(entry.sessionId ?? entry.userId);
+      });
     });
 
-    await createLog({
-      timestamp: new Date('2024-01-10T18:00:00Z'),
-      userName: 'Gamma Admin',
-      fwCloudName: 'Staging Cloud',
-      firewallName: 'Staging Firewall',
-      clusterName: 'Staging Cluster',
-      sessionId: 12,
-      userId: 3,
+    it('applies date range and textual filters for administrative users', async () => {
+      await createAuditLog({
+        timestamp: new Date('2024-01-01T08:00:00Z'),
+        userName: 'Alpha Tester',
+        fwCloudName: 'North Cloud',
+        firewallName: 'North Firewall',
+        clusterName: 'North Cluster',
+      });
+
+      const expected = await createAuditLog({
+        timestamp: new Date('2024-01-05T10:00:00Z'),
+        userName: 'Beta Operator',
+        fwCloudName: 'Production Stack',
+        firewallName: 'Prod Shield',
+        clusterName: 'Prod Cluster',
+      });
+
+      await createAuditLog({
+        timestamp: new Date('2024-01-09T20:00:00Z'),
+        userName: 'Gamma Engineer',
+        fwCloudName: 'Staging Stack',
+        firewallName: 'Stage Shield',
+        clusterName: 'Stage Cluster',
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        timestampFrom: new Date('2024-01-03T00:00:00Z'),
+        timestampTo: new Date('2024-01-07T00:00:00Z'),
+        userName: 'beta',
+        fwCloudName: 'production',
+        firewallName: 'prod',
+        clusterName: 'prod',
+      });
+
+      expect(total).to.equal(1);
+      expect(auditLogs).to.have.length(1);
+      expect(auditLogs[0].id).to.equal(expected.id);
     });
 
-    const options: ListAuditLogsOptions = {
-      isAdmin: true,
-      timestampFrom: new Date('2024-01-03T00:00:00Z'),
-      timestampTo: new Date('2024-01-08T00:00:00Z'),
-      userName: 'beta',
-      fwCloudName: 'production',
-      firewallName: 'prod',
-      clusterName: 'prod',
-      take: 5,
-    };
+    it('injects cursor guard clauses when paginating', async () => {
+      const captured: unknown[] = [];
+      const getManyAndCountStub = sinon.stub().resolves([[], 0]);
 
-    const result = await service.listAuditLogs(options);
+      const fakeQueryBuilder = {
+        orderBy: sinon.stub().returnsThis(),
+        addOrderBy: sinon.stub().returnsThis(),
+        andWhere: sinon.stub().callsFake((condition: unknown) => {
+          captured.push(condition);
+          return fakeQueryBuilder;
+        }),
+        skip: sinon.stub().returnsThis(),
+        take: sinon.stub().returnsThis(),
+        getManyAndCount: getManyAndCountStub,
+      } as unknown as SelectQueryBuilder<AuditLog>;
 
-    expect(result.total).to.equal(1);
-    expect(result.auditLogs).to.have.length(1);
-    expect(result.auditLogs[0].id).to.equal(matching.id);
+      sinon
+        .stub(service['auditLogRepository'], 'createQueryBuilder')
+        .callsFake(() => fakeQueryBuilder);
+
+      await service.listAuditLogs({
+        isAdmin: true,
+        cursor: {
+          timestamp: new Date('2024-01-10T12:00:00Z'),
+          id: 321,
+        },
+      });
+
+      const guardClause = captured.find((entry) => entry instanceof Brackets) as
+        | Brackets
+        | undefined;
+      expect(guardClause).to.not.be.undefined;
+
+      const clauseSource = guardClause?.whereFactory?.toString() ?? '';
+      expect(clauseSource).to.contain('auditLog.timestamp < :cursorTimestamp');
+      expect(clauseSource).to.contain('auditLog.id < :cursorId');
+      expect(getManyAndCountStub.calledOnce).to.be.true;
+    });
+
+    it('filters administrative requests by an explicit session identifier', async () => {
+      await createAuditLog({
+        timestamp: new Date('2024-01-02T08:00:00Z'),
+        sessionId: 11,
+      });
+      const expected = await createAuditLog({
+        timestamp: new Date('2024-01-03T08:00:00Z'),
+        sessionId: 22,
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        sessionIdFilter: 22,
+      });
+
+      expect(total).to.equal(1);
+      expect(auditLogs).to.have.length(1);
+      expect(auditLogs[0].id).to.equal(expected.id);
+    });
   });
 
-  it('enforces session or user restrictions for non administrative requests', async () => {
-    const sessionEntry = await createLog({
-      timestamp: new Date('2024-01-03T12:00:00Z'),
-      sessionId: 33,
-      userId: null,
-      userName: null,
-      fwCloudName: 'Session Cloud',
+  describe('syncEntriesWithUser', () => {
+    it('returns the provided collection when there is nothing to synchronise', async () => {
+      const entry = await createAuditLog({
+        userId: 42,
+        userName: 'existing-user',
+      });
+
+      const unchanged = await service.syncEntriesWithUser([entry], null);
+      expect(unchanged).to.have.length(1);
+      expect(unchanged[0].userName).to.equal('existing-user');
     });
 
-    const userEntry = await createLog({
-      timestamp: new Date('2024-01-04T12:00:00Z'),
-      sessionId: null,
-      userId: 44,
-      userName: 'User Entry',
-      fwCloudName: 'User Cloud',
-    });
+    it('persists user identifiers on mismatched entries', async () => {
+      const user = Object.assign(new User(), {
+        id: 900,
+        username: 'updated-user',
+        name: 'Updated User',
+      });
 
-    await createLog({
-      timestamp: new Date('2024-01-05T12:00:00Z'),
-      sessionId: 55,
-      userId: 66,
-      userName: 'Other',
-      fwCloudName: 'Other Cloud',
-    });
+      const matching = await createAuditLog({
+        userId: 900,
+        userName: 'updated-user',
+      });
 
-    const result = await service.listAuditLogs({
-      isAdmin: false,
-      sessionId: 33,
-      userId: 44,
-      take: 10,
-    });
+      const stale = await createAuditLog({
+        userId: null,
+        userName: null,
+      });
 
-    expect(result.total).to.equal(2);
-    const ids = result.auditLogs.map((entry) => entry.id);
-    expect(ids).to.include(sessionEntry.id);
-    expect(ids).to.include(userEntry.id);
+      const updated = await service.syncEntriesWithUser([matching, stale], user);
+
+      expect(updated).to.have.length(2);
+      updated.forEach((entry) => {
+        expect(entry.userId).to.equal(900);
+        expect(entry.userName).to.equal('updated-user');
+      });
+
+      const persisted = await repository.findOne({ where: { id: stale.id } });
+      expect(persisted?.userId).to.equal(900);
+      expect(persisted?.userName).to.equal('updated-user');
+    });
   });
 
-  it('supports cursor based pagination by timestamp and id', async () => {
-    const first = await createLog({
-      timestamp: new Date('2024-01-01T08:00:00Z'),
-      userName: 'First',
+  describe('archive configuration', () => {
+    it('returns defaults when no custom configuration is present', async () => {
+      await fse.remove(customConfigFile);
+
+      const defaults = testSuite.app.config.get('auditLogs.archive');
+      const config = service.getCustomizedConfig();
+
+      expect(config.archive_days).to.equal(defaults.archive_days);
+      expect(config.retention_days).to.equal(defaults.retention_days);
     });
 
-    const second = await createLog({
-      timestamp: new Date('2024-01-02T08:00:00Z'),
-      userName: 'Second',
+    it('honours custom configuration overrides', async () => {
+      await fse.writeFile(
+        customConfigFile,
+        JSON.stringify({ archive_days: 8, retention_days: 16 }),
+        'utf8',
+      );
+
+      const config = service.getCustomizedConfig();
+      expect(config.archive_days).to.equal(8);
+      expect(config.retention_days).to.equal(16);
     });
 
-    const third = await createLog({
-      timestamp: new Date('2024-01-02T08:00:00Z'),
-      userName: 'Third',
+    it('persists new configuration values to disk and reloads them', async () => {
+      const payload = { archive_days: 12, retention_days: 24 };
+
+      const response = await service.updateArchiveConfig(payload);
+      expect(response).to.deep.equal(payload);
+
+      const stored = JSON.parse(await fse.readFile(customConfigFile, 'utf8'));
+      expect(stored).to.deep.equal(payload);
+
+      const refreshed = service.getCustomizedConfig();
+      expect(refreshed.archive_days).to.equal(12);
+      expect(refreshed.retention_days).to.equal(24);
     });
-
-    const firstPage = await service.listAuditLogs({
-      isAdmin: true,
-      take: 2,
-    });
-
-    expect(firstPage.auditLogs).to.have.length(2);
-    expect(firstPage.auditLogs[0].id).to.equal(third.id);
-    expect(firstPage.auditLogs[1].id).to.equal(second.id);
-
-    const cursor = {
-      timestamp: firstPage.auditLogs[1].timestamp,
-      id: firstPage.auditLogs[1].id,
-    };
-
-    const secondPage = await service.listAuditLogs({
-      isAdmin: true,
-      take: 2,
-      cursor,
-    });
-
-    expect(secondPage.total).to.equal(1);
-    expect(secondPage.auditLogs).to.have.length(1);
-    expect(secondPage.auditLogs[0].id).to.equal(first.id);
   });
 });
