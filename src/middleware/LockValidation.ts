@@ -14,6 +14,7 @@ export class LockValidation extends Middleware {
       req.url.startsWith('/config') ||
       req.url.startsWith('/openvpnarchives') ||
       req.url.startsWith('/auditlogarchives') ||
+      req.url.startsWith('/auditlogs') ||
       req.url.startsWith('/updates') ||
       req.url.startsWith('/systemctl') ||
       req.url.startsWith('/profile') ||
@@ -30,8 +31,7 @@ export class LockValidation extends Middleware {
       (req.method === 'PUT' && req.url === '/fwcloud/unlock') ||
       (req.method === 'PUT' && req.url === '/fwcloud/forcelock') ||
       (req.method === 'PUT' && req.url === '/aiassistant') ||
-      (req.method === 'DELETE' && req.url === '/aiassistant') ||
-      (req.method === 'PUT' && req.url.startsWith('/audit-logs'))
+      (req.method === 'DELETE' && req.url === '/aiassistant')
     ) {
       return next();
     } else {

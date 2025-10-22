@@ -128,8 +128,9 @@ export class Routes extends RouteCollection {
         });
       });
 
-      router.prefix('/audit-logs', (router: RouterParser) => {
-        router.put('/', AuditLogController, 'list').name('auditlogs.list');
+      router.prefix('/auditlogs', (router: RouterParser) => {
+        router.get('/', AuditLogController, 'list').name('auditlogs.list');
+        router.put('/', AuditLogController, 'list');
       });
 
       //Systemctl routes
