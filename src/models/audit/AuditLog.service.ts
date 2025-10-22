@@ -179,23 +179,34 @@ export class AuditLogService extends Service {
     }
 
     if (options.cursor) {
-      const cursor = options.cursor;
+      const cursorTimestamp =
+        options.cursor.timestamp instanceof Date
+          ? options.cursor.timestamp
+          : new Date(options.cursor.timestamp);
+      if (Number.isNaN(cursorTimestamp.getTime())) {
+        throw new Error('Invalid cursor timestamp supplied for audit log pagination');
+      }
+
+      const cursorId = Number(options.cursor.id);
+
+      if (!Number.isFinite(cursorId)) {
+        throw new Error('Invalid cursor id supplied for audit log pagination');
+      }
+
       query.andWhere(
         new Brackets((qb) => {
-          qb.where('auditLog.timestamp < :cursorTimestamp', {
-            cursorTimestamp: cursor.timestamp,
-          }).orWhere(
-            new Brackets((inner) => {
-              inner
-                .where('auditLog.timestamp = :cursorTimestamp', {
-                  cursorTimestamp: cursor.timestamp,
-                })
-                .andWhere('auditLog.id < :cursorId', { cursorId: cursor.id });
+          qb.where('auditLog.timestamp < :cursorTimestamp', { cursorTimestamp }).orWhere(
+            new Brackets((qb2) => {
+              qb2
+                .where('auditLog.timestamp = :cursorTimestamp', { cursorTimestamp })
+                .andWhere('auditLog.id < :cursorId', { cursorId });
             }),
           );
         }),
       );
     }
+
+    const countQuery = query.clone();
 
     if (typeof options.skip === 'number' && options.skip > 0) {
       query.skip(options.skip);
@@ -205,7 +216,7 @@ export class AuditLogService extends Service {
       query.take(options.take);
     }
 
-    const [auditLogs, total] = await query.getManyAndCount();
+    const [auditLogs, total] = await Promise.all([query.getMany(), countQuery.getCount()]);
 
     return { auditLogs, total };
   }
