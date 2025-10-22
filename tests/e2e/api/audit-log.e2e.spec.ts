@@ -95,6 +95,9 @@ describe(describeName('AuditLog E2E tests'), () => {
         timestamp: new Date('2024-01-02T12:00:00Z'),
         userId: regularUser.id,
         userName: regularUser.username,
+        fwCloudName: 'User Cloud',
+        firewallName: 'User Firewall',
+        clusterName: 'User Cluster',
         sessionId: null,
       }),
     );
@@ -105,6 +108,9 @@ describe(describeName('AuditLog E2E tests'), () => {
         timestamp: new Date('2024-01-03T12:00:00Z'),
         userId: regularUser.id,
         userName: null,
+        fwCloudName: 'Session Cloud',
+        firewallName: 'Session Firewall',
+        clusterName: 'Session Cluster',
         sessionId: regularSessionNumeric,
       }),
     );
@@ -115,6 +121,9 @@ describe(describeName('AuditLog E2E tests'), () => {
         timestamp: new Date('2024-01-04T12:00:00Z'),
         userId: adminUser.id,
         userName: adminUser.username,
+        fwCloudName: 'Admin Cloud',
+        firewallName: 'Admin Firewall',
+        clusterName: 'Admin Cluster',
         sessionId: adminSessionNumeric,
       }),
     );
@@ -163,6 +172,95 @@ describe(describeName('AuditLog E2E tests'), () => {
           const adminEntry = payload.auditLogs.find((entry) => entry.id === adminOwnedLog.id);
           expect(adminEntry.userId).to.equal(adminUser.id);
           expect(adminEntry.userName).to.equal(adminUser.username);
+        });
+    });
+
+    it('supports filtering by query parameters for administrative users', async () => {
+      await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .set('Cookie', [attachSession(adminSessionId)])
+        .query({
+          user_name: 'admin',
+          fwcloud_name: 'cloud',
+          firewall_name: 'firewall',
+          cluster_name: 'cluster',
+        })
+        .send({})
+        .expect(200)
+        .then((response) => {
+          const payload = response.body.data;
+          expect(payload.total).to.equal(1);
+          expect(payload.auditLogs).to.have.length(1);
+          expect(payload.auditLogs[0].id).to.equal(adminOwnedLog.id);
+        });
+
+      await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .set('Cookie', [attachSession(adminSessionId)])
+        .query({
+          session_id: sessionOwnedLog.sessionId?.toString(),
+        })
+        .send({})
+        .expect(200)
+        .then((response) => {
+          const payload = response.body.data;
+          expect(payload.total).to.equal(1);
+          expect(payload.auditLogs[0].id).to.equal(sessionOwnedLog.id);
+        });
+    });
+
+    it('paginates results using page and pageSize', async () => {
+      await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .set('Cookie', [attachSession(adminSessionId)])
+        .query({ page: 1, pageSize: 1 })
+        .send({})
+        .expect(200)
+        .then((response) => {
+          const payload = response.body.data;
+          expect(payload.total).to.equal(3);
+          expect(payload.auditLogs).to.have.length(1);
+          expect(payload.auditLogs[0].id).to.equal(adminOwnedLog.id);
+        });
+
+      await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .set('Cookie', [attachSession(adminSessionId)])
+        .query({ page: 2, pageSize: 1 })
+        .send({})
+        .expect(200)
+        .then((response) => {
+          const payload = response.body.data;
+          expect(payload.total).to.equal(3);
+          expect(payload.auditLogs).to.have.length(1);
+          expect(payload.auditLogs[0].id).to.equal(sessionOwnedLog.id);
+        });
+    });
+
+    it('supports cursor-based pagination', async () => {
+      const firstPageResponse = await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .set('Cookie', [attachSession(adminSessionId)])
+        .query({ limit: 1 })
+        .send({})
+        .expect(200);
+
+      const firstPage = firstPageResponse.body.data;
+      expect(firstPage.auditLogs).to.have.length(1);
+      const cursorSource = firstPage.auditLogs[0];
+      const cursor = `${cursorSource.timestamp}:${cursorSource.id}`;
+
+      await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .set('Cookie', [attachSession(adminSessionId)])
+        .query({ limit: 1, cursor })
+        .send({})
+        .expect(200)
+        .then((response) => {
+          const payload = response.body.data;
+          expect(payload.total).to.equal(2);
+          expect(payload.auditLogs).to.have.length(1);
+          expect(payload.auditLogs[0].id).to.equal(sessionOwnedLog.id);
         });
     });
   });
