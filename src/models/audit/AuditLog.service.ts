@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOptionsWhere } from 'typeorm';
+import { Brackets } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
@@ -52,6 +52,27 @@ export type AuditLogArchiverUpdateableConfig = {
   retention_days: number;
 };
 
+export type ListAuditLogsCursor = {
+  timestamp: Date;
+  id: number;
+};
+
+export type ListAuditLogsOptions = {
+  isAdmin: boolean;
+  sessionId?: number | null;
+  userId?: number | null;
+  skip?: number;
+  take?: number;
+  timestampFrom?: Date;
+  timestampTo?: Date;
+  userName?: string;
+  sessionIdFilter?: number | null;
+  fwCloudName?: string;
+  firewallName?: string;
+  clusterName?: string;
+  cursor?: ListAuditLogsCursor;
+};
+
 export class AuditLogService extends Service {
   protected _config: AuditLogArchiveConfig;
   protected _archiveMutex = new Mutex();
@@ -70,44 +91,121 @@ export class AuditLogService extends Service {
     return this;
   }
 
-  public async listAuditLogs(options: {
-    isAdmin: boolean;
-    sessionId?: number | null;
-    userId?: number | null;
-    skip?: number;
-    take?: number;
-  }): Promise<{ auditLogs: AuditLog[]; total: number }> {
-    const findOptions: FindManyOptions<AuditLog> = {
-      order: { timestamp: 'DESC', id: 'DESC' },
-    };
-
-    if (typeof options.skip === 'number' && options.skip > 0) {
-      findOptions.skip = options.skip;
-    }
-
-    if (typeof options.take === 'number' && options.take > 0) {
-      findOptions.take = options.take;
-    }
+  public async listAuditLogs(options: ListAuditLogsOptions): Promise<{
+    auditLogs: AuditLog[];
+    total: number;
+  }> {
+    const query = this.auditLogRepository
+      .createQueryBuilder('auditLog')
+      .orderBy('auditLog.timestamp', 'DESC')
+      .addOrderBy('auditLog.id', 'DESC');
 
     if (!options.isAdmin) {
-      const where: FindOptionsWhere<AuditLog>[] = [];
+      const accessRestrictions: Array<{ clause: string; params: Record<string, unknown> }> = [];
 
       if (options.sessionId !== null && options.sessionId !== undefined) {
-        where.push({ sessionId: options.sessionId });
+        accessRestrictions.push({
+          clause: 'auditLog.sessionId = :currentSessionId',
+          params: { currentSessionId: options.sessionId },
+        });
       }
 
       if (options.userId !== null && options.userId !== undefined) {
-        where.push({ userId: options.userId });
+        accessRestrictions.push({
+          clause: 'auditLog.userId = :currentUserId',
+          params: { currentUserId: options.userId },
+        });
       }
 
-      if (!where.length) {
+      if (!accessRestrictions.length) {
         return { auditLogs: [], total: 0 };
       }
 
-      findOptions.where = where;
+      query.andWhere(
+        new Brackets((qb) => {
+          accessRestrictions.forEach((restriction, index) => {
+            if (index === 0) {
+              qb.where(restriction.clause, restriction.params);
+            } else {
+              qb.orWhere(restriction.clause, restriction.params);
+            }
+          });
+        }),
+      );
     }
 
-    const [auditLogs, total] = await this.auditLogRepository.findAndCount(findOptions);
+    if (options.timestampFrom instanceof Date) {
+      query.andWhere('auditLog.timestamp >= :timestampFrom', {
+        timestampFrom: options.timestampFrom,
+      });
+    }
+
+    if (options.timestampTo instanceof Date) {
+      query.andWhere('auditLog.timestamp <= :timestampTo', {
+        timestampTo: options.timestampTo,
+      });
+    }
+
+    const applyTextFilter = (field: string, param: string, value: string) => {
+      query.andWhere(`LOWER(${field}) LIKE :${param}`, {
+        [param]: `%${value.toLowerCase()}%`,
+      });
+    };
+
+    if (typeof options.userName === 'string' && options.userName.trim() !== '') {
+      applyTextFilter('auditLog.userName', 'userName', options.userName);
+    }
+
+    if (typeof options.fwCloudName === 'string' && options.fwCloudName.trim() !== '') {
+      applyTextFilter('auditLog.fwCloudName', 'fwCloudName', options.fwCloudName);
+    }
+
+    if (typeof options.firewallName === 'string' && options.firewallName.trim() !== '') {
+      applyTextFilter('auditLog.firewallName', 'firewallName', options.firewallName);
+    }
+
+    if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
+      applyTextFilter('auditLog.clusterName', 'clusterName', options.clusterName);
+    }
+
+    if (
+      options.sessionIdFilter !== null &&
+      options.sessionIdFilter !== undefined &&
+      Number.isFinite(options.sessionIdFilter)
+    ) {
+      query.andWhere('auditLog.sessionId = :filterSessionId', {
+        filterSessionId: options.sessionIdFilter,
+      });
+    }
+
+    if (options.cursor) {
+      const cursor = options.cursor;
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('auditLog.timestamp < :cursorTimestamp', {
+            cursorTimestamp: cursor.timestamp,
+          }).orWhere(
+            new Brackets((inner) => {
+              inner
+                .where('auditLog.timestamp = :cursorTimestamp', {
+                  cursorTimestamp: cursor.timestamp,
+                })
+                .andWhere('auditLog.id < :cursorId', { cursorId: cursor.id });
+            }),
+          );
+        }),
+      );
+    }
+
+    if (typeof options.skip === 'number' && options.skip > 0) {
+      query.skip(options.skip);
+    }
+
+    if (typeof options.take === 'number' && options.take > 0) {
+      query.take(options.take);
+    }
+
+    const [auditLogs, total] = await query.getManyAndCount();
 
     return { auditLogs, total };
   }

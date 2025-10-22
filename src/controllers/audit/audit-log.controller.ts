@@ -21,13 +21,22 @@
 */
 
 import { Request } from 'express';
-import { Validate } from '../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
-import { AuditLogService } from '../../models/audit/AuditLog.service';
+import {
+  AuditLogService,
+  ListAuditLogsOptions,
+  ListAuditLogsCursor,
+} from '../../models/audit/AuditLog.service';
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
+import { AuditLogListQueryDto } from './dtos/audit-log-query.dto';
+import { AuditLogPolicy } from '../../policies/auditlog.policy';
 
 export class AuditLogController extends Controller {
+  private static readonly DEFAULT_LIMIT = 50;
+  private static readonly MAX_LIMIT = 200;
+
   protected _auditLogService: AuditLogService;
 
   public async make(_request: Request): Promise<void> {
@@ -35,25 +44,130 @@ export class AuditLogController extends Controller {
   }
 
   @Validate()
+  @ValidateQuery(AuditLogListQueryDto)
   public async list(request: Request): Promise<ResponseBuilder> {
+    (await AuditLogPolicy.list(request)).authorize();
+
+    const options = this.buildOptions(request);
+
+    const results = await this._auditLogService.listAuditLogs(options);
+
+    return ResponseBuilder.buildResponse().status(200).body(results);
+  }
+
+  protected buildOptions(request: Request): ListAuditLogsOptions {
     const currentUser = AuditLogHelper.getSessionUser(request);
-    const isAdmin = AuditLogHelper.isAdmin(currentUser);
-    const sessionId = AuditLogHelper.resolveSessionId(request);
-    const userId = currentUser?.id ?? AuditLogHelper.getNumeric(request.session?.user_id);
 
-    const { auditLogs, total } = await this._auditLogService.listAuditLogs({
-      isAdmin,
-      sessionId: isAdmin ? undefined : sessionId,
-      userId: isAdmin ? undefined : userId,
-    });
+    const options: ListAuditLogsOptions = {
+      isAdmin: AuditLogHelper.isAdmin(currentUser),
+      sessionId: AuditLogHelper.resolveSessionId(request),
+      userId: currentUser?.id ?? null,
+    };
 
-    const sanitizedAuditLogs = isAdmin
-      ? auditLogs
-      : await this._auditLogService.syncEntriesWithUser(auditLogs, currentUser);
+    const take =
+      this.parsePositiveInteger(request.query.limit) ??
+      this.parsePositiveInteger(request.query.pageSize) ??
+      AuditLogController.DEFAULT_LIMIT;
 
-    return ResponseBuilder.buildResponse().status(200).body({
-      total,
-      auditLogs: sanitizedAuditLogs,
-    });
+    options.take = Math.min(take, AuditLogController.MAX_LIMIT);
+
+    const timestampFrom = this.parseIsoDate(request.query.ts_from);
+    if (timestampFrom) {
+      options.timestampFrom = timestampFrom;
+    }
+
+    const timestampTo = this.parseIsoDate(request.query.ts_to);
+    if (timestampTo) {
+      options.timestampTo = timestampTo;
+    }
+
+    const userName = this.parseString(request.query.user_name);
+    if (userName) {
+      options.userName = userName;
+    }
+
+    const sessionFilter = this.parsePositiveInteger(request.query.session_id);
+    if (sessionFilter !== undefined) {
+      options.sessionIdFilter = sessionFilter;
+    }
+
+    const fwCloudName = this.parseString(request.query.fwcloud_name);
+    if (fwCloudName) {
+      options.fwCloudName = fwCloudName;
+    }
+
+    const firewallName = this.parseString(request.query.firewall_name);
+    if (firewallName) {
+      options.firewallName = firewallName;
+    }
+
+    const clusterName = this.parseString(request.query.cluster_name);
+    if (clusterName) {
+      options.clusterName = clusterName;
+    }
+
+    const cursor = this.parseCursor(request.query.cursor);
+    if (cursor) {
+      options.cursor = cursor;
+    }
+
+    const page = this.parsePositiveInteger(request.query.page) ?? 1;
+    if (page > 1) {
+      options.skip = (page - 1) * options.take;
+    }
+
+    return options;
+  }
+
+  private parsePositiveInteger(value: unknown): number | undefined {
+    const parsed = AuditLogHelper.getNumeric(value);
+    return parsed !== null && parsed > 0 ? parsed : undefined;
+  }
+
+  private parseIsoDate(value: unknown): Date | undefined {
+    if (typeof value !== 'string' || value.trim() === '') {
+      return undefined;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+
+  private parseString(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    return trimmed === '' ? undefined : trimmed;
+  }
+
+  private parseCursor(value: unknown): ListAuditLogsCursor | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      return undefined;
+    }
+
+    try {
+      const [timestampPart, idPart] = trimmed.split(':');
+      if (!timestampPart || !idPart) {
+        return undefined;
+      }
+
+      const timestamp = new Date(timestampPart);
+      const id = Number.parseInt(idPart, 10);
+
+      if (Number.isNaN(timestamp.getTime()) || Number.isNaN(id) || id <= 0) {
+        return undefined;
+      }
+
+      return { timestamp, id };
+    } catch {
+      return undefined;
+    }
   }
 }
