@@ -180,29 +180,22 @@ export class AuditLogService extends Service {
 
     if (options.cursor) {
       const cursor = options.cursor;
+      const cursorTimestamp = cursor.timestamp.toISOString();
       query.andWhere(
         new Brackets((qb) => {
           qb.where('auditLog.timestamp < :cursorTimestamp', {
-            cursorTimestamp: cursor.timestamp,
+            cursorTimestamp,
           }).orWhere(
             new Brackets((inner) => {
               inner
                 .where('auditLog.timestamp = :cursorTimestamp', {
-                  cursorTimestamp: cursor.timestamp,
+                  cursorTimestamp,
                 })
                 .andWhere('auditLog.id < :cursorId', { cursorId: cursor.id });
             }),
           );
         }),
       );
-    }
-
-    if (typeof options.skip === 'number' && options.skip > 0) {
-      query.skip(options.skip);
-    }
-
-    if (typeof options.take === 'number' && options.take > 0) {
-      query.take(options.take);
     }
 
     const [auditLogs, total] = await query.getManyAndCount();

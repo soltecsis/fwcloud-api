@@ -32,6 +32,7 @@ import {
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 import { AuditLogListQueryDto } from './dtos/audit-log-query.dto';
 import { AuditLogPolicy } from '../../policies/auditlog.policy';
+import { User } from '../../models/user/User';
 
 export class AuditLogController extends Controller {
   private static readonly DEFAULT_LIMIT = 50;
@@ -48,28 +49,36 @@ export class AuditLogController extends Controller {
   public async list(request: Request): Promise<ResponseBuilder> {
     (await AuditLogPolicy.list(request)).authorize();
 
-    const options = this.buildOptions(request);
+    const currentUser = AuditLogHelper.getSessionUser(request);
+    const options = this.buildOptions(request, currentUser);
 
     const results = await this._auditLogService.listAuditLogs(options);
+    const auditLogs =
+      options.isAdmin || !currentUser
+        ? results.auditLogs
+        : await this._auditLogService.syncEntriesWithUser(results.auditLogs, currentUser);
 
-    return ResponseBuilder.buildResponse().status(200).body(results);
+    return ResponseBuilder.buildResponse().status(200).body({ auditLogs, total: results.total });
   }
 
-  protected buildOptions(request: Request): ListAuditLogsOptions {
-    const currentUser = AuditLogHelper.getSessionUser(request);
-
+  protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {
     const options: ListAuditLogsOptions = {
       isAdmin: AuditLogHelper.isAdmin(currentUser),
       sessionId: AuditLogHelper.resolveSessionId(request),
       userId: currentUser?.id ?? null,
     };
 
-    const take =
-      this.parsePositiveInteger(request.query.limit) ??
-      this.parsePositiveInteger(request.query.pageSize) ??
-      AuditLogController.DEFAULT_LIMIT;
+    const requestedLimit =
+      this.parseNonNegativeInteger(request.query.limit) ??
+      this.parseNonNegativeInteger(request.query.pageSize);
 
-    options.take = Math.min(take, AuditLogController.MAX_LIMIT);
+    if (requestedLimit === undefined) {
+      options.take = Math.min(AuditLogController.DEFAULT_LIMIT, AuditLogController.MAX_LIMIT);
+    } else if (requestedLimit === 0) {
+      options.take = undefined;
+    } else {
+      options.take = Math.min(requestedLimit, AuditLogController.MAX_LIMIT);
+    }
 
     const timestampFrom = this.parseIsoDate(request.query.ts_from);
     if (timestampFrom) {
@@ -112,11 +121,16 @@ export class AuditLogController extends Controller {
     }
 
     const page = this.parsePositiveInteger(request.query.page) ?? 1;
-    if (page > 1) {
+    if (page > 1 && typeof options.take === 'number' && options.take > 0) {
       options.skip = (page - 1) * options.take;
     }
 
     return options;
+  }
+
+  private parseNonNegativeInteger(value: unknown): number | undefined {
+    const parsed = AuditLogHelper.getNumeric(value);
+    return parsed !== null && parsed >= 0 ? parsed : undefined;
   }
 
   private parsePositiveInteger(value: unknown): number | undefined {
@@ -153,11 +167,13 @@ export class AuditLogController extends Controller {
     }
 
     try {
-      const [timestampPart, idPart] = trimmed.split(':');
-      if (!timestampPart || !idPart) {
+      const separatorIndex = trimmed.lastIndexOf(':');
+      if (separatorIndex <= 0 || separatorIndex === trimmed.length - 1) {
         return undefined;
       }
 
+      const timestampPart = trimmed.slice(0, separatorIndex);
+      const idPart = trimmed.slice(separatorIndex + 1);
       const timestamp = new Date(timestampPart);
       const id = Number.parseInt(idPart, 10);
 

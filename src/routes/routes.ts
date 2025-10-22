@@ -130,6 +130,7 @@ export class Routes extends RouteCollection {
 
       router.prefix('/auditlogs', (router: RouterParser) => {
         router.get('/', AuditLogController, 'list').name('auditlogs.list');
+        router.put('/', AuditLogController, 'list');
       });
 
       //Systemctl routes

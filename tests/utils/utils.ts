@@ -32,15 +32,20 @@ import StringHelper from '../../src/utils/string.helper';
 import db from '../../src/database/database-manager';
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
+  const resolvedRole = user.role ?? 0;
+  const resolvedUsername =
+    user.username ??
+    (resolvedRole === 1 ? `admin_${StringHelper.randomize(8)}` : StringHelper.randomize(10));
+
   const result: User = db
     .getSource()
     .manager.getRepository(User)
     .create({
-      username: user.username ? user.username : StringHelper.randomize(10),
+      username: resolvedUsername,
       email: StringHelper.randomize(10) + '@fwcloud.test',
       password: StringHelper.randomize(10),
       customer: { id: 1 },
-      role: user.role ? user.role : 0,
+      role: resolvedRole,
       enabled: 1,
       confirmation_token: StringHelper.randomize(10),
     });

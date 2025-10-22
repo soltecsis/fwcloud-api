@@ -41,7 +41,7 @@ export class AuditLogListQueryDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(200)
   limit?: number;
 
@@ -57,7 +57,7 @@ export class AuditLogListQueryDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(200)
   pageSize?: number;
 }
