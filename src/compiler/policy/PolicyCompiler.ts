@@ -71,7 +71,17 @@ export class PolicyCompiler {
         if (!rulesData) return resolve(result);
 
         for (let i = 0; i < rulesData.length; i++) {
+          if (eventEmitter)
+            eventEmitter.emit(
+              'message',
+              new ProgressNoticePayload(
+                `Rule ${i + 1} (ID: ${rulesData[i].id})${!rulesData[i].active ? ' [DISABLED]' : ''}`,
+              ),
+            );
+
           let compiler: PolicyCompilerClasses;
+
+          // Obtain rule type, it may change during the compilation process
           const ruleType = rulesData[i].type;
 
           if (compileFor == 'IPTables') compiler = new IPTablesCompiler(rulesData[i]);
@@ -101,23 +111,6 @@ export class PolicyCompiler {
               ? { dangerous: true, ruleIPType: ipType, ruleChainType: chain, ruleOrder: i + 1 }
               : {}), // Only add 'dangerous' properties if rule is dangerous
           });
-
-          if (eventEmitter) {
-            if (!dangerous)
-              eventEmitter.emit(
-                'message',
-                new ProgressNoticePayload(
-                  `Rule ${i + 1} (ID: ${rulesData[i].id})${!rulesData[i].active ? ' [DISABLED]' : ''}`,
-                ),
-              );
-            else
-              eventEmitter.emit(
-                'message',
-                new ProgressWarningPayload(
-                  `Rule ${i + 1} (ID: ${rulesData[i].id}) [DANGEROUS]${!rulesData[i].active ? ' [DISABLED]' : ''}`,
-                ),
-              );
-          }
         }
 
         resolve(result);
