@@ -108,7 +108,9 @@ export class PolicyCompiler {
             comment: rulesData[i].comment,
             cs: compilationString,
             ...(dangerous
-              ? { dangerous: true, ruleIPType: ipType, ruleChainType: chain, ruleOrder: i + 1 }
+              ? {
+                  dangerousRuleData: { ruleIPType: ipType, ruleChainType: chain, ruleOrder: i + 1 },
+                }
               : {}), // Only add 'dangerous' properties if rule is dangerous
           });
         }

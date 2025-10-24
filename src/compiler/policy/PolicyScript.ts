@@ -147,7 +147,7 @@ export class PolicyScript {
         if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
         if (rule.active) cs += rule.cs;
       }
-      if (rule.dangerous) dangerous.push(rule);
+      if (rule.dangerousRuleData) dangerous.push(rule);
     }
     this.stream.write(cs);
     return dangerous;
@@ -331,7 +331,7 @@ export class PolicyScript {
       cs += `\n# Rule ${i + 1} (ID: ${rule.id})\n`;
       if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
       cs += rule.cs;
-      if (rule.dangerous) dangerous.push(rule);
+      if (rule.dangerousRuleData) dangerous.push(rule);
     }
 
     if (cs) this.stream.write(cs);
