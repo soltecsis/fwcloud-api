@@ -40,13 +40,13 @@ export class PolicyCompiler {
     if (processedRule.endsWith('\n')) {
       processedRule = processedRule.slice(0, -1);
     }
-    if (compiler === 'iptables') {
+    if (compiler === 'IPTables') {
       // Remove "-m comment --comment 'string_comment'" from the rule if present
       processedRule = processedRule.replace(/-m comment --comment\s+'[^']*'\s*/g, '');
-    } else if (compiler === 'nftables') {
+    } else if (compiler === 'NFTables') {
       // Remove 'comment \"string_comment\"' from the rule if present
       processedRule = processedRule.replace(/\s*comment\s+\\"[^\\"]*\\"\s*/g, '');
-    } else if (compiler === 'vyos') {
+    } else if (compiler === 'VyOS') {
       // Remove 'description "string_comment"' from the rule if present
       let ruleLines = processedRule.split('\n');
       ruleLines = ruleLines.filter((line) => !line.trim().includes('description '));
@@ -78,24 +78,25 @@ export class PolicyCompiler {
           else if (compileFor == 'NFTables') compiler = new NFTablesCompiler(rulesData[i]);
           else compiler = new VyOSCompiler(rulesData[i]);
 
-          const compiledRule = compiler.ruleCompile();
+          const compilationString =
+            rulesData[i].active || rulesData.length === 1 ? compiler.ruleCompile() : '';
 
           // Check if rule is dangerous
           const { ipType, chain } = typeMap[ruleType];
-          const dangerousRulesArray = dangerousRules[ipType][compileFor.toLowerCase()][chain];
+          const dangerousRulesArray = dangerousRules[ipType][compileFor][chain];
           let dangerous = false;
           if (rulesData[i].special === 0) {
             dangerous =
               dangerousRulesArray.length === 0
                 ? false
-                : this.checkRuleSafety(compiledRule, dangerousRulesArray, compileFor.toLowerCase());
+                : this.checkRuleSafety(compilationString, dangerousRulesArray, compileFor);
           }
 
           result.push({
             id: rulesData[i].id,
             active: rulesData[i].active,
             comment: rulesData[i].comment,
-            cs: rulesData[i].active || rulesData.length === 1 ? compiledRule : '',
+            cs: compilationString,
             ...(dangerous
               ? { dangerous: true, ruleIPType: ipType, ruleChainType: chain, ruleOrder: i + 1 }
               : {}), // Only add 'dangerous' properties if rule is dangerous
