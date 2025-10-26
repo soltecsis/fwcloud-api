@@ -1,5 +1,5 @@
 {
-  "ipv4": {
+  "IPv4": {
     "IPTables": {
       "INPUT": ["$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT", "$IPTABLES -A INPUT -j ACCEPT", "$IPTABLES -A INPUT -j DROP", "$IPTABLES -A INPUT -j REJECT"],
       "OUTPUT": [],
@@ -22,7 +22,7 @@
       "SNAT": []
     }
   },
-  "ipv6": {
+  "IPv6": {
     "IPTables": {
       "INPUT": ["$IP6TABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT", "$IP6TABLES -A INPUT -j ACCEPT", "$IP6TABLES -A INPUT -j DROP", "$IP6TABLES -A INPUT -j REJECT"],
       "OUTPUT": [],
