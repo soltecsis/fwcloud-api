@@ -38,7 +38,7 @@ import StringHelper from '../../../../src/utils/string.helper';
 import { EntityManager } from 'typeorm';
 
 type Chain = 'INPUT' | 'FORWARD';
-type IpType = 'ipv4' | 'ipv6';
+type IpType = 'IPv4' | 'IPv6';
 type PolicyTypeKey = 'IPv4:INPUT' | 'IPv4:OUTPUT' | 'IPv4:FORWARD' | 'IPv6:INPUT' | 'IPv6:FORWARD';
 
 type RuleActionKey = 'ACCEPT' | 'DROP' | 'REJECT';
@@ -171,10 +171,10 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     expect(rule.active).to.equal(1);
     if (hasComment) expect(rule.comment).to.be.a('string');
     else expect(rule.comment).to.eql(null);
-    expect(rule.dangerous).to.eql(true);
-    expect(rule.ruleIPType).to.equal(ipType);
-    expect(rule.ruleChainType).to.equal(chain);
-    expect(rule.ruleOrder).to.equal(1);
+    expect(rule.dangerousRuleData).to.exist;
+    expect(rule.dangerousRuleData.ruleIPType).to.equal(ipType);
+    expect(rule.dangerousRuleData.ruleChainType).to.equal(chain);
+    expect(rule.dangerousRuleData.ruleOrder).to.equal(1);
   }
 
   const iptablesScenarios: Array<{
@@ -189,7 +189,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
   }> = [
     {
       typeKey: 'IPv4:INPUT',
-      ipType: 'ipv4',
+      ipType: 'IPv4',
       chain: 'INPUT',
       expected: {
         ACCEPT: {
@@ -202,7 +202,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     },
     {
       typeKey: 'IPv4:FORWARD',
-      ipType: 'ipv4',
+      ipType: 'IPv4',
       chain: 'FORWARD',
       expected: {
         ACCEPT: {
@@ -215,7 +215,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     },
     {
       typeKey: 'IPv6:INPUT',
-      ipType: 'ipv6',
+      ipType: 'IPv6',
       chain: 'INPUT',
       expected: {
         ACCEPT: {
@@ -228,7 +228,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     },
     {
       typeKey: 'IPv6:FORWARD',
-      ipType: 'ipv6',
+      ipType: 'IPv6',
       chain: 'FORWARD',
       expected: {
         ACCEPT: {
@@ -253,7 +253,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
   }> = [
     {
       typeKey: 'IPv4:INPUT',
-      ipType: 'ipv4',
+      ipType: 'IPv4',
       chain: 'INPUT',
       expected: {
         ACCEPT: {
@@ -266,7 +266,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     },
     {
       typeKey: 'IPv4:FORWARD',
-      ipType: 'ipv4',
+      ipType: 'IPv4',
       chain: 'FORWARD',
       expected: {
         ACCEPT: {
@@ -279,7 +279,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     },
     {
       typeKey: 'IPv6:INPUT',
-      ipType: 'ipv6',
+      ipType: 'IPv6',
       chain: 'INPUT',
       expected: {
         ACCEPT: {
@@ -292,7 +292,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     },
     {
       typeKey: 'IPv6:FORWARD',
-      ipType: 'ipv6',
+      ipType: 'IPv6',
       chain: 'FORWARD',
       expected: {
         ACCEPT: {
@@ -310,10 +310,10 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     ipType: IpType;
     chain: Chain;
   }> = [
-    { typeKey: 'IPv4:INPUT', ipType: 'ipv4', chain: 'INPUT' },
-    { typeKey: 'IPv4:FORWARD', ipType: 'ipv4', chain: 'FORWARD' },
-    { typeKey: 'IPv6:INPUT', ipType: 'ipv6', chain: 'INPUT' },
-    { typeKey: 'IPv6:FORWARD', ipType: 'ipv6', chain: 'FORWARD' },
+    { typeKey: 'IPv4:INPUT', ipType: 'IPv4', chain: 'INPUT' },
+    { typeKey: 'IPv4:FORWARD', ipType: 'IPv4', chain: 'FORWARD' },
+    { typeKey: 'IPv6:INPUT', ipType: 'IPv6', chain: 'INPUT' },
+    { typeKey: 'IPv6:FORWARD', ipType: 'IPv6', chain: 'FORWARD' },
   ];
 
   describe('IPTables dangerous rule detection', () => {
@@ -336,7 +336,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result).to.have.length(1);
           expect(result[0].cs).to.include(`-m comment --comment '${comment}'`);
           expect(result[0].cs).to.include('-m conntrack --ctstate NEW -j ACCEPT');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -361,7 +361,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result).to.have.length(1);
           expect(result[0].cs).to.include(`-m comment --comment '${comment}'`);
           expect(result[0].cs).to.include('-j DROP');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -386,7 +386,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result).to.have.length(1);
           expect(result[0].cs).to.include(`-m comment --comment '${comment}'`);
           expect(result[0].cs).to.include('-j REJECT');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
     });
@@ -414,7 +414,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result[0].cs).to.include(`-m comment --comment '${comment}'`);
           expect(result[0].cs).to.include('-j ACCEPT');
           expect(result[0].cs).to.not.include('--ctstate NEW');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -442,7 +442,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result[0].cs).to.include(`-m comment --comment '${comment}'`);
           expect(result[0].cs).to.include('-j DROP');
           expect(result[0].cs).to.not.include('--ctstate NEW');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -470,7 +470,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result[0].cs).to.include(`-m comment --comment '${comment}'`);
           expect(result[0].cs).to.include('-j REJECT');
           expect(result[0].cs).to.not.include('--ctstate NEW');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
     });
@@ -497,7 +497,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result[0].cs).to.include(
             'counter accept comment \\"Regla peligrosa con comentario\\"',
           );
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -523,7 +523,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result[0].cs).to.include(
             'counter drop comment \\"Regla peligrosa con comentario\\"',
           );
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -549,7 +549,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(result[0].cs).to.include(
             'counter reject comment \\"Regla peligrosa con comentario\\"',
           );
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
     });
@@ -578,7 +578,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             'counter accept comment \\"Regla peligrosa con comentario\\"',
           );
           expect(result[0].cs).to.not.include('ct state new');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -607,7 +607,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             'counter drop comment \\"Regla peligrosa con comentario\\"',
           );
           expect(result[0].cs).to.not.include('ct state new');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -636,7 +636,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             'counter reject comment \\"Regla peligrosa con comentario\\"',
           );
           expect(result[0].cs).to.not.include('ct state new');
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
     });
@@ -681,7 +681,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           );
           expect(trimmedLines).to.include(`set firewall name INPUT rule ${ruleId} action accept`);
 
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -718,7 +718,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             `set firewall name INPUT rule ${ruleId} description "${comment}"`,
           );
           expect(trimmedLines).to.include(`set firewall name INPUT rule ${ruleId} action drop`);
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -755,7 +755,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             `set firewall name INPUT rule ${ruleId} description "${comment}"`,
           );
           expect(trimmedLines).to.include(`set firewall name INPUT rule ${ruleId} action reject`);
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
     });
@@ -798,7 +798,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             `set firewall name INPUT rule ${ruleId} state new enable`,
           );
 
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -840,7 +840,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(trimmedLines).to.not.include(
             `set firewall name INPUT rule ${ruleId} state new enable`,
           );
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
 
@@ -882,7 +882,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expect(trimmedLines).to.not.include(
             `set firewall name INPUT rule ${ruleId} state new enable`,
           );
-          expectDangerousMetadata(result[0], ruleId, 'ipv4', 'INPUT', true);
+          expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
     });
