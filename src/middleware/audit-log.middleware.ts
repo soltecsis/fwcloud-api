@@ -207,6 +207,8 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
       auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
       auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+      const sourceIp = this.getClientIp(req)?.trim() ?? null;
+      auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
 
       const fwCloudId = this.extractIdentifier(req, [
         'fwcloud',
