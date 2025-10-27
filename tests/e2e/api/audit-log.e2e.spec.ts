@@ -77,6 +77,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       firewallName: null,
       clusterId: null,
       clusterName: null,
+      sourceIp: null,
     };
 
     return repository.save(repository.create({ ...base, ...overrides }));
@@ -111,6 +112,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       fwCloudName: 'User Cloud',
       firewallName: 'User Firewall',
       clusterName: 'User Cluster',
+      sourceIp: '198.51.100.10',
     });
 
     sessionOwnedLog = await persistAuditLog({
@@ -122,6 +124,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       fwCloudName: 'Session Cloud',
       firewallName: 'Session Firewall',
       clusterName: 'Session Cluster',
+      sourceIp: '198.51.100.20',
     });
 
     adminOwnedLog = await persistAuditLog({
@@ -132,6 +135,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       fwCloudName: 'Production Cloud',
       firewallName: 'Production Firewall',
       clusterName: 'Production Cluster',
+      sourceIp: '198.51.100.30',
     });
 
     foreignLog = await persistAuditLog({
@@ -142,6 +146,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       fwCloudName: 'Foreign Cloud',
       firewallName: 'Foreign Firewall',
       clusterName: 'Foreign Cluster',
+      sourceIp: '198.51.100.40',
     });
   });
 
@@ -198,6 +203,21 @@ describe(describeName('AuditLog API E2E suite'), () => {
         expect(payload.total).to.equal(1);
         expect(payload.auditLogs).to.have.length(1);
         expect(payload.auditLogs[0].id).to.equal(sessionOwnedLog.id);
+      });
+  });
+
+  it('filters administrative listings by source IP address', async () => {
+    await listAuditLogs(adminSessionToken, {
+      source_ip: '198.51.100.30',
+    })
+      .expect(200)
+      .then((response) => {
+        const payload = response.body.data;
+
+        expect(payload.total).to.equal(1);
+        expect(payload.auditLogs).to.have.length(1);
+        expect(payload.auditLogs[0].id).to.equal(adminOwnedLog.id);
+        expect(payload.auditLogs[0].sourceIp).to.equal('198.51.100.30');
       });
   });
 

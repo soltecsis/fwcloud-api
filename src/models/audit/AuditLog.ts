@@ -60,6 +60,14 @@ export class AuditLog extends Model {
   sessionId: number | null;
 
   @Column({
+    type: 'varchar',
+    length: 45,
+    name: 'source_ip',
+    nullable: true,
+  })
+  sourceIp: string | null;
+
+  @Column({
     type: 'int',
     name: 'fwcloud_id',
     nullable: true,

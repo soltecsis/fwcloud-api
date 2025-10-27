@@ -100,6 +100,7 @@ describe('AuditLogMiddleware', () => {
     expect(entry.userId).to.equal(99);
     expect(entry.userName).to.equal('tester');
     expect(entry.sessionId).to.equal(12345);
+    expect(entry.sourceIp).to.equal('203.0.113.10');
     expect(entry.fwCloudId).to.equal(11);
     expect(entry.firewallId).to.equal(7);
     expect(entry.clusterId).to.equal(3);
@@ -118,6 +119,53 @@ describe('AuditLogMiddleware', () => {
     expect(payload.body.firewall).to.equal(7);
     expect(payload.query.cluster).to.equal('3');
     expect(payload.durationMs).to.be.a('number');
+  });
+
+  it('defaults to the request IP address when forwarded headers are absent', async () => {
+    const app = express();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 1001, username: 'local-user' };
+      (req as any).sessionID = 'local-session';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+    app.post('/local', (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    await request(app).post('/local').send({ probe: true });
+
+    const [entry] = await waitForAuditLogs();
+    expect(entry.sourceIp).to.be.a('string');
+    const ip = entry.sourceIp ?? '';
+    expect(ip === '::1' || /127\.0\.0\.1$/.test(ip)).to.be.true;
+  });
+
+  it('captures the first forwarded IP address and trims extraneous whitespace', async () => {
+    const app = express();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 2002, username: 'forwarded-user' };
+      (req as any).sessionID = 'forwarded-session';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+    app.patch('/forwarded', (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    await request(app)
+      .patch('/forwarded')
+      .set('X-Forwarded-For', ' 198.51.100.50 , 10.0.0.2 ')
+      .send({ value: true });
+
+    const [entry] = await waitForAuditLogs();
+    expect(entry.sourceIp).to.equal('198.51.100.50');
   });
 
   it('should derive hashed numeric session id for authenticated requests with alphanumeric session identifiers', async () => {

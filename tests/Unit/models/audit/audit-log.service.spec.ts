@@ -56,6 +56,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       fwCloudName: null,
       firewallName: null,
       clusterName: null,
+      sourceIp: null,
       ...overrides,
     });
 
@@ -161,6 +162,32 @@ describe(describeName('AuditLogService unit suite'), () => {
         fwCloudName: 'production',
         firewallName: 'prod',
         clusterName: 'prod',
+      });
+
+      expect(total).to.equal(1);
+      expect(auditLogs).to.have.length(1);
+      expect(auditLogs[0].id).to.equal(expected.id);
+    });
+
+    it('filters administrative requests by source IP address', async () => {
+      await createAuditLog({
+        timestamp: new Date('2024-01-05T10:00:00Z'),
+        sourceIp: '198.51.100.10',
+      });
+
+      const expected = await createAuditLog({
+        timestamp: new Date('2024-01-06T10:00:00Z'),
+        sourceIp: '198.51.100.20',
+      });
+
+      await createAuditLog({
+        timestamp: new Date('2024-01-07T10:00:00Z'),
+        sourceIp: '203.0.113.30',
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        sourceIp: '198.51.100.20',
       });
 
       expect(total).to.equal(1);

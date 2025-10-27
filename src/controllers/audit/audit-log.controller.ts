@@ -115,6 +115,11 @@ export class AuditLogController extends Controller {
       options.clusterName = clusterName;
     }
 
+    const sourceIp = this.parseString(request.query.source_ip);
+    if (sourceIp) {
+      options.sourceIp = sourceIp;
+    }
+
     const cursor = this.parseCursor(request.query.cursor);
     if (cursor) {
       options.cursor = cursor;

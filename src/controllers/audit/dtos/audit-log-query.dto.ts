@@ -40,6 +40,11 @@ export class AuditLogListQueryDto {
   cluster_name?: string;
 
   @IsOptional()
+  @IsString()
+  @Transform(trim)
+  source_ip?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(200)

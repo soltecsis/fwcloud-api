@@ -70,6 +70,7 @@ export type ListAuditLogsOptions = {
   fwCloudName?: string;
   firewallName?: string;
   clusterName?: string;
+  sourceIp?: string;
   cursor?: ListAuditLogsCursor;
 };
 
@@ -166,6 +167,10 @@ export class AuditLogService extends Service {
 
     if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
       applyTextFilter('auditLog.clusterName', 'clusterName', options.clusterName);
+    }
+
+    if (typeof options.sourceIp === 'string' && options.sourceIp.trim() !== '') {
+      applyTextFilter('auditLog.sourceIp', 'sourceIp', options.sourceIp);
     }
 
     if (
