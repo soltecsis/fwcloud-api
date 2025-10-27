@@ -43,6 +43,13 @@ export class AuditLog1759918517845 implements MigrationInterface {
             default: null,
           },
           {
+            name: 'source_ip',
+            type: 'varchar',
+            length: '45',
+            isNullable: true,
+            default: null,
+          },
+          {
             name: 'fwcloud_id',
             type: 'int',
             length: '11',
@@ -117,6 +124,10 @@ export class AuditLog1759918517845 implements MigrationInterface {
           {
             name: 'IDX_audit_logs_session_id',
             columnNames: ['session_id'],
+          },
+          {
+            name: 'IDX_audit_logs_source_ip',
+            columnNames: ['source_ip'],
           },
           {
             name: 'IDX_audit_logs_fwcloud_id',
