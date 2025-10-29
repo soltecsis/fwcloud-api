@@ -23,11 +23,14 @@
 import express, { Request } from 'express';
 import request from 'supertest';
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { AuditLogMiddleware } from '../../../src/middleware/audit-log.middleware';
 import { AuditLog } from '../../../src/models/audit/AuditLog';
 import db from '../../../src/database/database-manager';
 import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
+import { Firewall } from '../../../src/models/firewall/Firewall';
+import { Cluster } from '../../../src/models/firewall/Cluster';
 
 describe('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -68,6 +71,10 @@ describe('AuditLogMiddleware', () => {
   beforeEach(async () => {
     const repository = db.getSource().manager.getRepository(AuditLog);
     await repository.clear();
+  });
+
+  afterEach(() => {
+    sinon.restore();
   });
 
   after(async () => {
@@ -195,6 +202,51 @@ describe('AuditLogMiddleware', () => {
     expect(entry.userId).to.equal(7);
     expect(entry.firewallId).to.equal(15);
     expect(entry.fwCloudId).to.equal(42);
+  });
+
+  it('enriches cluster metadata from firewall associations when absent in the request', async () => {
+    const app = express();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 505, username: 'cluster-user' };
+      (req as any).sessionID = 'cluster-session';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+    app.patch('/firewalls/:firewallId/settings', (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    const firewallId = 145;
+    const clusterId = 321;
+
+    const firewallEntity = Object.assign(new Firewall(), {
+      id: firewallId,
+      name: 'Edge-FW',
+      clusterId,
+    });
+
+    const clusterEntity = Object.assign(new Cluster(), {
+      id: clusterId,
+      name: 'Edge Cluster',
+    });
+
+    const firewallStub = sinon.stub(Firewall, 'findOne').resolves(firewallEntity);
+    const clusterStub = sinon.stub(Cluster, 'findOne').resolves(clusterEntity);
+
+    await request(app).patch(`/firewalls/${firewallId}/settings`).send({ action: 'update' });
+
+    const [entry] = await waitForAuditLogs();
+    expect(entry.firewallId).to.equal(firewallId);
+    expect(entry.firewallName).to.equal('Edge-FW');
+    expect(entry.clusterId).to.equal(clusterId);
+    expect(entry.clusterName).to.equal('Edge Cluster');
+    expect(entry.description).to.contain('cluster=Edge Cluster');
+
+    sinon.assert.calledOnce(firewallStub);
+    sinon.assert.calledOnce(clusterStub);
   });
 
   it('should leave session data empty when the request is not authenticated', async () => {
