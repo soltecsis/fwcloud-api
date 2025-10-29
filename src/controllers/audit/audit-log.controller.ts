@@ -58,7 +58,14 @@ export class AuditLogController extends Controller {
         ? results.auditLogs
         : await this._auditLogService.syncEntriesWithUser(results.auditLogs, currentUser);
 
-    return ResponseBuilder.buildResponse().status(200).body({ auditLogs, total: results.total });
+    const localizedAuditLogs = auditLogs.map((entry) => ({
+      ...entry,
+      timestamp: AuditLogHelper.toLocalISOString(entry.timestamp),
+    }));
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({ auditLogs: localizedAuditLogs, total: results.total });
   }
 
   protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {

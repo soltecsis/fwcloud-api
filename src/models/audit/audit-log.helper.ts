@@ -78,4 +78,20 @@ export class AuditLogHelper {
 
     return null;
   }
+
+  public static toLocalISOString(date: Date): string {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return '';
+    }
+    const timezoneOffset = date.getTimezoneOffset();
+    const adjusted = new Date(date.getTime() - timezoneOffset * 60000);
+    const isoWithoutZ = adjusted.toISOString().slice(0, -1);
+    const offsetMinutes = -timezoneOffset;
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const absolute = Math.abs(offsetMinutes);
+    const hours = String(Math.trunc(absolute / 60)).padStart(2, '0');
+    const minutes = String(absolute % 60).padStart(2, '0');
+
+    return `${isoWithoutZ}${sign}${hours}:${minutes}`;
+  }
 }
