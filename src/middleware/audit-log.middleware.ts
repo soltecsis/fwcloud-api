@@ -228,10 +228,46 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.firewallId = firewallId;
       auditLog.clusterId = clusterId;
 
-      const [fwCloud, firewall, cluster] = await Promise.all([
-        fwCloudId ? FwCloud.findOne({ where: { id: fwCloudId } }) : Promise.resolve(null),
-        firewallId ? Firewall.findOne({ where: { id: firewallId } }) : Promise.resolve(null),
-        clusterId ? Cluster.findOne({ where: { id: clusterId } }) : Promise.resolve(null),
+      const firewall =
+        firewallId !== null && firewallId !== undefined
+          ? await Firewall.findOne({ where: { id: firewallId } })
+          : null;
+
+      const firewallClusterIdCandidate =
+        firewall && firewall.clusterId !== undefined
+          ? AuditLogHelper.getNumeric(firewall.clusterId)
+          : null;
+
+      const resolvedClusterId =
+        clusterId ??
+        (firewallClusterIdCandidate !== null && firewallClusterIdCandidate > 0
+          ? firewallClusterIdCandidate
+          : null);
+
+      if (resolvedClusterId !== null && resolvedClusterId !== undefined) {
+        auditLog.clusterId = resolvedClusterId;
+      }
+
+      const firewallFwCloudIdCandidate =
+        firewall && firewall.fwCloudId !== undefined
+          ? AuditLogHelper.getNumeric(firewall.fwCloudId)
+          : null;
+
+      if (
+        (auditLog.fwCloudId === null || auditLog.fwCloudId === undefined) &&
+        firewallFwCloudIdCandidate !== null &&
+        firewallFwCloudIdCandidate > 0
+      ) {
+        auditLog.fwCloudId = firewallFwCloudIdCandidate;
+      }
+
+      const [fwCloud, cluster] = await Promise.all([
+        auditLog.fwCloudId
+          ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } })
+          : Promise.resolve(null),
+        auditLog.clusterId
+          ? Cluster.findOne({ where: { id: auditLog.clusterId } })
+          : Promise.resolve(null),
       ]);
 
       auditLog.fwCloudName = fwCloud?.name ?? null;
