@@ -35,17 +35,27 @@ export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler | VyOSCo
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables' | 'VyOS';
 
 export class PolicyCompiler {
-  private static checkRuleSafety(rule: string, dangerousRules: any[], compiler: string): boolean {
+  private static checkRuleSafety(
+    rule: string,
+    dangerousRules: string[],
+    compiler: string,
+  ): boolean {
     let processedRule = rule;
     if (processedRule.endsWith('\n')) {
       processedRule = processedRule.slice(0, -1);
     }
+    // Remove the lines that tells if the cluster rule is for any specific node
+    processedRule = processedRule
+      .split('\n')
+      .filter((line) => !line.startsWith('if ') && !line.startsWith('fi'))
+      .join('\n');
     if (compiler === 'IPTables') {
       // Remove "-m comment --comment 'string_comment'" from the rule if present
       processedRule = processedRule.replace(/-m comment --comment\s+'[^']*'\s*/g, '');
     } else if (compiler === 'NFTables') {
-      // Remove 'comment \"string_comment\"' from the rule if present
-      processedRule = processedRule.replace(/\s*comment\s+\\"[^\\"]*\\"\s*/g, '');
+      // Remove comment \"{\'fwc_rgn\':\'groupName\'}string_comment\" from the rule if present
+      // Also works for comment \"string_comment\" if the rule is not in a group
+      processedRule = processedRule.replace(/\s*comment\s+\\"(?:\\.|[^\\"])*\\"\s*/g, '');
     } else if (compiler === 'VyOS') {
       // Remove 'description "string_comment"' from the rule if present
       let ruleLines = processedRule.split('\n');
