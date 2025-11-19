@@ -18,6 +18,7 @@ import { expect } from 'chai';
 import { KeepalivedGroup } from '../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model';
 import {
   KeepalivedRuleService,
+  KeepalivedRulesData,
   ICreateKeepalivedRule,
   IMoveFromKeepalivedRule,
 } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
@@ -34,6 +35,7 @@ import { IPObj } from '../../../../../src/models/ipobj/IPObj';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
 import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
+import { ItemForGrid } from '../../../../../src/models/system/keepalived/shared';
 
 describe(KeepalivedRuleService.name, () => {
   let service: KeepalivedRuleService;
@@ -126,6 +128,69 @@ describe(KeepalivedRuleService.name, () => {
 
       await expect(service.getKeepalivedRulesData('keepalived_grid', fwcloud, firewall, rules)).to
         .be.rejected;
+    });
+
+    it('should merge cluster firewalls and filter results by firewallApplyToId', async () => {
+      repositoryStub.restore();
+      const resolverStub = sinon
+        .stub<any, any>(service as any, 'resolveFirewallsForQuery')
+        .resolves({
+          queryFirewallIds: [10, 11],
+          targetFirewallId: 11,
+        });
+      const rulesForCluster: KeepalivedRulesData<ItemForGrid>[] = [
+        Object.assign(new KeepalivedRule(), { id: 1, firewallApplyToId: null, rule_order: 1 }),
+        Object.assign(new KeepalivedRule(), { id: 2, firewallApplyToId: 11, rule_order: 2 }),
+        Object.assign(new KeepalivedRule(), { id: 3, firewallApplyToId: 10, rule_order: 3 }),
+      ] as KeepalivedRulesData<ItemForGrid>[];
+      repositoryStub = sinon
+        .stub(service['_repository'], 'getKeepalivedRules')
+        .resolves(rulesForCluster);
+      const gridSqlStub = sinon
+        .stub<any, any>(service as any, 'getKeepalivedRulesGridSql')
+        .returns([]);
+
+      const result = await service.getKeepalivedRulesData('keepalived_grid', fwcloud, 11);
+
+      expect(repositoryStub.calledOnceWithExactly(fwcloud, [10, 11], undefined)).to.be.true;
+      expect(result.map((rule) => rule.id)).to.deep.equal([1, 2]);
+
+      resolverStub.restore();
+      gridSqlStub.restore();
+    });
+  });
+
+  describe('resolveFirewallsForQuery', () => {
+    it('should return provided firewall id when not found', async () => {
+      const result = await (service as any).resolveFirewallsForQuery(9999);
+
+      expect(result).to.deep.equal({
+        queryFirewallIds: [9999],
+        targetFirewallId: 9999,
+      });
+    });
+
+    it('should include cluster master when node belongs to a cluster', async () => {
+      const firewallRepository = db.getSource().manager.getRepository(Firewall);
+      const node = { id: 700, clusterId: 87 } as Firewall;
+      const master = { id: 701, clusterId: 87 } as Firewall;
+      const findOneStub = sinon.stub(firewallRepository, 'findOne').resolves(node);
+      const builderResult = {
+        where: () => builderResult,
+        andWhere: () => builderResult,
+        getOne: sinon.stub().resolves(master),
+      };
+      const createQueryBuilderStub = sinon
+        .stub(firewallRepository, 'createQueryBuilder')
+        .returns(builderResult as any);
+
+      const result = await (service as any).resolveFirewallsForQuery(node.id);
+
+      expect(result.targetFirewallId).to.equal(node.id);
+      expect(result.queryFirewallIds).to.have.members([node.id, master.id]);
+
+      findOneStub.restore();
+      createQueryBuilderStub.restore();
     });
   });
 

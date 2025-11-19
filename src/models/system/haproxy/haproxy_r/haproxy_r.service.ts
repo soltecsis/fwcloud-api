@@ -515,24 +515,34 @@ export class HAProxyRuleService extends Service {
     firewall: number,
     rules?: number[],
   ): Promise<HAProxyRulesData<T>[]> {
+    const { queryFirewallIds, targetFirewallId } = await this.resolveFirewallsForQuery(firewall);
+    const firewallsForQuery: number | number[] =
+      queryFirewallIds.length === 1 ? queryFirewallIds[0] : queryFirewallIds;
+    const shouldFilterByApplyTo = Array.isArray(firewallsForQuery);
     let rulesData: HAProxyRulesData<T>[];
 
     switch (dst) {
       case 'haproxy_grid':
         rulesData = (await this._repository.getHAProxyRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
         )) as HAProxyRulesData<T>[];
         break;
       case 'compiler':
         rulesData = (await this._repository.getHAProxyRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
           true,
         )) as HAProxyRulesData<T>[];
         break;
+    }
+
+    if (shouldFilterByApplyTo) {
+      rulesData = rulesData.filter(
+        (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === targetFirewallId,
+      );
     }
 
     const ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
@@ -543,8 +553,8 @@ export class HAProxyRuleService extends Service {
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
       dst === 'compiler'
-        ? this.buildHAProxyRulesCompilerSql(fwcloud, firewall)
-        : this.getHAProxyRulesGridSql(fwcloud, firewall);
+        ? this.buildHAProxyRulesCompilerSql(fwcloud, firewallsForQuery)
+        : this.getHAProxyRulesGridSql(fwcloud, firewallsForQuery);
 
     await Promise.all(sqls.map((sql) => HAProxyUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
@@ -645,16 +655,49 @@ export class HAProxyRuleService extends Service {
 
   private getHAProxyRulesGridSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIPObjsInHAProxy_ForGrid('rule', fwcloud, firewall)];
   }
 
   private buildHAProxyRulesCompilerSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIPObjsInHAProxy_ForGrid('rule', fwcloud, firewall)];
+  }
+
+  protected async resolveFirewallsForQuery(
+    firewallId: number,
+  ): Promise<{ queryFirewallIds: number[]; targetFirewallId: number }> {
+    const firewallRepository = db.getSource().manager.getRepository(Firewall);
+    const firewall = await firewallRepository.findOne({ where: { id: firewallId } });
+
+    if (!firewall) {
+      return {
+        queryFirewallIds: [firewallId],
+        targetFirewallId: firewallId,
+      };
+    }
+
+    const firewalls = new Set<number>([firewall.id]);
+
+    if (firewall.clusterId) {
+      const master = await firewallRepository
+        .createQueryBuilder('firewall')
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOne();
+
+      if (master) {
+        firewalls.add(master.id);
+      }
+    }
+
+    return {
+      queryFirewallIds: Array.from(firewalls),
+      targetFirewallId: firewall.id,
+    };
   }
 
   protected async validateFirewallApplyTo(
