@@ -171,27 +171,26 @@ describe(KeepalivedRuleService.name, () => {
     });
 
     it('should include cluster master when node belongs to a cluster', async () => {
-      const masterFirewall = await manager.getRepository(Firewall).save(
-        manager.getRepository(Firewall).create({
-          name: StringHelper.randomize(10),
-          fwCloudId: fwCloud.id,
-          clusterId: 87,
-          fwmaster: 1,
-        }),
-      );
-      const nodeFirewall = await manager.getRepository(Firewall).save(
-        manager.getRepository(Firewall).create({
-          name: StringHelper.randomize(10),
-          fwCloudId: fwCloud.id,
-          clusterId: 87,
-          fwmaster: 0,
-        }),
-      );
+      const firewallRepository = db.getSource().manager.getRepository(Firewall);
+      const node = { id: 700, clusterId: 87 } as Firewall;
+      const master = { id: 701, clusterId: 87 } as Firewall;
+      const findOneStub = sinon.stub(firewallRepository, 'findOne').resolves(node);
+      const builderResult = {
+        where: () => builderResult,
+        andWhere: () => builderResult,
+        getOne: sinon.stub().resolves(master),
+      };
+      const createQueryBuilderStub = sinon
+        .stub(firewallRepository, 'createQueryBuilder')
+        .returns(builderResult as any);
 
-      const result = await (service as any).resolveFirewallsForQuery(nodeFirewall.id);
+      const result = await (service as any).resolveFirewallsForQuery(node.id);
 
-      expect(result.targetFirewallId).to.equal(nodeFirewall.id);
-      expect(result.queryFirewallIds).to.have.members([nodeFirewall.id, masterFirewall.id]);
+      expect(result.targetFirewallId).to.equal(node.id);
+      expect(result.queryFirewallIds).to.have.members([node.id, master.id]);
+
+      findOneStub.restore();
+      createQueryBuilderStub.restore();
     });
   });
 
