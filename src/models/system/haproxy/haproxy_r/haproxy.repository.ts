@@ -260,10 +260,14 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
 
   async getHAProxyRules(
     FwCloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
     forCompilation: boolean = false,
   ): Promise<HAProxyRule[]> {
+    const firewallIds: number[] = Array.isArray(firewall)
+      ? Array.from(new Set(firewall))
+      : [firewall];
+
     const query: SelectQueryBuilder<HAProxyRule> = this.createQueryBuilder('haproxy')
       .leftJoinAndSelect('haproxy.group', 'group')
       .leftJoinAndSelect('haproxy.frontendIp', 'frontendIp')
@@ -278,7 +282,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
       .leftJoinAndSelect('haproxy.firewall', 'firewall')
       .leftJoinAndSelect('haproxy.firewallApplyTo', 'firewallApplyTo')
       .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
-      .where('firewall.id = :firewall', { firewall: firewall })
+      .where('firewall.id IN (:...firewallIds)', { firewallIds })
       .andWhere('fwCloud.id = :fwCloud', { fwCloud: FwCloud });
 
     if (rules) {
