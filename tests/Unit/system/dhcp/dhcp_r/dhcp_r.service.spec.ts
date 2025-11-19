@@ -23,6 +23,7 @@ import { expect } from 'chai';
 import { DHCPGroup } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model';
 import {
   DHCPRuleService,
+  DHCPRulesData,
   ICreateDHCPRule,
 } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service';
 import sinon from 'sinon';
@@ -39,6 +40,7 @@ import { DHCPRuleCreateDto } from '../../../../../src/controllers/system/dhcp/dt
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
 import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
+import { ItemForGrid } from '../../../../../src/models/system/dhcp/shared';
 
 describe(DHCPRuleService.name, () => {
   let service: DHCPRuleService;
@@ -142,6 +144,68 @@ describe(DHCPRuleService.name, () => {
         service.getDHCPRulesData('regular_grid', fwcloud, firewall, rules),
       ).to.be.rejectedWith(Error, 'Get rules error');
       repositoryStub.restore();
+    });
+
+    it('should combine cluster firewalls and filter results by firewallApplyToId', async () => {
+      const resolverStub = sinon
+        .stub<any, any>(service as any, 'resolveFirewallsForQuery')
+        .resolves({
+          queryFirewallIds: [10, 11],
+          targetFirewallId: 11,
+        });
+      const rulesForCluster: DHCPRulesData<ItemForGrid>[] = [
+        Object.assign(new DHCPRule(), { id: 1, firewallApplyToId: null, rule_order: 1 }),
+        Object.assign(new DHCPRule(), { id: 2, firewallApplyToId: 11, rule_order: 2 }),
+        Object.assign(new DHCPRule(), { id: 3, firewallApplyToId: 10, rule_order: 3 }),
+      ] as DHCPRulesData<ItemForGrid>[];
+      const repositoryStub = sinon
+        .stub(service['_repository'], 'getDHCPRules')
+        .resolves(rulesForCluster);
+      const gridSqlStub = sinon.stub<any, any>(service as any, 'getDHCPRulesGridSql').returns([]);
+
+      const result = await service.getDHCPRulesData('regular_grid', fwcloud, 11);
+
+      expect(repositoryStub.calledOnceWithExactly(fwcloud, [10, 11], undefined, [1, 3])).to.be.true;
+      expect(result.map((rule) => rule.id)).to.deep.equal([1, 2]);
+
+      resolverStub.restore();
+      repositoryStub.restore();
+      gridSqlStub.restore();
+    });
+  });
+
+  describe('resolveFirewallsForQuery', () => {
+    it('should fall back to provided firewall id when not found', async () => {
+      const result = await (service as any).resolveFirewallsForQuery(99999);
+
+      expect(result).to.deep.equal({
+        queryFirewallIds: [99999],
+        targetFirewallId: 99999,
+      });
+    });
+
+    it('should include the cluster master firewall when node belongs to a cluster', async () => {
+      const masterFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+          clusterId: 50,
+          fwmaster: 1,
+        }),
+      );
+      const nodeFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+          clusterId: 50,
+          fwmaster: 0,
+        }),
+      );
+
+      const result = await (service as any).resolveFirewallsForQuery(nodeFirewall.id);
+
+      expect(result.targetFirewallId).to.equal(nodeFirewall.id);
+      expect(result.queryFirewallIds).to.have.members([nodeFirewall.id, masterFirewall.id]);
     });
   });
 

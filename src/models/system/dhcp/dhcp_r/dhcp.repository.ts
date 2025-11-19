@@ -307,11 +307,15 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
   async getDHCPRules(
     FWCloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
     rule_types?: number[],
     forCompilation: boolean = false,
   ): Promise<DHCPRule[]> {
+    const firewallIds: number[] = Array.isArray(firewall)
+      ? Array.from(new Set(firewall))
+      : [firewall];
+
     const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
       .leftJoinAndSelect('dhcp_r.group', 'group')
       .leftJoinAndSelect('dhcp_r.network', 'network')
@@ -330,7 +334,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       .leftJoinAndSelect('dhcp_r.firewallApplyTo', 'firewallApplyTo')
       .leftJoinAndSelect('dhcp_r.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
-      .where('firewall.id = :firewallId', { firewallId: firewall })
+      .where('firewall.id IN (:...firewallIds)', { firewallIds })
       .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
     if (rule_types) {
