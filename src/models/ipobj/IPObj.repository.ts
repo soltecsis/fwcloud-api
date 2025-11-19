@@ -724,9 +724,11 @@ export class IPObjRepository extends Repository<IPObj> {
   getIpobjsInKeepalived_ForGrid(
     entity: ValidEntities,
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     dhcpRule?: number,
   ): SelectQueryBuilder<IPObj> {
+    const firewallIds: number[] = Array.isArray(firewall) ? firewall : [firewall];
+
     const query = this.createQueryBuilder('ipobj')
       .select('ipobj.id', 'id')
       .addSelect('ipobj.address', 'address')
@@ -756,7 +758,7 @@ export class IPObjRepository extends Repository<IPObj> {
       .leftJoin('int.firewall', 'int_firewall')
       .leftJoin('int_firewall.cluster', 'int_cluster')
       .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
-      .andWhere('firewall.id = :firewall', { firewall: firewall });
+      .andWhere('firewall.id IN (:...firewalls)', { firewalls: firewallIds });
 
     return query;
   }
