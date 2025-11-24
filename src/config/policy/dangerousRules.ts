@@ -17,7 +17,7 @@ const typeMap = {
 type DangerousRuleInfo = {
   ruleIPType: 'IPv4' | 'IPv6';
   ruleChainType: 'INPUT' | 'OUTPUT' | 'FORWARD' | 'SNAT' | 'DNAT';
-  ruleOrder: number;
+  critical: boolean;
 };
 
 export { typeMap, dangerousRules, DangerousRuleInfo };
