@@ -64,7 +64,10 @@ export class PolicyCompiler {
       return normalized.toLowerCase();
     };
     const sanitizeGroupName = (groupName?: string) => {
-      return stripQuotes(groupName);
+      const normalized = stripQuotes(groupName);
+      if (!normalized) return null;
+      // Quita uno o varios '!' iniciales (por si acaso)
+      return normalized.replace(/^!+/, '');
     };
     const registerInterface = (iface?: string) => {
       const normalized = sanitizeInterface(iface);
