@@ -91,13 +91,13 @@ export class DhcpController extends Controller {
   public async index(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
-    const dhcpG: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData(
+    const dhcpRules: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData(
       'compiler',
       this._fwCloud.id,
       this._firewall.id,
     );
 
-    return ResponseBuilder.buildResponse().status(200).body(dhcpG);
+    return ResponseBuilder.buildResponse().status(200).body(dhcpRules);
   }
 
   @Validate()
