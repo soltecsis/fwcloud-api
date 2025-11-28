@@ -24,16 +24,17 @@ import { describeName, expect } from '../../../mocha/global-setup';
 import db from '../../../../src/database/database-manager';
 import { PolicyRule, PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { PolicyRuleToInterface } from '../../../../src/models/policy/PolicyRuleToInterface';
+import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
 import {
   AvailablePolicyCompilers,
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { RuleActionsMap } from '../../../../src/compiler/policy/PolicyCompilerTools';
-import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
-import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
-import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Interface } from '../../../../src/models/interface/Interface';
 import StringHelper from '../../../../src/utils/string.helper';
 import { EntityManager } from 'typeorm';
 
@@ -43,10 +44,13 @@ type PolicyTypeKey = 'IPv4:INPUT' | 'IPv4:OUTPUT' | 'IPv4:FORWARD' | 'IPv6:INPUT
 
 type RuleActionKey = 'ACCEPT' | 'DROP' | 'REJECT';
 
+type InterfaceBinding = 'in' | 'out' | 'both';
+
 type CompileOptions = {
   comment?: string;
   optionsMask?: number;
   action?: RuleActionKey;
+  interfaceBinding?: InterfaceBinding;
 };
 
 describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), () => {
@@ -54,6 +58,10 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
   let manager: EntityManager;
   let fwcloud: number;
   let firewall: number;
+  let inboundInterfaceId: number;
+  let outboundInterfaceId: number;
+  let inboundInterfaceName: string;
+  let outboundInterfaceName: string;
 
   before(async () => {
     dbCon = db.getQuery();
@@ -65,14 +73,41 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
         .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))
     ).id;
 
+    const flagOpts = FireWallOptMask.PDR_WARNING | FireWallOptMask.PDR_CRITICAL;
+
     firewall = (
       await manager
         .getRepository(Firewall)
         .save(
           manager
             .getRepository(Firewall)
-            .create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }),
+            .create({ name: StringHelper.randomize(10), fwCloudId: fwcloud, options: flagOpts }),
         )
+    ).id;
+
+    const interfaceRepository = manager.getRepository(Interface);
+    inboundInterfaceName = `eth-in-${StringHelper.randomize(6)}`;
+    inboundInterfaceId = (
+      await interfaceRepository.save(
+        interfaceRepository.create({
+          name: inboundInterfaceName,
+          type: '10',
+          interface_type: '10',
+          firewallId: firewall,
+        }),
+      )
+    ).id;
+
+    outboundInterfaceName = `eth-out-${StringHelper.randomize(6)}`;
+    outboundInterfaceId = (
+      await interfaceRepository.save(
+        interfaceRepository.create({
+          name: outboundInterfaceName,
+          type: '10',
+          interface_type: '10',
+          firewallId: firewall,
+        }),
+      )
     ).id;
   });
 
@@ -87,8 +122,46 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
       comment: options.comment ?? null,
     });
 
+    if (options.interfaceBinding) {
+      await attachInterfacesToRule(ruleId, typeKey, options.interfaceBinding);
+    }
+
     const result = await compileRules(compiler, typeKey, [ruleId]);
     return { result, ruleId };
+  }
+
+  async function attachInterfacesToRule(
+    ruleId: number,
+    typeKey: PolicyTypeKey,
+    binding: InterfaceBinding,
+  ) {
+    const interfaceRepository = manager.getRepository(PolicyRuleToInterface);
+    const attach = async (direction: 'In' | 'Out', interfaceId: number) => {
+      const positionKey = `${typeKey}:${direction}`;
+      const positionId = RulePositionsMap.get(positionKey);
+      if (positionId === undefined) throw new Error(`Unknown policy position "${positionKey}"`);
+
+      await interfaceRepository.save(
+        interfaceRepository.create({
+          policyRuleId: ruleId,
+          interfaceId,
+          policyPositionId: positionId,
+          position_order: 1,
+        }),
+      );
+    };
+
+    const promises: Array<Promise<void>> = [];
+    if (binding === 'in' || binding === 'both') {
+      if (!inboundInterfaceId) throw new Error('Missing inbound interface for tests');
+      promises.push(attach('In', inboundInterfaceId));
+    }
+    if (binding === 'out' || binding === 'both') {
+      if (!outboundInterfaceId) throw new Error('Missing outbound interface for tests');
+      promises.push(attach('Out', outboundInterfaceId));
+    }
+
+    await Promise.all(promises);
   }
 
   type GeneralRuleOptions = {
@@ -144,28 +217,13 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     return PolicyCompiler.compile(compiler, rulesData);
   }
 
-  async function createIPv4Address(address: string) {
-    const ipObj = await manager.getRepository(IPObj).save(
-      manager.getRepository(IPObj).create({
-        fwCloudId: fwcloud,
-        name: `host-${StringHelper.randomize(6)}`,
-        ipObjTypeId: 5, // ADDRESS
-        address,
-        ip_version: 4,
-        created_by: 0,
-        updated_by: 0,
-      }),
-    );
-
-    return ipObj.id;
-  }
-
   function expectDangerousMetadata(
     rule: any,
     ruleId: number,
     ipType: IpType,
     chain: Chain,
     hasComment: boolean,
+    isCritical: boolean = true,
   ) {
     expect(rule.id).to.equal(ruleId);
     expect(rule.active).to.equal(1);
@@ -174,7 +232,7 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
     expect(rule.dangerousRuleData).to.exist;
     expect(rule.dangerousRuleData.ruleIPType).to.equal(ipType);
     expect(rule.dangerousRuleData.ruleChainType).to.equal(chain);
-    expect(rule.dangerousRuleData.ruleOrder).to.equal(1);
+    expect(rule.dangerousRuleData.critical).to.equal(isCritical);
   }
 
   const iptablesScenarios: Array<{
@@ -389,6 +447,22 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
+
+      describe('rules with interfaces', () => {
+        (['ACCEPT', 'DROP', 'REJECT'] as RuleActionKey[]).forEach((action) => {
+          it(`marks IPv4:FORWARD ${action} rule with interfaces as a warning`, async () => {
+            const { result, ruleId } = await compileDangerousRule('IPTables', 'IPv4:FORWARD', {
+              action,
+              interfaceBinding: 'both',
+            });
+            console.log(result);
+            expect(result).to.have.length(1);
+            expect(result[0].cs).to.include(`-i ${inboundInterfaceName}`);
+            expect(result[0].cs).to.include(`-o ${outboundInterfaceName}`);
+            expectDangerousMetadata(result[0], ruleId, 'IPv4', 'FORWARD', false, false);
+          });
+        });
+      });
     });
 
     describe('stateless', () => {
@@ -473,6 +547,22 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
+
+      describe('rules with interfaces', () => {
+        (['ACCEPT', 'DROP', 'REJECT'] as RuleActionKey[]).forEach((action) => {
+          it(`marks IPv4:FORWARD stateless ${action} rule with interfaces as a warning`, async () => {
+            const { result, ruleId } = await compileDangerousRule('IPTables', 'IPv4:FORWARD', {
+              action,
+              optionsMask: PolicyRuleOptMask.STATELESS,
+              interfaceBinding: 'both',
+            });
+            expect(result).to.have.length(1);
+            expect(result[0].cs).to.include(`-i ${inboundInterfaceName}`);
+            expect(result[0].cs).to.include(`-o ${outboundInterfaceName}`);
+            expectDangerousMetadata(result[0], ruleId, 'IPv4', 'FORWARD', false, false);
+          });
+        });
+      });
     });
   });
 
@@ -550,6 +640,21 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             'counter reject comment \\"Regla peligrosa con comentario\\"',
           );
           expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
+        });
+      });
+
+      describe('rules with interfaces', () => {
+        (['ACCEPT', 'DROP', 'REJECT'] as RuleActionKey[]).forEach((action) => {
+          it(`marks IPv4:FORWARD ${action} rule with interfaces as a warning`, async () => {
+            const { result, ruleId } = await compileDangerousRule('NFTables', 'IPv4:FORWARD', {
+              action,
+              interfaceBinding: 'both',
+            });
+            expect(result).to.have.length(1);
+            expect(result[0].cs).to.include(`iifname "${inboundInterfaceName}"`);
+            expect(result[0].cs).to.include(`oifname "${outboundInterfaceName}"`);
+            expectDangerousMetadata(result[0], ruleId, 'IPv4', 'FORWARD', false, false);
+          });
         });
       });
     });
@@ -637,6 +742,22 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           );
           expect(result[0].cs).to.not.include('ct state new');
           expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
+        });
+      });
+
+      describe('rules with interfaces', () => {
+        (['ACCEPT', 'DROP', 'REJECT'] as RuleActionKey[]).forEach((action) => {
+          it(`marks IPv4:FORWARD stateless ${action} rule with interfaces as a warning`, async () => {
+            const { result, ruleId } = await compileDangerousRule('NFTables', 'IPv4:FORWARD', {
+              action,
+              optionsMask: PolicyRuleOptMask.STATELESS,
+              interfaceBinding: 'both',
+            });
+            expect(result).to.have.length(1);
+            expect(result[0].cs).to.include(`iifname "${inboundInterfaceName}"`);
+            expect(result[0].cs).to.include(`oifname "${outboundInterfaceName}"`);
+            expectDangerousMetadata(result[0], ruleId, 'IPv4', 'FORWARD', false, false);
+          });
         });
       });
     });
@@ -758,6 +879,25 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
           expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
         });
       });
+
+      describe('rules with interfaces', () => {
+        (['ACCEPT', 'DROP', 'REJECT'] as RuleActionKey[]).forEach((action) => {
+          it(`marks IPv4:FORWARD ${action} rule with interfaces as a warning`, async () => {
+            const { result, ruleId } = await compileDangerousRule('VyOS', 'IPv4:FORWARD', {
+              action,
+              interfaceBinding: 'both',
+            });
+            expect(result).to.have.length(1);
+            expect(result[0].cs).to.include(
+              `set firewall name FORWARD rule ${ruleId} inbound-interface ${inboundInterfaceName}`,
+            );
+            expect(result[0].cs).to.include(
+              `set firewall name FORWARD rule ${ruleId} outbound-interface ${outboundInterfaceName}`,
+            );
+            expectDangerousMetadata(result[0], ruleId, 'IPv4', 'FORWARD', false, false);
+          });
+        });
+      });
     });
 
     describe('stateless', () => {
@@ -883,6 +1023,26 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
             `set firewall name INPUT rule ${ruleId} state new enable`,
           );
           expectDangerousMetadata(result[0], ruleId, 'IPv4', 'INPUT', true);
+        });
+      });
+
+      describe('rules with interfaces', () => {
+        (['ACCEPT', 'DROP', 'REJECT'] as RuleActionKey[]).forEach((action) => {
+          it(`marks IPv4:FORWARD stateless ${action} rule with interfaces as a warning`, async () => {
+            const { result, ruleId } = await compileDangerousRule('VyOS', 'IPv4:FORWARD', {
+              action,
+              optionsMask: PolicyRuleOptMask.STATELESS,
+              interfaceBinding: 'both',
+            });
+            expect(result).to.have.length(1);
+            expect(result[0].cs).to.include(
+              `set firewall name FORWARD rule ${ruleId} inbound-interface ${inboundInterfaceName}`,
+            );
+            expect(result[0].cs).to.include(
+              `set firewall name FORWARD rule ${ruleId} outbound-interface ${outboundInterfaceName}`,
+            );
+            expectDangerousMetadata(result[0], ruleId, 'IPv4', 'FORWARD', false, false);
+          });
         });
       });
     });
