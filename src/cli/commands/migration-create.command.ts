@@ -21,7 +21,7 @@
 */
 
 import * as process from 'process';
-import * as yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import * as Path from 'path';
 import * as originalCommand from 'typeorm/commands/MigrationCreateCommand';
 import { Application } from '../Application';
@@ -35,7 +35,7 @@ export class MigrationCreateCommand extends Command {
   public name: string = 'migration:create';
   public description: string = 'Create a new migration';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );

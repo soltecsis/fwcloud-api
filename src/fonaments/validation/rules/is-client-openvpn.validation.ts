@@ -6,7 +6,6 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { In } from 'typeorm';
-import { boolean } from 'yargs';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import db from '../../../database/database-manager';

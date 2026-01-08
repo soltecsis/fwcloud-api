@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import * as path from 'path';
 import { promises as fs, Stats } from 'fs';
 import * as crypto from 'crypto';
@@ -37,7 +37,7 @@ export class KeysGenerateCommand extends Command {
   public name: string = 'keys:generate';
   public description: string = 'Generates random keys';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const forceFlag: boolean = (args.force ?? false) as boolean;
     const envFilePath: string = path.join(this._app.path, KeysGenerateCommand.ENV_FILENAME);
     const stat: Stats = await fs.stat(envFilePath);

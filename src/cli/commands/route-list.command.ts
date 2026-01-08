@@ -25,7 +25,7 @@ import { PathParams } from 'express-serve-static-core';
 import { Gate } from '../../fonaments/http/router/gate';
 import { Route } from '../../fonaments/http/router/route';
 import { Command } from '../command';
-import yargs from 'yargs';
+import type { Arguments } from 'yargs';
 
 interface RouteRow {
   httpMethod: HttpMethod;
@@ -42,7 +42,7 @@ export class RouteListCommand extends Command {
   public name: string = 'route:list';
   public description: string = 'List all routes';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const routerService: RouterService = await this._app.getService<RouterService>(
       RouterService.name,
     );
