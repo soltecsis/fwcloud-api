@@ -22,7 +22,7 @@ export class PolicyRuleController extends Controller {
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
-      .where('firewall.id = :id', { id: parseInt(req.params.firewall) });
+      .where('firewall.id = :id', { id: parseInt(String(req.params.firewall)) });
 
     this._firewall = await firewallQueryBuilder.getOneOrFail();
 
@@ -31,9 +31,9 @@ export class PolicyRuleController extends Controller {
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
-        firewallId: parseInt(req.params.firewall),
+        firewallId: parseInt(String(req.params.firewall)),
       })
-      .where('fwcloud.id = :id', { id: parseInt(req.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(req.params.fwcloud)) })
       .getOneOrFail();
   }
 

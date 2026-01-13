@@ -69,7 +69,7 @@ export class DhcpController extends Controller {
       this._dhcprule = await db
         .getSource()
         .manager.getRepository(DHCPRule)
-        .findOneOrFail({ where: { id: parseInt(req.params.dhcp) } });
+        .findOneOrFail({ where: { id: parseInt(String(req.params.dhcp)) } });
     }
     if (req.params.dhcpgroup) {
       this._dhcpgroup = await db
@@ -80,11 +80,11 @@ export class DhcpController extends Controller {
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(req.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(req.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(req.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(req.params.fwcloud)) } });
   }
 
   @Validate()
@@ -102,14 +102,14 @@ export class DhcpController extends Controller {
 
   @Validate()
   public async grid(req: Request): Promise<ResponseBuilder> {
-    if (![1, 2].includes(parseInt(req.params.set))) {
+    if (![1, 2].includes(parseInt(String(req.params.set)))) {
       return ResponseBuilder.buildResponse().status(400).body({ message: 'Invalid set parameter' });
     }
 
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
     const dst: AvailableDestinations =
-      parseInt(req.params.set) === 1 ? 'regular_grid' : 'fixed_grid';
+      parseInt(String(req.params.set)) === 1 ? 'regular_grid' : 'fixed_grid';
 
     const grid: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData(
       dst,
@@ -178,7 +178,7 @@ export class DhcpController extends Controller {
     await this._dhcpRuleService.remove({
       fwcloudId: this._fwCloud.id,
       firewallId: this._firewall.id,
-      id: parseInt(req.params.dhcp),
+      id: parseInt(String(req.params.dhcp)),
     });
 
     return ResponseBuilder.buildResponse().status(200).body(this._dhcprule);

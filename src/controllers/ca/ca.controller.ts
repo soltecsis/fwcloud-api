@@ -20,14 +20,14 @@ export class CaController extends Controller {
       this._ca = await db
         .getSource()
         .manager.getRepository(Ca)
-        .findOneOrFail({ where: { id: parseInt(request.params.ca) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.ca)) } });
     }
     //Get the fwcloud wich contains the ca
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
   @Validate(CaControllerUpdateDto)

@@ -50,7 +50,7 @@ export class FwCloudExportController extends Controller {
     const fwCloud: FwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
 
     (await FwCloudExportPolicy.store(fwCloud, request.session.user)).authorize();
 

@@ -47,18 +47,18 @@ export class DhcpGroupController extends Controller {
 
     if (request.params.dhcpgroup) {
       this._dhcpGroup = await this._dhcpGroupService.findOneInPath({
-        id: parseInt(request.params.dhcpgroup),
+        id: parseInt(String(request.params.dhcpgroup)),
       });
     }
 
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(request.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
   }
 
   @Validate()
