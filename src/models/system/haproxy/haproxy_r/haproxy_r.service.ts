@@ -83,8 +83,9 @@ export interface IUpdateHAProxyRule {
   offset?: Offset;
 }
 
-export interface HAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForCompiler>
-  extends HAProxyRule {
+export interface HAProxyRulesData<
+  T extends ItemForGrid | HAProxyRuleItemForCompiler,
+> extends HAProxyRule {
   items: (T & { _order: number })[];
 }
 
