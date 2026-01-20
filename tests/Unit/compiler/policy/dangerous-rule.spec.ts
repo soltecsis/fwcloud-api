@@ -455,7 +455,6 @@ describe(describeName('Policy Compiler Unit Tests - Dangerous rule detection'), 
               action,
               interfaceBinding: 'both',
             });
-            console.log(result);
             expect(result).to.have.length(1);
             expect(result[0].cs).to.include(`-i ${inboundInterfaceName}`);
             expect(result[0].cs).to.include(`-o ${outboundInterfaceName}`);
