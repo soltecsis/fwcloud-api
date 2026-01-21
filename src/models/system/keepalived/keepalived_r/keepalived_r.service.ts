@@ -89,8 +89,9 @@ export interface IUpdateKeepalivedRule {
   fw_apply_to?: number;
 }
 
-export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>
-  extends KeepalivedRule {
+export interface KeepalivedRulesData<
+  T extends ItemForGrid | KeepalivedRuleItemForCompiler,
+> extends KeepalivedRule {
   items: (T & { _order: number })[];
 }
 
@@ -539,22 +540,32 @@ export class KeepalivedRuleService extends Service {
     firewall: number,
     rules?: number[],
   ): Promise<KeepalivedRulesData<T>[]> {
+    const { queryFirewallIds, targetFirewallId } = await this.resolveFirewallsForQuery(firewall);
+    const firewallsForQuery: number | number[] =
+      queryFirewallIds.length === 1 ? queryFirewallIds[0] : queryFirewallIds;
+    const shouldFilterByApplyTo = Array.isArray(firewallsForQuery);
     let rulesData: KeepalivedRulesData<T>[];
     switch (dst) {
       case 'keepalived_grid':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
         )) as KeepalivedRulesData<T>[];
         break;
       case 'compiler':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
         )) as KeepalivedRulesData<T>[];
         break;
+    }
+
+    if (shouldFilterByApplyTo) {
+      rulesData = rulesData.filter(
+        (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === targetFirewallId,
+      );
     }
 
     const ItemsArrayMap = new Map<number, T[]>();
@@ -566,8 +577,8 @@ export class KeepalivedRuleService extends Service {
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
       dst === 'compiler'
-        ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewall, rules)
-        : this.getKeepalivedRulesGridSql(fwcloud, firewall, rules);
+        ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewallsForQuery, rules)
+        : this.getKeepalivedRulesGridSql(fwcloud, firewallsForQuery, rules);
 
     const result = await Promise.all(
       sqls.map((sql) => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)),
@@ -669,7 +680,7 @@ export class KeepalivedRuleService extends Service {
 
   private getKeepalivedRulesGridSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
@@ -677,10 +688,43 @@ export class KeepalivedRuleService extends Service {
 
   private buildKeepalivedRulesCompilerSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
+  }
+
+  protected async resolveFirewallsForQuery(
+    firewallId: number,
+  ): Promise<{ queryFirewallIds: number[]; targetFirewallId: number }> {
+    const firewallRepository = db.getSource().manager.getRepository(Firewall);
+    const firewall = await firewallRepository.findOne({ where: { id: firewallId } });
+
+    if (!firewall) {
+      return {
+        queryFirewallIds: [firewallId],
+        targetFirewallId: firewallId,
+      };
+    }
+
+    const firewalls = new Set<number>([firewall.id]);
+
+    if (firewall.clusterId) {
+      const master = await firewallRepository
+        .createQueryBuilder('firewall')
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOne();
+
+      if (master) {
+        firewalls.add(master.id);
+      }
+    }
+
+    return {
+      queryFirewallIds: Array.from(firewalls),
+      targetFirewallId: firewall.id,
+    };
   }
 
   protected async validateFirewallApplyTo(

@@ -323,9 +323,13 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
 
   async getKeepalivedRules(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
   ): Promise<KeepalivedRule[]> {
+    const firewallIds: number[] = Array.isArray(firewall)
+      ? Array.from(new Set(firewall))
+      : [firewall];
+
     const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
       .leftJoinAndSelect('keepalived_r.group', 'group')
       .leftJoinAndSelect('keepalived_r.interface', 'interface')
@@ -337,7 +341,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
       .innerJoin('keepalived_r.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwCloud')
-      .where('firewall.id = :firewallId', { firewallId: firewall })
+      .where('firewall.id IN (:...firewallIds)', { firewallIds })
       .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
 
     if (rules) {

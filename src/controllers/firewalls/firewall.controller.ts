@@ -77,7 +77,7 @@ export class FirewallController extends Controller {
       .getSource()
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
 
     this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
@@ -103,8 +103,8 @@ export class FirewallController extends Controller {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(request.params.firewall),
-          fwCloudId: parseInt(request.params.fwcloud),
+          id: parseInt(String(request.params.firewall)),
+          fwCloudId: parseInt(String(request.params.fwcloud)),
         },
       });
 
@@ -129,8 +129,8 @@ export class FirewallController extends Controller {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(request.params.firewall),
-          fwCloudId: parseInt(request.params.fwcloud),
+          id: parseInt(String(request.params.firewall)),
+          fwCloudId: parseInt(String(request.params.fwcloud)),
         },
       });
 
@@ -158,8 +158,8 @@ export class FirewallController extends Controller {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(request.params.firewall),
-          fwCloudId: parseInt(request.params.fwcloud),
+          id: parseInt(String(request.params.firewall)),
+          fwCloudId: parseInt(String(request.params.fwcloud)),
         },
       });
 
@@ -187,8 +187,8 @@ export class FirewallController extends Controller {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(request.params.firewall),
-          fwCloudId: parseInt(request.params.fwcloud),
+          id: parseInt(String(request.params.firewall)),
+          fwCloudId: parseInt(String(request.params.fwcloud)),
         },
       });
 
@@ -221,8 +221,8 @@ export class FirewallController extends Controller {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(req.params.firewall),
-          fwCloudId: parseInt(req.params.fwcloud),
+          id: parseInt(String(req.params.firewall)),
+          fwCloudId: parseInt(String(req.params.fwcloud)),
         },
       });
 
@@ -249,8 +249,8 @@ export class FirewallController extends Controller {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(request.params.firewall),
-          fwCloudId: parseInt(request.params.fwcloud),
+          id: parseInt(String(request.params.firewall)),
+          fwCloudId: parseInt(String(request.params.fwcloud)),
         },
       });
 

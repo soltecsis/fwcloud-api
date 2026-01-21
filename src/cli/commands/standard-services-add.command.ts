@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import { DatabaseService } from '../../database/database.service';
 import { Command } from '../command';
 import { DataSource } from 'typeorm';
@@ -164,7 +164,7 @@ export class StandardServicesAddCommand extends Command {
     }
   }
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );

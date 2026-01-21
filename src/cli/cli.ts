@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import yargs = require('yargs');
+import type { Argv } from 'yargs';
 import { MigrationResetCommand } from './commands/migration-reset-command';
 import { MigrationRunCommand } from './commands/migration-run.command';
 import { MigrationCreateCommand } from './commands/migration-create.command';
@@ -47,8 +47,21 @@ const commands: (typeof Command)[] = [
 ];
 
 class CLI {
-  public load() {
-    let cli: yargs.Argv = yargs.usage('Usage: $0 <command> [options]');
+  public async load(): Promise<Argv> {
+    // Keep dynamic import in CommonJS output for ESM-only yargs.
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const importModule = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<any>;
+    const [yargsModule, helpers] = await Promise.all([
+      importModule('yargs/yargs'),
+      importModule('yargs/helpers'),
+    ]);
+    const yargsFactory = yargsModule.default ?? yargsModule;
+    const hideBin =
+      helpers.hideBin ?? helpers.default?.hideBin ?? ((argv: string[]) => argv.slice(2));
+
+    let cli: Argv = yargsFactory(hideBin(process.argv)).usage('Usage: $0 <command> [options]');
 
     cli = this.parseCommands(cli, commands);
 
@@ -63,7 +76,7 @@ class CLI {
     return cli;
   }
 
-  protected parseCommands(cli: yargs.Argv, commands: (typeof Command)[]): yargs.Argv {
+  protected parseCommands(cli: Argv, commands: (typeof Command)[]): Argv {
     commands.forEach((commmand: typeof Command) => {
       // @ts-ignore: command is not abstract
       const instance: Command = new commmand();
@@ -75,7 +88,7 @@ class CLI {
       cli.command(
         this.generateName(name, args),
         description,
-        (yargs: yargs.Argv) => {
+        (yargs: Argv) => {
           options.forEach((option: Option) => {
             yargs.option(option.name, {
               alias: option.alias ?? undefined,
@@ -121,4 +134,7 @@ class CLI {
 }
 
 const cli = new CLI();
-cli.load();
+cli.load().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

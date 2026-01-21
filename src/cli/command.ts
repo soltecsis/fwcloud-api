@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import yargs, { PositionalOptionsType } from 'yargs';
+import type { Arguments, PositionalOptionsType } from 'yargs';
 import { Application } from './Application';
 import { Output } from './output';
 
@@ -41,9 +41,9 @@ export abstract class Command {
   public abstract name: string;
   public abstract description: string;
 
-  public abstract handle(args: yargs.Arguments): Promise<void>;
+  public abstract handle(args: Arguments): Promise<void>;
 
-  public async safeHandle(args: yargs.Arguments): Promise<number> {
+  public async safeHandle(args: Arguments): Promise<number> {
     this._app = await Application.run();
     this.output = new Output(this._app.config.get('env') !== 'test' ? console.log : () => {});
 

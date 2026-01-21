@@ -1166,7 +1166,7 @@ export class FwCloudFactory {
   private async makeMark(): Promise<void> {
     this.fwc.mark = await this._markRepository.save(
       this._markRepository.create({
-        code: this.fwc.fwcloud.id,
+        code: 100000 + this.fwc.fwcloud.id,
         name: 'mark',
         fwCloudId: this.fwc.fwcloud.id,
       }),

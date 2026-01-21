@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
 	https://soltecsis.com
 	info@soltecsis.com
 
@@ -117,6 +117,8 @@ export enum FireWallOptMask {
   DOCKER_COMPAT = 0x0020,
   CROWDSEC_COMPAT = 0x0040,
   FAIL2BAN_COMPAT = 0x0080,
+  PDR_WARNING = 0x0100,
+  PDR_CRITICAL = 0x0200,
 }
 
 @Entity(tableName)

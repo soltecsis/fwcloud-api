@@ -596,32 +596,45 @@ export class DHCPRuleService extends Service {
     firewall: number,
     rules?: number[],
   ): Promise<DHCPRulesData<T>[]> {
+    const { queryFirewallIds, targetFirewallId } = await this.resolveFirewallsForQuery(firewall);
+    const firewallsForQuery: number | number[] =
+      queryFirewallIds.length === 1 ? queryFirewallIds[0] : queryFirewallIds;
+    const shouldFilterByApplyTo = Array.isArray(firewallsForQuery);
     let rulesData: DHCPRulesData<T>[];
     switch (dst) {
       case 'regular_grid':
         // It passes the value 1 and 3 because it corresponds to the type of regular rules and hook script.
         rulesData = (await this._repository.getDHCPRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
           [1, 3],
         )) as DHCPRulesData<T>[];
         break;
       case 'fixed_grid':
         // It passes the value 2 because it corresponds to the type of fixed ip rules.
-        rulesData = (await this._repository.getDHCPRules(fwcloud, firewall, rules, [
-          2,
-        ])) as DHCPRulesData<T>[];
+        rulesData = (await this._repository.getDHCPRules(
+          fwcloud,
+          firewallsForQuery,
+          rules,
+          [2],
+        )) as DHCPRulesData<T>[];
         break;
       case 'compiler':
         rulesData = (await this._repository.getDHCPRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
           [1, 3, 2],
           true,
         )) as DHCPRulesData<T>[];
         break;
+    }
+
+    if (shouldFilterByApplyTo) {
+      rulesData = rulesData.filter(
+        (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === targetFirewallId,
+      );
     }
 
     const ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
@@ -633,8 +646,8 @@ export class DHCPRuleService extends Service {
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
       dst === 'compiler'
-        ? this.buildDHCPRulesCompilerSql(fwcloud, firewall)
-        : this.getDHCPRulesGridSql(fwcloud, firewall);
+        ? this.buildDHCPRulesCompilerSql(fwcloud, firewallsForQuery)
+        : this.getDHCPRulesGridSql(fwcloud, firewallsForQuery);
 
     await Promise.all(sqls.map((sql) => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
@@ -734,16 +747,49 @@ export class DHCPRuleService extends Service {
 
   private getDHCPRulesGridSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall)];
   }
 
   private buildDHCPRulesCompilerSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall)];
+  }
+
+  protected async resolveFirewallsForQuery(
+    firewallId: number,
+  ): Promise<{ queryFirewallIds: number[]; targetFirewallId: number }> {
+    const firewallRepository = db.getSource().manager.getRepository(Firewall);
+    const firewall = await firewallRepository.findOne({ where: { id: firewallId } });
+
+    if (!firewall) {
+      return {
+        queryFirewallIds: [firewallId],
+        targetFirewallId: firewallId,
+      };
+    }
+
+    const firewalls = new Set<number>([firewall.id]);
+
+    if (firewall.clusterId) {
+      const master = await firewallRepository
+        .createQueryBuilder('firewall')
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOne();
+
+      if (master) {
+        firewalls.add(master.id);
+      }
+    }
+
+    return {
+      queryFirewallIds: Array.from(firewalls),
+      targetFirewallId: firewall.id,
+    };
   }
 
   protected async validateFirewallApplyTo(

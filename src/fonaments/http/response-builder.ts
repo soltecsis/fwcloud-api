@@ -166,7 +166,9 @@ export class ResponseBuilder {
 
   public send(): Response {
     if (this.hasFileAttached() && isFileAttached(this._attachment)) {
-      this._response.download(this._attachment.path, this._attachment.filename);
+      this._response.download(this._attachment.path, this._attachment.filename, {
+        dotfiles: 'allow',
+      });
       return this._response;
     }
     if (this.hasFileAttached() && isContentAttached(this._attachment)) {

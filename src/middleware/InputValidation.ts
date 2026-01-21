@@ -41,7 +41,10 @@ export class InputValidation extends Middleware {
       return;
     }
 
-    if ((req.method === 'GET' || req.method === 'DELETE') && Object.keys(req.body).length !== 0) {
+    if (
+      (req.method === 'GET' || req.method === 'DELETE') &&
+      Object.keys(req.body ?? {}).length !== 0
+    ) {
       logger().error(
         'Error during input validation check: ' + JSON.stringify(fwcError.BODY_MUST_BE_EMPTY),
       );

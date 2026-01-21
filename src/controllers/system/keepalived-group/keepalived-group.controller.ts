@@ -52,18 +52,18 @@ export class KeepalivedGroupController extends Controller {
 
     if (request.params.keepalivedgroup) {
       this._keepalivedGroup = await this._keepalivedGroupService.findOneInPath({
-        id: parseInt(request.params.keepalivedgroup),
+        id: parseInt(String(request.params.keepalivedgroup)),
       });
     }
 
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(request.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
   }
 
   @Validate()

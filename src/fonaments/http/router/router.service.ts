@@ -75,11 +75,50 @@ export class RouterService extends Service {
     if (this._app instanceof HTTPApplication) {
       this._express = this._app.express;
       this._router = this._express;
+      this.registerNumericParamValidators();
     }
 
     _runningURLHelper = new URLHelper(this);
 
     return this;
+  }
+
+  protected registerNumericParamValidators(): void {
+    const numericRouteParams: string[] = [
+      'backup',
+      'fwcloud',
+      'ca',
+      'crt',
+      'firewall',
+      'openvpn',
+      'wireguard',
+      'ipsec',
+      'routingTable',
+      'route',
+      'dhcpgroup',
+      'set',
+      'dhcp',
+      'keepalivedgroup',
+      'keepalived',
+      'haproxygroup',
+      'haproxy',
+      'routeGroup',
+      'routingGroup',
+      'routingRule',
+      'snapshot',
+    ];
+
+    const digitsOnly = /^\d+$/;
+
+    for (const paramName of numericRouteParams) {
+      this._express.param(paramName, (req: Request, res: Response, next: NextFunction, value) => {
+        if (!digitsOnly.test(String(value))) {
+          res.status(404).end();
+          return;
+        }
+        next();
+      });
+    }
   }
 
   public registerRoutes(): void {

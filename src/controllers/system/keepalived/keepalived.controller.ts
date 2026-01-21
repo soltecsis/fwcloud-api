@@ -60,7 +60,7 @@ export class KeepalivedController extends Controller {
       this._keepalivedrule = await db
         .getSource()
         .manager.getRepository(KeepalivedRule)
-        .findOneOrFail({ where: { id: parseInt(req.params.keepalived) } });
+        .findOneOrFail({ where: { id: parseInt(String(req.params.keepalived)) } });
     }
     if (req.params.keepalivedgroup) {
       this._keepalivedgroup = await db
@@ -71,11 +71,11 @@ export class KeepalivedController extends Controller {
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(req.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(req.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(req.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(req.params.fwcloud)) } });
   }
 
   @Validate()
@@ -164,7 +164,7 @@ export class KeepalivedController extends Controller {
       await this._keepalivedRuleService.remove({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
-        id: parseInt(req.params.keepalived),
+        id: parseInt(String(req.params.keepalived)),
       });
     } catch (e) {
       console.error(e);

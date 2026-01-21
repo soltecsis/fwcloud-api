@@ -118,8 +118,9 @@ interface IBulkUpdateRoutingRule {
   active?: boolean;
 }
 
-export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler>
-  extends RoutingRule {
+export interface RoutingRulesData<
+  T extends ItemForGrid | RoutingRuleItemForCompiler,
+> extends RoutingRule {
   items: (T & { _order: number })[];
 }
 

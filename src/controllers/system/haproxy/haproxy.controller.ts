@@ -59,24 +59,24 @@ export class HAProxyController extends Controller {
       this._haproxyRule = await db
         .getSource()
         .manager.getRepository(HAProxyRule)
-        .findOneOrFail({ where: { id: parseInt(request.params.haproxy) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.haproxy)) } });
     }
     if (request.params.haproxygroup) {
       this._haproxyGroup = await db
         .getSource()
         .manager.getRepository(HAProxyGroup)
         .findOneOrFail({
-          where: { id: parseInt(request.params.haproxygroup) },
+          where: { id: parseInt(String(request.params.haproxygroup)) },
         });
     }
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(request.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
   }
 
   @Validate()
@@ -164,7 +164,7 @@ export class HAProxyController extends Controller {
     await this._haproxyRuleService.remove({
       fwcloudId: this._fwCloud.id,
       firewallId: this._firewall.id,
-      id: parseInt(request.params.haproxy),
+      id: parseInt(String(request.params.haproxy)),
     });
 
     return ResponseBuilder.buildResponse().status(200).body(this._haproxyRule);
