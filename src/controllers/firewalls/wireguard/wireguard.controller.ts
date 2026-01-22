@@ -48,21 +48,21 @@ export class FirewallWireGuardController extends Controller {
       this._wireGuard = await db
         .getSource()
         .manager.getRepository(WireGuard)
-        .findOneOrFail({ where: { id: parseInt(request.params.wireGuard) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.wireGuard)) } });
     }
 
     const firewallQueryBuilder = db
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
-      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
+      .where('firewall.id = :id', { id: parseInt(String(request.params.firewall)) });
     if (request.params.wireGuard) {
       firewallQueryBuilder.innerJoin(
         'firewall.wireGuards',
         'wireGuard',
         'wireGuard.id = :wireGuard',
         {
-          wireGuard: parseInt(request.params.wireGuard),
+          wireGuard: parseInt(String(request.params.wireGuard)),
         },
       );
     }
@@ -73,9 +73,9 @@ export class FirewallWireGuardController extends Controller {
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
-        firewallId: parseInt(request.params.firewall),
+        firewallId: parseInt(String(request.params.firewall)),
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 
@@ -87,9 +87,11 @@ export class FirewallWireGuardController extends Controller {
       .createQueryBuilder('wireGuard')
       .leftJoinAndSelect('wireGuard.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
-      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(req.params.fwcloud) })
-      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(req.params.firewall) })
-      .andWhere('wireGuard.id = :wireGuardId', { wireGuardId: parseInt(req.params.wireGuard) })
+      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(String(req.params.fwcloud)) })
+      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(String(req.params.firewall)) })
+      .andWhere('wireGuard.id = :wireGuardId', {
+        wireGuardId: parseInt(String(req.params.wireGuard)),
+      })
       .andWhere('wireGuard.wireGuard IS NOT NULL')
       .getOne();
 
@@ -103,8 +105,8 @@ export class FirewallWireGuardController extends Controller {
       .createQueryBuilder('wireGuard')
       .leftJoinAndSelect('wireGuard.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
-      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(req.params.fwcloud) })
-      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(req.params.firewall) })
+      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(String(req.params.fwcloud)) })
+      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(String(req.params.firewall)) })
       .andWhere('wireGuard.wireGuard IS NULL')
       .getOne();
 

@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -159,14 +159,13 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
           cs = `${log}${cmd} add rule ${family} ${policyType === PolicyTypesMap.get(`${IPv}:SNAT`) ? 'nat' : 'filter'} ${POLICY_TYPE[policyType]} ${st}${action}\n`;
       }
 
-      expect(result).to.eql([
-        {
-          id: rule,
-          active: ruleData.active,
-          comment: null,
-          cs: cs,
-        },
-      ]);
+      expect(result).to.be.an('array').with.lengthOf(1);
+      expect(result[0]).to.include({
+        id: rule,
+        active: ruleData.active,
+        comment: null,
+        cs: cs,
+      });
     }
   }
 

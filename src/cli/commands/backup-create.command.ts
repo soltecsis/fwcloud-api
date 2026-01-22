@@ -1,4 +1,4 @@
-import yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import { Backup } from '../../backups/backup';
 import { BackupService } from '../../backups/backup.service';
 import { Command, Option } from '../command';
@@ -10,7 +10,7 @@ export class BackupCreateCommand extends Command {
   public name: string = 'backup:create';
   public description: string = 'Create a new backup';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const backupService: BackupService = await this._app.getService<BackupService>(
       BackupService.name,
     );

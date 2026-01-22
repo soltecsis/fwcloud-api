@@ -19,6 +19,7 @@ import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { HAProxyRule } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model';
 import {
   HAProxyRuleService,
+  HAProxyRulesData,
   ICreateHAProxyRule,
 } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service';
 import { testSuite } from '../../../../mocha/global-setup';
@@ -30,6 +31,8 @@ import { HAProxyGroup } from '../../../../../src/models/system/haproxy/haproxy_g
 import { Offset } from '../../../../../src/offset';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
+import { ItemForGrid } from '../../../../../src/models/system/haproxy/shared';
 
 describe(HAProxyRuleService.name, () => {
   let service: HAProxyRuleService;
@@ -94,6 +97,70 @@ describe(HAProxyRuleService.name, () => {
       ).to.be.rejectedWith('Get rules error');
 
       sinon.restore();
+    });
+
+    it('should merge cluster firewalls and filter results by firewallApplyToId', async () => {
+      const resolverStub = sinon
+        .stub<any, any>(service as any, 'resolveFirewallsForQuery')
+        .resolves({
+          queryFirewallIds: [10, 11],
+          targetFirewallId: 11,
+        });
+      const rulesForCluster: HAProxyRulesData<ItemForGrid>[] = [
+        Object.assign(new HAProxyRule(), { id: 1, firewallApplyToId: null, rule_order: 1 }),
+        Object.assign(new HAProxyRule(), { id: 2, firewallApplyToId: 11, rule_order: 2 }),
+        Object.assign(new HAProxyRule(), { id: 3, firewallApplyToId: 10, rule_order: 3 }),
+      ] as HAProxyRulesData<ItemForGrid>[];
+      const repositoryStub = sinon
+        .stub(service['_repository'], 'getHAProxyRules')
+        .resolves(rulesForCluster);
+      const gridSqlStub = sinon
+        .stub<any, any>(service as any, 'getHAProxyRulesGridSql')
+        .returns([]);
+
+      const result = await service.getHAProxyRulesData('haproxy_grid', fwCloud.id, 11);
+
+      expect(repositoryStub.calledOnceWithExactly(fwCloud.id, [10, 11], undefined)).to.be.true;
+      expect(result.map((rule) => rule.id)).to.deep.equal([1, 2]);
+
+      resolverStub.restore();
+      repositoryStub.restore();
+      gridSqlStub.restore();
+    });
+  });
+
+  describe('resolveFirewallsForQuery', () => {
+    it('should return provided firewall id when not found', async () => {
+      const result = await (service as any).resolveFirewallsForQuery(99999);
+
+      expect(result).to.deep.equal({
+        queryFirewallIds: [99999],
+        targetFirewallId: 99999,
+      });
+    });
+
+    it('should include cluster master when node belongs to a cluster', async () => {
+      const repository = db.getSource().manager.getRepository(Firewall);
+      const findOneStub = sinon.stub(repository, 'findOne').resolves({
+        id: 777,
+        clusterId: 120,
+      } as Firewall);
+      const builderResult = {
+        where: () => builderResult,
+        andWhere: () => builderResult,
+        getOne: sinon.stub().resolves({ id: 778, clusterId: 120 } as Firewall),
+      };
+      const createQueryBuilderStub = sinon
+        .stub(repository, 'createQueryBuilder')
+        .returns(builderResult as any);
+
+      const result = await (service as any).resolveFirewallsForQuery(777);
+
+      expect(result.targetFirewallId).to.equal(777);
+      expect(result.queryFirewallIds).to.have.members([777, 778]);
+
+      findOneStub.restore();
+      createQueryBuilderStub.restore();
     });
   });
 
@@ -233,6 +300,57 @@ describe(HAProxyRuleService.name, () => {
       getLastHAProxyRuleInFirewallStub.restore();
       saveStub.restore();
       moveStub.restore();
+    });
+
+    it('should store firewall apply to when provided', async () => {
+      const data: ICreateHAProxyRule = {
+        active: true,
+        style: 'default',
+        rule_order: 1,
+        rule_type: 1,
+        firewallId: firewall.id,
+        frontendIpId: 1,
+        frontendPortId: 1,
+        firewallApplyToId: firewall.id,
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
+        .resolves(null);
+
+      const result = await service.store(data);
+
+      expect(result.firewallApplyToId).to.equal(firewall.id);
+
+      getLastStub.restore();
+    });
+
+    it('should throw when firewall apply to is not in the same cluster', async () => {
+      const anotherFirewall = await manager.getRepository(Firewall).save(
+        manager.getRepository(Firewall).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      const data: ICreateHAProxyRule = {
+        active: true,
+        style: 'default',
+        rule_order: 1,
+        rule_type: 1,
+        firewallId: firewall.id,
+        frontendIpId: 1,
+        frontendPortId: 1,
+        firewallApplyToId: anotherFirewall.id,
+      };
+
+      const getLastStub = sinon
+        .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
+        .resolves(null);
+
+      await expect(service.store(data)).to.be.rejectedWith(ValidationException);
+
+      getLastStub.restore();
     });
 
     it('should throw an error for invalid IP version combination', async () => {

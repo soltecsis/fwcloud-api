@@ -60,7 +60,7 @@ export class KeepalivedController extends Controller {
       this._keepalivedrule = await db
         .getSource()
         .manager.getRepository(KeepalivedRule)
-        .findOneOrFail({ where: { id: parseInt(req.params.keepalived) } });
+        .findOneOrFail({ where: { id: parseInt(String(req.params.keepalived)) } });
     }
     if (req.params.keepalivedgroup) {
       this._keepalivedgroup = await db
@@ -71,11 +71,11 @@ export class KeepalivedController extends Controller {
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(req.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(req.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(req.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(req.params.fwcloud)) } });
   }
 
   @Validate()
@@ -164,7 +164,7 @@ export class KeepalivedController extends Controller {
       await this._keepalivedRuleService.remove({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
-        id: parseInt(req.params.keepalived),
+        id: parseInt(String(req.params.keepalived)),
       });
     } catch (e) {
       console.error(e);
@@ -228,7 +228,11 @@ export class KeepalivedController extends Controller {
         this._firewall.id,
       );
 
-    new KeepalivedCompiler().compile(rules);
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === this._firewall.id,
+    );
+
+    new KeepalivedCompiler().compile(filteredRules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
@@ -254,6 +258,8 @@ export class KeepalivedController extends Controller {
           .andWhere('firewall.fwmaster = 1')
           .getOneOrFail()
       ).id;
+    } else {
+      firewallId = firewall.id;
     }
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
@@ -263,8 +269,12 @@ export class KeepalivedController extends Controller {
         firewallId,
       );
 
+    const filteredRules = rules.filter(
+      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === firewallId,
+    );
+
     const content: string = new KeepalivedCompiler()
-      .compile(rules, channel)
+      .compile(filteredRules, channel)
       .map((item) => item.cs)
       .join('\n');
 

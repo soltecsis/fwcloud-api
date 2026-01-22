@@ -22,22 +22,22 @@ export class CrtController extends Controller {
       this._crt = await db
         .getSource()
         .manager.getRepository(Crt)
-        .findOneOrFail({ where: { id: parseInt(request.params.crt) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.crt)) } });
     }
     this._ca = await db
       .getSource()
       .manager.getRepository(Ca)
       .createQueryBuilder('ca')
-      .where('ca.id = :id', { id: parseInt(request.params.ca) })
+      .where('ca.id = :id', { id: parseInt(String(request.params.ca)) })
       .getOneOrFail();
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
       .innerJoin('fwcloud.cas', 'ca', 'ca.id = :caId', {
-        caId: parseInt(request.params.ca),
+        caId: parseInt(String(request.params.ca)),
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 

@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.3.0] - 2026-01-22
+### Added
+- Support for compiling firewall policies to VyOS through a dedicated policy compiler.
+- VyOS-specific script templates (header and footer) applied when generating policy exports.
+- API validation and firewall compiler detection updated to allow selecting VyOS.
+- Dangerous rules detection during policy compilation, including warning/critical flags and per-rule progress updates.
+- Dangerous rules configuration loaded from JSON, plus a migration to persist dangerous-rule flags in firewall configuration.
+- `firewallApplyToId` support for DHCP, Keepalived, and HAProxy rules, including cluster-wide rule handling.
+- WebSocket room management for FWCloud locks, with the previous lock owner included in lock responses.
+
+### Changed
+- Express 5 routes migration with related E2E adjustments.
+- Request parameter normalization now accepts bracketed array syntax.
+- OpenVPN configurations are marked dirty on any option change.
+- `sanitizeGroupName` now handles null input and strips leading `!` characters.
+- Dangerous-rule matching normalizes IPv4/IPv6 and compiler names (IPTables, NFTables, VyOS).
+- npm dependencies updated; mocha pinned to 11.3.0 to resolve audit issues.
+
+### Fixed
+- System services apply migration.
+- Dangerous rules checks and loading (single import at startup and improved detection logic).
+- CLI startup when loading ESM yargs.
+- API call for force the lock of a FWCloud already locked by another user.
+
+
 ## [2.2.0] - 2025-09-30
 ### Added
 - Support for compiling firewall policies to VyOS through a dedicated policy compiler.

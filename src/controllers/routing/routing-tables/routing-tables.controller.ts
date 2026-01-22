@@ -58,7 +58,7 @@ export class RoutingTableController extends Controller {
         .getSource()
         .manager.getRepository(RoutingTable)
         .findOneOrFail({
-          where: { id: parseInt(request.params.routingTable) },
+          where: { id: parseInt(String(request.params.routingTable)) },
         });
     }
 
@@ -67,7 +67,7 @@ export class RoutingTableController extends Controller {
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
-      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
+      .where('firewall.id = :id', { id: parseInt(String(request.params.firewall)) });
     if (this._routingTable) {
       firewallQueryBuilder.innerJoin(
         'firewall.routingTables',
@@ -86,7 +86,7 @@ export class RoutingTableController extends Controller {
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: this._firewall.id,
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 

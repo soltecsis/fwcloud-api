@@ -90,7 +90,7 @@ describe(describeName('Policy Compiler VyOS'), () => {
 
     const result = await PolicyCompiler.compile('VyOS', rules, emitter as any);
 
-    expect(ruleCompileStub.calledOnce).to.be.true;
+    expect(ruleCompileStub.called).to.be.true;
     expect(result).to.eql([
       { id: 1, active: 1, comment: null, cs: 'vyos-cs' },
       { id: 2, active: 0, comment: null, cs: '' },

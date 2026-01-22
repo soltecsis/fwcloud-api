@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsOptional,
@@ -44,6 +44,25 @@ export class DHCPRuleUpdateDto {
   @IsNumber()
   @IsOptional()
   firewallId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value, obj }) => {
+    const candidate =
+      value ?? obj.firewallApplyToId ?? obj.fw_apply_to ?? obj.applyTo ?? obj.apply_to;
+
+    delete obj.firewallApplyToId;
+    delete obj.fw_apply_to;
+    delete obj.applyTo;
+    delete obj.apply_to;
+
+    if (candidate === undefined || candidate === null || candidate === '') {
+      return undefined;
+    }
+
+    return Number(candidate);
+  })
+  firewallApplyToId?: number;
 
   @IsString()
   @IsOptional()

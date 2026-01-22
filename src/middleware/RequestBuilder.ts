@@ -44,6 +44,10 @@ export class RequestBuilder extends Middleware {
     let filesProcessing: number = 0;
     const eventEmitter = new EventEmitter();
 
+    if (req.body === undefined || req.body === null) {
+      req.body = {};
+    }
+
     req.inputs = new RequestInputs(req);
 
     if (

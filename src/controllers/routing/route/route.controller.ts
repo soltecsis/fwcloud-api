@@ -67,17 +67,17 @@ export class RouteController extends Controller {
       this._route = await db
         .getSource()
         .manager.getRepository(Route)
-        .findOneOrFail({ where: { id: parseInt(request.params.route) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.route)) } });
     }
 
     const routingTableQueryBuilder = db
       .getSource()
       .manager.getRepository(RoutingTable)
       .createQueryBuilder('table')
-      .where('table.id = :id', { id: parseInt(request.params.routingTable) });
+      .where('table.id = :id', { id: parseInt(String(request.params.routingTable)) });
     if (request.params.route) {
       routingTableQueryBuilder.innerJoin('table.routes', 'route', 'route.id = :routeId', {
-        routeId: parseInt(request.params.route),
+        routeId: parseInt(String(request.params.route)),
       });
     }
     this._routingTable = await routingTableQueryBuilder.getOneOrFail();
@@ -87,9 +87,9 @@ export class RouteController extends Controller {
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
       .innerJoin('firewall.routingTables', 'table', 'table.id = :tableId', {
-        tableId: parseInt(request.params.routingTable),
+        tableId: parseInt(String(request.params.routingTable)),
       })
-      .where('firewall.id = :id', { id: parseInt(request.params.firewall) })
+      .where('firewall.id = :id', { id: parseInt(String(request.params.firewall)) })
       .getOneOrFail();
 
     this._fwCloud = await db
@@ -97,9 +97,9 @@ export class RouteController extends Controller {
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
-        firewallId: parseInt(request.params.firewall),
+        firewallId: parseInt(String(request.params.firewall)),
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 
@@ -375,7 +375,7 @@ export class RouteController extends Controller {
       fwCloudId: this._fwCloud.id,
       firewallId: this._firewall.id,
       routingTableId: this._routingTable.id,
-      id: parseInt(request.params.route),
+      id: parseInt(String(request.params.route)),
     });
     return ResponseBuilder.buildResponse().status(200).body(this._route);
   }

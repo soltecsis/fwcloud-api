@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import { DatabaseService } from '../../database/database.service';
 import { DataSource } from 'typeorm';
 import { Command, Option } from '../command';
@@ -32,7 +32,7 @@ export class MigrationRollbackCommand extends Command {
   public name: string = 'migration:rollback';
   public description: string = 'Rollback migrations';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );

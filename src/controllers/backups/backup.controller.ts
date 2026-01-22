@@ -56,7 +56,9 @@ export class BackupController extends Controller {
 
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
-    const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
+    const backup: Backup = await this._backupService.findOneOrFail(
+      parseInt(String(request.params.backup)),
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(backup);
   }
@@ -82,7 +84,7 @@ export class BackupController extends Controller {
    */
   @Validate(BackupControllerRestoreDto)
   public async restore(request: Request): Promise<ResponseBuilder> {
-    let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
+    let backup: Backup = await this._backupService.findOne(parseInt(String(request.params.backup)));
 
     const channel: Channel = await Channel.fromRequest(request);
 
@@ -106,7 +108,9 @@ export class BackupController extends Controller {
    */
   @Validate()
   public async destroy(request: Request): Promise<ResponseBuilder> {
-    let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
+    let backup: Backup = await this._backupService.findOneOrFail(
+      parseInt(String(request.params.backup)),
+    );
 
     backup = await this._backupService.destroy(backup);
 
@@ -115,7 +119,9 @@ export class BackupController extends Controller {
 
   @Validate()
   public async export(request: Request): Promise<ResponseBuilder> {
-    const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
+    const backup: Backup = await this._backupService.findOneOrFail(
+      parseInt(String(request.params.backup)),
+    );
 
     const exportFilePath: string = await this._backupService.export(backup, 30000);
 

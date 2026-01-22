@@ -56,17 +56,17 @@ export class OpenVPNController extends Controller {
       this._openvpn = await db
         .getSource()
         .manager.getRepository(OpenVPN)
-        .findOneOrFail({ where: { id: parseInt(request.params.openvpn) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.openvpn)) } });
     }
 
     const firewallQueryBuilder = db
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
-      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
+      .where('firewall.id = :id', { id: parseInt(String(request.params.firewall)) });
     if (request.params.openvpn) {
       firewallQueryBuilder.innerJoin('firewall.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {
-        openvpn: parseInt(request.params.openvpn),
+        openvpn: parseInt(String(request.params.openvpn)),
       });
     }
     this._firewall = await firewallQueryBuilder.getOneOrFail();
@@ -76,9 +76,9 @@ export class OpenVPNController extends Controller {
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
-        firewallId: parseInt(request.params.firewall),
+        firewallId: parseInt(String(request.params.firewall)),
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 
@@ -90,9 +90,9 @@ export class OpenVPNController extends Controller {
       .createQueryBuilder('openvpn')
       .leftJoinAndSelect('openvpn.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
-      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(req.params.fwcloud) })
-      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(req.params.firewall) })
-      .andWhere('openvpn.id = :openvpnId', { openvpnId: parseInt(req.params.openvpn) })
+      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(String(req.params.fwcloud)) })
+      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(String(req.params.firewall)) })
+      .andWhere('openvpn.id = :openvpnId', { openvpnId: parseInt(String(req.params.openvpn)) })
       .andWhere('openvpn.openvpn IS NOT NULL')
       .getOne();
 
@@ -106,8 +106,8 @@ export class OpenVPNController extends Controller {
       .createQueryBuilder('openvpn')
       .leftJoinAndSelect('openvpn.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
-      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(req.params.fwcloud) })
-      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(req.params.firewall) })
+      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(String(req.params.fwcloud)) })
+      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(String(req.params.firewall)) })
       .andWhere('openvpn.id = :openvpnId', { openvpnId: openVPN.parentId })
       .andWhere('openvpn.openvpn IS NULL')
       .getOne();
@@ -139,9 +139,9 @@ export class OpenVPNController extends Controller {
   @Validate()
   public async history(req: Request): Promise<ResponseBuilder> {
     const openVPN: OpenVPN = await this.getOpenVPNServerOrFail(
-      parseInt(req.params.fwcloud),
-      parseInt(req.params.firewall),
-      parseInt(req.params.openvpn),
+      parseInt(String(req.params.fwcloud)),
+      parseInt(String(req.params.firewall)),
+      parseInt(String(req.params.openvpn)),
     );
 
     (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();
@@ -159,9 +159,9 @@ export class OpenVPNController extends Controller {
   @Validate()
   public async graph(req: Request): Promise<ResponseBuilder> {
     const openVPN: OpenVPN = await this.getOpenVPNServerOrFail(
-      parseInt(req.params.fwcloud),
-      parseInt(req.params.firewall),
-      parseInt(req.params.openvpn),
+      parseInt(String(req.params.fwcloud)),
+      parseInt(String(req.params.firewall)),
+      parseInt(String(req.params.openvpn)),
     );
 
     (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();

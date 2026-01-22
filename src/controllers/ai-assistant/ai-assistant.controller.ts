@@ -30,13 +30,13 @@ export class AIassistantController extends Controller {
       this._firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
-        .findOneOrFail({ where: { id: parseInt(req.params.firewall) } });
+        .findOneOrFail({ where: { id: parseInt(String(req.params.firewall)) } });
     }
     if (req.params.fwcloud) {
       this._fwCloud = await db
         .getSource()
         .manager.getRepository(FwCloud)
-        .findOneOrFail({ where: { id: parseInt(req.params.fwcloud) } });
+        .findOneOrFail({ where: { id: parseInt(String(req.params.fwcloud)) } });
     }
   }
 
@@ -139,8 +139,8 @@ export class AIassistantController extends Controller {
       }
 
       const policyScript = await this._aiAssistantService.getPolicyScript(
-        parseInt(req.params.fwcloud),
-        parseInt(req.params.firewall),
+        parseInt(String(req.params.fwcloud)),
+        parseInt(String(req.params.firewall)),
       );
       const config = await this._aiAssistantService.getAiCredentials();
 

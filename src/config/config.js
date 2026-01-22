@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -21,7 +21,7 @@
 */
 
 const fs = require('fs');
-process.env.NODE_ENV !== 'test' ? require('dotenv').config() : true;
+process.env.NODE_ENV !== 'test' ? require('dotenv').config({ quiet: true }) : true;
 const path = require('path');
 var convict = require('convict');
 convict.addFormat(require('convict-format-with-moment').duration);
@@ -309,6 +309,11 @@ const config = convict({
       doc: 'Footer file for the compilation script.',
       format: String,
       default: './config/policy/footer.txt'
+    },
+    dangerous_rules: {
+      doc: 'File that contains dangerous rules that need confirmation.',
+      format: String,
+      default: './config/policy/dangerous_rules.json'
     },
     vyos_header_file: {
       doc: 'Header file for VyOS compilation scripts.',

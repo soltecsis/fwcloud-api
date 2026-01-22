@@ -1,5 +1,5 @@
 /*
-  Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
   https://soltecsis.com
   info@soltecsis.com
 
@@ -48,6 +48,7 @@ import {
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import * as path from 'path';
 import { mkdirpSync } from 'fs-extra';
+import { typeMap } from '../../config/policy/dangerousRules';
 
 const config = require('../../config/config');
 
@@ -127,8 +128,13 @@ export class PolicyScript {
     return;
   }
 
-  private async dumpCompilation(type: number, options: { plain?: boolean } = {}): Promise<void> {
+  private async dumpCompilation(
+    type: number,
+    options: { plain?: boolean } = {},
+  ): Promise<RuleCompilationResult[]> {
     const rulesCompiled = await this.compileRules(type);
+
+    const dangerous: Array<RuleCompilationResult> = [];
 
     let cs = '';
     for (let i = 0; i < rulesCompiled.length; i++) {
@@ -141,9 +147,10 @@ export class PolicyScript {
         if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
         if (rule.active) cs += rule.cs;
       }
+      if (rule.dangerousRuleData) dangerous.push(rule);
     }
     this.stream.write(cs);
-    return;
+    return dangerous;
   }
 
   private async compileRules(type: number): Promise<RuleCompilationResult[]> {
@@ -160,7 +167,7 @@ export class PolicyScript {
     return PolicyCompiler.compile(this.policyCompiler, rulesData, this.channel);
   }
 
-  private async dumpVyOSPolicy(): Promise<void> {
+  private async dumpVyOSPolicy(): Promise<RuleCompilationResult[]> {
     type ProgressNoticeConfig = { text: string; highlight?: boolean };
     type VyOSChainConfig = {
       title: string;
@@ -173,6 +180,8 @@ export class PolicyScript {
       progress?: ProgressNoticeConfig[];
       chains: VyOSChainConfig[];
     };
+
+    let dangerous: Array<RuleCompilationResult> = [];
 
     const sections: VyOSSectionConfig[] = [
       {
@@ -293,9 +302,11 @@ export class PolicyScript {
         this.stream.write(`echo "${chain.title}"\n`);
         this.stream.write(`echo "${chain.underline}"\n`);
         this.emitProgressNotices(chain.progress);
-        await this.dumpVyOSRules(chain.type);
+        dangerous = dangerous.concat(await this.dumpVyOSRules(chain.type));
       }
     }
+
+    return dangerous;
   }
 
   private emitProgressNotices(notices?: { text: string; highlight?: boolean }[]): void {
@@ -308,8 +319,9 @@ export class PolicyScript {
     }
   }
 
-  private async dumpVyOSRules(type: number): Promise<void> {
+  private async dumpVyOSRules(type: number): Promise<RuleCompilationResult[]> {
     const rules = await this.compileRules(type);
+    const dangerous: Array<RuleCompilationResult> = [];
 
     let cs = '';
     for (let i = 0; i < rules.length; i++) {
@@ -319,17 +331,23 @@ export class PolicyScript {
       cs += `\n# Rule ${i + 1} (ID: ${rule.id})\n`;
       if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
       cs += rule.cs;
+      if (rule.dangerousRuleData) dangerous.push(rule);
     }
 
     if (cs) this.stream.write(cs);
+
+    return dangerous;
   }
 
-  public dump(): Promise<void> {
+  public dump(): Promise<Array<RuleCompilationResult>> {
     return new Promise(async (resolve, reject) => {
       this.stream = fs.createWriteStream(this.path);
       this.stream
         .on('open', async () => {
           try {
+            // Array of dangerous rules
+            let dangerous: Array<RuleCompilationResult> = [];
+
             /* Generate the policy script. */
             this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
             const policyConfig = config.get('policy');
@@ -383,19 +401,25 @@ export class PolicyScript {
               this.stream.write('\n\necho "INPUT CHAIN"\n');
               this.stream.write('echo "-----------"\n');
               this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "OUTPUT CHAIN"\n');
               this.stream.write('echo "------------"\n');
               this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "FORWARD CHAIN"\n');
               this.stream.write('echo "-------------"\n');
               this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "********************"\n');
@@ -405,13 +429,17 @@ export class PolicyScript {
               this.stream.write('\n\necho "SNAT"\n');
               this.stream.write('echo "----"\n');
               this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "DNAT"\n');
               this.stream.write('echo "----"\n');
               this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT')),
+              );
 
               this.stream.write('\n\n');
 
@@ -426,19 +454,25 @@ export class PolicyScript {
               this.stream.write('\n\necho "INPUT CHAIN"\n');
               this.stream.write('echo "-----------"\n');
               this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "OUTPUT CHAIN"\n');
               this.stream.write('echo "------------"\n');
               this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "FORWARD CHAIN"\n');
               this.stream.write('echo "-------------"\n');
               this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "********************"\n');
@@ -448,19 +482,23 @@ export class PolicyScript {
               this.stream.write('\n\necho "SNAT"\n');
               this.stream.write('echo "----"\n');
               this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT')),
+              );
 
               this.stream.write('\n\necho\n');
               this.stream.write('echo "DNAT"\n');
               this.stream.write('echo "----"\n');
               this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-              await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'));
+              dangerous = dangerous.concat(
+                await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT')),
+              );
 
               this.stream.write('\n}\n\n');
 
               await this.dumpRouting();
             } else {
-              await this.dumpVyOSPolicy();
+              dangerous = dangerous.concat(await this.dumpVyOSPolicy());
               this.stream.write('\n');
             }
 
@@ -484,7 +522,7 @@ export class PolicyScript {
             //console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
             //console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
 
-            resolve();
+            resolve(dangerous);
           } catch (error) {
             reject(error);
           }

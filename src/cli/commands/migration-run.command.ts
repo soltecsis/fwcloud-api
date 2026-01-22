@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import { DataSource } from 'typeorm';
 import { DatabaseService } from '../../database/database.service';
 import { Command } from '../command';
@@ -32,7 +32,7 @@ export class MigrationRunCommand extends Command {
   public name: string = 'migration:run';
   public description: string = 'Run all migrations';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );

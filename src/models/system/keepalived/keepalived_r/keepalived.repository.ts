@@ -255,7 +255,9 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       .getSource()
       .manager.getRepository(KeepalivedRule)
       .createQueryBuilder('keepalived');
-    qb.innerJoin('keepalived.firewall', 'firewall').innerJoin('firewall.fwCloud', 'fwcloud');
+    qb.innerJoin('keepalived.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoinAndSelect('keepalived.firewallApplyTo', 'firewallApplyTo');
 
     if (path.firewallId) {
       qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
@@ -321,20 +323,25 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
 
   async getKeepalivedRules(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
   ): Promise<KeepalivedRule[]> {
+    const firewallIds: number[] = Array.isArray(firewall)
+      ? Array.from(new Set(firewall))
+      : [firewall];
+
     const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
       .leftJoinAndSelect('keepalived_r.group', 'group')
       .leftJoinAndSelect('keepalived_r.interface', 'interface')
       .leftJoinAndSelect('keepalived_r.masterNode', 'masterNode')
+      .leftJoinAndSelect('keepalived_r.firewallApplyTo', 'firewallApplyTo')
       .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
       .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
       .leftJoinAndSelect('interface.hosts', 'hosts')
       .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
       .innerJoin('keepalived_r.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwCloud')
-      .where('firewall.id = :firewallId', { firewallId: firewall })
+      .where('firewall.id IN (:...firewallIds)', { firewallIds })
       .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
 
     if (rules) {
