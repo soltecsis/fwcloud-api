@@ -48,17 +48,17 @@ export class FirewallIPSecController extends Controller {
       this._ipsec = await db
         .getSource()
         .manager.getRepository(IPSec)
-        .findOneOrFail({ where: { id: parseInt(request.params.ipsec) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.ipsec)) } });
     }
 
     const firewallQueryBuilder = db
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
-      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
+      .where('firewall.id = :id', { id: parseInt(String(request.params.firewall)) });
     if (request.params.ipsec) {
       firewallQueryBuilder.innerJoin('firewall.ipsecs', 'ipsec', 'ipsec.id = :ipsec', {
-        ipsec: parseInt(request.params.ipsec),
+        ipsec: parseInt(String(request.params.ipsec)),
       });
     }
     this._firewall = await firewallQueryBuilder.getOneOrFail();
@@ -68,9 +68,9 @@ export class FirewallIPSecController extends Controller {
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
-        firewallId: parseInt(request.params.firewall),
+        firewallId: parseInt(String(request.params.firewall)),
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 
@@ -82,9 +82,9 @@ export class FirewallIPSecController extends Controller {
       .createQueryBuilder('ipsec')
       .leftJoinAndSelect('ipsec.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
-      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(req.params.fwcloud) })
-      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(req.params.firewall) })
-      .andWhere('ipsec.id = :ipsecId', { ipsecId: parseInt(req.params.ipsec) })
+      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(String(req.params.fwcloud)) })
+      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(String(req.params.firewall)) })
+      .andWhere('ipsec.id = :ipsecId', { ipsecId: parseInt(String(req.params.ipsec)) })
       .andWhere('ipsec.ipsec IS NOT NULL')
       .getOne();
 
@@ -98,8 +98,8 @@ export class FirewallIPSecController extends Controller {
       .createQueryBuilder('ipsec')
       .leftJoinAndSelect('ipsec.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
-      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(req.params.fwcloud) })
-      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(req.params.firewall) })
+      .where('fwcloud.id = :fwcloudId', { fwcloudId: parseInt(String(req.params.fwcloud)) })
+      .andWhere('firewall.id = :firewallId', { firewallId: parseInt(String(req.params.firewall)) })
       .andWhere('ipsec.ipsec IS NULL')
       .getOne();
 

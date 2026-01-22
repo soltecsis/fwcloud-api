@@ -36,8 +36,17 @@ import { IPSecPrefix } from '../../models/vpn/ipsec/IPSecPrefix';
 const utilsModel = require('../../utils/utils.js');
 const fwcError = require('../../utils/error_table');
 
+const ALLOWED_VPN_TYPES = new Set(['openvpn', 'wireguard', 'ipsec']);
+
+function validateVpnTypeParam(req, res, next) {
+  const { vpnType } = req.params;
+  if (vpnType === undefined) return next();
+  if (ALLOWED_VPN_TYPES.has(vpnType)) return next();
+  return res.status(404).end();
+}
+
 /* Create New policy_r__prefix */
-router.post('/:vpnType(openvpn|wireguard|ipsec)?', utilsModel.disableFirewallCompileStatus, async (req, res) => {
+router.post(['/', '/:vpnType'], validateVpnTypeParam, utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     if (
       (req.prefix.prefix_type == 'openvpn' &&
@@ -94,7 +103,7 @@ router.post('/:vpnType(openvpn|wireguard|ipsec)?', utilsModel.disableFirewallCom
 });
 
 /* Update POSITION policy_r__prefix that exist */
-router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewallCompileStatus, async (req, res) => {
+router.put(['/move', '/:vpnType/move'], validateVpnTypeParam, utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     if (
       (req.prefix.prefix_type == 'openvpn' &&
@@ -163,10 +172,10 @@ router.put('/:vpnType(openvpn|wireguard|ipsec)?/move', utilsModel.disableFirewal
 });
 
 /* Update ORDER de policy_r__interface that exist */
-router.put('/:vpnType(openvpn|wireguard|ipsec)?/order', utilsModel.disableFirewallCompileStatus, (req, res) => { });
+router.put(['/order', '/:vpnType/order'], validateVpnTypeParam, utilsModel.disableFirewallCompileStatus, (req, res) => { });
 
 /* Remove policy_r__prefix */
-router.put('/:vpnType(openvpn|wireguard|ipsec)?/del', utilsModel.disableFirewallCompileStatus, async (req, res) => {
+router.put(['/del', '/:vpnType/del'], validateVpnTypeParam, utilsModel.disableFirewallCompileStatus, async (req, res) => {
   try {
     const vpnType = req.params.vpnType || req.prefix?.prefix_type;
     if (!vpnType) throw new Error('Tipo de VPN no reconocido');

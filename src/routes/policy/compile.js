@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -96,8 +96,8 @@ router.put('/', async (req, res) => {
 
 	try {
 		const policyRuleService = await app().getService(PolicyRuleService.name);
-		await policyRuleService.compile(req.body.fwcloud, req.body.firewall, channel);
-		res.status(204).end();
+		const dangerous = await policyRuleService.compile(req.body.fwcloud, req.body.firewall, channel);
+		res.status(200).json(dangerous);
 	} catch(error) {
 		console.log(error)
 		if (channel) channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));

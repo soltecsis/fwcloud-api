@@ -47,7 +47,7 @@ export class RouteGroupController extends Controller {
       this._routeGroup = await db
         .getSource()
         .manager.getRepository(RouteGroup)
-        .findOneOrFail({ where: { id: parseInt(request.params.routeGroup) } });
+        .findOneOrFail({ where: { id: parseInt(String(request.params.routeGroup)) } });
     }
 
     //Get the firewall from the URL which contains the route group
@@ -55,10 +55,10 @@ export class RouteGroupController extends Controller {
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
-      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
+      .where('firewall.id = :id', { id: parseInt(String(request.params.firewall)) });
     if (request.params.routeGroup) {
       firewallQueryBuilder.innerJoin('firewall.routeGroups', 'group', 'group.id = :groupId', {
-        groupId: parseInt(request.params.routeGroup),
+        groupId: parseInt(String(request.params.routeGroup)),
       });
     }
     this._firewall = await firewallQueryBuilder.getOneOrFail();
@@ -71,7 +71,7 @@ export class RouteGroupController extends Controller {
       .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: this._firewall.id,
       })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(String(request.params.fwcloud)) })
       .getOneOrFail();
   }
 
@@ -127,7 +127,7 @@ export class RouteGroupController extends Controller {
     await this._routeGroupService.remove({
       fwCloudId: this._fwCloud.id,
       firewallId: this._firewall.id,
-      id: parseInt(request.params.routeGroup),
+      id: parseInt(String(request.params.routeGroup)),
     });
     return ResponseBuilder.buildResponse().status(200).body(this._routeGroup);
   }

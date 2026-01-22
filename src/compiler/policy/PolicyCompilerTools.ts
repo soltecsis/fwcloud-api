@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -25,6 +25,7 @@ import { AvailablePolicyCompilers } from './PolicyCompiler';
 import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
 import { FireWallOptMask } from '../../models/firewall/Firewall';
 import { IpUtils } from '../../utils/ip-utils';
+import { DangerousRuleInfo } from '../../config/policy/dangerousRules';
 
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -72,6 +73,7 @@ export type RuleCompilationResult = {
   active: number;
   comment: string;
   cs: string;
+  dangerousRuleData?: DangerousRuleInfo;
 };
 
 type CompiledPosition = {

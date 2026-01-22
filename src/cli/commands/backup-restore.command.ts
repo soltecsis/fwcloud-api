@@ -1,5 +1,5 @@
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import yargs from 'yargs';
+import type { Arguments } from 'yargs';
 import { Backup } from '../../backups/backup';
 import { BackupService } from '../../backups/backup.service';
 import {
@@ -16,7 +16,7 @@ export class BackupRestoreCommand extends Command {
   public name: string = 'backup:restore';
   public description: string = 'Restore an existing backup';
 
-  async handle(args: yargs.Arguments) {
+  async handle(args: Arguments) {
     const backupService: BackupService = await this._app.getService<BackupService>(
       BackupService.name,
     );

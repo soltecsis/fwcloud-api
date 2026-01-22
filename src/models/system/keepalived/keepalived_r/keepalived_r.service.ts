@@ -61,6 +61,8 @@ export interface ICreateKeepalivedRule {
   group?: number;
   style?: string;
   firewallId?: number;
+  firewallApplyToId?: number;
+  fw_apply_to?: number;
   interfaceId?: number;
   virtualIpsIds?: { id: number; order: number }[];
   masterNodeId?: number;
@@ -82,10 +84,14 @@ export interface IUpdateKeepalivedRule {
   comment?: string;
   rule_order?: number;
   group?: number;
+  firewallId?: number;
+  firewallApplyToId?: number;
+  fw_apply_to?: number;
 }
 
-export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>
-  extends KeepalivedRule {
+export interface KeepalivedRulesData<
+  T extends ItemForGrid | KeepalivedRuleItemForCompiler,
+> extends KeepalivedRule {
   items: (T & { _order: number })[];
 }
 
@@ -152,6 +158,16 @@ export class KeepalivedRuleService extends Service {
         .findOneOrFail({ where: { id: data.firewallId } });
     }
 
+    const firewallApplyToId = data.firewallApplyToId ?? data.fw_apply_to;
+    await this.validateFirewallApplyTo(keepalivedRuleData.firewall, firewallApplyToId);
+    if (firewallApplyToId !== undefined && firewallApplyToId !== null) {
+      keepalivedRuleData.firewallApplyTo = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({ where: { id: firewallApplyToId } });
+      keepalivedRuleData.firewallApplyToId = firewallApplyToId;
+    }
+
     const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
       data.firewallId,
     );
@@ -209,7 +225,15 @@ export class KeepalivedRuleService extends Service {
       where: {
         id: In(ids),
       },
-      relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIps', 'masterNode'],
+      relations: [
+        'group',
+        'firewall',
+        'firewall.fwCloud',
+        'firewallApplyTo',
+        'interface',
+        'virtualIps',
+        'masterNode',
+      ],
     });
 
     const lastRule: KeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
@@ -285,7 +309,7 @@ export class KeepalivedRuleService extends Service {
       where: {
         id: id,
       },
-      relations: ['group', 'firewall', 'interface', 'virtualIps', 'masterNode'],
+      relations: ['group', 'firewall', 'firewallApplyTo', 'interface', 'virtualIps', 'masterNode'],
     });
 
     if (!keepalivedRule) {
@@ -336,31 +360,110 @@ export class KeepalivedRuleService extends Service {
         throw new Error('IP version mismatch');
       }
     } else {
-      const fieldsToUpdate = ['masterNodeId', 'interfaceId', 'firewallId'];
-
-      for (const field of fieldsToUpdate) {
-        if (data[field]) {
-          if (field === 'interfaceId') {
+      const fieldHandlers: Array<{
+        payloadKey: keyof (ICreateKeepalivedRule & IUpdateKeepalivedRule);
+        apply: (value: unknown) => Promise<void>;
+      }> = [
+        {
+          payloadKey: 'interfaceId',
+          apply: async (value) => {
+            if (value === undefined) {
+              return;
+            }
+            if (value === null || value === '') {
+              keepalivedRule.interface = null;
+              keepalivedRule.interfaceId = null;
+              return;
+            }
             const interfaceData = await db
               .getSource()
               .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: data[field] } });
+              .findOneOrFail({ where: { id: Number(value) } });
             if (!interfaceData.mac || interfaceData.mac === '') {
               throw new Error('Interface mac is not defined');
             }
-            keepalivedRule[field.slice(0, -2)] = interfaceData;
-          } else if (field === 'masterNodeId') {
-            keepalivedRule[field.slice(0, -2)] = await db
+            keepalivedRule.interface = interfaceData;
+            keepalivedRule.interfaceId = interfaceData.id;
+          },
+        },
+        {
+          payloadKey: 'masterNodeId',
+          apply: async (value) => {
+            if (value === undefined) {
+              return;
+            }
+            if (value === null || value === '') {
+              keepalivedRule.masterNode = null;
+              keepalivedRule.masterNodeId = null;
+              return;
+            }
+            keepalivedRule.masterNode = await db
               .getSource()
               .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: data[field] } });
-          } else if (field === 'firewallId') {
-            keepalivedRule[field.slice(0, -2)] = await db
+              .findOneOrFail({ where: { id: Number(value) } });
+            keepalivedRule.masterNodeId = keepalivedRule.masterNode.id;
+          },
+        },
+        {
+          payloadKey: 'firewallId',
+          apply: async (value) => {
+            if (value === undefined) {
+              return;
+            }
+            if (value === null || value === '') {
+              throw new ValidationException('The given data was invalid', {
+                firewallId: ['Firewall is required'],
+              });
+            }
+            keepalivedRule.firewall = await db
               .getSource()
               .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: data[field] } });
-          }
-        }
+              .findOneOrFail({ where: { id: Number(value) } });
+            keepalivedRule.firewallId = keepalivedRule.firewall.id;
+          },
+        },
+        {
+          payloadKey: 'firewallApplyToId',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId')) {
+              return;
+            }
+            if (value === null || value === undefined || value === '') {
+              keepalivedRule.firewallApplyTo = null;
+              keepalivedRule.firewallApplyToId = null;
+              return;
+            }
+            await this.validateFirewallApplyTo(keepalivedRule.firewall, Number(value));
+            keepalivedRule.firewallApplyTo = await db
+              .getSource()
+              .manager.getRepository(Firewall)
+              .findOneOrFail({ where: { id: Number(value) } });
+            keepalivedRule.firewallApplyToId = keepalivedRule.firewallApplyTo.id;
+          },
+        },
+        {
+          payloadKey: 'fw_apply_to',
+          apply: async (value) => {
+            if (!Object.prototype.hasOwnProperty.call(data, 'fw_apply_to')) {
+              return;
+            }
+            if (value === null || value === undefined || value === '') {
+              keepalivedRule.firewallApplyTo = null;
+              keepalivedRule.firewallApplyToId = null;
+              return;
+            }
+            await this.validateFirewallApplyTo(keepalivedRule.firewall, Number(value));
+            keepalivedRule.firewallApplyTo = await db
+              .getSource()
+              .manager.getRepository(Firewall)
+              .findOneOrFail({ where: { id: Number(value) } });
+            keepalivedRule.firewallApplyToId = keepalivedRule.firewallApplyTo.id;
+          },
+        },
+      ];
+
+      for (const { payloadKey, apply } of fieldHandlers) {
+        await apply((data as Record<string, unknown>)[payloadKey as string]);
       }
     }
 
@@ -402,7 +505,8 @@ export class KeepalivedRuleService extends Service {
     qb.innerJoin('keepalived.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
       .leftJoinAndSelect('keepalived.group', 'group')
-      .leftJoinAndSelect('group.rules', 'rules');
+      .leftJoinAndSelect('group.rules', 'rules')
+      .leftJoinAndSelect('keepalived.firewallApplyTo', 'firewallApplyTo');
 
     if (path.firewallId) {
       qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
@@ -436,22 +540,32 @@ export class KeepalivedRuleService extends Service {
     firewall: number,
     rules?: number[],
   ): Promise<KeepalivedRulesData<T>[]> {
+    const { queryFirewallIds, targetFirewallId } = await this.resolveFirewallsForQuery(firewall);
+    const firewallsForQuery: number | number[] =
+      queryFirewallIds.length === 1 ? queryFirewallIds[0] : queryFirewallIds;
+    const shouldFilterByApplyTo = Array.isArray(firewallsForQuery);
     let rulesData: KeepalivedRulesData<T>[];
     switch (dst) {
       case 'keepalived_grid':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
         )) as KeepalivedRulesData<T>[];
         break;
       case 'compiler':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
-          firewall,
+          firewallsForQuery,
           rules,
         )) as KeepalivedRulesData<T>[];
         break;
+    }
+
+    if (shouldFilterByApplyTo) {
+      rulesData = rulesData.filter(
+        (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === targetFirewallId,
+      );
     }
 
     const ItemsArrayMap = new Map<number, T[]>();
@@ -463,8 +577,8 @@ export class KeepalivedRuleService extends Service {
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
       dst === 'compiler'
-        ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewall, rules)
-        : this.getKeepalivedRulesGridSql(fwcloud, firewall, rules);
+        ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewallsForQuery, rules)
+        : this.getKeepalivedRulesGridSql(fwcloud, firewallsForQuery, rules);
 
     const result = await Promise.all(
       sqls.map((sql) => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)),
@@ -487,16 +601,52 @@ export class KeepalivedRuleService extends Service {
         { ...data, interfaceId: data.interfaceId, group: { id: data.group } },
       );
     } else {
-      const group: KeepalivedGroup = (
-        await this._repository.findOne({
-          where: {
-            id: ids[0],
-          },
-          relations: ['group'],
-        })
-      ).group;
+      const firstRule = await this._repository.findOne({
+        where: {
+          id: ids[0],
+        },
+        relations: ['group', 'firewall'],
+      });
+
+      if (!firstRule) {
+        throw new Error('Keepalived rule not found');
+      }
+
+      const group: KeepalivedGroup = firstRule.group;
+      let targetFirewall: Firewall = firstRule.firewall;
+
       if (data.group !== undefined && group && group.rules.length - ids.length < 1) {
         await this._groupService.remove({ id: group.id });
+      }
+
+      const hasFirewallApplyToId = Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId');
+      const hasFwApplyTo = Object.prototype.hasOwnProperty.call(data, 'fw_apply_to');
+
+      if (hasFirewallApplyToId) {
+        const value = data.firewallApplyToId;
+        const isEmptyValue =
+          value === null || value === undefined || (typeof value === 'string' && value === '');
+        data.fw_apply_to = isEmptyValue ? null : Number(value);
+        delete (data as Record<string, unknown>).firewallApplyToId;
+      }
+
+      if (hasFwApplyTo && !hasFirewallApplyToId) {
+        const value = data.fw_apply_to;
+        const isEmptyValue =
+          value === null || value === undefined || (typeof value === 'string' && value === '');
+        data.fw_apply_to = isEmptyValue ? null : Number(value);
+      }
+
+      if (typeof data.firewallId !== 'undefined') {
+        data.firewallId = Number(data.firewallId);
+        targetFirewall = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: data.firewallId } });
+      }
+
+      if (Object.prototype.hasOwnProperty.call(data, 'fw_apply_to')) {
+        await this.validateFirewallApplyTo(targetFirewall, data.fw_apply_to as number);
       }
 
       await this._repository.update(
@@ -530,7 +680,7 @@ export class KeepalivedRuleService extends Service {
 
   private getKeepalivedRulesGridSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
@@ -538,10 +688,79 @@ export class KeepalivedRuleService extends Service {
 
   private buildKeepalivedRulesCompilerSql(
     fwcloud: number,
-    firewall: number,
+    firewall: number | number[],
     rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
+  }
+
+  protected async resolveFirewallsForQuery(
+    firewallId: number,
+  ): Promise<{ queryFirewallIds: number[]; targetFirewallId: number }> {
+    const firewallRepository = db.getSource().manager.getRepository(Firewall);
+    const firewall = await firewallRepository.findOne({ where: { id: firewallId } });
+
+    if (!firewall) {
+      return {
+        queryFirewallIds: [firewallId],
+        targetFirewallId: firewallId,
+      };
+    }
+
+    const firewalls = new Set<number>([firewall.id]);
+
+    if (firewall.clusterId) {
+      const master = await firewallRepository
+        .createQueryBuilder('firewall')
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOne();
+
+      if (master) {
+        firewalls.add(master.id);
+      }
+    }
+
+    return {
+      queryFirewallIds: Array.from(firewalls),
+      targetFirewallId: firewall.id,
+    };
+  }
+
+  protected async validateFirewallApplyTo(
+    firewall: Firewall,
+    firewallApplyToId?: number,
+  ): Promise<void> {
+    if (!firewallApplyToId) {
+      return;
+    }
+
+    const targetFirewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({ where: { id: firewallApplyToId } });
+
+    if (!targetFirewall) {
+      throw new ValidationException('The given data was invalid', {
+        firewallApplyToId: ['Firewall not found'],
+      });
+    }
+
+    if (!firewall) {
+      return;
+    }
+
+    const sameFirewall = firewall.id === targetFirewall.id;
+    const sameCluster =
+      firewall.clusterId !== null &&
+      firewall.clusterId !== undefined &&
+      firewall.clusterId === targetFirewall.clusterId;
+
+    if (!sameFirewall && !sameCluster) {
+      throw new ValidationException('The given data was invalid', {
+        firewallApplyToId: ['This firewall does not belong to cluster'],
+      });
+    }
   }
 
   async validateVirtualIps(firewall: Firewall, data: IUpdateKeepalivedRule): Promise<void> {

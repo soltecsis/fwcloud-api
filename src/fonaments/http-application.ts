@@ -47,6 +47,7 @@ export abstract class HTTPApplication extends AbstractApplication {
     try {
       super(path);
       this._express = express();
+      this._express.set('query parser', 'extended');
 
       /* ATENTION: If etag is not disabled in expres, when fwcloud-api recevies API requests whose data doesn't change respect
             to previous requests, an HTTP 304 "Not Modified" response code is sent back.

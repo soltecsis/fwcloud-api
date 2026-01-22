@@ -102,8 +102,6 @@ export class FwCloudFactory {
 
   public fwc: FwCloudProduct;
 
-  private _ipobjNextId: number;
-
   constructor() {
     this._manager = db.getSource().manager;
     this._fwcloudRepository = this._manager.getRepository(FwCloud);
@@ -138,8 +136,6 @@ export class FwCloudFactory {
     this.fwc.routes = new Map<string, Route>();
     this.fwc.routingRules = new Map<string, RoutingRule>();
     this.fwc.ipsecClients = new Map<string, IPSec>();
-
-    this._ipobjNextId = this.randomId(10, 100000);
   }
 
   async make(): Promise<FwCloudProduct> {
@@ -163,7 +159,6 @@ export class FwCloudFactory {
   private async makeFwcAndFw(): Promise<void> {
     this.fwc.fwcloud = await this._fwcloudRepository.save(
       this._fwcloudRepository.create({
-        id: this.randomId(10, 100000),
         name: StringHelper.randomize(10),
         locked: false,
         locked_by: null,
@@ -172,7 +167,6 @@ export class FwCloudFactory {
 
     this.fwc.firewall = await this._firewallRepository.save(
       this._firewallRepository.create({
-        id: this.randomId(10, 100000),
         name: StringHelper.randomize(10),
         fwCloudId: this.fwc.fwcloud.id,
       }),
@@ -194,7 +188,6 @@ export class FwCloudFactory {
   private async makeIpobjGroup(): Promise<void> {
     this.fwc.ipobjGroup = await this._ipobjGroupRepository.save(
       this._ipobjGroupRepository.create({
-        id: this.randomId(10, 100000),
         name: 'ipobjs group',
         type: 20,
         fwCloudId: this.fwc.fwcloud.id,
@@ -207,7 +200,6 @@ export class FwCloudFactory {
       'gateway',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'gateway',
           address: '1.2.3.4',
           ipObjTypeId: 5,
@@ -221,7 +213,6 @@ export class FwCloudFactory {
       'address',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'address',
           address: '10.20.30.40',
           ipObjTypeId: 5,
@@ -235,7 +226,6 @@ export class FwCloudFactory {
       'addressRange',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'addressRange',
           range_start: '10.10.10.50',
           range_end: '10.10.10.80',
@@ -250,7 +240,6 @@ export class FwCloudFactory {
       'network',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'network',
           address: '10.20.30.0',
           netmask: '/24',
@@ -265,7 +254,6 @@ export class FwCloudFactory {
       'networkNoCIDR',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'network',
           address: '192.168.0.0',
           netmask: '255.255.0.0',
@@ -282,7 +270,6 @@ export class FwCloudFactory {
       'host',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'host',
           ipObjTypeId: 8,
           interfaceId: null,
@@ -343,7 +330,6 @@ export class FwCloudFactory {
       'host-eth2-addr1',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'host-eth2-addr1',
           address: '192.168.10.1',
           ipObjTypeId: 5,
@@ -357,7 +343,6 @@ export class FwCloudFactory {
       'host-eth3-addr1',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'host-eth3-addr1',
           address: '172.26.20.5',
           ipObjTypeId: 5,
@@ -371,7 +356,6 @@ export class FwCloudFactory {
       'host-eth3-addr2',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'host-eth3-addr2',
           address: '172.26.20.6',
           ipObjTypeId: 5,
@@ -383,11 +367,8 @@ export class FwCloudFactory {
   }
 
   private async makePKI(): Promise<void> {
-    let crtNextId = this.randomId(10, 100000);
-
     this.fwc.ca = await this._caRepository.save(
       this._caRepository.create({
-        id: this.randomId(10, 100000),
         fwCloudId: this.fwc.fwcloud.id,
         cn: 'CA',
         days: 1000,
@@ -398,7 +379,6 @@ export class FwCloudFactory {
       'OpenVPN-Server',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'OpenVPN-Server',
           days: 1000,
@@ -411,7 +391,6 @@ export class FwCloudFactory {
       'OpenVPN-Cli-1',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'OpenVPN-Cli-1',
           days: 1000,
@@ -424,7 +403,6 @@ export class FwCloudFactory {
       'OpenVPN-Cli-2',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'OpenVPN-Cli-2',
           days: 1000,
@@ -437,7 +415,6 @@ export class FwCloudFactory {
       'OpenVPN-Cli-3',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'Other-OpenVPN-Client',
           days: 1000,
@@ -450,7 +427,6 @@ export class FwCloudFactory {
       'Wireguard-Server',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'Wireguard-Server',
           days: 1000,
@@ -463,7 +439,6 @@ export class FwCloudFactory {
       'WireGuard-Cli-1',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'WireGuard-Cli-1',
           days: 1000,
@@ -476,7 +451,6 @@ export class FwCloudFactory {
       'WireGuard-Cli-2',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'WireGuard-Cli-2',
           days: 1000,
@@ -489,7 +463,6 @@ export class FwCloudFactory {
       'WireGuard-Cli-3',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'Other-WireGuard-Client',
           days: 1000,
@@ -502,7 +475,6 @@ export class FwCloudFactory {
       'IPSec-Server',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'IPSec-Server',
           days: 1000,
@@ -515,7 +487,6 @@ export class FwCloudFactory {
       'IPSec-Cli-1',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'IPSec-Cli-1',
           days: 1000,
@@ -528,7 +499,6 @@ export class FwCloudFactory {
       'IPSec-Cli-2',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'IPSec-Cli-2',
           days: 1000,
@@ -541,7 +511,6 @@ export class FwCloudFactory {
       'IPSec-Cli-3',
       await this._crtRepository.save(
         this._crtRepository.create({
-          id: crtNextId++,
           caId: this.fwc.ca.id,
           cn: 'Other-IPSec-Client',
           days: 1000,
@@ -552,11 +521,8 @@ export class FwCloudFactory {
   }
 
   private async makeVPNs(): Promise<void> {
-    let vpnNextId = this.randomId(10, 100000);
-
     this.fwc.openvpnServer = await this._openvpnRepository.save(
       this._openvpnRepository.create({
-        id: vpnNextId++,
         parentId: null,
         firewallId: this.fwc.firewall.id,
         crtId: this.fwc.crts.get('OpenVPN-Server').id,
@@ -567,7 +533,6 @@ export class FwCloudFactory {
       'OpenVPN-Cli-1',
       await this._openvpnRepository.save(
         this._openvpnRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.openvpnServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('OpenVPN-Cli-1').id,
@@ -579,7 +544,6 @@ export class FwCloudFactory {
       'OpenVPN-Cli-2',
       await this._openvpnRepository.save(
         this._openvpnRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.openvpnServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('OpenVPN-Cli-2').id,
@@ -591,7 +555,6 @@ export class FwCloudFactory {
       'OpenVPN-Cli-3',
       await this._openvpnRepository.save(
         this._openvpnRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.openvpnServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('OpenVPN-Cli-3').id,
@@ -604,7 +567,6 @@ export class FwCloudFactory {
       'openvpn-cli1-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'OpenVPN Cli1 address',
           address: '10.200.47.5',
           ipObjTypeId: 5,
@@ -618,7 +580,6 @@ export class FwCloudFactory {
       'openvpn-cli2-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'OpenVPN Cli2 address',
           address: '10.200.47.62',
           ipObjTypeId: 5,
@@ -632,7 +593,6 @@ export class FwCloudFactory {
       'openvpn-cli3-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'OpenVPN Cli3 address',
           address: '10.200.201.78',
           ipObjTypeId: 5,
@@ -674,7 +634,6 @@ export class FwCloudFactory {
 
     this.fwc.openvpnPrefix = await this._openvpnPrefixRepository.save(
       this._openvpnPrefixRepository.create({
-        id: this.randomId(10, 100000),
         openVPNId: this.fwc.openvpnServer.id,
         name: 'OpenVPN-Cli-',
         ipObjGroups: [this.fwc.ipobjGroup],
@@ -683,7 +642,6 @@ export class FwCloudFactory {
 
     this.fwc.wireguardServer = await this._wireguardRepository.save(
       this._wireguardRepository.create({
-        id: vpnNextId++,
         parentId: null,
         firewallId: this.fwc.firewall.id,
         crtId: this.fwc.crts.get('Wireguard-Server').id,
@@ -707,7 +665,6 @@ export class FwCloudFactory {
       'WireGuard-Cli-1',
       await this._wireguardRepository.save(
         this._wireguardRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.wireguardServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('WireGuard-Cli-1').id,
@@ -721,7 +678,6 @@ export class FwCloudFactory {
       'WireGuard-Cli-2',
       await this._wireguardRepository.save(
         this._wireguardRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.wireguardServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('WireGuard-Cli-2').id,
@@ -735,7 +691,6 @@ export class FwCloudFactory {
       'WireGuard-Cli-3',
       await this._wireguardRepository.save(
         this._wireguardRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.wireguardServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('WireGuard-Cli-3').id,
@@ -750,7 +705,6 @@ export class FwCloudFactory {
       'wireguard-cli1-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'WireGuard Cli1 address',
           address: '10.200.47.7',
           ipObjTypeId: 5,
@@ -764,7 +718,6 @@ export class FwCloudFactory {
       'wireguard-cli2-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'WireGuard Cli2 address',
           address: '10.200.47.64',
           ipObjTypeId: 5,
@@ -778,7 +731,6 @@ export class FwCloudFactory {
       'wireguard-cli3-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'WireGuard Cli3 address',
           address: '10.200.201.80',
           ipObjTypeId: 5,
@@ -820,7 +772,6 @@ export class FwCloudFactory {
 
     this.fwc.wireguardPrefix = await this._wireguardPrefixRepository.save(
       this._wireguardPrefixRepository.create({
-        id: this.randomId(10, 100000),
         wireGuardId: this.fwc.wireguardServer.id,
         name: 'WireGuard-Cli-',
         ipObjGroups: [this.fwc.ipobjGroup],
@@ -829,7 +780,6 @@ export class FwCloudFactory {
 
     this.fwc.ipsecServer = await this._ipsecRepository.save(
       this._ipsecRepository.create({
-        id: vpnNextId++,
         parentId: null,
         firewallId: this.fwc.firewall.id,
         crtId: this.fwc.crts.get('IPSec-Server').id,
@@ -853,7 +803,6 @@ export class FwCloudFactory {
       'IPSec-Cli-1',
       await this._ipsecRepository.save(
         this._ipsecRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.ipsecServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('IPSec-Cli-1').id,
@@ -865,7 +814,6 @@ export class FwCloudFactory {
       'IPSec-Cli-2',
       await this._ipsecRepository.save(
         this._ipsecRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.ipsecServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('IPSec-Cli-2').id,
@@ -877,7 +825,6 @@ export class FwCloudFactory {
       'IPSec-Cli-3',
       await this._ipsecRepository.save(
         this._ipsecRepository.create({
-          id: vpnNextId++,
           parentId: this.fwc.ipsecServer.id,
           firewallId: this.fwc.firewall.id,
           crtId: this.fwc.crts.get('IPSec-Cli-3').id,
@@ -890,7 +837,6 @@ export class FwCloudFactory {
       'ipsec-cli1-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'IPSec Cli1 address',
           address: '10.200.47.6',
           ipObjTypeId: 5,
@@ -904,7 +850,6 @@ export class FwCloudFactory {
       'ipsec-cli2-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'IPSec Cli2 address',
           address: '10.200.47.63',
           ipObjTypeId: 5,
@@ -918,7 +863,6 @@ export class FwCloudFactory {
       'ipsec-cli3-addr',
       await this._ipobjRepository.save(
         this._ipobjRepository.create({
-          id: this._ipobjNextId++,
           name: 'IPSec Cli3 address',
           address: '10.200.201.79',
           ipObjTypeId: 5,
@@ -930,7 +874,6 @@ export class FwCloudFactory {
 
     this.fwc.ipsecPrefix = await this._ipsecPrefixRepository.save(
       this._ipsecPrefixRepository.create({
-        id: this.randomId(10, 100000),
         ipsecId: this.fwc.ipsecServer.id,
         name: 'IPSec-Cli-',
         ipObjGroups: [this.fwc.ipobjGroup],
@@ -1003,11 +946,7 @@ export class FwCloudFactory {
     const routingRuleService = await testSuite.app.getService<RoutingRuleService>(
       RoutingRuleService.name,
     );
-    let lastRouteId = this.randomId(10, 100000);
-    let lastRoutingRuleId = this.randomId(10, 100000);
-
     this.fwc.routingTable = await this._routingTableRepository.save({
-      id: this.randomId(10, 100000),
       firewallId: this.fwc.firewall.id,
       number: this.randomId(10, 256),
       name: 'Routing table',
@@ -1016,7 +955,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route1',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
@@ -1027,7 +965,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route2',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         route_order: 2,
@@ -1037,7 +974,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route3',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         route_order: 3,
@@ -1047,7 +983,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route4',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
@@ -1058,7 +993,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route5',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
@@ -1070,7 +1004,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route6',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
@@ -1082,7 +1015,6 @@ export class FwCloudFactory {
     this.fwc.routes.set(
       'route7',
       await this._routeRepository.save({
-        id: lastRouteId++,
         routingTableId: this.fwc.routingTable.id,
         gatewayId: this.fwc.ipobjs.get('gateway').id,
         firewallApplyToId: this.fwc.firewall.id,
@@ -1093,7 +1025,6 @@ export class FwCloudFactory {
     this.fwc.routingRules.set(
       'routing-rule-1',
       await this._routingRuleRepository.save({
-        id: lastRoutingRuleId++,
         routingTableId: this.fwc.routingTable.id,
         rule_order: 1,
       }),
@@ -1102,7 +1033,6 @@ export class FwCloudFactory {
     this.fwc.routingRules.set(
       'routing-rule-2',
       await this._routingRuleRepository.save({
-        id: lastRoutingRuleId++,
         routingTableId: this.fwc.routingTable.id,
         rule_order: 2,
       }),
@@ -1111,7 +1041,6 @@ export class FwCloudFactory {
     this.fwc.routingRules.set(
       'routing-rule-3',
       await this._routingRuleRepository.save({
-        id: lastRoutingRuleId++,
         routingTableId: this.fwc.routingTable.id,
         rule_order: 3,
       }),
@@ -1120,7 +1049,6 @@ export class FwCloudFactory {
     this.fwc.routingRules.set(
       'routing-rule-4',
       await this._routingRuleRepository.save({
-        id: lastRoutingRuleId++,
         routingTableId: this.fwc.routingTable.id,
         firewallApplyToId: this.fwc.firewall.id,
         rule_order: 4,
@@ -1130,7 +1058,6 @@ export class FwCloudFactory {
     this.fwc.routingRules.set(
       'routing-rule-5',
       await this._routingRuleRepository.save({
-        id: lastRoutingRuleId++,
         routingTableId: this.fwc.routingTable.id,
         firewallApplyToId: this.fwc.firewall.id,
         rule_order: 5,
@@ -1239,8 +1166,7 @@ export class FwCloudFactory {
   private async makeMark(): Promise<void> {
     this.fwc.mark = await this._markRepository.save(
       this._markRepository.create({
-        id: this.randomId(10, 100000),
-        code: this.randomId(10, 3000),
+        code: 100000 + this.fwc.fwcloud.id,
         name: 'mark',
         fwCloudId: this.fwc.fwcloud.id,
       }),

@@ -47,18 +47,18 @@ export class HAProxyGroupController extends Controller {
 
     if (request.params.haproxygroup) {
       this._haproxyGroup = await this._haproxyGroupService.findOneInPath({
-        id: parseInt(request.params.haproxygroup),
+        id: parseInt(String(request.params.haproxygroup)),
       });
     }
 
     this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
-      .findOneOrFail({ where: { id: parseInt(request.params.firewall) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.firewall)) } });
     this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
-      .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
+      .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
   }
 
   @Validate()

@@ -41,7 +41,7 @@ export class SnapshotController extends Controller {
   public async make(request: Request) {
     this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
     this._fwCloud = await FwCloud.findOneOrFail({
-      where: { id: parseInt(request.params.fwcloud) },
+      where: { id: parseInt(String(request.params.fwcloud)) },
     });
   }
 
@@ -64,7 +64,7 @@ export class SnapshotController extends Controller {
   public async show(request: Request): Promise<ResponseBuilder> {
     const snapshot: Snapshot = await this._snapshotService.findOneOrFail(
       this._fwCloud,
-      parseInt(request.params.snapshot),
+      parseInt(String(request.params.snapshot)),
     );
 
     if (!(await SnapshotPolicy.read(snapshot, request.session.user)).can()) {
@@ -94,7 +94,7 @@ export class SnapshotController extends Controller {
   public async update(request: Request): Promise<ResponseBuilder> {
     let snapshot: Snapshot = await this._snapshotService.findOneOrFail(
       this._fwCloud,
-      parseInt(request.params.snapshot),
+      parseInt(String(request.params.snapshot)),
     );
 
     (await SnapshotPolicy.update(snapshot, request.session.user)).authorize();
@@ -111,7 +111,7 @@ export class SnapshotController extends Controller {
   public async restore(request: Request): Promise<ResponseBuilder> {
     const snapshot: Snapshot = await this._snapshotService.findOneOrFail(
       this._fwCloud,
-      parseInt(request.params.snapshot),
+      parseInt(String(request.params.snapshot)),
     );
 
     (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
@@ -127,7 +127,7 @@ export class SnapshotController extends Controller {
   public async destroy(request: Request): Promise<ResponseBuilder> {
     let snapshot: Snapshot = await this._snapshotService.findOneOrFail(
       this._fwCloud,
-      parseInt(request.params.snapshot),
+      parseInt(String(request.params.snapshot)),
     );
 
     (await SnapshotPolicy.destroy(snapshot, request.session.user)).authorize();
