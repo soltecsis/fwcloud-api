@@ -46,7 +46,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ['16', '18', '20']
+        node-version: ['20', '22']
         database: [mysql, mysql8, mariadb]
         include:
           - database: mysql
@@ -80,7 +80,7 @@ jobs:
     - name: Install dependencies
       run: npm install
     - name: Run ESLint
-      if: matrix.node-version == '18' || matrix.node-version == '20'
+      if: matrix.node-version == '20' || matrix.node-version == '22'
       run: npm run lint:check
     - name: Run Prettier
       run: npm run format:check
