@@ -26,6 +26,9 @@ import { Validate } from '../../decorators/validate.decorator';
 import { Request } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { app } from '../../fonaments/abstract-application';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
+
+const MIN_NODE_VERSION = 20;
 
 interface UpdatesInfo {
   websrv: Versions;
@@ -37,37 +40,77 @@ interface UpdatesInfo {
 export class UpdateController extends Controller {
   protected _updateUpdaterService: UpdateService;
 
-  async make() {
+  public async make(): Promise<void> {
     this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
+  }
+
+  private ensureNodeVersionSupported(): void {
+    const version = process.versions.node;
+    const major = Number.parseInt(version.split('.')[0], 10);
+
+    if (!Number.isFinite(major)) {
+      throw new HttpException(
+        `Unable to detect Node.js version. Node.js >= ${MIN_NODE_VERSION} is required to run updates.`,
+        400,
+      );
+    }
+
+    if (major < MIN_NODE_VERSION) {
+      throw new HttpException(
+        `Node.js >= ${MIN_NODE_VERSION} is required to run updates (CI minimum). Detected v${version}.`,
+        400,
+      );
+    }
   }
 
   @Validate()
   public async proxy(request: Request): Promise<ResponseBuilder> {
+    if (this.isApiUpdateRequest(request)) {
+      this.ensureNodeVersionSupported();
+    }
     const data = await this._updateUpdaterService.proxyUpdate(request);
 
-    return data
-      ? ResponseBuilder.buildResponse().status(200).body(data)
-      : ResponseBuilder.buildResponse().status(200);
+    return this.buildOkResponse(data);
   }
 
   @Validate()
   public async pkgInstallUpdatesData(request: Request): Promise<ResponseBuilder> {
+    const [ui, api] = await Promise.all([
+      this._updateUpdaterService.compareVersions(Apps.UI),
+      this._updateUpdaterService.compareVersions(Apps.API),
+    ]);
+
     const updatesInfo: UpdatesInfo = {
       websrv: null,
-      ui: await this._updateUpdaterService.compareVersions(Apps.UI),
-      api: await this._updateUpdaterService.compareVersions(Apps.API),
+      ui,
+      api,
       updater: null,
     };
 
-    return updatesInfo
-      ? ResponseBuilder.buildResponse().status(200).body(updatesInfo)
-      : ResponseBuilder.buildResponse().status(200);
+    return this.buildOkResponse(updatesInfo);
   }
 
   @Validate()
   public async update(): Promise<ResponseBuilder> {
+    this.ensureNodeVersionSupported();
     await this._updateUpdaterService.runUpdate();
 
-    return ResponseBuilder.buildResponse().status(200);
+    return this.buildOkResponse();
+  }
+
+  private buildOkResponse(payload?: any): ResponseBuilder {
+    const response = ResponseBuilder.buildResponse().status(200);
+    return payload !== undefined ? response.body(payload) : response;
+  }
+
+  private isApiUpdateRequest(request: Request): boolean {
+    if (!request.method || request.method.toUpperCase() !== 'PUT') {
+      return false;
+    }
+
+    const rawUrl = request.originalUrl || request.url || '';
+    const path = rawUrl.split('?')[0];
+
+    return /\/updates\/api\/?$/.test(path);
   }
 }
