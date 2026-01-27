@@ -203,6 +203,14 @@ export class AuditLogService extends Service {
       );
     }
 
+    if (typeof options.take === 'number' && Number.isFinite(options.take)) {
+      query.take(Math.max(0, options.take));
+    }
+
+    if (typeof options.skip === 'number' && Number.isFinite(options.skip)) {
+      query.skip(Math.max(0, options.skip));
+    }
+
     const [auditLogs, total] = await query.getManyAndCount();
 
     return { auditLogs, total };
