@@ -105,6 +105,7 @@ export enum PluginsFlags {
   haproxy = 'haproxy',
   wireguard = 'wireguard',
   ipsec = 'ipsec',
+  irqbalance = 'irqbalance',
 }
 
 // Special rules codes.
