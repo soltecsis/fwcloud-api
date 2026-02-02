@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -85,6 +85,9 @@ export class OpenVPN extends Model {
 
   @Column()
   installed_at: Date;
+
+  @Column({ name: 'tfa_enabled', type: 'tinyint', default: 0 })
+  tfaEnabled: number;
 
   @Column({ name: 'openvpn' })
   parentId: number;
