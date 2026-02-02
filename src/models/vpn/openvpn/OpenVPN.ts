@@ -346,6 +346,56 @@ export class OpenVPN extends Model {
     });
   }
 
+  // Get all the clients with 2FA enabled for an OpenVPN server in a firewall.
+  public static firewallServerHasClientsWith2FAEnabled(dbCon, firewallId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) enabledClients FROM openvpn
+                WHERE openvpn = ? AND firewall = ? AND tfa_enabled = 1`;
+      dbCon.query(sql, [openvpnId, firewallId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].enabledClients > 0);
+      });
+    });
+  }
+
+  // Get all OpenVPN servers with 2FA enabled for a firewall (excluding the given OpenVPN server).
+  public static firewallHasOtherServersWith2FAEnabled(dbCon, firewallId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) enabledServers FROM openvpn
+                WHERE firewall = ? AND openvpn IS NULL AND id != ? AND tfa_enabled = 1`;
+      dbCon.query(sql, [firewallId, openvpnId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].enabledServers > 0);
+      });
+    });
+  }
+
+  // Get all the clients with 2FA enabled for an OpenVPN server in a cluster.
+  public static clusterServerHasClientsWith2FAEnabled(dbCon, clusterId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) enabledClients FROM openvpn
+                WHERE openvpn = ? AND firewall = ? AND tfa_enabled = 1`;
+      dbCon.query(sql, [openvpnId, clusterId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].enabledClients > 0);
+      });
+    });
+  }
+
+  // Get all OpenVPN servers with 2FA enabled for a cluster (excluding the given OpenVPN server).
+  public static clusterHasOtherServersWith2FAEnabled(dbCon, clusterId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) n
+                FROM openvpn VPN
+                INNER JOIN firewall FW ON FW.id = VPN.firewall
+                WHERE FW.cluster = ? AND VPN.openvpn IS NULL AND VPN.id != ? AND VPN.tfa_enabled = 1`;
+      dbCon.query(sql, [clusterId, openvpnId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].n > 0);
+      });
+    });
+  }
+
   // Get data of OpenVPN servers of a firewall.
   public static getOpenvpnServersByFirewall(dbCon, firewall) {
     return new Promise((resolve, reject) => {
