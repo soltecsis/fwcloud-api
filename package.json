@@ -24,6 +24,9 @@
     "prepare": "husky",
     "dev": "nodemon --ext js,ts --watch src --exec \"npm run build && node dist/src/bin/fwcloud\""
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "archiver": "7.0.1",
     "async": "3.2.6",

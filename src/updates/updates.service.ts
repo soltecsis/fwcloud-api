@@ -27,12 +27,15 @@ import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from 'axios';
 import * as https from 'https';
 import cmp from 'semver-compare';
+import semver from 'semver';
 const spawn = require('child-process-promise').spawn;
 
 export interface Versions {
   current: string;
   last: string;
   needsUpdate: boolean;
+  minNode: string | null;
+  nodeCompatible: boolean | null;
 }
 
 export enum Apps {
@@ -104,10 +107,19 @@ export class UpdateService extends Service {
       return null;
     }
 
+    const minNodeVersion: string | null = remoteJson.data.engines?.node ?? null;
+
+    const runtimeNodeVersion = semver.clean(process.version) ?? process.version;
+    const nodeCompatible = minNodeVersion
+      ? semver.satisfies(runtimeNodeVersion, minNodeVersion, { includePrerelease: true })
+      : null;
+
     const versions: Versions = {
       current: localJson.version,
       last: remoteJson.data.version,
       needsUpdate: cmp(remoteJson.data.version, localJson.version) === 1 ? true : false,
+      minNode: minNodeVersion,
+      nodeCompatible,
     };
 
     return versions;
