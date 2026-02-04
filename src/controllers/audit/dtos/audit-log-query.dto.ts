@@ -30,14 +30,29 @@ export class AuditLogListQueryDto {
   fwcloud_name?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  fwcloud_id?: number;
+
+  @IsOptional()
   @IsString()
   @Transform(trim)
   firewall_name?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  firewall_id?: number;
+
+  @IsOptional()
   @IsString()
   @Transform(trim)
   cluster_name?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  cluster_id?: number;
 
   @IsOptional()
   @IsString()

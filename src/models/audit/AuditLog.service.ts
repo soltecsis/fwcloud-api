@@ -67,8 +67,11 @@ export type ListAuditLogsOptions = {
   timestampTo?: Date;
   userName?: string;
   sessionIdFilter?: number | null;
+  fwCloudId?: number;
   fwCloudName?: string;
+  firewallId?: number;
   firewallName?: string;
+  clusterId?: number;
   clusterName?: string;
   sourceIp?: string;
   cursor?: ListAuditLogsCursor;
@@ -157,12 +160,24 @@ export class AuditLogService extends Service {
       applyTextFilter('auditLog.userName', 'userName', options.userName);
     }
 
+    if (typeof options.fwCloudId === 'number' && Number.isFinite(options.fwCloudId)) {
+      query.andWhere('auditLog.fwCloudId = :fwCloudId', { fwCloudId: options.fwCloudId });
+    }
+
     if (typeof options.fwCloudName === 'string' && options.fwCloudName.trim() !== '') {
       applyTextFilter('auditLog.fwCloudName', 'fwCloudName', options.fwCloudName);
     }
 
+    if (typeof options.firewallId === 'number' && Number.isFinite(options.firewallId)) {
+      query.andWhere('auditLog.firewallId = :firewallId', { firewallId: options.firewallId });
+    }
+
     if (typeof options.firewallName === 'string' && options.firewallName.trim() !== '') {
       applyTextFilter('auditLog.firewallName', 'firewallName', options.firewallName);
+    }
+
+    if (typeof options.clusterId === 'number' && Number.isFinite(options.clusterId)) {
+      query.andWhere('auditLog.clusterId = :clusterId', { clusterId: options.clusterId });
     }
 
     if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
