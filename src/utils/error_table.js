@@ -67,7 +67,7 @@ var errorTable = {
   "VPN_NOT_FOUND_STATUS":      {"fwcErr": 6005, "msg": "OpenVPN 'status' option not found"},
   "VPN_2FA_CLIENTS_ENABLED":   {"fwcErr": 6006, "msg": "Two-factor authentication for OpenVPN clients is enabled, this operation is not allowed"},
   "VPN_2FA_SERVER_DISABLED":   {"fwcErr": 6007, "msg": "Two-factor authentication for OpenVPN server is disabled"},
-  "VPN_2FA_AGENT_REQUIRED":    {"fwcErr": 6008, "msg": "Two-factor authentication agent is required for this operation"},
+  "VPN_2FA_AGENT_REQUIRED":    {"fwcErr": 6008, "msg": "Comunication agent is required for this operation"},
 
   // Access control error codes.
   "ACC_FWCLOUD":               {"fwcErr": 7000, "msg": "FWCloud access not allowed"},
