@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
 	https://soltecsis.com
 	info@soltecsis.com
 
@@ -703,6 +703,189 @@ router.put('/status/get', async (req, res, next) => {
 			return next(error);
 		}
 
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+router.put('/2fa/server', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw fwcError.VPN_NOT_SER;
+
+		const enabled = !!req.body.enabled;
+		const channel = await Channel.fromRequest(req);
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = await firewall.getCommunication({
+				sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: undefined,
+				sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: undefined,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
+
+		if (!communication) {
+			throw fwcError.VPN_2FA_AGENT_REQUIRED;
+		}
+
+		if (!enabled) {
+			const hasClientsWith2FA = firewall.clusterId
+				? await OpenVPN.clusterServerHasClientsWith2FAEnabled(
+					req.dbCon,
+					firewall.clusterId,
+					req.body.openvpn
+				)
+				: await OpenVPN.firewallServerHasClientsWith2FAEnabled(
+					req.dbCon,
+					firewall.id,
+					req.body.openvpn
+				);
+
+			if (hasClientsWith2FA) {
+				throw fwcError.VPN_2FA_CLIENTS_ENABLED;
+			}
+
+			const hasOtherServersWith2FA = firewall.clusterId
+				? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.clusterId,
+					req.body.openvpn
+				)
+				: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.id,
+					req.body.openvpn
+				);
+
+			if (!hasOtherServersWith2FA) {
+				await communication.installPlugin('openvpn-2fa', false, channel);
+			}
+		} else {
+			// Check if any other server has 2FA enabled. If not, we must install the plugin before enable 2FA in this server.
+			const hasOtherServersWith2FA = firewall.clusterId
+				? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.clusterId,
+					req.body.openvpn
+				)
+				: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.id,
+					req.body.openvpn
+				);
+
+			if (!hasOtherServersWith2FA) {
+				await communication.installPlugin('openvpn-2fa', true, channel);
+			}
+		}
+
+		await req.dbCon.query(
+			`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`
+		);
+
+		res.status(204).end();
+	} catch (error) {
+		logger().error('Error getting openvpn 2fa server data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+		
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+router.put('/2fa/client', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 1) // This action only can be done in client OpenVPN configurations.
+			throw fwcError.VPN_NOT_CLI;
+
+		if (!req.openvpn.openvpn) {
+			throw fwcError.other('OpenVPN client has no parent server');
+		}
+
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = await firewall.getCommunication({
+				sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: undefined,
+				sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: undefined,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
+
+		if (!communication) {
+			throw fwcError.VPN_2FA_AGENT_REQUIRED;
+		}
+
+		const enabled = !!req.body.enabled;
+
+		if (enabled) {
+			const sql = `SELECT tfa_enabled FROM openvpn WHERE id=${req.dbCon.escape(req.openvpn.openvpn)}
+				AND firewall=${req.dbCon.escape(firewall.id)}`;
+			const result = await new Promise((resolve, reject) => {
+				req.dbCon.query(sql, (error, rows) => {
+					if (error) return reject(error);
+					resolve(rows);
+				});
+			});
+
+			if (!result || result.length === 0 || result[0].tfa_enabled !== 1) {
+				throw fwcError.VPN_2FA_SERVER_DISABLED;
+			}
+		}
+
+		await req.dbCon.query(
+			`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`
+		);
+
+		const channel = await Channel.fromRequest(req);
+		const enabledClients = await db.getSource().manager.getRepository(OpenVPN)
+			.createQueryBuilder('openvpn')
+			.innerJoinAndSelect('openvpn.crt', 'crt')
+			.where('openvpn.parentId = :parentId', { parentId: req.openvpn.openvpn })
+			.andWhere('openvpn.tfa_enabled = 1')
+			.getMany();
+
+		const usersListContent = enabledClients.map(client => client.crt.cn).join('\n');
+
+		await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
+			name: '2fa_users.txt',
+			content: usersListContent
+		}], channel);
+
+		res.status(204).end();
+	} catch (error) {
+		logger().error('Error getting openvpn 2fa client data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+		
 		if (error.message)
 			res.status(400).json({ message: error.message });
 		else
