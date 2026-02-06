@@ -791,9 +791,15 @@ router.put('/2fa/server', async (req, res, next) => {
 			}
 		}
 
-		await req.dbCon.query(
-			`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`
-		);
+		await new Promise((resolve, reject) => {
+			req.dbCon.query(
+				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+				(error, result) => {
+					if (error) return reject(error);
+					resolve(result);
+				}
+			);
+		});
 
 		res.status(204).end();
 	} catch (error) {
