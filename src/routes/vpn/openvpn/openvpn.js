@@ -859,9 +859,15 @@ router.put('/2fa/client', async (req, res, next) => {
 			}
 		}
 
-		await req.dbCon.query(
-			`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`
-		);
+		await new Promise((resolve, reject) => {
+			req.dbCon.query(
+				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+				(error, result) => {
+					if (error) return reject(error);
+					resolve(result);
+				}
+			);
+		});
 
 		const channel = await Channel.fromRequest(req);
 		const enabledClients = await db.getSource().manager.getRepository(OpenVPN)
