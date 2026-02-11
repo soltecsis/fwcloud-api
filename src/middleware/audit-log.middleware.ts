@@ -31,19 +31,9 @@ import { Cluster } from '../models/firewall/Cluster';
 import { AuditLogHelper } from '../models/audit/audit-log.helper';
 
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
-
-type NamedEntityContext = {
-  id?: number | null;
-  name?: string | null;
-};
-
-type DescriptionContext = {
-  userId?: number | null;
-  userName?: string | null;
-  fwCloud?: NamedEntityContext;
-  firewall?: NamedEntityContext;
-  cluster?: NamedEntityContext;
-};
+const MAX_DESCRIPTION_SECTION_LENGTH = 512;
+const MAX_DESCRIPTION_VALUE_LENGTH = 120;
+const MAX_DESCRIPTION_PAIRS = 12;
 
 const SENSITIVE_KEY_PATTERNS = [
   'password',
@@ -60,12 +50,110 @@ const SENSITIVE_KEY_PATTERNS = [
   'otp',
 ];
 
+const ACTION_VERB_MAP: Record<string, string> = {
+  add: 'Add',
+  archive: 'Archive',
+  assign: 'Assign',
+  attach: 'Attach',
+  backup: 'Backup',
+  check: 'Check',
+  clone: 'Clone',
+  compare: 'Compare',
+  compile: 'Compile',
+  create: 'Create',
+  deactivate: 'Deactivate',
+  del: 'Delete',
+  delete: 'Delete',
+  destroy: 'Delete',
+  detach: 'Detach',
+  disable: 'Disable',
+  download: 'Download',
+  enable: 'Enable',
+  export: 'Export',
+  fetch: 'Fetch',
+  generate: 'Generate',
+  get: 'Get',
+  import: 'Import',
+  index: 'List',
+  info: 'Get',
+  install: 'Install',
+  list: 'List',
+  login: 'Log in',
+  logout: 'Log out',
+  merge: 'Merge',
+  move: 'Move',
+  patch: 'Update',
+  publish: 'Publish',
+  register: 'Register',
+  remove: 'Remove',
+  rename: 'Rename',
+  replace: 'Replace',
+  reset: 'Reset',
+  restore: 'Restore',
+  run: 'Run',
+  save: 'Save',
+  search: 'Search',
+  setup: 'Setup',
+  show: 'Show',
+  sync: 'Sync',
+  test: 'Test',
+  uninstall: 'Uninstall',
+  unlock: 'Unlock',
+  unregister: 'Unregister',
+  update: 'Update',
+  upload: 'Upload',
+  validate: 'Validate',
+  verify: 'Verify',
+};
+
+const ACTION_TOKENS = new Set(Object.keys(ACTION_VERB_MAP));
+const IGNORED_RESOURCE_TOKENS = new Set(['id', 'ids', 'uuid']);
+const DESCRIPTION_COLUMN_KEYS = new Set([
+  'user',
+  'fwcloud',
+  'firewall',
+  'cluster',
+  'ip',
+  'sourceip',
+]);
+const HUMANIZE_TOKEN_OVERRIDES: Record<string, string> = {
+  api: 'API',
+  auditlog: 'Audit log',
+  auditlogs: 'Audit logs',
+  ca: 'CA',
+  crt: 'CRT',
+  dhcp: 'DHCP',
+  firewall: 'Firewall',
+  fwcloud: 'FWCloud',
+  fwclouds: 'FWClouds',
+  haproxy: 'HAProxy',
+  ip: 'IP',
+  ipobj: 'IP object',
+  ipobjs: 'IP objects',
+  ipsec: 'IPSec',
+  policy: 'Policy',
+  position: 'Position',
+  positions: 'Positions',
+  rule: 'Rule',
+  rules: 'Rules',
+  openvpn: 'OpenVPN',
+  tfa: 'TFA',
+  vpn: 'VPN',
+  websrv: 'Web Server',
+  wireguard: 'WireGuard',
+};
+
 type AuditRouteMetadata = {
   httpMethod?: string | null;
   path?: string | null;
   controller?: string | null;
   action?: string | null;
   name?: string | null;
+};
+
+type RenderableInstrumentationEntry = {
+  normalizedLabel: string | null;
+  text: string;
 };
 
 export class AuditLogMiddleware extends Middleware {
@@ -174,6 +262,8 @@ export class AuditLogMiddleware extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     const start = Date.now();
     let handled = false;
+    (req as Request & { __auditLogOriginalUrl?: string }).__auditLogOriginalUrl =
+      typeof req.originalUrl === 'string' ? req.originalUrl : undefined;
 
     const finalize = () => {
       if (handled) {
@@ -274,18 +364,7 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.firewallName = firewall?.name ?? null;
       auditLog.clusterName = cluster?.name ?? null;
 
-      auditLog.description = this.buildDescription(
-        req,
-        res,
-        {
-          userId: auditLog.userId,
-          userName: auditLog.userName,
-          fwCloud: { id: auditLog.fwCloudId, name: auditLog.fwCloudName },
-          firewall: { id: auditLog.firewallId, name: auditLog.firewallName },
-          cluster: { id: auditLog.clusterId, name: auditLog.clusterName },
-        },
-        instrumentationContext,
-      );
+      auditLog.description = this.buildDescription(req, res, instrumentationContext);
 
       await dataSource.manager.getRepository(AuditLog).save(auditLog);
     } catch (error) {
@@ -301,65 +380,60 @@ export class AuditLogMiddleware extends Middleware {
   private buildDescription(
     req: Request,
     res: Response,
-    context: DescriptionContext = {},
     instrumentation: Record<string, string | number> = {},
   ): string {
-    const resolveEntityValue = (entity?: NamedEntityContext): string | null => {
-      if (!entity) {
-        return null;
-      }
-
-      if (entity.name && entity.name.trim() !== '') {
-        return entity.name;
-      }
-
-      if (entity.id !== null && entity.id !== undefined) {
-        return String(entity.id);
-      }
-
-      return null;
-    };
-
     const pieces: string[] = [];
     const usedLabels = new Set<string>();
-    pieces.push(`${req.method.toUpperCase()} ${req.originalUrl}`);
-    pieces.push(`status=${res.statusCode}`);
+    const routeMetadata = this.resolveRouteMetadata(req, res);
+    const narrative = this.buildOperationNarrative(req, routeMetadata);
+    if (narrative) {
+      pieces.push(narrative);
+    }
+
+    pieces.push(`Status ${res.statusCode}`);
     usedLabels.add('status');
 
-    const trimmedUserName =
-      typeof context.userName === 'string' ? context.userName.trim() : undefined;
-    const userLabel = trimmedUserName && trimmedUserName.length > 0 ? trimmedUserName : null;
-    const fallbackUserLabel =
-      context.userId !== null && context.userId !== undefined ? String(context.userId) : null;
-
-    if (userLabel || fallbackUserLabel) {
-      pieces.push(`user=${userLabel ?? fallbackUserLabel}`);
-      usedLabels.add('user');
+    const instrumentationEntries = this.buildInstrumentationEntries(instrumentation, usedLabels);
+    const excludedSectionKeys = new Set<string>([
+      ...this.buildDescriptionKeySet(usedLabels),
+      ...DESCRIPTION_COLUMN_KEYS,
+    ]);
+    for (const entry of instrumentationEntries) {
+      if (entry.normalizedLabel) {
+        excludedSectionKeys.add(entry.normalizedLabel);
+      }
     }
 
-    const fwCloudLabel = resolveEntityValue(context?.fwCloud);
-    if (fwCloudLabel) {
-      pieces.push(`fwcloud=${fwCloudLabel}`);
-      usedLabels.add('fwcloud');
+    const paramsLabel = this.renderDescriptionSection('Params', req.params, excludedSectionKeys);
+    if (paramsLabel) {
+      pieces.push(paramsLabel);
+      usedLabels.add('params');
     }
 
-    const firewallLabel = resolveEntityValue(context?.firewall);
-    if (firewallLabel) {
-      pieces.push(`firewall=${firewallLabel}`);
-      usedLabels.add('firewall');
+    const queryLabel = this.renderDescriptionSection('Query', req.query, excludedSectionKeys);
+    if (queryLabel) {
+      pieces.push(queryLabel);
+      usedLabels.add('query');
     }
 
-    const clusterLabel = resolveEntityValue(context?.cluster);
-    if (clusterLabel) {
-      pieces.push(`cluster=${clusterLabel}`);
-      usedLabels.add('cluster');
+    const bodyLabel = this.renderDescriptionSection('Body', req.body, excludedSectionKeys);
+    if (bodyLabel) {
+      pieces.push(bodyLabel);
+      usedLabels.add('body');
     }
 
-    const ip = this.getClientIp(req);
-    if (ip) {
-      pieces.push(`ip=${ip}`);
-      usedLabels.add('ip');
+    for (const entry of instrumentationEntries) {
+      pieces.push(entry.text);
     }
+
+    return pieces.join('. ');
+  }
+
+  private buildInstrumentationEntries(
+    instrumentation: Record<string, string | number>,
+    usedLabels: ReadonlySet<string>,
+  ): RenderableInstrumentationEntry[] {
+    const entries: RenderableInstrumentationEntry[] = [];
 
     for (const [label, value] of Object.entries(instrumentation)) {
       if (value === null || value === undefined) {
@@ -367,6 +441,11 @@ export class AuditLogMiddleware extends Middleware {
       }
 
       if (usedLabels.has(label)) {
+        continue;
+      }
+
+      const normalizedLabel = this.normalizeDescriptionKey(label);
+      if (normalizedLabel && DESCRIPTION_COLUMN_KEYS.has(normalizedLabel)) {
         continue;
       }
 
@@ -381,10 +460,589 @@ export class AuditLogMiddleware extends Middleware {
         continue;
       }
 
-      pieces.push(`${label}=${rendered}`);
+      const labelTitle = this.humanizeToken(label);
+      const safeLabel = labelTitle && labelTitle.trim().length > 0 ? labelTitle : label;
+      entries.push({
+        normalizedLabel,
+        text: `${safeLabel}: ${rendered}`,
+      });
     }
 
-    return pieces.join(' | ');
+    return entries;
+  }
+
+  private buildDescriptionKeySet(labels: Iterable<string>): Set<string> {
+    const normalizedLabels = new Set<string>();
+
+    for (const label of labels) {
+      const normalized = this.normalizeDescriptionKey(label);
+      if (normalized) {
+        normalizedLabels.add(normalized);
+      }
+    }
+
+    return normalizedLabels;
+  }
+
+  private normalizeDescriptionKey(rawLabel: string): string | null {
+    if (!rawLabel || rawLabel.trim().length === 0) {
+      return null;
+    }
+
+    const tokens = this.tokenize(rawLabel).filter((token) => !IGNORED_RESOURCE_TOKENS.has(token));
+    if (tokens.length === 0) {
+      return null;
+    }
+
+    if (tokens[0] === 'target' && tokens[1] === 'scope') {
+      return 'scope';
+    }
+
+    return tokens.join('');
+  }
+
+  private buildOperationNarrative(
+    req: Request,
+    metadata: AuditRouteMetadata | null,
+  ): string | null {
+    const policyNarrative = this.buildPolicyMoveNarrative(req, metadata);
+    if (policyNarrative) {
+      return policyNarrative;
+    }
+
+    const verb = this.resolveOperationVerb(req, metadata);
+    const resource = this.resolveOperationResource(req, metadata);
+
+    if (!verb && !resource) {
+      return null;
+    }
+
+    const pastVerb = verb ? this.toPastTense(verb) : null;
+    const base = pastVerb && resource ? `${pastVerb} ${resource}` : (pastVerb ?? resource ?? '');
+    const trimmed = base.trim();
+
+    if (!trimmed) {
+      return null;
+    }
+
+    return this.truncateDescription(trimmed, MAX_DESCRIPTION_SECTION_LENGTH);
+  }
+
+  private buildPolicyMoveNarrative(
+    req: Request,
+    metadata: AuditRouteMetadata | null,
+  ): string | null {
+    const tokens = this.collectTokens([
+      metadata?.path,
+      metadata?.name,
+      req.baseUrl,
+      req.path,
+      req.originalUrl ? req.originalUrl.split('?')[0] : null,
+    ]);
+
+    const hasPolicyHint = tokens.has('policy');
+    if (!hasPolicyHint) {
+      return null;
+    }
+
+    const newPositionValue = this.resolveRequestValue(req, ['new_position']);
+    const newRuleValue = this.resolveRequestValue(req, ['new_rule']);
+    const newOrderValue = this.resolveRequestValue(req, ['new_order']);
+    const hasMoveHint =
+      tokens.has('move') || !!newPositionValue || !!newRuleValue || !!newOrderValue;
+
+    if (!hasMoveHint) {
+      return null;
+    }
+
+    const positionValue = newPositionValue ?? this.resolveRequestValue(req, ['position']);
+    const ruleValue = newRuleValue ?? this.resolveRequestValue(req, ['rule']);
+    const orderValue = newOrderValue ?? this.resolveRequestValue(req, ['position_order', 'order']);
+
+    const objectInfo = this.resolvePolicyObject(req);
+
+    if (!objectInfo && !positionValue && !ruleValue) {
+      return null;
+    }
+
+    const parts: string[] = ['Moved in the policy'];
+
+    if (objectInfo) {
+      parts.push(`${objectInfo.label} ${objectInfo.value}`);
+    }
+
+    if (positionValue && ruleValue) {
+      parts.push(`to position ${positionValue} and rule ${ruleValue}`);
+    } else if (positionValue) {
+      parts.push(`to position ${positionValue}`);
+    } else if (ruleValue) {
+      parts.push(`to rule ${ruleValue}`);
+    }
+
+    if (orderValue && !positionValue) {
+      parts.push(`with order ${orderValue}`);
+    }
+
+    return parts.join(' ');
+  }
+
+  private resolvePolicyObject(req: Request): { label: string; value: string } | null {
+    const candidates: Array<{ keys: string[]; label: string }> = [
+      { keys: ['ipobj'], label: 'object' },
+      { keys: ['ipobj_g', 'ipobjGroup', 'ipobjGroupId'], label: 'object group' },
+      { keys: ['interface'], label: 'interface' },
+      { keys: ['openvpn'], label: 'OpenVPN' },
+      { keys: ['wireguard'], label: 'WireGuard' },
+      { keys: ['ipsec'], label: 'IPSec' },
+      { keys: ['prefix'], label: 'prefix' },
+      { keys: ['mark'], label: 'mark' },
+    ];
+
+    for (const candidate of candidates) {
+      const value = this.resolveRequestValue(req, candidate.keys);
+      if (value) {
+        return { label: candidate.label, value };
+      }
+    }
+
+    return null;
+  }
+
+  private resolveRequestValue(req: Request, keys: string[]): string | null {
+    const raw = this.findFirstValue(req, keys);
+    if (raw === null || raw === undefined) {
+      return null;
+    }
+
+    const sanitized = this.sanitize(raw);
+    const rendered = this.renderDescriptionValue(sanitized, 0);
+    if (!rendered || rendered.length === 0) {
+      return null;
+    }
+
+    return rendered;
+  }
+
+  private collectTokens(sources: Array<string | null | undefined>): Set<string> {
+    const tokens = new Set<string>();
+
+    for (const source of sources) {
+      if (!source) {
+        continue;
+      }
+
+      for (const token of this.tokenize(source)) {
+        tokens.add(token);
+      }
+    }
+
+    return tokens;
+  }
+
+  private toPastTense(verb: string): string {
+    const normalized = verb.trim().toLowerCase();
+    const irregular: Record<string, string> = {
+      'log in': 'logged in',
+      'log out': 'logged out',
+      get: 'retrieved',
+      fetch: 'fetched',
+      run: 'ran',
+      set: 'set',
+      reset: 'reset',
+      put: 'put',
+      cut: 'cut',
+      read: 'read',
+      show: 'showed',
+      list: 'listed',
+      move: 'moved',
+      delete: 'deleted',
+      remove: 'removed',
+      update: 'updated',
+      create: 'created',
+      add: 'added',
+      assign: 'assigned',
+      attach: 'attached',
+      detach: 'detached',
+      enable: 'enabled',
+      disable: 'disabled',
+      install: 'installed',
+      uninstall: 'uninstalled',
+      upload: 'uploaded',
+      download: 'downloaded',
+      export: 'exported',
+      import: 'imported',
+      compile: 'compiled',
+      merge: 'merged',
+      rename: 'renamed',
+      replace: 'replaced',
+      save: 'saved',
+      sync: 'synced',
+      validate: 'validated',
+      verify: 'verified',
+      search: 'searched',
+      register: 'registered',
+      unregister: 'unregistered',
+      publish: 'published',
+      archive: 'archived',
+      restore: 'restored',
+      backup: 'backed up',
+      generate: 'generated',
+      test: 'tested',
+      compare: 'compared',
+      check: 'checked',
+      clone: 'cloned',
+      unlock: 'unlocked',
+      lock: 'locked',
+    };
+
+    const mapped = irregular[normalized];
+    const past = mapped ? mapped : normalized.endsWith('e') ? `${normalized}d` : `${normalized}ed`;
+
+    return past.charAt(0).toUpperCase() + past.slice(1);
+  }
+
+  private resolveOperationVerb(req: Request, metadata: AuditRouteMetadata | null): string | null {
+    const routePath = this.stripPathParameterTokens(this.normalizeRoutePath(req.route?.path));
+    const metadataPath = this.stripPathParameterTokens(metadata?.path);
+    const candidates: Array<string | null | undefined> = [
+      metadata?.action,
+      metadata?.name,
+      metadataPath,
+      routePath,
+      req.path,
+      req.originalUrl ? req.originalUrl.split('?')[0] : null,
+    ];
+
+    for (const candidate of candidates) {
+      if (!candidate) {
+        continue;
+      }
+
+      const tokens = this.tokenize(candidate);
+      for (let i = tokens.length - 1; i >= 0; i--) {
+        const verb = ACTION_VERB_MAP[tokens[i]];
+        if (verb) {
+          return verb;
+        }
+      }
+    }
+
+    const method = typeof req.method === 'string' ? req.method.toUpperCase() : '';
+    if (method === 'POST') {
+      return 'Create';
+    }
+
+    if (method === 'PUT' || method === 'PATCH') {
+      return 'Update';
+    }
+
+    if (method === 'DELETE') {
+      return 'Delete';
+    }
+
+    if (method === 'GET' || method === 'HEAD') {
+      return 'Get';
+    }
+
+    return null;
+  }
+
+  private resolveOperationResource(
+    req: Request,
+    metadata: AuditRouteMetadata | null,
+  ): string | null {
+    const routePath = this.stripPathParameterTokens(this.normalizeRoutePath(req.route?.path));
+    const metadataPath = this.stripPathParameterTokens(metadata?.path);
+    const sources: Array<string | null | undefined> = [
+      metadata?.name,
+      metadataPath,
+      routePath,
+      req.baseUrl ? `${req.baseUrl}${req.path ?? ''}` : null,
+      req.path,
+      req.originalUrl ? req.originalUrl.split('?')[0] : null,
+    ];
+
+    for (const source of sources) {
+      if (!source) {
+        continue;
+      }
+
+      const tokens = this.tokenize(source);
+      const filtered = tokens.filter(
+        (token) => !ACTION_TOKENS.has(token) && !IGNORED_RESOURCE_TOKENS.has(token),
+      );
+
+      if (filtered.length > 0) {
+        const humanized = this.humanizeTokens(filtered);
+        if (humanized.length > 0) {
+          return humanized;
+        }
+      }
+    }
+
+    if (metadata?.controller) {
+      const baseName = metadata.controller.replace(/Controller$/, '');
+      const tokens = this.tokenize(baseName);
+      const filtered = tokens.filter(
+        (token) => !ACTION_TOKENS.has(token) && !IGNORED_RESOURCE_TOKENS.has(token),
+      );
+      if (filtered.length > 0) {
+        const humanized = this.humanizeTokens(filtered);
+        if (humanized.length > 0) {
+          return humanized;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private renderDescriptionSection(
+    label: string,
+    value: unknown,
+    excludedKeys: Set<string> = new Set<string>(),
+  ): string | null {
+    const sanitized = this.sanitize(value);
+    const filtered = this.filterDescriptionSectionValue(sanitized, excludedKeys);
+    const rendered = this.renderDescriptionValue(filtered, 0);
+    if (!rendered || rendered.length === 0) {
+      return null;
+    }
+
+    return `${label}: ${rendered}`;
+  }
+
+  private filterDescriptionSectionValue(value: unknown, excludedKeys: Set<string>): unknown {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value;
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) {
+      return value;
+    }
+
+    const filtered: Record<string, unknown> = {};
+    for (const [key, entryValue] of entries) {
+      const normalizedKey = this.normalizeDescriptionKey(key);
+      const isRenderable = this.renderDescriptionValue(entryValue, 1) !== null;
+
+      if (normalizedKey && excludedKeys.has(normalizedKey) && isRenderable) {
+        continue;
+      }
+
+      if (normalizedKey && isRenderable) {
+        excludedKeys.add(normalizedKey);
+      }
+
+      filtered[key] = entryValue;
+    }
+
+    return filtered;
+  }
+
+  private renderDescriptionValue(value: any, depth: number): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return null;
+      }
+      return this.truncateDescription(trimmed, MAX_DESCRIPTION_VALUE_LENGTH);
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return null;
+      }
+
+      if (depth > 0) {
+        return this.truncateDescription(JSON.stringify(value), MAX_DESCRIPTION_VALUE_LENGTH);
+      }
+
+      const parts: string[] = [];
+      for (const item of value.slice(0, MAX_DESCRIPTION_PAIRS)) {
+        const rendered = this.renderDescriptionValue(item, depth + 1);
+        if (rendered === null || rendered.length === 0) {
+          continue;
+        }
+        parts.push(rendered);
+      }
+
+      if (parts.length === 0) {
+        return null;
+      }
+
+      if (value.length > parts.length) {
+        parts.push(`+${value.length - parts.length} more`);
+      }
+
+      return this.truncateDescription(parts.join(', '), MAX_DESCRIPTION_SECTION_LENGTH);
+    }
+
+    if (typeof value === 'object') {
+      if (depth > 0) {
+        return this.truncateDescription(JSON.stringify(value), MAX_DESCRIPTION_VALUE_LENGTH);
+      }
+
+      const entries = Object.entries(value);
+      if (entries.length === 0) {
+        return null;
+      }
+
+      const parts: string[] = [];
+      for (const [key, entryValue] of entries) {
+        const rendered = this.renderDescriptionValue(entryValue, depth + 1);
+        if (rendered === null || rendered.length === 0) {
+          continue;
+        }
+        parts.push(`${key}=${rendered}`);
+        if (parts.length >= MAX_DESCRIPTION_PAIRS) {
+          break;
+        }
+      }
+
+      if (parts.length === 0) {
+        return null;
+      }
+
+      if (entries.length > parts.length) {
+        parts.push(`+${entries.length - parts.length} more`);
+      }
+
+      return this.truncateDescription(parts.join(', '), MAX_DESCRIPTION_SECTION_LENGTH);
+    }
+
+    return this.truncateDescription(String(value), MAX_DESCRIPTION_VALUE_LENGTH);
+  }
+
+  private humanizeTokens(tokens: string[]): string {
+    const cleaned: string[] = [];
+    const seen = new Set<string>();
+
+    for (const token of tokens) {
+      const trimmed = token.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      const normalized = this.normalizeResourceToken(trimmed);
+      if (!normalized || seen.has(normalized)) {
+        continue;
+      }
+
+      seen.add(normalized);
+      cleaned.push(trimmed);
+    }
+
+    return cleaned.map((token) => this.humanizeToken(token)).join(' ');
+  }
+
+  private normalizeResourceToken(token: string): string {
+    const normalized = token.trim().toLowerCase();
+    if (!normalized) {
+      return '';
+    }
+
+    if (normalized.endsWith('ies') && normalized.length > 3) {
+      return `${normalized.substring(0, normalized.length - 3)}y`;
+    }
+
+    if (normalized.endsWith('s') && normalized.length > 3 && !normalized.endsWith('ss')) {
+      return normalized.substring(0, normalized.length - 1);
+    }
+
+    return normalized;
+  }
+
+  private humanizeToken(token: string): string {
+    const normalized = token.toLowerCase();
+    const override = HUMANIZE_TOKEN_OVERRIDES[normalized];
+    if (override) {
+      return override;
+    }
+
+    if (!normalized) {
+      return '';
+    }
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  private normalizeRoutePath(pathValue: unknown): string | null {
+    if (typeof pathValue === 'string') {
+      return pathValue;
+    }
+
+    if (
+      typeof pathValue === 'number' ||
+      typeof pathValue === 'boolean' ||
+      typeof pathValue === 'bigint'
+    ) {
+      return String(pathValue);
+    }
+
+    if (pathValue instanceof RegExp) {
+      return pathValue.source;
+    }
+
+    if (Array.isArray(pathValue)) {
+      const joined = pathValue
+        .map((entry) => {
+          if (typeof entry === 'string') {
+            return entry;
+          }
+          if (entry instanceof RegExp) {
+            return entry.source;
+          }
+          if (
+            typeof entry === 'number' ||
+            typeof entry === 'boolean' ||
+            typeof entry === 'bigint'
+          ) {
+            return String(entry);
+          }
+          return null;
+        })
+        .filter((entry): entry is string => entry !== null && entry.length > 0)
+        .join('|');
+
+      return joined.length > 0 ? joined : null;
+    }
+
+    return null;
+  }
+
+  private stripPathParameterTokens(pathValue: string | null | undefined): string | null {
+    if (!pathValue || pathValue.trim().length === 0) {
+      return null;
+    }
+
+    return pathValue
+      .replace(/:[a-zA-Z0-9_]+/g, '')
+      .replace(/\{[a-zA-Z0-9_]+\}/g, '')
+      .replace(/<([a-zA-Z0-9_]+)>/g, '')
+      .replace(/\/{2,}/g, '/')
+      .trim();
+  }
+
+  private truncateDescription(value: string, maxLength: number): string {
+    if (!value || value.length <= maxLength) {
+      return value;
+    }
+
+    if (maxLength <= 3) {
+      return value.substring(0, maxLength);
+    }
+
+    return `${value.substring(0, maxLength - 3)}...`;
   }
 
   private buildPayload(
@@ -551,6 +1209,20 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private shouldPersistAuditLog(req: Request, res: Response): boolean {
+    if (res?.locals?.__auditLogHandled) {
+      return false;
+    }
+
+    const normalizedPath = this.normalizeRequestPath(req);
+
+    if (this.isRestrictedRequest(normalizedPath)) {
+      return false;
+    }
+
+    if (this.isExplicitDeleteRequest(normalizedPath)) {
+      return true;
+    }
+
     const metadata = this.resolveRouteMetadata(req, res);
     const classification = this.classifyOperation(req, metadata);
 
@@ -572,6 +1244,41 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     return true;
+  }
+
+  private normalizeRequestPath(req: Request): string {
+    const captured = (req as Request & { __auditLogOriginalUrl?: string }).__auditLogOriginalUrl;
+    const raw =
+      typeof captured === 'string' && captured.length > 0
+        ? captured
+        : typeof req.originalUrl === 'string' && req.originalUrl.length > 0
+          ? req.originalUrl
+          : typeof req.url === 'string'
+            ? req.url
+            : '';
+
+    const withoutQuery = raw.split('?')[0];
+    return withoutQuery.toLowerCase();
+  }
+
+  private getPathSegments(path: string): string[] {
+    return path
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0);
+  }
+
+  private isRestrictedRequest(path: string): boolean {
+    const segments = this.getPathSegments(path);
+    const last = segments[segments.length - 1];
+    return last === 'restricted' || last === 'restrictions';
+  }
+
+  private isExplicitDeleteRequest(path: string): boolean {
+    const segments = this.getPathSegments(path);
+    const last = segments[segments.length - 1];
+
+    return last === 'del' || last === 'delete' || last === 'destroy' || last === 'delfromcluster';
   }
 
   private resolveRouteMetadata(req: Request, res: Response): AuditRouteMetadata | null {
