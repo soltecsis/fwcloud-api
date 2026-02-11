@@ -85,10 +85,94 @@ import { Cluster } from '../../models/firewall/Cluster';
 import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
 import { DHCPGroup } from '../../models/system/dhcp/dhcp_g/dhcp_g.model';
 import { KeepalivedRule } from '../../models/system/keepalived/keepalived_r/keepalived_r.model';
+import db from '../../database/database-manager';
+import { AuditLog } from '../../models/audit/AuditLog';
+import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
+
+const buildFirewallDeleteDescription = (auditLog, firewallId, fwcloudId, statusCode) => {
+	const pieces = [];
+	pieces.push('Deleted firewall');
+
+	const userLabel = auditLog.userName || (auditLog.userId !== null && auditLog.userId !== undefined ? String(auditLog.userId) : null);
+	const firewallLabel = auditLog.firewallName || (firewallId !== null && firewallId !== undefined ? String(firewallId) : null);
+	const fwcloudLabel = auditLog.fwCloudName || (fwcloudId !== null && fwcloudId !== undefined ? String(fwcloudId) : null);
+
+	if (firewallLabel) pieces.push(`Firewall: ${firewallLabel}`);
+	if (fwcloudLabel) pieces.push(`FWCloud: ${fwcloudLabel}`);
+	if (userLabel) pieces.push(`User: ${userLabel}`);
+	if (auditLog.sourceIp) pieces.push(`IP: ${auditLog.sourceIp}`);
+	if (typeof statusCode === 'number') pieces.push(`Status ${statusCode}`);
+
+	return pieces.join('. ');
+};
+
+const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId) => {
+	try {
+		const dataSource = db.getSource();
+		const locals = res?.locals ?? {};
+		const [fwCloud, firewall] = await Promise.all([
+			locals.__auditLogFwCloudName !== undefined
+				? Promise.resolve({ name: locals.__auditLogFwCloudName })
+				: fwcloudId
+					? FwCloud.findOne({ where: { id: fwcloudId } })
+					: Promise.resolve(null),
+			locals.__auditLogFirewallName !== undefined || locals.__auditLogClusterId !== undefined
+				? Promise.resolve({
+						name: locals.__auditLogFirewallName ?? null,
+						clusterId: locals.__auditLogClusterId ?? null
+					})
+				: firewallId
+					? Firewall.findOne({ where: { id: firewallId } })
+					: Promise.resolve(null)
+		]);
+
+		const auditLog = new AuditLog();
+		auditLog.call = `PUT ${req.originalUrl}`;
+		auditLog.data = JSON.stringify({
+			method: req.method,
+			url: req.originalUrl,
+			statusCode: res.statusCode,
+			params: req.params,
+			query: req.query,
+			body: req.body
+		});
+		auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
+		auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
+		auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+		const forwarded = req.headers['x-forwarded-for'];
+		const sourceIp = Array.isArray(forwarded)
+			? forwarded[0]
+			: typeof forwarded === 'string'
+				? forwarded.split(',')[0].trim()
+				: req.ip ?? null;
+		auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
+
+		auditLog.fwCloudId = fwcloudId ?? null;
+		auditLog.firewallId = firewallId ?? null;
+		auditLog.clusterId = firewall?.clusterId ?? null;
+		auditLog.fwCloudName = fwCloud?.name ?? null;
+		auditLog.firewallName = firewall?.name ?? null;
+		auditLog.clusterName = null;
+
+		auditLog.description = buildFirewallDeleteDescription(
+			auditLog,
+			firewallId,
+			fwcloudId,
+			res.statusCode
+		);
+
+		await dataSource.manager.getRepository(AuditLog).save(auditLog);
+		if (res?.locals) {
+			res.locals.__auditLogHandled = true;
+		}
+	} catch (error) {
+		logger().error(`Error persisting firewall delete audit log: ${error?.message ?? error}`);
+	}
+};
 
 /**
  * @api {POST} /firewall New firewall
@@ -742,9 +826,20 @@ router.put('/del',
 	restrictedCheck.firewall,
 	async(req, res) => {
 		try {
+			if (res?.locals) {
+				const [fwCloud, firewall] = await Promise.all([
+					req.body.fwcloud ? FwCloud.findOne({ where: { id: req.body.fwcloud } }) : null,
+					req.body.firewall ? Firewall.findOne({ where: { id: req.body.firewall } }) : null
+				]);
+				res.locals.__auditLogFwCloudName = fwCloud?.name ?? null;
+				res.locals.__auditLogFirewallName = firewall?.name ?? null;
+				res.locals.__auditLogClusterId = firewall?.clusterId ?? null;
+			}
+
 			const firewallService = await app().getService(FirewallService.name);
 			await firewallService.remove(req.body.firewall, req.body.fwcloud, req.session.user_id);
 
+			await persistFirewallDeleteAuditLog(req, res, req.body.firewall, req.body.fwcloud);
 			res.status(204).end();
 		} catch (error) {
 			logger().error('Error removing firewall: ' + JSON.stringify(error));
@@ -760,12 +855,26 @@ restrictedCheck.firewallApplyTo,
 async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
 	try {
+		if (res?.locals) {
+			const [fwCloud, firewall] = await Promise.all([
+				req.body.fwcloud ? FwCloud.findOne({ where: { id: req.body.fwcloud } }) : null,
+				req.body.firewall ? Firewall.findOne({ where: { id: req.body.firewall } }) : null
+			]);
+			res.locals.__auditLogFwCloudName = fwCloud?.name ?? null;
+			res.locals.__auditLogFirewallName = firewall?.name ?? null;
+			res.locals.__auditLogClusterId = firewall?.clusterId ?? null;
+		}
+
 		const firewallService = await app().getService(FirewallService.name);
 		const data = await firewallService.deleteFirewallFromCluster(req.body.cluster, req.body.firewall, req.body.fwcloud, req.session.user_id);
-		if (data && data.result)
-			res.status(200).json(data);
-	 	else
-			res.status(204).end();
+		const statusCode = data && data.result ? 200 : 204;
+		res.status(statusCode);
+		await persistFirewallDeleteAuditLog(req, res, req.body.firewall, req.body.fwcloud);
+		if (data && data.result) {
+			res.json(data);
+		} else {
+			res.end();
+		}
 	} catch(error) {
 		logger().error('Error removing cluster firewall: ' + JSON.stringify(error)); 
 		res.status(400).json(error);
