@@ -112,14 +112,29 @@ export class AuditLogController extends Controller {
       options.fwCloudName = fwCloudName;
     }
 
+    const fwCloudId = this.parsePositiveInteger(request.query.fwcloud_id);
+    if (fwCloudId !== undefined) {
+      options.fwCloudId = fwCloudId;
+    }
+
     const firewallName = this.parseString(request.query.firewall_name);
     if (firewallName) {
       options.firewallName = firewallName;
     }
 
+    const firewallId = this.parsePositiveInteger(request.query.firewall_id);
+    if (firewallId !== undefined) {
+      options.firewallId = firewallId;
+    }
+
     const clusterName = this.parseString(request.query.cluster_name);
     if (clusterName) {
       options.clusterName = clusterName;
+    }
+
+    const clusterId = this.parsePositiveInteger(request.query.cluster_id);
+    if (clusterId !== undefined) {
+      options.clusterId = clusterId;
     }
 
     const sourceIp = this.parseString(request.query.source_ip);
