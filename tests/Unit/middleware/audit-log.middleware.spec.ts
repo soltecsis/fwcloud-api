@@ -112,10 +112,9 @@ describe('AuditLogMiddleware', () => {
     expect(entry.firewallId).to.equal(7);
     expect(entry.clusterId).to.equal(3);
     expect(entry.call).to.equal('POST /audit/7?cluster=3');
-    expect(entry.description).to.contain('status=201');
-    expect(entry.description).to.contain('user=tester');
-    expect(entry.description).to.not.contain('user=99');
-    expect(entry.description).to.contain('ip=203.0.113.10');
+    expect(entry.description).to.contain('Status 201');
+    expect(entry.description).to.not.contain('User:');
+    expect(entry.description).to.not.contain('IP:');
 
     const payload = JSON.parse(entry.data);
     expect(payload.method).to.equal('POST');
@@ -243,7 +242,8 @@ describe('AuditLogMiddleware', () => {
     expect(entry.firewallName).to.equal('Edge-FW');
     expect(entry.clusterId).to.equal(clusterId);
     expect(entry.clusterName).to.equal('Edge Cluster');
-    expect(entry.description).to.contain('cluster=Edge Cluster');
+    expect(entry.description).to.contain('Status 200');
+    expect(entry.description).to.not.contain('Cluster:');
 
     sinon.assert.calledOnce(firewallStub);
     sinon.assert.calledOnce(clusterStub);
@@ -272,8 +272,8 @@ describe('AuditLogMiddleware', () => {
     expect(entry.sessionId).to.be.null;
     expect(entry.clusterId).to.equal(12);
     expect(entry.firewallId).to.equal(21);
-    expect(entry.description).to.contain('status=204');
-    expect(entry.description).to.not.contain('user=');
+    expect(entry.description).to.contain('Status 204');
+    expect(entry.description).to.not.contain('User:');
   });
 
   it('should redact sensitive data from audit payloads', async () => {
@@ -411,10 +411,9 @@ describe('AuditLogMiddleware', () => {
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /firewalls/45/policies/91/attach?scope=cluster');
       expect(entry.userName).to.equal('policy-admin');
-      expect(entry.description).to.contain('firewall=45');
-      expect(entry.description).to.contain('policy=91');
-      expect(entry.description).to.contain('device=3101');
-      expect(entry.description).to.contain('scope=cluster');
+      expect(entry.description).to.contain('Policy: 91');
+      expect(entry.description).to.contain('Device: 3101');
+      expect(entry.description).to.contain('Scope: cluster');
 
       const payload = JSON.parse(entry.data);
       expect(payload.context.device).to.equal(3101);
@@ -440,11 +439,10 @@ describe('AuditLogMiddleware', () => {
         'DELETE /firewalls/60/policies/32/attach?target_scope=firewall&target=edge',
       );
       expect(entry.userName).to.equal('policy-admin');
-      expect(entry.description).to.contain('firewall=60');
-      expect(entry.description).to.contain('policy=32');
-      expect(entry.description).to.contain('device=dev-9');
-      expect(entry.description).to.contain('scope=firewall');
-      expect(entry.description).to.contain('target=edge');
+      expect(entry.description).to.contain('Policy: 32');
+      expect(entry.description).to.contain('Device: dev-9');
+      expect(entry.description).to.contain('Scope: firewall');
+      expect(entry.description).to.contain('Target: edge');
 
       const payload = JSON.parse(entry.data);
       expect(payload.context.device).to.equal('dev-9');
@@ -490,8 +488,8 @@ describe('AuditLogMiddleware', () => {
       expect(entry.call).to.equal('POST /network-objects');
       expect(entry.fwCloudId).to.equal(77);
       expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('status=201');
-      expect(entry.description).to.contain('user=net-admin');
+      expect(entry.description).to.contain('Status 201');
+      expect(entry.description).to.not.contain('User: net-admin');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('POST');
@@ -558,8 +556,8 @@ describe('AuditLogMiddleware', () => {
       expect(entry.call).to.equal('PUT /network-objects/901');
       expect(entry.fwCloudId).to.equal(66);
       expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('status=200');
-      expect(entry.description).to.contain('user=net-admin');
+      expect(entry.description).to.contain('Status 200');
+      expect(entry.description).to.not.contain('User: net-admin');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('PUT');
@@ -582,8 +580,8 @@ describe('AuditLogMiddleware', () => {
       expect(entry.call).to.equal('DELETE /network-objects/1234?fwcloud=55');
       expect(entry.fwCloudId).to.equal(55);
       expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('status=204');
-      expect(entry.description).to.contain('user=net-admin');
+      expect(entry.description).to.contain('Status 204');
+      expect(entry.description).to.not.contain('User: net-admin');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('DELETE');
@@ -624,9 +622,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /users');
-      expect(entry.description).to.contain('status=201');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 201');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('POST');
@@ -648,9 +646,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('PATCH /users/41');
-      expect(entry.description).to.contain('status=200');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 200');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('PATCH');
@@ -669,9 +667,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('DELETE /users/99?force=true');
-      expect(entry.description).to.contain('status=204');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 204');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('DELETE');
@@ -696,9 +694,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /roles');
-      expect(entry.description).to.contain('status=201');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 201');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('POST');
@@ -723,9 +721,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('PUT /roles/55');
-      expect(entry.description).to.contain('status=200');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 200');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('PUT');
@@ -744,9 +742,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('DELETE /roles/23?reassignedTo=manager');
-      expect(entry.description).to.contain('status=204');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 204');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('DELETE');
@@ -768,9 +766,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /permissions');
-      expect(entry.description).to.contain('status=201');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 201');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('POST');
@@ -791,9 +789,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('PATCH /permissions/perm.view');
-      expect(entry.description).to.contain('status=200');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 200');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('PATCH');
@@ -812,9 +810,9 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('DELETE /permissions/perm.revoke');
-      expect(entry.description).to.contain('status=204');
-      expect(entry.description).to.contain('user=security-admin');
-      expect(entry.description).to.not.contain('user=303');
+      expect(entry.description).to.contain('Status 204');
+      expect(entry.description).to.not.contain('User: security-admin');
+      expect(entry.description).to.not.contain('User: 303');
 
       const payload = JSON.parse(entry.data);
       expect(payload.method).to.equal('DELETE');
