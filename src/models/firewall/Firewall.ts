@@ -73,7 +73,6 @@ import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { IPSec } from '../vpn/ipsec/IPSec';
 import { IPSecPrefix } from '../vpn/ipsec/IPSecPrefix';
-import ObjectHelpers from '../../utils/object-helpers';
 
 const tableName: string = 'firewall';
 
@@ -1608,39 +1607,14 @@ export class Firewall extends Model {
         const r6: any = await IPSec.searchIPSecUsageOutOfThisFirewall(req);
         const r7: any = await IPSecPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
-        const mergeRestrictions = (
-          target: Record<string, any>,
-          source?: Record<string, any>,
-        ): Record<string, any> => {
-          if (!source) {
-            return target;
-          }
-
-          const merged = ObjectHelpers.merge(target, source) as Record<string, any>;
-          for (const key of Object.keys(source)) {
-            const incoming = source[key];
-            if (Array.isArray(incoming) && Array.isArray(target[key])) {
-              merged[key] = target[key].concat(incoming);
-            }
-          }
-
-          return merged;
-        };
-
-        if (r1?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r1.restrictions);
-        if (r2?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r2.restrictions);
-        if (r3?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r3.restrictions);
-        if (r4?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r4.restrictions);
-        if (r5?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r5.restrictions);
-        if (r6?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r6.restrictions);
-        if (r7?.restrictions)
-          search.restrictions = mergeRestrictions(search.restrictions, r7.restrictions);
+        //TODO: UTILIZAR OBJECTHELERS? utils.mergeObj() is deprectaded. Use ObjectHelers.merge() instead
+        if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
+        if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
+        if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
+        if (r4) search.restrictions = utilsModel.mergeObj(search.restrictions, r4.restrictions);
+        if (r5) search.restrictions = utilsModel.mergeObj(search.restrictions, r5.restrictions);
+        if (r6) search.restrictions = utilsModel.mergeObj(search.restrictions, r6.restrictions);
+        if (r7) search.restrictions = utilsModel.mergeObj(search.restrictions, r7.restrictions);
 
         for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {
