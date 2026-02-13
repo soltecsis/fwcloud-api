@@ -710,6 +710,44 @@ router.put('/status/get', async (req, res, next) => {
 	}
 });
 
+router.put('/2fa/server/enabled', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw fwcError.VPN_NOT_SER;
+				
+		const hasEnabledServers = firewall.clusterId
+			? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+				req.dbCon,
+				firewall.clusterId,
+				req.body.openvpn
+			)
+			: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+				req.dbCon,
+				firewall.id,
+				req.body.openvpn
+			);
+
+		res.status(200).json({ enabled: hasEnabledServers });
+	} catch (error) {
+		logger().error('Error checking openvpn 2fa enabled server data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+
 router.put('/2fa/server', async (req, res, next) => {
 	try {
 		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
