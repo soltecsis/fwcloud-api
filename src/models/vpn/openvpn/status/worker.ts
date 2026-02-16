@@ -5,6 +5,7 @@ import db from '../../../../database/database-manager';
 import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
+import { AuditLogService } from '../../../audit/AuditLog.service';
 import {
   CreateOpenVPNStatusHistoryData,
   OpenVPNStatusHistoryService,
@@ -15,6 +16,7 @@ async function iterate(application: Application): Promise<void> {
     const service: OpenVPNStatusHistoryService = await application.getService(
       OpenVPNStatusHistoryService.name,
     );
+    const auditLogService: AuditLogService = await application.getService(AuditLogService.name);
 
     // List of all OpenVPN servers with which we have to communicate.
     const openvpns: OpenVPN[] = await db
@@ -30,7 +32,14 @@ async function iterate(application: Application): Promise<void> {
       })
       .getMany();
 
+    let attemptedServers = 0;
+    let processedServers = 0;
+    let fetchedRows = 0;
+    let persistedRows = 0;
+    const failedServers: number[] = [];
+
     for (const openvpn of openvpns) {
+      attemptedServers++;
       try {
         const firewalls: Firewall[] = openvpn.firewall.clusterId
           ? await db
@@ -73,10 +82,30 @@ async function iterate(application: Application): Promise<void> {
           }
         }
 
-        await service.create(openvpn.id, entries);
+        const persistedEntries = await service.create(openvpn.id, entries);
+        processedServers++;
+        fetchedRows += entries.length;
+        persistedRows += persistedEntries.length;
       } catch (error) {
+        failedServers.push(openvpn.id);
         application.logger().error(`WorkerError: OpenVPN ${openvpn.id} failed: ${error.message}`);
       }
+    }
+
+    if (persistedRows > 0 || failedServers.length > 0) {
+      await auditLogService.logMutation({
+        call: 'WORKER openvpn.status.sync',
+        description: `worker=openvpn.status.sync | processed=${processedServers} | persisted=${persistedRows}`,
+        data: {
+          source: 'worker',
+          task: 'openvpn.status.sync',
+          attemptedServers,
+          processedServers,
+          failedServers,
+          fetchedRows,
+          persistedRows,
+        },
+      });
     }
   } catch (error) {
     application.logger().error(`WorkerError: ${error.message}`);
