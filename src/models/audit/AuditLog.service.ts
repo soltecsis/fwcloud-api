@@ -25,6 +25,7 @@ import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
 import { AuditLog } from './AuditLog';
+import { AuditLogHelper } from './audit-log.helper';
 import * as fs from 'fs-extra';
 import path from 'path';
 import { EventEmitter } from 'events';
@@ -33,6 +34,10 @@ import { getMetadataArgsStorage } from 'typeorm';
 import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 import { Zip } from '../../utils/zip';
 import ObjectHelpers from '../../utils/object-helpers';
+import { logger } from '../../fonaments/abstract-application';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { Firewall } from '../firewall/Firewall';
+import { Cluster } from '../firewall/Cluster';
 import {
   ProgressInfoPayload,
   ProgressNoticePayload,
@@ -77,6 +82,41 @@ export type ListAuditLogsOptions = {
   cursor?: ListAuditLogsCursor;
 };
 
+export type AuditLogMutationInput = {
+  call: string;
+  description: string;
+  data?: unknown;
+  userId?: number | null;
+  userName?: string | null;
+  sessionId?: number | null;
+  sourceIp?: string | null;
+  fwCloudId?: number | null;
+  fwCloudName?: string | null;
+  firewallId?: number | null;
+  firewallName?: string | null;
+  clusterId?: number | null;
+  clusterName?: string | null;
+};
+
+const MAX_CALL_LENGTH = 255;
+const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
+const MAX_SOURCE_IP_LENGTH = 45;
+
+const SENSITIVE_KEY_PATTERNS = [
+  'password',
+  'passcode',
+  'passwd',
+  'secret',
+  'token',
+  'apikey',
+  'api_key',
+  'accesskey',
+  'access_key',
+  'auth',
+  'credential',
+  'otp',
+];
+
 export class AuditLogService extends Service {
   protected _config: AuditLogArchiveConfig;
   protected _archiveMutex = new Mutex();
@@ -93,6 +133,22 @@ export class AuditLogService extends Service {
     }
 
     return this;
+  }
+
+  public async logMutation(input: AuditLogMutationInput): Promise<AuditLog | null> {
+    try {
+      const auditLog = await this.createMutationEntry(input);
+      return await this.auditLogRepository.save(auditLog);
+    } catch (error) {
+      try {
+        logger().error(
+          `Unexpected error while creating audit log mutation entry: ${error?.message ?? error}`,
+        );
+      } catch {
+        // ignore logging failures to avoid breaking background task execution
+      }
+      return null;
+    }
   }
 
   public async listAuditLogs(options: ListAuditLogsOptions): Promise<{
@@ -534,5 +590,175 @@ export class AuditLogService extends Service {
 
   protected escapeString(raw: string): string {
     return raw.replace(/\\/g, '\\\\').replace(/'/g, "''");
+  }
+
+  protected async createMutationEntry(input: AuditLogMutationInput): Promise<AuditLog> {
+    const auditLog = new AuditLog();
+
+    auditLog.call = this.normalizeCall(input.call);
+    auditLog.description = this.normalizeDescription(input.description, auditLog.call);
+    auditLog.data = this.serializeData(input.data ?? {});
+
+    auditLog.userId = AuditLogHelper.getNumeric(input.userId);
+    auditLog.userName = this.normalizeLabel(input.userName);
+    auditLog.sessionId = AuditLogHelper.getNumeric(input.sessionId);
+
+    const sourceIp = this.normalizeLabel(input.sourceIp);
+    auditLog.sourceIp =
+      sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, MAX_SOURCE_IP_LENGTH) : null;
+
+    auditLog.fwCloudId = AuditLogHelper.getNumeric(input.fwCloudId);
+    auditLog.firewallId = AuditLogHelper.getNumeric(input.firewallId);
+    auditLog.clusterId = AuditLogHelper.getNumeric(input.clusterId);
+
+    auditLog.fwCloudName = this.normalizeLabel(input.fwCloudName);
+    auditLog.firewallName = this.normalizeLabel(input.firewallName);
+    auditLog.clusterName = this.normalizeLabel(input.clusterName);
+
+    await this.enrichEntityNames(auditLog);
+
+    return auditLog;
+  }
+
+  protected normalizeCall(call: string): string {
+    const normalized = typeof call === 'string' ? call.trim() : '';
+    const fallback = normalized.length > 0 ? normalized : 'SYSTEM';
+    return fallback.length <= MAX_CALL_LENGTH
+      ? fallback
+      : `${fallback.substring(0, MAX_CALL_LENGTH - 3)}...`;
+  }
+
+  protected normalizeDescription(description: string, fallback: string): string {
+    const normalized = typeof description === 'string' ? description.trim() : '';
+    return normalized.length > 0 ? normalized : fallback;
+  }
+
+  protected normalizeLabel(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  protected serializeData(data: unknown): string {
+    const serialized = JSON.stringify(this.sanitize(data));
+
+    if (!serialized) {
+      return '{}';
+    }
+
+    if (serialized.length > MAX_DATA_LENGTH) {
+      return `${serialized.substring(0, MAX_DATA_LENGTH)}...[truncated]`;
+    }
+
+    return serialized;
+  }
+
+  protected sanitize(input: any, seen: WeakSet<object> = new WeakSet()): any {
+    if (input === null || input === undefined) {
+      return input ?? null;
+    }
+
+    if (typeof input === 'string' || typeof input === 'number' || typeof input === 'boolean') {
+      return input;
+    }
+
+    if (input instanceof Date) {
+      return input.toISOString();
+    }
+
+    if (Buffer.isBuffer(input)) {
+      return `[buffer:${input.length}]`;
+    }
+
+    if (Array.isArray(input)) {
+      return input.map((item) => this.sanitize(item, seen));
+    }
+
+    if (typeof input === 'object') {
+      if (seen.has(input)) {
+        return '[circular]';
+      }
+
+      seen.add(input);
+
+      const output: Record<string, any> = {};
+      for (const key of Object.keys(input)) {
+        const value = input[key];
+        if (this.isSensitiveKey(key)) {
+          output[key] = '[REDACTED]';
+          continue;
+        }
+
+        try {
+          output[key] = this.sanitize(value, seen);
+        } catch (error) {
+          output[key] = `[unserializable:${error?.message ?? 'error'}]`;
+        }
+      }
+
+      return output;
+    }
+
+    return String(input);
+  }
+
+  protected isSensitiveKey(key: string | null | undefined): boolean {
+    if (!key) {
+      return false;
+    }
+
+    const normalized = key.toLowerCase();
+    return SENSITIVE_KEY_PATTERNS.some(
+      (pattern) => normalized === pattern || normalized.includes(pattern),
+    );
+  }
+
+  protected async enrichEntityNames(auditLog: AuditLog): Promise<void> {
+    const firewall =
+      auditLog.firewallId !== null && auditLog.firewallId !== undefined
+        ? await Firewall.findOne({ where: { id: auditLog.firewallId } })
+        : null;
+
+    const firewallClusterIdCandidate =
+      firewall && firewall.clusterId !== undefined
+        ? AuditLogHelper.getNumeric(firewall.clusterId)
+        : null;
+
+    if (
+      (auditLog.clusterId === null || auditLog.clusterId === undefined) &&
+      firewallClusterIdCandidate !== null &&
+      firewallClusterIdCandidate > 0
+    ) {
+      auditLog.clusterId = firewallClusterIdCandidate;
+    }
+
+    const firewallFwCloudIdCandidate =
+      firewall && firewall.fwCloudId !== undefined
+        ? AuditLogHelper.getNumeric(firewall.fwCloudId)
+        : null;
+
+    if (
+      (auditLog.fwCloudId === null || auditLog.fwCloudId === undefined) &&
+      firewallFwCloudIdCandidate !== null &&
+      firewallFwCloudIdCandidate > 0
+    ) {
+      auditLog.fwCloudId = firewallFwCloudIdCandidate;
+    }
+
+    const [fwCloud, cluster] = await Promise.all([
+      auditLog.fwCloudId
+        ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } })
+        : Promise.resolve(null),
+      auditLog.clusterId
+        ? Cluster.findOne({ where: { id: auditLog.clusterId } })
+        : Promise.resolve(null),
+    ]);
+
+    auditLog.fwCloudName = auditLog.fwCloudName ?? fwCloud?.name ?? null;
+    auditLog.firewallName = auditLog.firewallName ?? firewall?.name ?? null;
+    auditLog.clusterName = auditLog.clusterName ?? cluster?.name ?? null;
   }
 }

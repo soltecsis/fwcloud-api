@@ -30,6 +30,9 @@ import { AuditLogService } from '../../../../src/models/audit/AuditLog.service';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { User } from '../../../../src/models/user/User';
 import db from '../../../../src/database/database-manager';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Cluster } from '../../../../src/models/firewall/Cluster';
 
 describe(describeName('AuditLogService unit suite'), () => {
   let service: AuditLogService;
@@ -333,6 +336,68 @@ describe(describeName('AuditLogService unit suite'), () => {
       const refreshed = service.getCustomizedConfig();
       expect(refreshed.archive_days).to.equal(12);
       expect(refreshed.retention_days).to.equal(24);
+    });
+  });
+
+  describe('logMutation', () => {
+    it('persists non-http mutation entries and redacts sensitive payload fields', async () => {
+      const created = await service.logMutation({
+        call: 'CRON openvpn.history.archive',
+        description: 'cron=openvpn.history.archive | status=success',
+        userName: 'scheduler',
+        data: {
+          source: 'cron',
+          token: 'secret-token',
+          password: 'super-secret',
+          nested: {
+            api_key: 'should-be-hidden',
+          },
+        },
+      });
+
+      expect(created).to.not.be.null;
+      const persisted = await repository.findOneOrFail({ where: { id: created.id } });
+      const payload = JSON.parse(persisted.data);
+
+      expect(persisted.call).to.equal('CRON openvpn.history.archive');
+      expect(persisted.userName).to.equal('scheduler');
+      expect(payload.source).to.equal('cron');
+      expect(payload.token).to.equal('[REDACTED]');
+      expect(payload.password).to.equal('[REDACTED]');
+      expect(payload.nested.api_key).to.equal('[REDACTED]');
+    });
+
+    it('derives entity names and identifiers from firewall references', async () => {
+      sinon.stub(Firewall, 'findOne').resolves({
+        id: 91,
+        name: 'edge-firewall',
+        fwCloudId: 44,
+        clusterId: 31,
+      } as Firewall);
+      sinon.stub(FwCloud, 'findOne').resolves({
+        id: 44,
+        name: 'production-cloud',
+      } as FwCloud);
+      sinon.stub(Cluster, 'findOne').resolves({
+        id: 31,
+        name: 'cluster-alpha',
+      } as Cluster);
+
+      const created = await service.logMutation({
+        call: 'WORKER openvpn.status.sync',
+        description: 'worker=openvpn.status.sync | status=success',
+        firewallId: 91,
+        data: { source: 'worker' },
+      });
+
+      expect(created).to.not.be.null;
+      const persisted = await repository.findOneOrFail({ where: { id: created.id } });
+      expect(persisted.firewallId).to.equal(91);
+      expect(persisted.firewallName).to.equal('edge-firewall');
+      expect(persisted.fwCloudId).to.equal(44);
+      expect(persisted.fwCloudName).to.equal('production-cloud');
+      expect(persisted.clusterId).to.equal(31);
+      expect(persisted.clusterName).to.equal('cluster-alpha');
     });
   });
 });
