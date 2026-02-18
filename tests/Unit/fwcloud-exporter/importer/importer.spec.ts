@@ -30,6 +30,8 @@ import { Snapshot } from '../../../../src/snapshots/snapshot';
 import { SnapshotService } from '../../../../src/snapshots/snapshot.service';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import StringHelper from '../../../../src/utils/string.helper';
+import { AuditLog } from '../../../../src/models/audit/AuditLog';
+import db from '../../../../src/database/database-manager';
 
 describe(describeName('Importer tests'), () => {
   let snapshotService: SnapshotService;
@@ -63,6 +65,20 @@ describe(describeName('Importer tests'), () => {
       const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
       await snapshot.restore();
+
+      const auditEvent = await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .findOne({
+          where: { call: 'INTERNAL:importer:import' },
+          order: { id: 'DESC' },
+        });
+
+      expect(auditEvent).to.not.be.null;
+      const payload = JSON.parse(auditEvent.data);
+      expect(payload.source).to.equal('importer');
+      expect(payload.operation).to.equal('import');
+      expect(payload.status).to.equal('success');
 
       const newFwCloud: FwCloud = await FwCloud.findOne({
         where: { name: fwCloud.name },

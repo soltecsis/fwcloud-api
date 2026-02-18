@@ -1213,6 +1213,11 @@ export class AuditLogMiddleware extends Middleware {
       return false;
     }
 
+    const method = typeof req.method === 'string' ? req.method.toUpperCase() : 'GET';
+    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+      return false;
+    }
+
     const normalizedPath = this.normalizeRequestPath(req);
 
     if (this.isRestrictedRequest(normalizedPath)) {
@@ -1231,11 +1236,6 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     if (classification === 'read') {
-      return false;
-    }
-
-    const method = typeof req.method === 'string' ? req.method.toUpperCase() : 'GET';
-    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
       return false;
     }
 

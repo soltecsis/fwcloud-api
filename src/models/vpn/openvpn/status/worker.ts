@@ -5,18 +5,27 @@ import db from '../../../../database/database-manager';
 import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
-import { AuditLogService } from '../../../audit/AuditLog.service';
+import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
 import {
   CreateOpenVPNStatusHistoryData,
   OpenVPNStatusHistoryService,
 } from './openvpn-status-history.service';
 
 async function iterate(application: Application): Promise<void> {
+  let auditEventService: AuditEventService | null = null;
+  let eventId: string | null = null;
+  let persistedRows = 0;
+
   try {
     const service: OpenVPNStatusHistoryService = await application.getService(
       OpenVPNStatusHistoryService.name,
     );
-    const auditLogService: AuditLogService = await application.getService(AuditLogService.name);
+    auditEventService = await application.getService(AuditEventService.name);
+    eventId = auditEventService.startEvent({
+      source: 'worker',
+      operation: 'sync',
+      entity: 'openvpn_status_history',
+    });
 
     // List of all OpenVPN servers with which we have to communicate.
     const openvpns: OpenVPN[] = await db
@@ -35,7 +44,6 @@ async function iterate(application: Application): Promise<void> {
     let attemptedServers = 0;
     let processedServers = 0;
     let fetchedRows = 0;
-    let persistedRows = 0;
     const failedServers: number[] = [];
 
     for (const openvpn of openvpns) {
@@ -92,22 +100,31 @@ async function iterate(application: Application): Promise<void> {
       }
     }
 
-    if (persistedRows > 0 || failedServers.length > 0) {
-      await auditLogService.logMutation({
-        call: 'WORKER openvpn.status.sync',
-        description: `worker=openvpn.status.sync | processed=${processedServers} | persisted=${persistedRows}`,
-        data: {
-          source: 'worker',
-          task: 'openvpn.status.sync',
-          attemptedServers,
-          processedServers,
-          failedServers,
-          fetchedRows,
-          persistedRows,
-        },
+    const status: AuditEventStatus = failedServers.length > 0 ? 'failed' : 'success';
+    await auditEventService.finishEvent(eventId, {
+      affectedCount: persistedRows,
+      status,
+      error:
+        failedServers.length > 0
+          ? `OpenVPN status sync failed for server IDs: ${failedServers.join(', ')}`
+          : null,
+      details: {
+        attemptedServers,
+        processedServers,
+        failedServers,
+        fetchedRows,
+        persistedRows,
+      },
+    });
+  } catch (error) {
+    if (auditEventService && eventId) {
+      await auditEventService.finishEvent(eventId, {
+        affectedCount: persistedRows,
+        status: 'failed',
+        error,
       });
     }
-  } catch (error) {
+
     application.logger().error(`WorkerError: ${error.message}`);
   }
 }
