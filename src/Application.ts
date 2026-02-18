@@ -87,6 +87,7 @@ import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.prov
 import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
+import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -182,6 +183,7 @@ export class Application extends HTTPApplication {
       IPSecServiceProvider,
       IPSecPrefixServiceProvider,
       AuditLogServiceProvider,
+      AuditEventServiceProvider,
     ];
   }
 

@@ -37,6 +37,7 @@ import { CLIApplication } from '../fonaments/cli-application';
 import { RouterService } from '../fonaments/http/router/router.service';
 import { WireGuardServiceProvider } from '../models/vpn/wireguard/wireguard.provider';
 import { AuditLogServiceProvider } from '../models/audit/AuditLog.provider';
+import { AuditEventServiceProvider } from '../models/audit/AuditEvent.provider';
 
 export class Application extends CLIApplication {
   public static async run(path?: string): Promise<Application> {
@@ -67,6 +68,7 @@ export class Application extends CLIApplication {
       FwCloudServiceProvider,
       WireGuardServiceProvider,
       AuditLogServiceProvider,
+      AuditEventServiceProvider,
     ];
   }
 

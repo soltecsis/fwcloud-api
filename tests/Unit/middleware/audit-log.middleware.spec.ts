@@ -512,6 +512,18 @@ describe('AuditLogMiddleware', () => {
       await expectNoAuditLogs();
     });
 
+    it('should skip audit logging for GET endpoints with mutation-like path tokens', async () => {
+      const app = createNetworkObjectApp();
+
+      app.get('/profile/tfa/setup', (_req, res) => {
+        res.status(200).json({ enabled: true });
+      });
+
+      await request(app).get('/profile/tfa/setup');
+
+      await expectNoAuditLogs();
+    });
+
     it('should skip audit logging for read-only PUT endpoints', async () => {
       const app = createNetworkObjectApp();
 

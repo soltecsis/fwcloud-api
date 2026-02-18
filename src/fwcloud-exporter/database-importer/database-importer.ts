@@ -39,6 +39,7 @@ import { Worker } from 'worker_threads';
 import { InputData, OutputData } from './terraform_table.worker';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import db from '../../database/database-manager';
+import { AuditEventService } from '../../models/audit/AuditEvent.service';
 
 export class DatabaseImporter {
   protected _mapper: ImportMapping;
@@ -55,6 +56,17 @@ export class DatabaseImporter {
   }
 
   public async import(snapshot: Snapshot): Promise<FwCloud> {
+    const auditEventService: AuditEventService = await app().getService<AuditEventService>(
+      AuditEventService.name,
+    );
+    const eventId = auditEventService.startEvent({
+      source: 'importer',
+      operation: 'import',
+      entity: 'fwcloud',
+      details: {
+        snapshotPath: snapshot.path,
+      },
+    });
     const promises: Promise<any>[] = [];
     const queryRunner: QueryRunner = (
       await app().getService<DatabaseService>(DatabaseService.name)
@@ -63,80 +75,123 @@ export class DatabaseImporter {
       JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()),
     );
     let fwCloudId: number = null;
-
-    await queryRunner.startTransaction();
+    let affectedCount = 0;
 
     try {
-      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
+      await queryRunner.startTransaction();
 
-      this._idManager = await IdManager.make(queryRunner, data.getTableNames());
-      this._mapper = new ImportMapping(this._idManager, data);
-      let index: number = 1;
-      for (const tableName of data.getTableNames()) {
-        this.eventEmitter.emit(
-          'message',
-          new ProgressNoticePayload(`${index}/${data.getTableNames().length}`),
-        );
+      try {
+        await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
-        const outputData: OutputData =
-          data.getTableResults(tableName).length === 0
-            ? {
-                result: [],
-                idMaps: this._mapper.maps,
-                idState: this._idManager.getIdState(),
-              }
-            : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
+        this._idManager = await IdManager.make(queryRunner, data.getTableNames());
+        this._mapper = new ImportMapping(this._idManager, data);
+        let index: number = 1;
+        for (const tableName of data.getTableNames()) {
+          this.eventEmitter.emit(
+            'message',
+            new ProgressNoticePayload(`${index}/${data.getTableNames().length}`),
+          );
 
-        //Update mapper and id manager after worker run
-        this._mapper.maps = outputData.idMaps;
-        this._idManager = IdManager.restore(outputData.idState);
+          const outputData: OutputData =
+            data.getTableResults(tableName).length === 0
+              ? {
+                  result: [],
+                  idMaps: this._mapper.maps,
+                  idState: this._idManager.getIdState(),
+                }
+              : await this.handleTableResultTerraform(
+                  tableName,
+                  this._mapper,
+                  this._idManager,
+                  data,
+                );
 
-        // Get the data terraformed by the worker
-        const terraformedData: object[] = outputData.result;
+          //Update mapper and id manager after worker run
+          this._mapper.maps = outputData.idMaps;
+          this._idManager = IdManager.restore(outputData.idState);
 
-        if (tableName === FwCloud._getTableName()) {
-          fwCloudId = (terraformedData as any)[0].id;
+          // Get the data terraformed by the worker
+          const terraformedData: object[] = outputData.result;
+          affectedCount += terraformedData.length;
+
+          if (tableName === FwCloud._getTableName()) {
+            fwCloudId = (terraformedData as any)[0].id;
+          }
+
+          while (terraformedData.length > 0) {
+            const chunk = terraformedData.splice(0, 10000);
+            const pquery: Promise<any> = queryRunner.manager
+              .createQueryBuilder()
+              .insert()
+              .into(tableName)
+              .values(chunk)
+              .execute();
+            promises.push(pquery);
+          }
+          index++;
         }
-
-        while (terraformedData.length > 0) {
-          const chunk = terraformedData.splice(0, 10000);
-          const pquery: Promise<any> = queryRunner.manager
-            .createQueryBuilder()
-            .insert()
-            .into(tableName)
-            .values(chunk)
-            .execute();
-          promises.push(pquery);
-        }
-        index++;
+        await Promise.all(promises);
+        await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+        await queryRunner.commitTransaction();
+      } catch (e) {
+        await queryRunner.rollbackTransaction();
+        throw e;
+      } finally {
+        await queryRunner.release();
       }
-      await Promise.all(promises);
-      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-      await queryRunner.commitTransaction();
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
 
-    const fwCloud: FwCloud = await FwCloud.findOne({
-      where: { id: fwCloudId },
-    });
+      const fwCloud: FwCloud = await FwCloud.findOne({
+        where: { id: fwCloudId },
+      });
 
-    if (!snapshot.isHashCompatible()) {
-      await db.getSource().manager.getRepository(Firewall).update(
-        { fwCloudId: fwCloud.id },
-        {
-          install_user: null,
-          install_pass: null,
+      if (!snapshot.isHashCompatible()) {
+        const updateResult = await db.getSource().manager.getRepository(Firewall).update(
+          { fwCloudId: fwCloud.id },
+          {
+            install_user: null,
+            install_pass: null,
+          },
+        );
+        affectedCount += Math.max(0, updateResult?.affected ?? 0);
+      }
+
+      await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
+
+      await auditEventService.finishEvent(eventId, {
+        affectedCount,
+        status: 'success',
+        context: {
+          fwCloudId: fwCloud.id,
+          fwCloudName: fwCloud.name,
         },
-      );
+        details: {
+          tableCount: data.getTableNames().length,
+          hashCompatible: snapshot.isHashCompatible(),
+        },
+      });
+
+      return fwCloud;
+    } catch (error) {
+      await auditEventService.finishEvent(eventId, {
+        affectedCount,
+        status: 'failed',
+        error,
+        context: fwCloudId
+          ? {
+              fwCloudId,
+            }
+          : undefined,
+        details: {
+          tableCount: data.getTableNames().length,
+          hashCompatible: snapshot.isHashCompatible(),
+        },
+      });
+      throw error;
+    } finally {
+      if (!queryRunner.isReleased) {
+        await queryRunner.release();
+      }
     }
-
-    await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
-
-    return fwCloud;
   }
 
   /**

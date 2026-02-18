@@ -42,7 +42,7 @@ import { Zip } from '../../../utils/zip';
 import ObjectHelpers from '../../../utils/object-helpers';
 import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
 import { EventEmitter } from 'events';
-import { AuditLogService } from '../../audit/AuditLog.service';
+import { AuditEventService } from '../../audit/AuditEvent.service';
 
 export type OpenVPNConfig = {
   history: {
@@ -64,7 +64,7 @@ export type OpenVPNUpdateableConfig = {
 export class OpenVPNService extends Service {
   protected _config: OpenVPNConfig;
   protected _cronService: CronService;
-  protected _auditLogService: AuditLogService;
+  protected _auditEventService: AuditEventService;
 
   protected _scheduledHistoryArchiveJob: CronJob;
   protected _scheduledRetentionJob: CronJob;
@@ -74,7 +74,7 @@ export class OpenVPNService extends Service {
   public async build(): Promise<OpenVPNService> {
     this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
     this._cronService = await this._app.getService<CronService>(CronService.name);
-    this._auditLogService = await this._app.getService<AuditLogService>(AuditLogService.name);
+    this._auditEventService = await this._app.getService<AuditEventService>(AuditEventService.name);
 
     const archiveDirectory: string = this._config.history.data_dir;
 
@@ -90,7 +90,14 @@ export class OpenVPNService extends Service {
       this._config.history.archive_schedule,
       async () => {
         await this._archiveMutex.waitForUnlock();
-        const startedAt = Date.now();
+        const eventId = this._auditEventService.startEvent({
+          source: 'cron',
+          operation: 'archive',
+          entity: 'openvpn_status_history',
+          details: {
+            schedule: this._config.history.archive_schedule,
+          },
+        });
 
         try {
           logger().info('Starting OpenVPNHistory archive job.');
@@ -98,29 +105,16 @@ export class OpenVPNService extends Service {
           logger().info(
             `OpenVPNHistory archive job completed: ${removedItemsCount} rows archived.`,
           );
-          await this._auditLogService.logMutation({
-            call: 'CRON openvpn.history.archive',
-            description: `cron=openvpn.history.archive | status=success | rows=${removedItemsCount}`,
-            data: {
-              source: 'cron',
-              task: 'openvpn.history.archive',
-              rowsArchived: removedItemsCount,
-              schedule: this._config.history.archive_schedule,
-              durationMs: Date.now() - startedAt,
-            },
+          await this._auditEventService.finishEvent(eventId, {
+            affectedCount: removedItemsCount,
+            status: 'success',
           });
         } catch (error) {
           logger().error('OpenVPNHistory archive job ERROR: ', error.message);
-          await this._auditLogService.logMutation({
-            call: 'CRON openvpn.history.archive',
-            description: 'cron=openvpn.history.archive | status=error',
-            data: {
-              source: 'cron',
-              task: 'openvpn.history.archive',
-              schedule: this._config.history.archive_schedule,
-              durationMs: Date.now() - startedAt,
-              error: error?.message ?? String(error),
-            },
+          await this._auditEventService.finishEvent(eventId, {
+            affectedCount: 0,
+            status: 'failed',
+            error,
           });
         }
       },
