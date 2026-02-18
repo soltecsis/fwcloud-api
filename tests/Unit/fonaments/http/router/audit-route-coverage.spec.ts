@@ -20,8 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { expect } from 'chai';
-import { HTTPApplication } from '../../../../../src/fonaments/http-application';
+import { expect, testSuite } from '../../../../mocha/global-setup';
 import { Route } from '../../../../../src/fonaments/http/router/route';
 import { HttpMethod, RouterService } from '../../../../../src/fonaments/http/router/router.service';
 import {
@@ -49,21 +48,9 @@ const nonMutatingMethods: ReadonlySet<HttpMethod> = new Set<HttpMethod>(['GET', 
 
 let cachedControllerRoutes: ControllerRouteIndexEntry[] | null = null;
 
-class RouteInspectionApplication extends HTTPApplication {
-  constructor() {
-    super(process.cwd());
-  }
-
-  protected providers(): Array<any> {
-    return [];
-  }
-
-  protected beforeMiddlewares(): Array<any> {
-    return [];
-  }
-
-  protected afterMiddlewares(): Array<any> {
-    return [];
+class RouteInspectionRouterService extends RouterService {
+  public inspectControllerRoutes(): Route[] {
+    return this.parseRoutes().filter((route) => route.isControllerHandler());
   }
 }
 
@@ -106,13 +93,16 @@ const collectControllerRoutes = async (): Promise<ControllerRouteIndexEntry[]> =
     return cachedControllerRoutes;
   }
 
-  const app = new RouteInspectionApplication();
-  const routerService: RouterService = await RouterService.make(app);
-  routerService.registerRoutes();
+  if (!testSuite.app) {
+    throw new Error('Test suite application is not initialized');
+  }
+
+  const routerService: RouteInspectionRouterService = await RouteInspectionRouterService.make(
+    testSuite.app,
+  );
 
   cachedControllerRoutes = routerService
-    .getRoutes()
-    .filter((route) => route.isControllerHandler())
+    .inspectControllerRoutes()
     .map((route) => {
       const method = route.httpMethod;
       const path = normalizePath(route.pathParams);
