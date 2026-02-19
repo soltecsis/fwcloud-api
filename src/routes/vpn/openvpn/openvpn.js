@@ -214,7 +214,7 @@ const buildClient2FASecretFile = (secret) => {
 };
 
 const OPENVPN_PAM_2FA_CONTENT = [
-	'auth [success=1 default=ignore] pam_listfile.so item=user sense=allow file=/etc/openvpn/2fa_users.txt onerr=fail',
+	'auth required pam_listfile.so item=user sense=allow file=/etc/openvpn/2fa_users.txt onerr=fail',
 	'auth required pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER}',
 	'account required pam_permit.so'
 ].join('\n');
@@ -349,6 +349,24 @@ router.put('/get', async (req, res) => {
  */
 router.put('/file/get', async (req, res) => {
 	try {
+		if (req.openvpn.type === 1 && Number(req.openvpn.tfa_enabled) === 1) {
+			const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+			const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+				where: { id: req.openvpn.firewall }
+			});
+			const communication = await firewall.getCommunication();
+
+			if (!communication) {
+				throw fwcError.VPN_2FA_AGENT_REQUIRED;
+			}
+
+			const enrolledClients = await communication.ccdHashList('/etc/openvpn/google-authenticator');
+			const isEnrolled = enrolledClients.some(client => client.filename === crt.cn);
+			if (!isEnrolled) {
+				throw fwcError.other('OpenVPN client 2FA is enabled but TOTP is not enrolled');
+			}
+		}
+
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 		res.status(200).json(cfgDump);
 	} catch (error) {

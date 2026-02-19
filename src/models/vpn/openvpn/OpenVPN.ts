@@ -451,7 +451,7 @@ export class OpenVPN extends Model {
   public static dumpCfg(dbCon, fwcloud, openvpn) {
     return new Promise((resolve, reject) => {
       // First obtain the CN of the certificate.
-      let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
+      let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name, VPN.tfa_enabled,
                 VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
                 INNER JOIN openvpn VPN ON VPN.crt=CRT.id
                 LEFT JOIN openvpn VPNSRV ON VPNSRV.id=VPN.openvpn
@@ -461,26 +461,27 @@ export class OpenVPN extends Model {
 
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
+        const vpnMeta = result[0];
 
-        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
+        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + vpnMeta.ca + '/';
         const ca_crt_path = ca_dir + 'ca.crt';
-        const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
-        const key_path = ca_dir + 'private/' + result[0].cn + '.key';
-        const dh_path = result[0].type === 2 ? ca_dir + 'dh.pem' : '';
+        const crt_path = ca_dir + 'issued/' + vpnMeta.cn + '.crt';
+        const key_path = ca_dir + 'private/' + vpnMeta.cn + '.key';
+        const dh_path = vpnMeta.type === 2 ? ca_dir + 'dh.pem' : '';
 
         // Header description.
         let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
         des += `# Generated: ${Date()}\n`;
-        des += `# Certificate Common Name: ${result[0].cn} \n`;
-        des += result[0].cl_name
-          ? `# Firewall Cluster: ${result[0].cl_name}\n`
-          : `# Firewall: ${result[0].fw_name}\n`;
-        if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
-          result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
-        if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
-          result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
-        des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
-        des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
+        des += `# Certificate Common Name: ${vpnMeta.cn} \n`;
+        des += vpnMeta.cl_name
+          ? `# Firewall Cluster: ${vpnMeta.cl_name}\n`
+          : `# Firewall: ${vpnMeta.fw_name}\n`;
+        if (vpnMeta.srv_config1 && vpnMeta.srv_config1.endsWith('.conf'))
+          vpnMeta.srv_config1 = vpnMeta.srv_config1.slice(0, -5);
+        if (vpnMeta.srv_config2 && vpnMeta.srv_config2.endsWith('.conf'))
+          vpnMeta.srv_config2 = vpnMeta.srv_config2.slice(0, -5);
+        des += `# OpenVPN Server: ${vpnMeta.srv_config1 ? vpnMeta.srv_config1 : vpnMeta.srv_config2}\n`;
+        des += `# Type: ${vpnMeta.srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         // Get all the configuration options.
         sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
@@ -492,10 +493,13 @@ export class OpenVPN extends Model {
             let ovpn_cfg = des;
             let ovpn_ccd = '';
 
+            let hasAuthUserPass = false;
+
             // First add all the configuration options.
             for (const opt of result) {
               let cfg_line =
                 (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
+              if (opt.name === 'auth-user-pass') hasAuthUserPass = true;
               if (opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
@@ -523,6 +527,11 @@ export class OpenVPN extends Model {
                 ovpn_ccd += cfg_line + '\n';
               // Config file
               else ovpn_cfg += cfg_line + '\n';
+            }
+
+            // For OpenVPN clients with 2FA enabled we must enforce username/password prompt.
+            if (vpnMeta.type === 1 && Number(vpnMeta.tfa_enabled) === 1 && !hasAuthUserPass) {
+              ovpn_cfg += 'auth-user-pass\n';
             }
 
             // Now read the files data and put it into de config files.
