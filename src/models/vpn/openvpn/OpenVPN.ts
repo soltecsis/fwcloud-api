@@ -373,11 +373,13 @@ export class OpenVPN extends Model {
   // Get all the clients with 2FA enabled for an OpenVPN server in a cluster.
   public static clusterServerHasClientsWith2FAEnabled(dbCon, clusterId, openvpnId) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT COUNT(*) enabledClients FROM openvpn
-                WHERE openvpn = ? AND firewall = ? AND tfa_enabled = 1`;
+      const sql = `SELECT COUNT(*) n
+                FROM openvpn VPN
+                INNER JOIN firewall FW ON FW.id = VPN.firewall
+                WHERE VPN.openvpn = ? AND FW.cluster = ? AND VPN.tfa_enabled = 1`;
       dbCon.query(sql, [openvpnId, clusterId], (error, result) => {
         if (error) return reject(error);
-        resolve(result[0].enabledClients > 0);
+        resolve(result[0].n > 0);
       });
     });
   }
