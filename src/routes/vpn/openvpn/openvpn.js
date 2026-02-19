@@ -72,6 +72,8 @@ import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { SSHCommunication } from '../../../communications/ssh.communication';
 import { PgpHelper } from '../../../utils/pgp';
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 const OPENVPN_2FA_REQUIRED_OPTIONS = {
 	verifyClientCert: { name: 'verify-client-cert', arg: 'require' },
@@ -200,6 +202,22 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 		]
 	);
 };
+
+const buildClient2FASecretFile = (secret) => {
+	return [
+		secret.base32,
+		'" TOTP_AUTH',
+		'" WINDOW_SIZE 3',
+		'" DISALLOW_REUSE',
+		'" RATE_LIMIT 3 30'
+	].join('\n');
+};
+
+const OPENVPN_PAM_2FA_CONTENT = [
+	'auth [success=1 default=ignore] pam_listfile.so item=user sense=allow file=/etc/openvpn/2fa_users.txt onerr=fail',
+	'auth required pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER}',
+	'account required pam_permit.so'
+].join('\n');
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -1006,6 +1024,11 @@ router.put('/2fa/server', async (req, res, next) => {
 				await communication.installPlugin('openvpn-2fa', true, channel);
 			}
 
+			await communication.installOpenVPNServerConfigs('/etc/pam.d', [{
+				name: 'openvpn',
+				content: OPENVPN_PAM_2FA_CONTENT
+			}], channel);
+
 			// Ensure OpenVPN server has all directives required by certificate + user/pass authentication.
 			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
 
@@ -1080,6 +1103,7 @@ router.put('/2fa/client', async (req, res, next) => {
 		}
 
 		const enabled = !!req.body.enabled;
+		let totpData = null;
 
 		if (enabled) {
 			const sql = `SELECT tfa_enabled FROM openvpn WHERE id=${req.dbCon.escape(req.openvpn.openvpn)}
@@ -1093,6 +1117,34 @@ router.put('/2fa/client', async (req, res, next) => {
 
 			if (!result || result.length === 0 || result[0].tfa_enabled !== 1) {
 				throw fwcError.VPN_2FA_SERVER_DISABLED;
+			}
+
+			const secret = speakeasy.generateSecret({
+				name: `FWCloud OpenVPN (${crt.cn})`,
+				length: 32
+			});
+			const secretFileContent = buildClient2FASecretFile(secret);
+			const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+			const channel = await Channel.fromRequest(req);
+			await communication.installOpenVPNServerConfigs('/etc/openvpn/google-authenticator', [{
+				name: crt.cn,
+				content: secretFileContent
+			}], channel);
+
+			totpData = {
+				secret: secret.base32,
+				otpauth_url: secret.otpauth_url,
+				dataURL: qrCode
+			};
+		} else {
+			const channel = await Channel.fromRequest(req);
+			try {
+				await communication.uninstallOpenVPNConfigs('/etc/openvpn/google-authenticator', [crt.cn], channel);
+			} catch (error) {
+				if (!error?.message || error.message.indexOf('Directory not found') === -1) {
+					throw error;
+				}
 			}
 		}
 
@@ -1121,7 +1173,11 @@ router.put('/2fa/client', async (req, res, next) => {
 			content: usersListContent
 		}], channel);
 
-		res.status(204).end();
+		if (enabled) {
+			res.status(200).json(totpData);
+		} else {
+			res.status(204).end();
+		}
 	} catch (error) {
 		logger().error('Error getting openvpn 2fa client data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 
