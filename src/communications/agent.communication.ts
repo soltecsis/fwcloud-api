@@ -110,7 +110,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       // Disable timeout and manage it from the WebSocket events.
       config.timeout = 0;
 
-      config.headers = Object.assign({}, form.getHeaders(), config.headers);
+      config.headers = Object.assign({}, config.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
 
@@ -146,7 +146,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -227,7 +227,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -286,7 +286,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -671,7 +671,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
@@ -703,7 +703,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
@@ -736,7 +736,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
@@ -773,7 +773,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     });
 
     const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-    requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+    requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
     return requestConfig;
   }
 }

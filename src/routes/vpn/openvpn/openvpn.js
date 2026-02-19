@@ -73,6 +73,134 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { SSHCommunication } from '../../../communications/ssh.communication';
 import { PgpHelper } from '../../../utils/pgp';
 
+const OPENVPN_2FA_REQUIRED_OPTIONS = {
+	verifyClientCert: { name: 'verify-client-cert', arg: 'require' },
+	usernameAsCommonName: { name: 'username-as-common-name', arg: null },
+	pamPlugin: {
+		name: 'plugin',
+		arg: '/usr/lib/openvpn/openvpn-plugin-auth-pam.so openvpn'
+	}
+};
+
+const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
+	dbCon.query(sql, params, (error, result) => {
+		if (error) {
+			return reject(error);
+		}
+		resolve(result);
+	});
+});
+
+const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+	const options = await queryDb(
+		dbCon,
+		'SELECT id,name,arg,scope,comment,`order`,ipobj FROM openvpn_opt WHERE openvpn=? ORDER BY `order` ASC,id ASC',
+		[openvpnId]
+	);
+
+	const findByName = (name) => options.find((option) => option.name === name);
+	const findPluginOption = () =>
+		options.find(
+			(option) =>
+				option.name === OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name &&
+				option.arg === OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg
+		);
+
+	const verifyClientCertOption = findByName(OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name);
+	if (verifyClientCertOption) {
+		if (verifyClientCertOption.arg !== OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg) {
+			await queryDb(
+				dbCon,
+				'UPDATE openvpn_opt SET arg=? WHERE id=?',
+				[OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg, verifyClientCertOption.id]
+			);
+		}
+	} else {
+		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+		await queryDb(
+			dbCon,
+			'INSERT INTO openvpn_opt SET ?',
+			[{
+				openvpn: openvpnId,
+				name: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
+				arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
+				scope: 1,
+				comment: 'Required by OpenVPN 2FA',
+				order: maxOrder + 1,
+				ipobj: null
+			}]
+		);
+		options.push({
+			name: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
+			arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
+			scope: 1,
+			comment: 'Required by OpenVPN 2FA',
+			order: maxOrder + 1
+		});
+	}
+
+	if (!findByName(OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name)) {
+		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+		await queryDb(
+			dbCon,
+			'INSERT INTO openvpn_opt SET ?',
+			[{
+				openvpn: openvpnId,
+				name: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name,
+				arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
+				scope: 1,
+				comment: 'Required by OpenVPN 2FA',
+				order: maxOrder + 1,
+				ipobj: null
+			}]
+		);
+		options.push({
+			name: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name,
+			arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
+			scope: 1,
+			comment: 'Required by OpenVPN 2FA',
+			order: maxOrder + 1
+		});
+	}
+
+	if (!findPluginOption()) {
+		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+		await queryDb(
+			dbCon,
+			'INSERT INTO openvpn_opt SET ?',
+			[{
+				openvpn: openvpnId,
+				name: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
+				arg: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
+				scope: 1,
+				comment: 'Required by OpenVPN 2FA',
+				order: maxOrder + 1,
+				ipobj: null
+			}]
+		);
+	}
+};
+
+const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+	await queryDb(
+		dbCon,
+		`DELETE FROM openvpn_opt
+		 WHERE openvpn=?
+		   AND (
+		     (name=? AND comment='Required by OpenVPN 2FA')
+		     OR (name=? AND arg=?)
+		     OR (name=? AND comment='Required by OpenVPN 2FA')
+		   )`,
+		[
+			openvpnId,
+			OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
+			OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name
+		]
+	);
+};
+
 /**
  * Create a new OpenVPN configuration in firewall.
  */
@@ -848,6 +976,18 @@ router.put('/2fa/server', async (req, res, next) => {
 			if (!hasOtherServersWith2FA) {
 				await communication.installPlugin('openvpn-2fa', false, channel);
 			}
+
+			await removeServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+			const openvpnCfg = await OpenVPN.getCfg(req);
+			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+			const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
+			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
+				throw fwcError.other('OpenVPN server install path or file name not found');
+			}
+			await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+				content: cfgDump.cfg,
+				name: openvpnCfg.install_name
+			}], channel);
 		} else {
 			// Check if any other server has 2FA enabled. If not, we must install the plugin before enable 2FA in this server.
 			const hasOtherServersWith2FA = firewall.clusterId
@@ -865,6 +1005,21 @@ router.put('/2fa/server', async (req, res, next) => {
 			if (!hasOtherServersWith2FA) {
 				await communication.installPlugin('openvpn-2fa', true, channel);
 			}
+
+			// Ensure OpenVPN server has all directives required by certificate + user/pass authentication.
+			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+
+			// Apply the generated server.conf right now. If this fails, we don't enable 2FA in database.
+			const openvpnCfg = await OpenVPN.getCfg(req);
+			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+			const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
+			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
+				throw fwcError.other('OpenVPN server install path or file name not found');
+			}
+			await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+				content: cfgDump.cfg,
+				name: openvpnCfg.install_name
+			}], channel);
 		}
 
 		await new Promise((resolve, reject) => {
