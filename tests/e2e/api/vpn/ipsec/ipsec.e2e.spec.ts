@@ -858,7 +858,6 @@ describe(describeName('IPSec E2E Tests'), () => {
             fwcloud: fwcProduct.fwcloud.id,
             firewall: fwcProduct.firewall.id,
             node_id: rootNode.id,
-            type: 333,
             name: 'IPSec-Only-Client-Delete-Test',
             options: [],
           });
