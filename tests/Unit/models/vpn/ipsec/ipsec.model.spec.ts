@@ -10,7 +10,7 @@ import os from 'os';
 import fs from 'fs';
 import StringHelper from '../../../../../src/utils/string.helper';
 
-describe.only(IPSec.name, () => {
+describe(IPSec.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
