@@ -947,7 +947,6 @@ describe(IPSec.name, () => {
           firewall: fwcloudProduct.firewall.id,
           install_dir: '/tmp',
           install_name: 'ipsec-only-client.conf',
-          type: 333,
           name: 'IPSec-Only-Client',
         },
       };
@@ -1255,7 +1254,6 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           firewall: fwcloudProduct.firewall.id,
           install_dir: '/tmp',
           install_name: 'ipsec-only-client-info.conf',
-          type: 333,
           name: 'IPSec-Only-Client-Info',
         },
       };
@@ -1385,7 +1383,6 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           firewall: fwcloudProduct.firewall.id,
           install_dir: '/tmp',
           install_name: 'ipsec-only-client-dump.conf',
-          type: 333,
           name: 'IPSec-Only-Client-Dump',
         },
       };
