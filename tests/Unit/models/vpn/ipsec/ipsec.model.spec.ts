@@ -10,7 +10,7 @@ import os from 'os';
 import fs from 'fs';
 import StringHelper from '../../../../../src/utils/string.helper';
 
-describe(IPSec.name, () => {
+describe.only(IPSec.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
@@ -1086,6 +1086,8 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           'install_name',
           'comment',
           'status',
+          'type',
+          'name',
           'created_at',
           'updated_at',
           'created_by',
@@ -1170,6 +1172,8 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           'install_name',
           'comment',
           'status',
+          'type',
+          'name',
           'created_at',
           'updated_at',
           'created_by',
@@ -1211,6 +1215,8 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           'install_name',
           'comment',
           'status',
+          'type',
+          'name',
           'created_at',
           'updated_at',
           'created_by',
