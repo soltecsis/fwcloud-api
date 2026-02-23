@@ -12,17 +12,13 @@ import { GetFirewallDto } from './dto/getFirewall.dto';
 import { Channel } from '../../../sockets/channels/channel';
 import db from '../../../database/database-manager';
 import { Firewall } from '../../../models/firewall/Firewall';
-import { ProgressNoticePayload, ProgressPayload } from '../../../sockets/messages/socket-message';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
-import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { IPSecOption } from '../../../models/vpn/ipsec/ipsec-option.model';
 import { GetOptionsDto } from './dto/get.dto.options';
 import { UpdateOptionsDto } from './dto/update.dto.options';
 import path from 'path';
-import { app } from '../../../fonaments/abstract-application';
-import { FSHelper } from '../../../utils/fs-helper';
-import { promises as fs } from 'fs';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -34,40 +30,43 @@ export class IPSecController extends Controller {
       if (
         req.tree_node.node_type !== 'IS' &&
         req.tree_node.node_type !== 'ISS' &&
-        req.tree_node.node_type !== 'ISC'
+        req.tree_node.node_type !== 'ISC' &&
+        req.tree_node.node_type !== 'ISCNS'
       ) {
         throw new Error(fwcError.BAD_TREE_NODE);
       }
       if (req.body.ipsec && req.body.ipsec != req.tree_node.id_obj) {
         throw new Error("Information in node tree and in API request don't match");
       }
-      if (req.crt.type === 1 && !req.body.ipsec) {
-        throw new Error(
-          'When using client certificates you must indicate the IPSec server configuration',
-        );
-      }
-      if (req.crt.type === 2 && req.body.ipsec) {
-        throw new Error(
-          'When using server certificates you must not indicate the IPSec server configuration',
-        );
-      }
-      if (req.crt.type === 1 && req.crt.ca !== req.ipsec.ca) {
-        throw new Error(
-          'CRT for a new client IPSec configuration must has the same CA that the server IPSec configuration to which it belongs',
-        );
-      }
-      if (req.crt.type === 1 && req.body.firewall !== req.ipsec.firewall) {
-        throw new Error(
-          'Firewall ID for the new client IPSec configuration must match server IPSec configuration',
-        );
-      }
-      if (req.crt.type === 2 && !req.body.ipsec) {
-        const exists = (await IPSec.getIPSecServersByFirewall(
-          req.dbCon,
-          req.body.firewall,
-        )) as IPSec[];
-        if (exists.length > 0) {
-          throw new Error('This firewall already has an IPSec server configured');
+      if (req.crt !== undefined && req.crt !== null && req.body.crt !== req.crt.id) {
+        if (req.crt.type === 1 && !req.body.ipsec) {
+          throw new Error(
+            'When using client certificates you must indicate the IPSec server configuration',
+          );
+        }
+        if (req.crt.type === 2 && req.body.ipsec) {
+          throw new Error(
+            'When using server certificates you must not indicate the IPSec server configuration',
+          );
+        }
+        if (req.crt.type === 1 && req.crt.ca !== req.ipsec.ca) {
+          throw new Error(
+            'CRT for a new client IPSec configuration must has the same CA that the server IPSec configuration to which it belongs',
+          );
+        }
+        if (req.crt.type === 1 && req.body.firewall !== req.ipsec.firewall) {
+          throw new Error(
+            'Firewall ID for the new client IPSec configuration must match server IPSec configuration',
+          );
+        }
+        if (req.crt.type === 2 && !req.body.ipsec) {
+          const exists = (await IPSec.getIPSecServersByFirewall(
+            req.dbCon,
+            req.body.firewall,
+          )) as IPSec[];
+          if (exists.length > 0) {
+            throw new Error('This firewall already has an IPSec server configured');
+          }
         }
       }
 
@@ -152,7 +151,17 @@ export class IPSecController extends Controller {
 
       // Create node in tree
       let nodeId: unknown;
-      if (req.tree_node.node_type === 'IS') {
+      if (req.tree_node.node_type === 'IS' && !req.crt) {
+        nodeId = await Tree.newNode(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.name,
+          req.body.node_id,
+          'ISCNS',
+          newIpsec,
+          333,
+        );
+      } else if (req.tree_node.node_type === 'IS' && req.crt) {
         nodeId = await Tree.newNode(
           req.dbCon,
           req.body.fwcloud,
@@ -177,7 +186,7 @@ export class IPSecController extends Controller {
       }
 
       // Handle prefixes (if necessary)
-      if (req.crt.type === 2) {
+      if (req.crt !== undefined && req.crt !== null && req.crt.type === 2) {
         // 1=Client certificate, 2=Server certificate.
         const prefixes = req.body.prefixes || [];
         for (const prefix of prefixes) {
@@ -530,7 +539,12 @@ export class IPSecController extends Controller {
   @Validate(GetDto)
   async delete(req: any): Promise<ResponseBuilder> {
     try {
-      if (req.ipsec?.type === 1) {
+      const hasParentIPSec = req.ipsec?.ipsec !== null && req.ipsec?.ipsec !== undefined;
+      const hasCertificate = req.ipsec?.crt !== null && req.ipsec?.crt !== undefined;
+      const isClientWithServer = req.ipsec?.type === 1 || req.ipsec?.type === 331 || hasParentIPSec;
+      const isClientWithoutServer = req.ipsec?.type === 333 || (!hasParentIPSec && !hasCertificate);
+
+      if (isClientWithServer) {
         await IPSecPrefix.updateIPSecClientPrefixesFWStatus(
           req.dbCon,
           req.body.fwcloud,
@@ -538,14 +552,18 @@ export class IPSecController extends Controller {
         );
       }
 
-      await IPSec.delCfg(req.dbCon, req.body.fwcloud, req.body.ipsec, req.ipsec.type === 1);
+      await IPSec.delCfg(req.dbCon, req.body.fwcloud, req.body.ipsec, isClientWithServer);
 
-      if (req.ipsec?.type === 1) {
+      if (isClientWithServer) {
         await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.ipsec.ipsec);
 
         await IPSec.updateIPSecStatus(req.dbCon, req.ipsec.ipsec, '|1');
       } else {
-        await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ipsec, 332);
+        await Tree.deleteObjFromTree(
+          req.body.fwcloud,
+          req.body.ipsec,
+          isClientWithoutServer ? 333 : 332,
+        );
       }
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {

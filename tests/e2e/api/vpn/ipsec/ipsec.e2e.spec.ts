@@ -844,6 +844,45 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
+      it('regular user should be able to delete IPSec client without server', async () => {
+        const rootNode = (await Tree.getNodeByNameAndType(
+          fwcProduct.fwcloud.id,
+          'IPSec',
+          'IS',
+        )) as { id: number };
+
+        const storeResponse = await request(app.express)
+          .post(_URL().getURL('vpn.ipsec.store'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            node_id: rootNode.id,
+            type: 333,
+            name: 'IPSec-Only-Client-Delete-Test',
+            options: [],
+          });
+
+        expect(storeResponse.status).to.equal(201);
+        const ipsecOnlyClientId = storeResponse.body.insertId;
+        expect(ipsecOnlyClientId).to.be.a('number');
+
+        const deleteResponse = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.delete'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(deleteResponse.status).to.equal(204);
+
+        const deletedIPSec = await manager.getRepository(IPSec).findOne({
+          where: { id: ipsecOnlyClientId },
+        });
+        expect(deletedIPSec).to.not.exist;
+      });
+
       it('admin user should be able to delete IPSec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.delete'))
