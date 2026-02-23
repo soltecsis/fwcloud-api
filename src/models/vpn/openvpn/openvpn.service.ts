@@ -29,7 +29,7 @@ import { Service } from '../../../fonaments/services/service';
 import { OpenVPN } from './OpenVPN';
 import db from '../../../database/database-manager';
 import { InstallerGenerator } from '../../../openvpn-installer/installer-generator';
-import { getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
+import { DeleteResult, getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
 import { Firewall } from '../../firewall/Firewall';
 import { CronService } from '../../../backups/cron/cron.service';
 import { CronJob } from 'cron';
@@ -62,6 +62,8 @@ export type OpenVPNUpdateableConfig = {
 };
 
 export class OpenVPNService extends Service {
+  protected static readonly HISTORY_AUDIT_ENTITY = 'OpenVPNStatusHistory';
+
   protected _config: OpenVPNConfig;
   protected _cronService: CronService;
   protected _auditEventService: AuditEventService;
@@ -93,7 +95,7 @@ export class OpenVPNService extends Service {
         const eventId = this._auditEventService.startEvent({
           source: 'cron',
           operation: 'archive',
-          entity: 'openvpn_status_history',
+          entity: OpenVPNService.HISTORY_AUDIT_ENTITY,
           details: {
             schedule: this._config.history.archive_schedule,
           },
@@ -101,20 +103,28 @@ export class OpenVPNService extends Service {
 
         try {
           logger().info('Starting OpenVPNHistory archive job.');
-          const removedItemsCount: number = await this.archiveHistory();
+          const archivedRowsCount: number = await this.archiveHistory();
           logger().info(
-            `OpenVPNHistory archive job completed: ${removedItemsCount} rows archived.`,
+            `OpenVPNHistory archive job completed: ${archivedRowsCount} rows archived.`,
           );
           await this._auditEventService.finishEvent(eventId, {
-            affectedCount: removedItemsCount,
+            affectedCount: archivedRowsCount,
             status: 'success',
+            details: {
+              archivedCount: archivedRowsCount,
+              deletedCount: archivedRowsCount,
+            },
           });
         } catch (error) {
-          logger().error('OpenVPNHistory archive job ERROR: ', error.message);
+          logger().error(`OpenVPNHistory archive job ERROR: ${this.getErrorMessage(error)}`);
           await this._auditEventService.finishEvent(eventId, {
             affectedCount: 0,
             status: 'failed',
             error,
+            details: {
+              archivedCount: 0,
+              deletedCount: 0,
+            },
           });
         }
       },
@@ -124,14 +134,40 @@ export class OpenVPNService extends Service {
     this._scheduledRetentionJob = this._cronService.addJob(
       this._config.history.retention_schedule,
       async () => {
+        const eventId = this._auditEventService.startEvent({
+          source: 'cron',
+          operation: 'retention',
+          entity: OpenVPNService.HISTORY_AUDIT_ENTITY,
+          details: {
+            schedule: this._config.history.retention_schedule,
+          },
+        });
+
         try {
           logger().info('Starting OpenVPNHistory retention job.');
-          const removedItemsCount: number = await this.removeExpiredFiles();
+          const removedFilesCount: number = await this.removeExpiredFiles();
           logger().info(
-            `OpenVPNHistory archive job completed: ${removedItemsCount} files removed.`,
+            `OpenVPNHistory retention job completed: ${removedFilesCount} files removed.`,
           );
+          await this._auditEventService.finishEvent(eventId, {
+            affectedCount: removedFilesCount,
+            status: 'success',
+            details: {
+              deletedCount: removedFilesCount,
+              removedFilesCount,
+            },
+          });
         } catch (error) {
-          logger().error('OpenVPNHistory retention job ERROR: ', error.message);
+          logger().error(`OpenVPNHistory retention job ERROR: ${this.getErrorMessage(error)}`);
+          await this._auditEventService.finishEvent(eventId, {
+            affectedCount: 0,
+            status: 'failed',
+            error,
+            details: {
+              deletedCount: 0,
+              removedFilesCount: 0,
+            },
+          });
         }
       },
     );
@@ -291,15 +327,6 @@ export class OpenVPNService extends Service {
               return resolve(count);
             }
 
-            count = count + history.length;
-
-            eventEmitter.emit(
-              'message',
-              new ProgressNoticePayload(
-                `Progress: ${count} of ${totalExpiredHistoryRows} registers`,
-              ),
-            );
-
             const table: string =
               getMetadataArgsStorage().tables.filter(
                 (item) => item.target === OpenVPNStatusHistory,
@@ -312,28 +339,28 @@ export class OpenVPNService extends Service {
               .join(',');
             const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map((item) => `(${columns.map((column) => (item[column.propertyName] ? `'${item[column.propertyName]}'` : 'NULL')).join(',')})`).join(',')};\n`;
 
-            const promise: Promise<void> = new Promise<void>((resolve, reject) => {
-              fs.writeFile(
+            try {
+              await fs.writeFile(
                 path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName),
                 content,
                 { flag: 'a' },
-                async (err) => {
-                  if (err) {
-                    return reject(err);
-                  }
-                  try {
-                    await db
-                      .getSource()
-                      .manager.getRepository(OpenVPNStatusHistory)
-                      .delete(history.map((item) => item.id));
-                    return resolve();
-                  } catch (err) {
-                    return reject(err);
-                  }
-                },
               );
-            });
-            await promise.catch((err) => reject(err));
+
+              const deleteResult: DeleteResult = await db
+                .getSource()
+                .manager.getRepository(OpenVPNStatusHistory)
+                .delete(history.map((item) => item.id));
+              count = count + this.resolveDeleteAffectedRows(deleteResult);
+
+              eventEmitter.emit(
+                'message',
+                new ProgressNoticePayload(
+                  `Progress: ${count} of ${totalExpiredHistoryRows} registers`,
+                ),
+              );
+            } catch (err) {
+              return reject(err);
+            }
           }
         });
       });
@@ -466,5 +493,90 @@ export class OpenVPNService extends Service {
     const { birthtime } = fs.lstatSync(path.join(filename.path, filename.file));
 
     return birthtime;
+  }
+
+  protected resolveDeleteAffectedRows(result: DeleteResult): number {
+    const affected = this.normalizeAffectedCount(result?.affected);
+    if (affected !== null) {
+      return affected;
+    }
+
+    const raw = result?.raw;
+    const candidates: unknown[] = [];
+
+    if (Array.isArray(raw)) {
+      raw.forEach((entry) => {
+        if (entry && typeof entry === 'object') {
+          const rawEntry = entry as Record<string, unknown>;
+          candidates.push(rawEntry.affectedRows);
+          candidates.push(rawEntry.rowCount);
+          candidates.push(rawEntry.changes);
+        }
+      });
+    } else if (raw && typeof raw === 'object') {
+      const rawEntry = raw as Record<string, unknown>;
+      candidates.push(rawEntry.affectedRows);
+      candidates.push(rawEntry.rowCount);
+      candidates.push(rawEntry.changes);
+    }
+
+    for (const candidate of candidates) {
+      const normalized = this.normalizeAffectedCount(candidate);
+      if (normalized !== null) {
+        return normalized;
+      }
+    }
+
+    throw new Error(
+      'Unable to determine affected rows while deleting archived OpenVPNStatusHistory records',
+    );
+  }
+
+  protected normalizeAffectedCount(value: unknown): number | null {
+    let numeric = Number.NaN;
+
+    if (typeof value === 'number') {
+      numeric = value;
+    } else if (typeof value === 'bigint') {
+      numeric = Number(value);
+    } else if (typeof value === 'string' && value.trim() !== '') {
+      numeric = Number.parseInt(value, 10);
+    }
+
+    if (!Number.isFinite(numeric)) {
+      return null;
+    }
+
+    return Math.max(0, Math.trunc(numeric));
+  }
+
+  protected getErrorMessage(error: unknown): string {
+    if (
+      error instanceof Error &&
+      typeof error.message === 'string' &&
+      error.message.trim() !== ''
+    ) {
+      return error.message;
+    }
+
+    if (typeof error === 'string' && error.trim() !== '') {
+      return error;
+    }
+
+    if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint') {
+      return String(error);
+    }
+
+    if (error === null || error === undefined) {
+      return 'Unknown error';
+    }
+
+    try {
+      const serializedError = JSON.stringify(error);
+
+      return serializedError && serializedError.trim() !== '' ? serializedError : 'Unknown error';
+    } catch {
+      return 'Unknown error';
+    }
   }
 }
