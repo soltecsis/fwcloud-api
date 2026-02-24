@@ -296,7 +296,9 @@ function checkIpsecAccess(req) {
 			// Check that fwcloud of the CA of the VPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
 			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
-			if(result[0].crt === null)
+			const ipsecType = Number(result[0].type);
+			if (!Number.isNaN(ipsecType)) result[0].type = ipsecType;
+			if (result[0].crt === null)
 				result[0].type = 1; // If there is no CRT, it can only be of type client.
 			// Store the crt info for use in the API call processing.
 			req.ipsec = result[0];

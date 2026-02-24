@@ -18,8 +18,8 @@ export class IPSecPrefixController extends Controller {
   @Validate()
   async prefix(req: any): Promise<ResponseBuilder> {
     try {
-      // We can only create prefixes for OpenVPN server configurations.
-      if (req.ipsec.type !== 2) throw fwcError.VPN_NOT_SER;
+      // We can only create prefixes for IPSec server configurations.
+      if (req.ipsec.type !== 2) throw fwcError.IPSEC_NOT_SER;
 
       // Verify that we are not creating a prefix that already exists for the same CA.
       if (await IPSecPrefix.existsPrefix(req.dbCon, req.body.ipsec, req.body.name))
@@ -36,6 +36,7 @@ export class IPSecPrefixController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body({ insertId: id });
     } catch (error) {
+      console.error('Error creating IPSec prefix:', error);
       return ResponseBuilder.buildResponse().status(400).body(error);
     }
   }
