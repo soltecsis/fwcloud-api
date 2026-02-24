@@ -541,9 +541,8 @@ export class IPSecController extends Controller {
     try {
       const hasParentIPSec = req.ipsec?.ipsec !== null && req.ipsec?.ipsec !== undefined;
       const hasCertificate = req.ipsec?.crt !== null && req.ipsec?.crt !== undefined;
-      const isClientWithServer = req.ipsec?.type === 1 || req.ipsec?.type === 331 || hasParentIPSec;
-      const isClientWithoutServer = req.ipsec?.type === 333 || (!hasParentIPSec && !hasCertificate);
-
+      const isClientWithServer = req.ipsec?.type === 1 && hasParentIPSec;
+      const isClientWithoutServer = req.ipsec?.type === 1 || (!hasParentIPSec && !hasCertificate);
       if (isClientWithServer) {
         await IPSecPrefix.updateIPSecClientPrefixesFWStatus(
           req.dbCon,

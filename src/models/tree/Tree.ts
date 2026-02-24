@@ -1489,7 +1489,7 @@ export class Tree extends Model {
           firewall,
           0,
         );
-        // await this.ipsecClientWithoutServerTree(connection, fwcloud, firewall, ipSecNode);
+        await this.ipsecClientWithoutServerTree(connection, fwcloud, firewall, ipSecNode);
         await this.ipsecServerTree(connection, fwcloud, firewall, ipSecNode);
 
         resolve();
