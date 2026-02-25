@@ -284,7 +284,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should mark as uncompiled all fwcloud firewalls', async () => {
-      let firewall: Firewall = await Firewall.save(
+      await Firewall.save(
         Firewall.create({
           name: 'firewall_test',
           status: 1,
@@ -292,7 +292,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         }),
       );
 
-      let firewall2: Firewall = await Firewall.save(
+      await Firewall.save(
         Firewall.create({
           name: 'firewall_test2',
           status: 1,
@@ -308,8 +308,11 @@ describe(describeName('Snapshot Unit Tests'), () => {
         where: { id: fwCloud.id + 1 },
       });
 
-      firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[0];
-      firewall2 = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[1];
+      const restoredFirewalls: Firewall[] = await Firewall.find({
+        where: { fwCloudId: newFwCloud.id },
+      });
+      const firewall: Firewall = restoredFirewalls[0];
+      const firewall2: Firewall = restoredFirewalls[1];
 
       expect(firewall.status).to.be.deep.eq(3);
       expect(firewall.compiled_at).to.be.null;
@@ -321,7 +324,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should remove encrypted data if snapshot hash is not equal', async () => {
-      let firewall: Firewall = await Firewall.save(
+      await Firewall.save(
         Firewall.create({
           name: 'firewall_test',
           status: 1,
@@ -349,7 +352,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         where: { id: fwCloud.id + 1 },
       });
 
-      firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[0];
+      const firewall: Firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[0];
 
       expect(firewall.install_user).to.be.null;
       expect(firewall.install_pass).to.be.null;

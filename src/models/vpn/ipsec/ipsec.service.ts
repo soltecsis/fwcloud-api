@@ -52,6 +52,7 @@ export class IPSecService extends Service {
       throw new Error(
         'Unable to generate the ipsec configuration during installer generation: ' +
           JSON.stringify(e),
+        { cause: e },
       );
     }
 
