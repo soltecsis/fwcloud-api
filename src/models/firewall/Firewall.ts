@@ -1459,7 +1459,7 @@ export class Firewall extends Model {
   public static checkBodyFirewall(body, isNew) {
     try {
       return new Promise((resolve, reject) => {
-        let param: any;
+        let param: any = '';
         if (!isNew) {
           param = body.id;
           if (param === undefined || param === '' || isNaN(param) || param == null) {

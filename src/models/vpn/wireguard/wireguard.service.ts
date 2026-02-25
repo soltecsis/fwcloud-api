@@ -56,7 +56,6 @@ export class WireGuardService extends Service {
       throw new Error(
         'Unable to generate the wireGuard configuration during installer generation: ' +
           JSON.stringify(e),
-        { cause: e },
       );
     }
 

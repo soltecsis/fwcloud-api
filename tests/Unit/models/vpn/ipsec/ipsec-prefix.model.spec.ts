@@ -598,11 +598,11 @@ describe(IPSecPrefix.name, () => {
         days: 365,
       });
 
-      const vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
+      let vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
 
       // Create IPSec clients associated with these certificates
       const ipsecClient1 = await manager.getRepository(IPSec).save({
-        id: vpnNextId,
+        id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
         crtId: cert1.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -611,7 +611,7 @@ describe(IPSecPrefix.name, () => {
       });
 
       const ipsecClient2 = await manager.getRepository(IPSec).save({
-        id: vpnNextId + 1,
+        id: vpnNextId++,
         crtId: cert2.id,
         parentId: fwcloudProduct.ipsecServer.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -683,10 +683,10 @@ describe(IPSecPrefix.name, () => {
         days: 365,
       });
 
-      const vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
+      let vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
 
       const ipsecClient1 = await manager.getRepository(IPSec).save({
-        id: vpnNextId,
+        id: vpnNextId++,
         crtId: cert1.id,
         ipsecId: fwcloudProduct.ipsecServer.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -750,11 +750,11 @@ describe(IPSecPrefix.name, () => {
         days: 365,
       });
 
-      const vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
+      let vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
 
       // Create associated IPSec clients
       const ipsecClient1 = await manager.getRepository(IPSec).save({
-        id: vpnNextId,
+        id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
         crtId: cert1.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -763,7 +763,7 @@ describe(IPSecPrefix.name, () => {
       });
 
       const ipsecClient2 = await manager.getRepository(IPSec).save({
-        id: vpnNextId + 1,
+        id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
         crtId: cert2.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -960,11 +960,11 @@ describe(IPSecPrefix.name, () => {
         days: 365,
       });
 
-      const vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
+      let vpnNextId = Math.floor(Math.random() * (100000 - 10)) + 10;
 
       // Create IPSec clients
       const ipsecClient1 = await manager.getRepository(IPSec).save({
-        id: vpnNextId,
+        id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
         crtId: cert1.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -973,7 +973,7 @@ describe(IPSecPrefix.name, () => {
       });
 
       const ipsecClient2 = await manager.getRepository(IPSec).save({
-        id: vpnNextId + 1,
+        id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
         crtId: cert2.id,
         firewallId: fwcloudProduct.firewall.id,
@@ -982,7 +982,7 @@ describe(IPSecPrefix.name, () => {
       });
 
       const ipsecClient3 = await manager.getRepository(IPSec).save({
-        id: vpnNextId + 2,
+        id: vpnNextId++,
         parentId: fwcloudProduct.ipsecServer.id,
         crtId: cert3.id,
         firewallId: fwcloudProduct.firewall.id,

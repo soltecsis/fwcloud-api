@@ -628,7 +628,7 @@ export class Repair extends Model {
   // Regenerate non standard IP objects for this cloud.
   public static checkNonStdIPObj(node_id, node_type, ipobj_type): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql: string;
+      let sql = '';
       if (ipobj_type === 30)
         // Iptables marks
         sql = `SELECT id,name FROM mark WHERE fwcloud=${fwcloud}`;

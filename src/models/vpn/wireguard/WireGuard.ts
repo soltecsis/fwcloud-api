@@ -903,7 +903,7 @@ export class WireGuard extends Model {
                   };
 
                   const formatPeerSection = async (peer: any, isDisabled: boolean) => {
-                    let section: string;
+                    let section: string = '';
                     if (isClient) {
                       const serverIdSql = `SELECT * from ${tableName} where id = (SELECT wireguard FROM wireguard WHERE id=${wireGuard})`;
                       const serverResult = await new Promise((resolve, reject) => {

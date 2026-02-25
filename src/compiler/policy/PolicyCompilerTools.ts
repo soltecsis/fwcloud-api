@@ -434,7 +434,7 @@ export abstract class PolicyCompilerTools {
     const cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';
-    let tmp: string;
+    let tmp = '';
     const sep = this._compiler === 'IPTables' ? ':' : '-';
 
     for (let i = 0; i < svc.length; i++) {
@@ -774,7 +774,7 @@ export abstract class PolicyCompilerTools {
     } else {
       // Multiple condition rules or one condition rule with the condition (position) negated.
       for (
-        let i = 0, j: number, chainName: string, chainNext: string;
+        let i = 0, j: number, chainName = '', chainNext = '';
         i < this._compiledPositions.length;
         i++
       ) {

@@ -496,7 +496,7 @@ export class DatabaseImporter {
       return null;
     }
 
-    let message: string;
+    let message = '';
 
     if (typeof error === 'string') {
       message = error;

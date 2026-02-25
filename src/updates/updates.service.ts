@@ -71,13 +71,13 @@ export class UpdateService extends Service {
       return res && res.data ? res.data : null;
     } catch (err) {
       logger().error(`Proxying update request: ${err.message}`);
-      throw new Error('Proxying update request', { cause: err });
+      throw new Error('Proxying update request');
     }
   }
 
   public async compareVersions(app: Apps): Promise<Versions | null> {
-    let localJson: any;
-    let remoteJson: any;
+    let localJson: any = {};
+    let remoteJson: any = {};
 
     const localPath = `${this._app.config.get(app).installDir}/package.json`;
     try {
@@ -133,14 +133,14 @@ export class UpdateService extends Service {
       fs.lstatSync(installDir).isDirectory();
     } catch (err) {
       logger().error(`Directory not found: ${installDir}`);
-      throw new Error('fwcloud-updater install directory not found', { cause: err });
+      throw new Error('fwcloud-updater install directory not found');
     }
 
     try {
       fs.readdirSync(installDir);
     } catch (err) {
       logger().error(`Accessing directory: ${installDir}`);
-      throw new Error('fwcloud-updater install directory not accessible', { cause: err });
+      throw new Error('fwcloud-updater install directory not accessible');
     }
 
     try {
@@ -163,7 +163,7 @@ export class UpdateService extends Service {
       await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
-      throw new Error('Error during fwcloud-updater update procedure', { cause: err });
+      throw new Error('Error during fwcloud-updater update procedure');
     }
 
     return;

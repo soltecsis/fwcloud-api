@@ -451,9 +451,7 @@ export class AuditLogService extends Service {
             'There is another audit log history archiver running',
           ),
         );
-        throw new Error('There is another audit log history archiver running', {
-          cause: error,
-        });
+        throw new Error('There is another audit log history archiver running');
       }
 
       throw error;

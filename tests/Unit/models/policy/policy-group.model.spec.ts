@@ -66,14 +66,14 @@ describe(describeName('PolicyRule tests'), () => {
     it('should be called before be removed', async () => {
       const spy = sinon.spy(PolicyGroup.prototype, 'unassignPolicyRulesBeforeRemove');
 
-      const group: PolicyGroup = await PolicyGroup.save(
+      let group: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
           name: 'test',
           firewall: await manager.getRepository(Firewall).save({ name: 'test' }),
         }),
       );
 
-      await group.remove();
+      group = await group.remove();
 
       expect(spy.calledOnce).to.be.true;
     });

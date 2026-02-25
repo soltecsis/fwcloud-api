@@ -94,24 +94,25 @@ export class PolicyScript {
 
   private async dumpFirewallOptions(): Promise<void> {
     const options = await Firewall.getFirewallOptions(this.fwcloud, this.firewall);
+    let action = '';
 
     this.stream.write(
       'options_load() {\n' + '  echo\n' + '  echo "OPTIONS"\n' + '  echo "-------"\n',
     );
 
     // IPv4 packet forwarding
-    const ipv4ForwardingAction = options & FireWallOptMask.IPv4_FORWARDING ? '1' : '0';
+    action = options & FireWallOptMask.IPv4_FORWARDING ? '1' : '0';
     this.stream.write(
       '  if [ -z "$SYSCTL" ]; then\n' +
-        `    echo ${ipv4ForwardingAction} > /proc/sys/net/ipv4/ip_forward\n` +
+        `    echo ${action} > /proc/sys/net/ipv4/ip_forward\n` +
         '  else\n' +
-        `    $SYSCTL -w net.ipv4.conf.all.forwarding=${ipv4ForwardingAction}\n` +
+        `    $SYSCTL -w net.ipv4.conf.all.forwarding=${action}\n` +
         '  fi\n\n',
     );
 
     // IPv6 packet forwarding
-    const ipv6ForwardingAction = options & FireWallOptMask.IPv6_FORWARDING ? '1' : '0';
-    this.stream.write(`  $SYSCTL -w net.ipv6.conf.all.forwarding=${ipv6ForwardingAction}\n`);
+    action = options & FireWallOptMask.IPv6_FORWARDING ? '1' : '0';
+    this.stream.write(`  $SYSCTL -w net.ipv6.conf.all.forwarding=${action}\n`);
 
     if (options & FireWallOptMask.DOCKER_COMPAT) this.stream.write('\n  DOCKER_COMPATIBILITY=1\n');
 

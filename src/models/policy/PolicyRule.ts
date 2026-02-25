@@ -1131,7 +1131,7 @@ export class PolicyRule extends Model {
           if (error) return reject(error);
 
           let free_rule_order;
-          let cond: string;
+          let cond = '';
           if (result.length === 1) {
             free_rule_order = result[0].rule_order + 1;
             cond = '>' + result[0].rule_order;
