@@ -99,7 +99,7 @@ export async function iterate(
   let auditEventService: AuditEventService | null = null;
   let eventId: string | null = null;
   const startedAt = new Date();
-  let finishedAt: Date = startedAt;
+  let finishedAt: Date;
   let status: AuditEventStatus = 'success';
   let errorSummary: string | null = null;
   const recoverableErrors: string[] = [];
