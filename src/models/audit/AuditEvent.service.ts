@@ -256,7 +256,7 @@ export class AuditEventService extends Service {
       return null;
     }
 
-    let raw = '';
+    let raw: string;
 
     if (typeof error === 'string') {
       raw = error;

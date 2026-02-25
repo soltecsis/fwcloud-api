@@ -337,7 +337,7 @@ export class Tree extends Model {
     treeType: TreeType,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let fields = '';
+      let fields: string;
       let nodeTypes: string[];
 
       if (treeType === 'SERVICES') {
@@ -1113,7 +1113,7 @@ export class Tree extends Model {
   public static interfacesTree(connection, fwcloud, nodeId, ownerId, ownerType): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get firewall interfaces.
-      let sql = '';
+      let sql: string;
       let obj_type;
 
       if (ownerType === 'FW') {
