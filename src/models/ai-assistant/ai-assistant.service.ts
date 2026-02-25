@@ -88,7 +88,9 @@ export class AIAssistantService extends Service {
       );
     } catch (error) {
       console.error('Error fetching AI assistant configuration:', error);
-      throw new Error('Failed to fetch AI assistant configuration.', { cause: error });
+      throw Object.assign(new Error('Failed to fetch AI assistant configuration.'), {
+        cause: error,
+      });
     }
   }
 
@@ -137,7 +139,9 @@ export class AIAssistantService extends Service {
       return new CredentialDto(credential.apiKey, model.name, ai.name);
     } catch (error) {
       console.error('Error updating or creating AI assistant credentials:', error);
-      throw new Error('Failed to update or create AI assistant credentials.', { cause: error });
+      throw Object.assign(new Error('Failed to update or create AI assistant credentials.'), {
+        cause: error,
+      });
     }
   }
 
@@ -149,7 +153,9 @@ export class AIAssistantService extends Service {
       return 'All AI credentials successfully deleted.';
     } catch (error) {
       console.error('Error deleting all AI assistant credentials:', error);
-      throw new Error('Failed to delete all AI assistant credentials.', { cause: error });
+      throw Object.assign(new Error('Failed to delete all AI assistant credentials.'), {
+        cause: error,
+      });
     }
   }
 
@@ -178,7 +184,9 @@ export class AIAssistantService extends Service {
         'No response received.'
       );
     } catch (error) {
-      throw new Error(`Error communicating with OpenAI API: ${error}`, { cause: error });
+      throw Object.assign(new Error(`Error communicating with OpenAI API: ${error}`), {
+        cause: error,
+      });
     }
   }
 

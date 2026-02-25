@@ -285,7 +285,7 @@ export class Backup implements Responsable {
           'message',
           new ProgressPayload('error', false, 'There is another Backup running'),
         );
-        throw new Error('There is another Backup runnning', { cause: err });
+        throw Object.assign(new Error('There is another Backup runnning'), { cause: err });
       }
       throw err;
     }

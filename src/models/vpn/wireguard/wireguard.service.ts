@@ -53,9 +53,11 @@ export class WireGuardService extends Service {
       const wireGuardId: number = wireGuard.id;
       configData = ((await WireGuard.dumpCfg(db.getQuery(), wireGuardId)) as any).cfg;
     } catch (e) {
-      throw new Error(
-        'Unable to generate the wireGuard configuration during installer generation: ' +
-          JSON.stringify(e),
+      throw Object.assign(
+        new Error(
+          'Unable to generate the wireGuard configuration during installer generation: ' +
+            JSON.stringify(e),
+        ),
         { cause: e },
       );
     }

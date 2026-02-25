@@ -133,9 +133,10 @@ export class IptablesSaveToFWCloud extends Service {
             await this.eatCommentString(itemsCopy2);
             itemsCopy = itemsCopy.slice(0, i).concat(itemsCopy2);
           } catch (err) {
-            throw new Error(`Error eating rule comment string: ${JSON.stringify(err)}`, {
-              cause: err,
-            });
+            throw Object.assign(
+              new Error(`Error eating rule comment string: ${JSON.stringify(err)}`),
+              { cause: err },
+            );
           }
         }
       }
@@ -161,7 +162,9 @@ export class IptablesSaveToFWCloud extends Service {
       );
       this.ruleId = await PolicyRule.insertPolicy_r(policy_rData);
     } catch (err) {
-      throw new Error(`Error creating policy rule: ${JSON.stringify(err)}`, { cause: err });
+      throw Object.assign(new Error(`Error creating policy rule: ${JSON.stringify(err)}`), {
+        cause: err,
+      });
     }
 
     this.ruleTarget = null;
@@ -475,7 +478,9 @@ export class IptablesSaveToFWCloud extends Service {
           rulePosition,
         );
       } catch (err) {
-        throw new Error(`Error negating rule position: ${JSON.stringify(err)}`, { cause: err });
+        throw Object.assign(new Error(`Error negating rule position: ${JSON.stringify(err)}`), {
+          cause: err,
+        });
       }
     }
   }
@@ -513,7 +518,9 @@ export class IptablesSaveToFWCloud extends Service {
       const policy_rData = { id: this.ruleId, options: ruleData.options | 4 };
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     } catch (err) {
-      throw new Error(`Error enabling rule log: ${JSON.stringify(err)}`, { cause: err });
+      throw Object.assign(new Error(`Error enabling rule log: ${JSON.stringify(err)}`), {
+        cause: err,
+      });
     }
 
     for (;;) {
@@ -637,7 +644,9 @@ export class IptablesSaveToFWCloud extends Service {
 
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     } catch (err) {
-      throw new Error(`Error updating rule comment: ${JSON.stringify(err)}`, { cause: err });
+      throw Object.assign(new Error(`Error updating rule comment: ${JSON.stringify(err)}`), {
+        cause: err,
+      });
     }
   }
 
@@ -735,9 +744,12 @@ export class IptablesSaveToFWCloud extends Service {
         );
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'IFF', interfaceData);
       } catch (err) {
-        throw new Error(`Error creating firewall interface: ${JSON.stringify(err)}`, {
-          cause: err,
-        });
+        throw Object.assign(
+          new Error(`Error creating firewall interface: ${JSON.stringify(err)}`),
+          {
+            cause: err,
+          },
+        );
       }
 
       this.stats.interfaces++;
@@ -771,9 +783,12 @@ export class IptablesSaveToFWCloud extends Service {
           policy_r__interfaceData,
         );
     } catch (err) {
-      throw new Error(`Error inserting interface in policy rule: ${JSON.stringify(err)}`, {
-        cause: err,
-      });
+      throw Object.assign(
+        new Error(`Error inserting interface in policy rule: ${JSON.stringify(err)}`),
+        {
+          cause: err,
+        },
+      );
     }
   }
 
@@ -822,7 +837,9 @@ export class IptablesSaveToFWCloud extends Service {
           ipobjData,
         );
       } catch (err) {
-        throw new Error(`Error creating IP object: ${JSON.stringify(err)}`, { cause: err });
+        throw Object.assign(new Error(`Error creating IP object: ${JSON.stringify(err)}`), {
+          cause: err,
+        });
       }
 
       this.stats.ipObjs++;
@@ -913,9 +930,12 @@ export class IptablesSaveToFWCloud extends Service {
         );
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'OIR', ipobjData);
       } catch (err) {
-        throw new Error(`Error creating address range object: ${JSON.stringify(err)}`, {
-          cause: err,
-        });
+        throw Object.assign(
+          new Error(`Error creating address range object: ${JSON.stringify(err)}`),
+          {
+            cause: err,
+          },
+        );
       }
 
       this.stats.ipObjs++;
@@ -1032,7 +1052,7 @@ export class IptablesSaveToFWCloud extends Service {
           ipobjData,
         );
       } catch (err) {
-        throw new Error(`Error creating service object: ${JSON.stringify(err)}`, {
+        throw Object.assign(new Error(`Error creating service object: ${JSON.stringify(err)}`), {
           cause: err,
         });
       }
@@ -1086,7 +1106,9 @@ export class IptablesSaveToFWCloud extends Service {
         );
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'SOM', ipobjData);
       } catch (err) {
-        throw new Error(`Error creating ICMP object: ${JSON.stringify(err)}`, { cause: err });
+        throw Object.assign(new Error(`Error creating ICMP object: ${JSON.stringify(err)}`), {
+          cause: err,
+        });
       }
 
       this.stats.ipObjs++;
@@ -1114,9 +1136,12 @@ export class IptablesSaveToFWCloud extends Service {
       if (!(await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData)))
         await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
     } catch (err) {
-      throw new Error(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`, {
-        cause: err,
-      });
+      throw Object.assign(
+        new Error(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`),
+        {
+          cause: err,
+        },
+      );
     }
   }
 
@@ -1133,9 +1158,12 @@ export class IptablesSaveToFWCloud extends Service {
     try {
       await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
     } catch (err) {
-      throw new Error(`Error inserting IP objects group in policy rule: ${JSON.stringify(err)}`, {
-        cause: err,
-      });
+      throw Object.assign(
+        new Error(`Error inserting IP objects group in policy rule: ${JSON.stringify(err)}`),
+        {
+          cause: err,
+        },
+      );
     }
   }
 

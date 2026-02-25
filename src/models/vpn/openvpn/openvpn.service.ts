@@ -194,9 +194,11 @@ export class OpenVPNService extends Service {
 
       configData = ((await OpenVPN.dumpCfg(db.getQuery(), fwCloudId, openVPNId)) as any).cfg;
     } catch (e) {
-      throw new Error(
-        'Unable to generate the openvpn configuration during installer generation: ' +
-          JSON.stringify(e),
+      throw Object.assign(
+        new Error(
+          'Unable to generate the openvpn configuration during installer generation: ' +
+            JSON.stringify(e),
+        ),
         { cause: e },
       );
     }
@@ -371,7 +373,9 @@ export class OpenVPNService extends Service {
           'message',
           new ProgressPayload('error', false, 'There is another OpenVPN history archiver running'),
         );
-        throw new Error('There is another OpenVPN history archiver runnning', { cause: err });
+        throw Object.assign(new Error('There is another OpenVPN history archiver runnning'), {
+          cause: err,
+        });
       }
       throw err;
     }
