@@ -32,13 +32,51 @@ import { Firewall } from '../../../../src/models/firewall/Firewall';
 import StringHelper from '../../../../src/utils/string.helper';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import db from '../../../../src/database/database-manager';
+import sinon from 'sinon';
+import { DatabaseImporter } from '../../../../src/fwcloud-exporter/database-importer/database-importer';
+
+type ImportAuditPayload = {
+  source: string;
+  operation: string;
+  entity: string;
+  affectedCount: number;
+  startedAt: string;
+  finishedAt: string;
+  status: 'success' | 'failed';
+  error: string | null;
+  details?: {
+    importId?: string;
+    phase?: string;
+    data?: Record<string, any>;
+  };
+};
 
 describe(describeName('Importer tests'), () => {
   let snapshotService: SnapshotService;
 
   beforeEach(async () => {
     snapshotService = await testSuite.app.getService<SnapshotService>(SnapshotService.name);
+    await db.getSource().manager.getRepository(AuditLog).createQueryBuilder().delete().execute();
   });
+
+  async function getImportAuditPayloads(): Promise<ImportAuditPayload[]> {
+    const auditEvents = await db
+      .getSource()
+      .manager.getRepository(AuditLog)
+      .find({
+        where: { call: 'INTERNAL:importer:import' },
+        order: { id: 'ASC' },
+      });
+
+    return auditEvents.map((item) => JSON.parse(item.data) as ImportAuditPayload);
+  }
+
+  function findPhaseEvent(
+    payloads: ImportAuditPayload[],
+    phase: string,
+  ): ImportAuditPayload | undefined {
+    return payloads.find((payload) => payload.details?.phase === phase);
+  }
 
   describe('import()', () => {
     it('should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
@@ -66,19 +104,52 @@ describe(describeName('Importer tests'), () => {
 
       await snapshot.restore();
 
-      const auditEvent = await db
-        .getSource()
-        .manager.getRepository(AuditLog)
-        .findOne({
-          where: { call: 'INTERNAL:importer:import' },
-          order: { id: 'DESC' },
-        });
+      const payloads = await getImportAuditPayloads();
+      const startEvent = findPhaseEvent(payloads, 'start');
+      const txEvent = findPhaseEvent(payloads, 'transaction');
+      const finalEvent = findPhaseEvent(payloads, 'final_summary');
+      const tableEvents = payloads.filter(
+        (payload) => payload.details?.phase === 'table_processed',
+      );
 
-      expect(auditEvent).to.not.be.null;
-      const payload = JSON.parse(auditEvent.data);
-      expect(payload.source).to.equal('importer');
-      expect(payload.operation).to.equal('import');
-      expect(payload.status).to.equal('success');
+      expect(payloads.length).to.be.greaterThan(3);
+      expect(startEvent).to.not.be.undefined;
+      expect(txEvent).to.not.be.undefined;
+      expect(finalEvent).to.not.be.undefined;
+
+      const importIds = new Set(payloads.map((payload) => payload.details?.importId));
+      expect(importIds.size).to.equal(1);
+      expect(payloads[0].source).to.equal('importer');
+      expect(payloads[0].operation).to.equal('import');
+      expect(startEvent.details.data.tableCount).to.equal(tableEvents.length);
+
+      tableEvents.forEach((tableEvent) => {
+        expect(tableEvent.entity).to.equal(tableEvent.details.data.tableName);
+        expect(tableEvent.details.data.durationMs).to.be.a('number');
+        expect(tableEvent.details.data.durationMs).to.be.at.least(0);
+      });
+
+      const totalInserted = tableEvents.reduce((acc, event) => {
+        return acc + Number(event.details.data.counts.inserted ?? 0);
+      }, 0);
+      const totalUpdated = tableEvents.reduce((acc, event) => {
+        return acc + Number(event.details.data.counts.updated ?? 0);
+      }, 0);
+      const totalFailed = tableEvents.reduce((acc, event) => {
+        return acc + Number(event.details.data.counts.failed ?? 0);
+      }, 0);
+
+      expect(txEvent.status).to.equal('success');
+      expect(txEvent.details.data.committed).to.equal(true);
+      expect(txEvent.details.data.rolledBack).to.equal(false);
+      expect(txEvent.details.data.error).to.equal(null);
+
+      expect(finalEvent.status).to.equal('success');
+      expect(finalEvent.details.data.status).to.equal('success');
+      expect(finalEvent.details.data.totals.inserted).to.equal(totalInserted);
+      expect(finalEvent.details.data.totals.updated).to.equal(totalUpdated);
+      expect(finalEvent.details.data.totals.failed).to.equal(totalFailed);
+      expect(finalEvent.affectedCount).to.equal(totalInserted + totalUpdated);
 
       const newFwCloud: FwCloud = await FwCloud.findOne({
         where: { name: fwCloud.name },
@@ -90,6 +161,55 @@ describe(describeName('Importer tests'), () => {
           path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()),
         ),
       ).to.be.true;
+    });
+
+    it('should emit failed transaction/final audit events on rollback', async () => {
+      const fwCloud: FwCloud = await FwCloud.save(
+        FwCloud.create({
+          name: StringHelper.randomize(10),
+        }),
+      );
+      const currentFwCloudCount = (await FwCloud.find()).length;
+      const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
+      const importerFailure = new Error('forced importer failure');
+      const terraformerStub = sinon.stub(
+        DatabaseImporter.prototype as any,
+        'handleTableResultTerraform',
+      );
+      terraformerStub.rejects(importerFailure);
+
+      try {
+        await expect(snapshot.restore()).to.be.rejectedWith(importerFailure.message);
+        expect((await FwCloud.find()).length).to.equal(currentFwCloudCount);
+      } finally {
+        terraformerStub.restore();
+      }
+
+      const payloads = await getImportAuditPayloads();
+      const txEvent = findPhaseEvent(payloads, 'transaction');
+      const finalEvent = findPhaseEvent(payloads, 'final_summary');
+      const failedTableEvent = payloads.find((payload) => {
+        return payload.details?.phase === 'table_processed' && payload.status === 'failed';
+      });
+
+      expect(payloads.length).to.be.greaterThan(2);
+      expect(txEvent).to.not.be.undefined;
+      expect(finalEvent).to.not.be.undefined;
+      expect(failedTableEvent).to.not.be.undefined;
+
+      const importIds = new Set(payloads.map((payload) => payload.details?.importId));
+      expect(importIds.size).to.equal(1);
+
+      expect(txEvent.status).to.equal('failed');
+      expect(txEvent.details.data.committed).to.equal(false);
+      expect(txEvent.details.data.rolledBack).to.equal(true);
+      expect(txEvent.details.data.error).to.be.a('string');
+
+      expect(finalEvent.status).to.equal('failed');
+      expect(finalEvent.details.data.status).to.equal('failed');
+      expect(finalEvent.error).to.be.a('string');
+      expect(finalEvent.details.data.error).to.be.a('string');
+      expect(finalEvent.details.data.totals.failed).to.be.greaterThan(0);
     });
 
     it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
