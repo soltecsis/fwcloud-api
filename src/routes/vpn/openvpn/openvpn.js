@@ -215,7 +215,7 @@ const buildClient2FASecretFile = (secret) => {
 
 const OPENVPN_PAM_2FA_CONTENT = [
 	'auth required pam_listfile.so item=user sense=allow file=/etc/openvpn/2fa_users.txt onerr=fail',
-	'auth required pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER}',
+	'auth required pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER} user=root',
 	'account required pam_permit.so'
 ].join('\n');
 
