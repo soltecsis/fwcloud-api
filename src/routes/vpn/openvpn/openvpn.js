@@ -1184,7 +1184,7 @@ router.put('/2fa/client', async (req, res, next) => {
 			.andWhere('openvpn.tfa_enabled = 1')
 			.getMany();
 
-		const usersListContent = enabledClients.map(client => client.crt.cn).join('\n');
+		const usersListContent = enabledClients.map(client => client.crt.cn).join('\n') + '\n';
 
 		await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
 			name: '2fa_users.txt',
