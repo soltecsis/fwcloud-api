@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableForeignKey } from 'typeorm';
 
 const OPENVPN_CLI_TYPE = 311;
 const OPENVPN_ONLY_CLI_TYPE = 313;
@@ -44,7 +44,9 @@ const onlyClientTreeNodeTypes = [
 
 export class AlterIpsecTable1770364672900 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await this.dropIpsecCrtForeignKey(queryRunner);
     await queryRunner.query(`ALTER TABLE ipsec MODIFY COLUMN crt INT NULL`);
+    await this.createIpsecCrtForeignKey(queryRunner);
     await queryRunner.query(`ALTER TABLE ipsec ADD COLUMN type TINYINT NULL AFTER status`);
     await queryRunner.query(`ALTER TABLE ipsec ADD COLUMN name VARCHAR(255) NULL AFTER type`);
     await queryRunner.query(
@@ -89,7 +91,9 @@ export class AlterIpsecTable1770364672900 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE ipsec DROP COLUMN name`);
     await queryRunner.query(`ALTER TABLE ipsec DROP COLUMN type`);
+    await this.dropIpsecCrtForeignKey(queryRunner);
     await queryRunner.query(`ALTER TABLE ipsec MODIFY COLUMN crt INT NOT NULL`);
+    await this.createIpsecCrtForeignKey(queryRunner);
 
     for (const onlyClientType of onlyClientTypes) {
       await queryRunner.query(`DELETE FROM ipobj_type__policy_position WHERE type=?`, [
@@ -111,6 +115,31 @@ export class AlterIpsecTable1770364672900 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE fwc_tree_node_types MODIFY COLUMN node_type CHAR(3) NOT NULL`,
+    );
+  }
+
+  private async dropIpsecCrtForeignKey(queryRunner: QueryRunner): Promise<void> {
+    const table = await queryRunner.getTable('ipsec');
+    if (!table) {
+      return;
+    }
+
+    const crtForeignKey = table.foreignKeys.find(
+      (foreignKey) => foreignKey.columnNames.indexOf('crt') !== -1,
+    );
+    if (crtForeignKey) {
+      await queryRunner.dropForeignKey('ipsec', crtForeignKey);
+    }
+  }
+
+  private async createIpsecCrtForeignKey(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.createForeignKey(
+      'ipsec',
+      new TableForeignKey({
+        columnNames: ['crt'],
+        referencedTableName: 'crt',
+        referencedColumnNames: ['id'],
+      }),
     );
   }
 }
