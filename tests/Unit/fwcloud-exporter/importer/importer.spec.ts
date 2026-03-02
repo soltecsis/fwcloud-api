@@ -53,10 +53,21 @@ type ImportAuditPayload = {
 
 describe(describeName('Importer tests'), () => {
   let snapshotService: SnapshotService;
+  const setInternalAuditConfig = (enabled: boolean): void => {
+    testSuite.app.config.set('auditLogs.internal.enabled', enabled);
+    testSuite.app.config.set('auditLogs.internal.cron.enabled', enabled);
+    testSuite.app.config.set('auditLogs.internal.worker.enabled', enabled);
+    testSuite.app.config.set('auditLogs.internal.importer.enabled', enabled);
+  };
 
   beforeEach(async () => {
+    setInternalAuditConfig(true);
     snapshotService = await testSuite.app.getService<SnapshotService>(SnapshotService.name);
     await db.getSource().manager.getRepository(AuditLog).createQueryBuilder().delete().execute();
+  });
+
+  afterEach(() => {
+    setInternalAuditConfig(false);
   });
 
   async function getImportAuditPayloads(): Promise<ImportAuditPayload[]> {

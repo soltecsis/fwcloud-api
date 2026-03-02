@@ -27,10 +27,21 @@ import db from '../../../../src/database/database-manager';
 
 describe(describeName('AuditEventService unit suite'), () => {
   let service: AuditEventService;
+  const restoreInternalAuditConfig = (): void => {
+    testSuite.app.config.set('auditLogs.internal.enabled', true);
+    testSuite.app.config.set('auditLogs.internal.cron.enabled', true);
+    testSuite.app.config.set('auditLogs.internal.worker.enabled', true);
+    testSuite.app.config.set('auditLogs.internal.importer.enabled', true);
+  };
 
   beforeEach(async () => {
+    restoreInternalAuditConfig();
     service = await testSuite.app.getService<AuditEventService>(AuditEventService.name);
     await db.getSource().manager.getRepository(AuditLog).createQueryBuilder().delete().execute();
+  });
+
+  afterEach(() => {
+    restoreInternalAuditConfig();
   });
 
   it('emits a success event with the required structured payload fields', async () => {
@@ -111,5 +122,65 @@ describe(describeName('AuditEventService unit suite'), () => {
     expect(payload.error).to.be.a('string');
     expect(payload.error.length).to.be.at.most(1024);
     expect(payload.error).to.not.contain('Error:');
+  });
+
+  it('does not persist internal events when global internal auditing is disabled', async () => {
+    testSuite.app.config.set('auditLogs.internal.enabled', false);
+
+    const eventId = service.startEvent({
+      source: 'cron',
+      operation: 'cleanup',
+      entity: 'audit_logs',
+    });
+
+    const created = await service.finishEvent(eventId, {
+      affectedCount: 5,
+      status: 'success',
+    });
+
+    const persistedCount = await db.getSource().manager.getRepository(AuditLog).count();
+
+    expect(created).to.equal(null);
+    expect(persistedCount).to.equal(0);
+  });
+
+  it('supports per-source internal audit toggles', async () => {
+    testSuite.app.config.set('auditLogs.internal.worker.enabled', false);
+
+    const workerEventId = service.startEvent({
+      source: 'worker',
+      operation: 'sync',
+      entity: 'openvpn_status_history',
+    });
+
+    const workerCreated = await service.finishEvent(workerEventId, {
+      affectedCount: 7,
+      status: 'success',
+    });
+
+    const cronEventId = service.startEvent({
+      source: 'cron',
+      operation: 'cleanup',
+      entity: 'audit_logs',
+    });
+
+    const cronCreated = await service.finishEvent(cronEventId, {
+      affectedCount: 2,
+      status: 'success',
+    });
+
+    const persistedEntries = await db
+      .getSource()
+      .manager.getRepository(AuditLog)
+      .find({
+        order: {
+          id: 'ASC',
+        },
+      });
+
+    expect(workerCreated).to.equal(null);
+    expect(cronCreated).to.not.equal(null);
+    expect(persistedEntries).to.have.length(1);
+    expect(persistedEntries[0].call).to.equal('INTERNAL:cron:cleanup');
   });
 });

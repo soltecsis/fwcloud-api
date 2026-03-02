@@ -448,6 +448,38 @@ const config = convict({
   },
 
   auditLogs: {
+    internal: {
+      enabled: {
+        doc: 'Enable persistence of internal audit events (workers, cron jobs and importers).',
+        format: Boolean,
+        default: false,
+        env: 'AUDIT_LOG_INTERNAL_ENABLED'
+      },
+      cron: {
+        enabled: {
+          doc: 'Enable persistence of internal cron audit events.',
+          format: Boolean,
+          default: false,
+          env: 'AUDIT_LOG_INTERNAL_CRON_ENABLED'
+        }
+      },
+      worker: {
+        enabled: {
+          doc: 'Enable persistence of internal worker audit events.',
+          format: Boolean,
+          default: false,
+          env: 'AUDIT_LOG_INTERNAL_WORKER_ENABLED'
+        }
+      },
+      importer: {
+        enabled: {
+          doc: 'Enable persistence of internal importer audit events.',
+          format: Boolean,
+          default: false,
+          env: 'AUDIT_LOG_INTERNAL_IMPORTER_ENABLED'
+        }
+      }
+    },
     archive: {
       data_dir: {
         doc: 'Directory for storing audit log archive files.',

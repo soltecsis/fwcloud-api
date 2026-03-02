@@ -103,6 +103,24 @@ export class FwCloudController extends Controller {
       availablecommunications = ['agent', 'ssh'];
     }
 
-    return ResponseBuilder.buildResponse().status(200).body({ availablecommunications });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        availablecommunications,
+        auditLogs: {
+          internal: {
+            enabled: this._app.config.get('auditLogs.internal.enabled'),
+            cron: {
+              enabled: this._app.config.get('auditLogs.internal.cron.enabled'),
+            },
+            worker: {
+              enabled: this._app.config.get('auditLogs.internal.worker.enabled'),
+            },
+            importer: {
+              enabled: this._app.config.get('auditLogs.internal.importer.enabled'),
+            },
+          },
+        },
+      });
   }
 }

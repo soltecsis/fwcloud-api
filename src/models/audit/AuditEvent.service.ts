@@ -69,7 +69,19 @@ type RunningAuditEvent = StartAuditEventInput & {
   startedAt: Date;
 };
 
+type InternalAuditSourceConfig = {
+  enabled?: boolean;
+};
+
+type InternalAuditConfig = {
+  enabled?: boolean;
+  cron?: InternalAuditSourceConfig;
+  worker?: InternalAuditSourceConfig;
+  importer?: InternalAuditSourceConfig;
+};
+
 const MAX_ERROR_LENGTH = 1024;
+const INTERNAL_AUDIT_DISABLED_EVENT_PREFIX = '__disabled_internal_audit__';
 // Internal events do not carry a request user; store them under a system identity.
 const DEFAULT_SYSTEM_USER_NAME = 'system';
 
@@ -83,6 +95,10 @@ export class AuditEventService extends Service {
   }
 
   public startEvent(input: StartAuditEventInput): string {
+    if (!this.isInternalAuditEnabledForSource(input.source)) {
+      return this.buildDisabledEventId();
+    }
+
     const eventId = randomUUID();
 
     this._runningEvents.set(eventId, {
@@ -100,6 +116,10 @@ export class AuditEventService extends Service {
     eventId: string,
     input: FinishAuditEventInput,
   ): Promise<AuditLog | null> {
+    if (this.isDisabledEventId(eventId)) {
+      return null;
+    }
+
     const runningEvent = this._runningEvents.get(eventId);
 
     if (!runningEvent) {
@@ -132,6 +152,11 @@ export class AuditEventService extends Service {
 
   public async emitEvent(input: EmitAuditEventInput): Promise<AuditLog | null> {
     const source = input.source;
+
+    if (!this.isInternalAuditEnabledForSource(source)) {
+      return null;
+    }
+
     const operation = input.operation;
     const entity = this.normalizeEntity(input.entity);
     const startedAt = this.normalizeDate(input.startedAt, new Date());
@@ -297,5 +322,31 @@ export class AuditEventService extends Service {
     status: AuditEventStatus;
   }): string {
     return `${payload.source} ${payload.operation} on ${payload.entity} | status=${payload.status} | affected=${payload.affectedCount}`;
+  }
+
+  protected isInternalAuditEnabledForSource(source: AuditEventSource): boolean {
+    const config = this.readInternalAuditConfig();
+
+    if (config.enabled === false) {
+      return false;
+    }
+
+    if (config[source]?.enabled === false) {
+      return false;
+    }
+
+    return true;
+  }
+
+  protected readInternalAuditConfig(): InternalAuditConfig {
+    return (this._app.config.get('auditLogs.internal') ?? {}) as InternalAuditConfig;
+  }
+
+  protected buildDisabledEventId(): string {
+    return `${INTERNAL_AUDIT_DISABLED_EVENT_PREFIX}${randomUUID()}`;
+  }
+
+  protected isDisabledEventId(eventId: string): boolean {
+    return eventId.startsWith(INTERNAL_AUDIT_DISABLED_EVENT_PREFIX);
   }
 }
