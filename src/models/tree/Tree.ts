@@ -1313,11 +1313,11 @@ export class Tree extends Model {
     node: unknown,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.id, COALESCE(VPN.name, CONCAT('IPSec-', VPN.id)) as cn
+      const sql = `SELECT VPN.id, COALESCE(NULLIF(VPN.name, ''), CONCAT('IPSec-', VPN.id)) as cn
       FROM ipsec VPN
       WHERE VPN.firewall=?
         AND VPN.ipsec is null
-        AND (VPN.type=333 OR VPN.crt is null)`;
+        AND VPN.crt is null`;
       connection.query(sql, [firewall], async (error, vpns) => {
         if (error) return reject(error);
         if (vpns.length === 0) return resolve();
@@ -1489,8 +1489,8 @@ export class Tree extends Model {
           firewall,
           0,
         );
-        await this.ipsecClientWithoutServerTree(connection, fwcloud, firewall, ipSecNode);
         await this.ipsecServerTree(connection, fwcloud, firewall, ipSecNode);
+        await this.ipsecClientWithoutServerTree(connection, fwcloud, firewall, ipSecNode);
 
         resolve();
       } catch (error) {

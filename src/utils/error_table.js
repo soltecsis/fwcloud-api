@@ -36,6 +36,7 @@ var errorTable = {
   "SESSION_BAD": { "fwcErr": 1010, "msg": "Invalid session" },
   "NOT_ALLOWED_CORS": { "fwcErr": 1011, "msg": "Not allowed by CORS" },
   "PGP_KEYS_GEN": { "fwcErr": 1012, "msg": "PGP keys not generated" },
+  "NO_IPOBJ_ASSOCIATED": { "fwcErr": 1013, "msg": "This VPN client has no associated IP object and cannot be used in this position" },
 
   // Input validation error codes.
   "NOT_ACCEPTED_METHOD": { "fwcErr": 2001, "msg": "HTTP method not accepted by FWCloud.net API" },
