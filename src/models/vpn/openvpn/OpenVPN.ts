@@ -452,7 +452,7 @@ export class OpenVPN extends Model {
     return new Promise((resolve, reject) => {
       // First obtain the CN of the certificate.
       let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name, VPN.tfa_enabled,
-                VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
+                VPNSRV.tfa_enabled as server_tfa_enabled, VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
                 INNER JOIN openvpn VPN ON VPN.crt=CRT.id
                 LEFT JOIN openvpn VPNSRV ON VPNSRV.id=VPN.openvpn
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
@@ -529,9 +529,18 @@ export class OpenVPN extends Model {
               else ovpn_cfg += cfg_line + '\n';
             }
 
-            // For OpenVPN clients with 2FA enabled we must enforce username/password prompt.
-            if (vpnMeta.type === 1 && Number(vpnMeta.tfa_enabled) === 1 && !hasAuthUserPass) {
-              ovpn_cfg += 'auth-user-pass\n';
+            // If the OpenVPN server has 2FA enabled and the auth-user-pass option is not included in the configuration options,
+            // we will add it with the username (CN) and a dummy password (if TFA is not enabled) to force the user to enter the credentials and, if necessary, the TFA token.
+            // If we don't do this, the user will not be able to connect to the VPN server because it will not ask for the credentials and TFA token.
+            if (
+              vpnMeta.type === 1 &&
+              Number(vpnMeta.server_tfa_enabled) === 1 &&
+              !hasAuthUserPass
+            ) {
+              const username = vpnMeta.cn;
+              const passwordLine = Number(vpnMeta.tfa_enabled) === 1 ? '' : 'dummy_password\n';
+              ovpn_cfg +=
+                '<auth-user-pass>\n' + username + '\n' + passwordLine + '</auth-user-pass>\n';
             }
 
             // Now read the files data and put it into de config files.

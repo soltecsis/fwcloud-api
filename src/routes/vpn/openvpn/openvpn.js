@@ -127,7 +127,6 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 				name: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
 				arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
 				scope: 1,
-				comment: 'Required by OpenVPN 2FA',
 				order: maxOrder + 1,
 				ipobj: null
 			}]
@@ -136,7 +135,6 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			name: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
 			arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
 			scope: 1,
-			comment: 'Required by OpenVPN 2FA',
 			order: maxOrder + 1
 		});
 	}
@@ -151,7 +149,6 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 				name: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name,
 				arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
 				scope: 1,
-				comment: 'Required by OpenVPN 2FA',
 				order: maxOrder + 1,
 				ipobj: null
 			}]
@@ -160,7 +157,6 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			name: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name,
 			arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
 			scope: 1,
-			comment: 'Required by OpenVPN 2FA',
 			order: maxOrder + 1
 		});
 	}
@@ -175,7 +171,6 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 				name: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
 				arg: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
 				scope: 1,
-				comment: 'Required by OpenVPN 2FA',
 				order: maxOrder + 1,
 				ipobj: null
 			}]
@@ -184,15 +179,16 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 };
 
 const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+	console.log(`Removing 2FA options for OpenVPN configuration ${openvpnId}`);
 	await queryDb(
 		dbCon,
 		`DELETE FROM openvpn_opt
 		 WHERE openvpn=?
-		   AND (
-		     (name=? AND comment='Required by OpenVPN 2FA')
-		     OR (name=? AND arg=?)
-		     OR (name=? AND comment='Required by OpenVPN 2FA')
-		   )`,
+			 AND (
+			 name=?
+			 OR (name=? AND arg=?)
+			 OR name=?
+			 )`,
 		[
 			openvpnId,
 			OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
@@ -214,7 +210,7 @@ const buildClient2FASecretFile = (secret) => {
 };
 
 const OPENVPN_PAM_2FA_CONTENT = [
-	'auth required pam_listfile.so item=user sense=allow file=/etc/openvpn/2fa_users.txt onerr=fail',
+	'auth [success=done auth_err=ignore default=bad] pam_listfile.so item=user sense=deny file=/etc/openvpn/2fa_users.txt onerr=fail',
 	'auth required pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER} user=root',
 	'account required pam_permit.so'
 ].join('\n');
@@ -349,24 +345,6 @@ router.put('/get', async (req, res) => {
  */
 router.put('/file/get', async (req, res) => {
 	try {
-		if (req.openvpn.type === 1 && Number(req.openvpn.tfa_enabled) === 1) {
-			const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
-			const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
-				where: { id: req.openvpn.firewall }
-			});
-			const communication = await firewall.getCommunication();
-
-			if (!communication) {
-				throw fwcError.VPN_2FA_AGENT_REQUIRED;
-			}
-
-			const enrolledClients = await communication.ccdHashList('/etc/openvpn/google-authenticator');
-			const isEnrolled = enrolledClients.some(client => client.filename === crt.cn);
-			if (!isEnrolled) {
-				throw fwcError.other('OpenVPN client 2FA is enabled but TOTP is not enrolled');
-			}
-		}
-
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 		res.status(200).json(cfgDump);
 	} catch (error) {
