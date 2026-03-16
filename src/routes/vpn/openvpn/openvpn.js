@@ -1043,7 +1043,7 @@ router.put('/2fa/server', async (req, res, next) => {
 
 		await new Promise((resolve, reject) => {
 			req.dbCon.query(
-				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)}, installed_at=NOW(), updated_at=NOW() WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
 				(error, result) => {
 					if (error) return reject(error);
 					resolve(result);
@@ -1115,8 +1115,26 @@ router.put('/2fa/client', async (req, res, next) => {
 				throw fwcError.VPN_2FA_SERVER_DISABLED;
 			}
 
+			const serverRows = await new Promise((resolve, reject) => {
+				req.dbCon.query(
+					`SELECT crt.cn FROM openvpn
+					INNER JOIN crt ON openvpn.crt = crt.id
+					WHERE openvpn.id=${req.dbCon.escape(req.openvpn.openvpn)}
+					AND openvpn.firewall=${req.dbCon.escape(firewall.id)}
+					LIMIT 1`,
+					(error, rows) => {
+						if (error) return reject(error);
+						resolve(rows);
+					}
+				);
+			});
+			const serverName = serverRows?.[0]?.cn;
+			if (!serverName) {
+				throw fwcError.other('OpenVPN parent server not found');
+			}
+
 			const secret = speakeasy.generateSecret({
-				name: `FWCloud OpenVPN (${crt.cn})`,
+				name: `FWCloud OpenVPN (${serverName}/${crt.cn})`,
 				length: 32
 			});
 			const secretFileContent = buildClient2FASecretFile(secret);
@@ -1146,7 +1164,7 @@ router.put('/2fa/client', async (req, res, next) => {
 
 		await new Promise((resolve, reject) => {
 			req.dbCon.query(
-				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)} WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)}, installed_at=NOW(), updated_at=NOW() WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
 				(error, result) => {
 					if (error) return reject(error);
 					resolve(result);
