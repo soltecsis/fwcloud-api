@@ -1051,6 +1051,8 @@ router.put('/2fa/server', async (req, res, next) => {
 			);
 		});
 
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
+
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error getting openvpn 2fa server data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
@@ -1171,6 +1173,8 @@ router.put('/2fa/client', async (req, res, next) => {
 				}
 			);
 		});
+
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
 
 		const channel = await Channel.fromRequest(req);
 		const enabledClients = await db.getSource().manager.getRepository(OpenVPN)
