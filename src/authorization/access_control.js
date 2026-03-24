@@ -119,7 +119,7 @@ accessCtrl.check = async (req, res, next) => {
 				throw fwcError.ACC_WIREGUARD;
 		}
 
-		// Check access to the wireguard indicated in req.body.wireguard.
+		// Check access to the ipsec indicated in req.body.ipsec.
 		if (req.body.ipsec) {
 			if (!(await checkIpsecAccess(req)))
 				throw fwcError.ACC_IPSEC;
@@ -286,9 +286,9 @@ function checkWireguardAccess(req) {
 // Check access to IPSec configuration.
 function checkIpsecAccess(req) {
 	return new Promise((resolve, reject) => {
-		let sql = `select F.fwcloud,I.*,CRT.* FROM ipsec I
+		let sql = `select F.fwcloud, I.*, CRT.ca, CRT.cn, IFNULL(CRT.type, I.type) as type FROM ipsec I
 			INNER JOIN firewall F ON I.firewall=F.id
-			INNER JOIN crt CRT ON CRT.id=I.crt
+			LEFT JOIN crt CRT ON CRT.id=I.crt
 			WHERE I.id=${req.body.ipsec}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
@@ -296,7 +296,10 @@ function checkIpsecAccess(req) {
 			// Check that fwcloud of the CA of the VPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
 			if (result.length !== 1 || req.body.fwcloud !== result[0].fwcloud) return resolve(false);
-
+			const ipsecType = Number(result[0].type);
+			if (!Number.isNaN(ipsecType)) result[0].type = ipsecType;
+			if (result[0].crt === null)
+				result[0].type = 1; // If there is no CRT, it can only be of type client.
 			// Store the crt info for use in the API call processing.
 			req.ipsec = result[0];
 

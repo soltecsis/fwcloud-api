@@ -49,8 +49,11 @@ export class IPSecRepository extends Repository<IPSec> {
   ): SelectQueryBuilder<IPSec> {
     let query = this.createQueryBuilder('ips')
       .select('ips.id', 'id')
-      .addSelect('crt.cn', 'name')
-      .addSelect('(select id from ipobj_type where id=331)', 'type')
+      .addSelect("COALESCE(crt.cn, NULLIF(ips.name, ''), CONCAT('IPSec-', ips.id))", 'name')
+      .addSelect(
+        'IF(ips.crt IS NULL, (select id from ipobj_type where id=333), (select id from ipobj_type where id=331))',
+        'type',
+      )
       .addSelect('ipsFirewall.id', 'firewall_id')
       .addSelect('ipsFirewall.name', 'firewall_name')
       .addSelect('ipsCluster.id', 'cluster_id')
@@ -77,7 +80,7 @@ export class IPSecRepository extends Repository<IPSec> {
       .innerJoin('firewall.fwCloud', 'fwcloud')
       .innerJoin('ips.firewall', 'ipsFirewall')
       .leftJoin('ipsFirewall.cluster', 'ipsCluster')
-      .innerJoin('ips.crt', 'crt')
+      .leftJoin('ips.crt', 'crt')
       .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
       .andWhere('firewall.id = :firewall', { firewall: firewall });
 
