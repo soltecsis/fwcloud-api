@@ -1304,6 +1304,35 @@ export class Tree extends Model {
       });
     });
   }
+
+  //Generate the IPSec client nodes without server.
+  public static ipsecClientWithoutServerTree(
+    connection: Query,
+    fwcloud: number,
+    firewall: number,
+    node: unknown,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT VPN.id, COALESCE(NULLIF(VPN.name, ''), CONCAT('IPSec-', VPN.id)) as cn
+      FROM ipsec VPN
+      WHERE VPN.firewall=?
+        AND VPN.ipsec is null
+        AND VPN.crt is null`;
+      connection.query(sql, [firewall], async (error, vpns) => {
+        if (error) return reject(error);
+        if (vpns.length === 0) return resolve();
+
+        try {
+          for (const vpn of vpns) {
+            await this.newNode(connection, fwcloud, vpn.cn, node, 'ISCNS', vpn.id, 333);
+          }
+        } catch (error) {
+          return reject(error);
+        }
+        resolve();
+      });
+    });
+  }
   //Generate the IPSec server nodes.
   public static ipsecServerTree(
     connection: Query,
@@ -1461,6 +1490,7 @@ export class Tree extends Model {
           0,
         );
         await this.ipsecServerTree(connection, fwcloud, firewall, ipSecNode);
+        await this.ipsecClientWithoutServerTree(connection, fwcloud, firewall, ipSecNode);
 
         resolve();
       } catch (error) {

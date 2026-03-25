@@ -157,18 +157,26 @@ export class IPSec extends Model {
   public static addCfg(req: Request): Promise<number> {
     return new Promise(async (resolve, reject) => {
       try {
+        const hasParentIPSec = req.body.ipsec !== undefined && req.body.ipsec !== null;
+        const hasCertificate = req.body.crt !== undefined && req.body.crt !== null;
+        // type in ipsec table is restricted to certificate profile semantics:
+        // 1 = client, 2 = server.
+        const cfgType = hasParentIPSec || !hasCertificate ? 1 : 2;
+
         const cfg = {
           firewall: req.body.firewall,
-          crt: req.body.crt,
+          crt: hasCertificate ? req.body.crt : null,
           install_dir: req.body.install_dir,
           install_name: req.body.install_name,
           comment: req.body.comment || null,
-          status: req.body.ipsec !== undefined ? 0 : 1, // Remove "install" flag for clients
-          ipsec: req.body.ipsec || null,
+          status: hasParentIPSec ? 0 : 1, // Remove "install" flag for clients
+          type: cfgType,
+          name: req.body.name || null,
+          ipsec: hasParentIPSec ? req.body.ipsec : null,
         };
 
         req.dbCon.query(
-          `insert into ${tableName} (firewall, crt, install_dir, install_name, comment, status, ipsec) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `insert into ${tableName} (firewall, crt, install_dir, install_name, comment, status, type, name, ipsec) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             cfg.firewall,
             cfg.crt,
@@ -176,6 +184,8 @@ export class IPSec extends Model {
             cfg.install_name,
             cfg.comment,
             cfg.status,
+            cfg.type,
+            cfg.name,
             cfg.ipsec,
           ],
           (error, result) => {
@@ -258,12 +268,12 @@ export class IPSec extends Model {
 
   public static isIPSecServer(dbCon: Query, ipSec: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT ipsec FROM ${tableName} WHERE id=${ipSec}`;
+      const sql = `SELECT ipsec, crt FROM ${tableName} WHERE id=${ipSec}`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         if (result.length === 0) return resolve(false);
-        // If ipsec is null, it is a server.
-        resolve(result[0].ipsec === null);
+        // A server has no parent IPSec and has certificate.
+        resolve(result[0].ipsec === null && result[0].crt !== null);
       });
     });
   }
@@ -364,22 +374,28 @@ export class IPSec extends Model {
     return new Promise((resolve, reject) => {
       // Remove all the ipobj referenced by this IPSec configuration.
       // In the restrictions check we have already checked that it is possible to remove them.
-      // IMPORTANT: Order by CRT type for remove clients before servers. If we don't do it this way,
-      // and the IPSec server is removed first, we will get a database foreign key constraint fails error.
-      const sql = `select VPN.id,CRT.type,VPN.ipsec from ${tableName} VPN
-                inner join crt CRT on CRT.id=VPN.crt
-                where VPN.firewall=${firewall} order by CRT.type asc`;
+      const sql = `select VPN.id,VPN.ipsec,VPN.crt from ${tableName} VPN
+                where VPN.firewall=${firewall}`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         try {
-          // First delete client configurations, if exist
-          const clientConfigs = result.filter((r) => r.type === 1 && r.ipsec !== null);
-          for (const ipSec of clientConfigs) {
+          // First delete clients with server to avoid fk issues with ipsec_cli references.
+          const clientWithServerConfigs = result.filter((r) => r.ipsec !== null);
+          for (const ipSec of clientWithServerConfigs) {
             await this.delCfg(dbCon, fwcloud, ipSec.id, true);
           }
-          // Afterwards, delete server configurations
-          const serverConfigs = result.filter((r) => r.type !== 1);
+
+          // Then delete servers.
+          const serverConfigs = result.filter((r) => r.ipsec === null && r.crt !== null);
           for (const ipSec of serverConfigs) {
+            await this.delCfg(dbCon, fwcloud, ipSec.id);
+          }
+
+          // Finally delete clients without server.
+          const clientWithoutServerConfigs = result.filter(
+            (r) => r.ipsec === null && r.crt === null,
+          );
+          for (const ipSec of clientWithoutServerConfigs) {
             await this.delCfg(dbCon, fwcloud, ipSec.id);
           }
         } catch (error) {
@@ -403,33 +419,24 @@ export class IPSec extends Model {
 
   public static getCfg(dbCon: Query, ipSec: number): Promise<any> {
     return new Promise((resolve, reject) => {
-      let sql = `select * from ${tableName} where id=${ipSec}`;
-      dbCon.query(sql, (error, ipsec_result) => {
+      const sql = `SELECT * FROM ${tableName} WHERE id = ?`;
+      dbCon.query(sql, [ipSec], (error, ipsec_result) => {
         if (error) return reject(error);
-        if (ipsec_result.length === 0) resolve([]);
-        const data = ipsec_result[0];
-        const type = data.ipsec === null ? 332 : 331; // 332 = Server, 331 = Client
-        //IS CLIENT
-        if (data.ipsec !== null) {
-          sql = `select * from ${tableName} where id=${data.ipsec}`;
-          dbCon.query(sql, async (error, result) => {
-            if (error) return reject(error);
-          });
-        }
+        if (ipsec_result.length === 0) return resolve([]);
 
-        sql = `select * from ipsec_opt where ipsec=${ipSec}`;
-        dbCon.query(sql, async (error, result) => {
+        const data = ipsec_result[0];
+        const hasServer = data.ipsec !== null;
+        const hasCertificate = data.crt !== null;
+        // 332 = Server, 331 = Client, 333 = Client without server.
+        const type = hasServer ? 331 : hasCertificate ? 332 : 333;
+
+        const optionsSql = 'SELECT * FROM ipsec_opt WHERE ipsec = ?';
+        dbCon.query(optionsSql, [ipSec], (error, result) => {
           if (error) return reject(error);
 
           data.options = result;
-          try {
-            const ipsec_data = data;
-
-            ipsec_data.type = type;
-            resolve(ipsec_data);
-          } catch (error) {
-            return reject(error);
-          }
+          data.type = type;
+          resolve(data);
         });
       });
     });
@@ -636,31 +643,48 @@ export class IPSec extends Model {
   // Get IPSec client configuration data.
   public static getIPSecInfo(dbCon: Query, fwcloud: number, ipSec: number, type: number) {
     return new Promise((resolve, reject) => {
-      const optName = type === 332 ? 'left' : 'leftsourceip';
+      // Accepted input values:
+      // - Legacy CRT type: 1 (client), 2 (server)
+      // - IPSec object type: 331 (client), 332 (server), 333 (client without server)
+      const normalizedType = type === 333 ? 333 : type === 2 || type === 332 ? 332 : 331;
+      const isServer = normalizedType === 332;
+
       const sql = `select IPS.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn,
-            IF(${type} = 332,
+            IF(? = 332,
               (select ipobj.address from ipsec_opt
                inner join ipobj on ipobj.id = ipsec_opt.ipobj
                where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = 'leftsubnet' limit 1),
-              O.address
+              COALESCE(
+                (select ipobj.address from ipsec_opt
+                 inner join ipobj on ipobj.id = ipsec_opt.ipobj
+                 where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = 'leftsourceip' limit 1),
+                (select ipobj.address from ipsec_opt
+                 inner join ipobj on ipobj.id = ipsec_opt.ipobj
+                 where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = 'left' limit 1)
+              )
             ) as address,
             FW.cluster cluster_id,
             IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
             IF(IPS.ipsec is null,IPS.ipsec,(select crt.cn from ipsec inner join crt on crt.id=ipsec.crt where ipsec.id=IPS.ipsec)) as ipsec_server_cn
-            ${type === 332 ? `,O.netmask` : ``}
+            ${
+              isServer
+                ? `,
+            (select ipobj.netmask from ipsec_opt
+             inner join ipobj on ipobj.id = ipsec_opt.ipobj
+             where ipsec_opt.ipsec = IPS.id and ipsec_opt.name = 'left' limit 1) as netmask`
+                : ``
+            }
             from ipsec IPS
-            inner join crt CRT on CRT.id=IPS.crt
-            inner join ca CA on CA.id=CRT.ca
+            left join crt CRT on CRT.id=IPS.crt
+            left join ca CA on CA.id=CRT.ca
             inner join firewall FW on FW.id=IPS.firewall
-            inner join ipsec_opt OPT on OPT.ipsec=${ipSec} and OPT.name='${optName}'
-            inner join ipobj O on O.id=OPT.ipobj
-            where FW.fwcloud=${fwcloud} and IPS.id=${ipSec}`;
+            where FW.fwcloud=? and IPS.id=?`;
 
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, [normalizedType, fwcloud, ipSec], (error, result) => {
         if (error) return reject(error);
 
         for (let i = 0; i < result.length; i++) {
-          result[i].type = type === 1 ? 331 : 332;
+          result[i].type = normalizedType;
         }
         resolve(result);
       });
@@ -683,12 +707,13 @@ export class IPSec extends Model {
   public static async dumpCfg(dbCon: Query, ipSec: number) {
     return new Promise(async (resolve, reject) => {
       try {
-        // Get certificate and firewall info
+        // Get VPN metadata and certificate info (certificate can be null for type 333).
         const sqlCN = `
-        SELECT CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
+        SELECT COALESCE(CRT.cn, VPN.name, CONCAT('IPSec-', VPN.id)) AS cn,
+           CRT.ca, CRT.type, VPN.crt as vpn_crt, FW.name as fw_name, CL.name as cl_name,
            FW.fwcloud as fwcloud,VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2
-        FROM crt CRT
-        INNER JOIN ipsec VPN ON VPN.crt=CRT.id
+        FROM ipsec VPN
+        LEFT JOIN crt CRT ON VPN.crt=CRT.id
         LEFT JOIN ipsec VPNSRV ON VPNSRV.id=VPN.ipsec
         INNER JOIN firewall FW ON FW.id=VPN.firewall
         LEFT JOIN cluster CL ON CL.id=FW.cluster
@@ -699,20 +724,19 @@ export class IPSec extends Model {
         );
         if (!certInfo) return reject(fwcError.other('Certificate info not found'));
 
-        const ca_dir = path.join(
-          config.get('pki').data_dir,
-          String(certInfo.fwcloud),
-          String(certInfo.ca),
-        );
-        const ca_crt_path = path.join(ca_dir, 'ca.crt');
-        const key_path = path.join(ca_dir, 'private', `${certInfo.cn}.key`);
-        const server_crt_path = path.join(ca_dir, 'issued', `${certInfo.cn}.crt`);
+        const hasCertificate = certInfo.vpn_crt !== null && certInfo.vpn_crt !== undefined;
+        const ca_dir = hasCertificate
+          ? path.join(config.get('pki').data_dir, String(certInfo.fwcloud), String(certInfo.ca))
+          : null;
+        const ca_crt_path = ca_dir ? path.join(ca_dir, 'ca.crt') : null;
+        const key_path = ca_dir ? path.join(ca_dir, 'private', `${certInfo.cn}.key`) : null;
+        const server_crt_path = ca_dir ? path.join(ca_dir, 'issued', `${certInfo.cn}.crt`) : null;
         const clientCerts: Record<string, string> = {};
 
         // Header
         let ips_cfg = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
         ips_cfg += `# Generated: ${Date()}\n`;
-        ips_cfg += `# Certificate Common Name: ${certInfo.cn} \n`;
+        if (hasCertificate) ips_cfg += `# Certificate Common Name: ${certInfo.cn} \n`;
         ips_cfg += certInfo.cl_name
           ? `# Firewall Cluster: ${certInfo.cl_name}\n`
           : `# Firewall: ${certInfo.fw_name}\n`;
@@ -720,9 +744,11 @@ export class IPSec extends Model {
           certInfo.srv_config1 = certInfo.srv_config1.slice(0, -5);
         if (certInfo.srv_config2 && certInfo.srv_config2.endsWith('.conf'))
           certInfo.srv_config2 = certInfo.srv_config2.slice(0, -5);
-        ips_cfg += `# IPSec Server: ${certInfo.srv_config1 ? certInfo.srv_config1 : certInfo.srv_config2}\n`;
-        ips_cfg += `# Type: ${certInfo.srv_config1 ? 'Server' : 'Client'}\n\n`;
-        ips_cfg += `config setup\n`;
+        if (hasCertificate) {
+          ips_cfg += `# IPSec Server: ${certInfo.srv_config1 ? certInfo.srv_config1 : certInfo.srv_config2}\n`;
+          ips_cfg += `# Type: ${certInfo.srv_config1 ? 'Server' : 'Client'}\n`;
+        }
+        ips_cfg += `\nconfig setup\n`;
 
         // Get IPSec config
         const sql = `
@@ -772,12 +798,15 @@ export class IPSec extends Model {
         ips_cfg += interfaceLines.length ? interfaceLines.join('\n') + '\n\n' : '\n';
 
         // Check if client
-        const sqlCheckIsClient = `SELECT ipsec FROM ipsec WHERE id=?`;
+        const sqlCheckIsClient = `SELECT ipsec, crt FROM ipsec WHERE id=?`;
         const [checkResult] = await new Promise<any[]>((res, rej) =>
           dbCon.query(sqlCheckIsClient, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
         if (!checkResult) return reject(new Error('IPSec configuration not found'));
-        const isClient = checkResult.ipsec !== null;
+        const hasParentIPSec = checkResult.ipsec !== null;
+        const hasConfigCertificate = checkResult.crt !== null && checkResult.crt !== undefined;
+        const isClientWithoutServer = !hasConfigCertificate;
+        const isClient = hasParentIPSec || isClientWithoutServer;
 
         // Get peers
         let sqlPeers: string;
@@ -942,12 +971,25 @@ export class IPSec extends Model {
           );
           ips_cfg += await formatPeerSection(peer, !!disableOption);
         }
+        const ca_cert =
+          ca_crt_path && fs.existsSync(ca_crt_path)
+            ? ((await this.getCRTData(ca_crt_path)) as string)
+            : null;
+        const private_key =
+          key_path && fs.existsSync(key_path)
+            ? ((await this.getCRTData(key_path)) as string)
+            : null;
+        const cert =
+          server_crt_path && fs.existsSync(server_crt_path)
+            ? ((await this.getCRTData(server_crt_path)) as string)
+            : null;
+
         resolve({
           cfg: ips_cfg,
           cn: certInfo.cn,
-          ca_cert: (await this.getCRTData(ca_crt_path)) as string,
-          private_key: (await this.getCRTData(key_path)) as string,
-          cert: (await this.getCRTData(server_crt_path)) as string,
+          ca_cert,
+          private_key,
+          cert,
           client_certs: clientCerts,
         });
       } catch (error) {
