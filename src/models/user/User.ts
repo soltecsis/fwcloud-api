@@ -288,11 +288,9 @@ export class User extends Model {
 
   public static get(req) {
     return new Promise((resolve, reject) => {
-      let sql = '';
-
-      if (req.body.user)
-        sql = `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`;
-      else sql = `select id,customer,name from ${tableName} where customer=${req.body.customer}`;
+      const sql = req.body.user
+        ? `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`
+        : `select id,customer,name from ${tableName} where customer=${req.body.customer}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result);

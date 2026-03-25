@@ -75,6 +75,20 @@ describe('Tree Model Unit Tests', function () {
       expect(ipSecNode).to.exist;
       expect(ipSecNode.text).to.equal('IPSec');
     });
+
+    it('should insert a firewall tree when ipsec.name does not exist', async () => {
+      const nodeId = 1;
+
+      await manager.query('ALTER TABLE ipsec DROP COLUMN name');
+
+      await Tree.createAllTreeCloud(fwCloud);
+      await Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id);
+
+      const treeDump = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
+      const insertedNode = treeDump.children.find((node) => node.id_obj === firewall.id);
+      expect(insertedNode).to.exist;
+      expect(insertedNode.node_type).to.equal('FW');
+    });
   });
 
   describe('insertFwc_Tree_New_cluster_firewall()', () => {

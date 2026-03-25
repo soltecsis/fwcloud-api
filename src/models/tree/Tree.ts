@@ -337,7 +337,7 @@ export class Tree extends Model {
     treeType: TreeType,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let fields = '';
+      let fields: string;
       let nodeTypes: string[];
 
       if (treeType === 'SERVICES') {
@@ -1113,7 +1113,7 @@ export class Tree extends Model {
   public static interfacesTree(connection, fwcloud, nodeId, ownerId, ownerType): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get firewall interfaces.
-      let sql = '';
+      let sql: string;
       let obj_type;
 
       if (ownerType === 'FW') {
@@ -1312,25 +1312,51 @@ export class Tree extends Model {
     firewall: number,
     node: unknown,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const sql = `SELECT VPN.id, COALESCE(NULLIF(VPN.name, ''), CONCAT('IPSec-', VPN.id)) as cn
       FROM ipsec VPN
       WHERE VPN.firewall=?
         AND VPN.ipsec is null
         AND VPN.crt is null`;
-      connection.query(sql, [firewall], async (error, vpns) => {
-        if (error) return reject(error);
-        if (vpns.length === 0) return resolve();
+      const legacySql = `SELECT VPN.id, CONCAT('IPSec-', VPN.id) as cn
+      FROM ipsec VPN
+      WHERE VPN.firewall=?
+        AND VPN.ipsec is null
+        AND VPN.crt is null`;
+      const queryVpns = (query: string): Promise<any[]> =>
+        new Promise((queryResolve, queryReject) => {
+          connection.query(query, [firewall], (error, rows) => {
+            if (error) return queryReject(error);
+            queryResolve(rows);
+          });
+        });
+
+      try {
+        let vpns;
 
         try {
-          for (const vpn of vpns) {
-            await this.newNode(connection, fwcloud, vpn.cn, node, 'ISCNS', vpn.id, 333);
-          }
+          vpns = await queryVpns(sql);
         } catch (error) {
-          return reject(error);
+          // Support databases that have not applied the migration adding ipsec.name yet.
+          const shouldRetryLegacyQuery =
+            error?.code === 'ER_BAD_FIELD_ERROR' &&
+            typeof error?.sqlMessage === 'string' &&
+            error.sqlMessage.includes("Unknown column 'VPN.name'");
+
+          if (!shouldRetryLegacyQuery) return reject(error);
+          vpns = await queryVpns(legacySql);
         }
+
+        if (vpns.length === 0) return resolve();
+
+        for (const vpn of vpns) {
+          await this.newNode(connection, fwcloud, vpn.cn, node, 'ISCNS', vpn.id, 333);
+        }
+
         resolve();
-      });
+      } catch (error) {
+        reject(error);
+      }
     });
   }
   //Generate the IPSec server nodes.

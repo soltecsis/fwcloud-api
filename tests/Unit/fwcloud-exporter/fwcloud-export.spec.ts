@@ -202,7 +202,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
     });
 
     it('should remove encrypted data if export snapshot hash is not equal', async () => {
-      let firewall: Firewall = await Firewall.save(
+      await Firewall.save(
         Firewall.create({
           name: 'firewall_test',
           status: 1,
@@ -237,7 +237,9 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
       const restoredFwCloud: FwCloud = await fwCloudExporter.import();
 
-      firewall = (await Firewall.find({ where: { fwCloudId: restoredFwCloud.id } }))[0];
+      const firewall: Firewall = (
+        await Firewall.find({ where: { fwCloudId: restoredFwCloud.id } })
+      )[0];
 
       expect(firewall.install_user).to.be.null;
       expect(firewall.install_pass).to.be.null;

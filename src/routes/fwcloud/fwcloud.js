@@ -65,7 +65,6 @@ var router = express.Router();
 import { FwCloud, FwcData } from '../../models/fwcloud/FwCloud';
 
 
-var utilsModel = require('../../utils/utils');
 const restrictedCheck = require('../../middleware/restricted');
 import { User } from '../../models/user/User'
 import { app, logger } from '../../fonaments/abstract-application';
@@ -244,9 +243,6 @@ router.put('/del',
 			const fwc = new FwCloud();
 			fwc.id = req.body.fwcloud;
 			await fwc.remove();
-
-			// Remove the fwcloud data dir.
-			await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
 
 			res.status(204).end();
 		} catch (error) {
