@@ -24,7 +24,7 @@ const SERVER_CLIENTS_ENABLED_ROUTE = '/vpn/openvpn/2fa/server/clients/enabled';
 const SERVER_2FA_ROUTE = '/vpn/openvpn/2fa/server';
 const CLIENT_2FA_ROUTE = '/vpn/openvpn/2fa/client';
 
-describe.only(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
+describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
