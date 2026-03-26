@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
 	https://soltecsis.com
 	info@soltecsis.com
 
@@ -72,6 +72,148 @@ import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { SSHCommunication } from '../../../communications/ssh.communication';
 import { PgpHelper } from '../../../utils/pgp';
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+
+const OPENVPN_2FA_REQUIRED_OPTIONS = {
+	verifyClientCert: { name: 'verify-client-cert', arg: 'require' },
+	usernameAsCommonName: { name: 'username-as-common-name', arg: null },
+	pamPlugin: {
+		name: 'plugin',
+		arg: '/usr/lib/openvpn/openvpn-plugin-auth-pam.so openvpn'
+	}
+};
+
+const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
+	dbCon.query(sql, params, (error, result) => {
+		if (error) {
+			return reject(error);
+		}
+		resolve(result);
+	});
+});
+
+const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+	const options = await queryDb(
+		dbCon,
+		'SELECT id,name,arg,scope,comment,`order`,ipobj FROM openvpn_opt WHERE openvpn=? ORDER BY `order` ASC,id ASC',
+		[openvpnId]
+	);
+
+	const findByName = (name) => options.find((option) => option.name === name);
+	const findPluginOption = () =>
+		options.find(
+			(option) =>
+				option.name === OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name &&
+				option.arg === OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg
+		);
+
+	const verifyClientCertOption = findByName(OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name);
+	if (verifyClientCertOption) {
+		if (verifyClientCertOption.arg !== OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg) {
+			await queryDb(
+				dbCon,
+				'UPDATE openvpn_opt SET arg=? WHERE id=?',
+				[OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg, verifyClientCertOption.id]
+			);
+		}
+	} else {
+		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+		await queryDb(
+			dbCon,
+			'INSERT INTO openvpn_opt SET ?',
+			[{
+				openvpn: openvpnId,
+				name: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
+				arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
+				scope: 1,
+				order: maxOrder + 1,
+				ipobj: null
+			}]
+		);
+		options.push({
+			name: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
+			arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
+			scope: 1,
+			order: maxOrder + 1
+		});
+	}
+
+	if (!findByName(OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name)) {
+		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+		await queryDb(
+			dbCon,
+			'INSERT INTO openvpn_opt SET ?',
+			[{
+				openvpn: openvpnId,
+				name: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name,
+				arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
+				scope: 1,
+				order: maxOrder + 1,
+				ipobj: null
+			}]
+		);
+		options.push({
+			name: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name,
+			arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
+			scope: 1,
+			order: maxOrder + 1
+		});
+	}
+
+	if (!findPluginOption()) {
+		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+		await queryDb(
+			dbCon,
+			'INSERT INTO openvpn_opt SET ?',
+			[{
+				openvpn: openvpnId,
+				name: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
+				arg: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
+				scope: 1,
+				order: maxOrder + 1,
+				ipobj: null
+			}]
+		);
+	}
+};
+
+const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+	console.log(`Removing 2FA options for OpenVPN configuration ${openvpnId}`);
+	await queryDb(
+		dbCon,
+		`DELETE FROM openvpn_opt
+		 WHERE openvpn=?
+			 AND (
+			 name=?
+			 OR (name=? AND arg=?)
+			 OR name=?
+			 )`,
+		[
+			openvpnId,
+			OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
+			OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name
+		]
+	);
+};
+
+const buildClient2FASecretFile = (secret) => {
+	return [
+		secret.base32,
+		'" TOTP_AUTH',
+		'" WINDOW_SIZE 3',
+		'" DISALLOW_REUSE',
+		'" RATE_LIMIT 3 30'
+	].join('\n');
+};
+
+const OPENVPN_PAM_2FA_CONTENT = [
+	'auth [success=done auth_err=ignore default=bad] pam_listfile.so item=user sense=deny file=/etc/openvpn/2fa_users.txt onerr=fail',
+	'auth required pam_google_authenticator.so secret=/etc/openvpn/google-authenticator/${USER} user=root',
+	'account required pam_permit.so'
+].join('\n');
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -703,6 +845,364 @@ router.put('/status/get', async (req, res, next) => {
 			return next(error);
 		}
 
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+router.put('/2fa/server/enabled', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw fwcError.VPN_NOT_SER;
+				
+		const hasEnabledServers = firewall.clusterId
+			? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+				req.dbCon,
+				firewall.clusterId,
+				req.body.openvpn
+			)
+			: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+				req.dbCon,
+				firewall.id,
+				req.body.openvpn
+			);
+
+		res.status(200).json({ enabled: hasEnabledServers });
+	} catch (error) {
+		logger().error('Error checking openvpn 2fa enabled server data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+
+router.put('/2fa/server/clients/enabled', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw fwcError.VPN_NOT_SER;
+				
+		const hasEnabledClients = firewall.clusterId
+			? await OpenVPN.clusterServerHasClientsWith2FAEnabled(
+				req.dbCon,
+				firewall.clusterId,
+				req.body.openvpn
+			)
+			: await OpenVPN.firewallServerHasClientsWith2FAEnabled(
+				req.dbCon,
+				firewall.id,
+				req.body.openvpn
+			);
+
+		res.status(200).json({ enabled: hasEnabledClients });
+	} catch (error) {
+		logger().error('Error checking openvpn 2fa enabled clients data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+
+router.put('/2fa/server', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw fwcError.VPN_NOT_SER;
+
+		const enabled = !!req.body.enabled;
+		const channel = await Channel.fromRequest(req);
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = await firewall.getCommunication({
+				sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: undefined,
+				sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: undefined,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
+
+		if (!communication) {
+			throw fwcError.VPN_2FA_AGENT_REQUIRED;
+		}
+
+		if (!enabled) {
+			const hasClientsWith2FA = firewall.clusterId
+				? await OpenVPN.clusterServerHasClientsWith2FAEnabled(
+					req.dbCon,
+					firewall.clusterId,
+					req.body.openvpn
+				)
+				: await OpenVPN.firewallServerHasClientsWith2FAEnabled(
+					req.dbCon,
+					firewall.id,
+					req.body.openvpn
+				);
+
+			if (hasClientsWith2FA) {
+				throw fwcError.VPN_2FA_CLIENTS_ENABLED;
+			}
+
+			const hasOtherServersWith2FA = firewall.clusterId
+				? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.clusterId,
+					req.body.openvpn
+				)
+				: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.id,
+					req.body.openvpn
+				);
+
+			if (!hasOtherServersWith2FA) {
+				await communication.installPlugin('openvpn-2fa', false, channel);
+			}
+
+			await removeServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+			const openvpnCfg = await OpenVPN.getCfg(req);
+			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+			const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
+			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
+				throw fwcError.other('OpenVPN server install path or file name not found');
+			}
+			await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+				content: cfgDump.cfg,
+				name: openvpnCfg.install_name
+			}], channel);
+		} else {
+			// Check if any other server has 2FA enabled. If not, we must install the plugin before enable 2FA in this server.
+			const hasOtherServersWith2FA = firewall.clusterId
+				? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.clusterId,
+					req.body.openvpn
+				)
+				: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+					req.dbCon,
+					firewall.id,
+					req.body.openvpn
+				);
+
+			if (!hasOtherServersWith2FA) {
+				await communication.installPlugin('openvpn-2fa', true, channel);
+			}
+
+			await communication.installOpenVPNServerConfigs('/etc/pam.d', [{
+				name: 'openvpn',
+				content: OPENVPN_PAM_2FA_CONTENT
+			}], channel);
+
+			// Ensure OpenVPN server has all directives required by certificate + user/pass authentication.
+			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+
+			// Apply the generated server.conf right now. If this fails, we don't enable 2FA in database.
+			const openvpnCfg = await OpenVPN.getCfg(req);
+			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+			const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
+			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
+				throw fwcError.other('OpenVPN server install path or file name not found');
+			}
+			await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+				content: cfgDump.cfg,
+				name: openvpnCfg.install_name
+			}], channel);
+		}
+
+		await new Promise((resolve, reject) => {
+			req.dbCon.query(
+				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)}, installed_at=NOW(), updated_at=NOW() WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+				(error, result) => {
+					if (error) return reject(error);
+					resolve(result);
+				}
+			);
+		});
+
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
+
+		res.status(204).end();
+	} catch (error) {
+		logger().error('Error getting openvpn 2fa server data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+		
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
+
+router.put('/2fa/client', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 1) // This action only can be done in client OpenVPN configurations.
+			throw fwcError.VPN_NOT_CLI;
+
+		if (!req.openvpn.openvpn) {
+			throw fwcError.other('OpenVPN client has no parent server');
+		}
+
+		let communication;
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			const pgp = new PgpHelper(req.session.pgp);
+			communication = await firewall.getCommunication({
+				sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+					? await pgp.decrypt(req.body.sshuser)
+					: undefined,
+				sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+					? await pgp.decrypt(req.body.sshpass)
+					: undefined,
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
+
+		if (!communication) {
+			throw fwcError.VPN_2FA_AGENT_REQUIRED;
+		}
+
+		const enabled = !!req.body.enabled;
+		let totpData = null;
+
+		if (enabled) {
+			const sql = `SELECT tfa_enabled FROM openvpn WHERE id=${req.dbCon.escape(req.openvpn.openvpn)}
+				AND firewall=${req.dbCon.escape(firewall.id)}`;
+			const result = await new Promise((resolve, reject) => {
+				req.dbCon.query(sql, (error, rows) => {
+					if (error) return reject(error);
+					resolve(rows);
+				});
+			});
+
+			if (!result || result.length === 0 || result[0].tfa_enabled !== 1) {
+				throw fwcError.VPN_2FA_SERVER_DISABLED;
+			}
+
+			const serverRows = await new Promise((resolve, reject) => {
+				req.dbCon.query(
+					`SELECT crt.cn FROM openvpn
+					INNER JOIN crt ON openvpn.crt = crt.id
+					WHERE openvpn.id=${req.dbCon.escape(req.openvpn.openvpn)}
+					AND openvpn.firewall=${req.dbCon.escape(firewall.id)}
+					LIMIT 1`,
+					(error, rows) => {
+						if (error) return reject(error);
+						resolve(rows);
+					}
+				);
+			});
+			const serverName = serverRows?.[0]?.cn;
+			if (!serverName) {
+				throw fwcError.other('OpenVPN parent server not found');
+			}
+
+			const secret = speakeasy.generateSecret({
+				name: `FWCloud OpenVPN (${serverName}/${crt.cn})`,
+				length: 32
+			});
+			const secretFileContent = buildClient2FASecretFile(secret);
+			const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+			const channel = await Channel.fromRequest(req);
+			await communication.installOpenVPNServerConfigs('/etc/openvpn/google-authenticator', [{
+				name: crt.cn,
+				content: secretFileContent
+			}], channel);
+
+			totpData = {
+				secret: secret.base32,
+				otpauth_url: secret.otpauth_url,
+				dataURL: qrCode
+			};
+		} else {
+			const channel = await Channel.fromRequest(req);
+			try {
+				await communication.uninstallOpenVPNConfigs('/etc/openvpn/google-authenticator', [crt.cn], channel);
+			} catch (error) {
+				if (!error?.message || error.message.indexOf('Directory not found') === -1) {
+					throw error;
+				}
+			}
+		}
+
+		await new Promise((resolve, reject) => {
+			req.dbCon.query(
+				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)}, installed_at=NOW(), updated_at=NOW() WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+				(error, result) => {
+					if (error) return reject(error);
+					resolve(result);
+				}
+			);
+		});
+
+		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
+
+		const channel = await Channel.fromRequest(req);
+		const enabledClients = await db.getSource().manager.getRepository(OpenVPN)
+			.createQueryBuilder('openvpn')
+			.innerJoinAndSelect('openvpn.crt', 'crt')
+			.where('openvpn.parentId = :parentId', { parentId: req.openvpn.openvpn })
+			.andWhere('openvpn.tfa_enabled = 1')
+			.getMany();
+
+		const usersListContent = enabledClients.map(client => client.crt.cn).join('\n') + '\n';
+
+		await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
+			name: '2fa_users.txt',
+			content: usersListContent
+		}], channel);
+
+		if (enabled) {
+			res.status(200).json(totpData);
+		} else {
+			res.status(204).end();
+		}
+	} catch (error) {
+		logger().error('Error getting openvpn 2fa client data: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+		
 		if (error.message)
 			res.status(400).json({ message: error.message });
 		else
