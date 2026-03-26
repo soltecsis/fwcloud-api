@@ -89,8 +89,9 @@ export interface IUpdateKeepalivedRule {
   fw_apply_to?: number;
 }
 
-export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>
-  extends KeepalivedRule {
+export interface KeepalivedRulesData<
+  T extends ItemForGrid | KeepalivedRuleItemForCompiler,
+> extends KeepalivedRule {
   items: (T & { _order: number })[];
 }
 

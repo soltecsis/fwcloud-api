@@ -613,9 +613,12 @@ export class DHCPRuleService extends Service {
         break;
       case 'fixed_grid':
         // It passes the value 2 because it corresponds to the type of fixed ip rules.
-        rulesData = (await this._repository.getDHCPRules(fwcloud, firewallsForQuery, rules, [
-          2,
-        ])) as DHCPRulesData<T>[];
+        rulesData = (await this._repository.getDHCPRules(
+          fwcloud,
+          firewallsForQuery,
+          rules,
+          [2],
+        )) as DHCPRulesData<T>[];
         break;
       case 'compiler':
         rulesData = (await this._repository.getDHCPRules(

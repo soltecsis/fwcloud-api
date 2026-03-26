@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addRelationCountriesIpobjType_policyPosition1653374901932
-  implements MigrationInterface
-{
+export class addRelationCountriesIpobjType_policyPosition1653374901932 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const policyPositionIds = await queryRunner.query(
       `SELECT id FROM policy_position WHERE name='Source' OR name='Destination'`,
