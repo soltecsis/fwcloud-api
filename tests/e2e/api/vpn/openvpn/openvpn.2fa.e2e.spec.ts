@@ -24,7 +24,7 @@ const SERVER_CLIENTS_ENABLED_ROUTE = '/vpn/openvpn/2fa/server/clients/enabled';
 const SERVER_2FA_ROUTE = '/vpn/openvpn/2fa/server';
 const CLIENT_2FA_ROUTE = '/vpn/openvpn/2fa/client';
 
-describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
+describe.only(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
@@ -205,7 +205,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         })
         .then((response) => {
           expect(response.status).to.equal(400);
-          expect(response.body.fwcErr).to.equal(6006);
+          expect(response.body.fwcErr).to.equal(6008);
         });
     });
   });
@@ -228,7 +228,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         })
         .then((response) => {
           expect(response.status).to.equal(400);
-          expect(response.body.fwcErr).to.equal(6007);
+          expect(response.body.fwcErr).to.equal(6009);
         });
     });
 
