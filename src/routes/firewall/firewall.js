@@ -85,10 +85,80 @@ import { Cluster } from '../../models/firewall/Cluster';
 import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
 import { DHCPGroup } from '../../models/system/dhcp/dhcp_g/dhcp_g.model';
 import { KeepalivedRule } from '../../models/system/keepalived/keepalived_r/keepalived_r.model';
+import db from '../../database/database-manager';
+import { AuditLog } from '../../models/audit/AuditLog';
+import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
+
+const buildFirewallDeleteDescription = (statusCode) => {
+	const pieces = ['Deleted firewall'];
+	if (typeof statusCode === 'number') pieces.push(`Status ${statusCode}`);
+	return pieces.join('. ');
+};
+
+const resolveSourceIp = (req) => {
+	const forwarded = req.headers['x-forwarded-for'];
+	if (Array.isArray(forwarded)) return forwarded[0];
+	if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+	return req.ip ?? null;
+};
+
+const cacheFirewallAuditContext = async (req, res) => {
+	if (!res?.locals) return;
+
+	const [fwCloud, firewall] = await Promise.all([
+		req.body.fwcloud ? FwCloud.findOne({ where: { id: req.body.fwcloud } }) : null,
+		req.body.firewall ? Firewall.findOne({ where: { id: req.body.firewall } }) : null
+	]);
+
+	res.locals.__auditLogFwCloudName = fwCloud?.name ?? null;
+	res.locals.__auditLogFirewallName = firewall?.name ?? null;
+	res.locals.__auditLogClusterId = firewall?.clusterId ?? null;
+};
+
+const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, statusCode) => {
+	try {
+		const dataSource = db.getSource();
+		const locals = res?.locals ?? {};
+		const firewallName = locals.__auditLogFirewallName ?? null;
+		const fwCloudName = locals.__auditLogFwCloudName ?? null;
+		const clusterId = locals.__auditLogClusterId ?? null;
+
+		const auditLog = new AuditLog();
+		auditLog.call = `PUT ${req.originalUrl}`;
+		auditLog.data = JSON.stringify({
+			method: req.method,
+			url: req.originalUrl,
+			statusCode,
+			params: req.params,
+			query: req.query,
+			body: req.body
+		});
+		auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
+		auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
+		auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+		const sourceIp = resolveSourceIp(req);
+		auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
+		auditLog.fwCloudId = AuditLogHelper.getNumeric(fwcloudId);
+		auditLog.firewallId = AuditLogHelper.getNumeric(firewallId);
+		auditLog.clusterId = AuditLogHelper.getNumeric(clusterId);
+		auditLog.fwCloudName = fwCloudName;
+		auditLog.firewallName = firewallName;
+		auditLog.clusterName = null;
+		auditLog.description = buildFirewallDeleteDescription(statusCode);
+
+		await dataSource.manager.getRepository(AuditLog).save(auditLog);
+
+		if (res?.locals) {
+			res.locals.__auditLogHandled = true;
+		}
+	} catch (error) {
+		logger().error(`Error persisting firewall delete audit log: ${error?.message ?? error}`);
+	}
+};
 
 /**
  * @api {POST} /firewall New firewall
@@ -742,9 +812,14 @@ router.put('/del',
 	restrictedCheck.firewall,
 	async(req, res) => {
 		try {
+			await cacheFirewallAuditContext(req, res);
+
 			const firewallService = await app().getService(FirewallService.name);
 			await firewallService.remove(req.body.firewall, req.body.fwcloud, req.session.user_id);
 
+			const statusCode = 204;
+			res.status(statusCode);
+			await persistFirewallDeleteAuditLog(req, res, req.body.firewall, req.body.fwcloud, statusCode);
 			res.status(204).end();
 		} catch (error) {
 			logger().error('Error removing firewall: ' + JSON.stringify(error));
@@ -760,12 +835,18 @@ restrictedCheck.firewallApplyTo,
 async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
 	try {
+		await cacheFirewallAuditContext(req, res);
+
 		const firewallService = await app().getService(FirewallService.name);
 		const data = await firewallService.deleteFirewallFromCluster(req.body.cluster, req.body.firewall, req.body.fwcloud, req.session.user_id);
-		if (data && data.result)
-			res.status(200).json(data);
-	 	else
-			res.status(204).end();
+		const statusCode = data && data.result ? 200 : 204;
+		res.status(statusCode);
+		await persistFirewallDeleteAuditLog(req, res, req.body.firewall, req.body.fwcloud, statusCode);
+		if (data && data.result) {
+			res.json(data);
+		} else {
+			res.end();
+		}
 	} catch(error) {
 		logger().error('Error removing cluster firewall: ' + JSON.stringify(error)); 
 		res.status(400).json(error);

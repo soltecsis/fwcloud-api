@@ -101,7 +101,7 @@ export class PolicyRuleToIPSec extends Model {
   public static checkIPSecPosition(dbCon: Query, position: any): Promise<unknown> {
     return new Promise((resolve, reject) => {
       dbCon.query(
-        `select type from ipobj_type__policy_position where type=321 and position=${position}`,
+        `select type from ipobj_type__policy_position where type in (331,333) and position=${position}`,
         (error, rows) => {
           if (error) return reject(error);
           resolve(rows.length > 0 ? 1 : 0);
@@ -172,8 +172,8 @@ export class PolicyRuleToIPSec extends Model {
   public static searchIPSecInRule(dbCon: Query, fwcloud: number, ipsec: number) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
-                O.ipsec obj_id, CRT.cn obj_name,
-                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=331) as obj_type_id,
+                O.ipsec obj_id, COALESCE(CRT.cn, NULLIF(VPN.name,''), CONCAT('IPSec-', VPN.id)) obj_name,
+                R.id as rule_id, R.type rule_type, IF(VPN.type=333 OR VPN.crt is null, 333, 331) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
             from policy_r__ipsec O
@@ -182,7 +182,7 @@ export class PolicyRuleToIPSec extends Model {
                 inner join policy_position P on P.id=O.position
                 inner join policy_type PT on PT.id=R.type
                 inner join ipsec VPN on VPN.id=O.ipsec
-                inner join crt CRT on CRT.id=VPN.crt
+                left join crt CRT on CRT.id=VPN.crt
                 where FW.fwcloud=${fwcloud} and O.ipsec=${ipsec}`;
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
@@ -194,10 +194,11 @@ export class PolicyRuleToIPSec extends Model {
   public static searchIPSecInGroup(dbCon: Query, fwcloud: number, ipsec: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
-                (select id from ipobj_type where id=331) as obj_type_id, CRT.cn obj_name
+                IF(VPN.type=333 OR VPN.crt is null, 333, 331) as obj_type_id,
+                COALESCE(CRT.cn, NULLIF(VPN.name,''), CONCAT('IPSec-', VPN.id)) obj_name
                 from ipsec__ipobj_g P
                 inner join ipsec VPN on VPN.id=P.ipsec			
-                inner join crt CRT on CRT.id=VPN.crt
+                left join crt CRT on CRT.id=VPN.crt
                 inner join ipobj_g G on G.id=P.ipobj_g
                 where G.fwcloud=${fwcloud} and P.ipsec=${ipsec}`;
       dbCon.query(sql, (error, rows) => {

@@ -298,11 +298,11 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type}
             ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
-            union select R.rule, R.position, IPS.id, CRT.cn, "331" as type, R.position_order, '' as labelName,
+            union select R.rule, R.position, IPS.id, COALESCE(CRT.cn, NULLIF(IPS.name,''), CONCAT('IPSec-', IPS.id)), IF(IPS.type=333 OR IPS.crt is null, 333, 331) as type, R.position_order, '' as labelName,
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name
             from policy_r__ipsec R
             inner join ipsec IPS on IPS.id=R.ipsec
-            inner join crt CRT ON CRT.id=IPS.crt
+            left join crt CRT ON CRT.id=IPS.crt
             inner join policy_r PR on PR.id=R.rule
             inner join firewall FW on FW.id=IPS.firewall
             left join cluster CL on CL.id=FW.cluster
@@ -1131,7 +1131,7 @@ export class PolicyRule extends Model {
           if (error) return reject(error);
 
           let free_rule_order;
-          let cond = '';
+          let cond: string;
           if (result.length === 1) {
             free_rule_order = result[0].rule_order + 1;
             cond = '>' + result[0].rule_order;

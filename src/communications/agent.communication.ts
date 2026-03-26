@@ -27,7 +27,6 @@ import {
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   SystemCtlInfo,
-  WireGuardHistoryRecord,
 } from './communication';
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import {
@@ -473,26 +472,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       let waiting_for_websocket_id = true;
 
       const timer = setTimeout(() => {
-        // TIMEOUT ERROR
         ws.close();
         this.cancel_token.cancel('FWCloud-Agent communication timeout');
-        //console.log('FWCloud-Agent communication timeout');
       }, app().config.get('openvpn.agent.plugins_timeout'));
 
       ws.on('message', (data) => {
-        // Restart timer on each WebSocket message.
-        // If we receive a message it means that the process is active, then
-        // reset the timer. This way, if the process takes a lot of time, we
-        // will allow it to complete.
         timer.refresh();
 
+        const message =
+          typeof data === 'string'
+            ? data
+            : Buffer.isBuffer(data)
+              ? data.toString('utf8')
+              : Array.isArray(data)
+                ? Buffer.concat(data).toString('utf8')
+                : Buffer.from(data).toString('utf8');
+
         if (waiting_for_websocket_id) {
-          //console.log('WebSocket id: %s', data);
           waiting_for_websocket_id = false;
-          resolve(`${data}`);
+          resolve(message);
         } else {
-          //console.log('Data: %s', data);
-          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
+          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
         }
       });
 

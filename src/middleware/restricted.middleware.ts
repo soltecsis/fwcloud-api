@@ -54,9 +54,9 @@ export class RestrictedMiddleware extends Middleware {
         req.body.fwcloud,
         req.body.wireguard,
       );
-      if (data.result) res.status(403).json(data);
+      if (data.result) return res.status(403).json(data);
       data = await WireGuard.searchWireGuardUsage(req.dbCon, req.body.fwcloud, req.body.wireguard);
-      if (data.result) res.status(403).json(data);
+      if (data.result) return res.status(403).json(data);
       next();
     } catch (error) {
       res.status(400).json(error);
@@ -82,10 +82,19 @@ export class RestrictedMiddleware extends Middleware {
   }
   public async ipsec(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
-      let data = await IPSec.searchIPSecChild(req.dbCon, req.body.fwcloud, req.body.ipsec);
-      if (data.result) res.status(403).json(data);
-      data = await IPSec.searchIPSecUsage(req.dbCon, req.body.fwcloud, req.body.ipsec);
-      if (data.result) res.status(403).json(data);
+      const ipsecData = (req as any).ipsec;
+      const hasParentIPSec = ipsecData?.ipsec !== null && ipsecData?.ipsec !== undefined;
+      const hasCertificate = ipsecData?.crt !== null && ipsecData?.crt !== undefined;
+      const isClientWithoutServer = ipsecData?.type === 333 || (!hasParentIPSec && !hasCertificate);
+
+      // IPSec-only clients cannot have child configurations.
+      if (!isClientWithoutServer) {
+        const childData = await IPSec.searchIPSecChild(req.dbCon, req.body.fwcloud, req.body.ipsec);
+        if (childData.result) return res.status(403).json(childData);
+      }
+
+      const usageData = await IPSec.searchIPSecUsage(req.dbCon, req.body.fwcloud, req.body.ipsec);
+      if (usageData.result) return res.status(403).json(usageData);
       next();
     } catch (error) {
       res.status(400).json(error);

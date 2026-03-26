@@ -35,6 +35,9 @@ import {
 } from '../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
 import { AbstractApplication } from '../../../../../src/fonaments/abstract-application';
 import sinon from 'sinon';
+import db from '../../../../../src/database/database-manager';
+import { OpenVPNStatusHistory } from '../../../../../src/models/vpn/openvpn/status/openvpn-status-history';
+import { AuditLog } from '../../../../../src/models/audit/AuditLog';
 
 describe(describeName('OpenVPN Service Unit Tests'), () => {
   let app: AbstractApplication;
@@ -148,6 +151,167 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
       });
 
       expect(results).to.not.have.property('name');
+    });
+
+    it('should return the affected rows reported by the delete database result', async () => {
+      const date = new Date();
+      const oldDate = date.setMonth(date.getMonth() - 6);
+      await openVPNStatusHistoryService.create(fwcProduct.openvpnServer.id, [
+        {
+          timestampInSeconds: parseInt((new Date(oldDate).getTime() / 1000).toFixed(0)),
+          name: 'affected-count-source-test',
+          address: '1.1.1.1',
+          bytesReceived: 100,
+          bytesSent: 200,
+          connectedAtTimestampInSeconds: parseInt((new Date(oldDate).getTime() / 1000).toFixed(0)),
+        },
+      ]);
+
+      const repository = db.getSource().manager.getRepository(OpenVPNStatusHistory);
+      const originalDelete = repository.delete.bind(repository);
+      const deleteStub = sinon.stub(repository, 'delete').callsFake(async (criteria) => {
+        await originalDelete(criteria);
+        return {
+          affected: 7,
+          raw: {
+            affectedRows: 7,
+          },
+        } as any;
+      });
+
+      try {
+        const archivedRows = await openVPNService.archiveHistory();
+        expect(archivedRows).to.equal(7);
+      } finally {
+        deleteStub.restore();
+      }
+    });
+  });
+
+  describe('startScheduledTasks()', () => {
+    let sandbox: sinon.SinonSandbox;
+
+    beforeEach(async () => {
+      sandbox = sinon.createSandbox();
+      await db.getSource().manager.getRepository(AuditLog).createQueryBuilder().delete().execute();
+    });
+
+    afterEach(() => {
+      sandbox.restore();
+    });
+
+    const setupCronCallbacks = () => {
+      const handlers: Array<() => Promise<void>> = [];
+
+      sandbox
+        .stub((openVPNService as any)._cronService, 'addJob')
+        .callsFake((_cronTime: string, onTick: () => Promise<void>) => {
+          handlers.push(onTick);
+          return {
+            start: () => {},
+          } as any;
+        });
+
+      openVPNService.startScheduledTasks();
+
+      return {
+        archive: handlers[0],
+        retention: handlers[1],
+      };
+    };
+
+    const findLatestByCall = async (call: string): Promise<AuditLog | null> => {
+      return db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .findOne({
+          where: { call },
+          order: {
+            id: 'DESC',
+          },
+        });
+    };
+
+    it('should persist a successful internal archive event with affectedCount details', async () => {
+      sandbox.stub(openVPNService, 'archiveHistory').resolves(4);
+      const callbacks = setupCronCallbacks();
+
+      await callbacks.archive();
+
+      const persisted = await findLatestByCall('INTERNAL:cron:archive');
+      expect(persisted).to.not.be.null;
+      const payload = JSON.parse(persisted.data);
+
+      expect(payload.source).to.equal('cron');
+      expect(payload.operation).to.equal('archive');
+      expect(payload.entity).to.equal('OpenVPNStatusHistory');
+      expect(payload.affectedCount).to.equal(4);
+      expect(payload.status).to.equal('success');
+      expect(payload.error).to.equal(null);
+      expect(payload.details.archivedCount).to.equal(4);
+      expect(payload.details.deletedCount).to.equal(4);
+      expect(Number.isNaN(new Date(payload.startedAt).getTime())).to.be.false;
+      expect(Number.isNaN(new Date(payload.finishedAt).getTime())).to.be.false;
+    });
+
+    it('should persist a failed internal archive event when the cron throws an error', async () => {
+      sandbox.stub(openVPNService, 'archiveHistory').rejects(new Error('archive cron failed'));
+      const callbacks = setupCronCallbacks();
+
+      await callbacks.archive();
+
+      const persisted = await findLatestByCall('INTERNAL:cron:archive');
+      expect(persisted).to.not.be.null;
+      const payload = JSON.parse(persisted.data);
+
+      expect(payload.operation).to.equal('archive');
+      expect(payload.entity).to.equal('OpenVPNStatusHistory');
+      expect(payload.affectedCount).to.equal(0);
+      expect(payload.status).to.equal('failed');
+      expect(payload.error).to.contain('archive cron failed');
+      expect(payload.details.archivedCount).to.equal(0);
+      expect(payload.details.deletedCount).to.equal(0);
+    });
+
+    it('should persist a successful internal retention event with affectedCount details', async () => {
+      sandbox.stub(openVPNService, 'removeExpiredFiles').resolves(3);
+      const callbacks = setupCronCallbacks();
+
+      await callbacks.retention();
+
+      const persisted = await findLatestByCall('INTERNAL:cron:retention');
+      expect(persisted).to.not.be.null;
+      const payload = JSON.parse(persisted.data);
+
+      expect(payload.source).to.equal('cron');
+      expect(payload.operation).to.equal('retention');
+      expect(payload.entity).to.equal('OpenVPNStatusHistory');
+      expect(payload.affectedCount).to.equal(3);
+      expect(payload.status).to.equal('success');
+      expect(payload.error).to.equal(null);
+      expect(payload.details.deletedCount).to.equal(3);
+      expect(payload.details.removedFilesCount).to.equal(3);
+    });
+
+    it('should persist a failed internal retention event when the cron throws an error', async () => {
+      sandbox
+        .stub(openVPNService, 'removeExpiredFiles')
+        .rejects(new Error('retention cron failed'));
+      const callbacks = setupCronCallbacks();
+
+      await callbacks.retention();
+
+      const persisted = await findLatestByCall('INTERNAL:cron:retention');
+      expect(persisted).to.not.be.null;
+      const payload = JSON.parse(persisted.data);
+
+      expect(payload.operation).to.equal('retention');
+      expect(payload.entity).to.equal('OpenVPNStatusHistory');
+      expect(payload.affectedCount).to.equal(0);
+      expect(payload.status).to.equal('failed');
+      expect(payload.error).to.contain('retention cron failed');
+      expect(payload.details.deletedCount).to.equal(0);
+      expect(payload.details.removedFilesCount).to.equal(0);
     });
   });
 

@@ -116,10 +116,8 @@ export abstract class HTTPApplication extends AbstractApplication {
    * Register all middlewares
    */
   protected registerMiddlewares(group: 'before' | 'after'): void {
-    let middlewares: Array<any> = [];
-
     if (group === 'before') {
-      middlewares = this.beforeMiddlewares();
+      const middlewares = this.beforeMiddlewares();
       for (let i = 0; i < middlewares.length; i++) {
         const middleware: Middleware = new middlewares[i]();
         middleware.register(this);
@@ -127,7 +125,7 @@ export abstract class HTTPApplication extends AbstractApplication {
     }
 
     if (group === 'after') {
-      middlewares = this.afterMiddlewares();
+      const middlewares = this.afterMiddlewares();
       for (let i = 0; i < middlewares.length; i++) {
         const middleware: Middleware = new middlewares[i]();
         middleware.register(this);

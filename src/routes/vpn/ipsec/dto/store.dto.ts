@@ -33,11 +33,14 @@ export const IPSEC_OPTIONS = [
   'keyexchange',
   'dpdaction',
   'dpddelay',
+  'keyingtries',
   'rekey',
+  'uniqueids',
   'charondebug',
   'auto',
   'also',
   'CA Certificate',
+  'type',
   '<<disable>>',
 ] as const;
 
@@ -100,8 +103,11 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 
       case 'ike':
       case 'esp':
-        // proposal: alg-hash[-dhgroup][!]
-        return /^([a-z0-9]+-){1,2}[a-z0-9]+(!)?$/.test(value);
+        // proposal: alg-hash[-dhgroup][!], allow comma-separated list
+        return value
+          .split(',')
+          .map((v) => v.trim())
+          .every((part) => part.length > 0 && /^([a-z0-9]+-){1,2}[a-z0-9]+(!)?$/.test(part));
 
       case 'keyexchange':
         // ikev1 / ikev2
@@ -131,6 +137,10 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'PSK':
         // min 8 chars
         return value.length >= 8;
+
+      case 'type':
+        // tunnel, transport
+        return ['tunnel', 'transport'].includes(value);
 
       default:
         return true;
@@ -184,7 +194,8 @@ export class StoreDto {
 
   @IsNotEmpty()
   @IsNumber()
-  crt: number;
+  @IsOptional()
+  crt?: number;
 
   @IsString()
   @IsOptional()
@@ -194,6 +205,11 @@ export class StoreDto {
   @IsOptional()
   @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid install_name format' })
   install_name?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid name format' })
+  name?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
