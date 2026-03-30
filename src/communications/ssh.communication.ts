@@ -179,6 +179,21 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
   }
 
+  async readOpenVPNFile(dir: string, name: string): Promise<string> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo ';
+      const remotePath = `${dir}/${name}`;
+      const cmd = `${sudo}cat '${remotePath.replace(/'/g, "'\\''")}'`;
+      const content = await sshTools.runCommand(this.connectionData, cmd);
+      return content;
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
   async uninstallOpenVPNConfigs(
     dir: string,
     files: string[],

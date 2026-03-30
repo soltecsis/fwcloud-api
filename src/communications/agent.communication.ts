@@ -354,6 +354,34 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async readOpenVPNFile(dir: string, name: string): Promise<string> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/read';
+
+      const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, {
+        'Content-Type': 'application/json',
+      });
+
+      const response: AxiosResponse<string> = await axios.put(
+        pathUrl,
+        {
+          dir: dir,
+          files: [name],
+        },
+        requestConfig,
+      );
+
+      if (response.status === 200) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected readOpenVPNFile response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
   async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
     try {
       const pathUrl: string = this.url + '/api/v1/openvpn/files/sha256';

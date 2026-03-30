@@ -1136,7 +1136,6 @@ router.put('/2fa/client', async (req, res, next) => {
 			}
 
 			const secret = speakeasy.generateSecret({
-				name: `FWCloud OpenVPN (${serverName}/${crt.cn})`,
 				length: 32
 			});
 			const secretFileContent = buildClient2FASecretFile(secret);
@@ -1210,5 +1209,83 @@ router.put('/2fa/client', async (req, res, next) => {
 	}
 });
 
+router.put('/2fa/regenerate', async (req, res, next) => {
+	try {
+		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+			where: { id: req.body.firewall }
+		});
+
+		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
+		if (crt.type !== 1)
+			throw fwcError.VPN_NOT_CLI;
+
+		const serverRows = await new Promise((resolve, reject) => {
+			req.dbCon.query(
+				`SELECT crt.cn FROM openvpn
+				INNER JOIN crt ON openvpn.crt = crt.id
+				WHERE openvpn.id=${req.dbCon.escape(req.openvpn.openvpn)}
+				AND openvpn.firewall=${req.dbCon.escape(firewall.id)}
+				LIMIT 1`,
+				(error, rows) => {
+					if (error) return reject(error);
+					resolve(rows);
+				}
+			);
+		});
+
+		const serverName = serverRows?.[0]?.cn;
+		if (!serverName) {
+			throw fwcError.other('OpenVPN parent server not found');
+		}
+
+		let secret = req.body.secret;
+		if (!secret) {
+			const communication = await (firewall.install_communication === FirewallInstallCommunication.SSH
+				? firewall.getCommunication({
+					sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+						? await new PgpHelper(req.session.pgp).decrypt(req.body.sshuser)
+						: undefined,
+					sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+						? await new PgpHelper(req.session.pgp).decrypt(req.body.sshpass)
+						: undefined,
+				})
+				: firewall.getCommunication());
+
+			const fileContent = await communication.readOpenVPNFile('/etc/openvpn/google-authenticator', crt.cn);
+			const rawLines = fileContent.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+			const secretLine = rawLines.find(line => !line.startsWith('"'));
+			secret = secretLine ? secretLine : '';
+		}
+
+		if (!secret) {
+			throw fwcError.other('TOTP secret not found');
+		}
+
+		const otpauth_url = speakeasy.otpauthURL({
+				secret,
+				label: encodeURIComponent(`FWCloud OpenVPN (${serverName}/${crt.cn})`),
+				encoding: 'base32',
+			});
+
+		const dataURL = await QRCode.toDataURL(otpauth_url);
+
+		res.status(200).json({
+			secret,
+			otpauth_url,
+			dataURL,
+		});
+	} catch (error) {
+		logger().error('Error regenerating openvpn 2fa data: ' + Object.prototype.hasOwnProperty(error, 'message') ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
+		if (error.message)
+			res.status(400).json({ message: error.message });
+		else
+			res.status(400).json(error);
+	}
+});
 
 module.exports = router;
