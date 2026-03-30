@@ -1147,10 +1147,11 @@ router.put('/2fa/client', async (req, res, next) => {
 				content: secretFileContent
 			}], channel);
 
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
 			totpData = {
-				secret: secret.base32,
-				otpauth_url: secret.otpauth_url,
-				dataURL: qrCode
+				secret: await pgp.encrypt(secret.base32),
+				otpauth_url: await pgp.encrypt(secret.otpauth_url),
+				dataURL: await pgp.encrypt(qrCode)
 			};
 		} else {
 			const channel = await Channel.fromRequest(req);
@@ -1269,11 +1270,19 @@ router.put('/2fa/regenerate', async (req, res, next) => {
 
 		const dataURL = await QRCode.toDataURL(otpauth_url);
 
-		res.status(200).json({
+		const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+
+		let data = {
 			secret,
 			otpauth_url,
 			dataURL,
-		});
+		};
+
+		data.secret = await pgp.encrypt(data.secret);
+		data.otpauth_url = await pgp.encrypt(data.otpauth_url);
+		data.dataURL = await pgp.encrypt(data.dataURL);
+
+		res.status(200).json(data);
 	} catch (error) {
 		logger().error('Error regenerating openvpn 2fa data: ' + Object.prototype.hasOwnProperty(error, 'message') ? error.message : JSON.stringify(error));
 
