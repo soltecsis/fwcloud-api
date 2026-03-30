@@ -133,6 +133,7 @@ export abstract class Communication<ConnectionData> {
     files: string[],
     channel?: EventEmitter,
   ): Promise<void>;
+  abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
