@@ -9,6 +9,7 @@ import { createUser, generateSession, attachSession } from '../../../../utils/ut
 import { Application } from '../../../../../src/Application';
 import request = require('supertest');
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { PgpHelper } from '../../../../../src/utils/pgp';
 import sinon from 'sinon';
 
 let app: Application;
@@ -23,6 +24,7 @@ const SERVER_ENABLED_ROUTE = '/vpn/openvpn/2fa/server/enabled';
 const SERVER_CLIENTS_ENABLED_ROUTE = '/vpn/openvpn/2fa/server/clients/enabled';
 const SERVER_2FA_ROUTE = '/vpn/openvpn/2fa/server';
 const CLIENT_2FA_ROUTE = '/vpn/openvpn/2fa/client';
+const REGENERATE_2FA_ROUTE = '/vpn/openvpn/2fa/regenerate';
 
 describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
   beforeEach(async () => {
@@ -243,6 +245,9 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         uninstallOpenVPNConfigs,
       } as any);
 
+      // Stub encryption to return the text as is for easier assertions
+      sinon.stub(PgpHelper.prototype, 'encrypt').callsFake(async (text: string) => text);
+
       await request(app.express)
         .put(CLIENT_2FA_ROUTE)
         .set('Cookie', [attachSession(adminUserSessionId)])
@@ -296,6 +301,144 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
           expect(refreshed.tfaEnabled).to.equal(0);
           expect(uninstallOpenVPNConfigs.called).to.equal(true);
           expect(installOpenVPNServerConfigs.called).to.equal(true);
+        });
+    });
+  });
+
+  describe('regenerate 2FA secret', () => {
+    it('guest user should not regenerate 2FA secret', async () => {
+      await request(app.express)
+        .put(REGENERATE_2FA_ROUTE)
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(401);
+        });
+    });
+
+    it('admin user should return error when the OpenVPN is not a client', async () => {
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({} as any);
+
+      await request(app.express)
+        .put(REGENERATE_2FA_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnServer.id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(400);
+          expect(response.body.fwcErr).to.equal(6002);
+        });
+    });
+
+    it('admin user should return error when parent server not found', async () => {
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({} as any);
+
+      // Create a client without parent server
+      const clientCrt = await manager.getRepository(Crt).save(
+        manager.getRepository(Crt).create({
+          caId: fwcProduct.ca.id,
+          cn: 'OpenVPN-Cli-Orphan',
+          days: 1000,
+          type: 1,
+        }),
+      );
+
+      const orphanClient = await manager.getRepository(OpenVPN).save(
+        manager.getRepository(OpenVPN).create({
+          parentId: null, // No parent server
+          firewallId: fwcProduct.firewall.id,
+          crtId: clientCrt.id,
+          tfaEnabled: 0,
+        }),
+      );
+
+      await request(app.express)
+        .put(REGENERATE_2FA_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: orphanClient.id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(400);
+          expect(response.body.msg).to.include('OpenVPN parent server not found');
+        });
+    });
+
+    it('admin user should regenerate 2FA secret when secret is provided', async () => {
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({} as any);
+      sinon.stub(PgpHelper.prototype, 'encrypt').callsFake(async (text: string) => text);
+
+      await request(app.express)
+        .put(REGENERATE_2FA_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+          secret: 'JBSWY3DPEBLW64TMMQ======',
+        })
+        .then((response) => {
+          expect(response.status).to.equal(200);
+          expect(response.body.secret).to.be.a('string');
+          expect(response.body.otpauth_url).to.be.a('string');
+          expect(response.body.dataURL).to.be.a('string');
+        });
+    });
+
+    it('admin user should regenerate 2FA secret by reading from remote firewall', async () => {
+      const readOpenVPNFile = sinon
+        .stub()
+        .resolves('JBSWY3DPEBLW64TMMQ======\n"TOTP_AUTH\n"WINDOW_SIZE 3');
+
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        readOpenVPNFile,
+      } as any);
+
+      sinon.stub(PgpHelper.prototype, 'encrypt').callsFake(async (text: string) => text);
+
+      await request(app.express)
+        .put(REGENERATE_2FA_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(200);
+          expect(response.body.secret).to.be.a('string');
+          expect(response.body.otpauth_url).to.be.a('string');
+          expect(response.body.dataURL).to.be.a('string');
+          expect(readOpenVPNFile.called).to.equal(true);
+        });
+    });
+
+    it('admin user should return error when TOTP secret is not found remotely', async () => {
+      const readOpenVPNFile = sinon.stub().resolves('"TOTP_AUTH\n"WINDOW_SIZE 3');
+
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        readOpenVPNFile,
+      } as any);
+
+      await request(app.express)
+        .put(REGENERATE_2FA_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(400);
+          expect(response.body.msg).to.include('TOTP secret not found');
         });
     });
   });
