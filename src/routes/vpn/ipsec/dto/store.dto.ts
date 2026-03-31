@@ -42,34 +42,46 @@ export const IPSEC_OPTIONS = [
   'CA Certificate',
   'type',
   '<<disable>>',
+  '<<left-psk-key>>',
+  '<<right-psk-key>>',
 ] as const;
 
 export type IpsecOptionType = (typeof IPSEC_OPTIONS)[number];
+export const IPSEC_LEFT_PSK_KEY_OPTION = '<<left-psk-key>>';
+export const IPSEC_RIGHT_PSK_KEY_OPTION = '<<right-psk-key>>';
+
 @ValidatorConstraint({ name: 'IPSecOptionValidator', async: false })
 export class IPSecOptionValidator implements ValidatorConstraintInterface {
   validate(value: string, args: ValidationArguments) {
     const option = args.object as IPSecOptionDTO;
-    if (!value) return true;
+    const normalizedValue = typeof value === 'string' ? value.trim() : value;
+
+    if (option.name === IPSEC_LEFT_PSK_KEY_OPTION || option.name === IPSEC_RIGHT_PSK_KEY_OPTION) {
+      return typeof normalizedValue === 'string' && normalizedValue.length >= 8;
+    }
+    if (!normalizedValue) return true;
+
+    const optionValue = normalizedValue.toString();
 
     switch (option.name) {
       case 'left':
       case 'right':
         // IP, domain, %any, %defaultroute
         return (
-          /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(value) || // IPv4 (with optional CIDR)
-          value === '%any' ||
-          value === '%defaultroute' ||
-          /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/.test(value) // domain
+          /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(optionValue) || // IPv4 (with optional CIDR)
+          optionValue === '%any' ||
+          optionValue === '%defaultroute' ||
+          /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/.test(optionValue) // domain
         );
 
       case 'leftid':
       case 'rightid':
         // "@domain" or DN, allow quoted or unquoted
         return (
-          /^@[\w.-]+\.\w{2,}$/.test(value) || // unquoted @domain
-          /^"@[\w.-]+\.\w{2,}"$/.test(value) || // quoted @domain
-          /^([a-zA-Z]+=[^,]+,?\s*)+$/.test(value) || // unquoted DN
-          /^"([a-zA-Z]+=[^,]+,?\s*)+"$/.test(value) // quoted DN
+          /^@[\w.-]+\.\w{2,}$/.test(optionValue) || // unquoted @domain
+          /^"@[\w.-]+\.\w{2,}"$/.test(optionValue) || // quoted @domain
+          /^([a-zA-Z]+=[^,]+,?\s*)+$/.test(optionValue) || // unquoted DN
+          /^"([a-zA-Z]+=[^,]+,?\s*)+"$/.test(optionValue) // quoted DN
         );
 
       case 'leftcert':
@@ -77,12 +89,12 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'Certificate':
       case 'CA Certificate':
         // .crt or .pem
-        return /^[\w.-]+\.(crt|pem)$/.test(value);
+        return /^[\w.-]+\.(crt|pem)$/.test(optionValue);
 
       case 'leftsubnet':
       case 'rightsubnet':
         // IP/CIDR, comma separated
-        return value
+        return optionValue
           .split(',')
           .map((v) => v.trim())
           .every((part) =>
@@ -94,53 +106,49 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
       case 'leftsourceip':
       case 'rightsourceip':
         // %config or IP
-        return value === '%config' || /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
+        return optionValue === '%config' || /^(\d{1,3}\.){3}\d{1,3}$/.test(optionValue);
 
       case 'leftauth':
       case 'rightauth':
-        // pubkey, psk, eap
-        return ['pubkey', 'psk', 'eap'].includes(value.toLowerCase());
+        // psk, cert (UI) + pubkey/eap (legacy compatibility)
+        return ['pubkey', 'psk', 'eap', 'cert'].includes(optionValue.toLowerCase());
 
       case 'ike':
       case 'esp':
         // proposal: alg-hash[-dhgroup][!], allow comma-separated list
-        return value
+        return optionValue
           .split(',')
           .map((v) => v.trim())
           .every((part) => part.length > 0 && /^([a-z0-9]+-){1,2}[a-z0-9]+(!)?$/.test(part));
 
       case 'keyexchange':
         // ikev1 / ikev2
-        return ['ikev1', 'ikev2'].includes(value);
+        return ['ikev1', 'ikev2'].includes(optionValue);
 
       case 'dpdaction':
         // clear, hold, restart, restart-by-peer, none
-        return ['clear', 'hold', 'restart', 'restart-by-peer', 'none'].includes(value);
+        return ['clear', 'hold', 'restart', 'restart-by-peer', 'none'].includes(optionValue);
 
       case 'dpddelay':
         // duration: 300s, 10m
-        return /^\d+(s|m)$/.test(value);
+        return /^\d+(s|m)$/.test(optionValue);
 
       case 'leftfirewall':
       case 'rekey':
         // yes/no/true/false
-        return ['yes', 'no', 'true', 'false'].includes(value.toLowerCase());
+        return ['yes', 'no', 'true', 'false'].includes(optionValue.toLowerCase());
 
       case 'charondebug':
         // e.g. ike 1, knl 2
-        return /^([a-z]{3,5} \d)(,\s*[a-z]{3,5} \d)*$/.test(value);
+        return /^([a-z]{3,5} \d)(,\s*[a-z]{3,5} \d)*$/.test(optionValue);
 
       case 'auto':
         // add, start, route, ignore
-        return ['add', 'start', 'route', 'ignore'].includes(value);
-
-      case 'PSK':
-        // min 8 chars
-        return value.length >= 8;
+        return ['add', 'start', 'route', 'ignore'].includes(optionValue);
 
       case 'type':
         // tunnel, transport
-        return ['tunnel', 'transport'].includes(value);
+        return ['tunnel', 'transport'].includes(optionValue);
 
       default:
         return true;
@@ -150,6 +158,44 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
   defaultMessage(args: ValidationArguments) {
     const option = args.object as IPSecOptionDTO;
     return `Invalid value for ${option.name}`;
+  }
+}
+
+@ValidatorConstraint({ name: 'IPSecPskKeyDependencyValidator', async: false })
+export class IPSecPskKeyDependencyValidator implements ValidatorConstraintInterface {
+  validate(options: IPSecOptionDTO[]) {
+    if (!Array.isArray(options)) return true;
+
+    const hasLeftPskAuth = options.some(
+      (option) =>
+        option?.name === 'leftauth' &&
+        typeof option?.arg === 'string' &&
+        option.arg.trim().toLowerCase() === 'psk',
+    );
+    const hasRightPskAuth = options.some(
+      (option) =>
+        option?.name === 'rightauth' &&
+        typeof option?.arg === 'string' &&
+        option.arg.trim().toLowerCase() === 'psk',
+    );
+    if (!hasLeftPskAuth && !hasRightPskAuth) return true;
+
+    const leftPskKeyOption = options.find((option) => option?.name === IPSEC_LEFT_PSK_KEY_OPTION);
+    const rightPskKeyOption = options.find((option) => option?.name === IPSEC_RIGHT_PSK_KEY_OPTION);
+
+    const leftKeyIsValid =
+      typeof leftPskKeyOption?.arg === 'string' && leftPskKeyOption.arg.trim().length >= 8;
+    const rightKeyIsValid =
+      typeof rightPskKeyOption?.arg === 'string' && rightPskKeyOption.arg.trim().length >= 8;
+
+    if (hasLeftPskAuth && !leftKeyIsValid) return false;
+    if (hasRightPskAuth && !rightKeyIsValid) return false;
+
+    return true;
+  }
+
+  defaultMessage() {
+    return `Options ${IPSEC_LEFT_PSK_KEY_OPTION} and/or ${IPSEC_RIGHT_PSK_KEY_OPTION} are required (minimum 8 chars) when leftauth/rightauth is psk`;
   }
 }
 export class IPSecOptionDTO {
@@ -213,6 +259,7 @@ export class StoreDto {
 
   @IsArray()
   @ValidateNested({ each: true })
+  @Validate(IPSecPskKeyDependencyValidator)
   @Type(() => IPSecOptionDTO)
   options: IPSecOptionDTO[];
 

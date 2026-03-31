@@ -6,9 +6,10 @@ import {
   IsOptional,
   IsString,
   Matches,
+  Validate,
   ValidateNested,
 } from 'class-validator';
-import { IPSecOptionDTO } from './store.dto';
+import { IPSecOptionDTO, IPSecPskKeyDependencyValidator } from './store.dto';
 
 export class UpdateDto {
   @IsNotEmpty()
@@ -34,6 +35,7 @@ export class UpdateDto {
 
   @IsArray()
   @ValidateNested({ each: true })
+  @Validate(IPSecPskKeyDependencyValidator)
   @Type(() => IPSecOptionDTO)
   options: IPSecOptionDTO[];
 

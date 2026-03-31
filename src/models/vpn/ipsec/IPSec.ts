@@ -51,7 +51,11 @@ import { Request } from 'express';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import fs from 'fs';
-import { IPSEC_OPTIONS } from '../../../routes/vpn/ipsec/dto/store.dto';
+import {
+  IPSEC_OPTIONS,
+  IPSEC_LEFT_PSK_KEY_OPTION,
+  IPSEC_RIGHT_PSK_KEY_OPTION,
+} from '../../../routes/vpn/ipsec/dto/store.dto';
 import config from '../../../config/config';
 import path from 'path';
 
@@ -153,6 +157,45 @@ export class IPSec extends Model {
     return tableName;
   }
 
+  private static isPskKeyOption(option: any): boolean {
+    return [IPSEC_LEFT_PSK_KEY_OPTION, IPSEC_RIGHT_PSK_KEY_OPTION].includes(option?.name);
+  }
+
+  private static async encryptPskOptionArg(option: any): Promise<any> {
+    if (
+      !this.isPskKeyOption(option) ||
+      typeof option?.arg !== 'string' ||
+      option.arg.trim().length === 0
+    ) {
+      return option;
+    }
+
+    const encryptedArg = await utilsModel.encrypt(option.arg);
+    return { ...option, arg: encryptedArg };
+  }
+
+  private static decryptPskOptionArg(option: any): any {
+    if (
+      !this.isPskKeyOption(option) ||
+      typeof option?.arg !== 'string' ||
+      option.arg.trim().length === 0
+    ) {
+      return option;
+    }
+
+    try {
+      return { ...option, arg: utilsModel.decrypt(option.arg) };
+    } catch (error) {
+      // Keep original value for legacy plaintext rows.
+      return option;
+    }
+  }
+
+  private static decryptPskOptionArgs(options: any[]): any[] {
+    if (!Array.isArray(options) || options.length === 0) return options;
+    return options.map((option) => this.decryptPskOptionArg(option));
+  }
+
   // Insert new IPSec configuration register in the database.
   public static addCfg(req: Request): Promise<number> {
     return new Promise(async (resolve, reject) => {
@@ -215,24 +258,30 @@ export class IPSec extends Model {
   }
 
   public static addCfgOpt(req: Request, opt: any): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Try to update first. If no rows are affected, insert.
-      const updateSql = `UPDATE ipsec_opt SET ? WHERE ipsec = ? AND ipsec_cli = ? AND name = ?`;
-      req.dbCon.query(
-        updateSql,
-        [opt, opt.ipsec, opt.ipsec_cli, opt.name],
-        (updateError, updateResult) => {
-          if (updateError) return reject(updateError);
-          if (updateResult.affectedRows > 0) {
-            return resolve();
-          }
-          // If not updated, insert new
-          req.dbCon.query('INSERT INTO ipsec_opt SET ?', opt, (insertError) => {
-            if (insertError) return reject(insertError);
-            resolve();
-          });
-        },
-      );
+    return new Promise(async (resolve, reject) => {
+      try {
+        const optionToStore = await IPSec.encryptPskOptionArg(opt);
+
+        // Try to update first. If no rows are affected, insert.
+        const updateSql = `UPDATE ipsec_opt SET ? WHERE ipsec = ? AND ipsec_cli = ? AND name = ?`;
+        req.dbCon.query(
+          updateSql,
+          [optionToStore, optionToStore.ipsec, optionToStore.ipsec_cli, optionToStore.name],
+          (updateError, updateResult) => {
+            if (updateError) return reject(updateError);
+            if (updateResult.affectedRows > 0) {
+              return resolve();
+            }
+            // If not updated, insert new
+            req.dbCon.query('INSERT INTO ipsec_opt SET ?', optionToStore, (insertError) => {
+              if (insertError) return reject(insertError);
+              resolve();
+            });
+          },
+        );
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
@@ -434,7 +483,7 @@ export class IPSec extends Model {
         dbCon.query(optionsSql, [ipSec], (error, result) => {
           if (error) return reject(error);
 
-          data.options = result;
+          data.options = IPSec.decryptPskOptionArgs(result);
           data.type = type;
           resolve(data);
         });
@@ -458,10 +507,11 @@ export class IPSec extends Model {
       }
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
+        const decryptedResult = IPSec.decryptPskOptionArgs(result);
         if (name) {
-          resolve(result.length === 0 ? null : result[0]);
+          resolve(decryptedResult.length === 0 ? null : decryptedResult[0]);
         } else {
-          resolve(result);
+          resolve(decryptedResult);
         }
       });
     });
@@ -515,14 +565,15 @@ export class IPSec extends Model {
 
         dbCon.query(sql, (error, optionResults) => {
           if (error) return reject(error);
+          const decryptedOptionResults = IPSec.decryptPskOptionArgs(optionResults);
 
           // Get the IP object IDs of the options
-          const ipObjIds = optionResults
+          const ipObjIds = decryptedOptionResults
             .map((opt: any) => opt.ipobj)
             .filter((id: number) => id !== null);
           // If there is no ipobj, return the result without making another query
           if (ipObjIds.length === 0) {
-            const optionsMap = optionResults.reduce((acc: any, option: any) => {
+            const optionsMap = decryptedOptionResults.reduce((acc: any, option: any) => {
               if (!acc[option.ipsec]) acc[option.ipsec] = [];
               option.ipobj = null;
               acc[option.ipsec].push(option);
@@ -549,7 +600,7 @@ export class IPSec extends Model {
             }, {});
 
             // Add the ipobj information inside each option
-            const optionsMap = optionResults.reduce((acc: any, option: any) => {
+            const optionsMap = decryptedOptionResults.reduce((acc: any, option: any) => {
               if (!acc[option.ipsec]) acc[option.ipsec] = [];
               option.ipobj = ipObjMap[option.ipobj] || null;
               acc[option.ipsec].push(option);
@@ -765,31 +816,39 @@ export class IPSec extends Model {
 
         // Get options
         const optionsList = IPSEC_OPTIONS.map((opt) => `'${opt}'`).join(',');
+        const hiddenDumpOptionsList = [
+          '<<disable>>',
+          IPSEC_LEFT_PSK_KEY_OPTION,
+          IPSEC_RIGHT_PSK_KEY_OPTION,
+        ]
+          .map((opt) => `'${opt}'`)
+          .join(',');
         const sqlOpts = `
         SELECT *
         FROM ipsec_opt OPT
         WHERE OPT.ipsec = ?
         AND OPT.ipsec_cli IS NULL
         AND OPT.name IN (${optionsList})
-        AND OPT.name != '<<disable>>'
+        AND OPT.name NOT IN (${hiddenDumpOptionsList})
         ORDER BY OPT.order
       `;
-        const optResult: IPSecOption[] = await new Promise((res, rej) =>
+        const optResultRaw: IPSecOption[] = await new Promise((res, rej) =>
           dbCon.query(sqlOpts, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
+        const optResult = IPSec.decryptPskOptionArgs(optResultRaw) as IPSecOption[];
 
         // charondebug
         const charondebugOpt = optResult.find((opt) => opt.name === 'charondebug');
         if (charondebugOpt) {
-          if (certInfo.srv_config1) {
-            ips_cfg += ` charondebug="${charondebugOpt.arg}"\n\nconn %default\n`;
-          } else {
-            ips_cfg += ` charondebug="${charondebugOpt.arg}"\n\nconn ${certInfo.cn}\n`;
-          }
+          const connName = certInfo.srv_config1 && hasCertificate ? '%default' : certInfo.cn;
+          ips_cfg += ` charondebug="${charondebugOpt.arg}"\n\nconn ${connName}\n`;
         }
 
         // Other options
-        const filteredOpts = optResult.filter((opt) => opt.name !== 'charondebug');
+        const filteredOpts = optResult.filter(
+          (opt) =>
+            opt.name !== 'charondebug' && opt.name !== '<<disable>>' && !IPSec.isPskKeyOption(opt),
+        );
         const interfaceLines = filteredOpts.map((opt) => {
           const commentLines = opt.comment ? opt.comment.replace(/\n/g, '\n# ') : '';
           const formattedComment = commentLines ? `#${commentLines}\n` : '';
@@ -891,6 +950,8 @@ export class IPSec extends Model {
           }
           switch (option.option_name) {
             case '<<disable>>':
+            case IPSEC_LEFT_PSK_KEY_OPTION:
+            case IPSEC_RIGHT_PSK_KEY_OPTION:
               return '';
             case 'rightsubnet': {
               const value = option.option_value || '';
