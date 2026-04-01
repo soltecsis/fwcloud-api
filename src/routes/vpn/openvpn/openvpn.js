@@ -1136,6 +1136,7 @@ router.put('/2fa/client', async (req, res, next) => {
 			}
 
 			const secret = speakeasy.generateSecret({
+				name: `FWCloud OpenVPN (${serverName}/${crt.cn})`,
 				length: 32
 			});
 			const secretFileContent = buildClient2FASecretFile(secret);
