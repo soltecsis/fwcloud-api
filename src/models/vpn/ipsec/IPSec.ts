@@ -813,6 +813,10 @@ export class IPSec extends Model {
           dbCon.query(sql, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
         );
         if (!ipsecResult) return reject(fwcError.other('IPSec configuration not found'));
+        const hasParentIPSec = ipsecResult.ipsec !== null;
+        const hasConfigCertificate = ipsecResult.crt !== null && ipsecResult.crt !== undefined;
+        const isClientWithoutServer = !hasConfigCertificate;
+        const isClient = hasParentIPSec || isClientWithoutServer;
 
         // Get options
         const optionsList = IPSEC_OPTIONS.map((opt) => `'${opt}'`).join(',');
@@ -840,37 +844,64 @@ export class IPSec extends Model {
         // charondebug
         const charondebugOpt = optResult.find((opt) => opt.name === 'charondebug');
         if (charondebugOpt) {
-          const connName = certInfo.srv_config1 && hasCertificate ? '%default' : certInfo.cn;
-          ips_cfg += ` charondebug="${charondebugOpt.arg}"\n\nconn ${connName}\n`;
+          if (isClientWithoutServer) {
+            ips_cfg += ` charondebug="${charondebugOpt.arg}"\n\n`;
+          } else {
+            const connName = certInfo.srv_config1 && hasCertificate ? '%default' : certInfo.cn;
+            ips_cfg += ` charondebug="${charondebugOpt.arg}"\n\nconn ${connName}\n`;
+          }
         }
 
         // Other options
-        const filteredOpts = optResult.filter(
-          (opt) =>
-            opt.name !== 'charondebug' && opt.name !== '<<disable>>' && !IPSec.isPskKeyOption(opt),
-        );
-        const interfaceLines = filteredOpts.map((opt) => {
-          const commentLines = opt.comment ? opt.comment.replace(/\n/g, '\n# ') : '';
-          const formattedComment = commentLines ? `#${commentLines}\n` : '';
-          return ` ${formattedComment}${opt.name} = ${opt.arg}`;
-        });
-        ips_cfg += interfaceLines.length ? interfaceLines.join('\n') + '\n\n' : '\n';
-
-        // Check if client
-        const sqlCheckIsClient = `SELECT ipsec, crt FROM ipsec WHERE id=?`;
-        const [checkResult] = await new Promise<any[]>((res, rej) =>
-          dbCon.query(sqlCheckIsClient, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
-        );
-        if (!checkResult) return reject(new Error('IPSec configuration not found'));
-        const hasParentIPSec = checkResult.ipsec !== null;
-        const hasConfigCertificate = checkResult.crt !== null && checkResult.crt !== undefined;
-        const isClientWithoutServer = !hasConfigCertificate;
-        const isClient = hasParentIPSec || isClientWithoutServer;
+        if (!isClientWithoutServer) {
+          const filteredOpts = optResult.filter(
+            (opt) =>
+              opt.name !== 'charondebug' &&
+              opt.name !== '<<disable>>' &&
+              !IPSec.isPskKeyOption(opt),
+          );
+          const interfaceLines = filteredOpts.map((opt) => {
+            const commentLines = opt.comment ? opt.comment.replace(/\n/g, '\n# ') : '';
+            const formattedComment = commentLines ? `#${commentLines}\n` : '';
+            return ` ${formattedComment}${opt.name} = ${opt.arg}`;
+          });
+          ips_cfg += interfaceLines.length ? interfaceLines.join('\n') + '\n\n' : '\n';
+        } else if (!charondebugOpt) {
+          ips_cfg += '\n';
+        }
 
         // Get peers
         let sqlPeers: string;
+        let sqlPeersParams: any[] = [ipSec];
         if (isClient) {
-          sqlPeers = `
+          if (isClientWithoutServer) {
+            const clientWithoutServerOptionsList = IPSEC_OPTIONS.filter(
+              (opt) =>
+                opt !== 'charondebug' &&
+                opt !== IPSEC_LEFT_PSK_KEY_OPTION &&
+                opt !== IPSEC_RIGHT_PSK_KEY_OPTION,
+            )
+              .map((opt) => `'${opt}'`)
+              .join(',');
+            sqlPeers = `
+        SELECT PEER.*,
+               COALESCE(PEER.name, CONCAT('IPSec-', PEER.id)) AS conn_name,
+               OPT.name option_name,
+               OPT.arg option_value,
+               OPT.comment option_comment,
+               OPT.ipsec_cli
+        FROM ipsec PEER
+        LEFT JOIN ipsec_opt OPT ON OPT.ipsec=PEER.id
+                              AND OPT.ipsec_cli IS NULL
+                              AND OPT.name IN (${clientWithoutServerOptionsList})
+        WHERE PEER.firewall=?
+          AND PEER.ipsec IS NULL
+          AND PEER.crt IS NULL
+        ORDER BY PEER.id, OPT.order
+        `;
+            sqlPeersParams = [ipsecResult.firewall];
+          } else {
+            sqlPeers = `
         SELECT PEER.*, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
         FROM ipsec_opt OPT
         INNER JOIN ipsec PEER ON PEER.id=OPT.ipsec
@@ -879,6 +910,7 @@ export class IPSec extends Model {
           AND OPT.ipsec_cli IS NULL
         ORDER BY OPT.name
         `;
+          }
         } else {
           sqlPeers = `
         SELECT PEER.*, CRT.cn AS crt_cn, CRT.ca AS crt_ca, OPT.name option_name, OPT.arg option_value, OPT.comment option_comment
@@ -891,18 +923,20 @@ export class IPSec extends Model {
         `;
         }
         const peerResult: any[] = await new Promise((res, rej) =>
-          dbCon.query(sqlPeers, [ipSec], (err, rows) => (err ? rej(err) : res(rows))),
+          dbCon.query(sqlPeers, sqlPeersParams, (err, rows) => (err ? rej(err) : res(rows))),
         );
 
         // Group peers by id
         const peerGroups = peerResult.reduce((groups: any, peer: any) => {
           if (!groups[peer.id]) groups[peer.id] = { ...peer, options: [] };
-          groups[peer.id].options.push({
-            option_name: peer.option_name,
-            option_value: peer.option_value,
-            option_comment: peer.option_comment,
-            option_isClient: peer.ipsec_cli !== null,
-          });
+          if (peer.option_name) {
+            groups[peer.id].options.push({
+              option_name: peer.option_name,
+              option_value: peer.option_value,
+              option_comment: peer.option_comment,
+              option_isClient: peer.ipsec_cli !== null,
+            });
+          }
           return groups;
         }, {});
 
@@ -979,6 +1013,9 @@ export class IPSec extends Model {
             if (rightcert) {
               section += `${isDisabled ? '# ' : ''}conn ${rightcert.split('.')[0]}\n`;
             }
+          } else if (isClientWithoutServer) {
+            const connName = peer.conn_name || `IPSec-${peer.id}`;
+            section += `${isDisabled ? '# ' : ''}conn ${connName}\n`;
           }
           for (const option of peer.options) {
             section += await formatOption(option, isDisabled, alreadyAdded);
