@@ -40,7 +40,7 @@ export class RoutingCompiler {
     let cs = '';
 
     for (let i = 0; i < items.length; i++)
-      cs += `$IP rule add ${items[i]} table ${ruleData.routingTable.number}\n`;
+      cs += `$IP rule add priority ${1001 + i} ${items[i]} table ${ruleData.routingTable.number}\n`;
 
     // Apply routing rule only to the selected firewall.
     if (ruleData.firewallApplyTo && ruleData.firewallApplyTo.name)
@@ -51,7 +51,7 @@ export class RoutingCompiler {
 
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
     const items = this.breakDownItems(routeData.items, '');
-    const gw = routeData.gateway.address;
+    const gw = routeData.gateway ? routeData.gateway.address : null;
     const dev =
       routeData.interface && routeData.interface.name ? ` dev ${routeData.interface.name} ` : ' ';
     let cs = '';
@@ -59,7 +59,7 @@ export class RoutingCompiler {
     if (items.length == 0) items.push('default');
 
     for (let i = 0; i < items.length; i++)
-      cs += `$IP route add ${items[i]} via ${gw}${dev}table ${routeData.routingTable.number}\n`;
+      cs += `$IP route add ${items[i]}${gw ? ` via ${gw} ` : ''}${dev}table ${routeData.routingTable.number}\n`;
 
     // Apply route only to the selected firewall.
     if (routeData.firewallApplyTo && routeData.firewallApplyTo.name)
