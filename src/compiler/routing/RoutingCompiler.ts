@@ -52,14 +52,24 @@ export class RoutingCompiler {
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
     const items = this.breakDownItems(routeData.items, '');
     const gw = routeData.gateway ? routeData.gateway.address : null;
-    const dev =
-      routeData.interface && routeData.interface.name ? ` dev ${routeData.interface.name} ` : ' ';
+    const dev = routeData.interface && routeData.interface.name ? routeData.interface.name : null;
     let cs = '';
 
     if (items.length == 0) items.push('default');
 
-    for (let i = 0; i < items.length; i++)
-      cs += `$IP route add ${items[i]}${gw ? ` via ${gw} ` : ''}${dev}table ${routeData.routingTable.number}\n`;
+    for (let i = 0; i < items.length; i++) {
+      const parts = [
+        '$IP',
+        'route',
+        'add',
+        items[i],
+        gw ? `via ${gw}` : null,
+        dev ? `dev ${dev}` : null,
+        `table ${routeData.routingTable.number}`,
+      ].filter(Boolean);
+
+      cs += `${parts.join(' ')}\n`;
+    }
 
     // Apply route only to the selected firewall.
     if (routeData.firewallApplyTo && routeData.firewallApplyTo.name)

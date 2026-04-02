@@ -290,4 +290,32 @@ describe(RouteRepository.name, () => {
       expect((await repository.findOne({ where: { id: routeOrder4.id } })).route_order).to.eq(2);
     });
   });
+
+  describe('getRoutingTableRoutes', () => {
+    it('should include routes without gateway', async () => {
+      const routeWithGateway: Route = await repository.save({
+        routingTableId: table.id,
+        route_order: 1,
+        gatewayId: gateway.id,
+      });
+
+      const routeWithoutGateway: Route = await repository.save({
+        routingTableId: table.id,
+        route_order: 2,
+        gatewayId: null,
+      });
+
+      const routes: Route[] = await repository.getRoutingTableRoutes(
+        fwCloud.id,
+        firewall.id,
+        table.id,
+      );
+
+      expect(routes.map((item) => item.id)).to.deep.eq([
+        routeWithGateway.id,
+        routeWithoutGateway.id,
+      ]);
+      expect(routes[1].gatewayId).to.be.null;
+    });
+  });
 });
