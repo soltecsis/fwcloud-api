@@ -397,6 +397,23 @@ describe('Routing route compiler', async () => {
     });
   });
 
+  describe('Compilation of route without gateway', () => {
+    it('should include default route with interface and without gateway', () => {
+      const cs = compiler.routeCompile({
+        items: [],
+        gateway: null,
+        interface: {
+          name: dev,
+        },
+        routingTable: {
+          number: rtn,
+        },
+      } as any);
+
+      expect(cs).to.equal(`${head} default dev ${dev} table ${rtn}\n`);
+    });
+  });
+
   describe('Compile only some routes', () => {
     it('should compile only route 2', async () => {
       const ids = [fwc.routes.get('route2').id];

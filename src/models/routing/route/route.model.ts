@@ -53,14 +53,17 @@ export class Route extends Model {
   })
   routingTable: RoutingTable;
 
-  @Column({ name: 'gateway' })
-  gatewayId: number;
+  @Column({
+    name: 'gateway',
+    nullable: true,
+  })
+  gatewayId: number | null;
 
   @ManyToOne((type) => IPObj, (model) => model.routeGateways)
   @JoinColumn({
     name: 'gateway',
   })
-  gateway: IPObj;
+  gateway: IPObj | null;
 
   @Column({ name: 'interface' })
   interfaceId: number;
