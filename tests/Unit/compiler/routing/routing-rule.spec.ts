@@ -47,6 +47,8 @@ describe('Routing rule compiler', () => {
   let manager: EntityManager;
   const escapeRegExp = (value: string): string =>
     value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\n/g, '\\n');
+  const getRulePriorities = (compiledCs: string): number[] =>
+    Array.from(compiledCs.matchAll(/priority (\d+)/g), (match) => Number(match[1]));
   const expectRuleIncludes = (compiledCs: string, expectedLineWithoutPriority: string): void => {
     const expectedPattern = escapeRegExp(expectedLineWithoutPriority).replace(
       '\\$IP rule add ',
@@ -81,6 +83,17 @@ describe('Routing rule compiler', () => {
   describe('Compilation of routing rule with objects', () => {
     before(() => {
       cs = compilation[0].cs;
+    });
+
+    it('should use one fixed priority per routing rule and increase by rule order', () => {
+      for (let i = 0; i < compilation.length; i++) {
+        if (!compilation[i].cs) continue;
+
+        const priorities = getRulePriorities(compilation[i].cs);
+        expect(priorities.length).to.be.greaterThan(0);
+        expect(new Set(priorities).size).to.equal(1);
+        expect(priorities[0]).to.equal(1001 + i);
+      }
     });
 
     it('should include rules with explicit priority', () => {
