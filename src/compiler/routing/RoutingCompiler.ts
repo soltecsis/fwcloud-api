@@ -35,12 +35,15 @@ export type RoutingCompiled = {
 };
 
 export class RoutingCompiler {
-  public ruleCompile(ruleData: RoutingRulesData<RoutingRuleItemForCompiler>): string {
+  public ruleCompile(
+    ruleData: RoutingRulesData<RoutingRuleItemForCompiler>,
+    priority = 1001,
+  ): string {
     const items = this.breakDownItems(ruleData.items, 'from ');
     let cs = '';
 
     for (let i = 0; i < items.length; i++)
-      cs += `$IP rule add priority ${1001 + i} ${items[i]} table ${ruleData.routingTable.number}\n`;
+      cs += `$IP rule add priority ${priority} ${items[i]} table ${ruleData.routingTable.number}\n`;
 
     // Apply routing rule only to the selected firewall.
     if (ruleData.firewallApplyTo && ruleData.firewallApplyTo.name)
@@ -104,7 +107,7 @@ export class RoutingCompiler {
           data[i].active || data.length === 1
             ? type == 'Route'
               ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>)
-              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>)
+              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>, 1001 + i)
             : '',
       });
     }
