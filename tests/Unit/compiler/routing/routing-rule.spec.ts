@@ -30,7 +30,7 @@ import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 
-describe.only('Routing rule compiler', () => {
+describe('Routing rule compiler', () => {
   let fwc: FwCloudProduct;
 
   let routingRuleService: RoutingRuleService;
