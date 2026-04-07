@@ -38,6 +38,84 @@ type SSHConnectionData = {
   options: any;
 };
 
+const OPENVPN_AUTH_PAM_PLUGIN_PATH_COMMAND = `
+for plugin_path in \
+  /usr/lib/openvpn/openvpn-plugin-auth-pam.so \
+  /usr/lib/openvpn/plugins/openvpn-plugin-auth-pam.so \
+  /usr/lib64/openvpn/openvpn-plugin-auth-pam.so \
+  /usr/lib64/openvpn/plugins/openvpn-plugin-auth-pam.so
+do
+  if [ -f "$plugin_path" ]; then
+    echo -n "$plugin_path"
+    exit 0
+  fi
+done
+
+plugin_path=$(dpkg -L openvpn 2>/dev/null | grep 'openvpn-plugin-auth-pam\\.so$' | head -n 1)
+if [ -n "$plugin_path" ]; then
+  echo -n "$plugin_path"
+  exit 0
+fi
+
+plugin_path=$(rpm -ql openvpn 2>/dev/null | grep 'openvpn-plugin-auth-pam\\.so$' | head -n 1)
+if [ -n "$plugin_path" ]; then
+  echo -n "$plugin_path"
+  exit 0
+fi
+
+plugin_path=$(find /usr/lib /usr/lib64 -name 'openvpn-plugin-auth-pam.so' 2>/dev/null | head -n 1)
+if [ -n "$plugin_path" ]; then
+  echo -n "$plugin_path"
+  exit 0
+fi
+
+exit 1
+`.trim();
+
+const OPENVPN_2FA_ENABLE_COMMAND = `
+if [ -r /etc/os-release ]; then
+  . /etc/os-release
+fi
+
+case "$ID $ID_LIKE" in
+  *rhel*|*centos*|*rocky*|*fedora*)
+    yum install -y epel-release
+    yum install -y google-authenticator
+    ;;
+  *)
+    apt-get install -y libpam-google-authenticator
+    ;;
+esac
+
+mkdir -p /etc/openvpn
+if [ ! -f /etc/openvpn/2fa_users.txt ]; then
+  touch /etc/openvpn/2fa_users.txt
+  chmod 600 /etc/openvpn/2fa_users.txt
+fi
+
+mkdir -p /etc/openvpn/google-authenticator
+chmod 700 /etc/openvpn/google-authenticator
+`.trim();
+
+const OPENVPN_2FA_DISABLE_COMMAND = `
+rm -f /etc/pam.d/openvpn
+rm -f /etc/openvpn/2fa_users.txt
+rm -rf /etc/openvpn/google-authenticator
+
+if [ -r /etc/os-release ]; then
+  . /etc/os-release
+fi
+
+case "$ID $ID_LIKE" in
+  *rhel*|*centos*|*rocky*|*fedora*)
+    yum remove -y google-authenticator
+    ;;
+  *)
+    apt-get remove -y libpam-google-authenticator
+    ;;
+esac
+`.trim();
+
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
     throw new Error('Method not implemented.');
@@ -498,8 +576,56 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
   }
 
-  installPlugin(name: string, enabled: boolean): Promise<string> {
-    throw new Error('Method not implemented.');
+  async installPlugin(
+    name: string,
+    enabled: boolean,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<string> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+
+      if (name !== 'openvpn-2fa') {
+        throw new Error('Method not implemented.');
+      }
+
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo ';
+      const remoteCommand = enabled ? OPENVPN_2FA_ENABLE_COMMAND : OPENVPN_2FA_DISABLE_COMMAND;
+
+      eventEmitter.emit(
+        'message',
+        new ProgressNoticePayload(
+          `${enabled ? 'Installing' : 'Removing'} OpenVPN 2FA plugin (${this.connectionData.host})`,
+        ),
+      );
+
+      await sshTools.runCommand(
+        this.connectionData,
+        `${sudo}sh -c '${remoteCommand.replace(/'/g, `'\\''`)}'`,
+        eventEmitter,
+      );
+
+      return '';
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async getOpenVPNAuthPamPluginPath(): Promise<string> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo ';
+      const command = `${sudo}sh -c '${OPENVPN_AUTH_PAM_PLUGIN_PATH_COMMAND.replace(/'/g, `'\\''`)}'`;
+      const pluginPath = await sshTools.runCommand(this.connectionData, command);
+
+      return pluginPath.trim();
+    } catch (error) {
+      this.handleRequestException(error);
+    }
   }
 
   installDHCPConfigs(

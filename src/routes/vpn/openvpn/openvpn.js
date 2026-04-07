@@ -78,11 +78,16 @@ const QRCode = require('qrcode');
 const OPENVPN_2FA_REQUIRED_OPTIONS = {
 	verifyClientCert: { name: 'verify-client-cert', arg: 'require' },
 	usernameAsCommonName: { name: 'username-as-common-name', arg: null },
-	pamPlugin: {
-		name: 'plugin',
-		arg: '/usr/lib/openvpn/openvpn-plugin-auth-pam.so openvpn'
-	}
+	pamPlugin: { name: 'plugin' }
 };
+
+const OPENVPN_AUTH_PAM_PLUGIN_ARG_SUFFIX = ' openvpn';
+
+const buildOpenVPNAuthPamPluginArg = (pluginPath) =>
+	`${pluginPath}${OPENVPN_AUTH_PAM_PLUGIN_ARG_SUFFIX}`;
+
+const isOpenVPNAuthPamPluginArg = (arg) =>
+	typeof arg === 'string' && /(^|\/)openvpn-plugin-auth-pam\.so openvpn$/.test(arg);
 
 const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
 	dbCon.query(sql, params, (error, result) => {
@@ -93,7 +98,8 @@ const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
 	});
 });
 
-const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, pamPluginPath) => {
+	const pamPluginArg = buildOpenVPNAuthPamPluginArg(pamPluginPath);
 	const options = await queryDb(
 		dbCon,
 		'SELECT id,name,arg,scope,comment,`order`,ipobj FROM openvpn_opt WHERE openvpn=? ORDER BY `order` ASC,id ASC',
@@ -105,15 +111,15 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 		options.find(
 			(option) =>
 				option.name === OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name &&
-				option.arg === OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg
+				isOpenVPNAuthPamPluginArg(option.arg)
 		);
 
 	const verifyClientCertOption = findByName(OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name);
 	if (verifyClientCertOption) {
-		if (verifyClientCertOption.arg !== OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg) {
+		if (verifyClientCertOption.arg !== OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg || verifyClientCertOption.comment !== null) {
 			await queryDb(
 				dbCon,
-				'UPDATE openvpn_opt SET arg=? WHERE id=?',
+				'UPDATE openvpn_opt SET arg=?, comment=NULL WHERE id=?',
 				[OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg, verifyClientCertOption.id]
 			);
 		}
@@ -128,6 +134,7 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 				arg: OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.arg,
 				scope: 1,
 				order: maxOrder + 1,
+				comment: null,
 				ipobj: null
 			}]
 		);
@@ -139,7 +146,8 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 		});
 	}
 
-	if (!findByName(OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name)) {
+	const usernameAsCommonNameOption = findByName(OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name);
+	if (!usernameAsCommonNameOption) {
 		const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
 		await queryDb(
 			dbCon,
@@ -150,6 +158,7 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 				arg: OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.arg,
 				scope: 1,
 				order: maxOrder + 1,
+				comment: null,
 				ipobj: null
 			}]
 		);
@@ -159,6 +168,12 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			scope: 1,
 			order: maxOrder + 1
 		});
+	} else if (usernameAsCommonNameOption.comment !== null) {
+		await queryDb(
+			dbCon,
+			'UPDATE openvpn_opt SET comment=NULL WHERE id=?',
+			[usernameAsCommonNameOption.id]
+		);
 	}
 
 	if (!findPluginOption()) {
@@ -169,12 +184,22 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			[{
 				openvpn: openvpnId,
 				name: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
-				arg: OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
+				arg: pamPluginArg,
 				scope: 1,
 				order: maxOrder + 1,
+				comment: null,
 				ipobj: null
 			}]
 		);
+	} else {
+		const pluginOption = findPluginOption();
+		if (pluginOption.arg !== pamPluginArg || pluginOption.comment !== null) {
+			await queryDb(
+				dbCon,
+				'UPDATE openvpn_opt SET arg=?, comment=NULL WHERE id=?',
+				[pamPluginArg, pluginOption.id]
+			);
+		}
 	}
 };
 
@@ -186,14 +211,14 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 		 WHERE openvpn=?
 			 AND (
 			 name=?
-			 OR (name=? AND arg=?)
+			 OR (name=? AND arg LIKE ?)
 			 OR name=?
 			 )`,
 		[
 			openvpnId,
 			OPENVPN_2FA_REQUIRED_OPTIONS.verifyClientCert.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.name,
-			OPENVPN_2FA_REQUIRED_OPTIONS.pamPlugin.arg,
+			'%openvpn-plugin-auth-pam.so openvpn',
 			OPENVPN_2FA_REQUIRED_OPTIONS.usernameAsCommonName.name
 		]
 	);
@@ -1025,8 +1050,10 @@ router.put('/2fa/server', async (req, res, next) => {
 				content: OPENVPN_PAM_2FA_CONTENT
 			}], channel);
 
+			const pamPluginPath = await communication.getOpenVPNAuthPamPluginPath();
+
 			// Ensure OpenVPN server has all directives required by certificate + user/pass authentication.
-			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn, pamPluginPath);
 
 			// Apply the generated server.conf right now. If this fails, we don't enable 2FA in database.
 			const openvpnCfg = await OpenVPN.getCfg(req);
