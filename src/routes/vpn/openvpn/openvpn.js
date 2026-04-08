@@ -62,7 +62,7 @@ import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
-import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import { ProgressPayload, ProgressSuccessPayload } from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import db from '../../../database/database-manager';
@@ -97,6 +97,59 @@ const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
 		resolve(result);
 	});
 });
+
+const getOpenVPN2FATaskId = (firewallId) => `openvpn-2fa-firewall-${firewallId}`;
+
+const getTargetFirewalls = async (firewall) => {
+	if (!firewall.clusterId) {
+		return [firewall];
+	}
+
+	return await db.getSource()
+		.manager.getRepository(Firewall)
+		.createQueryBuilder('firewall')
+		.where('firewall.cluster = :clusterId', { clusterId: firewall.clusterId })
+		.orderBy('firewall.fwmaster', 'DESC')
+		.addOrderBy('firewall.id', 'ASC')
+		.getMany();
+};
+
+const getCommunicationForFirewall = async (firewall, req) => {
+	if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+		const pgp = new PgpHelper(req.session.pgp);
+		return await firewall.getCommunication({
+			sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
+				? await pgp.decrypt(req.body.sshuser)
+				: undefined,
+			sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
+				? await pgp.decrypt(req.body.sshpass)
+				: undefined,
+		});
+	}
+
+	return await firewall.getCommunication();
+};
+
+const emitOpenVPN2FANodeStart = (channel, firewall, enabled, clusterName = null) => {
+	const action = enabled ? 'Enabling' : 'Disabling';
+	const message = clusterName
+		? `${action} OpenVPN 2FA on cluster '${clusterName}' node '${firewall.name}'`
+		: `${action} OpenVPN 2FA on firewall '${firewall.name}'`;
+
+	channel.emit('message', new ProgressPayload('start_task', false, message, getOpenVPN2FATaskId(firewall.id)));
+};
+
+const emitOpenVPN2FANodeEnd = (channel, firewall, enabled) => {
+	channel.emit(
+		'message',
+		new ProgressSuccessPayload(
+			enabled
+				? `OpenVPN 2FA enabled successfully on '${firewall.name}'`
+				: `OpenVPN 2FA disabled successfully on '${firewall.name}'`
+		)
+	);
+	channel.emit('message', new ProgressPayload('end_task', false, '', getOpenVPN2FATaskId(firewall.id)));
+};
 
 const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, pamPluginPath) => {
 	const pamPluginArg = buildOpenVPNAuthPamPluginArg(pamPluginPath);
@@ -958,28 +1011,15 @@ router.put('/2fa/server', async (req, res, next) => {
 		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
 			where: { id: req.body.firewall }
 		});
+		const targetFirewalls = await getTargetFirewalls(firewall);
+		const clusterName = req.body.cluster_name || req.body.parent_name || null;
 		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
 
 		const enabled = !!req.body.enabled;
 		const channel = await Channel.fromRequest(req);
-		let communication;
-		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-			const pgp = new PgpHelper(req.session.pgp);
-			communication = await firewall.getCommunication({
-				sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
-					? await pgp.decrypt(req.body.sshuser)
-					: undefined,
-				sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
-					? await pgp.decrypt(req.body.sshpass)
-					: undefined,
-			});
-		} else {
-			communication = await firewall.getCommunication();
-		}
-
-		if (!communication) {
+		if (!targetFirewalls.length) {
 			throw fwcError.VPN_2FA_AGENT_REQUIRED;
 		}
 
@@ -1013,7 +1053,7 @@ router.put('/2fa/server', async (req, res, next) => {
 				);
 
 			if (!hasOtherServersWith2FA) {
-				await communication.installPlugin('openvpn-2fa', false, channel);
+				// Plugin removal will be performed together with the config update in the per-node loop below.
 			}
 
 			await removeServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
@@ -1023,10 +1063,21 @@ router.put('/2fa/server', async (req, res, next) => {
 			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
 				throw fwcError.other('OpenVPN server install path or file name not found');
 			}
-			await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
-				content: cfgDump.cfg,
-				name: openvpnCfg.install_name
-			}], channel);
+			for (const targetFirewall of targetFirewalls) {
+				const communication = await getCommunicationForFirewall(targetFirewall, req);
+				if (!communication) {
+					throw fwcError.VPN_2FA_AGENT_REQUIRED;
+				}
+				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				if (!hasOtherServersWith2FA) {
+					await communication.installPlugin('openvpn-2fa', false, channel);
+				}
+				await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+					content: cfgDump.cfg,
+					name: openvpnCfg.install_name
+				}], channel);
+				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
+			}
 		} else {
 			// Check if any other server has 2FA enabled. If not, we must install the plugin before enable 2FA in this server.
 			const hasOtherServersWith2FA = firewall.clusterId
@@ -1042,14 +1093,13 @@ router.put('/2fa/server', async (req, res, next) => {
 				);
 
 			if (!hasOtherServersWith2FA) {
-				await communication.installPlugin('openvpn-2fa', true, channel);
+				// Plugin installation will be performed together with the config update in the per-node loop below.
 			}
 
-			await communication.installOpenVPNServerConfigs('/etc/pam.d', [{
-				name: 'openvpn',
-				content: OPENVPN_PAM_2FA_CONTENT
-			}], channel);
-
+			const communication = await getCommunicationForFirewall(targetFirewalls[0], req);
+			if (!communication) {
+				throw fwcError.VPN_2FA_AGENT_REQUIRED;
+			}
 			const pamPluginPath = await communication.getOpenVPNAuthPamPluginPath();
 
 			// Ensure OpenVPN server has all directives required by certificate + user/pass authentication.
@@ -1062,10 +1112,25 @@ router.put('/2fa/server', async (req, res, next) => {
 			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
 				throw fwcError.other('OpenVPN server install path or file name not found');
 			}
-			await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
-				content: cfgDump.cfg,
-				name: openvpnCfg.install_name
-			}], channel);
+			for (const targetFirewall of targetFirewalls) {
+				const targetCommunication = await getCommunicationForFirewall(targetFirewall, req);
+				if (!targetCommunication) {
+					throw fwcError.VPN_2FA_AGENT_REQUIRED;
+				}
+				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				if (!hasOtherServersWith2FA) {
+					await targetCommunication.installPlugin('openvpn-2fa', true, channel);
+				}
+				await targetCommunication.installOpenVPNServerConfigs('/etc/pam.d', [{
+					name: 'openvpn',
+					content: OPENVPN_PAM_2FA_CONTENT
+				}], channel);
+				await targetCommunication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+					content: cfgDump.cfg,
+					name: openvpnCfg.install_name
+				}], channel);
+				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
+			}
 		}
 
 		await new Promise((resolve, reject) => {
@@ -1100,6 +1165,8 @@ router.put('/2fa/client', async (req, res, next) => {
 		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
 			where: { id: req.body.firewall }
 		});
+		const targetFirewalls = await getTargetFirewalls(firewall);
+		const clusterName = req.body.cluster_name || req.body.parent_name || null;
 		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
 		if (crt.type !== 1) // This action only can be done in client OpenVPN configurations.
 			throw fwcError.VPN_NOT_CLI;
@@ -1108,22 +1175,7 @@ router.put('/2fa/client', async (req, res, next) => {
 			throw fwcError.other('OpenVPN client has no parent server');
 		}
 
-		let communication;
-		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-			const pgp = new PgpHelper(req.session.pgp);
-			communication = await firewall.getCommunication({
-				sshuser: Object.prototype.hasOwnProperty.call(req.body, 'sshuser')
-					? await pgp.decrypt(req.body.sshuser)
-					: undefined,
-				sshpassword: Object.prototype.hasOwnProperty.call(req.body, 'sshpass')
-					? await pgp.decrypt(req.body.sshpass)
-					: undefined,
-			});
-		} else {
-			communication = await firewall.getCommunication();
-		}
-
-		if (!communication) {
+		if (!targetFirewalls.length) {
 			throw fwcError.VPN_2FA_AGENT_REQUIRED;
 		}
 
@@ -1170,10 +1222,18 @@ router.put('/2fa/client', async (req, res, next) => {
 			const qrCode = await QRCode.toDataURL(secret.otpauth_url);
 
 			const channel = await Channel.fromRequest(req);
-			await communication.installOpenVPNServerConfigs('/etc/openvpn/google-authenticator', [{
-				name: crt.cn,
-				content: secretFileContent
-			}], channel);
+			for (const targetFirewall of targetFirewalls) {
+				const communication = await getCommunicationForFirewall(targetFirewall, req);
+				if (!communication) {
+					throw fwcError.VPN_2FA_AGENT_REQUIRED;
+				}
+				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				await communication.installOpenVPNServerConfigs('/etc/openvpn/google-authenticator', [{
+					name: crt.cn,
+					content: secretFileContent
+				}], channel);
+				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
+			}
 
 			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
 			totpData = {
@@ -1183,12 +1243,20 @@ router.put('/2fa/client', async (req, res, next) => {
 			};
 		} else {
 			const channel = await Channel.fromRequest(req);
-			try {
-				await communication.uninstallOpenVPNConfigs('/etc/openvpn/google-authenticator', [crt.cn], channel);
-			} catch (error) {
-				if (!error?.message || error.message.indexOf('Directory not found') === -1) {
-					throw error;
+			for (const targetFirewall of targetFirewalls) {
+				const communication = await getCommunicationForFirewall(targetFirewall, req);
+				if (!communication) {
+					throw fwcError.VPN_2FA_AGENT_REQUIRED;
 				}
+				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				try {
+					await communication.uninstallOpenVPNConfigs('/etc/openvpn/google-authenticator', [crt.cn], channel);
+				} catch (error) {
+					if (!error?.message || error.message.indexOf('Directory not found') === -1) {
+						throw error;
+					}
+				}
+				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
 			}
 		}
 
@@ -1214,10 +1282,16 @@ router.put('/2fa/client', async (req, res, next) => {
 
 		const usersListContent = enabledClients.map(client => client.crt.cn).join('\n') + '\n';
 
-		await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
-			name: '2fa_users.txt',
-			content: usersListContent
-		}], channel);
+		for (const targetFirewall of targetFirewalls) {
+			const communication = await getCommunicationForFirewall(targetFirewall, req);
+			if (!communication) {
+				throw fwcError.VPN_2FA_AGENT_REQUIRED;
+			}
+			await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
+				name: '2fa_users.txt',
+				content: usersListContent
+			}], channel);
+		}
 
 		if (enabled) {
 			res.status(200).json(totpData);
