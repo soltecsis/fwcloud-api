@@ -815,7 +815,7 @@ export class IPSec extends Model {
         if (!ipsecResult) return reject(fwcError.other('IPSec configuration not found'));
         const hasParentIPSec = ipsecResult.ipsec !== null;
         const hasConfigCertificate = ipsecResult.crt !== null && ipsecResult.crt !== undefined;
-        const isClientWithoutServer = !hasConfigCertificate;
+        const isClientWithoutServer = !hasParentIPSec && !hasConfigCertificate;
         const isClient = hasParentIPSec || isClientWithoutServer;
 
         // Get options
