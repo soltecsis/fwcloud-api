@@ -494,12 +494,19 @@ export class OpenVPN extends Model {
             let ovpn_ccd = '';
 
             let hasAuthUserPass = false;
+            let hasServerCNSetenv = false;
 
             // First add all the configuration options.
             for (const opt of result) {
+              if (vpnMeta.type === 1 && opt.name === 'auth-user-pass') {
+                continue;
+              }
+
               let cfg_line =
                 (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
               if (opt.name === 'auth-user-pass') hasAuthUserPass = true;
+              if (opt.name === 'setenv' && opt.arg === `SERVER_CN ${vpnMeta.cn}`)
+                hasServerCNSetenv = true;
               if (opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
@@ -529,18 +536,14 @@ export class OpenVPN extends Model {
               else ovpn_cfg += cfg_line + '\n';
             }
 
-            // If the OpenVPN server has 2FA enabled and the auth-user-pass option is not included in the configuration options,
-            // we will add it with the username (CN) and a dummy password (if TFA is not enabled) to force the user to enter the credentials and, if necessary, the TFA token.
-            // If we don't do this, the user will not be able to connect to the VPN server because it will not ask for the credentials and TFA token.
-            if (
-              vpnMeta.type === 1 &&
-              Number(vpnMeta.server_tfa_enabled) === 1 &&
-              !hasAuthUserPass
-            ) {
+            if (vpnMeta.type === 2 && Number(vpnMeta.tfa_enabled) === 1 && !hasServerCNSetenv) {
+              ovpn_cfg += `setenv SERVER_CN ${vpnMeta.cn}\n`;
+            }
+
+            // Client configs only embed auth-user-pass when 2FA is enabled for that specific client.
+            if (vpnMeta.type === 1 && Number(vpnMeta.tfa_enabled) === 1 && !hasAuthUserPass) {
               const username = vpnMeta.cn;
-              const passwordLine = Number(vpnMeta.tfa_enabled) === 1 ? '' : 'dummy_password\n';
-              ovpn_cfg +=
-                '<auth-user-pass>\n' + username + '\n' + passwordLine + '</auth-user-pass>\n';
+              ovpn_cfg += '<auth-user-pass>\n' + username + '\n</auth-user-pass>\n';
             }
 
             // Now read the files data and put it into de config files.
