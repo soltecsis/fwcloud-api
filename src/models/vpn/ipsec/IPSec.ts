@@ -51,11 +51,7 @@ import { Request } from 'express';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
 import fs from 'fs';
-import {
-  IPSEC_OPTIONS,
-  IPSEC_LEFT_PSK_KEY_OPTION,
-  IPSEC_RIGHT_PSK_KEY_OPTION,
-} from '../../../routes/vpn/ipsec/dto/store.dto';
+import { IPSEC_OPTIONS, PSK_KEY_OPTION } from '../../../routes/vpn/ipsec/dto/store.dto';
 import config from '../../../config/config';
 import path from 'path';
 
@@ -158,7 +154,7 @@ export class IPSec extends Model {
   }
 
   private static isPskKeyOption(option: any): boolean {
-    return [IPSEC_LEFT_PSK_KEY_OPTION, IPSEC_RIGHT_PSK_KEY_OPTION].includes(option?.name);
+    return [PSK_KEY_OPTION].includes(option?.name);
   }
 
   private static async encryptPskOptionArg(option: any): Promise<any> {
@@ -246,7 +242,8 @@ export class IPSec extends Model {
 
   public static updateCfg(req: Request): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = `UPDATE ${tableName} SET install_dir=${req.dbCon.escape(req.body.install_dir)},
+      const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
+                install_dir=${req.dbCon.escape(req.body.install_dir)},
                 install_name=${req.dbCon.escape(req.body.install_name)},
                 comment=${req.dbCon.escape(req.body.comment)}
                 WHERE id=${req.body.ipsec}`;
@@ -820,11 +817,7 @@ export class IPSec extends Model {
 
         // Get options
         const optionsList = IPSEC_OPTIONS.map((opt) => `'${opt}'`).join(',');
-        const hiddenDumpOptionsList = [
-          '<<disable>>',
-          IPSEC_LEFT_PSK_KEY_OPTION,
-          IPSEC_RIGHT_PSK_KEY_OPTION,
-        ]
+        const hiddenDumpOptionsList = ['<<disable>>', PSK_KEY_OPTION]
           .map((opt) => `'${opt}'`)
           .join(',');
         const sqlOpts = `
@@ -876,10 +869,7 @@ export class IPSec extends Model {
         if (isClient) {
           if (isClientWithoutServer) {
             const clientWithoutServerOptionsList = IPSEC_OPTIONS.filter(
-              (opt) =>
-                opt !== 'charondebug' &&
-                opt !== IPSEC_LEFT_PSK_KEY_OPTION &&
-                opt !== IPSEC_RIGHT_PSK_KEY_OPTION,
+              (opt) => opt !== 'charondebug' && opt !== PSK_KEY_OPTION,
             )
               .map((opt) => `'${opt}'`)
               .join(',');
@@ -984,8 +974,7 @@ export class IPSec extends Model {
           }
           switch (option.option_name) {
             case '<<disable>>':
-            case IPSEC_LEFT_PSK_KEY_OPTION:
-            case IPSEC_RIGHT_PSK_KEY_OPTION:
+            case PSK_KEY_OPTION:
               return '';
             case 'rightsubnet': {
               const value = option.option_value || '';
