@@ -469,6 +469,14 @@ export class IPSecController extends Controller {
 
       const data = await IPSec.getCfg(req.dbCon, req.body.ipsec);
 
+      if (req.body.name !== undefined && data.type === 333) {
+        await Tree.updateFwc_Tree_OBJ(req, {
+          id: data.id,
+          type: 333,
+          name: data.name || `IPSec-${data.id}`,
+        });
+      }
+
       if (isServer) {
         await IPSec.updateIPSecServerInterface(req);
         await IPSec.updateIPSecStatus(req.dbCon, data.id, '|1');
