@@ -494,7 +494,6 @@ export class OpenVPN extends Model {
             let ovpn_ccd = '';
 
             let hasAuthUserPass = false;
-            let hasServerCNSetenv = false;
 
             // First add all the configuration options.
             for (const opt of result) {
@@ -505,8 +504,6 @@ export class OpenVPN extends Model {
               let cfg_line =
                 (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
               if (opt.name === 'auth-user-pass') hasAuthUserPass = true;
-              if (opt.name === 'setenv' && opt.arg === `SERVER_CN ${vpnMeta.cn}`)
-                hasServerCNSetenv = true;
               if (opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
@@ -534,10 +531,6 @@ export class OpenVPN extends Model {
                 ovpn_ccd += cfg_line + '\n';
               // Config file
               else ovpn_cfg += cfg_line + '\n';
-            }
-
-            if (vpnMeta.type === 2 && Number(vpnMeta.tfa_enabled) === 1 && !hasServerCNSetenv) {
-              ovpn_cfg += `setenv SERVER_CN ${vpnMeta.cn}\n`;
             }
 
             // Client configs only embed auth-user-pass when 2FA is enabled for that specific client.

@@ -79,7 +79,8 @@ const OPENVPN_2FA_REQUIRED_OPTIONS = {
 	verifyClientCert: { name: 'verify-client-cert', arg: 'require' },
 	scriptSecurity: { name: 'script-security', arg: '2' },
 	authUserPassOptional: { name: 'auth-user-pass-optional', arg: null },
-	authUserPassVerify: { name: 'auth-user-pass-verify', arg: '/etc/openvpn/bin/check_2fa.sh via-file' }
+	authUserPassVerify: { name: 'auth-user-pass-verify', arg: '/etc/openvpn/bin/check_2fa.sh via-file' },
+	setenvServerCn: { name: 'setenv' }
 };
 
 const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
@@ -148,7 +149,7 @@ const getOpenVPN2FAServerUsersFilename = (serverCN) => `${serverCN}_2fa_users.tx
 
 const getOpenVPN2FASecretFilename = (serverCN, clientCN) => `${serverCN}_${clientCN}`;
 
-const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 	const options = await queryDb(
 		dbCon,
 		'SELECT id,name,arg,scope,comment,`order`,ipobj FROM openvpn_opt WHERE openvpn=? ORDER BY `order` ASC,id ASC',
@@ -196,6 +197,10 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.scriptSecurity);
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional);
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify);
+	await ensureOption({
+		name: OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
+		arg: `SERVER_CN ${serverCN}`
+	});
 
 	await queryDb(
 		dbCon,
@@ -204,10 +209,13 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			 AND (
 				name=?
 				OR (name=? AND arg LIKE ?)
+				OR (name=? AND arg LIKE ?)
 			 )`,
 		[
 			openvpnId,
 			'username-as-common-name',
+			'setenv',
+			'SERVER_CN %',
 			'plugin',
 			'%openvpn-plugin-auth-pam.so openvpn'
 		]
@@ -225,6 +233,7 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			 OR name=?
 			 OR name=?
 			 OR name=?
+			 OR (name=? AND arg LIKE ?)
 			 OR name=?
 			 OR (name=? AND arg LIKE ?)
 			 )`,
@@ -234,6 +243,8 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			OPENVPN_2FA_REQUIRED_OPTIONS.scriptSecurity.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
+			'SERVER_CN %',
 			'username-as-common-name',
 			'plugin',
 			'%openvpn-plugin-auth-pam.so openvpn'
@@ -1057,7 +1068,7 @@ router.put('/2fa/server', async (req, res, next) => {
 			}
 
 			// Ensure OpenVPN server has all directives required by certificate + TOTP script authentication.
-			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+			await ensureServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn, crt.cn);
 
 			// Apply the generated server.conf right now. If this fails, we don't enable 2FA in database.
 			const openvpnCfg = await OpenVPN.getCfg(req);
