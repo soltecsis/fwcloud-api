@@ -68,6 +68,7 @@ chmod 700 /etc/openvpn/google-authenticator
 
 const OPENVPN_2FA_DISABLE_COMMAND = `
 rm -f ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}
+rmdir /etc/openvpn/bin 2>/dev/null || true
 rm -rf /etc/openvpn/google-authenticator
 
 if [ -r /etc/os-release ]; then

@@ -78,7 +78,7 @@ const QRCode = require('qrcode');
 const OPENVPN_2FA_REQUIRED_OPTIONS = {
 	verifyClientCert: { name: 'verify-client-cert', arg: 'require' },
 	scriptSecurity: { name: 'script-security', arg: '2' },
-	authUserPassOptional: { name: 'auth-user-pass-optional', arg: null },
+	authUserPassOptional: { name: 'auth-user-pass-optional', arg: '' },
 	authUserPassVerify: { name: 'auth-user-pass-verify', arg: '/etc/openvpn/bin/check_2fa.sh via-file' },
 	setenvServerCn: { name: 'setenv' }
 };
