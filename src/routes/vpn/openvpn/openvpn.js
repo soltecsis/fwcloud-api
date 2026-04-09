@@ -156,10 +156,12 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 		[openvpnId]
 	);
 
-	const findByName = (name) => options.find((option) => option.name === name);
+	const findOption = (matcher) => options.find(matcher);
 
-	const ensureOption = async ({ name, arg }) => {
-		const existingOption = findByName(name);
+	const ensureOption = async ({ name, arg, matcher = null }) => {
+		const existingOption = matcher
+			? findOption(matcher)
+			: findOption((option) => option.name === name);
 		if (existingOption) {
 			if (existingOption.arg !== arg || existingOption.comment !== null) {
 				await queryDb(
@@ -199,27 +201,9 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify);
 	await ensureOption({
 		name: OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
-		arg: `SERVER_CN ${serverCN}`
+		arg: `SERVER_CN ${serverCN}`,
+		matcher: (option) => option.name === 'setenv' && typeof option.arg === 'string' && option.arg.startsWith('SERVER_CN ')
 	});
-
-	await queryDb(
-		dbCon,
-		`DELETE FROM openvpn_opt
-		 WHERE openvpn=?
-			 AND (
-				name=?
-				OR (name=? AND arg LIKE ?)
-				OR (name=? AND arg LIKE ?)
-			 )`,
-		[
-			openvpnId,
-			'username-as-common-name',
-			'setenv',
-			'SERVER_CN %',
-			'plugin',
-			'%openvpn-plugin-auth-pam.so openvpn'
-		]
-	);
 };
 
 const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
@@ -234,8 +218,6 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			 OR name=?
 			 OR name=?
 			 OR (name=? AND arg LIKE ?)
-			 OR name=?
-			 OR (name=? AND arg LIKE ?)
 			 )`,
 		[
 			openvpnId,
@@ -244,10 +226,7 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
-			'SERVER_CN %',
-			'username-as-common-name',
-			'plugin',
-			'%openvpn-plugin-auth-pam.so openvpn'
+			'SERVER_CN %'
 		]
 	);
 };
