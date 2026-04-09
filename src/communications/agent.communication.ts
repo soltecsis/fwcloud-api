@@ -488,30 +488,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getOpenVPNAuthPamPluginPath(): Promise<string> {
-    try {
-      const pathUrl: string = this.url + '/api/v1/plugin';
-
-      const config: AxiosRequestConfig = Object.assign({}, this.config);
-      config.headers['Content-Type'] = 'application/json';
-
-      const response = await axios.post(pathUrl, { name: 'openvpn-2fa', action: 'info' }, config);
-
-      if (response.status !== 200 || typeof response.data !== 'string') {
-        throw new Error('Unexpected FWCloud-Agent plugin info response');
-      }
-
-      const match = response.data.match(/^PAM_PLUGIN_PATH=(.+)$/m);
-      if (!match?.[1]) {
-        throw new Error('openvpn-plugin-auth-pam path not found in FWCloud-Agent response');
-      }
-
-      return match[1].trim();
-    } catch (error) {
-      this.handleRequestException(error);
-    }
-  }
-
   protected createWebSocket(eventEmitter: EventEmitter): Promise<string> {
     return new Promise((resolve, reject) => {
       const pathUrl: string = this.ws_url + '/api/v1/ws';

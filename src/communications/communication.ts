@@ -141,7 +141,6 @@ export abstract class Communication<ConnectionData> {
   abstract info(): Promise<FwcAgentInfo>;
   abstract systemctlManagement(command: string, service: string): Promise<string>;
   abstract installPlugin(name: string, enabled: boolean): Promise<string>;
-  abstract getOpenVPNAuthPamPluginPath(): Promise<string>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (errorHasCode(error)) {

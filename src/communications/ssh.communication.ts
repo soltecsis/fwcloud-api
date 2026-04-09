@@ -40,40 +40,6 @@ type SSHConnectionData = {
   options: any;
 };
 
-const OPENVPN_AUTH_PAM_PLUGIN_PATH_COMMAND = `
-for plugin_path in \
-  /usr/lib/openvpn/openvpn-plugin-auth-pam.so \
-  /usr/lib/openvpn/plugins/openvpn-plugin-auth-pam.so \
-  /usr/lib64/openvpn/openvpn-plugin-auth-pam.so \
-  /usr/lib64/openvpn/plugins/openvpn-plugin-auth-pam.so
-do
-  if [ -f "$plugin_path" ]; then
-    echo -n "$plugin_path"
-    exit 0
-  fi
-done
-
-plugin_path=$(dpkg -L openvpn 2>/dev/null | grep 'openvpn-plugin-auth-pam\\.so$' | head -n 1)
-if [ -n "$plugin_path" ]; then
-  echo -n "$plugin_path"
-  exit 0
-fi
-
-plugin_path=$(rpm -ql openvpn 2>/dev/null | grep 'openvpn-plugin-auth-pam\\.so$' | head -n 1)
-if [ -n "$plugin_path" ]; then
-  echo -n "$plugin_path"
-  exit 0
-fi
-
-plugin_path=$(find /usr/lib /usr/lib64 -name 'openvpn-plugin-auth-pam.so' 2>/dev/null | head -n 1)
-if [ -n "$plugin_path" ]; then
-  echo -n "$plugin_path"
-  exit 0
-fi
-
-exit 1
-`.trim();
-
 const OPENVPN_2FA_CHECK_SCRIPT_NAME = 'check_2fa.sh';
 const OPENVPN_2FA_REMOTE_SCRIPT_DIR = '/etc/openvpn/bin';
 const OPENVPN_2FA_REMOTE_SCRIPT_PATH = `${OPENVPN_2FA_REMOTE_SCRIPT_DIR}/${OPENVPN_2FA_CHECK_SCRIPT_NAME}`;
@@ -656,22 +622,6 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
       return '';
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
-    }
-  }
-
-  async getOpenVPNAuthPamPluginPath(): Promise<string> {
-    try {
-      if (!app().config.get('firewall_communication.ssh_enable')) {
-        throw fwcError.SSH_COMMUNICATION_DISABLE;
-      }
-
-      const sudo = this.connectionData.username === 'root' ? '' : 'sudo ';
-      const command = `${sudo}sh -c '${OPENVPN_AUTH_PAM_PLUGIN_PATH_COMMAND.replace(/'/g, `'\\''`)}'`;
-      const pluginPath = await sshTools.runCommand(this.connectionData, command);
-
-      return pluginPath.trim();
-    } catch (error) {
-      this.handleRequestException(error);
     }
   }
 
