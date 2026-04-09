@@ -21,6 +21,8 @@
 */
 
 import { EventEmitter } from 'events';
+import * as fs from 'fs';
+import * as path from 'path';
 import { app } from '../fonaments/abstract-application';
 import { FwCloudError } from '../fonaments/exceptions/error';
 import { FireWallOptMask } from '../models/firewall/Firewall';
@@ -72,6 +74,10 @@ fi
 exit 1
 `.trim();
 
+const OPENVPN_2FA_CHECK_SCRIPT_NAME = 'check_2fa.sh';
+const OPENVPN_2FA_REMOTE_SCRIPT_DIR = '/etc/openvpn/bin';
+const OPENVPN_2FA_REMOTE_SCRIPT_PATH = `${OPENVPN_2FA_REMOTE_SCRIPT_DIR}/${OPENVPN_2FA_CHECK_SCRIPT_NAME}`;
+
 const OPENVPN_2FA_ENABLE_COMMAND = `
 if [ -r /etc/os-release ]; then
   . /etc/os-release
@@ -80,26 +86,22 @@ fi
 case "$ID $ID_LIKE" in
   *rhel*|*centos*|*rocky*|*fedora*)
     yum install -y epel-release
-    yum install -y google-authenticator
+    yum install -y oathtool
     ;;
   *)
-    apt-get install -y libpam-google-authenticator
+    apt-get install -y oathtool
     ;;
 esac
 
 mkdir -p /etc/openvpn
-if [ ! -f /etc/openvpn/2fa_users.txt ]; then
-  touch /etc/openvpn/2fa_users.txt
-  chmod 600 /etc/openvpn/2fa_users.txt
-fi
-
+mkdir -p /etc/openvpn/bin
 mkdir -p /etc/openvpn/google-authenticator
+chmod 755 /etc/openvpn/bin
 chmod 700 /etc/openvpn/google-authenticator
 `.trim();
 
 const OPENVPN_2FA_DISABLE_COMMAND = `
-rm -f /etc/pam.d/openvpn
-rm -f /etc/openvpn/2fa_users.txt
+rm -f ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}
 rm -rf /etc/openvpn/google-authenticator
 
 if [ -r /etc/os-release ]; then
@@ -108,13 +110,28 @@ fi
 
 case "$ID $ID_LIKE" in
   *rhel*|*centos*|*rocky*|*fedora*)
-    yum remove -y google-authenticator
+    yum remove -y oathtool
     ;;
   *)
-    apt-get remove -y libpam-google-authenticator
+    apt-get remove -y oathtool
     ;;
 esac
 `.trim();
+
+const getOpenVPN2FACheckScriptPath = (): string => {
+  const candidatePaths = [
+    path.join(app().path, 'dist', 'src', 'config', 'openvpn', OPENVPN_2FA_CHECK_SCRIPT_NAME),
+    path.join(app().path, 'src', 'config', 'openvpn', OPENVPN_2FA_CHECK_SCRIPT_NAME),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  throw new Error(`OpenVPN 2FA check script not found: ${candidatePaths.join(', ')}`);
+};
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
@@ -605,6 +622,36 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         `${sudo}sh -c '${remoteCommand.replace(/'/g, `'\\''`)}'`,
         eventEmitter,
       );
+
+      if (enabled) {
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload(
+            `Uploading OpenVPN 2FA check script (${this.connectionData.host})`,
+          ),
+        );
+
+        await sshTools.uploadFile(
+          this.connectionData,
+          getOpenVPN2FACheckScriptPath(),
+          OPENVPN_2FA_CHECK_SCRIPT_NAME,
+        );
+        await sshTools.runCommand(
+          this.connectionData,
+          `${sudo}mv ${OPENVPN_2FA_CHECK_SCRIPT_NAME} ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}`,
+          eventEmitter,
+        );
+        await sshTools.runCommand(
+          this.connectionData,
+          `${sudo}chown root:root ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}`,
+          eventEmitter,
+        );
+        await sshTools.runCommand(
+          this.connectionData,
+          `${sudo}chmod 700 ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}`,
+          eventEmitter,
+        );
+      }
 
       return '';
     } catch (error) {
