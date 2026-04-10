@@ -231,6 +231,49 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 	);
 };
 
+const ensureClient2FAOpenVPNOptions = async (dbCon, openvpnId, clientCN) => {
+	const options = await queryDb(
+		dbCon,
+		'SELECT id,name,arg,scope,comment,`order`,ipobj FROM openvpn_opt WHERE openvpn=? ORDER BY `order` ASC,id ASC',
+		[openvpnId]
+	);
+
+	const existingOption = options.find((option) => option.name === 'auth-user-pass');
+	if (existingOption) {
+		if (existingOption.arg !== clientCN || existingOption.comment !== null) {
+			await queryDb(
+				dbCon,
+				'UPDATE openvpn_opt SET arg=?, comment=NULL WHERE id=?',
+				[clientCN, existingOption.id]
+			);
+		}
+		return;
+	}
+
+	const maxOrder = options.reduce((max, option) => Math.max(max, option.order || 0), 0);
+	await queryDb(
+		dbCon,
+		'INSERT INTO openvpn_opt SET ?',
+		[{
+			openvpn: openvpnId,
+			name: 'auth-user-pass',
+			arg: clientCN,
+			scope: 1,
+			order: maxOrder + 1,
+			comment: null,
+			ipobj: null
+		}]
+	);
+};
+
+const removeClient2FAOpenVPNOptions = async (dbCon, openvpnId) => {
+	await queryDb(
+		dbCon,
+		'DELETE FROM openvpn_opt WHERE openvpn=? AND name=?',
+		[openvpnId, 'auth-user-pass']
+	);
+};
+
 const buildClient2FASecretFile = (secret) => {
 	return [
 		secret.base32,
@@ -1178,6 +1221,7 @@ router.put('/2fa/client', async (req, res, next) => {
 				}], channel);
 				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
 			}
+			await ensureClient2FAOpenVPNOptions(req.dbCon, req.body.openvpn, crt.cn);
 
 			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
 			totpData = {
@@ -1224,6 +1268,7 @@ router.put('/2fa/client', async (req, res, next) => {
 				}
 				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
 			}
+			await removeClient2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
 		}
 
 		await new Promise((resolve, reject) => {

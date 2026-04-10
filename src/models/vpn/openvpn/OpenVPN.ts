@@ -498,6 +498,14 @@ export class OpenVPN extends Model {
             // First add all the configuration options.
             for (const opt of result) {
               if (vpnMeta.type === 1 && opt.name === 'auth-user-pass') {
+                hasAuthUserPass = true;
+                const username = opt.arg || vpnMeta.cn;
+                const authUserPassBlock =
+                  (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') +
+                  '<auth-user-pass>\n' +
+                  username +
+                  '\n</auth-user-pass>';
+                ovpn_cfg += authUserPassBlock + '\n';
                 continue;
               }
 
