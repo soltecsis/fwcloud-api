@@ -35,12 +35,15 @@ export type RoutingCompiled = {
 };
 
 export class RoutingCompiler {
-  public ruleCompile(ruleData: RoutingRulesData<RoutingRuleItemForCompiler>): string {
+  public ruleCompile(
+    ruleData: RoutingRulesData<RoutingRuleItemForCompiler>,
+    priority = 1001,
+  ): string {
     const items = this.breakDownItems(ruleData.items, 'from ');
     let cs = '';
 
     for (let i = 0; i < items.length; i++)
-      cs += `$IP rule add ${items[i]} table ${ruleData.routingTable.number}\n`;
+      cs += `$IP rule add priority ${priority} ${items[i]} table ${ruleData.routingTable.number}\n`;
 
     // Apply routing rule only to the selected firewall.
     if (ruleData.firewallApplyTo && ruleData.firewallApplyTo.name)
@@ -51,15 +54,25 @@ export class RoutingCompiler {
 
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
     const items = this.breakDownItems(routeData.items, '');
-    const gw = routeData.gateway.address;
-    const dev =
-      routeData.interface && routeData.interface.name ? ` dev ${routeData.interface.name} ` : ' ';
+    const gw = routeData.gateway ? routeData.gateway.address : null;
+    const dev = routeData.interface && routeData.interface.name ? routeData.interface.name : null;
     let cs = '';
 
     if (items.length == 0) items.push('default');
 
-    for (let i = 0; i < items.length; i++)
-      cs += `$IP route add ${items[i]} via ${gw}${dev}table ${routeData.routingTable.number}\n`;
+    for (let i = 0; i < items.length; i++) {
+      const parts = [
+        '$IP',
+        'route',
+        'add',
+        items[i],
+        gw ? `via ${gw}` : null,
+        dev ? `dev ${dev}` : null,
+        `table ${routeData.routingTable.number}`,
+      ].filter(Boolean);
+
+      cs += `${parts.join(' ')}\n`;
+    }
 
     // Apply route only to the selected firewall.
     if (routeData.firewallApplyTo && routeData.firewallApplyTo.name)
@@ -94,7 +107,7 @@ export class RoutingCompiler {
           data[i].active || data.length === 1
             ? type == 'Route'
               ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>)
-              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>)
+              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>, 1001 + i)
             : '',
       });
     }

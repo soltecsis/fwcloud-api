@@ -236,7 +236,7 @@ export class RouteRepository extends Repository<Route> {
     routes?: number[],
   ): Promise<Route[]> {
     let query = this.createQueryBuilder('route')
-      .innerJoinAndSelect('route.gateway', 'gateway')
+      .leftJoinAndSelect('route.gateway', 'gateway')
       .leftJoinAndSelect('route.interface', 'interface')
       .leftJoinAndSelect('route.routeGroup', 'group')
       .leftJoinAndSelect('route.firewallApplyTo', 'cluster_node')

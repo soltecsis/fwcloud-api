@@ -42,13 +42,11 @@ export const IPSEC_OPTIONS = [
   'CA Certificate',
   'type',
   '<<disable>>',
-  '<<left-psk-key>>',
-  '<<right-psk-key>>',
+  '<<psk>>',
 ] as const;
 
 export type IpsecOptionType = (typeof IPSEC_OPTIONS)[number];
-export const IPSEC_LEFT_PSK_KEY_OPTION = '<<left-psk-key>>';
-export const IPSEC_RIGHT_PSK_KEY_OPTION = '<<right-psk-key>>';
+export const PSK_KEY_OPTION = '<<psk>>';
 
 @ValidatorConstraint({ name: 'IPSecOptionValidator', async: false })
 export class IPSecOptionValidator implements ValidatorConstraintInterface {
@@ -56,7 +54,7 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
     const option = args.object as IPSecOptionDTO;
     const normalizedValue = typeof value === 'string' ? value.trim() : value;
 
-    if (option.name === IPSEC_LEFT_PSK_KEY_OPTION || option.name === IPSEC_RIGHT_PSK_KEY_OPTION) {
+    if (option.name === PSK_KEY_OPTION) {
       return typeof normalizedValue === 'string' && normalizedValue.length >= 8;
     }
     if (!normalizedValue) return true;
@@ -180,22 +178,18 @@ export class IPSecPskKeyDependencyValidator implements ValidatorConstraintInterf
     );
     if (!hasLeftPskAuth && !hasRightPskAuth) return true;
 
-    const leftPskKeyOption = options.find((option) => option?.name === IPSEC_LEFT_PSK_KEY_OPTION);
-    const rightPskKeyOption = options.find((option) => option?.name === IPSEC_RIGHT_PSK_KEY_OPTION);
+    const leftPskKeyOption = options.find((option) => option?.name === PSK_KEY_OPTION);
 
     const leftKeyIsValid =
       typeof leftPskKeyOption?.arg === 'string' && leftPskKeyOption.arg.trim().length >= 8;
-    const rightKeyIsValid =
-      typeof rightPskKeyOption?.arg === 'string' && rightPskKeyOption.arg.trim().length >= 8;
 
     if (hasLeftPskAuth && !leftKeyIsValid) return false;
-    if (hasRightPskAuth && !rightKeyIsValid) return false;
 
     return true;
   }
 
   defaultMessage() {
-    return `Options ${IPSEC_LEFT_PSK_KEY_OPTION} and/or ${IPSEC_RIGHT_PSK_KEY_OPTION} are required (minimum 8 chars) when leftauth/rightauth is psk`;
+    return `Options ${PSK_KEY_OPTION} are required (minimum 8 chars) when leftauth/rightauth is psk`;
   }
 }
 export class IPSecOptionDTO {

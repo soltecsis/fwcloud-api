@@ -88,11 +88,19 @@ duplicityCheck.ipobj = (req, res, next) => {
 		try {
 			if (rows.length>0) {
 				if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
+					const hasReqNetmask = (typeof req.body.netmask === 'string' && req.body.netmask.length>0);
+
+					// Road-warrior clients are type 5 objects with address and no netmask.
+					// In this case, if the address already exists we consider it duplicated.
+					if (!hasReqNetmask) throw fwcError.ALREADY_EXISTS;
+
 					// We have two formats for the netmask (for example, 255.255.255.0 or /24).
 					// We have to check if the object already exist independently of the netmask format.
 					const net1 = (req.body.netmask[0]==='/') ? IpUtils.cidrSubnet(`${req.body.address}${req.body.netmask}`) : IpUtils.subnet(req.body.address, req.body.netmask);
 					let net2 = {};
 					for (let row of rows) {
+						const hasRowNetmask = (typeof row.netmask === 'string' && row.netmask.length>0);
+						if (!hasRowNetmask) throw fwcError.ALREADY_EXISTS;
 						net2 = (row.netmask[0] === '/') ? IpUtils.cidrSubnet(`${row.address}${row.netmask}`) : IpUtils.subnet(row.address, row.netmask);
 						if (net1.subnetMaskLength===net2.subnetMaskLength)
 							throw fwcError.ALREADY_EXISTS;

@@ -63,7 +63,7 @@ interface IFindOneRoutePath extends IFindManyRoutePath {
 
 export interface ICreateRoute {
   routingTableId: number;
-  gatewayId: number;
+  gatewayId?: number;
   interfaceId?: number;
   active?: boolean;
   comment?: string;
@@ -161,9 +161,25 @@ export class RouteService extends Service {
   }
 
   async create(data: ICreateRoute): Promise<Route> {
+    const hasGateway = data.gatewayId !== undefined && data.gatewayId !== null;
+    const hasToObjects = this.hasRouteDestinations(data);
+    const hasInterface = data.interfaceId !== undefined && data.interfaceId !== null;
+
+    if (!hasGateway && !hasToObjects) {
+      throw new ValidationException('The given data was invalid', {
+        gatewayId: ['gatewayId is required when no destination object is provided'],
+      });
+    }
+
+    if (!hasGateway && !hasInterface) {
+      throw new ValidationException('The given data was invalid', {
+        interfaceId: ['interfaceId is required when gatewayId is not provided'],
+      });
+    }
+
     const routeData: Partial<Route> = {
       routingTableId: data.routingTableId,
-      gatewayId: data.gatewayId,
+      gatewayId: hasGateway ? data.gatewayId : null,
       interfaceId: data.interfaceId,
       active: data.active,
       comment: data.comment,
@@ -762,6 +778,19 @@ export class RouteService extends Service {
     //await this._firewallService.markAsUncompiled(firewallIds);
 
     return routes;
+  }
+
+  protected hasRouteDestinations(data: ICreateRoute): boolean {
+    return (
+      (data.ipObjIds?.length ?? 0) > 0 ||
+      (data.ipObjGroupIds?.length ?? 0) > 0 ||
+      (data.openVPNIds?.length ?? 0) > 0 ||
+      (data.openVPNPrefixIds?.length ?? 0) > 0 ||
+      (data.wireguardIds?.length ?? 0) > 0 ||
+      (data.wireguardPrefixIds?.length ?? 0) > 0 ||
+      (data.ipsecIds?.length ?? 0) > 0 ||
+      (data.ipsecPrefixIds?.length ?? 0) > 0
+    );
   }
 
   /**
