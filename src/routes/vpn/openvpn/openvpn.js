@@ -62,7 +62,11 @@ import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
-import { ProgressPayload, ProgressSuccessPayload } from '../../../sockets/messages/socket-message';
+import {
+	ProgressNoticePayload,
+	ProgressPayload,
+	ProgressSuccessPayload
+} from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import db from '../../../database/database-manager';
@@ -143,6 +147,10 @@ const emitOpenVPN2FANodeEnd = (channel, firewall, enabled) => {
 		)
 	);
 	channel.emit('message', new ProgressPayload('end_task', false, '', getOpenVPN2FATaskId(firewall.id)));
+};
+
+const emitOpenVPN2FANodeNotice = (channel, message) => {
+	channel.emit('message', new ProgressNoticePayload(message));
 };
 
 const getOpenVPN2FAServerUsersFilename = (serverCN) => `${serverCN}_2fa_users.txt`;
@@ -1063,11 +1071,20 @@ router.put('/2fa/server', async (req, res, next) => {
 					throw fwcError.VPN_2FA_AGENT_REQUIRED;
 				}
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
-				if (!hasOtherServersWith2FA) {
-					await communication.installPlugin('openvpn-2fa', false, channel);
+				if (targetFirewall.install_communication === FirewallInstallCommunication.Agent) {
+					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime and server data for '${crt.cn}' on '${targetFirewall.name}'`);
+					await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
+				} else {
+					if (!hasOtherServersWith2FA) {
+						emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime from '${targetFirewall.name}'`);
+						await communication.installPlugin('openvpn-2fa', false, channel);
+					}
+					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA secrets directory for server '${crt.cn}' on '${targetFirewall.name}'`);
+					await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
+					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA users file '${serverUsersFilename}' from '${targetFirewall.name}'`);
+					await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
 				}
-				await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
-				await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
+				emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
 				await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 					content: cfgDump.cfg,
 					name: openvpnCfg.install_name
@@ -1108,13 +1125,21 @@ router.put('/2fa/server', async (req, res, next) => {
 					throw fwcError.VPN_2FA_AGENT_REQUIRED;
 				}
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
-				if (!hasOtherServersWith2FA) {
-					await targetCommunication.installPlugin('openvpn-2fa', true, channel);
+				if (targetFirewall.install_communication === FirewallInstallCommunication.Agent) {
+					emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA runtime and server data for '${crt.cn}' on '${targetFirewall.name}'`);
+					await targetCommunication.installPlugin('openvpn-2fa', true, channel, { serverCN: crt.cn });
+				} else {
+					if (!hasOtherServersWith2FA) {
+						emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA runtime on '${targetFirewall.name}'`);
+						await targetCommunication.installPlugin('openvpn-2fa', true, channel);
+					}
+					emitOpenVPN2FANodeNotice(channel, `Creating OpenVPN 2FA users file '${serverUsersFilename}' on '${targetFirewall.name}'`);
+					await targetCommunication.installOpenVPNServerConfigs('/etc/openvpn', [{
+						content: '',
+						name: serverUsersFilename
+					}], channel);
 				}
-				await targetCommunication.installOpenVPNServerConfigs('/etc/openvpn', [{
-					content: '',
-					name: serverUsersFilename
-				}], channel);
+				emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
 				await targetCommunication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 					content: cfgDump.cfg,
 					name: openvpnCfg.install_name
@@ -1218,6 +1243,7 @@ router.put('/2fa/client', async (req, res, next) => {
 					throw fwcError.VPN_2FA_AGENT_REQUIRED;
 				}
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA secret for client '${crt.cn}' on '${targetFirewall.name}'`);
 				await communication.installOpenVPNServerConfigs(getOpenVPN2FASecretDir(serverCN), [{
 					name: getOpenVPN2FASecretFilename(serverCN, crt.cn),
 					content: secretFileContent
@@ -1259,6 +1285,7 @@ router.put('/2fa/client', async (req, res, next) => {
 				}
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
 				try {
+					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA secret for client '${crt.cn}' from '${targetFirewall.name}'`);
 					await communication.uninstallOpenVPNConfigs(
 						getOpenVPN2FASecretDir(serverCN),
 						[getOpenVPN2FASecretFilename(serverCN, crt.cn)],
@@ -1319,6 +1346,7 @@ router.put('/2fa/client', async (req, res, next) => {
 			if (!communication) {
 				throw fwcError.VPN_2FA_AGENT_REQUIRED;
 			}
+			emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN 2FA users list '${getOpenVPN2FAServerUsersFilename(serverCN)}' on '${targetFirewall.name}'`);
 			await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
 				name: getOpenVPN2FAServerUsersFilename(serverCN),
 				content: usersListContent
