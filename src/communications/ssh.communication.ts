@@ -28,7 +28,13 @@ import { FwCloudError } from '../fonaments/exceptions/error';
 import { FireWallOptMask } from '../models/firewall/Firewall';
 import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
 import sshTools from '../utils/ssh';
-import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from './communication';
+import {
+  CCDHash,
+  Communication,
+  FwcAgentInfo,
+  OpenVPNHistoryRecord,
+  PluginInstallOptions,
+} from './communication';
 const config = require('../config/config');
 const fwcError = require('../utils/error_table');
 
@@ -63,7 +69,7 @@ mkdir -p /etc/openvpn
 mkdir -p /etc/openvpn/bin
 mkdir -p /etc/openvpn/google-authenticator
 chmod 755 /etc/openvpn/bin
-chmod 700 /etc/openvpn/google-authenticator
+chmod 755 /etc/openvpn/google-authenticator
 `.trim();
 
 const OPENVPN_2FA_DISABLE_COMMAND = `
@@ -84,6 +90,18 @@ case "$ID $ID_LIKE" in
     ;;
 esac
 `.trim();
+
+const getOpenVPN2FADisableCommand = (serverCN?: string): string => {
+  if (!serverCN) {
+    return OPENVPN_2FA_DISABLE_COMMAND;
+  }
+
+  const escapedServerCN = serverCN.replace(/'/g, `'\\''`);
+  return `
+rm -rf '/etc/openvpn/google-authenticator/${escapedServerCN}'
+rmdir /etc/openvpn/google-authenticator 2>/dev/null || true
+`.trim();
+};
 
 const getOpenVPN2FACheckScriptPath = (): string => {
   const candidatePaths = [
@@ -183,7 +201,14 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
           this.connectionData,
           `${sudo} chown root:root ${dir}/${config.name}`,
         );
-        await sshTools.runCommand(this.connectionData, `${sudo} chmod 600 ${dir}/${config.name}`);
+        const isOpenVPN2FAUsersFile =
+          dir === '/etc/openvpn' && config.name.endsWith('_2fa_users.txt');
+        const isOpenVPN2FASecretFile = dir.startsWith('/etc/openvpn/google-authenticator');
+        const fileMode = isOpenVPN2FAUsersFile || isOpenVPN2FASecretFile ? '644' : '600';
+        await sshTools.runCommand(
+          this.connectionData,
+          `${sudo} chmod ${fileMode} ${dir}/${config.name}`,
+        );
       }
 
       return;
@@ -564,6 +589,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     name: string,
     enabled: boolean,
     eventEmitter: EventEmitter = new EventEmitter(),
+    options?: PluginInstallOptions,
   ): Promise<string> {
     try {
       if (!app().config.get('firewall_communication.ssh_enable')) {
@@ -575,7 +601,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
       }
 
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo ';
-      const remoteCommand = enabled ? OPENVPN_2FA_ENABLE_COMMAND : OPENVPN_2FA_DISABLE_COMMAND;
+      const remoteCommand = enabled
+        ? OPENVPN_2FA_ENABLE_COMMAND
+        : getOpenVPN2FADisableCommand(options?.serverCN);
 
       eventEmitter.emit(
         'message',
@@ -615,7 +643,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         );
         await sshTools.runCommand(
           this.connectionData,
-          `${sudo}chmod 700 ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}`,
+          `${sudo}chmod 755 ${OPENVPN_2FA_REMOTE_SCRIPT_PATH}`,
           eventEmitter,
         );
       }

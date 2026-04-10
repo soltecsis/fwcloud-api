@@ -147,7 +147,9 @@ const emitOpenVPN2FANodeEnd = (channel, firewall, enabled) => {
 
 const getOpenVPN2FAServerUsersFilename = (serverCN) => `${serverCN}_2fa_users.txt`;
 
-const getOpenVPN2FASecretFilename = (serverCN, clientCN) => `${serverCN}_${clientCN}`;
+const getOpenVPN2FASecretDir = (serverCN) => `/etc/openvpn/google-authenticator/${serverCN}`;
+
+const getOpenVPN2FASecretFilename = (_serverCN, clientCN) => `${clientCN}`;
 
 const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 	const options = await queryDb(
@@ -1064,6 +1066,7 @@ router.put('/2fa/server', async (req, res, next) => {
 				if (!hasOtherServersWith2FA) {
 					await communication.installPlugin('openvpn-2fa', false, channel);
 				}
+				await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
 				await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
 				await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 					content: cfgDump.cfg,
@@ -1215,7 +1218,7 @@ router.put('/2fa/client', async (req, res, next) => {
 					throw fwcError.VPN_2FA_AGENT_REQUIRED;
 				}
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
-				await communication.installOpenVPNServerConfigs('/etc/openvpn/google-authenticator', [{
+				await communication.installOpenVPNServerConfigs(getOpenVPN2FASecretDir(serverCN), [{
 					name: getOpenVPN2FASecretFilename(serverCN, crt.cn),
 					content: secretFileContent
 				}], channel);
@@ -1257,7 +1260,7 @@ router.put('/2fa/client', async (req, res, next) => {
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
 				try {
 					await communication.uninstallOpenVPNConfigs(
-						'/etc/openvpn/google-authenticator',
+						getOpenVPN2FASecretDir(serverCN),
 						[getOpenVPN2FASecretFilename(serverCN, crt.cn)],
 						channel
 					);
@@ -1384,7 +1387,7 @@ router.put('/2fa/regenerate', async (req, res, next) => {
 				: firewall.getCommunication());
 
 			const fileContent = await communication.readOpenVPNFile(
-				'/etc/openvpn/google-authenticator',
+				getOpenVPN2FASecretDir(serverCN),
 				getOpenVPN2FASecretFilename(serverCN, crt.cn)
 			);
 			const rawLines = fileContent.split(/\r?\n/).map(line => line.trim()).filter(Boolean);

@@ -26,6 +26,7 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  PluginInstallOptions,
   SystemCtlInfo,
 } from './communication';
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
@@ -132,7 +133,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
       form.append('dst_dir', dir);
-      form.append('perms', 600);
+      const applies2FAPermissions =
+        dir.startsWith('/etc/openvpn/google-authenticator') ||
+        (dir === '/etc/openvpn' &&
+          configs.every((config) => config.name.endsWith('_2fa_users.txt')));
+      form.append('perms', applies2FAPermissions ? 644 : 600);
 
       configs.forEach((config) => {
         eventEmitter.emit(
@@ -447,6 +452,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     name: string,
     enabled: boolean,
     eventEmitter: EventEmitter = new EventEmitter(),
+    options?: PluginInstallOptions,
   ): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/plugin';
@@ -458,6 +464,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         name: name,
         action: enabled ? 'enable' : 'disable',
         ws_id: await this.createWebSocket(eventEmitter),
+        server_cn: options?.serverCN ?? null,
       };
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);

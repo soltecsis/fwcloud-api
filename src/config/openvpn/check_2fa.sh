@@ -9,7 +9,7 @@ SERVER_CN="${SERVER_CN}"
 [ -n "$SERVER_CN" ] || SERVER_CN="default"
 
 TWOFA_FILE="/etc/openvpn/${SERVER_CN}_2fa_users.txt"
-SECRET_FILE="/etc/openvpn/google-authenticator/${SERVER_CN}_${CN}"
+SECRET_FILE="/etc/openvpn/google-authenticator/${SERVER_CN}/${CN}"
 
 $LOGGER "START SERVER_CN=${SERVER_CN} CN=${CN} AUTHFILE=${AUTHFILE}"
 
