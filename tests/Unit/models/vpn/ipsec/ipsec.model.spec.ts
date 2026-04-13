@@ -1508,6 +1508,42 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
     });
   });
 
+  describe('getFirstClientWithoutServerCfg', () => {
+    const createClientWithoutServer = async (name: string, installName: string) => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: installName,
+          name,
+        },
+      };
+
+      return IPSec.addCfg(req);
+    };
+
+    it('should return the first client without server by id', async () => {
+      await createClientWithoutServer('IPSec-Only-Client-FirstCfg-1', 'first-client-1.conf');
+      await createClientWithoutServer('IPSec-Only-Client-FirstCfg-2', 'first-client-2.conf');
+
+      const result = await IPSec.getFirstClientWithoutServerCfg(
+        db.getQuery(),
+        fwcloudProduct.firewall.id,
+      );
+
+      expect(result).to.exist;
+      expect(result?.install_name).to.equal('first-client-1.conf');
+      expect(result?.install_dir).to.equal('/tmp');
+    });
+
+    it('should return null when there are no clients without server in the firewall', async () => {
+      const result = await IPSec.getFirstClientWithoutServerCfg(db.getQuery(), -9999);
+
+      expect(result).to.be.null;
+    });
+  });
+
   describe('updateIPSecStatus', () => {
     it('should change the status of an IPSec to value 1', async () => {
       const res = await IPSec.updateIPSecStatus(db.getQuery(), fwcloudProduct.ipsecServer.id, '|1');

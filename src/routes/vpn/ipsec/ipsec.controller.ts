@@ -237,6 +237,20 @@ export class IPSecController extends Controller {
           throw new Error('Empty install dir or install name');
         }
         cfgDump = await IPSec.dumpCfg(req.dbCon, req.ipsec.ipsec);
+      } else if (isClientWithoutServer) {
+        const firstClientCfg = await IPSec.getFirstClientWithoutServerCfg(
+          req.dbCon,
+          req.ipsec.firewall,
+        );
+        if (!firstClientCfg) {
+          throw new Error('IPSec client without server not found');
+        }
+        installDir = firstClientCfg.install_dir;
+        installName = firstClientCfg.install_name;
+        if (!installDir || !installName) {
+          throw new Error('Empty install dir or install name');
+        }
+        cfgDump = await IPSec.dumpCfg(req.dbCon, firstClientCfg.id);
       } else {
         if (!installDir || !installName) {
           throw new Error('Empty install dir or install name');
@@ -404,12 +418,18 @@ export class IPSecController extends Controller {
           await communication.uninstallIPSecConfigs(certDir, [`${req.ipsec.cn}.crt`], channel);
         }
       } else if (isClientWithoutServer) {
-        if (!req.ipsec.install_dir || !req.ipsec.install_name)
-          throw new Error('Empty install dir or install name');
+        const firstClientCfg = await IPSec.getFirstClientWithoutServerCfg(
+          req.dbCon,
+          req.ipsec.firewall,
+        );
+        const installDir = firstClientCfg?.install_dir ?? req.ipsec.install_dir;
+        const installName = firstClientCfg?.install_name ?? req.ipsec.install_name;
+
+        if (!installDir || !installName) throw new Error('Empty install dir or install name');
 
         await communication.uninstallIPSecConfigs(
-          req.ipsec.install_dir,
-          [req.ipsec.install_name, 'ipsec.secrets'],
+          installDir,
+          [installName, 'ipsec.secrets'],
           channel,
         );
       } else {

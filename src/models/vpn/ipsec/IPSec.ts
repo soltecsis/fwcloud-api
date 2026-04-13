@@ -256,6 +256,29 @@ export class IPSec extends Model {
     return secretsLines.length ? secretsLines.join('') : null;
   }
 
+  public static getFirstClientWithoutServerCfg(
+    dbCon: Query,
+    firewall: number,
+  ): Promise<{ id: number; install_dir: string; install_name: string } | null> {
+    return new Promise((resolve, reject) => {
+      dbCon.query(
+        `SELECT id, install_dir, install_name
+         FROM ipsec
+         WHERE firewall = ?
+           AND ipsec IS NULL
+           AND crt IS NULL
+         ORDER BY id
+         LIMIT 1`,
+        [firewall],
+        (error, rows) => {
+          if (error) return reject(error);
+          if (!rows?.length) return resolve(null);
+          resolve(rows[0]);
+        },
+      );
+    });
+  }
+
   // Insert new IPSec configuration register in the database.
   public static addCfg(req: Request): Promise<number> {
     return new Promise(async (resolve, reject) => {
