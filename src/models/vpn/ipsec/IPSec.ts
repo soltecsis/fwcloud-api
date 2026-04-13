@@ -192,6 +192,70 @@ export class IPSec extends Model {
     return options.map((option) => this.decryptPskOptionArg(option));
   }
 
+  private static getOptionArgValue(options: IPSecOption[], optionName: string): string {
+    const optionArg = options.find((option) => option.name === optionName)?.arg;
+    return typeof optionArg === 'string' ? optionArg.trim() : '';
+  }
+
+  private static buildClientWithoutServerSecretLine(
+    options: IPSecOption[],
+    peerId: number,
+  ): string | null {
+    const leftId = this.getOptionArgValue(options, 'leftid');
+    const rightId = this.getOptionArgValue(options, 'rightid');
+    const right = this.getOptionArgValue(options, 'right');
+    const psk = this.getOptionArgValue(options, PSK_KEY_OPTION);
+
+    if (!psk) return null;
+
+    const escapedPsk = psk.replace(/"/g, '\\"');
+    if (leftId && rightId) {
+      const escapedLeftId = leftId.replace(/'/g, "\\'");
+      const escapedRightId = rightId.replace(/'/g, "\\'");
+      return `'${escapedLeftId}' '${escapedRightId}' : PSK "${escapedPsk}"\n`;
+    }
+
+    if (!right) {
+      throw new Error(
+        `Missing 'right' option for IPSec PSK secrets in client without server (id=${peerId})`,
+      );
+    }
+    return `${right} : PSK "${escapedPsk}"\n`;
+  }
+
+  public static async getClientWithoutServerSecretsData(
+    dbCon: Query,
+    firewall: number,
+  ): Promise<string | null> {
+    const peers: Array<{ id: number }> = await new Promise((resolve, reject) =>
+      dbCon.query(
+        `SELECT id
+         FROM ipsec
+         WHERE firewall = ?
+           AND ipsec IS NULL
+           AND crt IS NULL
+         ORDER BY id`,
+        [firewall],
+        (error, rows) => (error ? reject(error) : resolve(rows)),
+      ),
+    );
+
+    const peersWithOptions = await Promise.all(
+      peers.map(async (peer) => ({
+        id: peer.id,
+        options: (await IPSec.getOptData(dbCon, peer.id)) as IPSecOption[],
+      })),
+    );
+
+    const secretsLines: string[] = [];
+    for (const peer of peersWithOptions) {
+      const secretLine = this.buildClientWithoutServerSecretLine(peer.options, peer.id);
+      if (secretLine) secretsLines.push(secretLine);
+    }
+
+    return secretsLines.length ? secretsLines.join('') : null;
+  }
+
   // Insert new IPSec configuration register in the database.
   public static addCfg(req: Request): Promise<number> {
     return new Promise(async (resolve, reject) => {

@@ -307,6 +307,7 @@ export class IPSecController extends Controller {
             channel,
           );
 
+          // Install main configuration file and secrets
           await communication.installIPSecServerConfigs(
             installDir,
             [
@@ -317,6 +318,25 @@ export class IPSecController extends Controller {
             ],
             channel,
           );
+        } else if (isClientWithoutServer) {
+          const secretsData = await IPSec.getClientWithoutServerSecretsData(
+            req.dbCon,
+            req.ipsec.firewall,
+          );
+          if (secretsData) {
+            await communication.installIPSecServerConfigs(
+              installDir,
+              [
+                {
+                  content: secretsData,
+                  name: 'ipsec.secrets',
+                },
+              ],
+              channel,
+            );
+          } else {
+            await communication.uninstallIPSecConfigs(installDir, ['ipsec.secrets'], channel);
+          }
         }
       }
 
@@ -389,7 +409,7 @@ export class IPSecController extends Controller {
 
         await communication.uninstallIPSecConfigs(
           req.ipsec.install_dir,
-          [req.ipsec.install_name],
+          [req.ipsec.install_name, 'ipsec.secrets'],
           channel,
         );
       } else {

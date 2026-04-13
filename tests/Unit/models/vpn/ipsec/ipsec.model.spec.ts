@@ -10,7 +10,7 @@ import os from 'os';
 import fs from 'fs';
 import StringHelper from '../../../../../src/utils/string.helper';
 
-describe(IPSec.name, () => {
+describe.only(IPSec.name, () => {
   let fwcloudProduct: FwCloudProduct;
 
   let manager: EntityManager;
@@ -1407,6 +1407,103 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       } catch (error) {
         expect(error).to.exist;
         expect(error.msg).to.include('Certificate info not found');
+      }
+    });
+  });
+
+  describe('getClientWithoutServerSecretsData', () => {
+    const createClientWithoutServer = async (name: string, installName: string) => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: installName,
+          name,
+        },
+      };
+
+      return IPSec.addCfg(req);
+    };
+
+    const addOption = async (
+      ipsecId: number,
+      optionName: string,
+      optionArg: string,
+      order: number,
+    ) => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+      await IPSec.addCfgOpt(req, {
+        ipsec: ipsecId,
+        ipsec_cli: null,
+        name: optionName,
+        arg: optionArg,
+        comment: null,
+        order,
+        scope: 2,
+      });
+    };
+
+    it('should return null when there are no valid PSK entries', async () => {
+      const result = await IPSec.getClientWithoutServerSecretsData(
+        db.getQuery(),
+        fwcloudProduct.firewall.id,
+      );
+
+      expect(result).to.be.null;
+    });
+
+    it('should include one secret line per client without server', async () => {
+      const firstClientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-1',
+        'ipsec-only-client-secrets-1.conf',
+      );
+      const secondClientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-2',
+        'ipsec-only-client-secrets-2.conf',
+      );
+      const thirdClientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-3',
+        'ipsec-only-client-secrets-3.conf',
+      );
+
+      await addOption(firstClientId, 'leftid', 'left-id', 1);
+      await addOption(firstClientId, 'rightid', 'right-id', 2);
+      await addOption(firstClientId, '<<psk>>', 'psk-client-one', 3);
+
+      await addOption(secondClientId, 'right', '1.1.1.1', 1);
+      await addOption(secondClientId, '<<psk>>', 'psk-client-two', 2);
+
+      // This client should not produce a secret line because it has no PSK option.
+      await addOption(thirdClientId, 'right', '2.2.2.2', 1);
+
+      const result = await IPSec.getClientWithoutServerSecretsData(
+        db.getQuery(),
+        fwcloudProduct.firewall.id,
+      );
+
+      expect(result).to.equal(
+        `'left-id' 'right-id' : PSK "psk-client-one"\n1.1.1.1 : PSK "psk-client-two"\n`,
+      );
+    });
+
+    it("should fail when a PSK entry has neither 'leftid/rightid' nor 'right'", async () => {
+      const clientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-Error',
+        'ipsec-only-client-secrets-error.conf',
+      );
+      await addOption(clientId, '<<psk>>', 'psk-without-right', 1);
+
+      try {
+        await IPSec.getClientWithoutServerSecretsData(db.getQuery(), fwcloudProduct.firewall.id);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.exist;
+        expect((error as Error).message).to.include(
+          `Missing 'right' option for IPSec PSK secrets in client without server (id=${clientId})`,
+        );
       }
     });
   });
