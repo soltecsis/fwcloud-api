@@ -219,18 +219,22 @@ export class RoutingRuleService extends Service {
 
     let persisted: RoutingRule = await this._repository.save(routingRuleData);
     try {
-      persisted = await this.update(persisted.id, {
-        ipObjIds: data.ipObjIds,
-        ipObjGroupIds: data.ipObjGroupIds,
-        openVPNIds: data.openVPNIds,
-        openVPNPrefixIds: data.openVPNPrefixIds,
-        wireguardIds: data.wireguardIds,
-        wireguardPrefixIds: data.wireguardPrefixIds,
-        ipsecIds: data.ipsecIds,
-        ipsecPrefixIds: data.ipsecPrefixIds,
-        firewallApplyToId: data.firewallApplyToId,
-        markIds: data.markIds,
-      });
+      persisted = await this.update(
+        persisted.id,
+        {
+          ipObjIds: data.ipObjIds,
+          ipObjGroupIds: data.ipObjGroupIds,
+          openVPNIds: data.openVPNIds,
+          openVPNPrefixIds: data.openVPNPrefixIds,
+          wireguardIds: data.wireguardIds,
+          wireguardPrefixIds: data.wireguardPrefixIds,
+          ipsecIds: data.ipsecIds,
+          ipsecPrefixIds: data.ipsecPrefixIds,
+          firewallApplyToId: data.firewallApplyToId,
+          markIds: data.markIds,
+        },
+        true,
+      );
     } catch (e) {
       await this.remove({
         id: persisted.id,
@@ -292,7 +296,11 @@ export class RoutingRuleService extends Service {
     );
   }
 
-  async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
+  async update(
+    id: number,
+    data: IUpdateRoutingRule,
+    skipFromRestriction = false,
+  ): Promise<RoutingRule> {
     let rule: RoutingRule = await this._repository.preload(
       Object.assign(
         {
@@ -310,7 +318,9 @@ export class RoutingRuleService extends Service {
         relations: ['routingTable', 'routingTable.firewall'],
       })
     ).routingTable.firewall;
-    await this.validateFromRestriction(rule.id, data);
+    if (!skipFromRestriction) {
+      await this.validateFromRestriction(rule.id, data);
+    }
 
     if (data.ipObjIds) {
       await this.validateUpdateIPObjs(firewall, data);

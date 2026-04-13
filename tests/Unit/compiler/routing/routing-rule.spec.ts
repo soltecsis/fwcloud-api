@@ -489,6 +489,22 @@ describe('Routing rule compiler', () => {
       expect(priorities).to.deep.equal([1001]);
     });
 
+    it('should compile from all when rule has no from items', () => {
+      const rules: any = [
+        {
+          id: 4,
+          active: true,
+          comment: '',
+          items: [],
+          routingTable: { number: 2 },
+        },
+      ];
+
+      const compilation = compiler.compile('Rule', rules);
+
+      expect(compilation[0].cs).to.equal('$IP rule add priority 1001 from all table 2\n');
+    });
+
     it('should keep natural order priorities when disabled rules exist', () => {
       const rules: any = [
         {

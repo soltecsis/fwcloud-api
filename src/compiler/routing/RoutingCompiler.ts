@@ -42,6 +42,8 @@ export class RoutingCompiler {
     const items = this.breakDownItems(ruleData.items, 'from ');
     let cs = '';
 
+    if (items.length == 0) items.push('from all');
+
     for (let i = 0; i < items.length; i++)
       cs += `$IP rule add priority ${priority} ${items[i]} table ${ruleData.routingTable.number}\n`;
 
