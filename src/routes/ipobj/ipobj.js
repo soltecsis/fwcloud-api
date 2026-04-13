@@ -317,6 +317,8 @@ router.put('/',
 			
 			const wireGuardOptions = await WireGuard.checkIpobjInWireGuardOpt(req.dbCon, ipobjData.id);
 			const ipSecOptions = await IPSec.checkIpobjInIPSecOpt(req.dbCon, ipobjData.id);
+			const hasNetmask = (typeof ipobjData.netmask === 'string' && ipobjData.netmask.length > 0);
+			const ipWithOptionalMask = `${ipobjData.address}${hasNetmask ? ipobjData.netmask : ''}`;
 
 			if (wireGuardOptions?.length > 0) {
 				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
@@ -338,29 +340,37 @@ router.put('/',
 				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
 				await WireGuard.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
 			} else if (ipSecOptions?.length > 0) {
-				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
-				const [networkIp, networkMask] = networkAddress.split('/');
+				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'left', ipWithOptionalMask);
+				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'leftsourceip', ipobjData.address);
 
-				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'left', ipobjData.address + ipobjData.netmask);
-				const ipSecConfig = await IPSec.getCfg(req.dbCon, ipSecOptions[0].ipsec);
-				const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "leftsubnet");
+				if (hasNetmask) {
+					const networkAddress = IpUtils.getNetworkAddress(ipWithOptionalMask);
+					const [networkIp, networkMask] = networkAddress.split('/');
+					const ipSecCfgIds = [...new Set(ipSecOptions.filter(option => option.name === 'left').map(option => option.ipsec))];
 
-				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
-				const updatedIpObjData = {
-					...vpnNetworkIpObj,
-					id: vpnNetworkOption.ipobj,
-					address: networkIp,
-					netmask: '/' + networkMask
-				};
+					for (const ipSecCfgId of ipSecCfgIds) {
+						const ipSecConfig = await IPSec.getCfg(req.dbCon, ipSecCfgId);
+						const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "leftsubnet" && option.ipobj);
+						if (!vpnNetworkOption) continue;
 
-				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
-				await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, 'leftsubnet', networkAddress);
+						const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
+						const updatedIpObjData = {
+							...vpnNetworkIpObj,
+							id: vpnNetworkOption.ipobj,
+							address: networkIp,
+							netmask: '/' + networkMask
+						};
+
+						await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
+						await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, 'leftsubnet', networkAddress);
+					}
+				}
 			}
 
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
-			if (req.body.options && req.body.options.find(option => option.name === "Address")) {	
+			if (wireGuardOptions?.length > 0) {	
 				await WireGuard.updateWireGuardStatusIPOBJ(req, ipobjData.id, "|1");
-			} else if (req.body.options && req.body.options.find(option => option.name === "left")) {
+			} else if (ipSecOptions?.length > 0) {
 				await IPSec.updateIPSecStatusIPOBJ(req, ipobjData.id, "|1");
 			} else {
 				await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
@@ -371,9 +381,9 @@ router.put('/',
 
 			var data_return = {};
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
-			if (req.body.options && req.body.options.find(option => option.name === "Address")) {
+			if (wireGuardOptions?.length > 0) {
 				await WireGuard.getWireGuardStatusNotZero(req, data_return);
-			} else if(req.body.options && req.body.options.find(option => option.name === "left")) {
+			} else if(ipSecOptions?.length > 0) {
 				await IPSec.getIPSecStatusNotZero(req, data_return);
 			} else {
 				await OpenVPN.getOpenvpnStatusNotZero(req, data_return);

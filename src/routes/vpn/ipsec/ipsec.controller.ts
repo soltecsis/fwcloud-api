@@ -656,6 +656,30 @@ export class IPSecController extends Controller {
   @Validate(UpdateOptionsDto)
   async updateClientOptions(req: any): Promise<ResponseBuilder> {
     try {
+      const targetCfgId = req.body.ipsec_cli ?? req.body.ipsec;
+      const targetCfg = await IPSec.getCfg(req.dbCon, targetCfgId);
+      const isClientWithoutServer = targetCfg?.type === 333;
+
+      if (isClientWithoutServer) {
+        req.body.ipsec = targetCfgId;
+        await IPSec.delCfgOptAll(req);
+
+        let order = 1;
+        for (const opt of req.body.options) {
+          opt.ipsec = targetCfgId;
+          opt.ipsec_cli = null;
+          if (typeof opt.ipobj === 'undefined') opt.ipobj = null;
+          opt.order = order++;
+          await IPSec.addCfgOpt(req, opt);
+        }
+
+        return ResponseBuilder.buildResponse().status(204);
+      }
+
+      if (!req.body.ipsec_cli) {
+        throw new Error("'ipsec_cli' is required for IPSec clients with server");
+      }
+
       await IPSec.delCfgOptByScope(req, 8);
 
       const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
@@ -667,7 +691,7 @@ export class IPSecController extends Controller {
       let shouldRestart = false;
 
       for (const opt of req.body.options) {
-        if (opt.name === 'rightsourceip') {
+        if (opt.name === 'rightsourceip' || opt.name === 'leftsourceip') {
           continue;
         }
         if (opt.name === '<<disable>>') {
