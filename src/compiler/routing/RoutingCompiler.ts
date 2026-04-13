@@ -91,6 +91,18 @@ export class RoutingCompiler {
     if (!data) return result;
 
     for (let i = 0; i < data.length; i++) {
+      const shouldCompile = data[i].active || data.length === 1;
+      let cs = '';
+
+      if (shouldCompile) {
+        if (type == 'Route') cs = this.routeCompile(data[i] as RouteData<RouteItemForCompiler>);
+        else
+          cs = this.ruleCompile(
+            data[i] as RoutingRulesData<RoutingRuleItemForCompiler>,
+            data.length === 1 ? 1001 : 1001 + i,
+          );
+      }
+
       if (eventEmitter)
         eventEmitter.emit(
           'message',
@@ -103,12 +115,7 @@ export class RoutingCompiler {
         id: data[i].id,
         active: data[i].active,
         comment: data[i].comment,
-        cs:
-          data[i].active || data.length === 1
-            ? type == 'Route'
-              ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>)
-              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>, 1001 + i)
-            : '',
+        cs,
       });
     }
 

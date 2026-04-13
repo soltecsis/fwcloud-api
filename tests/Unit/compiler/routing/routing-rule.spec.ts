@@ -471,5 +471,55 @@ describe('Routing rule compiler', () => {
       const compilation = compiler.compile('Rule', rules);
       expect(compilation).to.be.an('array').with.length(0);
     });
+
+    it('should assign priority 1001 when compiling only one selected rule', () => {
+      const rules: any = [
+        {
+          id: 2,
+          active: true,
+          comment: '',
+          items: [{ type: 5, address: '10.10.10.2' }],
+          routingTable: { number: 100 },
+        },
+      ];
+
+      const compilation = compiler.compile('Rule', rules);
+      const priorities = getRulePriorities(compilation[0].cs);
+
+      expect(priorities).to.deep.equal([1001]);
+    });
+
+    it('should keep natural order priorities when disabled rules exist', () => {
+      const rules: any = [
+        {
+          id: 1,
+          active: true,
+          comment: '',
+          items: [{ type: 5, address: '10.10.20.1' }],
+          routingTable: { number: 100 },
+        },
+        {
+          id: 2,
+          active: false,
+          comment: '',
+          items: [{ type: 5, address: '10.10.20.2' }],
+          routingTable: { number: 100 },
+        },
+        {
+          id: 3,
+          active: true,
+          comment: '',
+          items: [{ type: 5, address: '10.10.20.3' }],
+          routingTable: { number: 100 },
+        },
+      ];
+
+      const compilation = compiler.compile('Rule', rules);
+      const prioritiesRule1 = getRulePriorities(compilation[0].cs);
+      const prioritiesRule3 = getRulePriorities(compilation[2].cs);
+
+      expect(prioritiesRule1).to.deep.equal([1001]);
+      expect(prioritiesRule3).to.deep.equal([1003]);
+    });
   });
 });
