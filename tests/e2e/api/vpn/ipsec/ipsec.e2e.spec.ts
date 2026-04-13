@@ -28,7 +28,7 @@ let fwcProduct: FwCloudProduct;
 let nodeId: number;
 let manager: EntityManager;
 
-describe.only(describeName('IPSec E2E Tests'), () => {
+describe(describeName('IPSec E2E Tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
