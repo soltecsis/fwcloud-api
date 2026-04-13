@@ -33,6 +33,11 @@ export class UpdateDto {
   @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid install_name format' })
   install_name?: string;
 
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid name format' })
+  name?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Validate(IPSecPskKeyDependencyValidator)
