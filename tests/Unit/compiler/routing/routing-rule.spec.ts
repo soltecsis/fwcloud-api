@@ -510,6 +510,7 @@ describe('Routing rule compiler', () => {
         {
           id: 1,
           active: true,
+          rule_order: 1,
           comment: '',
           items: [{ type: 5, address: '10.10.20.1' }],
           routingTable: { number: 100 },
@@ -517,6 +518,7 @@ describe('Routing rule compiler', () => {
         {
           id: 2,
           active: false,
+          rule_order: 2,
           comment: '',
           items: [{ type: 5, address: '10.10.20.2' }],
           routingTable: { number: 100 },
@@ -524,6 +526,7 @@ describe('Routing rule compiler', () => {
         {
           id: 3,
           active: true,
+          rule_order: 3,
           comment: '',
           items: [{ type: 5, address: '10.10.20.3' }],
           routingTable: { number: 100 },
