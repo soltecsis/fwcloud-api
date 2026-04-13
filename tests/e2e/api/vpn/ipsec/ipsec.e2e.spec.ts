@@ -1459,6 +1459,117 @@ describe(describeName('IPSec E2E Tests'), () => {
             expect(response.status).to.equal(204);
           });
       });
+
+      it('regular user should be able to update client without server options including leftsourceip ipobj', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(loggedUserSessionId);
+        const ipobjId = fwcProduct.ipobjs.get('address').id;
+        await unlockFwcloud();
+
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+            options: [
+              {
+                name: 'leftsourceip',
+                ipobj: ipobjId,
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+
+        const updatedOptions = await manager.query(
+          'SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?',
+          [ipsecOnlyClientId, 'leftsourceip'],
+        );
+        expect(updatedOptions).to.have.length(1);
+        expect(updatedOptions[0].ipobj).to.equal(ipobjId);
+        expect(updatedOptions[0].ipsec_cli).to.equal(null);
+      });
+
+      it('admin user should be able to update an ipobj referenced by leftsourceip in a client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(adminUserSessionId);
+        const ipobjId = fwcProduct.ipobjs.get('address').id;
+        const updatedAddress = '10.20.30.41';
+        await unlockFwcloud();
+
+        await manager.query(
+          'INSERT INTO ipsec_opt (ipsec, ipsec_cli, name, ipobj, arg, `order`, scope) VALUES (?, NULL, ?, ?, ?, ?, ?)',
+          [
+            ipsecOnlyClientId,
+            'leftsourceip',
+            ipobjId,
+            fwcProduct.ipobjs.get('address').address,
+            1,
+            2,
+          ],
+        );
+
+        const [ipobj] = await manager.query('SELECT * FROM ipobj WHERE id = ?', [ipobjId]);
+        expect(ipobj).to.exist;
+
+        await request(app.express)
+          .put('/ipobj')
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            id: ipobjId,
+            name: ipobj.name,
+            type: ipobj.type,
+            ip_version: ipobj.ip_version ?? 4,
+            address: updatedAddress,
+            netmask: ipobj.netmask ?? '',
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+
+        const [updatedIpobj] = await manager.query('SELECT address FROM ipobj WHERE id = ?', [
+          ipobjId,
+        ]);
+        expect(updatedIpobj.address).to.equal(updatedAddress);
+
+        const [updatedLeftSourceIpOpt] = await manager.query(
+          'SELECT arg FROM ipsec_opt WHERE ipsec = ? AND name = ? AND ipobj = ?',
+          [ipsecOnlyClientId, 'leftsourceip', ipobjId],
+        );
+        expect(updatedLeftSourceIpOpt).to.exist;
+        expect(updatedLeftSourceIpOpt.arg).to.equal(updatedAddress);
+      });
+
+      it('regular user should ignore leftsourceip in peer options update for client with server', async () => {
+        const ipsecCliId = fwcProduct.ipsecClients.get('IPSec-Cli-1').id;
+
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecServer.id,
+            ipsec_cli: ipsecCliId,
+            options: [
+              {
+                name: 'leftsourceip',
+                arg: '10.0.0.9',
+                scope: 8,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+
+        const peerOptions = await manager.query(
+          'SELECT * FROM ipsec_opt WHERE ipsec = ? AND ipsec_cli = ? AND name = ?',
+          [fwcProduct.ipsecServer.id, ipsecCliId, 'leftsourceip'],
+        );
+        expect(peerOptions).to.have.length(0);
+      });
     });
   });
 });
