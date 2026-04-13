@@ -37,10 +37,12 @@ export type RoutingCompiled = {
 export class RoutingCompiler {
   public ruleCompile(
     ruleData: RoutingRulesData<RoutingRuleItemForCompiler>,
-    priority = 1001,
+    priority = 1000 + (ruleData.rule_order ?? 1),
   ): string {
     const items = this.breakDownItems(ruleData.items, 'from ');
     let cs = '';
+
+    if (items.length == 0) items.push('from all');
 
     for (let i = 0; i < items.length; i++)
       cs += `$IP rule add priority ${priority} ${items[i]} table ${ruleData.routingTable.number}\n`;
@@ -91,6 +93,14 @@ export class RoutingCompiler {
     if (!data) return result;
 
     for (let i = 0; i < data.length; i++) {
+      const shouldCompile = data[i].active || data.length === 1;
+      let cs = '';
+
+      if (shouldCompile) {
+        if (type == 'Route') cs = this.routeCompile(data[i] as RouteData<RouteItemForCompiler>);
+        else cs = this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>);
+      }
+
       if (eventEmitter)
         eventEmitter.emit(
           'message',
@@ -103,12 +113,7 @@ export class RoutingCompiler {
         id: data[i].id,
         active: data[i].active,
         comment: data[i].comment,
-        cs:
-          data[i].active || data.length === 1
-            ? type == 'Route'
-              ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>)
-              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>, 1001 + i)
-            : '',
+        cs,
       });
     }
 

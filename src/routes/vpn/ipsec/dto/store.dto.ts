@@ -74,12 +74,12 @@ export class IPSecOptionValidator implements ValidatorConstraintInterface {
 
       case 'leftid':
       case 'rightid':
-        // "@domain" or DN, allow quoted or unquoted
+        // "@domain", DN or quoted string.
         return (
-          /^@[\w.-]+\.\w{2,}$/.test(optionValue) || // unquoted @domain
-          /^"@[\w.-]+\.\w{2,}"$/.test(optionValue) || // quoted @domain
-          /^([a-zA-Z]+=[^,]+,?\s*)+$/.test(optionValue) || // unquoted DN
-          /^"([a-zA-Z]+=[^,]+,?\s*)+"$/.test(optionValue) // quoted DN
+          /^[a-zA-Z0-9]+$/.test(optionValue) ||
+          /^"[^"]+"$/.test(optionValue) ||
+          /^@[\w.-]+$/.test(optionValue) ||
+          /^([a-zA-Z]+=[^,]+,?\s*)+$/.test(optionValue)
         );
 
       case 'leftcert':
