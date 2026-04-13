@@ -37,7 +37,7 @@ export type RoutingCompiled = {
 export class RoutingCompiler {
   public ruleCompile(
     ruleData: RoutingRulesData<RoutingRuleItemForCompiler>,
-    priority = 1001,
+    priority = 1000 + (ruleData.rule_order ?? 1),
   ): string {
     const items = this.breakDownItems(ruleData.items, 'from ');
     let cs = '';
@@ -98,11 +98,7 @@ export class RoutingCompiler {
 
       if (shouldCompile) {
         if (type == 'Route') cs = this.routeCompile(data[i] as RouteData<RouteItemForCompiler>);
-        else
-          cs = this.ruleCompile(
-            data[i] as RoutingRulesData<RoutingRuleItemForCompiler>,
-            data.length === 1 ? 1001 : 1001 + i,
-          );
+        else cs = this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>);
       }
 
       if (eventEmitter)
