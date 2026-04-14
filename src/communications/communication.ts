@@ -69,6 +69,10 @@ export type SystemCtlInfo = {
   service: string;
 };
 
+export type PluginInstallOptions = {
+  serverCN?: string;
+};
+
 type ErrorWithCode = {
   code: string;
 } & Error;
@@ -133,13 +137,19 @@ export abstract class Communication<ConnectionData> {
     files: string[],
     channel?: EventEmitter,
   ): Promise<void>;
+  abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;
   abstract info(): Promise<FwcAgentInfo>;
   abstract systemctlManagement(command: string, service: string): Promise<string>;
-  abstract installPlugin(name: string, enabled: boolean): Promise<string>;
+  abstract installPlugin(
+    name: string,
+    enabled: boolean,
+    eventEmitter?: EventEmitter,
+    options?: PluginInstallOptions,
+  ): Promise<string>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (errorHasCode(error)) {

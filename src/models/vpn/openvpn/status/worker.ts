@@ -5,19 +5,25 @@ import db from '../../../../database/database-manager';
 import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
+import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
 import {
   CreateOpenVPNStatusHistoryData,
+  CreateOpenVPNStatusHistorySummary,
   OpenVPNStatusHistoryService,
 } from './openvpn-status-history.service';
 
-async function iterate(application: Application): Promise<void> {
-  try {
-    const service: OpenVPNStatusHistoryService = await application.getService(
-      OpenVPNStatusHistoryService.name,
-    );
+const AUDIT_ENTITY = 'OpenVPNStatusHistory';
 
+export type OpenVPNStatusWorkerIterationDependencies = {
+  getOpenVPNServers: () => Promise<OpenVPN[]>;
+  getClusterFirewalls: (clusterId: number) => Promise<Firewall[]>;
+  getStatusOption: (openVPNId: number) => Promise<OpenVPNOption | null>;
+};
+
+const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
+  getOpenVPNServers: async (): Promise<OpenVPN[]> => {
     // List of all OpenVPN servers with which we have to communicate.
-    const openvpns: OpenVPN[] = await db
+    return db
       .getSource()
       .getRepository(OpenVPN)
       .createQueryBuilder('openvpn')
@@ -29,19 +35,99 @@ async function iterate(application: Application): Promise<void> {
         communication: FirewallInstallCommunication.Agent,
       })
       .getMany();
+  },
+  getClusterFirewalls: async (clusterId: number): Promise<Firewall[]> => {
+    return db
+      .getSource()
+      .getRepository(Firewall)
+      .createQueryBuilder('firewall')
+      .where('firewall.clusterId = :cluster', { cluster: clusterId })
+      .andWhere('firewall.install_communication = :communication', {
+        communication: FirewallInstallCommunication.Agent,
+      })
+      .getMany();
+  },
+  getStatusOption: async (openVPNId: number): Promise<OpenVPNOption | null> => {
+    const option = await OpenVPN.getOptData(db.getQuery(), openVPNId, 'status');
+    return (option as OpenVPNOption) ?? null;
+  },
+};
+
+type WorkerIterationSummary = {
+  processedOpenvpns: number;
+  insertedEntries: number;
+  updatedDisconnections: number;
+  errorsCount: number;
+};
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error === null || error === undefined) {
+    return 'Unknown error';
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unserializable error object';
+  }
+}
+
+function buildRecoverableErrorSummary(messages: string[]): string | null {
+  if (messages.length === 0) {
+    return null;
+  }
+
+  if (messages.length === 1) {
+    return messages[0];
+  }
+
+  return `${messages[0]} (+${messages.length - 1} more errors)`;
+}
+
+export async function iterate(
+  application: Application,
+  dependencies: OpenVPNStatusWorkerIterationDependencies = defaultDependencies,
+): Promise<void> {
+  let auditEventService: AuditEventService | null = null;
+  let eventId: string | null = null;
+  const startedAt = new Date();
+  let finishedAt: Date;
+  let status: AuditEventStatus = 'success';
+  let errorSummary: string | null = null;
+  const recoverableErrors: string[] = [];
+  const summary: WorkerIterationSummary = {
+    processedOpenvpns: 0,
+    insertedEntries: 0,
+    updatedDisconnections: 0,
+    errorsCount: 0,
+  };
+
+  try {
+    auditEventService = await application.getService(AuditEventService.name);
+    eventId = auditEventService.startEvent({
+      source: 'worker',
+      operation: 'sync',
+      entity: AUDIT_ENTITY,
+    });
+    const service: OpenVPNStatusHistoryService = await application.getService(
+      OpenVPNStatusHistoryService.name,
+    );
+
+    const openvpns: OpenVPN[] = await dependencies.getOpenVPNServers();
 
     for (const openvpn of openvpns) {
+      summary.processedOpenvpns++;
       try {
         const firewalls: Firewall[] = openvpn.firewall.clusterId
-          ? await db
-              .getSource()
-              .getRepository(Firewall)
-              .createQueryBuilder('firewall')
-              .where('firewall.clusterId = :cluster', { cluster: openvpn.firewall.clusterId })
-              .andWhere('firewall.install_communication = :communication', {
-                communication: FirewallInstallCommunication.Agent,
-              })
-              .getMany()
+          ? await dependencies.getClusterFirewalls(openvpn.firewall.clusterId)
           : [openvpn.firewall];
 
         let entries: CreateOpenVPNStatusHistoryData[] = [];
@@ -49,11 +135,7 @@ async function iterate(application: Application): Promise<void> {
           const communication: AgentCommunication =
             (await firewall.getCommunication()) as AgentCommunication;
 
-          const statusOption: OpenVPNOption = (await OpenVPN.getOptData(
-            db.getQuery(),
-            openvpn.id,
-            'status',
-          )) as OpenVPNOption;
+          const statusOption: OpenVPNOption | null = await dependencies.getStatusOption(openvpn.id);
 
           if (statusOption) {
             const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(
@@ -73,17 +155,55 @@ async function iterate(application: Application): Promise<void> {
           }
         }
 
-        await service.create(openvpn.id, entries);
+        const persistedEntries: CreateOpenVPNStatusHistorySummary = await service.createWithSummary(
+          openvpn.id,
+          entries,
+        );
+        summary.insertedEntries += persistedEntries.insertedEntries;
+        summary.updatedDisconnections += persistedEntries.updatedDisconnections;
       } catch (error) {
-        application.logger().error(`WorkerError: OpenVPN ${openvpn.id} failed: ${error.message}`);
+        summary.errorsCount++;
+        const errorMessage = getErrorMessage(error);
+        recoverableErrors.push(`OpenVPN ${openvpn.id}: ${errorMessage}`);
+        application.logger().error(`WorkerError: OpenVPN ${openvpn.id} failed: ${errorMessage}`);
       }
     }
   } catch (error) {
-    application.logger().error(`WorkerError: ${error.message}`);
+    status = 'failed';
+    errorSummary = getErrorMessage(error);
+    application.logger().error(`WorkerError: ${errorSummary}`);
+  } finally {
+    finishedAt = new Date();
+
+    if (status === 'success') {
+      errorSummary = buildRecoverableErrorSummary(recoverableErrors);
+    }
+
+    if (auditEventService && eventId) {
+      await auditEventService.finishEvent(eventId, {
+        affectedCount: summary.insertedEntries,
+        status,
+        error: status === 'failed' ? errorSummary : null,
+        finishedAt,
+        details: {
+          source: 'worker',
+          operation: 'sync',
+          entity: AUDIT_ENTITY,
+          processedOpenvpns: summary.processedOpenvpns,
+          insertedEntries: summary.insertedEntries,
+          updatedDisconnections: summary.updatedDisconnections,
+          errorsCount: summary.errorsCount,
+          startedAt: startedAt.toISOString(),
+          finishedAt: finishedAt.toISOString(),
+          status,
+          error: errorSummary,
+        },
+      });
+    }
   }
 }
 
-async function waitUntilNextIteration(ms: number): Promise<void> {
+export async function waitUntilNextIteration(ms: number): Promise<void> {
   return new Promise<void>((resolve) => {
     if (ms <= 0) {
       return resolve();
@@ -95,7 +215,7 @@ async function waitUntilNextIteration(ms: number): Promise<void> {
   });
 }
 
-async function work(): Promise<void> {
+export async function work(): Promise<void> {
   const application = await Application.run();
   const interval: number = application.config.get('openvpn.agent.history.interval');
 
@@ -115,9 +235,11 @@ async function work(): Promise<void> {
   }
 }
 
-work()
-  .then(() => {})
-  .catch((error) => {
-    console.error(error);
-    throw error;
-  });
+if (require.main === module) {
+  work()
+    .then(() => {})
+    .catch((error) => {
+      console.error(error);
+      throw error;
+    });
+}

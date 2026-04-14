@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -36,6 +36,7 @@ var errorTable = {
   "SESSION_BAD":          {"fwcErr": 1010, "msg": "Invalid session"},
   "NOT_ALLOWED_CORS":     {"fwcErr": 1011, "msg": "Not allowed by CORS"},
   "PGP_KEYS_GEN":         {"fwcErr": 1012, "msg": "PGP keys not generated"},
+  "NO_IPOBJ_ASSOCIATED": { "fwcErr": 1013, "msg": "This VPN client has no associated IP object and cannot be used in this position" },
 
   // Input validation error codes.
   "NOT_ACCEPTED_METHOD":  {"fwcErr": 2001, "msg": "HTTP method not accepted by FWCloud.net API"},
@@ -65,6 +66,11 @@ var errorTable = {
   "VPN_NOT_SER":          {"fwcErr": 6003, "msg": "This is not an OpenVPN server configuration"},
   "VPN_NOT_FOUND_CFGDIR": {"fwcErr": 6004, "msg": "OpenVPN 'client-config-dir' option not found"},
   "VPN_NOT_FOUND_STATUS": {"fwcErr": 6005, "msg": "OpenVPN 'status' option not found"},
+  "WG_NOT_SER": { "fwcErr": 6006, "msg": "This is not a WireGuard server configuration" },
+  "IPSEC_NOT_SER": { "fwcErr": 6007, "msg": "This is not an IPSec server configuration" },
+  "VPN_2FA_CLIENTS_ENABLED":   {"fwcErr": 6008, "msg": "Two-factor authentication for OpenVPN clients is enabled, this operation is not allowed"},
+  "VPN_2FA_SERVER_DISABLED":   {"fwcErr": 6009, "msg": "Two-factor authentication for OpenVPN server is disabled"},
+  "VPN_2FA_AGENT_REQUIRED":    {"fwcErr": 6010, "msg": "Comunication agent is required for this operation"},
 
   // Access control error codes.
   "ACC_FWCLOUD":          {"fwcErr": 7000, "msg": "FWCloud access not allowed"},
@@ -74,12 +80,12 @@ var errorTable = {
   "ACC_CA":               {"fwcErr": 7004, "msg": "CA access not allowed"},
   "ACC_CRT":              {"fwcErr": 7005, "msg": "CRT access not allowed"},
   "ACC_OPENVPN":          {"fwcErr": 7006, "msg": "OpenVPN access not allowed"},
-  "ACC_WIREGUARD":        {"fwcErr": 7006, "msg": "WireGuard access not allowed"},
-  "ACC_IPSEC":            {"fwcErr": 7006, "msg": "IPSec access not allowed"},
-  "ACC_CRT_PREFIX":       {"fwcErr": 7007, "msg": "CRT prefix access not allowed"},
-  "ACC_POLICY_RULE":      {"fwcErr": 7008, "msg": "Policy rule access not allowed"},
-  "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},
-  "ACC_FWCLOUD_LOCK":     {"fwcErr": 7010, "msg": "FWCloud is locked by another user, only read operations are allowed"},
+  "ACC_WIREGUARD":        {"fwcErr": 7007, "msg": "WireGuard access not allowed"},
+  "ACC_IPSEC":            {"fwcErr": 7008, "msg": "IPSec access not allowed"},
+  "ACC_CRT_PREFIX":       {"fwcErr": 7009, "msg": "CRT prefix access not allowed"},
+  "ACC_POLICY_RULE":      {"fwcErr": 7010, "msg": "Policy rule access not allowed"},
+  "ACC_IPTABLES_MARK":    {"fwcErr": 7011, "msg": "IPTables mark access not allowed"},
+  "ACC_FWCLOUD_LOCK":     {"fwcErr": 7012, "msg": "FWCloud is locked by another user, only read operations are allowed"},
   
   //Limit
   "LIMIT_FWCLOUDS":       {"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},
@@ -87,11 +93,11 @@ var errorTable = {
   "LIMIT_CLUSTERS":       {"fwcErr": 8002, "msg": "The maximum of available Clusters has been reached"},
   "LIMIT_NODES":          {"fwcErr": 8003, "msg": "The maximum of available Nodes in Cluster has been reached"},
 
-  "SSH_COMMUNICATION_DISABLE": {"fwcErr": 9000, "msg": "Communication by means of SSH is forbidden in the API"}
+  "SSH_COMMUNICATION_DISABLE": { "fwcErr": 9000, "msg": "Communication by means of SSH is forbidden in the API" }
 };
 
 errorTable.other = msg => {
-  return  {"fwcErr": 999999, "msg": msg};
+  return { "fwcErr": 999999, "msg": msg };
 };
 
 

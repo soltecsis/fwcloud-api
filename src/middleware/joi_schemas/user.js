@@ -27,6 +27,7 @@ module.exports = schema;
 const Joi = require('joi');
 const sharedSch = require('./shared');
 const fwcError = require('../../utils/error_table');
+import { PgpHelper } from '../../utils/pgp';
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
@@ -45,6 +46,13 @@ schema.validate = req => {
 				return resolve();
 			}
 		} else if (req.url === '/user' && (req.method === 'POST' || req.method === 'PUT')) {
+			if (req.method === 'PUT' && typeof req.body.password === 'string' && req.body.password !== '') {
+				try {
+					const pgp = new PgpHelper(req.session ? req.session.pgp : undefined);
+					req.body.password = await pgp.decrypt(req.body.password);
+				} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
+			}
+
 			schema = Joi.object().keys({
 				customer: sharedSch.id,
 				email: Joi.string().email().optional(),

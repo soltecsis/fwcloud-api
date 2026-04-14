@@ -36,6 +36,7 @@ import { logger } from '../fonaments/abstract-application';
 import * as uuid from 'uuid';
 import { Zip } from '../utils/zip';
 import { Mutex } from 'async-mutex';
+import { AuditLogService } from '../models/audit/AuditLog.service';
 
 export interface BackupUpdateableConfig {
   schedule: string;
@@ -47,6 +48,7 @@ export class BackupService extends Service {
   protected _config: any;
   protected _db: DatabaseService;
   protected _cronService: CronService;
+  protected _auditLogService: AuditLogService;
 
   protected _scheduledBackupCreationJob: CronJob;
   protected _scheduledBackupRetentionJob: CronJob;
@@ -64,6 +66,7 @@ export class BackupService extends Service {
     this._config = this.loadCustomizedConfig(this._app.config.get('backup'));
     this._db = await this._app.getService<DatabaseService>(DatabaseService.name);
     this._cronService = await this._app.getService<CronService>(CronService.name);
+    this._auditLogService = await this._app.getService<AuditLogService>(AuditLogService.name);
     const backupDirectory: string = this._config.data_dir;
 
     if (!fs.existsSync(backupDirectory)) {
@@ -76,6 +79,7 @@ export class BackupService extends Service {
   public startScheduledTasks(): void {
     this._scheduledBackupCreationJob = this._cronService.addJob(this._config.schedule, async () => {
       await this._backupMutex.waitForUnlock();
+      const startedAt = Date.now();
 
       try {
         logger().info('Starting BACKUP job.');
@@ -83,19 +87,64 @@ export class BackupService extends Service {
         backup.setComment('Cron backup');
         await backup.create(this._config.data_dir);
         logger().info(`BACKUP job completed: ${backup.id}`);
+        await this._auditLogService.logMutation({
+          call: 'CRON backups.create',
+          description: `cron=backups.create | status=success | backup=${backup.id}`,
+          data: {
+            source: 'cron',
+            task: 'backups.create',
+            schedule: this._config.schedule,
+            backupId: backup.id,
+            backupPath: backup.path,
+            durationMs: Date.now() - startedAt,
+          },
+        });
       } catch (error) {
         logger().error('BACKUP job ERROR: ', error.message);
+        await this._auditLogService.logMutation({
+          call: 'CRON backups.create',
+          description: 'cron=backups.create | status=error',
+          data: {
+            source: 'cron',
+            task: 'backups.create',
+            schedule: this._config.schedule,
+            durationMs: Date.now() - startedAt,
+            error: error?.message ?? String(error),
+          },
+        });
       }
     });
     this._scheduledBackupCreationJob.start();
 
     this._scheduledBackupRetentionJob = this._cronService.addJob('0 0 0 * * *', async () => {
+      const startedAt = Date.now();
       try {
         logger().info('Starting RETENTION BACKUP job.');
         const backups: Backup[] = await this.applyRetentionPolicy();
         logger().info(`BACKUPS removed: ${backups.length}`);
+        await this._auditLogService.logMutation({
+          call: 'CRON backups.retention',
+          description: `cron=backups.retention | status=success | removed=${backups.length}`,
+          data: {
+            source: 'cron',
+            task: 'backups.retention',
+            removedBackups: backups.map((backup) => backup.id),
+            removedCount: backups.length,
+            durationMs: Date.now() - startedAt,
+          },
+        });
       } catch (error) {
         logger().error('BACKUP job ERROR: ', error.message);
+        await this._auditLogService.logMutation({
+          call: 'CRON backups.retention',
+          description: 'cron=backups.retention | status=error',
+          data: {
+            source: 'cron',
+            task: 'backups.retention',
+            durationMs: Date.now() - startedAt,
+            error: error?.message ?? String(error),
+          },
+        });
       }
     });
     this._scheduledBackupRetentionJob.start();

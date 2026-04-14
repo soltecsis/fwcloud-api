@@ -5,6 +5,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.0] - 2026-04-14
+### Added
+- Audit logs support for application changes, including HTTP requests and internal processes such as cron tasks, workers, CLI commands, and imports.
+- Audit logs listing API with filtering by user, session, source IP, FWCloud, firewall, and cluster, plus pagination and cursor-based navigation.
+- Audit logs archive generation and configuration endpoints for archive and retention management.
+- OpenVPN two-factor authentication (2FA) management for server and client configurations, including dedicated API calls, database migration, script-based authentication, per-server user lists, and Google Authenticator secret files deployment.
+- Configuration toggles to enable or disable persistence of internal audit events by source.
+
+### Changed
+- IPSec client and server handling, validation, and tests, including support for clients without associated servers and improved compatibility with legacy data.
+- Runtime and development dependencies upgraded, with Node.js engine requirements and lint/test tooling aligned to the current TypeScript and ESLint stack.
+- Update and installation compatibility checks now report unsupported Node.js runtime versions more clearly.
+- OpenVPN status worker auditing now records summarized internal events for each iteration.
+
+### Fixed
+- OpenVPN 2FA route error codes and validation flow.
+- Foreign key handling for the `crt` column in the IPSec migration.
+- `checkIpsecAccess` type conversion and default assignment issues.
+- TypeScript build failures related to `Error` cause handling in ES2021 environments.
+- npm install conflicts, deprecated type packages, and low-severity audit issues in project dependencies.
+- WebSocket RawData messages are now converted to strings before being resolved and emitted.
+- Redundant FWCloud data cleanup after forced deletion.
+- IPSec tree loading fallback when legacy schemas do not include the `name` column.
+
+
 ## [2.3.1] - 2026-01-28
 ### Fixed
 - Node.js version in Dockerfile for Docker containers generation.

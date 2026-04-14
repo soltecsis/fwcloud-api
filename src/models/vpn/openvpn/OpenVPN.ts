@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -85,6 +85,9 @@ export class OpenVPN extends Model {
 
   @Column()
   installed_at: Date;
+
+  @Column({ name: 'tfa_enabled', type: 'tinyint', default: 0 })
+  tfaEnabled: number;
 
   @Column({ name: 'openvpn' })
   parentId: number;
@@ -343,6 +346,58 @@ export class OpenVPN extends Model {
     });
   }
 
+  // Get all the clients with 2FA enabled for an OpenVPN server in a firewall.
+  public static firewallServerHasClientsWith2FAEnabled(dbCon, firewallId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) enabledClients FROM openvpn
+                WHERE openvpn = ? AND firewall = ? AND tfa_enabled = 1`;
+      dbCon.query(sql, [openvpnId, firewallId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].enabledClients > 0);
+      });
+    });
+  }
+
+  // Get all OpenVPN servers with 2FA enabled for a firewall (excluding the given OpenVPN server).
+  public static firewallHasOtherServersWith2FAEnabled(dbCon, firewallId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) enabledServers FROM openvpn
+                WHERE firewall = ? AND openvpn IS NULL AND id != ? AND tfa_enabled = 1`;
+      dbCon.query(sql, [firewallId, openvpnId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].enabledServers > 0);
+      });
+    });
+  }
+
+  // Get all the clients with 2FA enabled for an OpenVPN server in a cluster.
+  public static clusterServerHasClientsWith2FAEnabled(dbCon, clusterId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) n
+                FROM openvpn VPN
+                INNER JOIN firewall FW ON FW.id = VPN.firewall
+                WHERE VPN.openvpn = ? AND FW.cluster = ? AND VPN.tfa_enabled = 1`;
+      dbCon.query(sql, [openvpnId, clusterId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].n > 0);
+      });
+    });
+  }
+
+  // Get all OpenVPN servers with 2FA enabled for a cluster (excluding the given OpenVPN server).
+  public static clusterHasOtherServersWith2FAEnabled(dbCon, clusterId, openvpnId) {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) n
+                FROM openvpn VPN
+                INNER JOIN firewall FW ON FW.id = VPN.firewall
+                WHERE FW.cluster = ? AND VPN.openvpn IS NULL AND VPN.id != ? AND VPN.tfa_enabled = 1`;
+      dbCon.query(sql, [clusterId, openvpnId], (error, result) => {
+        if (error) return reject(error);
+        resolve(result[0].n > 0);
+      });
+    });
+  }
+
   // Get data of OpenVPN servers of a firewall.
   public static getOpenvpnServersByFirewall(dbCon, firewall) {
     return new Promise((resolve, reject) => {
@@ -396,8 +451,8 @@ export class OpenVPN extends Model {
   public static dumpCfg(dbCon, fwcloud, openvpn) {
     return new Promise((resolve, reject) => {
       // First obtain the CN of the certificate.
-      let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
-                VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
+      let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name, VPN.tfa_enabled,
+                VPNSRV.tfa_enabled as server_tfa_enabled, VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
                 INNER JOIN openvpn VPN ON VPN.crt=CRT.id
                 LEFT JOIN openvpn VPNSRV ON VPNSRV.id=VPN.openvpn
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
@@ -406,26 +461,27 @@ export class OpenVPN extends Model {
 
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
+        const vpnMeta = result[0];
 
-        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
+        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + vpnMeta.ca + '/';
         const ca_crt_path = ca_dir + 'ca.crt';
-        const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
-        const key_path = ca_dir + 'private/' + result[0].cn + '.key';
-        const dh_path = result[0].type === 2 ? ca_dir + 'dh.pem' : '';
+        const crt_path = ca_dir + 'issued/' + vpnMeta.cn + '.crt';
+        const key_path = ca_dir + 'private/' + vpnMeta.cn + '.key';
+        const dh_path = vpnMeta.type === 2 ? ca_dir + 'dh.pem' : '';
 
         // Header description.
         let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
         des += `# Generated: ${Date()}\n`;
-        des += `# Certificate Common Name: ${result[0].cn} \n`;
-        des += result[0].cl_name
-          ? `# Firewall Cluster: ${result[0].cl_name}\n`
-          : `# Firewall: ${result[0].fw_name}\n`;
-        if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
-          result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
-        if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
-          result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
-        des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
-        des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
+        des += `# Certificate Common Name: ${vpnMeta.cn} \n`;
+        des += vpnMeta.cl_name
+          ? `# Firewall Cluster: ${vpnMeta.cl_name}\n`
+          : `# Firewall: ${vpnMeta.fw_name}\n`;
+        if (vpnMeta.srv_config1 && vpnMeta.srv_config1.endsWith('.conf'))
+          vpnMeta.srv_config1 = vpnMeta.srv_config1.slice(0, -5);
+        if (vpnMeta.srv_config2 && vpnMeta.srv_config2.endsWith('.conf'))
+          vpnMeta.srv_config2 = vpnMeta.srv_config2.slice(0, -5);
+        des += `# OpenVPN Server: ${vpnMeta.srv_config1 ? vpnMeta.srv_config1 : vpnMeta.srv_config2}\n`;
+        des += `# Type: ${vpnMeta.srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         // Get all the configuration options.
         sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
@@ -437,10 +493,25 @@ export class OpenVPN extends Model {
             let ovpn_cfg = des;
             let ovpn_ccd = '';
 
+            let hasAuthUserPass = false;
+
             // First add all the configuration options.
             for (const opt of result) {
+              if (vpnMeta.type === 1 && opt.name === 'auth-user-pass') {
+                hasAuthUserPass = true;
+                const username = opt.arg || vpnMeta.cn;
+                const authUserPassBlock =
+                  (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') +
+                  '<auth-user-pass>\n' +
+                  username +
+                  '\n</auth-user-pass>';
+                ovpn_cfg += authUserPassBlock + '\n';
+                continue;
+              }
+
               let cfg_line =
                 (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
+              if (opt.name === 'auth-user-pass') hasAuthUserPass = true;
               if (opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
@@ -468,6 +539,12 @@ export class OpenVPN extends Model {
                 ovpn_ccd += cfg_line + '\n';
               // Config file
               else ovpn_cfg += cfg_line + '\n';
+            }
+
+            // Client configs only embed auth-user-pass when 2FA is enabled for that specific client.
+            if (vpnMeta.type === 1 && Number(vpnMeta.tfa_enabled) === 1 && !hasAuthUserPass) {
+              const username = vpnMeta.cn;
+              ovpn_cfg += '<auth-user-pass>\n' + username + '\n</auth-user-pass>\n';
             }
 
             // Now read the files data and put it into de config files.

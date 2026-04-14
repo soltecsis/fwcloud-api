@@ -41,6 +41,7 @@ export class RouteControllerStoreDto {
   routeGroupId: number;
 
   @IsNumber()
+  @IsOptional()
   @IpObjBelongsToTypes([
     5, // ADDRESS
   ])

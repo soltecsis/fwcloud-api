@@ -49,9 +49,12 @@ export class IPSecService extends Service {
       const ipsecId: number = ipsec.id;
       configData = ((await IPSec.dumpCfg(db.getQuery(), ipsecId)) as any).cfg;
     } catch (e) {
-      throw new Error(
-        'Unable to generate the ipsec configuration during installer generation: ' +
-          JSON.stringify(e),
+      throw Object.assign(
+        new Error(
+          'Unable to generate the ipsec configuration during installer generation: ' +
+            JSON.stringify(e),
+        ),
+        { cause: e },
       );
     }
 

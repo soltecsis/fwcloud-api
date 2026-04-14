@@ -20,8 +20,8 @@ export class WireGuardPrefixController extends Controller {
   @Validate()
   async prefix(req: any): Promise<ResponseBuilder> {
     try {
-      // We can only create prefixes for OpenVPN server configurations.
-      if (req.wireguard.type !== 2) throw fwcError.VPN_NOT_SER;
+      // We can only create prefixes for WireGuard server configurations.
+      if (req.wireguard.type !== 2) throw fwcError.WG_NOT_SER;
 
       // Verify that we are not creating a prefix that already exists for the same CA.
       if (await WireGuardPrefix.existsPrefix(req.dbCon, req.body.wireguard, req.body.name))

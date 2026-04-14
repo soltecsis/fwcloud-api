@@ -14,6 +14,12 @@ export type CreateOpenVPNStatusHistoryData = {
   disconnectedAtTimestampInSeconds?: number;
 };
 
+export type CreateOpenVPNStatusHistorySummary = {
+  entries: OpenVPNStatusHistory[];
+  insertedEntries: number;
+  updatedDisconnections: number;
+};
+
 export type FindOpenVPNStatusHistoryOptions = {
   rangeTimestamp?: [Date, Date];
   name?: string;
@@ -70,6 +76,21 @@ export class OpenVPNStatusHistoryService extends Service {
     serverOpenVPNId: number,
     data: CreateOpenVPNStatusHistoryData[],
   ): Promise<OpenVPNStatusHistory[]> {
+    const result = await this.createWithSummary(serverOpenVPNId, data);
+    return result.entries;
+  }
+
+  /**
+   * Creates and persists a batch while returning synchronization counters.
+   *
+   * @param serverOpenVPNId
+   * @param data
+   * @returns
+   */
+  async createWithSummary(
+    serverOpenVPNId: number,
+    data: CreateOpenVPNStatusHistoryData[],
+  ): Promise<CreateOpenVPNStatusHistorySummary> {
     // Makes sure openvpn is a server
     const serverOpenVPN: OpenVPN = await db
       .getSource()
@@ -108,10 +129,16 @@ export class OpenVPNStatusHistoryService extends Service {
     }
 
     // If the data is empty, then detect disconnections and returns.
+    let updatedDisconnections = 0;
+
     if (data.length === 0) {
       // In this case, all previous connections will be set as disconnected.
-      await this.detectDisconnections([], lastTimestampedBatch);
-      return [];
+      updatedDisconnections += await this.detectDisconnections([], lastTimestampedBatch);
+      return {
+        entries: [],
+        insertedEntries: 0,
+        updatedDisconnections,
+      };
     }
 
     // Get the timestamps of the records to be persisted
@@ -126,7 +153,10 @@ export class OpenVPNStatusHistoryService extends Service {
       const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(
         (item) => item.timestampInSeconds === timestamp,
       );
-      await this.detectDisconnections(timestampedBatch, lastTimestampedBatch);
+      updatedDisconnections += await this.detectDisconnections(
+        timestampedBatch,
+        lastTimestampedBatch,
+      );
 
       const persistedBatch = await db
         .getSource()
@@ -151,7 +181,11 @@ export class OpenVPNStatusHistoryService extends Service {
 
       entries = entries.concat(lastTimestampedBatch);
     }
-    return entries;
+    return {
+      entries,
+      insertedEntries: entries.length,
+      updatedDisconnections,
+    };
   }
 
   /**
@@ -365,7 +399,9 @@ export class OpenVPNStatusHistoryService extends Service {
   protected async detectDisconnections(
     newTimestampedBatch: CreateOpenVPNStatusHistoryData[],
     previousTimestampedBatch: OpenVPNStatusHistory[],
-  ): Promise<void> {
+  ): Promise<number> {
+    let updatedDisconnections = 0;
+
     // If the current batch doesn't have an entry which exists on the previous batch,
     // then we must add an entry to the batch with a disconnectedAt value
     for (const previous of previousTimestampedBatch.filter(
@@ -378,14 +414,18 @@ export class OpenVPNStatusHistoryService extends Service {
       if (matchIndex < 0) {
         previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
         await db.getSource().manager.getRepository(OpenVPNStatusHistory).save(previous);
+        updatedDisconnections++;
       } else {
         // If the persisted batch name is present in the current batch but its address is different,
         // then is a new connection.
         if (previous.address !== newTimestampedBatch[matchIndex].address) {
           previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
           await db.getSource().manager.getRepository(OpenVPNStatusHistory).save(previous);
+          updatedDisconnections++;
         }
       }
     }
+
+    return updatedDisconnections;
   }
 }

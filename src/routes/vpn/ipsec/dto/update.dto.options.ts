@@ -1,6 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsNumber, ValidateNested } from 'class-validator';
-import { IPSecOptionDTO } from './store.dto';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  Validate,
+  ValidateNested,
+} from 'class-validator';
+import { IPSecOptionDTO, IPSecPskKeyDependencyValidator } from './store.dto';
 
 export class UpdateOptionsDto {
   @IsNotEmpty()
@@ -11,12 +18,14 @@ export class UpdateOptionsDto {
   @IsNumber()
   ipsec: number;
 
+  @IsOptional()
   @IsNotEmpty()
   @IsNumber()
-  ipsec_cli: number;
+  ipsec_cli?: number;
 
   @IsArray()
   @ValidateNested({ each: true })
+  @Validate(IPSecPskKeyDependencyValidator)
   @Type(() => IPSecOptionDTO)
   options: IPSecOptionDTO[];
 }

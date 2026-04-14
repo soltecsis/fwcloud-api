@@ -219,18 +219,22 @@ export class RoutingRuleService extends Service {
 
     let persisted: RoutingRule = await this._repository.save(routingRuleData);
     try {
-      persisted = await this.update(persisted.id, {
-        ipObjIds: data.ipObjIds,
-        ipObjGroupIds: data.ipObjGroupIds,
-        openVPNIds: data.openVPNIds,
-        openVPNPrefixIds: data.openVPNPrefixIds,
-        wireguardIds: data.wireguardIds,
-        wireguardPrefixIds: data.wireguardPrefixIds,
-        ipsecIds: data.ipsecIds,
-        ipsecPrefixIds: data.ipsecPrefixIds,
-        firewallApplyToId: data.firewallApplyToId,
-        markIds: data.markIds,
-      });
+      persisted = await this.update(
+        persisted.id,
+        {
+          ipObjIds: data.ipObjIds,
+          ipObjGroupIds: data.ipObjGroupIds,
+          openVPNIds: data.openVPNIds,
+          openVPNPrefixIds: data.openVPNPrefixIds,
+          wireguardIds: data.wireguardIds,
+          wireguardPrefixIds: data.wireguardPrefixIds,
+          ipsecIds: data.ipsecIds,
+          ipsecPrefixIds: data.ipsecPrefixIds,
+          firewallApplyToId: data.firewallApplyToId,
+          markIds: data.markIds,
+        },
+        true,
+      );
     } catch (e) {
       await this.remove({
         id: persisted.id,
@@ -292,7 +296,11 @@ export class RoutingRuleService extends Service {
     );
   }
 
-  async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
+  async update(
+    id: number,
+    data: IUpdateRoutingRule,
+    skipFromRestriction = false,
+  ): Promise<RoutingRule> {
     let rule: RoutingRule = await this._repository.preload(
       Object.assign(
         {
@@ -310,7 +318,9 @@ export class RoutingRuleService extends Service {
         relations: ['routingTable', 'routingTable.firewall'],
       })
     ).routingTable.firewall;
-    await this.validateFromRestriction(rule.id, data);
+    if (!skipFromRestriction) {
+      await this.validateFromRestriction(rule.id, data);
+    }
 
     if (data.ipObjIds) {
       await this.validateUpdateIPObjs(firewall, data);
@@ -1060,6 +1070,8 @@ export class RoutingRuleService extends Service {
       .getSource()
       .manager.getRepository(IPSec)
       .createQueryBuilder('ipsec')
+      .leftJoinAndSelect('ipsec.crt', 'crt')
+      .leftJoinAndSelect('ipsec.IPSecOptions', 'ipsecOptions')
       .innerJoin('ipsec.firewall', 'firewall')
       .whereInIds(data.ipsecIds.map((item) => item.id))
       .andWhere('firewall.fwCloudId = :fwcloud', {
@@ -1067,9 +1079,29 @@ export class RoutingRuleService extends Service {
       })
       .getMany();
 
+    const isValidIPSec = (ipsec: IPSec): boolean => {
+      const isClient331 =
+        ipsec.parentId !== null && ipsec.parentId !== undefined && ipsec.crt?.type === 1;
+      const hasAssociatedIpObj: boolean =
+        ipsec.IPSecOptions?.some(
+          (option) => option.ipObjId !== null && option.ipObjId !== undefined,
+        ) ?? false;
+      const isClient333WithIpObj =
+        (ipsec.parentId === null || ipsec.parentId === undefined) &&
+        (ipsec.crtId === null || ipsec.crtId === undefined) &&
+        hasAssociatedIpObj;
+
+      return isClient331 || isClient333WithIpObj;
+    };
+
     for (let i = 0; i < data.ipsecIds.length; i++) {
-      if (ipsecs.findIndex((item) => item.id === data.ipsecIds[i].id) < 0) {
-        errors[`ipsecIds.${i}.id`] = ['ipsec does not exists'];
+      const ipsec: IPSec = ipsecs.find((item) => item.id === data.ipsecIds[i].id);
+      if (!ipsec) {
+        errors[`ipsecIds.${i}.id`] = ['IPSec does not exists'];
+      } else if (!isValidIPSec(ipsec)) {
+        errors[`ipsecIds.${i}.id`] = [
+          'This VPN client has no associated IP object and cannot be used in this position',
+        ];
       }
     }
 

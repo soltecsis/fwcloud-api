@@ -43,6 +43,20 @@ async (req, res) => {
         if (!(await PolicyRuleToIPSec.checkIPSecPosition(req.dbCon,req.body.position)))
             throw fwcError.NOT_ALLOWED;
 
+        const hasAssociatedIpobj = await new Promise((resolve, reject) => {
+            req.dbCon.query(
+                "SELECT 1 FROM ipsec_opt WHERE ipsec=? AND name IN ('left','leftsourceip') AND ipobj IS NOT NULL LIMIT 1",
+                [req.body.ipsec],
+                (error, rows) => {
+                    if (error) return reject(error);
+                    resolve(rows.length > 0);
+                }
+            );
+        });
+
+        if (!hasAssociatedIpobj)
+            throw fwcError.NO_IPOBJ_ASSOCIATED;
+
         await PolicyRuleToIPSec.insertInRule(req);
 
         res.status(204).end();

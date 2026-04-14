@@ -26,8 +26,8 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  PluginInstallOptions,
   SystemCtlInfo,
-  WireGuardHistoryRecord,
 } from './communication';
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import {
@@ -110,7 +110,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       // Disable timeout and manage it from the WebSocket events.
       config.timeout = 0;
 
-      config.headers = Object.assign({}, form.getHeaders(), config.headers);
+      config.headers = Object.assign({}, config.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
 
@@ -133,7 +133,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
       form.append('dst_dir', dir);
-      form.append('perms', 600);
+      const applies2FAPermissions =
+        dir.startsWith('/etc/openvpn/google-authenticator') ||
+        (dir === '/etc/openvpn' &&
+          configs.every((config) => config.name.endsWith('_2fa_users.txt')));
+      form.append('perms', applies2FAPermissions ? 644 : 600);
 
       configs.forEach((config) => {
         eventEmitter.emit(
@@ -146,7 +150,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -227,7 +231,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -286,7 +290,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -350,6 +354,34 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
 
       throw new Error('Unexpected getInterfaces response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async readOpenVPNFile(dir: string, name: string): Promise<string> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/read';
+
+      const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, {
+        'Content-Type': 'application/json',
+      });
+
+      const response: AxiosResponse<string> = await axios.put(
+        pathUrl,
+        {
+          dir: dir,
+          files: [name],
+        },
+        requestConfig,
+      );
+
+      if (response.status === 200) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected readOpenVPNFile response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -420,6 +452,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     name: string,
     enabled: boolean,
     eventEmitter: EventEmitter = new EventEmitter(),
+    options?: PluginInstallOptions,
   ): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/plugin';
@@ -430,7 +463,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const params = {
         name: name,
         action: enabled ? 'enable' : 'disable',
-        ws_id: await this.createWebSocket(eventEmitter),
+        ws_id: await this.createPluginWebSocket(eventEmitter),
+        server_cn: options?.serverCN ?? null,
       };
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
@@ -473,26 +507,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       let waiting_for_websocket_id = true;
 
       const timer = setTimeout(() => {
-        // TIMEOUT ERROR
         ws.close();
         this.cancel_token.cancel('FWCloud-Agent communication timeout');
-        //console.log('FWCloud-Agent communication timeout');
       }, app().config.get('openvpn.agent.plugins_timeout'));
 
       ws.on('message', (data) => {
-        // Restart timer on each WebSocket message.
-        // If we receive a message it means that the process is active, then
-        // reset the timer. This way, if the process takes a lot of time, we
-        // will allow it to complete.
         timer.refresh();
 
+        const message =
+          typeof data === 'string'
+            ? data
+            : Buffer.isBuffer(data)
+              ? data.toString('utf8')
+              : Array.isArray(data)
+                ? Buffer.concat(data).toString('utf8')
+                : Buffer.from(data).toString('utf8');
+
         if (waiting_for_websocket_id) {
-          //console.log('WebSocket id: %s', data);
           waiting_for_websocket_id = false;
-          resolve(`${data}`);
+          resolve(message);
         } else {
-          //console.log('Data: %s', data);
-          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
+          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
         }
       });
 
@@ -508,6 +543,57 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         clearTimeout(timer);
         console.log(`WebSocket error: ${err}`);
         ws.close();
+        reject(err);
+      });
+    });
+  }
+
+  protected createPluginWebSocket(eventEmitter: EventEmitter): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const pathUrl: string = this.ws_url + '/api/v1/ws';
+      const ws = new WebSocket(pathUrl, {
+        headers: {
+          ['X-API-Key']: this.connectionData.apikey,
+        },
+        rejectUnauthorized: false,
+      });
+      let waiting_for_websocket_id = true;
+
+      const timer = setTimeout(() => {
+        ws.close();
+        this.cancel_token.cancel('FWCloud-Agent communication timeout');
+      }, app().config.get('openvpn.agent.plugins_timeout'));
+
+      ws.on('message', (data) => {
+        timer.refresh();
+
+        const message =
+          typeof data === 'string'
+            ? data
+            : Buffer.isBuffer(data)
+              ? data.toString('utf8')
+              : Array.isArray(data)
+                ? Buffer.concat(data).toString('utf8')
+                : Buffer.from(data).toString('utf8');
+
+        if (waiting_for_websocket_id) {
+          waiting_for_websocket_id = false;
+          resolve(message);
+        } else if (message !== 'ENABLED' && message !== 'DISABLED') {
+          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
+        }
+      });
+
+      ws.on('close', () => {
+        this.eventEmitterWSClose.emit('close');
+        this.WSisClosed = true;
+        clearTimeout(timer);
+        ws.close();
+        resolve('');
+      });
+
+      ws.on('error', (err) => {
+        clearTimeout(timer);
         reject(err);
       });
     });
@@ -671,7 +757,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
@@ -703,7 +789,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
@@ -736,7 +822,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+      requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
 
       const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
@@ -773,7 +859,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     });
 
     const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-    requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+    requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
     return requestConfig;
   }
 }
