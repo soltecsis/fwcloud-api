@@ -159,6 +159,108 @@ const getOpenVPN2FASecretDir = (serverCN) => `/etc/openvpn/google-authenticator/
 
 const getOpenVPN2FASecretFilename = (_serverCN, clientCN) => `${clientCN}`;
 
+const disableOpenVPNServer2FA = async (req, firewall, crt, clusterName = null) => {
+	const targetFirewalls = await getTargetFirewalls(firewall);
+	const serverUsersFilename = getOpenVPN2FAServerUsersFilename(crt.cn);
+	const channel = await Channel.fromRequest(req);
+	if (!targetFirewalls.length) {
+		throw fwcError.VPN_2FA_AGENT_REQUIRED;
+	}
+
+	const hasClientsWith2FA = firewall.clusterId
+		? await OpenVPN.clusterServerHasClientsWith2FAEnabled(
+			req.dbCon,
+			firewall.clusterId,
+			req.body.openvpn
+		)
+		: await OpenVPN.firewallServerHasClientsWith2FAEnabled(
+			req.dbCon,
+			firewall.id,
+			req.body.openvpn
+		);
+
+	if (hasClientsWith2FA) {
+		throw fwcError.VPN_2FA_CLIENTS_ENABLED;
+	}
+
+	const hasOtherServersWith2FA = firewall.clusterId
+		? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
+			req.dbCon,
+			firewall.clusterId,
+			req.body.openvpn
+		)
+		: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
+			req.dbCon,
+			firewall.id,
+			req.body.openvpn
+		);
+
+	await removeServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
+	const openvpnCfg = await OpenVPN.getCfg(req);
+	const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+	const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
+	if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
+		throw fwcError.other('OpenVPN server install path or file name not found');
+	}
+	for (const targetFirewall of targetFirewalls) {
+		const communication = await getCommunicationForFirewall(targetFirewall, req);
+		if (!communication) {
+			throw fwcError.VPN_2FA_AGENT_REQUIRED;
+		}
+		emitOpenVPN2FANodeStart(channel, targetFirewall, false, clusterName);
+		if (targetFirewall.install_communication === FirewallInstallCommunication.Agent) {
+			emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime and server data for '${crt.cn}' on '${targetFirewall.name}'`);
+			await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
+		} else {
+			if (!hasOtherServersWith2FA) {
+				emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime from '${targetFirewall.name}'`);
+				await communication.installPlugin('openvpn-2fa', false, channel);
+			}
+			emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA secrets directory for server '${crt.cn}' on '${targetFirewall.name}'`);
+			await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
+			emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA users file '${serverUsersFilename}' from '${targetFirewall.name}'`);
+			await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
+		}
+		emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
+		await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
+			content: cfgDump.cfg,
+			name: openvpnCfg.install_name
+		}], channel);
+		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
+	}
+
+	await queryDb(
+		req.dbCon,
+		'UPDATE openvpn SET tfa_enabled=0, installed_at=NOW(), updated_at=NOW() WHERE id=?',
+		[req.body.openvpn]
+	);
+
+	await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
+};
+
+const uninstallOpenVPNServerConfig = async (req, firewall) => {
+	const targetFirewalls = await getTargetFirewalls(firewall);
+	const channel = await Channel.fromRequest(req);
+
+	if (!targetFirewalls.length) {
+		throw fwcError.VPN_2FA_AGENT_REQUIRED;
+	}
+
+	if (!req.openvpn.install_dir || !req.openvpn.install_name) {
+		throw { 'msg': 'Empty install dir or install name' };
+	}
+
+	for (const targetFirewall of targetFirewalls) {
+		const communication = await getCommunicationForFirewall(targetFirewall, req);
+		if (!communication) {
+			throw fwcError.VPN_2FA_AGENT_REQUIRED;
+		}
+
+		emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN server configuration '${req.openvpn.install_name}' from '${targetFirewall.name}'`);
+		await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir, [req.openvpn.install_name], channel);
+	}
+};
+
 const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 	const options = await queryDb(
 		dbCon,
@@ -501,6 +603,14 @@ router.put('/del',
 	restrictedCheck.openvpn,
 	async (req, res) => {
 		try {
+			if (req.openvpn.type !== 1 && Number(req.openvpn.tfa_enabled) === 1) {
+				const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+					where: { id: req.openvpn.firewall }
+				});
+				await disableOpenVPNServer2FA(req, firewall, req.openvpn);
+				await uninstallOpenVPNServerConfig(req, firewall);
+			}
+
 			// Update the compilation status of all the firewalls that use the VPN Prefixes to which this OpenVPN
 			// connection belongs. It must be done before the OpenVPN deletion.
 			if (req.openvpn.type === 1) await OpenVPNPrefix.updateOpenvpnClientPrefixesFWStatus(req.dbCon, req.body.fwcloud, req.body.openvpn);
@@ -650,6 +760,11 @@ router.put('/uninstall', async (req, res, next) => {
 			});
 		} else {
 			communication = await firewall.getCommunication();
+		}
+
+		if (crt.type !== 1 && Number(req.openvpn.tfa_enabled) === 1) {
+			const clusterName = req.body.cluster_name || req.body.parent_name || null;
+			await disableOpenVPNServer2FA(req, firewall, crt, clusterName);
 		}
 
 		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
@@ -1012,86 +1127,23 @@ router.put('/2fa/server', async (req, res, next) => {
 		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
 			where: { id: req.body.firewall }
 		});
-		const targetFirewalls = await getTargetFirewalls(firewall);
 		const clusterName = req.body.cluster_name || req.body.parent_name || null;
 		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
 
 		const enabled = !!req.body.enabled;
-		const serverUsersFilename = getOpenVPN2FAServerUsersFilename(crt.cn);
-		const channel = await Channel.fromRequest(req);
-		if (!targetFirewalls.length) {
-			throw fwcError.VPN_2FA_AGENT_REQUIRED;
-		}
 
 		if (!enabled) {
-			const hasClientsWith2FA = firewall.clusterId
-				? await OpenVPN.clusterServerHasClientsWith2FAEnabled(
-					req.dbCon,
-					firewall.clusterId,
-					req.body.openvpn
-				)
-				: await OpenVPN.firewallServerHasClientsWith2FAEnabled(
-					req.dbCon,
-					firewall.id,
-					req.body.openvpn
-				);
-
-			if (hasClientsWith2FA) {
-				throw fwcError.VPN_2FA_CLIENTS_ENABLED;
-			}
-
-			const hasOtherServersWith2FA = firewall.clusterId
-				? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
-					req.dbCon,
-					firewall.clusterId,
-					req.body.openvpn
-				)
-				: await OpenVPN.firewallHasOtherServersWith2FAEnabled(
-					req.dbCon,
-					firewall.id,
-					req.body.openvpn
-				);
-
-			if (!hasOtherServersWith2FA) {
-				// Plugin removal will be performed together with the config update in the per-node loop below.
-			}
-
-			await removeServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
-			const openvpnCfg = await OpenVPN.getCfg(req);
-			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
-			const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
-			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
-				throw fwcError.other('OpenVPN server install path or file name not found');
-			}
-			for (const targetFirewall of targetFirewalls) {
-				const communication = await getCommunicationForFirewall(targetFirewall, req);
-				if (!communication) {
-					throw fwcError.VPN_2FA_AGENT_REQUIRED;
-				}
-				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
-				if (targetFirewall.install_communication === FirewallInstallCommunication.Agent) {
-					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime and server data for '${crt.cn}' on '${targetFirewall.name}'`);
-					await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
-				} else {
-					if (!hasOtherServersWith2FA) {
-						emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime from '${targetFirewall.name}'`);
-						await communication.installPlugin('openvpn-2fa', false, channel);
-					}
-					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA secrets directory for server '${crt.cn}' on '${targetFirewall.name}'`);
-					await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
-					emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA users file '${serverUsersFilename}' from '${targetFirewall.name}'`);
-					await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
-				}
-				emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
-				await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
-					content: cfgDump.cfg,
-					name: openvpnCfg.install_name
-				}], channel);
-				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
-			}
+			await disableOpenVPNServer2FA(req, firewall, crt, clusterName);
 		} else {
+			const targetFirewalls = await getTargetFirewalls(firewall);
+			const serverUsersFilename = getOpenVPN2FAServerUsersFilename(crt.cn);
+			const channel = await Channel.fromRequest(req);
+			if (!targetFirewalls.length) {
+				throw fwcError.VPN_2FA_AGENT_REQUIRED;
+			}
+
 			// Check if any other server has 2FA enabled. If not, we must install the plugin before enable 2FA in this server.
 			const hasOtherServersWith2FA = firewall.clusterId
 				? await OpenVPN.clusterHasOtherServersWith2FAEnabled(
@@ -1148,17 +1200,19 @@ router.put('/2fa/server', async (req, res, next) => {
 			}
 		}
 
-		await new Promise((resolve, reject) => {
-			req.dbCon.query(
-				`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(enabled ? 1 : 0)}, installed_at=NOW(), updated_at=NOW() WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
-				(error, result) => {
-					if (error) return reject(error);
-					resolve(result);
-				}
-			);
-		});
+		if (enabled) {
+			await new Promise((resolve, reject) => {
+				req.dbCon.query(
+					`UPDATE openvpn SET tfa_enabled=${req.dbCon.escape(1)}, installed_at=NOW(), updated_at=NOW() WHERE id=${req.dbCon.escape(req.body.openvpn)}`,
+					(error, result) => {
+						if (error) return reject(error);
+						resolve(result);
+					}
+				);
+			});
 
-		await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
+			await OpenVPN.updateOpenvpnStatus(req.dbCon, req.body.openvpn, "&~1");
+		}
 
 		res.status(204).end();
 	} catch (error) {

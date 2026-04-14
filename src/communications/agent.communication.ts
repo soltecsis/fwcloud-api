@@ -463,7 +463,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const params = {
         name: name,
         action: enabled ? 'enable' : 'disable',
-        ws_id: await this.createWebSocket(eventEmitter),
+        ws_id: await this.createPluginWebSocket(eventEmitter),
         server_cn: options?.serverCN ?? null,
       };
 
@@ -543,6 +543,57 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         clearTimeout(timer);
         console.log(`WebSocket error: ${err}`);
         ws.close();
+        reject(err);
+      });
+    });
+  }
+
+  protected createPluginWebSocket(eventEmitter: EventEmitter): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const pathUrl: string = this.ws_url + '/api/v1/ws';
+      const ws = new WebSocket(pathUrl, {
+        headers: {
+          ['X-API-Key']: this.connectionData.apikey,
+        },
+        rejectUnauthorized: false,
+      });
+      let waiting_for_websocket_id = true;
+
+      const timer = setTimeout(() => {
+        ws.close();
+        this.cancel_token.cancel('FWCloud-Agent communication timeout');
+      }, app().config.get('openvpn.agent.plugins_timeout'));
+
+      ws.on('message', (data) => {
+        timer.refresh();
+
+        const message =
+          typeof data === 'string'
+            ? data
+            : Buffer.isBuffer(data)
+              ? data.toString('utf8')
+              : Array.isArray(data)
+                ? Buffer.concat(data).toString('utf8')
+                : Buffer.from(data).toString('utf8');
+
+        if (waiting_for_websocket_id) {
+          waiting_for_websocket_id = false;
+          resolve(message);
+        } else if (message !== 'ENABLED' && message !== 'DISABLED') {
+          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
+        }
+      });
+
+      ws.on('close', () => {
+        this.eventEmitterWSClose.emit('close');
+        this.WSisClosed = true;
+        clearTimeout(timer);
+        ws.close();
+        resolve('');
+      });
+
+      ws.on('error', (err) => {
+        clearTimeout(timer);
         reject(err);
       });
     });
