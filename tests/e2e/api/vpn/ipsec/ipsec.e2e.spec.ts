@@ -274,13 +274,16 @@ describe(describeName('IPSec E2E Tests'), () => {
 
     describe('@install', async () => {
       let installStub: sinon.SinonStub;
+      let uninstallStub: sinon.SinonStub;
 
       beforeEach(async () => {
         // Stub of getCommunication to return a fake install method
         sinon.stub(Firewall.prototype, 'getCommunication').callsFake(async () => {
           installStub = sinon.stub().resolves();
+          uninstallStub = sinon.stub().resolves();
           const mockCommunication = {
             installIPSecServerConfigs: installStub,
+            uninstallIPSecConfigs: uninstallStub,
           } as unknown as Communication<unknown>;
 
           return mockCommunication;
@@ -346,6 +349,132 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(200);
           });
+      });
+
+      it('should generate ipsec.secrets with all clients without server in the same firewall', async () => {
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: firstClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Secrets-Install-1',
+        );
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: secondClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Secrets-Install-2',
+        );
+        await unlockFwcloud();
+
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: firstClientId,
+            name: 'IPSec-Only-Client-Secrets-Install-1',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-secrets-install.conf',
+            comment: '',
+          },
+        } as any);
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: secondClientId,
+            name: 'IPSec-Only-Client-Secrets-Install-2',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-secrets-install-2.conf',
+            comment: '',
+          },
+        } as any);
+
+        const optReq: any = { dbCon: db.getQuery() };
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: firstClientId,
+          ipsec_cli: null,
+          name: 'leftid',
+          arg: 'left-install-id',
+          comment: null,
+          order: 1,
+          scope: 2,
+        });
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: firstClientId,
+          ipsec_cli: null,
+          name: 'rightid',
+          arg: 'right-install-id',
+          comment: null,
+          order: 2,
+          scope: 2,
+        });
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: firstClientId,
+          ipsec_cli: null,
+          name: '<<psk>>',
+          arg: 'psk-first-client',
+          comment: null,
+          order: 3,
+          scope: 2,
+        });
+
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: secondClientId,
+          ipsec_cli: null,
+          name: 'right',
+          arg: '1.1.1.1',
+          comment: null,
+          order: 1,
+          scope: 2,
+        });
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: secondClientId,
+          ipsec_cli: null,
+          name: '<<psk>>',
+          arg: 'psk-second-client',
+          comment: null,
+          order: 2,
+          scope: 2,
+        });
+        await unlockFwcloud();
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.install'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            ipsec: secondClientId,
+            sshuser: '',
+            sshpass: '',
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data?.installName).to.equal('ipsec-only-client-secrets-install.conf');
+
+        const cfgCall = installStub
+          .getCalls()
+          .find(
+            (call) =>
+              Array.isArray(call.args[1]) &&
+              call.args[1].some(
+                (file: { name: string }) => file.name === 'ipsec-only-client-secrets-install.conf',
+              ),
+          );
+        expect(cfgCall).to.exist;
+
+        const secretsCall = installStub
+          .getCalls()
+          .find(
+            (call) =>
+              Array.isArray(call.args[1]) &&
+              call.args[1].some((file: { name: string }) => file.name === 'ipsec.secrets'),
+          );
+
+        expect(secretsCall).to.exist;
+        const secretFile = (secretsCall as sinon.SinonSpyCall).args[1].find(
+          (file: { name: string }) => file.name === 'ipsec.secrets',
+        );
+        expect(secretFile).to.exist;
+        expect(secretFile.content).to.equal(
+          `'left-install-id' 'right-install-id' : PSK "psk-first-client"\n1.1.1.1 : PSK "psk-second-client"\n`,
+        );
       });
     });
 
@@ -435,6 +564,62 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(200);
           });
+      });
+
+      it('should uninstall ipsec.secrets for IPSec client without server', async () => {
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: firstClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Uninstall-Secrets-1',
+        );
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: secondClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Uninstall-Secrets-2',
+        );
+        await unlockFwcloud();
+
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: firstClientId,
+            name: 'IPSec-Only-Client-Uninstall-Secrets-1',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-uninstall-secrets-1.conf',
+            comment: '',
+          },
+        } as any);
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: secondClientId,
+            name: 'IPSec-Only-Client-Uninstall-Secrets-2',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-uninstall-secrets-2.conf',
+            comment: '',
+          },
+        } as any);
+        await unlockFwcloud();
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.uninstall'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            ipsec: secondClientId,
+            sshuser: '',
+            sshpass: '',
+          });
+
+        expect(response.status).to.equal(200);
+        expect(uninstallStub.called).to.equal(true);
+        const [installDirArg, filesArg] = uninstallStub.firstCall.args;
+        expect(installDirArg).to.equal('/tmp');
+        expect(filesArg).to.deep.equal([
+          'ipsec-only-client-uninstall-secrets-1.conf',
+          'ipsec.secrets',
+        ]);
       });
     });
 
