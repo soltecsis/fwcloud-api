@@ -25,7 +25,6 @@ import { isResponsable } from '../../fonaments/contracts/responsable';
 import { InternalServerException } from '../exceptions/internal-server-exception';
 import { HttpException } from '../exceptions/http/http-exception';
 import { AbstractApplication, app } from '../abstract-application';
-import { isArray } from 'util';
 import { HttpCodeResponse } from './http-code-response';
 import ObjectHelpers from '../../utils/object-helpers';
 import { FwCloudError } from '../exceptions/error';
@@ -210,7 +209,9 @@ export class ResponseBuilder {
     if (this._error) {
       return this.buildErrorPayload(this._error);
     }
-    return isArray(payload) ? this.buildArrayDataPayload(payload) : this.buildDataPayload(payload);
+    return Array.isArray(payload)
+      ? this.buildArrayDataPayload(payload)
+      : this.buildDataPayload(payload);
   }
 
   protected buildDataPayload(payload: object): DataPayload {

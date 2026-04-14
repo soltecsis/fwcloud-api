@@ -73,6 +73,82 @@ describe(describeName('IPSec E2E Tests'), () => {
   });
 
   describe(IPSecController.name, () => {
+    const unlockFwcloud = async () => {
+      await manager.query(
+        'UPDATE fwcloud SET locked = 0, locked_by = NULL, locked_at = NULL WHERE id = ?',
+        [fwcProduct.fwcloud.id],
+      );
+    };
+
+    const getOnlyClientNodes = async (ipsecOnlyClientId: number) =>
+      (await Tree.getNodeInfo(
+        db.getQuery(),
+        fwcProduct.fwcloud.id,
+        'ISCNS',
+        ipsecOnlyClientId,
+      )) as Array<{ id: number; id_parent: number }>;
+
+    const assertIPSecClientWithoutServerCreated = async (
+      ipsecOnlyClientId: number,
+      rootNodeId: number,
+    ) => {
+      const createdOnlyClientNodes = await getOnlyClientNodes(ipsecOnlyClientId);
+      expect(createdOnlyClientNodes).to.have.length(1);
+      expect(createdOnlyClientNodes[0].id_parent).to.equal(rootNodeId);
+
+      const createdOnlyClient = await manager.getRepository(IPSec).findOne({
+        where: { id: ipsecOnlyClientId },
+      });
+      expect(createdOnlyClient).to.exist;
+      expect(createdOnlyClient.parentId).to.equal(null);
+      expect(createdOnlyClient.crtId).to.equal(null);
+    };
+
+    const assertIPSecClientWithoutServerDeleted = async (ipsecOnlyClientId: number) => {
+      const deletedIPSec = await manager.getRepository(IPSec).findOne({
+        where: { id: ipsecOnlyClientId },
+      });
+      expect(deletedIPSec).to.not.exist;
+
+      const deletedOnlyClientNodes = (await Tree.getNodeInfo(
+        db.getQuery(),
+        fwcProduct.fwcloud.id,
+        'ISCNS',
+        ipsecOnlyClientId,
+      )) as Array<{ id: number }>;
+      expect(deletedOnlyClientNodes).to.have.length(0);
+    };
+
+    const createIPSecClientWithoutServer = async (
+      sessionId: string,
+      name = 'IPSec-Only-Client-Test',
+    ) => {
+      const rootNode = (await Tree.getNodeUnderFirewall(
+        db.getQuery(),
+        fwcProduct.fwcloud.id,
+        fwcProduct.firewall.id,
+        'IS',
+      )) as { id: number };
+
+      const storeResponse = await request(app.express)
+        .post(_URL().getURL('vpn.ipsec.store'))
+        .set('Cookie', [attachSession(sessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          node_id: rootNode.id,
+          name,
+          options: [],
+        });
+
+      expect(storeResponse.status).to.equal(201);
+      const ipsecOnlyClientId = storeResponse.body.data?.insertId;
+      expect(ipsecOnlyClientId).to.be.a('number');
+      await assertIPSecClientWithoutServerCreated(ipsecOnlyClientId, rootNode.id);
+
+      return { ipsecOnlyClientId: ipsecOnlyClientId as number };
+    };
+
     describe('@store', async () => {
       let crtId: number;
       beforeEach(async () => {
@@ -186,17 +262,28 @@ describe(describeName('IPSec E2E Tests'), () => {
             expect(response.status).to.equal(201);
           });
       });
+
+      it('regular user should be able to store IPSec client without server', async () => {
+        await createIPSecClientWithoutServer(loggedUserSessionId);
+      });
+
+      it('admin user should be able to store IPSec client without server', async () => {
+        await createIPSecClientWithoutServer(adminUserSessionId);
+      });
     });
 
     describe('@install', async () => {
       let installStub: sinon.SinonStub;
+      let uninstallStub: sinon.SinonStub;
 
       beforeEach(async () => {
         // Stub of getCommunication to return a fake install method
         sinon.stub(Firewall.prototype, 'getCommunication').callsFake(async () => {
           installStub = sinon.stub().resolves();
+          uninstallStub = sinon.stub().resolves();
           const mockCommunication = {
             installIPSecServerConfigs: installStub,
+            uninstallIPSecConfigs: uninstallStub,
           } as unknown as Communication<unknown>;
 
           return mockCommunication;
@@ -262,6 +349,132 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(200);
           });
+      });
+
+      it('should generate ipsec.secrets with all clients without server in the same firewall', async () => {
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: firstClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Secrets-Install-1',
+        );
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: secondClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Secrets-Install-2',
+        );
+        await unlockFwcloud();
+
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: firstClientId,
+            name: 'IPSec-Only-Client-Secrets-Install-1',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-secrets-install.conf',
+            comment: '',
+          },
+        } as any);
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: secondClientId,
+            name: 'IPSec-Only-Client-Secrets-Install-2',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-secrets-install-2.conf',
+            comment: '',
+          },
+        } as any);
+
+        const optReq: any = { dbCon: db.getQuery() };
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: firstClientId,
+          ipsec_cli: null,
+          name: 'leftid',
+          arg: 'left-install-id',
+          comment: null,
+          order: 1,
+          scope: 2,
+        });
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: firstClientId,
+          ipsec_cli: null,
+          name: 'rightid',
+          arg: 'right-install-id',
+          comment: null,
+          order: 2,
+          scope: 2,
+        });
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: firstClientId,
+          ipsec_cli: null,
+          name: '<<psk>>',
+          arg: 'psk-first-client',
+          comment: null,
+          order: 3,
+          scope: 2,
+        });
+
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: secondClientId,
+          ipsec_cli: null,
+          name: 'right',
+          arg: '1.1.1.1',
+          comment: null,
+          order: 1,
+          scope: 2,
+        });
+        await IPSec.addCfgOpt(optReq, {
+          ipsec: secondClientId,
+          ipsec_cli: null,
+          name: '<<psk>>',
+          arg: 'psk-second-client',
+          comment: null,
+          order: 2,
+          scope: 2,
+        });
+        await unlockFwcloud();
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.install'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            ipsec: secondClientId,
+            sshuser: '',
+            sshpass: '',
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data?.installName).to.equal('ipsec-only-client-secrets-install.conf');
+
+        const cfgCall = installStub
+          .getCalls()
+          .find(
+            (call) =>
+              Array.isArray(call.args[1]) &&
+              call.args[1].some(
+                (file: { name: string }) => file.name === 'ipsec-only-client-secrets-install.conf',
+              ),
+          );
+        expect(cfgCall).to.exist;
+
+        const secretsCall = installStub
+          .getCalls()
+          .find(
+            (call) =>
+              Array.isArray(call.args[1]) &&
+              call.args[1].some((file: { name: string }) => file.name === 'ipsec.secrets'),
+          );
+
+        expect(secretsCall).to.exist;
+        const secretFile = (secretsCall as sinon.SinonSpyCall).args[1].find(
+          (file: { name: string }) => file.name === 'ipsec.secrets',
+        );
+        expect(secretFile).to.exist;
+        expect(secretFile.content).to.equal(
+          `'left-install-id' 'right-install-id' : PSK "psk-first-client"\n1.1.1.1 : PSK "psk-second-client"\n`,
+        );
       });
     });
 
@@ -351,6 +564,62 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(200);
           });
+      });
+
+      it('should uninstall ipsec.secrets for IPSec client without server', async () => {
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: firstClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Uninstall-Secrets-1',
+        );
+        await unlockFwcloud();
+        const { ipsecOnlyClientId: secondClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Uninstall-Secrets-2',
+        );
+        await unlockFwcloud();
+
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: firstClientId,
+            name: 'IPSec-Only-Client-Uninstall-Secrets-1',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-uninstall-secrets-1.conf',
+            comment: '',
+          },
+        } as any);
+        await IPSec.updateCfg({
+          dbCon: db.getQuery(),
+          body: {
+            ipsec: secondClientId,
+            name: 'IPSec-Only-Client-Uninstall-Secrets-2',
+            install_dir: '/tmp',
+            install_name: 'ipsec-only-client-uninstall-secrets-2.conf',
+            comment: '',
+          },
+        } as any);
+        await unlockFwcloud();
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.uninstall'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            firewall: fwcProduct.firewall.id,
+            ipsec: secondClientId,
+            sshuser: '',
+            sshpass: '',
+          });
+
+        expect(response.status).to.equal(200);
+        expect(uninstallStub.called).to.equal(true);
+        const [installDirArg, filesArg] = uninstallStub.firstCall.args;
+        expect(installDirArg).to.equal('/tmp');
+        expect(filesArg).to.deep.equal([
+          'ipsec-only-client-uninstall-secrets-1.conf',
+          'ipsec.secrets',
+        ]);
       });
     });
 
@@ -538,6 +807,40 @@ describe(describeName('IPSec E2E Tests'), () => {
             expect(response.status).to.equal(200);
           });
       });
+
+      it('regular user should be able to get IPSec client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(loggedUserSessionId);
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data?.type).to.equal(333);
+        expect(response.body.data?.ipsec).to.equal(null);
+        expect(response.body.data?.crt).to.equal(null);
+      });
+
+      it('admin user should be able to get IPSec client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(adminUserSessionId);
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.get'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data?.type).to.equal(333);
+        expect(response.body.data?.ipsec).to.equal(null);
+        expect(response.body.data?.crt).to.equal(null);
+      });
     });
 
     describe('@getFile', async () => {
@@ -590,6 +893,36 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(200);
           });
+      });
+
+      it('regular user should be able to get IPSec file from client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(loggedUserSessionId);
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.file.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data?.cfg).to.be.a('string');
+      });
+
+      it('admin user should be able to get IPSec file from client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(adminUserSessionId);
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.file.get'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data?.cfg).to.be.a('string');
       });
     });
 
@@ -750,6 +1083,40 @@ describe(describeName('IPSec E2E Tests'), () => {
             expect(response.status).to.equal(200);
           });
       });
+
+      it('regular user should be able to get IPSec info from client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(loggedUserSessionId);
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.info.get'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data).to.be.an('array');
+        expect(response.body.data).to.have.length.greaterThan(0);
+        expect(response.body.data[0].type).to.equal(333);
+      });
+
+      it('admin user should be able to get IPSec info from client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(adminUserSessionId);
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.info.get'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(200);
+        expect(response.body.data).to.be.an('array');
+        expect(response.body.data).to.have.length.greaterThan(0);
+        expect(response.body.data[0].type).to.equal(333);
+      });
     });
 
     describe.skip('@getFirewall', async () => {
@@ -806,6 +1173,14 @@ describe(describeName('IPSec E2E Tests'), () => {
     });
 
     describe('@delete', async () => {
+      beforeEach(async () => {
+        await unlockFwcloud();
+      });
+
+      afterEach(async () => {
+        await unlockFwcloud();
+      });
+
       it('guest user should not be able to delete IPsec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.delete'))
@@ -844,6 +1219,26 @@ describe(describeName('IPSec E2E Tests'), () => {
           });
       });
 
+      it('regular user should be able to delete IPSec client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(
+          loggedUserSessionId,
+          'IPSec-Only-Client-Delete-Test',
+        );
+
+        await unlockFwcloud();
+
+        const deleteResponse = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.delete'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(deleteResponse.status).to.equal(204);
+        await assertIPSecClientWithoutServerDeleted(ipsecOnlyClientId);
+      });
+
       it('admin user should be able to delete IPSec', async () => {
         await request(app.express)
           .put(_URL().getURL('vpn.ipsec.delete'))
@@ -855,6 +1250,26 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(204);
           });
+      });
+
+      it('admin user should be able to delete IPSec client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(
+          adminUserSessionId,
+          'IPSec-Only-Client-Delete-Test',
+        );
+
+        await unlockFwcloud();
+
+        const deleteResponse = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.delete'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(deleteResponse.status).to.equal(204);
+        await assertIPSecClientWithoutServerDeleted(ipsecOnlyClientId);
       });
     });
 
@@ -908,6 +1323,38 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(204);
           });
+      });
+
+      it('regular user should be able to access restricted IPSec client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(loggedUserSessionId);
+
+        await unlockFwcloud();
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.restrictions'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(204);
+      });
+
+      it('admin user should be able to access restricted IPSec client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(adminUserSessionId);
+
+        await unlockFwcloud();
+
+        const response = await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.restrictions'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+          });
+
+        expect(response.status).to.equal(204);
       });
     });
 
@@ -1196,6 +1643,117 @@ describe(describeName('IPSec E2E Tests'), () => {
           .then((response) => {
             expect(response.status).to.equal(204);
           });
+      });
+
+      it('regular user should be able to update client without server options including leftsourceip ipobj', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(loggedUserSessionId);
+        const ipobjId = fwcProduct.ipobjs.get('address').id;
+        await unlockFwcloud();
+
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: ipsecOnlyClientId,
+            options: [
+              {
+                name: 'leftsourceip',
+                ipobj: ipobjId,
+                scope: 2,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+
+        const updatedOptions = await manager.query(
+          'SELECT * FROM ipsec_opt WHERE ipsec = ? AND name = ?',
+          [ipsecOnlyClientId, 'leftsourceip'],
+        );
+        expect(updatedOptions).to.have.length(1);
+        expect(updatedOptions[0].ipobj).to.equal(ipobjId);
+        expect(updatedOptions[0].ipsec_cli).to.equal(null);
+      });
+
+      it('admin user should be able to update an ipobj referenced by leftsourceip in a client without server', async () => {
+        const { ipsecOnlyClientId } = await createIPSecClientWithoutServer(adminUserSessionId);
+        const ipobjId = fwcProduct.ipobjs.get('address').id;
+        const updatedAddress = '10.20.30.41';
+        await unlockFwcloud();
+
+        await manager.query(
+          'INSERT INTO ipsec_opt (ipsec, ipsec_cli, name, ipobj, arg, `order`, scope) VALUES (?, NULL, ?, ?, ?, ?, ?)',
+          [
+            ipsecOnlyClientId,
+            'leftsourceip',
+            ipobjId,
+            fwcProduct.ipobjs.get('address').address,
+            1,
+            2,
+          ],
+        );
+
+        const [ipobj] = await manager.query('SELECT * FROM ipobj WHERE id = ?', [ipobjId]);
+        expect(ipobj).to.exist;
+
+        await request(app.express)
+          .put('/ipobj')
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            id: ipobjId,
+            name: ipobj.name,
+            type: ipobj.type,
+            ip_version: ipobj.ip_version ?? 4,
+            address: updatedAddress,
+            netmask: ipobj.netmask ?? '',
+          })
+          .then((response) => {
+            expect(response.status).to.equal(200);
+          });
+
+        const [updatedIpobj] = await manager.query('SELECT address FROM ipobj WHERE id = ?', [
+          ipobjId,
+        ]);
+        expect(updatedIpobj.address).to.equal(updatedAddress);
+
+        const [updatedLeftSourceIpOpt] = await manager.query(
+          'SELECT arg FROM ipsec_opt WHERE ipsec = ? AND name = ? AND ipobj = ?',
+          [ipsecOnlyClientId, 'leftsourceip', ipobjId],
+        );
+        expect(updatedLeftSourceIpOpt).to.exist;
+        expect(updatedLeftSourceIpOpt.arg).to.equal(updatedAddress);
+      });
+
+      it('regular user should ignore leftsourceip in peer options update for client with server', async () => {
+        const ipsecCliId = fwcProduct.ipsecClients.get('IPSec-Cli-1').id;
+
+        await request(app.express)
+          .put(_URL().getURL('vpn.ipsec.client.options.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .send({
+            fwcloud: fwcProduct.fwcloud.id,
+            ipsec: fwcProduct.ipsecServer.id,
+            ipsec_cli: ipsecCliId,
+            options: [
+              {
+                name: 'leftsourceip',
+                arg: '10.0.0.9',
+                scope: 8,
+              },
+            ],
+          })
+          .then((response) => {
+            expect(response.status).to.equal(204);
+          });
+
+        const peerOptions = await manager.query(
+          'SELECT * FROM ipsec_opt WHERE ipsec = ? AND ipsec_cli = ? AND name = ?',
+          [fwcProduct.ipsecServer.id, ipsecCliId, 'leftsourceip'],
+        );
+        expect(peerOptions).to.have.length(0);
       });
     });
   });

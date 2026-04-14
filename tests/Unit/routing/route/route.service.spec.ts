@@ -77,6 +77,54 @@ describe(RouteService.name, () => {
       expect(firewall.status).to.eq(3);
     });
 
+    it('should throw exception when gateway and destinations are not provided', async () => {
+      await expect(
+        service.create({
+          routingTableId: table.id,
+        }),
+      ).to.rejectedWith(ValidationException);
+    });
+
+    it('should throw exception when gateway is not provided and interface is missing', async () => {
+      const standards: IPObj[] = await manager.getRepository(IPObj).find({
+        where: {
+          fwCloudId: null,
+        },
+      });
+
+      await expect(
+        service.create({
+          routingTableId: table.id,
+          ipObjIds: [{ id: standards[0].id, order: 1 }],
+        }),
+      ).to.rejectedWith(ValidationException);
+    });
+
+    it('should create route without gateway when interface and destinations are provided', async () => {
+      const standards: IPObj[] = await manager.getRepository(IPObj).find({
+        where: {
+          fwCloudId: null,
+        },
+      });
+
+      route = await service.create({
+        routingTableId: table.id,
+        interfaceId: fwcProduct.interfaces.get('firewall-interface1').id,
+        ipObjIds: [{ id: standards[0].id, order: 1 }],
+      });
+
+      route = await manager.getRepository(Route).findOne({
+        where: {
+          id: route.id,
+        },
+        relations: ['routeToIPObjs'],
+      });
+
+      expect(route.gatewayId).to.be.null;
+      expect(route.interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+      expect(route.routeToIPObjs.map((item) => item.ipObjId)).to.deep.eq([standards[0].id]);
+    });
+
     describe('route_order', () => {
       let routeOrder1: Route;
       let routeOrder2: Route;

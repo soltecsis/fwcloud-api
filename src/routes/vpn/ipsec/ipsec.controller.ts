@@ -12,17 +12,13 @@ import { GetFirewallDto } from './dto/getFirewall.dto';
 import { Channel } from '../../../sockets/channels/channel';
 import db from '../../../database/database-manager';
 import { Firewall } from '../../../models/firewall/Firewall';
-import { ProgressNoticePayload, ProgressPayload } from '../../../sockets/messages/socket-message';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
-import { PgpHelper } from '../../../utils/pgp';
 import { Request } from 'express';
 import { IPSecOption } from '../../../models/vpn/ipsec/ipsec-option.model';
 import { GetOptionsDto } from './dto/get.dto.options';
 import { UpdateOptionsDto } from './dto/update.dto.options';
 import path from 'path';
-import { app } from '../../../fonaments/abstract-application';
-import { FSHelper } from '../../../utils/fs-helper';
-import { promises as fs } from 'fs';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -34,40 +30,43 @@ export class IPSecController extends Controller {
       if (
         req.tree_node.node_type !== 'IS' &&
         req.tree_node.node_type !== 'ISS' &&
-        req.tree_node.node_type !== 'ISC'
+        req.tree_node.node_type !== 'ISC' &&
+        req.tree_node.node_type !== 'ISCNS'
       ) {
         throw new Error(fwcError.BAD_TREE_NODE);
       }
       if (req.body.ipsec && req.body.ipsec != req.tree_node.id_obj) {
         throw new Error("Information in node tree and in API request don't match");
       }
-      if (req.crt.type === 1 && !req.body.ipsec) {
-        throw new Error(
-          'When using client certificates you must indicate the IPSec server configuration',
-        );
-      }
-      if (req.crt.type === 2 && req.body.ipsec) {
-        throw new Error(
-          'When using server certificates you must not indicate the IPSec server configuration',
-        );
-      }
-      if (req.crt.type === 1 && req.crt.ca !== req.ipsec.ca) {
-        throw new Error(
-          'CRT for a new client IPSec configuration must has the same CA that the server IPSec configuration to which it belongs',
-        );
-      }
-      if (req.crt.type === 1 && req.body.firewall !== req.ipsec.firewall) {
-        throw new Error(
-          'Firewall ID for the new client IPSec configuration must match server IPSec configuration',
-        );
-      }
-      if (req.crt.type === 2 && !req.body.ipsec) {
-        const exists = (await IPSec.getIPSecServersByFirewall(
-          req.dbCon,
-          req.body.firewall,
-        )) as IPSec[];
-        if (exists.length > 0) {
-          throw new Error('This firewall already has an IPSec server configured');
+      if (req.crt !== undefined && req.crt !== null && req.body.crt !== req.crt.id) {
+        if (req.crt.type === 1 && !req.body.ipsec) {
+          throw new Error(
+            'When using client certificates you must indicate the IPSec server configuration',
+          );
+        }
+        if (req.crt.type === 2 && req.body.ipsec) {
+          throw new Error(
+            'When using server certificates you must not indicate the IPSec server configuration',
+          );
+        }
+        if (req.crt.type === 1 && req.crt.ca !== req.ipsec.ca) {
+          throw new Error(
+            'CRT for a new client IPSec configuration must has the same CA that the server IPSec configuration to which it belongs',
+          );
+        }
+        if (req.crt.type === 1 && req.body.firewall !== req.ipsec.firewall) {
+          throw new Error(
+            'Firewall ID for the new client IPSec configuration must match server IPSec configuration',
+          );
+        }
+        if (req.crt.type === 2 && !req.body.ipsec) {
+          const exists = (await IPSec.getIPSecServersByFirewall(
+            req.dbCon,
+            req.body.firewall,
+          )) as IPSec[];
+          if (exists.length > 0) {
+            throw new Error('This firewall already has an IPSec server configured');
+          }
         }
       }
 
@@ -152,7 +151,17 @@ export class IPSecController extends Controller {
 
       // Create node in tree
       let nodeId: unknown;
-      if (req.tree_node.node_type === 'IS') {
+      if (req.tree_node.node_type === 'IS' && !req.crt) {
+        nodeId = await Tree.newNode(
+          req.dbCon,
+          req.body.fwcloud,
+          req.body.name,
+          req.body.node_id,
+          'ISCNS',
+          newIpsec,
+          333,
+        );
+      } else if (req.tree_node.node_type === 'IS' && req.crt) {
         nodeId = await Tree.newNode(
           req.dbCon,
           req.body.fwcloud,
@@ -177,7 +186,7 @@ export class IPSecController extends Controller {
       }
 
       // Handle prefixes (if necessary)
-      if (req.crt.type === 2) {
+      if (req.crt !== undefined && req.crt !== null && req.crt.type === 2) {
         // 1=Client certificate, 2=Server certificate.
         const prefixes = req.body.prefixes || [];
         for (const prefix of prefixes) {
@@ -214,21 +223,38 @@ export class IPSecController extends Controller {
 
       let { install_dir: installDir, install_name: installName } = req.ipsec;
       let cfgDump = null;
-      let isClient = false;
-      let serverId = req.body.ipsec;
-      if (!installDir || !installName) {
-        const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
-        if (!ipsecCfg.ipsec) {
+      const hasParentIPSec = req.ipsec?.ipsec !== null && req.ipsec?.ipsec !== undefined;
+      const hasCertificate = req.ipsec?.crt !== null && req.ipsec?.crt !== undefined;
+      const isClientWithServer = hasParentIPSec;
+      const isClientWithoutServer = !hasParentIPSec && !hasCertificate;
+      const isClient = isClientWithServer || isClientWithoutServer;
+
+      if (isClientWithServer) {
+        const ipsecParentCfg = await IPSec.getCfg(req.dbCon, req.ipsec.ipsec);
+        installDir = ipsecParentCfg.install_dir;
+        installName = ipsecParentCfg.install_name;
+        if (!installDir || !installName) {
           throw new Error('Empty install dir or install name');
-        } else {
-          const ipsecParentCfg = await IPSec.getCfg(req.dbCon, ipsecCfg.ipsec);
-          installDir = ipsecParentCfg.install_dir;
-          installName = ipsecParentCfg.install_name;
-          cfgDump = await IPSec.dumpCfg(req.dbCon, ipsecCfg.ipsec);
-          serverId = ipsecCfg.ipsec;
-          isClient = true;
         }
+        cfgDump = await IPSec.dumpCfg(req.dbCon, req.ipsec.ipsec);
+      } else if (isClientWithoutServer) {
+        const firstClientCfg = await IPSec.getFirstClientWithoutServerCfg(
+          req.dbCon,
+          req.ipsec.firewall,
+        );
+        if (!firstClientCfg) {
+          throw new Error('IPSec client without server not found');
+        }
+        installDir = firstClientCfg.install_dir;
+        installName = firstClientCfg.install_name;
+        if (!installDir || !installName) {
+          throw new Error('Empty install dir or install name');
+        }
+        cfgDump = await IPSec.dumpCfg(req.dbCon, firstClientCfg.id);
       } else {
+        if (!installDir || !installName) {
+          throw new Error('Empty install dir or install name');
+        }
         cfgDump = await IPSec.dumpCfg(req.dbCon, req.body.ipsec);
       }
 
@@ -295,6 +321,7 @@ export class IPSecController extends Controller {
             channel,
           );
 
+          // Install main configuration file and secrets
           await communication.installIPSecServerConfigs(
             installDir,
             [
@@ -305,6 +332,25 @@ export class IPSecController extends Controller {
             ],
             channel,
           );
+        } else if (isClientWithoutServer) {
+          const secretsData = await IPSec.getClientWithoutServerSecretsData(
+            req.dbCon,
+            req.ipsec.firewall,
+          );
+          if (secretsData) {
+            await communication.installIPSecServerConfigs(
+              installDir,
+              [
+                {
+                  content: secretsData,
+                  name: 'ipsec.secrets',
+                },
+              ],
+              channel,
+            );
+          } else {
+            await communication.uninstallIPSecConfigs(installDir, ['ipsec.secrets'], channel);
+          }
         }
       }
 
@@ -326,8 +372,10 @@ export class IPSecController extends Controller {
           .status(error.status)
           .body({ message: error.message });
       }
-      if (error.message) {
-        return ResponseBuilder.buildResponse().status(400).body({ message: error.message });
+      if ((error as any).message) {
+        return ResponseBuilder.buildResponse()
+          .status(400)
+          .body({ message: (error as any).message });
       } else {
         return ResponseBuilder.buildResponse().status(400).body(error);
       }
@@ -349,8 +397,13 @@ export class IPSecController extends Controller {
 
       channel.emit('message', new ProgressPayload('start', false, 'Uninstalling Ipsec'));
 
-      if (req.ipsec.type === 1) {
-        // Uninstalling an IPSec client: remove its certificate
+      const hasParentIPSec = req.ipsec?.ipsec !== null && req.ipsec?.ipsec !== undefined;
+      const hasCertificate = req.ipsec?.crt !== null && req.ipsec?.crt !== undefined;
+      const isClientWithServer = hasParentIPSec;
+      const isClientWithoutServer = !hasParentIPSec && !hasCertificate;
+
+      if (isClientWithServer) {
+        // Uninstalling an IPSec client with server: remove its certificate from server certs dir.
         let installDir = req.ipsec.install_dir;
         if (!installDir) {
           // Get install dir from parent IPSec configuration
@@ -360,8 +413,25 @@ export class IPSecController extends Controller {
 
         if (!installDir) throw new Error('Empty install dir');
 
-        const certDir = path.join(installDir, 'ipsec.d', 'certs');
-        await communication.uninstallIPSecConfigs(certDir, [`${req.ipsec.cn}.crt`], channel);
+        if (req.ipsec.cn) {
+          const certDir = path.join(installDir, 'ipsec.d', 'certs');
+          await communication.uninstallIPSecConfigs(certDir, [`${req.ipsec.cn}.crt`], channel);
+        }
+      } else if (isClientWithoutServer) {
+        const firstClientCfg = await IPSec.getFirstClientWithoutServerCfg(
+          req.dbCon,
+          req.ipsec.firewall,
+        );
+        const installDir = firstClientCfg?.install_dir ?? req.ipsec.install_dir;
+        const installName = firstClientCfg?.install_name ?? req.ipsec.install_name;
+
+        if (!installDir || !installName) throw new Error('Empty install dir or install name');
+
+        await communication.uninstallIPSecConfigs(
+          installDir,
+          [installName, 'ipsec.secrets'],
+          channel,
+        );
       } else {
         if (!req.ipsec.install_dir || !req.ipsec.install_name)
           throw new Error('Empty install dir or install name');
@@ -396,7 +466,7 @@ export class IPSecController extends Controller {
 
       // Update the status flag for the IPSec configuration.
       await IPSec.updateIPSecStatus(req.dbCon, req.body.ipsec, '|1');
-      if (req.ipsec.type === 1 && req.ipsec.ipsec) {
+      if (isClientWithServer) {
         await IPSec.updateIPSecStatus(req.dbCon, req.ipsec.ipsec, '|1');
       }
 
@@ -438,6 +508,14 @@ export class IPSecController extends Controller {
       }
 
       const data = await IPSec.getCfg(req.dbCon, req.body.ipsec);
+
+      if (req.body.name !== undefined && data.type === 333) {
+        await Tree.updateFwc_Tree_OBJ(req, {
+          id: data.id,
+          type: 333,
+          name: data.name || `IPSec-${data.id}`,
+        });
+      }
 
       if (isServer) {
         await IPSec.updateIPSecServerInterface(req);
@@ -530,7 +608,11 @@ export class IPSecController extends Controller {
   @Validate(GetDto)
   async delete(req: any): Promise<ResponseBuilder> {
     try {
-      if (req.ipsec?.type === 1) {
+      const hasParentIPSec = req.ipsec?.ipsec !== null && req.ipsec?.ipsec !== undefined;
+      const hasCertificate = req.ipsec?.crt !== null && req.ipsec?.crt !== undefined;
+      const isClientWithServer = hasParentIPSec;
+      const isClientWithoutServer = !hasParentIPSec && !hasCertificate;
+      if (isClientWithServer) {
         await IPSecPrefix.updateIPSecClientPrefixesFWStatus(
           req.dbCon,
           req.body.fwcloud,
@@ -538,14 +620,18 @@ export class IPSecController extends Controller {
         );
       }
 
-      await IPSec.delCfg(req.dbCon, req.body.fwcloud, req.body.ipsec, req.ipsec.type === 1);
+      await IPSec.delCfg(req.dbCon, req.body.fwcloud, req.body.ipsec, isClientWithServer);
 
-      if (req.ipsec?.type === 1) {
+      if (isClientWithServer) {
         await IPSecPrefix.applyIPSecPrefixes(req.dbCon, req.body.fwcloud, req.ipsec.ipsec);
 
         await IPSec.updateIPSecStatus(req.dbCon, req.ipsec.ipsec, '|1');
       } else {
-        await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ipsec, 332);
+        await Tree.deleteObjFromTree(
+          req.body.fwcloud,
+          req.body.ipsec,
+          isClientWithoutServer ? 333 : 332,
+        );
       }
       return ResponseBuilder.buildResponse().status(204);
     } catch (error) {
@@ -610,6 +696,30 @@ export class IPSecController extends Controller {
   @Validate(UpdateOptionsDto)
   async updateClientOptions(req: any): Promise<ResponseBuilder> {
     try {
+      const targetCfgId = req.body.ipsec_cli ?? req.body.ipsec;
+      const targetCfg = await IPSec.getCfg(req.dbCon, targetCfgId);
+      const isClientWithoutServer = targetCfg?.type === 333;
+
+      if (isClientWithoutServer) {
+        req.body.ipsec = targetCfgId;
+        await IPSec.delCfgOptAll(req);
+
+        let order = 1;
+        for (const opt of req.body.options) {
+          opt.ipsec = targetCfgId;
+          opt.ipsec_cli = null;
+          if (typeof opt.ipobj === 'undefined') opt.ipobj = null;
+          opt.order = order++;
+          await IPSec.addCfgOpt(req, opt);
+        }
+
+        return ResponseBuilder.buildResponse().status(204);
+      }
+
+      if (!req.body.ipsec_cli) {
+        throw new Error("'ipsec_cli' is required for IPSec clients with server");
+      }
+
       await IPSec.delCfgOptByScope(req, 8);
 
       const ipsecCfg = await IPSec.getCfg(req.dbCon, req.body.ipsec);
@@ -621,7 +731,7 @@ export class IPSecController extends Controller {
       let shouldRestart = false;
 
       for (const opt of req.body.options) {
-        if (opt.name === 'rightsourceip') {
+        if (opt.name === 'rightsourceip' || opt.name === 'leftsourceip') {
           continue;
         }
         if (opt.name === '<<disable>>') {

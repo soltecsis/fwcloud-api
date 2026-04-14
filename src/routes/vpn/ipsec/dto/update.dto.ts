@@ -6,9 +6,10 @@ import {
   IsOptional,
   IsString,
   Matches,
+  Validate,
   ValidateNested,
 } from 'class-validator';
-import { IPSecOptionDTO } from './store.dto';
+import { IPSecOptionDTO, IPSecPskKeyDependencyValidator } from './store.dto';
 
 export class UpdateDto {
   @IsNotEmpty()
@@ -32,8 +33,14 @@ export class UpdateDto {
   @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid install_name format' })
   install_name?: string;
 
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9\-_.]{2,64}$/, { message: 'Invalid name format' })
+  name?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
+  @Validate(IPSecPskKeyDependencyValidator)
   @Type(() => IPSecOptionDTO)
   options: IPSecOptionDTO[];
 

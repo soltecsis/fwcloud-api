@@ -27,12 +27,15 @@ import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from 'axios';
 import * as https from 'https';
 import cmp from 'semver-compare';
+import semver from 'semver';
 const spawn = require('child-process-promise').spawn;
 
 export interface Versions {
   current: string;
   last: string;
   needsUpdate: boolean;
+  minNode: string | null;
+  nodeCompatible: boolean | null;
 }
 
 export enum Apps {
@@ -68,13 +71,13 @@ export class UpdateService extends Service {
       return res && res.data ? res.data : null;
     } catch (err) {
       logger().error(`Proxying update request: ${err.message}`);
-      throw new Error('Proxying update request');
+      throw Object.assign(new Error('Proxying update request'), { cause: err });
     }
   }
 
   public async compareVersions(app: Apps): Promise<Versions | null> {
-    let localJson: any = {};
-    let remoteJson: any = {};
+    let localJson: any;
+    let remoteJson: any;
 
     const localPath = `${this._app.config.get(app).installDir}/package.json`;
     try {
@@ -104,10 +107,19 @@ export class UpdateService extends Service {
       return null;
     }
 
+    const minNodeVersion: string | null = remoteJson.data.engines?.node ?? null;
+
+    const runtimeNodeVersion = semver.clean(process.version) ?? process.version;
+    const nodeCompatible = minNodeVersion
+      ? semver.satisfies(runtimeNodeVersion, minNodeVersion, { includePrerelease: true })
+      : null;
+
     const versions: Versions = {
       current: localJson.version,
       last: remoteJson.data.version,
       needsUpdate: cmp(remoteJson.data.version, localJson.version) === 1 ? true : false,
+      minNode: minNodeVersion,
+      nodeCompatible,
     };
 
     return versions;
@@ -121,14 +133,18 @@ export class UpdateService extends Service {
       fs.lstatSync(installDir).isDirectory();
     } catch (err) {
       logger().error(`Directory not found: ${installDir}`);
-      throw new Error('fwcloud-updater install directory not found');
+      throw Object.assign(new Error('fwcloud-updater install directory not found'), {
+        cause: err,
+      });
     }
 
     try {
       fs.readdirSync(installDir);
     } catch (err) {
       logger().error(`Accessing directory: ${installDir}`);
-      throw new Error('fwcloud-updater install directory not accessible');
+      throw Object.assign(new Error('fwcloud-updater install directory not accessible'), {
+        cause: err,
+      });
     }
 
     try {
@@ -151,7 +167,9 @@ export class UpdateService extends Service {
       await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
-      throw new Error('Error during fwcloud-updater update procedure');
+      throw Object.assign(new Error('Error during fwcloud-updater update procedure'), {
+        cause: err,
+      });
     }
 
     return;

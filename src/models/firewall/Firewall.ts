@@ -1459,7 +1459,7 @@ export class Firewall extends Model {
   public static checkBodyFirewall(body, isNew) {
     try {
       return new Promise((resolve, reject) => {
-        let param: any = '';
+        let param: any;
         if (!isNew) {
           param = body.id;
           if (param === undefined || param === '' || isNaN(param) || param == null) {
@@ -1607,14 +1607,27 @@ export class Firewall extends Model {
         const r6: any = await IPSec.searchIPSecUsageOutOfThisFirewall(req);
         const r7: any = await IPSecPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
-        //TODO: UTILIZAR OBJECTHELERS? utils.mergeObj() is deprectaded. Use ObjectHelers.merge() instead
-        if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
-        if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
-        if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
-        if (r4) search.restrictions = utilsModel.mergeObj(search.restrictions, r4.restrictions);
-        if (r5) search.restrictions = utilsModel.mergeObj(search.restrictions, r5.restrictions);
-        if (r6) search.restrictions = utilsModel.mergeObj(search.restrictions, r6.restrictions);
-        if (r7) search.restrictions = utilsModel.mergeObj(search.restrictions, r7.restrictions);
+        const restrictionSources = [r1, r2, r3, r4, r5, r6, r7]
+          .map((entry) => entry?.restrictions)
+          .filter((entry): entry is Record<string, unknown> => !!entry);
+
+        for (const source of restrictionSources) {
+          for (const [key, value] of Object.entries(source)) {
+            const current = search.restrictions[key];
+
+            if (Array.isArray(value)) {
+              const currentArray = Array.isArray(current) ? current : [];
+              search.restrictions[key] = currentArray.concat(value);
+            } else if (value && typeof value === 'object') {
+              search.restrictions[key] = {
+                ...(current && typeof current === 'object' ? current : {}),
+                ...value,
+              };
+            } else {
+              search.restrictions[key] = value;
+            }
+          }
+        }
 
         for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {

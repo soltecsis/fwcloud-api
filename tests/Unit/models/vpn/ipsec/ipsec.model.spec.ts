@@ -940,6 +940,41 @@ describe(IPSec.name, () => {
       expect(result.options).to.be.an('array');
     });
 
+    it('should return config data for client without server', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: 'ipsec-only-client.conf',
+          name: 'IPSec-Only-Client',
+        },
+      };
+
+      const ipsecOnlyClientId = await IPSec.addCfg(req);
+
+      await IPSec.addCfgOpt(req, {
+        ipsec: ipsecOnlyClientId,
+        ipsec_cli: null,
+        ipobj: fwcloudProduct.ipobjs.get('address').id,
+        name: 'left',
+        arg: '10.200.47.200',
+        order: 1,
+        scope: 0,
+        comment: null,
+      });
+
+      const result = await IPSec.getCfg(db.getQuery(), ipsecOnlyClientId);
+
+      expect(result).to.exist;
+      expect(result.id).to.equal(ipsecOnlyClientId);
+      expect(result.type).to.equal(333);
+      expect(result.ipsec).to.be.null;
+      expect(result.crt).to.be.null;
+      expect(result.options).to.be.an('array').with.length(1);
+      expect(result.options[0].name).to.equal('left');
+    });
+
     it('should return empty configuration for a non existent IPSec id', async () => {
       const result = await IPSec.getCfg(db.getQuery(), -9999);
 
@@ -1050,6 +1085,8 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           'install_name',
           'comment',
           'status',
+          'type',
+          'name',
           'created_at',
           'updated_at',
           'created_by',
@@ -1134,6 +1171,8 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           'install_name',
           'comment',
           'status',
+          'type',
+          'name',
           'created_at',
           'updated_at',
           'created_by',
@@ -1175,6 +1214,8 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
           'install_name',
           'comment',
           'status',
+          'type',
+          'name',
           'created_at',
           'updated_at',
           'created_by',
@@ -1204,6 +1245,68 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
 
       expect(result).to.exist;
       expect(result).to.be.an('array').that.is.empty;
+    });
+
+    it('should return all configuration data of an IPSec client without server (type 333)', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: 'ipsec-only-client-info.conf',
+          name: 'IPSec-Only-Client-Info',
+        },
+      };
+
+      const ipsecOnlyClientId = await IPSec.addCfg(req);
+      await IPSec.addCfgOpt(req, {
+        ipsec: ipsecOnlyClientId,
+        ipsec_cli: null,
+        ipobj: fwcloudProduct.ipobjs.get('address').id,
+        name: 'left',
+        arg: fwcloudProduct.ipobjs.get('address').address,
+        order: 1,
+        scope: 0,
+        comment: null,
+      });
+
+      const result = await IPSec.getIPSecInfo(
+        db.getQuery(),
+        fwcloudProduct.fwcloud.id,
+        ipsecOnlyClientId,
+        333,
+      );
+
+      expect(result).to.exist;
+      expect(result).to.be.an('array').with.length(1);
+      expect(result[0]).to.include.all.keys(
+        'id',
+        'ipsec',
+        'firewall',
+        'crt',
+        'install_dir',
+        'install_name',
+        'comment',
+        'status',
+        'created_at',
+        'updated_at',
+        'created_by',
+        'updated_by',
+        'installed_at',
+        'fwcloud',
+        'firewall_id',
+        'firewall_name',
+        'cn',
+        'CA_cn',
+        'address',
+        'cluster_id',
+        'cluster_name',
+        'ipsec_server_cn',
+        'type',
+      );
+      expect(result[0].type).to.equal(333);
+      expect(result[0].cn).to.be.null;
+      expect(result[0].CA_cn).to.be.null;
     });
   });
 
@@ -1273,6 +1376,31 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
       expect(result.cn).to.equal('IPSec-Server');
     });
 
+    it('should return configuration for IPSec client without certificate', async () => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: 'ipsec-only-client-dump.conf',
+          name: 'IPSec-Only-Client-Dump',
+        },
+      };
+
+      const ipsecOnlyClientId = await IPSec.addCfg(req);
+      const result: any = await IPSec.dumpCfg(db.getQuery(), ipsecOnlyClientId);
+
+      expect(result).to.exist;
+      expect(result).to.have.property('cfg');
+      expect(result.cfg).to.be.a('string').that.is.not.empty;
+      expect(result).to.have.property('ca_cert');
+      expect(result.ca_cert).to.be.null;
+      expect(result).to.have.property('private_key');
+      expect(result.private_key).to.be.null;
+      expect(result).to.have.property('cert');
+      expect(result.cert).to.be.null;
+    });
+
     it('should throw an error for a non-existent IPSec server', async () => {
       try {
         await IPSec.dumpCfg(db.getQuery(), -9999);
@@ -1280,6 +1408,139 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
         expect(error).to.exist;
         expect(error.msg).to.include('Certificate info not found');
       }
+    });
+  });
+
+  describe('getClientWithoutServerSecretsData', () => {
+    const createClientWithoutServer = async (name: string, installName: string) => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: installName,
+          name,
+        },
+      };
+
+      return IPSec.addCfg(req);
+    };
+
+    const addOption = async (
+      ipsecId: number,
+      optionName: string,
+      optionArg: string,
+      order: number,
+    ) => {
+      const req: any = {
+        dbCon: db.getQuery(),
+      };
+      await IPSec.addCfgOpt(req, {
+        ipsec: ipsecId,
+        ipsec_cli: null,
+        name: optionName,
+        arg: optionArg,
+        comment: null,
+        order,
+        scope: 2,
+      });
+    };
+
+    it('should return null when there are no valid PSK entries', async () => {
+      const result = await IPSec.getClientWithoutServerSecretsData(
+        db.getQuery(),
+        fwcloudProduct.firewall.id,
+      );
+
+      expect(result).to.be.null;
+    });
+
+    it('should include one secret line per client without server', async () => {
+      const firstClientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-1',
+        'ipsec-only-client-secrets-1.conf',
+      );
+      const secondClientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-2',
+        'ipsec-only-client-secrets-2.conf',
+      );
+      const thirdClientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-3',
+        'ipsec-only-client-secrets-3.conf',
+      );
+
+      await addOption(firstClientId, 'leftid', 'left-id', 1);
+      await addOption(firstClientId, 'rightid', 'right-id', 2);
+      await addOption(firstClientId, '<<psk>>', 'psk-client-one', 3);
+
+      await addOption(secondClientId, 'right', '1.1.1.1', 1);
+      await addOption(secondClientId, '<<psk>>', 'psk-client-two', 2);
+
+      // This client should not produce a secret line because it has no PSK option.
+      await addOption(thirdClientId, 'right', '2.2.2.2', 1);
+
+      const result = await IPSec.getClientWithoutServerSecretsData(
+        db.getQuery(),
+        fwcloudProduct.firewall.id,
+      );
+
+      expect(result).to.equal(
+        `'left-id' 'right-id' : PSK "psk-client-one"\n1.1.1.1 : PSK "psk-client-two"\n`,
+      );
+    });
+
+    it("should fail when a PSK entry has neither 'leftid/rightid' nor 'right'", async () => {
+      const clientId = await createClientWithoutServer(
+        'IPSec-Only-Client-Secrets-Error',
+        'ipsec-only-client-secrets-error.conf',
+      );
+      await addOption(clientId, '<<psk>>', 'psk-without-right', 1);
+
+      try {
+        await IPSec.getClientWithoutServerSecretsData(db.getQuery(), fwcloudProduct.firewall.id);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.exist;
+        expect((error as Error).message).to.include(
+          `Missing 'right' option for IPSec PSK secrets in client without server (id=${clientId})`,
+        );
+      }
+    });
+  });
+
+  describe('getFirstClientWithoutServerCfg', () => {
+    const createClientWithoutServer = async (name: string, installName: string) => {
+      const req: any = {
+        dbCon: db.getQuery(),
+        body: {
+          firewall: fwcloudProduct.firewall.id,
+          install_dir: '/tmp',
+          install_name: installName,
+          name,
+        },
+      };
+
+      return IPSec.addCfg(req);
+    };
+
+    it('should return the first client without server by id', async () => {
+      await createClientWithoutServer('IPSec-Only-Client-FirstCfg-1', 'first-client-1.conf');
+      await createClientWithoutServer('IPSec-Only-Client-FirstCfg-2', 'first-client-2.conf');
+
+      const result = await IPSec.getFirstClientWithoutServerCfg(
+        db.getQuery(),
+        fwcloudProduct.firewall.id,
+      );
+
+      expect(result).to.exist;
+      expect(result?.install_name).to.equal('first-client-1.conf');
+      expect(result?.install_dir).to.equal('/tmp');
+    });
+
+    it('should return null when there are no clients without server in the firewall', async () => {
+      const result = await IPSec.getFirstClientWithoutServerCfg(db.getQuery(), -9999);
+
+      expect(result).to.be.null;
     });
   });
 

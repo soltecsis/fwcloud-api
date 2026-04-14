@@ -76,10 +76,12 @@ export class InputValidation extends Middleware {
       'ping',
       'profile',
       'openvpnarchives',
+      'auditlogarchives',
       'systemctl',
       'vpn',
       'aiassistant',
       'AIassistant',
+      'auditlogs',
     ];
 
     // Verify that item1 is in the valid list.

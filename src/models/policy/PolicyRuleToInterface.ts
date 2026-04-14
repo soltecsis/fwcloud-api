@@ -770,7 +770,7 @@ export class PolicyRuleToInterface extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        let sql = '';
+        let sql: string;
         if (firewall === null) {
           //Search interfaces in all Firewalls from Cloud
           sql = `SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name,

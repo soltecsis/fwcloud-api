@@ -3,6 +3,10 @@ import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from 'class-validat
 import { FirewallInstallProtocol } from '../../../models/firewall/Firewall';
 
 export class PluginDto {
+  @IsOptional()
+  @IsNumber()
+  firewallId?: number;
+
   @IsEnum(FirewallInstallCommunication)
   communication: FirewallInstallCommunication;
 

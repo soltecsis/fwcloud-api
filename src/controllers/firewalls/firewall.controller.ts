@@ -21,7 +21,11 @@
 */
 
 import { Controller } from '../../fonaments/http/controller';
-import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
+import {
+  Firewall,
+  FirewallInstallCommunication,
+  PluginsFlags,
+} from '../../models/firewall/Firewall';
 import { Request } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { FirewallService, SSHConfig } from '../../models/firewall/firewall.service';
@@ -62,6 +66,7 @@ import {
 import { KeepalivedCompiler } from '../../compiler/system/keepalived/KeepalivedCompiler';
 import { KeepalivedRuleItemForCompiler } from '../../models/system/keepalived/shared';
 import db from '../../database/database-manager';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 
 export class FirewallController extends Controller {
   protected firewallService: FirewallService;
@@ -350,6 +355,88 @@ export class FirewallController extends Controller {
     }
   }
 
+  private async getOpenVPNServerIdsInScope(
+    fwcloudId: number,
+    firewallId: number,
+  ): Promise<number[]> {
+    const firewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: {
+          id: firewallId,
+          fwCloudId: fwcloudId,
+        },
+      });
+
+    const query = db
+      .getSource()
+      .manager.getRepository(OpenVPN)
+      .createQueryBuilder('openvpn')
+      .innerJoin('openvpn.firewall', 'firewall')
+      .where('firewall.fwCloudId = :fwcloudId', { fwcloudId })
+      .andWhere('openvpn.parentId IS NULL');
+
+    if (firewall.clusterId) {
+      query.andWhere('firewall.cluster = :clusterId', { clusterId: firewall.clusterId });
+    } else {
+      query.andWhere('firewall.id = :firewallId', { firewallId: firewall.id });
+    }
+
+    const servers: OpenVPN[] = await query.getMany();
+
+    return servers.map((server) => server.id);
+  }
+
+  private async hasOpenVPN2FAEnabledInScope(
+    fwcloudId: number,
+    firewallId: number,
+  ): Promise<boolean> {
+    const serverIds = await this.getOpenVPNServerIdsInScope(fwcloudId, firewallId);
+    if (!serverIds.length) {
+      return false;
+    }
+
+    const n = await db
+      .getSource()
+      .manager.getRepository(OpenVPN)
+      .createQueryBuilder('openvpn')
+      .where('openvpn.tfaEnabled = :enabled', { enabled: 1 })
+      .andWhere('(openvpn.id IN (:...serverIds) OR openvpn.parentId IN (:...serverIds))', {
+        serverIds,
+      })
+      .getCount();
+
+    return n > 0;
+  }
+
+  private async disableOpenVPN2FAInScope(fwcloudId: number, firewallId: number): Promise<void> {
+    const serverIds = await this.getOpenVPNServerIdsInScope(fwcloudId, firewallId);
+    if (!serverIds.length) {
+      return;
+    }
+
+    // 1) Disable 2FA on clients of all OpenVPN servers in scope
+    await db
+      .getSource()
+      .manager.getRepository(OpenVPN)
+      .createQueryBuilder()
+      .update(OpenVPN)
+      .set({ tfaEnabled: 0 })
+      .where('openvpn IN (:...serverIds)', { serverIds })
+      .execute();
+
+    // 2) Disable 2FA on OpenVPN servers in scope
+    await db
+      .getSource()
+      .manager.getRepository(OpenVPN)
+      .createQueryBuilder()
+      .update(OpenVPN)
+      .set({ tfaEnabled: 0 })
+      .where('id IN (:...serverIds)', { serverIds })
+      .execute();
+  }
+
   @Validate(PluginDto)
   async installPlugin(req: Request): Promise<ResponseBuilder> {
     try {
@@ -361,6 +448,19 @@ export class FirewallController extends Controller {
         port: req.body.port,
         apikey: await pgp.decrypt(req.body.apikey),
       });
+
+      if (req.body.plugin === PluginsFlags.openvpn && !req.body.enable && req.body.firewallId) {
+        const fwcloudId = parseInt(String(req.params.fwcloud));
+        const firewallId = parseInt(String(req.body.firewallId));
+
+        const has2FAEnabled = await this.hasOpenVPN2FAEnabledInScope(fwcloudId, firewallId);
+        if (has2FAEnabled) {
+          await this.disableOpenVPN2FAInScope(fwcloudId, firewallId);
+
+          // 3) Uninstall OpenVPN 2FA plugin before uninstalling OpenVPN plugin
+          await communication.installPlugin('openvpn-2fa', false, channel);
+        }
+      }
 
       const data = await communication.installPlugin(req.body.plugin, req.body.enable, channel);
 

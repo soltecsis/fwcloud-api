@@ -1781,9 +1781,8 @@ export class IPObj extends Model {
         // We have two formats for the netmask (for example, 255.255.255.0 or /24).
         // We have to check if the object already exist independently of the netmask format.
         const net1 = IpUtils.cidrSubnet(`${addr}/${mask}`);
-        let net2: any = {};
         for (const row of rows) {
-          net2 =
+          const net2 =
             row.netmask[0] === '/'
               ? IpUtils.cidrSubnet(`${row.address}${row.netmask}`)
               : IpUtils.subnet(row.address, row.netmask);
