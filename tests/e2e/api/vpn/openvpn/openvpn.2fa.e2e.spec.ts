@@ -190,13 +190,19 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
 
   describe('enable and disable 2FA on an OpenVPN server', () => {
     it('admin user should enable 2FA on server and persist flag and options', async () => {
+      await manager.getRepository(Firewall).update(fwcProduct.firewall.id, {
+        install_communication: 'ssh' as any,
+      });
+
       const installPlugin = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
+      const ping = sinon.stub().resolves();
       const serverCN = await getOpenVPNCertificateCN(fwcProduct.openvpnServer.id);
 
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         installPlugin,
         installOpenVPNServerConfigs,
+        ping,
       } as any);
 
       sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: 'server_config', ccd: '' } as any);
@@ -272,15 +278,21 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
     });
 
     it('admin user should disable server 2FA and remove persisted options', async () => {
+      await manager.getRepository(Firewall).update(fwcProduct.firewall.id, {
+        install_communication: 'ssh' as any,
+      });
+
       const installPlugin = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
+      const ping = sinon.stub().resolves();
       const serverCN = await getOpenVPNCertificateCN(fwcProduct.openvpnServer.id);
 
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         installPlugin,
         installOpenVPNServerConfigs,
         uninstallOpenVPNConfigs,
+        ping,
       } as any);
 
       sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: 'server_config', ccd: '' } as any);
@@ -396,9 +408,13 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
 
     it('admin user should enable client 2FA and return TOTP payload', async () => {
       await manager.getRepository(OpenVPN).update(fwcProduct.openvpnServer.id, { tfaEnabled: 1 });
+      await manager.getRepository(Firewall).update(fwcProduct.firewall.id, {
+        install_communication: 'ssh' as any,
+      });
 
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
+      const ping = sinon.stub().resolves();
       const serverCN = await getOpenVPNCertificateCN(fwcProduct.openvpnServer.id);
       const clientCN = await getOpenVPNCertificateCN(
         fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
@@ -407,6 +423,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         installOpenVPNServerConfigs,
         uninstallOpenVPNConfigs,
+        ping,
       } as any);
 
       // Stub encryption to return the text as is for easier assertions
@@ -458,9 +475,13 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       await manager
         .getRepository(OpenVPN)
         .update(fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id, { tfaEnabled: 1 });
+      await manager.getRepository(Firewall).update(fwcProduct.firewall.id, {
+        install_communication: 'ssh' as any,
+      });
 
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
+      const ping = sinon.stub().resolves();
       const serverCN = await getOpenVPNCertificateCN(fwcProduct.openvpnServer.id);
       const clientCN = await getOpenVPNCertificateCN(
         fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
@@ -469,6 +490,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         installOpenVPNServerConfigs,
         uninstallOpenVPNConfigs,
+        ping,
       } as any);
 
       await request(app.express)
