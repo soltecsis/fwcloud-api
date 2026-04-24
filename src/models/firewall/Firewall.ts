@@ -120,6 +120,7 @@ export enum FireWallOptMask {
   FAIL2BAN_COMPAT = 0x0080,
   PDR_WARNING = 0x0100,
   PDR_CRITICAL = 0x0200,
+  IPTABLES_OPTIMIZED_COMPILATION = 0x0400,
 }
 
 @Entity(tableName)
