@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased]
+## [2.4.0] - 2026-04-14
 ### Added
 - Audit logs support for application changes, including HTTP requests and internal processes such as cron tasks, workers, CLI commands, and imports.
 - Audit logs listing API with filtering by user, session, source IP, FWCloud, firewall, and cluster, plus pagination and cursor-based navigation.
