@@ -26,7 +26,7 @@
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
+import { Firewall, FireWallOptMask, PolicyCompilationMode } from '../../models/firewall/Firewall';
 import { ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { RuleCompilationResult } from './PolicyCompilerTools';
@@ -55,6 +55,7 @@ const config = require('../../config/config');
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
+  private policyCompilationMode: PolicyCompilationMode;
   private path: string;
   private stream: any;
 
@@ -349,6 +350,10 @@ export class PolicyScript {
 
             /* Generate the policy script. */
             this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
+            this.policyCompilationMode = await Firewall.getPolicyCompilationMode(
+              this.fwcloud,
+              this.firewall,
+            );
             const policyConfig = config.get('policy');
             const headerFilePath =
               this.policyCompiler === 'VyOS' && policyConfig.vyos_header_file
@@ -360,6 +365,7 @@ export class PolicyScript {
 
             if (!isVyOS) {
               this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
+              this.stream.write(`POLICY_COMPILATION_MODE="${this.policyCompilationMode}"\n\n`);
               await this.greetingMessage();
               await this.dumpFirewallOptions();
 

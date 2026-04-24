@@ -1,7 +1,7 @@
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import StringHelper from '../../../../src/utils/string.helper';
-import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
 import * as path from 'path';
 import { Mark } from '../../../../src/models/ipobj/Mark';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
@@ -187,6 +187,39 @@ describe(describeName('Firewall Model Unit Tests'), () => {
     it('should reject if firewall options value is unknown', async () => {
       sinon.stub(Firewall, 'getFirewallOptions').resolves(0x3000);
       await expect(Firewall.getFirewallCompiler(1, 1)).to.be.rejected;
+    });
+  });
+
+  describe('getPolicyCompilationMode()', () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it('should return normal if optimized compilation option is disabled', async () => {
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(0x0000);
+      await expect(Firewall.getPolicyCompilationMode(1, 1)).to.eventually.equal('normal');
+    });
+
+    it('should return optimized if optimized compilation option is enabled', async () => {
+      sinon
+        .stub(Firewall, 'getFirewallOptions')
+        .resolves(FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION);
+
+      await expect(Firewall.getPolicyCompilationMode(1, 1)).to.eventually.equal('optimized');
+    });
+  });
+
+  describe('getPolicyCompilationModeFromOptions()', () => {
+    it('should return normal if optimized compilation option is disabled', async () => {
+      expect(Firewall.getPolicyCompilationModeFromOptions(0x0000)).to.equal('normal');
+    });
+
+    it('should return optimized if optimized compilation option is enabled', async () => {
+      expect(
+        Firewall.getPolicyCompilationModeFromOptions(
+          FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION,
+        ),
+      ).to.equal('optimized');
     });
   });
 });

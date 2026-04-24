@@ -4,9 +4,10 @@ import { describeName, testSuite } from '../../mocha/global-setup';
 import { PolicyRuleService } from '../../../src/policy-rule/policy-rule.service';
 import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
-import { Firewall } from '../../../src/models/firewall/Firewall';
+import { Firewall, FireWallOptMask } from '../../../src/models/firewall/Firewall';
 import * as path from 'path';
 import * as fs from 'fs';
+import db from '../../../src/database/database-manager';
 
 describe(describeName('PolicyRuleService Unit tests'), async () => {
   let app: AbstractApplication;
@@ -46,6 +47,21 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
     it('should create script', async () => {
       await service.compile(fwcloud.id, firewall.id);
       expect(fs.existsSync(filePath));
+    });
+
+    it('should include the resolved normal compilation mode in the generated script', async () => {
+      await service.compile(fwcloud.id, firewall.id);
+
+      expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="normal"');
+    });
+
+    it('should include the resolved optimized compilation mode in the generated script', async () => {
+      firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="optimized"');
     });
   });
 
