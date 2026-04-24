@@ -85,6 +85,32 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
 
       expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="optimized"');
     });
+
+    it('should reject saved optimized mode when the real compiler is NFTables', async () => {
+      firewall.options = 0x1000 | FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await service.compile(fwcloud.id, firewall.id).catch((error) => {
+        expect(error).to.deep.include({
+          msg: 'Optimized policy compilation is only supported for IPTables firewalls',
+        });
+      });
+    });
+
+    it('should reject an optimized override when the real compiler is NFTables', async () => {
+      firewall.options = 0x1000;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await service
+        .compile(fwcloud.id, firewall.id, undefined, {
+          policyCompilationMode: 'optimized',
+        })
+        .catch((error) => {
+          expect(error).to.deep.include({
+            msg: 'Optimized policy compilation is only supported for IPTables firewalls',
+          });
+        });
+    });
   });
 
   describe('content()', () => {

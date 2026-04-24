@@ -51,6 +51,7 @@ import { mkdirpSync } from 'fs-extra';
 import { typeMap } from '../../config/policy/dangerousRules';
 
 const config = require('../../config/config');
+const fwcError = require('../../utils/error_table');
 
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
@@ -340,6 +341,12 @@ export class PolicyScript {
     return dangerous;
   }
 
+  private validatePolicyCompilationMode(): void {
+    if (this.policyCompilationMode === 'optimized' && this.policyCompiler !== 'IPTables') {
+      throw fwcError.other('Optimized policy compilation is only supported for IPTables firewalls');
+    }
+  }
+
   public dump(): Promise<Array<RuleCompilationResult>> {
     return new Promise(async (resolve, reject) => {
       this.stream = fs.createWriteStream(this.path);
@@ -354,6 +361,7 @@ export class PolicyScript {
             this.policyCompilationMode =
               this.policyCompilationModeOverride ??
               (await Firewall.getPolicyCompilationMode(this.fwcloud, this.firewall));
+            this.validatePolicyCompilationMode();
             const policyConfig = config.get('policy');
             const headerFilePath =
               this.policyCompiler === 'VyOS' && policyConfig.vyos_header_file
