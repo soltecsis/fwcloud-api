@@ -28,6 +28,11 @@ import { PolicyScript } from '../compiler/policy/PolicyScript';
 import db from '../database/database-manager';
 import fs from 'fs';
 import { RuleCompilationResult } from '../compiler/policy/PolicyCompilerTools';
+import { PolicyCompilationMode } from '../models/firewall/Firewall';
+
+export type PolicyRuleCompilationOptions = {
+  policyCompilationMode?: PolicyCompilationMode;
+};
 
 export class PolicyRuleService extends Service {
   protected _dbCon: DatabaseQuery.default;
@@ -42,8 +47,9 @@ export class PolicyRuleService extends Service {
     fwcloudId: number,
     firewallId: number,
     channel?: EventEmitter,
+    options: PolicyRuleCompilationOptions = {},
   ): Promise<Array<RuleCompilationResult>> {
-    const policyScript = this.getPolicyScript(fwcloudId, firewallId, channel);
+    const policyScript = this.getPolicyScript(fwcloudId, firewallId, channel, options);
     return await policyScript.dump();
   }
 
@@ -65,7 +71,14 @@ export class PolicyRuleService extends Service {
     fwcloudId: number,
     firewallId: number,
     channel?: EventEmitter,
+    options: PolicyRuleCompilationOptions = {},
   ): PolicyScript {
-    return new PolicyScript(this._dbCon, fwcloudId, firewallId, channel);
+    return new PolicyScript(
+      this._dbCon,
+      fwcloudId,
+      firewallId,
+      channel,
+      options.policyCompilationMode,
+    );
   }
 }

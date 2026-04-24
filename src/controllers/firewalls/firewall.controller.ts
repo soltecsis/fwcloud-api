@@ -67,9 +67,11 @@ import { KeepalivedCompiler } from '../../compiler/system/keepalived/KeepalivedC
 import { KeepalivedRuleItemForCompiler } from '../../models/system/keepalived/shared';
 import db from '../../database/database-manager';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
 
 export class FirewallController extends Controller {
   protected firewallService: FirewallService;
+  protected policyRuleService: PolicyRuleService;
   protected routingRuleService: RoutingRuleService;
   protected haproxyRuleService: HAProxyRuleService;
   protected dhcpRuleService: DHCPRuleService;
@@ -86,6 +88,7 @@ export class FirewallController extends Controller {
       .getOneOrFail();
 
     this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
+    this.policyRuleService = await this._app.getService<PolicyRuleService>(PolicyRuleService.name);
     this.routingRuleService = await this._app.getService<RoutingRuleService>(
       RoutingRuleService.name,
     );
@@ -103,7 +106,7 @@ export class FirewallController extends Controller {
     /**
      * This method is not used temporarily
      */
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
@@ -117,7 +120,9 @@ export class FirewallController extends Controller {
 
     const channel: Channel = await Channel.fromRequest(request);
 
-    firewall = await this.firewallService.compile(firewall, channel);
+    await this.policyRuleService.compile(firewall.fwCloudId, firewall.id, channel, {
+      policyCompilationMode: request.body.policyCompilationMode,
+    });
 
     channel.emit('message', new ProgressPayload('end', false, 'Compiling firewall'));
 

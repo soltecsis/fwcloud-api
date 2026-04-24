@@ -64,6 +64,7 @@ export class PolicyScript {
     private fwcloud: number,
     private firewall: number,
     private channel: EventEmitter = new EventEmitter(),
+    private policyCompilationModeOverride?: PolicyCompilationMode,
   ) {
     this.routingCompiler = new RoutingCompiler();
     this.buildPath();
@@ -350,10 +351,9 @@ export class PolicyScript {
 
             /* Generate the policy script. */
             this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
-            this.policyCompilationMode = await Firewall.getPolicyCompilationMode(
-              this.fwcloud,
-              this.firewall,
-            );
+            this.policyCompilationMode =
+              this.policyCompilationModeOverride ??
+              (await Firewall.getPolicyCompilationMode(this.fwcloud, this.firewall));
             const policyConfig = config.get('policy');
             const headerFilePath =
               this.policyCompiler === 'VyOS' && policyConfig.vyos_header_file

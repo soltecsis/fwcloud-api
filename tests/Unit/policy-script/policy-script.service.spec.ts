@@ -63,6 +63,28 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
 
       expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="optimized"');
     });
+
+    it('should prioritize a normal override over the saved optimized mode', async () => {
+      firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await service.compile(fwcloud.id, firewall.id, undefined, {
+        policyCompilationMode: 'normal',
+      });
+
+      expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="normal"');
+    });
+
+    it('should prioritize an optimized override over the saved normal mode', async () => {
+      firewall.options = 0;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await service.compile(fwcloud.id, firewall.id, undefined, {
+        policyCompilationMode: 'optimized',
+      });
+
+      expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="optimized"');
+    });
   });
 
   describe('content()', () => {

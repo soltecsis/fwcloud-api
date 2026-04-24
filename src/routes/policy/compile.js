@@ -96,7 +96,9 @@ router.put('/', async (req, res) => {
 
 	try {
 		const policyRuleService = await app().getService(PolicyRuleService.name);
-		const dangerous = await policyRuleService.compile(req.body.fwcloud, req.body.firewall, channel);
+		const dangerous = await policyRuleService.compile(req.body.fwcloud, req.body.firewall, channel, {
+			policyCompilationMode: req.body.policyCompilationMode,
+		});
 		res.status(200).json(dangerous);
 	} catch(error) {
 		console.log(error)
@@ -108,4 +110,3 @@ router.put('/', async (req, res) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 module.exports = router;
-
