@@ -47,7 +47,6 @@ schema.validate = req => {
         
         schema = schema.append({
           socketid: sharedSch.socketio_id.optional(),
-          policyCompilationMode: sharedSch.policy_compilation_mode.optional(),
         });
       }
       else if (req.url==='/policy/compile/rule')

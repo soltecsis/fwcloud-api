@@ -20,16 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsIn, IsOptional, IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 export class FirewallControllerCompileDto {
   @IsString()
   @Length(0, 255)
   @IsOptional()
   channel_id: string;
-
-  @IsString()
-  @IsIn(['normal', 'optimized'])
-  @IsOptional()
-  policyCompilationMode: 'normal' | 'optimized';
 }

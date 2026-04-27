@@ -120,9 +120,7 @@ export class FirewallController extends Controller {
 
     const channel: Channel = await Channel.fromRequest(request);
 
-    await this.policyRuleService.compile(firewall.fwCloudId, firewall.id, channel, {
-      policyCompilationMode: request.body.policyCompilationMode,
-    });
+    await this.policyRuleService.compile(firewall.fwCloudId, firewall.id, channel);
 
     channel.emit('message', new ProgressPayload('end', false, 'Compiling firewall'));
 
