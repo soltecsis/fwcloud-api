@@ -200,10 +200,11 @@ status() {
 }
 
 policy_apply() {
-  trap 'echo "ERROR: Policy load failed"; iptables_default_filter_policy ACCEPT' ERR
   load_nat_modules
   policy_empty
-  policy_load
-  options_load
-  trap - ERR
+  if ! policy_load || ! options_load; then
+    echo "ERROR: Policy load failed"
+    iptables_default_filter_policy ACCEPT
+    return 1
+  fi
 }
