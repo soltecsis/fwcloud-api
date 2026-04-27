@@ -15,6 +15,8 @@ LSMOD=`which lsmod 2>/dev/null`
 MODPROBE=`which modprobe 2>/dev/null`
 IPTABLES=`which iptables 2>/dev/null`
 IP6TABLES=`which ip6tables 2>/dev/null`
+IPTABLES_RESTORE=`which iptables-restore 2>/dev/null`
+IP6TABLES_RESTORE=`which ip6tables-restore 2>/dev/null`
 NFT=`which nft 2>/dev/null`
 IP=`which ip 2>/dev/null`
 SYSTEMCTL=`which systemctl 2>/dev/null`
@@ -47,7 +49,7 @@ iptables_default_filter_policy() {
     $IPTABLES  -P FORWARD $1
   fi
 
-  if [ ! -z "$IPTABLES6" -a -f "$IPTABLES6" -a -x "$IPTABLES6" ]; then
+  if [ ! -z "$IP6TABLES" -a -f "$IP6TABLES" -a -x "$IP6TABLES" ]; then
     $IP6TABLES -P OUTPUT  $1
     $IP6TABLES -P INPUT   $1
     $IP6TABLES -P FORWARD $1
@@ -84,7 +86,7 @@ reset_iptables_v4() {
 }
 
 reset_iptables_v6() {
-  if [ ! -z "$IPTABLES6" -a -f "$IPTABLES6" -a -x "$IPTABLES6" ]; then
+  if [ ! -z "$IP6TABLES" -a -f "$IP6TABLES" -a -x "$IP6TABLES" ]; then
     IPv6_TABLES="filter nat mangle"
     for table in $IPv6_TABLES; do
       $IP6TABLES -t $table -L -n | while read c chain rest; do
@@ -196,8 +198,10 @@ status() {
 }
 
 policy_apply() {
+  trap 'echo "ERROR: Policy load failed"; iptables_default_filter_policy ACCEPT' ERR
   load_nat_modules
   policy_empty
   policy_load
   options_load
+  trap - ERR
 }

@@ -8,6 +8,8 @@ import { Firewall, FireWallOptMask } from '../../../src/models/firewall/Firewall
 import * as path from 'path';
 import * as fs from 'fs';
 import db from '../../../src/database/database-manager';
+import { PolicyRule } from '../../../src/models/policy/PolicyRule';
+import { PolicyTypesMap } from '../../../src/models/policy/PolicyType';
 
 describe(describeName('PolicyRuleService Unit tests'), async () => {
   let app: AbstractApplication;
@@ -62,6 +64,87 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
       await service.compile(fwcloud.id, firewall.id);
 
       expect(fs.readFileSync(filePath, 'utf8')).to.contain('POLICY_COMPILATION_MODE="optimized"');
+    });
+
+    it('should generate iptables-restore blocks for optimizable IPTables rules', async () => {
+      firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      expect(script).to.contain("cat <<'FWC_IPTABLES_RESTORE' | $IPTABLES_RESTORE");
+      expect(script).to.contain('*filter');
+      expect(script).to.contain('-A INPUT -m conntrack --ctstate NEW -j ACCEPT');
+      expect(script).to.contain('COMMIT');
+    });
+
+    it('should normalize shell-quoted rule comments to double quotes for iptables-restore', async () => {
+      firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        comment: 'Stateful firewall rule.',
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      expect(script).to.contain('--comment "Stateful firewall rule."');
+      expect(script).not.to.contain("--comment 'Stateful firewall rule.'");
+    });
+
+    it('should use --noflush after the first optimized iptables-restore execution', async () => {
+      firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        run_before: null,
+        run_after: null,
+      });
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:OUTPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      expect(fs.readFileSync(filePath, 'utf8')).to.contain('$IPTABLES_RESTORE --noflush');
     });
 
     it('should prioritize a normal override over the saved optimized mode', async () => {
