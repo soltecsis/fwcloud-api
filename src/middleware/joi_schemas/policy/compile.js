@@ -45,7 +45,10 @@ schema.validate = req => {
           return reject(fwcError.BAD_API_CALL);
         }
         
-        schema = schema.append({ socketid: sharedSch.socketio_id.optional() });
+        schema = schema.append({
+          socketid: sharedSch.socketio_id.optional(),
+          policyCompilationMode: sharedSch.policy_compilation_mode.optional(),
+        });
       }
       else if (req.url==='/policy/compile/rule')
         schema = schema.append({ type: sharedSch.policy_type, rules: Joi.array().items(sharedSch.id), compiler: sharedSch.policy_compiler });

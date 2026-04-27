@@ -39,6 +39,8 @@ check_cmds() {
   test -z "$MODPROBE" && echo "ERROR: Command 'modprobe' not found." && exit 1
   test -z "$IP" && echo "ERROR: Command 'ip' not found." && exit 1
   test "$POLICY_COMPILER" = "IPTables" -a -z "$IPTABLES" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'iptables' not found." && exit 1
+  test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IPTABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'iptables-restore'." && exit 1
+  test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IP6TABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'ip6tables-restore'." && exit 1
   test "$POLICY_COMPILER" = "NFTables" -a -z "$NFT" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'nft' not found." && exit 1
 }
 
