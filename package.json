@@ -72,7 +72,7 @@
     "sqlstring": "2.3.3",
     "ssh2": "1.17.0",
     "typeorm": "0.3.28",
-    "uuid": "13.0.0",
+    "uuid": "14.0.0",
     "winston": "3.19.0",
     "ws": "8.20.0",
     "yargs": "18.0.0",
@@ -114,7 +114,10 @@
     "@sinonjs/fake-timers": "15.2.2",
     "glob": "13.0.6",
     "cross-spawn": "7.0.6",
-    "serialize-javascript": "7.0.5"
+    "serialize-javascript": "7.0.5",
+    "typeorm": {
+      "uuid": "14.0.0"
+    }
   },
   "lint-staged": {
     "*.ts": [
