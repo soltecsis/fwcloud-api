@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.1] - 2026-04-29
+### Changed
+- Before enabling or disabling OpenVPN 2FA, cluster and node operations now verify connectivity with each target firewall and report progress during the check.
+- When OpenVPN client 2FA is enabled or disabled, the server users list is now synchronized on every target node to keep access data consistent.
+- OpenVPN 2FA E2E tests were updated to mock communication `ping` checks and isolate flaky scenarios, improving test reliability.
+
+
 ## [2.4.0] - 2026-04-14
 ### Added
 - Audit logs support for application changes, including HTTP requests and internal processes such as cron tasks, workers, CLI commands, and imports.

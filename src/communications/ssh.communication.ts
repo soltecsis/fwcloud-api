@@ -554,8 +554,17 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
   }
 
-  ping(): Promise<void> {
-    throw new Error('Method not implemented.');
+  async ping(): Promise<void> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo ';
+      await sshTools.runCommand(this.connectionData, `${sudo}true`);
+    } catch (error) {
+      this.handleRequestException(error);
+    }
   }
 
   info(): Promise<FwcAgentInfo> {
