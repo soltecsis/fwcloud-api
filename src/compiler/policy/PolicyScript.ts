@@ -26,7 +26,7 @@
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
+import { Firewall, FireWallOptMask, PolicyCompilationMode } from '../../models/firewall/Firewall';
 import { ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { RuleCompilationResult } from './PolicyCompilerTools';
@@ -51,10 +51,13 @@ import { mkdirpSync } from 'fs-extra';
 import { typeMap } from '../../config/policy/dangerousRules';
 
 const config = require('../../config/config');
+const fwcError = require('../../utils/error_table');
 
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
+  private policyCompilationMode: PolicyCompilationMode;
+  private restoreExecutions: Map<string, number> = new Map();
   private path: string;
   private stream: any;
 
@@ -140,11 +143,17 @@ export class PolicyScript {
       const rule = rulesCompiled[i];
       if (options.plain) {
         if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
-        if (rule.active) cs += rule.cs;
+        if (rule.active)
+          cs += this.useOptimizedIptablesRestore()
+            ? this.renderOptimizedIptablesCommands(rule.cs)
+            : rule.cs;
       } else {
         cs += `\necho "Rule ${i + 1} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n`;
         if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
-        if (rule.active) cs += rule.cs;
+        if (rule.active)
+          cs += this.useOptimizedIptablesRestore()
+            ? this.renderOptimizedIptablesCommands(rule.cs)
+            : rule.cs;
       }
       if (rule.dangerousRuleData) dangerous.push(rule);
     }
@@ -338,6 +347,139 @@ export class PolicyScript {
     return dangerous;
   }
 
+  private validatePolicyCompilationMode(): void {
+    if (this.policyCompilationMode === 'optimized' && this.policyCompiler !== 'IPTables') {
+      throw fwcError.other('Optimized policy compilation is only supported for IPTables firewalls');
+    }
+  }
+
+  private useOptimizedIptablesRestore(): boolean {
+    return this.policyCompiler === 'IPTables' && this.policyCompilationMode === 'optimized';
+  }
+
+  private stripShellComments(line: string): string {
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let result = '';
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        result += char;
+        continue;
+      }
+
+      if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        result += char;
+        continue;
+      }
+
+      if (char === '#' && !inSingleQuote && !inDoubleQuote) {
+        break;
+      }
+
+      result += char;
+    }
+
+    return result;
+  }
+
+  private normalizeIptablesRestoreQuotes(command: string): string {
+    return command.replace(/'([^']*)'/g, (_match, content) => {
+      return `"${content.replace(/(["\\])/g, '\\$1')}"`;
+    });
+  }
+
+  private parseIptablesRestoreLine(
+    line: string,
+  ): { restoreCommand: string; table: string; restoreLine: string } | null {
+    const commandMatch = line.trim().match(/^(\$IPTABLES|\$IP6TABLES)\s+(.+)$/);
+    if (!commandMatch) return null;
+
+    const restoreCommand =
+      commandMatch[1] === '$IPTABLES' ? '$IPTABLES_RESTORE' : '$IP6TABLES_RESTORE';
+
+    let command = commandMatch[2];
+    command = this.stripShellComments(command).trim();
+    command = this.normalizeIptablesRestoreQuotes(command);
+    let table = 'filter';
+
+    const tableMatch = command.match(/^-t\s+(\S+)\s+(.+)$/);
+    if (tableMatch) {
+      table = tableMatch[1];
+      command = tableMatch[2];
+    }
+
+    if (!command.startsWith('-A ') && !command.startsWith('-N ')) return null;
+
+    return { restoreCommand, table, restoreLine: command };
+  }
+
+  private flushIptablesRestoreBuffer(
+    restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null,
+  ): string {
+    if (!restoreBuffer || restoreBuffer.lines.length === 0) return '';
+
+    const executions = this.restoreExecutions.get(restoreBuffer.restoreCommand) ?? 0;
+    this.restoreExecutions.set(restoreBuffer.restoreCommand, executions + 1);
+
+    return (
+      `cat <<'FWC_IPTABLES_RESTORE' | ${restoreBuffer.restoreCommand}` +
+      `${executions > 0 ? ' --noflush' : ''}\n` +
+      `*${restoreBuffer.table}\n\n` +
+      `${restoreBuffer.lines.join('\n')}\n\n` +
+      'COMMIT\n' +
+      'FWC_IPTABLES_RESTORE\n'
+    );
+  }
+
+  private renderOptimizedIptablesCommands(cs: string): string {
+    let optimized = '';
+    let restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null = null;
+
+    const flushRestoreBuffer = () => {
+      optimized += this.flushIptablesRestoreBuffer(restoreBuffer);
+      restoreBuffer = null;
+    };
+
+    for (const rawLine of cs.split('\n')) {
+      // Skip shell comment lines completely - they are handled separately in dumpCompilation
+      if (rawLine.trim().startsWith('#')) {
+        continue;
+      }
+
+      const parsedLine = this.parseIptablesRestoreLine(rawLine);
+
+      if (!parsedLine) {
+        flushRestoreBuffer();
+        optimized += rawLine.length > 0 ? `${rawLine}\n` : '\n';
+        continue;
+      }
+
+      if (
+        !restoreBuffer ||
+        restoreBuffer.restoreCommand !== parsedLine.restoreCommand ||
+        restoreBuffer.table !== parsedLine.table
+      ) {
+        flushRestoreBuffer();
+        restoreBuffer = {
+          restoreCommand: parsedLine.restoreCommand,
+          table: parsedLine.table,
+          lines: [],
+        };
+      }
+
+      restoreBuffer.lines.push(parsedLine.restoreLine);
+    }
+
+    flushRestoreBuffer();
+
+    return optimized;
+  }
+
   public dump(): Promise<Array<RuleCompilationResult>> {
     return new Promise(async (resolve, reject) => {
       this.stream = fs.createWriteStream(this.path);
@@ -349,6 +491,11 @@ export class PolicyScript {
 
             /* Generate the policy script. */
             this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
+            this.policyCompilationMode = await Firewall.getPolicyCompilationMode(
+              this.fwcloud,
+              this.firewall,
+            );
+            this.validatePolicyCompilationMode();
             const policyConfig = config.get('policy');
             const headerFilePath =
               this.policyCompiler === 'VyOS' && policyConfig.vyos_header_file
@@ -360,6 +507,7 @@ export class PolicyScript {
 
             if (!isVyOS) {
               this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
+              this.stream.write(`POLICY_COMPILATION_MODE="${this.policyCompilationMode}"\n\n`);
               await this.greetingMessage();
               await this.dumpFirewallOptions();
 
@@ -592,12 +740,18 @@ export class PolicyScript {
     this.stream.write('echo "****************"\n');
     this.stream.write('#Automatic rules for mangle table.\n');
     if (this.policyCompiler == 'IPTables') {
-      this.stream.write('$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n');
-      this.stream.write('$IPTABLES -t mangle -A PREROUTING -m mark ! --mark 0 -j ACCEPT\n\n');
-      this.stream.write('$IPTABLES -t mangle -A OUTPUT -j CONNMARK --restore-mark\n');
-      this.stream.write('$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n');
-      this.stream.write('$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n');
-      this.stream.write('$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n');
+      const mangleRules =
+        '$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n' +
+        '$IPTABLES -t mangle -A PREROUTING -m mark ! --mark 0 -j ACCEPT\n\n' +
+        '$IPTABLES -t mangle -A OUTPUT -j CONNMARK --restore-mark\n' +
+        '$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n' +
+        '$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n' +
+        '$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n';
+      this.stream.write(
+        this.useOptimizedIptablesRestore()
+          ? this.renderOptimizedIptablesCommands(mangleRules)
+          : mangleRules,
+      );
     } else {
       // NFTables
       this.stream.write('$NFT add rule ip mangle PREROUTING counter meta mark set ct mark\n');
