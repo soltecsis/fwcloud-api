@@ -352,6 +352,7 @@ describe(describeName('AuditLogService unit suite'), () => {
           nested: {
             api_key: 'should-be-hidden',
           },
+          durationMs: 1250,
         },
       });
 
@@ -365,6 +366,23 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(payload.token).to.equal('[REDACTED]');
       expect(payload.password).to.equal('[REDACTED]');
       expect(payload.nested.api_key).to.equal('[REDACTED]');
+      expect(persisted.durationMs).to.equal(1250);
+    });
+
+    it('hydrates missing duration values from stored audit payloads while listing', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({ payload: true, durationMs: 3456 }),
+        durationMs: null,
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        take: 10,
+      });
+
+      expect(total).to.be.greaterThan(0);
+      const hydrated = auditLogs.find((entry) => entry.id === expected.id);
+      expect(hydrated?.durationMs).to.equal(3456);
     });
 
     it('derives entity names and identifiers from firewall references', async () => {

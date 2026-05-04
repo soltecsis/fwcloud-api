@@ -129,6 +129,8 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     adminOwnedLog = await persistAuditLog({
       call: 'PUT /api/admin-owned',
+      data: JSON.stringify({ payload: true, durationMs: 9876 }),
+      durationMs: null,
       timestamp: new Date('2024-01-04T12:00:00Z'),
       userId: adminUser.id,
       userName: adminUser.username,
@@ -189,6 +191,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
         expect(payload.total).to.equal(1);
         expect(payload.auditLogs).to.have.length(1);
         expect(payload.auditLogs[0].id).to.equal(adminOwnedLog.id);
+        expect(payload.auditLogs[0].durationMs).to.equal(9876);
       });
   });
 
