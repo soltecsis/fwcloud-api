@@ -439,7 +439,6 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 };
 
 const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
-	console.log(`Removing 2FA options for OpenVPN configuration ${openvpnId}`);
 	await queryDb(
 		dbCon,
 		`DELETE FROM openvpn_opt
