@@ -101,6 +101,7 @@ export type AuditLogMutationInput = {
 const MAX_CALL_LENGTH = 255;
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_SOURCE_IP_LENGTH = 45;
+const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
 
 const SENSITIVE_KEY_PATTERNS = [
   'password',
@@ -283,6 +284,11 @@ export class AuditLogService extends Service {
     }
 
     const [auditLogs, total] = await query.getManyAndCount();
+    for (const auditLog of auditLogs) {
+      if (auditLog.durationMs === null || auditLog.durationMs === undefined) {
+        auditLog.durationMs = this.extractDurationMsFromSerializedData(auditLog.data);
+      }
+    }
 
     return { auditLogs, total };
   }
@@ -600,6 +606,7 @@ export class AuditLogService extends Service {
     auditLog.call = this.normalizeCall(input.call);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);
     auditLog.data = this.serializeData(input.data ?? {});
+    auditLog.durationMs = this.extractDurationMsFromData(input.data);
 
     auditLog.userId = AuditLogHelper.getNumeric(input.userId);
     auditLog.userName = this.normalizeLabel(input.userName);
@@ -656,6 +663,38 @@ export class AuditLogService extends Service {
     }
 
     return serialized;
+  }
+
+  protected extractDurationMsFromData(data: unknown): number | null {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return null;
+    }
+
+    const record = data as Record<string, unknown>;
+    return this.normalizeDurationMs(record.durationMs ?? record.duration_ms);
+  }
+
+  protected extractDurationMsFromSerializedData(data: string | null | undefined): number | null {
+    const match = typeof data === 'string' ? DURATION_MS_PATTERN.exec(data) : null;
+    return match ? this.normalizeDurationMs(match[1]) : null;
+  }
+
+  protected normalizeDurationMs(value: unknown): number | null {
+    let numeric = Number.NaN;
+
+    if (typeof value === 'number') {
+      numeric = value;
+    } else if (typeof value === 'string' && value.trim() !== '') {
+      numeric = Number(value);
+    } else if (typeof value === 'bigint') {
+      numeric = Number(value);
+    }
+
+    if (!Number.isFinite(numeric)) {
+      return null;
+    }
+
+    return Math.max(0, Math.trunc(numeric));
   }
 
   protected sanitize(input: any, seen: WeakSet<object> = new WeakSet()): any {

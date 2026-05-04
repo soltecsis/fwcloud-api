@@ -162,6 +162,7 @@ export class AuditEventService extends Service {
     const startedAt = this.normalizeDate(input.startedAt, new Date());
     const finishedAt = this.normalizeDate(input.finishedAt, new Date());
     const normalizedFinishedAt = finishedAt >= startedAt ? finishedAt : startedAt;
+    const durationMs = Math.max(0, normalizedFinishedAt.getTime() - startedAt.getTime());
     const status = input.status;
     const affectedCount = this.normalizeAffectedCount(input.affectedCount);
     const error =
@@ -176,6 +177,7 @@ export class AuditEventService extends Service {
       affectedCount,
       startedAt: startedAt.toISOString(),
       finishedAt: normalizedFinishedAt.toISOString(),
+      durationMs,
       status,
       error,
       details,

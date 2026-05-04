@@ -120,6 +120,13 @@ export class AuditLog extends Model {
   call: string;
 
   @Column({
+    type: 'int',
+    name: 'duration_ms',
+    nullable: true,
+  })
+  durationMs: number | null;
+
+  @Column({
     type: 'longtext',
     name: 'data',
   })

@@ -112,6 +112,7 @@ describe('AuditLogMiddleware', () => {
     expect(entry.firewallId).to.equal(7);
     expect(entry.clusterId).to.equal(3);
     expect(entry.call).to.equal('POST /audit/7?cluster=3');
+    expect(entry.durationMs).to.be.a('number');
     expect(entry.description).to.contain('Status 201');
     expect(entry.description).to.not.contain('User:');
     expect(entry.description).to.not.contain('IP:');
@@ -125,6 +126,7 @@ describe('AuditLogMiddleware', () => {
     expect(payload.body.firewall).to.equal(7);
     expect(payload.query.cluster).to.equal('3');
     expect(payload.durationMs).to.be.a('number');
+    expect(payload.durationMs).to.equal(entry.durationMs);
   });
 
   it('defaults to the request IP address when forwarded headers are absent', async () => {
@@ -316,6 +318,49 @@ describe('AuditLogMiddleware', () => {
     expect(payload.body.tokens).to.equal('[REDACTED]');
     expect(payload.body.nested.apiKey).to.equal('[REDACTED]');
     expect(payload.body.nested.details.secretValue).to.equal('[REDACTED]');
+  });
+
+  it('should not summarize long audit descriptions', async () => {
+    const app = express();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 78, username: 'description-user' };
+      (req as any).sessionID = 'sess-78';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+
+    app.post('/firewall', (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    await request(app).post('/firewall').send({
+      name: 'Firewall',
+      save_user_pass: 1,
+      fwmaster: 1,
+      install_port: 33033,
+      options: 771,
+      node_id: 1,
+      plugins: 0,
+      install_communication: 'agent',
+      install_protocol: 'https',
+      install_apikey: 'secret-api-key',
+      install_user: 'root',
+      install_target: 'edge-node',
+      item13: 'value13',
+      item14: 'value14',
+    });
+
+    const [entry] = await waitForAuditLogs();
+
+    expect(entry.description).to.contain('Body:');
+    expect(entry.description).to.contain('item13=value13');
+    expect(entry.description).to.contain('item14=value14');
+    expect(entry.description).to.not.contain('+');
+    expect(entry.description).to.contain('install_apikey=[REDACTED]');
+    expect(entry.description).to.contain('install_target=edge-node');
   });
 
   describe('authentication events', () => {

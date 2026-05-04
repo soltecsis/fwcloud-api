@@ -33,7 +33,6 @@ import { AuditLogHelper } from '../models/audit/audit-log.helper';
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_DESCRIPTION_SECTION_LENGTH = 512;
 const MAX_DESCRIPTION_VALUE_LENGTH = 120;
-const MAX_DESCRIPTION_PAIRS = 12;
 
 const SENSITIVE_KEY_PATTERNS = [
   'password',
@@ -291,9 +290,11 @@ export class AuditLogMiddleware extends Middleware {
       const dataSource = db.getSource();
       const auditLog = new AuditLog();
       const instrumentationContext = this.extractAuditContext(req);
+      const durationMs = Math.max(0, Date.now() - start);
 
       auditLog.call = this.buildCall(req);
-      auditLog.data = this.buildPayload(req, res, start, instrumentationContext);
+      auditLog.durationMs = durationMs;
+      auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext);
       auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
       auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
       auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
@@ -817,13 +818,16 @@ export class AuditLogMiddleware extends Middleware {
       return value;
     }
 
-    const entries = Object.entries(value as Record<string, unknown>);
-    if (entries.length === 0) {
-      return value;
-    }
-
+    const objectValue = value as Record<string, unknown>;
     const filtered: Record<string, unknown> = {};
-    for (const [key, entryValue] of entries) {
+    let hasOwnKey = false;
+    for (const key in objectValue) {
+      if (!Object.prototype.hasOwnProperty.call(objectValue, key)) {
+        continue;
+      }
+
+      hasOwnKey = true;
+      const entryValue = objectValue[key];
       const normalizedKey = this.normalizeDescriptionKey(key);
       const isRenderable = this.renderDescriptionValue(entryValue, 1) !== null;
 
@@ -838,7 +842,7 @@ export class AuditLogMiddleware extends Middleware {
       filtered[key] = entryValue;
     }
 
-    return filtered;
+    return hasOwnKey ? filtered : value;
   }
 
   private renderDescriptionValue(value: any, depth: number): string | null {
@@ -867,24 +871,16 @@ export class AuditLogMiddleware extends Middleware {
         return this.truncateDescription(JSON.stringify(value), MAX_DESCRIPTION_VALUE_LENGTH);
       }
 
-      const parts: string[] = [];
-      for (const item of value.slice(0, MAX_DESCRIPTION_PAIRS)) {
+      let description = '';
+      for (const item of value) {
         const rendered = this.renderDescriptionValue(item, depth + 1);
         if (rendered === null || rendered.length === 0) {
           continue;
         }
-        parts.push(rendered);
+        description += description.length > 0 ? `, ${rendered}` : rendered;
       }
 
-      if (parts.length === 0) {
-        return null;
-      }
-
-      if (value.length > parts.length) {
-        parts.push(`+${value.length - parts.length} more`);
-      }
-
-      return this.truncateDescription(parts.join(', '), MAX_DESCRIPTION_SECTION_LENGTH);
+      return description.length > 0 ? description : null;
     }
 
     if (typeof value === 'object') {
@@ -892,32 +888,22 @@ export class AuditLogMiddleware extends Middleware {
         return this.truncateDescription(JSON.stringify(value), MAX_DESCRIPTION_VALUE_LENGTH);
       }
 
-      const entries = Object.entries(value);
-      if (entries.length === 0) {
-        return null;
-      }
+      const objectValue = value as Record<string, unknown>;
+      let description = '';
+      for (const key in objectValue) {
+        if (!Object.prototype.hasOwnProperty.call(objectValue, key)) {
+          continue;
+        }
 
-      const parts: string[] = [];
-      for (const [key, entryValue] of entries) {
-        const rendered = this.renderDescriptionValue(entryValue, depth + 1);
+        const rendered = this.renderDescriptionValue(objectValue[key], depth + 1);
         if (rendered === null || rendered.length === 0) {
           continue;
         }
-        parts.push(`${key}=${rendered}`);
-        if (parts.length >= MAX_DESCRIPTION_PAIRS) {
-          break;
-        }
+        const part = `${key}=${rendered}`;
+        description += description.length > 0 ? `, ${part}` : part;
       }
 
-      if (parts.length === 0) {
-        return null;
-      }
-
-      if (entries.length > parts.length) {
-        parts.push(`+${entries.length - parts.length} more`);
-      }
-
-      return this.truncateDescription(parts.join(', '), MAX_DESCRIPTION_SECTION_LENGTH);
+      return description.length > 0 ? description : null;
     }
 
     return this.truncateDescription(String(value), MAX_DESCRIPTION_VALUE_LENGTH);
@@ -1048,14 +1034,14 @@ export class AuditLogMiddleware extends Middleware {
   private buildPayload(
     req: Request,
     res: Response,
-    start: number,
+    durationMs: number,
     instrumentation: Record<string, string | number> = {},
   ): string {
     const payload = {
       method: req.method,
       url: req.originalUrl,
       statusCode: res.statusCode,
-      durationMs: Date.now() - start,
+      durationMs,
       ip: this.getClientIp(req),
       headers: this.filterHeaders(req.headers),
       query: this.sanitize(req.query),
