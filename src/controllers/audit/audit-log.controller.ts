@@ -58,14 +58,15 @@ export class AuditLogController extends Controller {
         ? results.auditLogs
         : await this._auditLogService.syncEntriesWithUser(results.auditLogs, currentUser);
 
-    const localizedAuditLogs = auditLogs.map((entry) => ({
+    const auditLogsResponse = auditLogs.map((entry) => ({
       ...entry,
-      timestamp: AuditLogHelper.toLocalISOString(entry.timestamp),
+      startedAt: AuditLogHelper.toUtcISOString(entry.startedAt),
+      finishedAt: entry.finishedAt ? AuditLogHelper.toUtcISOString(entry.finishedAt) : null,
     }));
 
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body({ auditLogs: localizedAuditLogs, total: results.total });
+      .body({ auditLogs: auditLogsResponse, total: results.total });
   }
 
   protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {
@@ -87,14 +88,14 @@ export class AuditLogController extends Controller {
       options.take = Math.min(requestedLimit, AuditLogController.MAX_LIMIT);
     }
 
-    const timestampFrom = this.parseIsoDate(request.query.ts_from);
-    if (timestampFrom) {
-      options.timestampFrom = timestampFrom;
+    const startedAtFrom = this.parseIsoDate(request.query.started_at_from);
+    if (startedAtFrom) {
+      options.startedAtFrom = startedAtFrom;
     }
 
-    const timestampTo = this.parseIsoDate(request.query.ts_to);
-    if (timestampTo) {
-      options.timestampTo = timestampTo;
+    const startedAtTo = this.parseIsoDate(request.query.started_at_to);
+    if (startedAtTo) {
+      options.startedAtTo = startedAtTo;
     }
 
     const userName = this.parseString(request.query.user_name);
@@ -199,16 +200,16 @@ export class AuditLogController extends Controller {
         return undefined;
       }
 
-      const timestampPart = trimmed.slice(0, separatorIndex);
+      const startedAtPart = trimmed.slice(0, separatorIndex);
       const idPart = trimmed.slice(separatorIndex + 1);
-      const timestamp = new Date(timestampPart);
+      const startedAt = new Date(startedAtPart);
       const id = Number.parseInt(idPart, 10);
 
-      if (Number.isNaN(timestamp.getTime()) || Number.isNaN(id) || id <= 0) {
+      if (Number.isNaN(startedAt.getTime()) || Number.isNaN(id) || id <= 0) {
         return undefined;
       }
 
-      return { timestamp, id };
+      return { startedAt, id };
     } catch {
       return undefined;
     }

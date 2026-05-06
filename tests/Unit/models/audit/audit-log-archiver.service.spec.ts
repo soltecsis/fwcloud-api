@@ -50,7 +50,7 @@ describe(describeName('AuditLogService archive Unit tests'), () => {
           call: 'test-call',
           data: JSON.stringify({ payload: true }),
           description: 'test-description',
-          timestamp: new Date(),
+          startedAt: new Date(),
         },
         overrides,
       ),
@@ -110,13 +110,13 @@ describe(describeName('AuditLogService archive Unit tests'), () => {
         call: 'call-1',
         data: JSON.stringify({ entry: 1 }),
         description: 'first expired entry',
-        timestamp: expirationDate,
+        startedAt: expirationDate,
       }),
       repo.create({
         call: 'call-2',
         data: JSON.stringify({ entry: 2 }),
         description: 'second expired entry',
-        timestamp: expirationDate,
+        startedAt: expirationDate,
       }),
     ]);
 
@@ -124,7 +124,7 @@ describe(describeName('AuditLogService archive Unit tests'), () => {
       call: 'call-fresh',
       data: JSON.stringify({ entry: 'fresh' }),
       description: 'fresh entry',
-      timestamp: new Date(),
+      startedAt: new Date(),
     });
 
     const archivedRows = await service.archiveHistory();
@@ -166,7 +166,7 @@ describe(describeName('AuditLogService archive Unit tests'), () => {
         call: 'call-old',
         data: JSON.stringify({ entry: 'old' }),
         description: 'old entry',
-        timestamp: expirationDate,
+        startedAt: expirationDate,
       }),
     ]);
 

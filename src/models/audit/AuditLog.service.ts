@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Brackets, SelectQueryBuilder } from 'typeorm';
+import { Brackets, In } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
-import { AuditLog } from './AuditLog';
+import { AuditLog, formatAuditLogDateForDb } from './AuditLog';
 import { AuditLogHelper } from './audit-log.helper';
 import * as fs from 'fs-extra';
 import path from 'path';
@@ -58,7 +58,7 @@ export type AuditLogArchiverUpdateableConfig = {
 };
 
 export type ListAuditLogsCursor = {
-  timestamp: Date;
+  startedAt: Date;
   id: number;
 };
 
@@ -68,8 +68,8 @@ export type ListAuditLogsOptions = {
   userId?: number | null;
   skip?: number;
   take?: number;
-  timestampFrom?: Date;
-  timestampTo?: Date;
+  startedAtFrom?: Date;
+  startedAtTo?: Date;
   userName?: string;
   sessionIdFilter?: number | null;
   fwCloudId?: number;
@@ -96,12 +96,17 @@ export type AuditLogMutationInput = {
   firewallName?: string | null;
   clusterId?: number | null;
   clusterName?: string | null;
+  startedAt?: Date | string | null;
+  finishedAt?: Date | string | null;
 };
 
 const MAX_CALL_LENGTH = 255;
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_SOURCE_IP_LENGTH = 45;
+const STARTED_AT_COLUMN = '`auditLog`.`started_at`';
+const quoteAuditLogDateForSql = (date: Date): string => `'${formatAuditLogDateForDb(date)}'`;
 const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
+const FINISHED_AT_PATTERN = /"(?:finishedAt|finished_at)"\s*:\s*"([^"]+)"/;
 
 const SENSITIVE_KEY_PATTERNS = [
   'password',
@@ -158,8 +163,8 @@ export class AuditLogService extends Service {
   }> {
     const query = this.auditLogRepository
       .createQueryBuilder('auditLog')
-      .orderBy('auditLog.timestamp', 'DESC')
-      .addOrderBy('auditLog.id', 'DESC');
+      .orderBy(STARTED_AT_COLUMN, 'DESC')
+      .addOrderBy('`auditLog`.`id`', 'DESC');
 
     if (!options.isAdmin) {
       const accessRestrictions: Array<{ clause: string; params: Record<string, unknown> }> = [];
@@ -195,16 +200,12 @@ export class AuditLogService extends Service {
       );
     }
 
-    if (options.timestampFrom instanceof Date) {
-      query.andWhere('auditLog.timestamp >= :timestampFrom', {
-        timestampFrom: options.timestampFrom,
-      });
+    if (options.startedAtFrom instanceof Date) {
+      query.andWhere(`${STARTED_AT_COLUMN} >= ${quoteAuditLogDateForSql(options.startedAtFrom)}`);
     }
 
-    if (options.timestampTo instanceof Date) {
-      query.andWhere('auditLog.timestamp <= :timestampTo', {
-        timestampTo: options.timestampTo,
-      });
+    if (options.startedAtTo instanceof Date) {
+      query.andWhere(`${STARTED_AT_COLUMN} <= ${quoteAuditLogDateForSql(options.startedAtTo)}`);
     }
 
     const applyTextFilter = (field: string, param: string, value: string) => {
@@ -257,17 +258,13 @@ export class AuditLogService extends Service {
 
     if (options.cursor) {
       const cursor = options.cursor;
-      const cursorTimestamp = cursor.timestamp.toISOString();
+      const cursorStartedAt = quoteAuditLogDateForSql(cursor.startedAt);
       query.andWhere(
         new Brackets((qb) => {
-          qb.where('auditLog.timestamp < :cursorTimestamp', {
-            cursorTimestamp,
-          }).orWhere(
+          qb.where(`${STARTED_AT_COLUMN} < ${cursorStartedAt}`).orWhere(
             new Brackets((inner) => {
               inner
-                .where('auditLog.timestamp = :cursorTimestamp', {
-                  cursorTimestamp,
-                })
+                .where(`${STARTED_AT_COLUMN} = ${cursorStartedAt}`)
                 .andWhere('auditLog.id < :cursorId', { cursorId: cursor.id });
             }),
           );
@@ -275,18 +272,31 @@ export class AuditLogService extends Service {
       );
     }
 
+    const total = await query.clone().getCount();
+    const idQuery = query.clone().select('auditLog.id', 'id');
+
     if (typeof options.take === 'number' && Number.isFinite(options.take)) {
-      query.take(Math.max(0, options.take));
+      idQuery.limit(Math.max(0, options.take));
     }
 
     if (typeof options.skip === 'number' && Number.isFinite(options.skip)) {
-      query.skip(Math.max(0, options.skip));
+      idQuery.offset(Math.max(0, options.skip));
     }
 
-    const [auditLogs, total] = await query.getManyAndCount();
+    const ids = (await idQuery.getRawMany<{ id: number | string }>()).map((row) => Number(row.id));
+    const entries = ids.length
+      ? await this.auditLogRepository.find({ where: { id: In(ids) } })
+      : [];
+    const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
+    const auditLogs = ids
+      .map((id) => entriesById.get(id))
+      .filter((entry): entry is AuditLog => entry !== undefined);
     for (const auditLog of auditLogs) {
       if (auditLog.durationMs === null || auditLog.durationMs === undefined) {
         auditLog.durationMs = this.extractDurationMsFromSerializedData(auditLog.data);
+      }
+      if (auditLog.finishedAt === null || auditLog.finishedAt === undefined) {
+        auditLog.finishedAt = this.extractFinishedAtFromSerializedData(auditLog.data);
       }
     }
 
@@ -356,7 +366,7 @@ export class AuditLogService extends Service {
             const getExpiredAuditLogsQuery = () =>
               repository
                 .createQueryBuilder('auditLog')
-                .where('auditLog.ts <= :timestamp', { timestamp: expirationDate })
+                .where(`${STARTED_AT_COLUMN} <= ${quoteAuditLogDateForSql(expirationDate)}`)
                 .orderBy('auditLog.id', 'ASC');
 
             const totalExpiredLogs = await getExpiredAuditLogsQuery().getCount();
@@ -576,7 +586,7 @@ export class AuditLogService extends Service {
   }
 
   protected formatDateTime(date: Date): string {
-    return `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())} ${this.pad(date.getHours())}:${this.pad(date.getMinutes())}:${this.pad(date.getSeconds())}`;
+    return `${date.getUTCFullYear()}-${this.pad(date.getUTCMonth() + 1)}-${this.pad(date.getUTCDate())} ${this.pad(date.getUTCHours())}:${this.pad(date.getUTCMinutes())}:${this.pad(date.getUTCSeconds())}`;
   }
 
   protected getDateForFile(date: Date): string {
@@ -607,6 +617,12 @@ export class AuditLogService extends Service {
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);
     auditLog.data = this.serializeData(input.data ?? {});
     auditLog.durationMs = this.extractDurationMsFromData(input.data);
+    auditLog.startedAt =
+      this.normalizeAuditDate(input.startedAt) ??
+      this.extractStartedAtFromData(input.data) ??
+      new Date();
+    auditLog.finishedAt =
+      this.normalizeAuditDate(input.finishedAt) ?? this.extractFinishedAtFromData(input.data);
 
     auditLog.userId = AuditLogHelper.getNumeric(input.userId);
     auditLog.userName = this.normalizeLabel(input.userName);
@@ -679,6 +695,29 @@ export class AuditLogService extends Service {
     return match ? this.normalizeDurationMs(match[1]) : null;
   }
 
+  protected extractStartedAtFromData(data: unknown): Date | null {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return null;
+    }
+
+    const record = data as Record<string, unknown>;
+    return this.normalizeAuditDate(record.startedAt ?? record.started_at);
+  }
+
+  protected extractFinishedAtFromData(data: unknown): Date | null {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return null;
+    }
+
+    const record = data as Record<string, unknown>;
+    return this.normalizeAuditDate(record.finishedAt ?? record.finished_at);
+  }
+
+  protected extractFinishedAtFromSerializedData(data: string | null | undefined): Date | null {
+    const match = typeof data === 'string' ? FINISHED_AT_PATTERN.exec(data) : null;
+    return match ? this.normalizeAuditDate(match[1]) : null;
+  }
+
   protected normalizeDurationMs(value: unknown): number | null {
     let numeric = Number.NaN;
 
@@ -695,6 +734,18 @@ export class AuditLogService extends Service {
     }
 
     return Math.max(0, Math.trunc(numeric));
+  }
+
+  protected normalizeAuditDate(value: unknown): Date | null {
+    let date: Date | null = null;
+
+    if (value instanceof Date) {
+      date = value;
+    } else if (typeof value === 'string' && value.trim() !== '') {
+      date = new Date(value);
+    }
+
+    return date && !Number.isNaN(date.getTime()) ? date : null;
   }
 
   protected sanitize(input: any, seen: WeakSet<object> = new WeakSet()): any {

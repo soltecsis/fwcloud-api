@@ -197,6 +197,8 @@ export class AuditEventService extends Service {
       firewallName: context.firewallName ?? null,
       clusterId: context.clusterId ?? null,
       clusterName: context.clusterName ?? null,
+      startedAt,
+      finishedAt: normalizedFinishedAt,
     });
   }
 

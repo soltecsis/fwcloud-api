@@ -16,10 +16,10 @@ export class AuditLog1759918517845 implements MigrationInterface {
             generationStrategy: 'increment',
           },
           {
-            name: 'ts',
+            name: 'started_at',
             type: 'datetime',
+            precision: 3,
             isNullable: false,
-            default: 'CURRENT_TIMESTAMP',
           },
           {
             name: 'user_id',
@@ -110,8 +110,8 @@ export class AuditLog1759918517845 implements MigrationInterface {
         ],
         indices: [
           {
-            name: 'IDX_audit_logs_ts',
-            columnNames: ['ts'],
+            name: 'IDX_audit_logs_started_at',
+            columnNames: ['started_at'],
           },
           {
             name: 'IDX_audit_logs_user_id',

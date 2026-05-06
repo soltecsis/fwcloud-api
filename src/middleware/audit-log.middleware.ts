@@ -211,6 +211,8 @@ export class AuditLogMiddleware extends Middleware {
 
   private static readonly READ_KEYWORDS = new Set<string>([
     'check',
+    'auditlog',
+    'auditlogs',
     'colors',
     'compare',
     'details',
@@ -264,14 +266,25 @@ export class AuditLogMiddleware extends Middleware {
     (req as Request & { __auditLogOriginalUrl?: string }).__auditLogOriginalUrl =
       typeof req.originalUrl === 'string' ? req.originalUrl : undefined;
 
+    if (res.locals) {
+      res.locals.__auditLogStartedAt = start;
+    }
+
+    const initialAuditLog = await this.persistInitialAuditLog(req, res, start);
+    const initialAuditLogId = initialAuditLog?.id ?? null;
+
+    if (res.locals && initialAuditLogId !== null) {
+      res.locals.__auditLogId = initialAuditLogId;
+    }
+
     const finalize = () => {
       if (handled) {
         return;
       }
       handled = true;
 
-      this.persistAuditLog(req, res, start).catch((error) => {
-        logger().error(`Failed to persist audit log: ${error?.message ?? error}`);
+      this.completeAuditLog(req, res, start, initialAuditLogId).catch((error) => {
+        logger().error(`Failed to complete audit log: ${error?.message ?? error}`);
       });
     };
 
@@ -281,96 +294,180 @@ export class AuditLogMiddleware extends Middleware {
     next();
   }
 
-  private async persistAuditLog(req: Request, res: Response, start: number): Promise<void> {
+  private async persistInitialAuditLog(
+    req: Request,
+    res: Response,
+    start: number,
+  ): Promise<AuditLog | null> {
     try {
       if (!this.shouldPersistAuditLog(req, res)) {
+        return null;
+      }
+
+      const auditLog = new AuditLog();
+      const instrumentationContext = this.extractAuditContext(req);
+
+      auditLog.startedAt = new Date(start);
+
+      auditLog.call = this.buildCall(req);
+      auditLog.durationMs = null;
+      auditLog.finishedAt = null;
+      auditLog.data = this.buildPayload(req, res, null, instrumentationContext, null);
+
+      await this.populateRequestContext(auditLog, req, res);
+
+      auditLog.description = this.buildDescription(req, res, instrumentationContext, false);
+
+      return await db.getSource().manager.getRepository(AuditLog).save(auditLog);
+    } catch (error) {
+      logger().error(
+        `Unexpected error while creating initial audit log: ${error?.message ?? error}`,
+      );
+      return null;
+    }
+  }
+
+  private async completeAuditLog(
+    req: Request,
+    res: Response,
+    start: number,
+    initialAuditLogId: number | null,
+  ): Promise<void> {
+    try {
+      const auditLogWasHandled = !!res?.locals?.__auditLogHandled;
+      const repository = db.getSource().manager.getRepository(AuditLog);
+
+      if (!this.shouldPersistAuditLog(req, res)) {
+        if (initialAuditLogId !== null && !auditLogWasHandled) {
+          await repository.delete(initialAuditLogId);
+        }
         return;
       }
 
-      const dataSource = db.getSource();
-      const auditLog = new AuditLog();
       const instrumentationContext = this.extractAuditContext(req);
       const durationMs = Math.max(0, Date.now() - start);
+      const startedAt = new Date(start);
+      const finishedAt = new Date(start + durationMs);
+      let auditLog =
+        initialAuditLogId !== null
+          ? await repository.findOne({ where: { id: initialAuditLogId } })
+          : null;
 
+      if (!auditLog) {
+        auditLog = new AuditLog();
+      }
+
+      auditLog.startedAt = startedAt;
       auditLog.call = this.buildCall(req);
       auditLog.durationMs = durationMs;
-      auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext);
-      auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
-      auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
-      auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
-      const sourceIp = this.getClientIp(req)?.trim() ?? null;
-      auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
+      auditLog.finishedAt = finishedAt;
+      auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext, finishedAt);
 
-      const fwCloudId = this.extractIdentifier(req, [
-        'fwcloud',
-        'fwcloud_id',
-        'fwcloudId',
-        'fwCloudId',
-      ]);
-      const firewallId = this.extractIdentifier(req, [
-        'firewall',
-        'firewall_id',
-        'id_firewall',
-        'firewallId',
-      ]);
-      const clusterId = this.extractIdentifier(req, ['cluster', 'cluster_id', 'clusterId']);
-
-      auditLog.fwCloudId = fwCloudId;
-      auditLog.firewallId = firewallId;
-      auditLog.clusterId = clusterId;
-
-      const firewall =
-        firewallId !== null && firewallId !== undefined
-          ? await Firewall.findOne({ where: { id: firewallId } })
-          : null;
-
-      const firewallClusterIdCandidate =
-        firewall && firewall.clusterId !== undefined
-          ? AuditLogHelper.getNumeric(firewall.clusterId)
-          : null;
-
-      const resolvedClusterId =
-        clusterId ??
-        (firewallClusterIdCandidate !== null && firewallClusterIdCandidate > 0
-          ? firewallClusterIdCandidate
-          : null);
-
-      if (resolvedClusterId !== null && resolvedClusterId !== undefined) {
-        auditLog.clusterId = resolvedClusterId;
-      }
-
-      const firewallFwCloudIdCandidate =
-        firewall && firewall.fwCloudId !== undefined
-          ? AuditLogHelper.getNumeric(firewall.fwCloudId)
-          : null;
-
-      if (
-        (auditLog.fwCloudId === null || auditLog.fwCloudId === undefined) &&
-        firewallFwCloudIdCandidate !== null &&
-        firewallFwCloudIdCandidate > 0
-      ) {
-        auditLog.fwCloudId = firewallFwCloudIdCandidate;
-      }
-
-      const [fwCloud, cluster] = await Promise.all([
-        auditLog.fwCloudId
-          ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } })
-          : Promise.resolve(null),
-        auditLog.clusterId
-          ? Cluster.findOne({ where: { id: auditLog.clusterId } })
-          : Promise.resolve(null),
-      ]);
-
-      auditLog.fwCloudName = fwCloud?.name ?? null;
-      auditLog.firewallName = firewall?.name ?? null;
-      auditLog.clusterName = cluster?.name ?? null;
+      await this.populateRequestContext(auditLog, req, res, true);
 
       auditLog.description = this.buildDescription(req, res, instrumentationContext);
 
-      await dataSource.manager.getRepository(AuditLog).save(auditLog);
+      await repository.save(auditLog);
     } catch (error) {
-      logger().error(`Unexpected error while creating audit log: ${error?.message ?? error}`);
+      logger().error(`Unexpected error while completing audit log: ${error?.message ?? error}`);
     }
+  }
+
+  private async populateRequestContext(
+    auditLog: AuditLog,
+    req: Request,
+    res: Response,
+    preserveExistingValues: boolean = false,
+  ): Promise<void> {
+    auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
+    auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
+    auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+    const sourceIp = this.getClientIp(req)?.trim() ?? null;
+    auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
+
+    const fwCloudId = this.extractIdentifier(req, [
+      'fwcloud',
+      'fwcloud_id',
+      'fwcloudId',
+      'fwCloudId',
+    ]);
+    const firewallId = this.extractIdentifier(req, [
+      'firewall',
+      'firewall_id',
+      'id_firewall',
+      'firewallId',
+    ]);
+    const clusterId = this.extractIdentifier(req, ['cluster', 'cluster_id', 'clusterId']);
+
+    auditLog.fwCloudId = this.keepValue(fwCloudId, auditLog.fwCloudId, preserveExistingValues);
+    auditLog.firewallId = this.keepValue(firewallId, auditLog.firewallId, preserveExistingValues);
+    auditLog.clusterId = this.keepValue(clusterId, auditLog.clusterId, preserveExistingValues);
+
+    const firewall =
+      auditLog.firewallId !== null && auditLog.firewallId !== undefined
+        ? await Firewall.findOne({ where: { id: auditLog.firewallId } })
+        : null;
+
+    const firewallClusterIdCandidate =
+      firewall && firewall.clusterId !== undefined
+        ? AuditLogHelper.getNumeric(firewall.clusterId)
+        : null;
+    const localClusterId = AuditLogHelper.getNumeric(res?.locals?.__auditLogClusterId);
+
+    const resolvedClusterId =
+      auditLog.clusterId ??
+      (firewallClusterIdCandidate !== null && firewallClusterIdCandidate > 0
+        ? firewallClusterIdCandidate
+        : null) ??
+      (localClusterId !== null && localClusterId > 0 ? localClusterId : null);
+
+    if (resolvedClusterId !== null && resolvedClusterId !== undefined) {
+      auditLog.clusterId = resolvedClusterId;
+    }
+
+    const firewallFwCloudIdCandidate =
+      firewall && firewall.fwCloudId !== undefined
+        ? AuditLogHelper.getNumeric(firewall.fwCloudId)
+        : null;
+
+    if (
+      (auditLog.fwCloudId === null || auditLog.fwCloudId === undefined) &&
+      firewallFwCloudIdCandidate !== null &&
+      firewallFwCloudIdCandidate > 0
+    ) {
+      auditLog.fwCloudId = firewallFwCloudIdCandidate;
+    }
+
+    const [fwCloud, cluster] = await Promise.all([
+      auditLog.fwCloudId
+        ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } })
+        : Promise.resolve(null),
+      auditLog.clusterId
+        ? Cluster.findOne({ where: { id: auditLog.clusterId } })
+        : Promise.resolve(null),
+    ]);
+
+    auditLog.fwCloudName =
+      fwCloud?.name ??
+      this.getAuditLogLocalString(res, '__auditLogFwCloudName') ??
+      (preserveExistingValues ? auditLog.fwCloudName : null);
+    auditLog.firewallName =
+      firewall?.name ??
+      this.getAuditLogLocalString(res, '__auditLogFirewallName') ??
+      (preserveExistingValues ? auditLog.firewallName : null);
+    auditLog.clusterName =
+      cluster?.name ??
+      this.getAuditLogLocalString(res, '__auditLogClusterName') ??
+      (preserveExistingValues ? auditLog.clusterName : null);
+  }
+
+  private getAuditLogLocalString(res: Response, key: string): string | null {
+    const value = res?.locals?.[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+  }
+
+  private keepValue<T>(value: T | null, current: T | null, keepCurrent: boolean): T | null {
+    return value ?? (keepCurrent ? current : null);
   }
 
   private buildCall(req: Request): string {
@@ -382,6 +479,7 @@ export class AuditLogMiddleware extends Middleware {
     req: Request,
     res: Response,
     instrumentation: Record<string, string | number> = {},
+    includeStatus: boolean = true,
   ): string {
     const pieces: string[] = [];
     const usedLabels = new Set<string>();
@@ -391,8 +489,10 @@ export class AuditLogMiddleware extends Middleware {
       pieces.push(narrative);
     }
 
-    pieces.push(`Status ${res.statusCode}`);
-    usedLabels.add('status');
+    if (includeStatus) {
+      pieces.push(`Status ${res.statusCode}`);
+      usedLabels.add('status');
+    }
 
     const instrumentationEntries = this.buildInstrumentationEntries(instrumentation, usedLabels);
     const excludedSectionKeys = new Set<string>([
@@ -427,7 +527,8 @@ export class AuditLogMiddleware extends Middleware {
       pieces.push(entry.text);
     }
 
-    return pieces.join('. ');
+    const description = pieces.join('. ');
+    return description.length > 0 ? description : this.buildCall(req);
   }
 
   private buildInstrumentationEntries(
@@ -1034,14 +1135,16 @@ export class AuditLogMiddleware extends Middleware {
   private buildPayload(
     req: Request,
     res: Response,
-    durationMs: number,
+    durationMs: number | null,
     instrumentation: Record<string, string | number> = {},
+    finishedAt: Date | null = null,
   ): string {
     const payload = {
       method: req.method,
       url: req.originalUrl,
-      statusCode: res.statusCode,
+      statusCode: durationMs === null ? null : res.statusCode,
       durationMs,
+      finishedAt: finishedAt ? finishedAt.toISOString() : null,
       ip: this.getClientIp(req),
       headers: this.filterHeaders(req.headers),
       query: this.sanitize(req.query),

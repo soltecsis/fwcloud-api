@@ -52,7 +52,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       call: 'PUT /api/example',
       data: JSON.stringify({ sample: true }),
       description: 'audit log entry',
-      timestamp: new Date('2024-01-01T00:00:00Z'),
+      startedAt: new Date('2024-01-01T00:00:00Z'),
       sessionId: null,
       userId: null,
       userName: null,
@@ -100,16 +100,16 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('restricts non administrative users to their own session or user entries', async () => {
       const ownedBySession = await createAuditLog({
-        timestamp: new Date('2024-01-03T12:00:00Z'),
+        startedAt: new Date('2024-01-03T12:00:00Z'),
         sessionId: 88,
       });
       const ownedByUser = await createAuditLog({
-        timestamp: new Date('2024-01-02T12:00:00Z'),
+        startedAt: new Date('2024-01-02T12:00:00Z'),
         userId: 501,
         userName: 'current-user',
       });
       await createAuditLog({
-        timestamp: new Date('2024-01-04T12:00:00Z'),
+        startedAt: new Date('2024-01-04T12:00:00Z'),
         sessionId: 99,
         userId: 999,
         userName: 'foreign',
@@ -134,7 +134,7 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('applies date range and textual filters for administrative users', async () => {
       await createAuditLog({
-        timestamp: new Date('2024-01-01T08:00:00Z'),
+        startedAt: new Date('2024-01-01T08:00:00Z'),
         userName: 'Alpha Tester',
         fwCloudName: 'North Cloud',
         firewallName: 'North Firewall',
@@ -142,7 +142,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       });
 
       const expected = await createAuditLog({
-        timestamp: new Date('2024-01-05T10:00:00Z'),
+        startedAt: new Date('2024-01-05T10:00:00Z'),
         userName: 'Beta Operator',
         fwCloudName: 'Production Stack',
         firewallName: 'Prod Shield',
@@ -150,7 +150,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       });
 
       await createAuditLog({
-        timestamp: new Date('2024-01-09T20:00:00Z'),
+        startedAt: new Date('2024-01-09T20:00:00Z'),
         userName: 'Gamma Engineer',
         fwCloudName: 'Staging Stack',
         firewallName: 'Stage Shield',
@@ -159,8 +159,8 @@ describe(describeName('AuditLogService unit suite'), () => {
 
       const { auditLogs, total } = await service.listAuditLogs({
         isAdmin: true,
-        timestampFrom: new Date('2024-01-03T00:00:00Z'),
-        timestampTo: new Date('2024-01-07T00:00:00Z'),
+        startedAtFrom: new Date('2024-01-03T00:00:00Z'),
+        startedAtTo: new Date('2024-01-07T00:00:00Z'),
         userName: 'beta',
         fwCloudName: 'production',
         firewallName: 'prod',
@@ -174,17 +174,17 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('filters administrative requests by source IP address', async () => {
       await createAuditLog({
-        timestamp: new Date('2024-01-05T10:00:00Z'),
+        startedAt: new Date('2024-01-05T10:00:00Z'),
         sourceIp: '198.51.100.10',
       });
 
       const expected = await createAuditLog({
-        timestamp: new Date('2024-01-06T10:00:00Z'),
+        startedAt: new Date('2024-01-06T10:00:00Z'),
         sourceIp: '198.51.100.20',
       });
 
       await createAuditLog({
-        timestamp: new Date('2024-01-07T10:00:00Z'),
+        startedAt: new Date('2024-01-07T10:00:00Z'),
         sourceIp: '203.0.113.30',
       });
 
@@ -200,18 +200,22 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('injects cursor guard clauses when paginating', async () => {
       const captured: unknown[] = [];
-      const getManyAndCountStub = sinon.stub().resolves([[], 0]);
+      const getCountStub = sinon.stub().resolves(0);
+      const getRawManyStub = sinon.stub().resolves([]);
 
       const fakeQueryBuilder = {
+        clone: sinon.stub().returnsThis(),
+        select: sinon.stub().returnsThis(),
         orderBy: sinon.stub().returnsThis(),
         addOrderBy: sinon.stub().returnsThis(),
         andWhere: sinon.stub().callsFake((condition: unknown) => {
           captured.push(condition);
           return fakeQueryBuilder;
         }),
-        skip: sinon.stub().returnsThis(),
-        take: sinon.stub().returnsThis(),
-        getManyAndCount: getManyAndCountStub,
+        limit: sinon.stub().returnsThis(),
+        offset: sinon.stub().returnsThis(),
+        getCount: getCountStub,
+        getRawMany: getRawManyStub,
       } as unknown as SelectQueryBuilder<AuditLog>;
 
       sinon
@@ -221,7 +225,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       await service.listAuditLogs({
         isAdmin: true,
         cursor: {
-          timestamp: new Date('2024-01-10T12:00:00Z'),
+          startedAt: new Date('2024-01-10T12:00:00Z'),
           id: 321,
         },
       });
@@ -232,18 +236,19 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(guardClause).to.not.be.undefined;
 
       const clauseSource = guardClause?.whereFactory?.toString() ?? '';
-      expect(clauseSource).to.contain('auditLog.timestamp < :cursorTimestamp');
+      expect(clauseSource).to.contain('cursorStartedAt');
       expect(clauseSource).to.contain('auditLog.id < :cursorId');
-      expect(getManyAndCountStub.calledOnce).to.be.true;
+      expect(getCountStub.calledOnce).to.be.true;
+      expect(getRawManyStub.calledOnce).to.be.true;
     });
 
     it('filters administrative requests by an explicit session identifier', async () => {
       await createAuditLog({
-        timestamp: new Date('2024-01-02T08:00:00Z'),
+        startedAt: new Date('2024-01-02T08:00:00Z'),
         sessionId: 11,
       });
       const expected = await createAuditLog({
-        timestamp: new Date('2024-01-03T08:00:00Z'),
+        startedAt: new Date('2024-01-03T08:00:00Z'),
         sessionId: 22,
       });
 
@@ -353,6 +358,7 @@ describe(describeName('AuditLogService unit suite'), () => {
             api_key: 'should-be-hidden',
           },
           durationMs: 1250,
+          finishedAt: '2024-01-01T00:00:01.250Z',
         },
       });
 
@@ -367,6 +373,8 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(payload.password).to.equal('[REDACTED]');
       expect(payload.nested.api_key).to.equal('[REDACTED]');
       expect(persisted.durationMs).to.equal(1250);
+      expect(persisted.finishedAt).to.not.be.null;
+      expect(Number.isNaN(new Date(persisted.finishedAt as Date).getTime())).to.be.false;
     });
 
     it('hydrates missing duration values from stored audit payloads while listing', async () => {
@@ -383,6 +391,23 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(total).to.be.greaterThan(0);
       const hydrated = auditLogs.find((entry) => entry.id === expected.id);
       expect(hydrated?.durationMs).to.equal(3456);
+    });
+
+    it('hydrates missing finished timestamps from stored audit payloads while listing', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({ payload: true, finishedAt: '2024-01-01T00:00:05.000Z' }),
+        finishedAt: null,
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        take: 10,
+      });
+
+      expect(total).to.be.greaterThan(0);
+      const hydrated = auditLogs.find((entry) => entry.id === expected.id);
+      expect(hydrated?.finishedAt).to.not.be.null;
+      expect(Number.isNaN(new Date(hydrated?.finishedAt as Date).getTime())).to.be.false;
     });
 
     it('derives entity names and identifiers from firewall references', async () => {
