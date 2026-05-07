@@ -141,16 +141,11 @@ export class PolicyScript {
     if (this.useOptimizedIptablesRestore() && !options.plain) {
       let optimized = '';
       let optimizedBuffer = '';
-      let optimizedRuleLabels: string[] = [];
 
       const flushOptimizedBuffer = () => {
         if (!optimizedBuffer) return;
         optimized += this.renderOptimizedIptablesCommands(optimizedBuffer);
-        if (optimizedRuleLabels.length > 0) {
-          optimized += `${optimizedRuleLabels.join('\n')}\n`;
-        }
         optimizedBuffer = '';
-        optimizedRuleLabels = [];
       };
 
       for (let i = 0; i < rulesCompiled.length; i++) {
@@ -164,9 +159,9 @@ export class PolicyScript {
           continue;
         }
 
+        optimizedBuffer += `# Rule ${i + 1} (ID: ${rule.id})\n`;
         optimizedBuffer += rule.cs;
         if (!rule.cs.endsWith('\n')) optimizedBuffer += '\n';
-        optimizedRuleLabels.push(`echo "Rule ${i + 1} (ID: ${rule.id})"`);
       }
 
       flushOptimizedBuffer();
@@ -475,6 +470,7 @@ export class PolicyScript {
   private renderOptimizedIptablesCommands(cs: string): string {
     let optimized = '';
     let restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null = null;
+    let pendingRuleLabel: string | null = null;
 
     const flushRestoreBuffer = () => {
       optimized += this.flushIptablesRestoreBuffer(restoreBuffer);
@@ -482,8 +478,15 @@ export class PolicyScript {
     };
 
     for (const rawLine of cs.split('\n')) {
+      const trimmedLine = rawLine.trim();
+
+      if (trimmedLine.match(/^# Rule \d+ \(ID: \d+\)$/)) {
+        pendingRuleLabel = trimmedLine;
+        continue;
+      }
+
       // Skip shell comment lines completely - they are handled separately in dumpCompilation
-      if (rawLine.trim().startsWith('#')) {
+      if (trimmedLine.startsWith('#')) {
         continue;
       }
 
@@ -491,6 +494,10 @@ export class PolicyScript {
 
       if (!parsedLine) {
         flushRestoreBuffer();
+        if (pendingRuleLabel) {
+          optimized += `${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
         optimized += rawLine.length > 0 ? `${rawLine}\n` : '\n';
         continue;
       }
@@ -508,10 +515,19 @@ export class PolicyScript {
         };
       }
 
+      if (pendingRuleLabel) {
+        restoreBuffer.lines.push(pendingRuleLabel);
+        pendingRuleLabel = null;
+      }
+
       restoreBuffer.lines.push(parsedLine.restoreLine);
     }
 
     flushRestoreBuffer();
+
+    if (pendingRuleLabel) {
+      optimized += `${pendingRuleLabel}\n`;
+    }
 
     return optimized;
   }
