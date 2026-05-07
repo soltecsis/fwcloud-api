@@ -515,6 +515,27 @@ const buildClient2FASecretFile = (secret) => {
 	].join('\n');
 };
 
+const installOpenVPNClientCCD = async (
+	dbCon,
+	fwcloudId,
+	clientOpenvpnId,
+	parentOpenvpnId,
+	crt,
+	communication,
+	channel
+) => {
+	const openvpnOpt = await OpenVPN.getOptData(dbCon, parentOpenvpnId, 'client-config-dir');
+	if (!openvpnOpt) {
+		throw fwcError.VPN_NOT_FOUND_CFGDIR;
+	}
+
+	const cfgDump = await OpenVPN.dumpCfg(dbCon, fwcloudId, clientOpenvpnId);
+	await communication.installOpenVPNClientConfigs(openvpnOpt.arg, [{
+		content: cfgDump.ccd,
+		name: crt.cn
+	}], channel);
+};
+
 /**
  * Create a new OpenVPN configuration in firewall.
  */
@@ -1407,6 +1428,16 @@ router.put('/2fa/client', async (req, res, next) => {
 			const preparedTargets = await prepareOpenVPN2FATargets(req, targetFirewalls, channel, clusterName);
 			for (const { firewall: targetFirewall, communication } of preparedTargets) {
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN CCD for client '${crt.cn}' on '${targetFirewall.name}'`);
+				await installOpenVPNClientCCD(
+					req.dbCon,
+					req.body.fwcloud,
+					req.body.openvpn,
+					req.openvpn.openvpn,
+					crt,
+					communication,
+					channel
+				);
 				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA secret for client '${crt.cn}' on '${targetFirewall.name}'`);
 				await communication.installOpenVPNServerConfigs(getOpenVPN2FASecretDir(serverCN), [{
 					name: getOpenVPN2FASecretFilename(serverCN, crt.cn),

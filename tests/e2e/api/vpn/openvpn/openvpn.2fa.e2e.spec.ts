@@ -411,7 +411,17 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       await manager.getRepository(Firewall).update(fwcProduct.firewall.id, {
         install_communication: 'ssh' as any,
       });
+      await manager.getRepository(OpenVPNOption).save(
+        manager.getRepository(OpenVPNOption).create({
+          openVPNId: fwcProduct.openvpnServer.id,
+          name: 'client-config-dir',
+          arg: '/etc/openvpn/ccd',
+          order: 1,
+          scope: 1,
+        }),
+      );
 
+      const installOpenVPNClientConfigs = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
       const ping = sinon.stub().resolves();
@@ -421,10 +431,12 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       );
 
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        installOpenVPNClientConfigs,
         installOpenVPNServerConfigs,
         uninstallOpenVPNConfigs,
         ping,
       } as any);
+      sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: '', ccd: 'client_ccd' } as any);
 
       // Stub encryption to return the text as is for easier assertions
       sinon.stub(PgpHelper.prototype, 'encrypt').callsFake(async (text: string) => text);
@@ -452,6 +464,14 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
           );
           expect(refreshed.tfaEnabled).to.equal(1);
           expect(options).to.deep.equal([{ name: 'auth-user-pass', arg: clientCN }]);
+          expect(installOpenVPNClientConfigs.calledOnce).to.equal(true);
+          expect(installOpenVPNClientConfigs.firstCall.args[0]).to.equal('/etc/openvpn/ccd');
+          expect(installOpenVPNClientConfigs.firstCall.args[1]).to.deep.equal([
+            {
+              name: clientCN,
+              content: 'client_ccd',
+            },
+          ]);
           expect(installOpenVPNServerConfigs.called).to.equal(true);
           expect(installOpenVPNServerConfigs.firstCall.args[0]).to.equal(
             `/etc/openvpn/google-authenticator/${serverCN}`,
