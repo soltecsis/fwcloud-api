@@ -516,6 +516,9 @@ export class PolicyScript {
       }
 
       if (pendingRuleLabel) {
+        if (restoreBuffer.lines.length > 0) {
+          restoreBuffer.lines.push('');
+        }
         restoreBuffer.lines.push(pendingRuleLabel);
         pendingRuleLabel = null;
       }
