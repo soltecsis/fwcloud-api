@@ -82,6 +82,8 @@ describe(describeName('AuditEventService unit suite'), () => {
     expect(payload).to.have.property('finishedAt');
     expect(payload.durationMs).to.be.a('number');
     expect(persisted.durationMs).to.equal(payload.durationMs);
+    expect(persisted.startedAt).to.not.be.null;
+    expect(persisted.finishedAt).to.not.be.null;
     expect(Number.isNaN(new Date(payload.startedAt).getTime())).to.be.false;
     expect(Number.isNaN(new Date(payload.finishedAt).getTime())).to.be.false;
   });

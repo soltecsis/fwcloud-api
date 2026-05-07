@@ -67,7 +67,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       call: 'PUT /api/example',
       data: JSON.stringify({ payload: true }),
       description: 'audit log entry',
-      timestamp: new Date('2024-01-01T00:00:00Z'),
+      startedAt: new Date('2024-01-01T00:00:00Z'),
       userId: null,
       userName: null,
       sessionId: null,
@@ -106,7 +106,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     userOwnedLog = await persistAuditLog({
       call: 'PUT /api/user-owned',
-      timestamp: new Date('2024-01-02T12:00:00Z'),
+      startedAt: new Date('2024-01-02T12:00:00Z'),
       userId: regularUser.id,
       userName: regularUser.username,
       fwCloudName: 'User Cloud',
@@ -117,7 +117,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     sessionOwnedLog = await persistAuditLog({
       call: 'PUT /api/session-owned',
-      timestamp: new Date('2024-01-03T12:00:00Z'),
+      startedAt: new Date('2024-01-03T12:00:00Z'),
       sessionId: regularSessionNumeric,
       userId: regularUser.id,
       userName: null,
@@ -131,7 +131,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       call: 'PUT /api/admin-owned',
       data: JSON.stringify({ payload: true, durationMs: 9876 }),
       durationMs: null,
-      timestamp: new Date('2024-01-04T12:00:00Z'),
+      startedAt: new Date('2024-01-04T12:00:00Z'),
       userId: adminUser.id,
       userName: adminUser.username,
       fwCloudName: 'Production Cloud',
@@ -142,7 +142,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     foreignLog = await persistAuditLog({
       call: 'PUT /api/foreign',
-      timestamp: new Date('2024-01-01T12:00:00Z'),
+      startedAt: new Date('2024-01-01T12:00:00Z'),
       userId: 9999,
       userName: 'foreign-user',
       fwCloudName: 'Foreign Cloud',
@@ -177,8 +177,8 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
   it('allows administrators to filter by text fields and time windows', async () => {
     await listAuditLogs(adminSessionToken, {
-      ts_from: '2024-01-04T00:00:00.000Z',
-      ts_to: '2024-01-05T00:00:00.000Z',
+      started_at_from: '2024-01-04T00:00:00.000Z',
+      started_at_to: '2024-01-05T00:00:00.000Z',
       user_name: 'admin',
       fwcloud_name: 'production',
       firewall_name: 'production',
@@ -253,7 +253,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
     ]);
 
     const pivot = baseline.auditLogs[baseline.auditLogs.length - 2];
-    const cursor = `${pivot.timestamp}:${pivot.id}`;
+    const cursor = `${pivot.startedAt}:${pivot.id}`;
 
     await listAuditLogs(adminSessionToken, { cursor })
       .expect(200)
