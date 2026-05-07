@@ -7,12 +7,14 @@ test -z "$ACTION" && ACTION="start"
 
 case "$ACTION" in
   start)
+    POLICY_LOAD_START_TIME_MS=`policy_load_timestamp_ms`
     greeting_msg
     policy_apply
     routing_apply
     if [ $DOCKER_COMPATIBILITY ]; then
       check_docker_iptables_disabled
     fi
+    policy_load_elapsed_msg
     ;;
 
   stop)
@@ -31,8 +33,10 @@ case "$ACTION" in
     ;;
 
   policy)
+    POLICY_LOAD_START_TIME_MS=`policy_load_timestamp_ms`
     greeting_msg
     policy_apply
+    policy_load_elapsed_msg
     ;;
 
   routing)
