@@ -138,6 +138,42 @@ export class PolicyScript {
 
     const dangerous: Array<RuleCompilationResult> = [];
 
+    if (this.useOptimizedIptablesRestore() && !options.plain) {
+      let optimized = '';
+      let optimizedBuffer = '';
+      let optimizedRuleLabels: string[] = [];
+
+      const flushOptimizedBuffer = () => {
+        if (!optimizedBuffer) return;
+        optimized += this.renderOptimizedIptablesCommands(optimizedBuffer);
+        if (optimizedRuleLabels.length > 0) {
+          optimized += `${optimizedRuleLabels.join('\n')}\n`;
+        }
+        optimizedBuffer = '';
+        optimizedRuleLabels = [];
+      };
+
+      for (let i = 0; i < rulesCompiled.length; i++) {
+        const rule = rulesCompiled[i];
+        if (rule.dangerousRuleData) dangerous.push(rule);
+        if (!rule.active) continue;
+
+        if (this.isOptimizedScriptRule(rule.cs)) {
+          flushOptimizedBuffer();
+          optimized += rule.cs.endsWith('\n') ? rule.cs : `${rule.cs}\n`;
+          continue;
+        }
+
+        optimizedBuffer += rule.cs;
+        if (!rule.cs.endsWith('\n')) optimizedBuffer += '\n';
+        optimizedRuleLabels.push(`echo "Rule ${i + 1} (ID: ${rule.id})"`);
+      }
+
+      flushOptimizedBuffer();
+      this.stream.write(optimized);
+      return dangerous;
+    }
+
     let cs = '';
     for (let i = 0; i < rulesCompiled.length; i++) {
       const rule = rulesCompiled[i];
@@ -478,6 +514,10 @@ export class PolicyScript {
     flushRestoreBuffer();
 
     return optimized;
+  }
+
+  private isOptimizedScriptRule(cs: string): boolean {
+    return cs.includes('# Hook script rule code:');
   }
 
   public dump(): Promise<Array<RuleCompilationResult>> {

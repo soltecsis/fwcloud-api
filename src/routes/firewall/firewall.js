@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -106,6 +106,17 @@ const resolveSourceIp = (req) => {
 	return req.ip ?? null;
 };
 
+const resolveAuditLogTiming = (res) => {
+	const now = Date.now();
+	const startedAtMs = Number(res?.locals?.__auditLogStartedAt);
+	const startedAt = Number.isFinite(startedAtMs) ? new Date(startedAtMs) : null;
+	const durationMs = startedAt
+		? Math.max(0, now - startedAt.getTime())
+		: null;
+	const finishedAt = durationMs === null ? new Date(now) : new Date(startedAt.getTime() + durationMs);
+	return { durationMs, finishedAt, startedAt };
+};
+
 const cacheFirewallAuditContext = async (req, res) => {
 	if (!res?.locals) return;
 
@@ -122,17 +133,31 @@ const cacheFirewallAuditContext = async (req, res) => {
 const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, statusCode) => {
 	try {
 		const dataSource = db.getSource();
+		const repository = dataSource.manager.getRepository(AuditLog);
 		const locals = res?.locals ?? {};
 		const firewallName = locals.__auditLogFirewallName ?? null;
 		const fwCloudName = locals.__auditLogFwCloudName ?? null;
 		const clusterId = locals.__auditLogClusterId ?? null;
+		const auditLogId = AuditLogHelper.getNumeric(locals.__auditLogId);
+		const timing = resolveAuditLogTiming(res);
 
-		const auditLog = new AuditLog();
+		const auditLog = auditLogId
+			? (await repository.findOne({ where: { id: auditLogId } })) ?? new AuditLog()
+			: new AuditLog();
+
+		if (!auditLog.startedAt && timing.startedAt) {
+			auditLog.startedAt = timing.startedAt;
+		}
+
 		auditLog.call = `PUT ${req.originalUrl}`;
+		auditLog.durationMs = timing.durationMs;
+		auditLog.finishedAt = timing.finishedAt;
 		auditLog.data = JSON.stringify({
 			method: req.method,
 			url: req.originalUrl,
 			statusCode,
+			durationMs: timing.durationMs,
+			finishedAt: timing.finishedAt.toISOString(),
 			params: req.params,
 			query: req.query,
 			body: req.body
@@ -150,7 +175,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 		auditLog.clusterName = null;
 		auditLog.description = buildFirewallDeleteDescription(statusCode);
 
-		await dataSource.manager.getRepository(AuditLog).save(auditLog);
+		await repository.save(auditLog);
 
 		if (res?.locals) {
 			res.locals.__auditLogHandled = true;
@@ -212,7 +237,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
  *   "msg": "Tree node access not allowed"
  * }
  */
-router.post('/', async(req, res) => {
+router.post('/', async (req, res) => {
 	var firewallData = {
 		id: null,
 		cluster: req.body.cluster,
@@ -226,7 +251,7 @@ router.post('/', async(req, res) => {
 		save_user_pass: req.body.save_user_pass,
 		install_interface: req.body.install_interface,
 		install_ipobj: req.body.install_ipobj,
-		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey): null,
+		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey) : null,
 		install_protocol: req.body.install_protocol,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
@@ -237,24 +262,24 @@ router.post('/', async(req, res) => {
 
 	try {
 		// Check limits
-		if(!req.body.cluster) {
+		if (!req.body.cluster) {
 			const max_firewalls = app().config.get('limits').firewalls;
 			// Disallow creating a new firewall when the current amount
 			// is already at or above the configured limit.
-			if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(firewallData.fwcloud)) >= max_firewalls) {
+			if (max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(firewallData.fwcloud)) >= max_firewalls) {
 				throw fwcError.LIMIT_FIREWALLS
-			}			
+			}
 		} else {
 			const max_cluster_nodes = app().config.get('limits').nodes;
 			// Disallow adding a node when the current amount is already
 			// at or above the configured limit for cluster nodes.
-			if(max_cluster_nodes > 0 && (await Firewall.getCountNodesInCluster(firewallData.fwcloud, firewallData.cluster)) >= max_cluster_nodes) {
+			if (max_cluster_nodes > 0 && (await Firewall.getCountNodesInCluster(firewallData.fwcloud, firewallData.cluster)) >= max_cluster_nodes) {
 				throw fwcError.LIMIT_FIREWALLS
-			}			
+			}
 		}
-		
+
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
+		if (!req.body.cluster && req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		firewallData = await Firewall.checkBodyFirewall(firewallData, true);
@@ -286,7 +311,7 @@ router.post('/', async(req, res) => {
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
 
 		res.status(200).json({ "insertId": newFirewallId, "loData": loData });
-	} catch (error) { 
+	} catch (error) {
 		logger().error('Error creating firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -345,8 +370,8 @@ router.put('/', async (req, res) => {
 		name: req.body.name,
 		comment: req.body.comment,
 		fwcloud: req.body.fwcloud, //working cloud
-		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent, 
-		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey): null,
+		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent,
+		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey) : null,
 		install_protocol: req.body.install_protocol,
 		install_user: req.body.install_user,
 		install_pass: req.body.install_pass,
@@ -382,11 +407,11 @@ router.put('/', async (req, res) => {
 
 		//////////////////////////////////
 		//UPDATE FIREWALL NODE STRUCTURE                                    
-		await	Tree.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
+		await Tree.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
 
 		res.status(204).end();
-	} catch(error) {
-		logger().error('Error updating firewall: ' + JSON.stringify(error)); 
+	} catch (error) {
+		logger().error('Error updating firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
 });
@@ -450,7 +475,7 @@ router.put('/get', async (req, res) => {
 			if (data.install_user === null) data.install_user = '';
 			if (data.install_pass === null) data.install_pass = '';
 
-			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+			const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: "" });
 			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
 			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
@@ -460,7 +485,7 @@ router.put('/get', async (req, res) => {
 		}
 		else
 			res.status(204).end();
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error getting firewall data: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -551,8 +576,8 @@ router.put('/cloud/get', async (req, res) => {
 		}
 		else
 			res.status(204).end();
-	} catch(error) {
-		logger().error('Error getting cloud firewalls: ' + JSON.stringify(error)); 
+	} catch (error) {
+		logger().error('Error getting cloud firewalls: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
 });
@@ -643,15 +668,15 @@ router.put('/cluster/get', (req, res) => {
 			logger().error('Error getting cluster firewalls: ' + JSON.stringify(error));
 			return res.status(400).json(error);
 		}
-		
+
 		if (data && data.length > 0) {
 			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
-			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+			const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: "" });
 
-			for (let i=0; i<data.length; i++) {
+			for (let i = 0; i < data.length; i++) {
 				if (data[i].install_user === null) data[i].install_user = '';
 				if (data[i].install_pass === null) data[i].install_pass = '';
-	
+
 				if (data[i].install_user) data[i].install_user = await pgp.encrypt(data[i].install_user);
 				if (data[i].install_pass) data[i].install_pass = await pgp.encrypt(data[i].install_pass);
 			}
@@ -703,14 +728,14 @@ router.put('/cluster/get', (req, res) => {
  */
 router.put('/clone', async (req, res) => {
 	try {
-		if(!req.body.cluster) {
+		if (!req.body.cluster) {
 			const max_firewalls = app().config.get('limits').firewalls;
-			if(max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(req.body.fwcloud)) > max_firewalls) {
+			if (max_firewalls > 0 && (await Firewall.getCountFirewallsInFWCloud(req.body.fwcloud)) > max_firewalls) {
 				throw fwcError.LIMIT_FIREWALLS
-			}			
+			}
 		}
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
+		if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		//Save firewall data into objet    
@@ -732,12 +757,12 @@ router.put('/clone', async (req, res) => {
 
 		await DHCPRule.cloneDHCP(req.body.firewall, idNewFirewall);
 		await KeepalivedRule.cloneKeepalived(req.body.firewall, idNewFirewall);
-		
+
 		const firewallService = await app().getService(FirewallService.name);
 		await firewallService.clone(req.body.firewall, idNewFirewall, dataI);
-		
+
 		res.status(200).json(data);
-	} catch(error) { 
+	} catch (error) {
 		logger().error('Error cloning firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -767,7 +792,7 @@ router.put('/accesslock/get', async (req, res) => {
 			res.status(200).json(resp);
 		}
 		else res.status(204).end();
-	} catch(error) {
+	} catch (error) {
 		logger().error('Error locked firewall status: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
@@ -810,7 +835,7 @@ router.put("/restricted",
  */
 router.put('/del',
 	restrictedCheck.firewall,
-	async(req, res) => {
+	async (req, res) => {
 		try {
 			await cacheFirewallAuditContext(req, res);
 
@@ -831,27 +856,27 @@ router.put('/del',
 
 //DELETE FIREWALL FROM CLUSTER
 router.put('/delfromcluster',
-restrictedCheck.firewallApplyTo,
-async (req, res) => {
-	//CHECK FIREWALL DATA TO DELETE
-	try {
-		await cacheFirewallAuditContext(req, res);
+	restrictedCheck.firewallApplyTo,
+	async (req, res) => {
+		//CHECK FIREWALL DATA TO DELETE
+		try {
+			await cacheFirewallAuditContext(req, res);
 
-		const firewallService = await app().getService(FirewallService.name);
-		const data = await firewallService.deleteFirewallFromCluster(req.body.cluster, req.body.firewall, req.body.fwcloud, req.session.user_id);
-		const statusCode = data && data.result ? 200 : 204;
-		res.status(statusCode);
-		await persistFirewallDeleteAuditLog(req, res, req.body.firewall, req.body.fwcloud, statusCode);
-		if (data && data.result) {
-			res.json(data);
-		} else {
-			res.end();
+			const firewallService = await app().getService(FirewallService.name);
+			const data = await firewallService.deleteFirewallFromCluster(req.body.cluster, req.body.firewall, req.body.fwcloud, req.session.user_id);
+			const statusCode = data && data.result ? 200 : 204;
+			res.status(statusCode);
+			await persistFirewallDeleteAuditLog(req, res, req.body.firewall, req.body.fwcloud, statusCode);
+			if (data && data.result) {
+				res.json(data);
+			} else {
+				res.end();
+			}
+		} catch (error) {
+			logger().error('Error removing cluster firewall: ' + JSON.stringify(error));
+			res.status(400).json(error);
 		}
-	} catch(error) {
-		logger().error('Error removing cluster firewall: ' + JSON.stringify(error)); 
-		res.status(400).json(error);
-	}
-});
+	});
 
 /**
  * Get firewall export
@@ -861,7 +886,7 @@ router.put('/export/get', async (req, res) => {
 	try {
 		const data = FirewallExport.exportFirewall(req.body.firewall);
 		res.status(200).json(data);
-	} catch(error) { 
+	} catch (error) {
 		logger().error('Error exporting firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);
 	}
