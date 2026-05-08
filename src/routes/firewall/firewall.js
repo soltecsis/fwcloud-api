@@ -113,8 +113,7 @@ const resolveAuditLogTiming = (res) => {
 	const durationMs = startedAt
 		? Math.max(0, now - startedAt.getTime())
 		: null;
-	const finishedAt = durationMs === null ? new Date(now) : new Date(startedAt.getTime() + durationMs);
-	return { durationMs, finishedAt, startedAt };
+	return { durationMs, startedAt };
 };
 
 const cacheFirewallAuditContext = async (req, res) => {
@@ -151,13 +150,11 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 
 		auditLog.call = `PUT ${req.originalUrl}`;
 		auditLog.durationMs = timing.durationMs;
-		auditLog.finishedAt = timing.finishedAt;
 		auditLog.data = JSON.stringify({
 			method: req.method,
 			url: req.originalUrl,
 			statusCode,
 			durationMs: timing.durationMs,
-			finishedAt: timing.finishedAt.toISOString(),
 			params: req.params,
 			query: req.query,
 			body: req.body

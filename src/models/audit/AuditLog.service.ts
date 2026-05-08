@@ -97,16 +97,14 @@ export type AuditLogMutationInput = {
   clusterId?: number | null;
   clusterName?: string | null;
   startedAt?: Date | string | null;
-  finishedAt?: Date | string | null;
 };
 
 const MAX_CALL_LENGTH = 255;
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_SOURCE_IP_LENGTH = 45;
-const STARTED_AT_COLUMN = '`auditLog`.`started_at`';
+const STARTED_AT_COLUMN = '`auditLog`.`ts`';
 const quoteAuditLogDateForSql = (date: Date): string => `'${formatAuditLogDateForDb(date)}'`;
 const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
-const FINISHED_AT_PATTERN = /"(?:finishedAt|finished_at)"\s*:\s*"([^"]+)"/;
 
 const SENSITIVE_KEY_PATTERNS = [
   'password',
@@ -294,9 +292,6 @@ export class AuditLogService extends Service {
     for (const auditLog of auditLogs) {
       if (auditLog.durationMs === null || auditLog.durationMs === undefined) {
         auditLog.durationMs = this.extractDurationMsFromSerializedData(auditLog.data);
-      }
-      if (auditLog.finishedAt === null || auditLog.finishedAt === undefined) {
-        auditLog.finishedAt = this.extractFinishedAtFromSerializedData(auditLog.data);
       }
     }
 
@@ -621,8 +616,6 @@ export class AuditLogService extends Service {
       this.normalizeAuditDate(input.startedAt) ??
       this.extractStartedAtFromData(input.data) ??
       new Date();
-    auditLog.finishedAt =
-      this.normalizeAuditDate(input.finishedAt) ?? this.extractFinishedAtFromData(input.data);
 
     auditLog.userId = AuditLogHelper.getNumeric(input.userId);
     auditLog.userName = this.normalizeLabel(input.userName);
@@ -701,21 +694,7 @@ export class AuditLogService extends Service {
     }
 
     const record = data as Record<string, unknown>;
-    return this.normalizeAuditDate(record.startedAt ?? record.started_at);
-  }
-
-  protected extractFinishedAtFromData(data: unknown): Date | null {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      return null;
-    }
-
-    const record = data as Record<string, unknown>;
-    return this.normalizeAuditDate(record.finishedAt ?? record.finished_at);
-  }
-
-  protected extractFinishedAtFromSerializedData(data: string | null | undefined): Date | null {
-    const match = typeof data === 'string' ? FINISHED_AT_PATTERN.exec(data) : null;
-    return match ? this.normalizeAuditDate(match[1]) : null;
+    return this.normalizeAuditDate(record.startedAt ?? record.started_at ?? record.ts);
   }
 
   protected normalizeDurationMs(value: unknown): number | null {

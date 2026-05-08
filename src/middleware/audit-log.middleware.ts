@@ -311,8 +311,7 @@ export class AuditLogMiddleware extends Middleware {
 
       auditLog.call = this.buildCall(req);
       auditLog.durationMs = null;
-      auditLog.finishedAt = null;
-      auditLog.data = this.buildPayload(req, res, null, instrumentationContext, null);
+      auditLog.data = this.buildPayload(req, res, null, instrumentationContext);
 
       await this.populateRequestContext(auditLog, req, res);
 
@@ -347,7 +346,6 @@ export class AuditLogMiddleware extends Middleware {
       const instrumentationContext = this.extractAuditContext(req);
       const durationMs = Math.max(0, Date.now() - start);
       const startedAt = new Date(start);
-      const finishedAt = new Date(start + durationMs);
       let auditLog =
         initialAuditLogId !== null
           ? await repository.findOne({ where: { id: initialAuditLogId } })
@@ -360,8 +358,7 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.startedAt = startedAt;
       auditLog.call = this.buildCall(req);
       auditLog.durationMs = durationMs;
-      auditLog.finishedAt = finishedAt;
-      auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext, finishedAt);
+      auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext);
 
       await this.populateRequestContext(auditLog, req, res, true);
 
@@ -1137,14 +1134,12 @@ export class AuditLogMiddleware extends Middleware {
     res: Response,
     durationMs: number | null,
     instrumentation: Record<string, string | number> = {},
-    finishedAt: Date | null = null,
   ): string {
     const payload = {
       method: req.method,
       url: req.originalUrl,
       statusCode: durationMs === null ? null : res.statusCode,
       durationMs,
-      finishedAt: finishedAt ? finishedAt.toISOString() : null,
       ip: this.getClientIp(req),
       headers: this.filterHeaders(req.headers),
       query: this.sanitize(req.query),

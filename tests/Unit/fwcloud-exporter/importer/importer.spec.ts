@@ -41,7 +41,6 @@ type ImportAuditPayload = {
   entity: string;
   affectedCount: number;
   startedAt: string;
-  finishedAt: string;
   status: 'success' | 'failed';
   error: string | null;
   details?: {
