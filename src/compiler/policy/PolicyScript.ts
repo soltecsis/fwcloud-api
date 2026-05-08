@@ -155,7 +155,8 @@ export class PolicyScript {
 
         if (this.isOptimizedScriptRule(rule.cs)) {
           flushOptimizedBuffer();
-          optimized += rule.cs.endsWith('\n') ? rule.cs : `${rule.cs}\n`;
+          optimized = optimized.replace(/\n*$/, '\n\n');
+          optimized += this.formatOptimizedScriptRule(`# Rule ${i + 1} (ID: ${rule.id})`, rule.cs);
           continue;
         }
 
@@ -165,6 +166,7 @@ export class PolicyScript {
       }
 
       flushOptimizedBuffer();
+      optimized = optimized.replace(/\n+$/, '\n');
       this.stream.write(optimized);
       return dangerous;
     }
@@ -467,6 +469,12 @@ export class PolicyScript {
     );
   }
 
+  private formatOptimizedScriptRule(ruleLabel: string, cs: string): string {
+    const formattedRule = cs.endsWith('\n') ? cs : `${cs}\n`;
+
+    return `${ruleLabel}\n${formattedRule}\n`;
+  }
+
   private renderOptimizedIptablesCommands(cs: string): string {
     let optimized = '';
     let restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null = null;
@@ -482,6 +490,23 @@ export class PolicyScript {
 
       if (trimmedLine.match(/^# Rule \d+ \(ID: \d+\)$/)) {
         pendingRuleLabel = trimmedLine;
+        continue;
+      }
+
+      if (trimmedLine.startsWith('if [')) {
+        flushRestoreBuffer();
+        if (pendingRuleLabel) {
+          optimized = optimized.replace(/\n+$/, '\n');
+          optimized += `\n${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
+        optimized += `${rawLine}\n`;
+        continue;
+      }
+
+      if (trimmedLine === 'fi') {
+        flushRestoreBuffer();
+        optimized += `${rawLine}\n`;
         continue;
       }
 
