@@ -141,11 +141,16 @@ export class PolicyScript {
     if (this.useOptimizedIptablesRestore() && !options.plain) {
       let optimized = '';
       let optimizedBuffer = '';
+      let optimizedRuleLabels: string[] = [];
 
       const flushOptimizedBuffer = () => {
         if (!optimizedBuffer) return;
         optimized += this.renderOptimizedIptablesCommands(optimizedBuffer);
+        if (optimizedRuleLabels.length > 0) {
+          optimized += `${optimizedRuleLabels.join('\n')}\n`;
+        }
         optimizedBuffer = '';
+        optimizedRuleLabels = [];
       };
 
       for (let i = 0; i < rulesCompiled.length; i++) {
@@ -156,13 +161,15 @@ export class PolicyScript {
         if (this.isOptimizedScriptRule(rule.cs)) {
           flushOptimizedBuffer();
           optimized = optimized.replace(/\n*$/, '\n\n');
-          optimized += this.formatOptimizedScriptRule(`# Rule ${i + 1} (ID: ${rule.id})`, rule.cs);
+          optimized += `echo "Rule ${i + 1} (ID: ${rule.id})"\n`;
+          optimized += this.formatOptimizedScriptRule(rule.cs);
           continue;
         }
 
         optimizedBuffer += `# Rule ${i + 1} (ID: ${rule.id})\n`;
         optimizedBuffer += rule.cs;
         if (!rule.cs.endsWith('\n')) optimizedBuffer += '\n';
+        optimizedRuleLabels.push(`echo "Rule ${i + 1} (ID: ${rule.id})"`);
       }
 
       flushOptimizedBuffer();
@@ -469,10 +476,10 @@ export class PolicyScript {
     );
   }
 
-  private formatOptimizedScriptRule(ruleLabel: string, cs: string): string {
+  private formatOptimizedScriptRule(cs: string): string {
     const formattedRule = cs.endsWith('\n') ? cs : `${cs}\n`;
 
-    return `${ruleLabel}\n${formattedRule}\n`;
+    return `${formattedRule}\n`;
   }
 
   private renderOptimizedIptablesCommands(cs: string): string {
