@@ -191,12 +191,19 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
   describe('startScheduledTasks()', () => {
     let sandbox: sinon.SinonSandbox;
 
+    const setCronAuditConfig = (enabled: boolean): void => {
+      app.config.set('auditLogs.internal.enabled', enabled);
+      app.config.set('auditLogs.internal.cron.enabled', enabled);
+    };
+
     beforeEach(async () => {
       sandbox = sinon.createSandbox();
+      setCronAuditConfig(true);
       await db.getSource().manager.getRepository(AuditLog).createQueryBuilder().delete().execute();
     });
 
     afterEach(() => {
+      setCronAuditConfig(false);
       sandbox.restore();
     });
 
@@ -251,7 +258,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
       expect(payload.details.archivedCount).to.equal(4);
       expect(payload.details.deletedCount).to.equal(4);
       expect(Number.isNaN(new Date(payload.startedAt).getTime())).to.be.false;
-      expect(Number.isNaN(new Date(payload.finishedAt).getTime())).to.be.false;
+      expect(payload).to.not.have.property('finishedAt');
     });
 
     it('should persist a failed internal archive event when the cron throws an error', async () => {

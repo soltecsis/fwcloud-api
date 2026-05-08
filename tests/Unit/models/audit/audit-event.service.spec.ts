@@ -79,13 +79,11 @@ describe(describeName('AuditEventService unit suite'), () => {
     expect(payload.error).to.equal(null);
 
     expect(payload).to.have.property('startedAt');
-    expect(payload).to.have.property('finishedAt');
+    expect(payload).to.not.have.property('finishedAt');
     expect(payload.durationMs).to.be.a('number');
     expect(persisted.durationMs).to.equal(payload.durationMs);
     expect(persisted.startedAt).to.not.be.null;
-    expect(persisted.finishedAt).to.not.be.null;
     expect(Number.isNaN(new Date(payload.startedAt).getTime())).to.be.false;
-    expect(Number.isNaN(new Date(payload.finishedAt).getTime())).to.be.false;
   });
 
   it('emits a failed event and persists contextual identifiers', async () => {
