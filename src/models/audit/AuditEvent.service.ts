@@ -55,7 +55,6 @@ export type FinishAuditEventInput = {
   affectedCount: number;
   status: AuditEventStatus;
   error?: unknown;
-  finishedAt?: Date | string;
   context?: AuditEventContext;
   details?: Record<string, unknown>;
 };
@@ -138,7 +137,6 @@ export class AuditEventService extends Service {
         affectedCount: input.affectedCount,
         status: input.status,
         error: input.error,
-        finishedAt: input.finishedAt,
         context: this.mergeContexts(runningEvent.context, input.context),
         details: this.mergeDetails(runningEvent.details, input.details),
       });
@@ -160,9 +158,9 @@ export class AuditEventService extends Service {
     const operation = input.operation;
     const entity = this.normalizeEntity(input.entity);
     const startedAt = this.normalizeDate(input.startedAt, new Date());
-    const finishedAt = this.normalizeDate(input.finishedAt, new Date());
-    const normalizedFinishedAt = finishedAt >= startedAt ? finishedAt : startedAt;
-    const durationMs = Math.max(0, normalizedFinishedAt.getTime() - startedAt.getTime());
+    const endedAt = new Date();
+    const normalizedEndedAt = endedAt >= startedAt ? endedAt : startedAt;
+    const durationMs = Math.max(0, normalizedEndedAt.getTime() - startedAt.getTime());
     const status = input.status;
     const affectedCount = this.normalizeAffectedCount(input.affectedCount);
     const error =
@@ -176,7 +174,6 @@ export class AuditEventService extends Service {
       entity,
       affectedCount,
       startedAt: startedAt.toISOString(),
-      finishedAt: normalizedFinishedAt.toISOString(),
       durationMs,
       status,
       error,
@@ -198,7 +195,6 @@ export class AuditEventService extends Service {
       clusterId: context.clusterId ?? null,
       clusterName: context.clusterName ?? null,
       startedAt,
-      finishedAt: normalizedFinishedAt,
     });
   }
 

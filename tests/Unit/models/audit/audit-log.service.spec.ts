@@ -358,7 +358,6 @@ describe(describeName('AuditLogService unit suite'), () => {
             api_key: 'should-be-hidden',
           },
           durationMs: 1250,
-          finishedAt: '2024-01-01T00:00:01.250Z',
         },
       });
 
@@ -373,8 +372,6 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(payload.password).to.equal('[REDACTED]');
       expect(payload.nested.api_key).to.equal('[REDACTED]');
       expect(persisted.durationMs).to.equal(1250);
-      expect(persisted.finishedAt).to.not.be.null;
-      expect(Number.isNaN(new Date(persisted.finishedAt as Date).getTime())).to.be.false;
     });
 
     it('hydrates missing duration values from stored audit payloads while listing', async () => {
@@ -391,23 +388,6 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(total).to.be.greaterThan(0);
       const hydrated = auditLogs.find((entry) => entry.id === expected.id);
       expect(hydrated?.durationMs).to.equal(3456);
-    });
-
-    it('hydrates missing finished timestamps from stored audit payloads while listing', async () => {
-      const expected = await createAuditLog({
-        data: JSON.stringify({ payload: true, finishedAt: '2024-01-01T00:00:05.000Z' }),
-        finishedAt: null,
-      });
-
-      const { auditLogs, total } = await service.listAuditLogs({
-        isAdmin: true,
-        take: 10,
-      });
-
-      expect(total).to.be.greaterThan(0);
-      const hydrated = auditLogs.find((entry) => entry.id === expected.id);
-      expect(hydrated?.finishedAt).to.not.be.null;
-      expect(Number.isNaN(new Date(hydrated?.finishedAt as Date).getTime())).to.be.false;
     });
 
     it('derives entity names and identifiers from firewall references', async () => {

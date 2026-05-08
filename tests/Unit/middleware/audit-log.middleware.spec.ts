@@ -45,9 +45,7 @@ describe('AuditLogMiddleware', () => {
       const entries = await repository.find({ order: { id: 'DESC' } });
       const completed =
         !waitUntilCompleted ||
-        entries
-          .slice(0, expectedCount)
-          .every((entry) => entry.durationMs !== null && entry.finishedAt !== null);
+        entries.slice(0, expectedCount).every((entry) => entry.durationMs !== null);
 
       if (entries.length >= expectedCount && completed) {
         return entries;
@@ -122,7 +120,6 @@ describe('AuditLogMiddleware', () => {
     expect(entry.clusterId).to.equal(3);
     expect(entry.call).to.equal('POST /audit/7?cluster=3');
     expect(entry.durationMs).to.be.a('number');
-    expect(entry.finishedAt).to.not.be.null;
     expect(entry.description).to.contain('Status 201');
     expect(entry.description).to.not.contain('User:');
     expect(entry.description).to.not.contain('IP:');
@@ -137,8 +134,7 @@ describe('AuditLogMiddleware', () => {
     expect(payload.query.cluster).to.equal('3');
     expect(payload.durationMs).to.be.a('number');
     expect(payload.durationMs).to.equal(entry.durationMs);
-    expect(payload.finishedAt).to.be.a('string');
-    expect(Number.isNaN(new Date(payload.finishedAt).getTime())).to.be.false;
+    expect(payload).to.not.have.property('finishedAt');
   });
 
   it('creates the audit entry before the route handler and completes it after the response', async () => {
@@ -161,12 +157,11 @@ describe('AuditLogMiddleware', () => {
       const [initialEntry] = entries;
       initialEntryId = initialEntry.id;
       expect(initialEntry.durationMs).to.be.null;
-      expect(initialEntry.finishedAt).to.be.null;
 
       const initialPayload = JSON.parse(initialEntry.data);
       expect(initialPayload.statusCode).to.be.null;
       expect(initialPayload.durationMs).to.be.null;
-      expect(initialPayload.finishedAt).to.be.null;
+      expect(initialPayload).to.not.have.property('finishedAt');
       expect(initialPayload.params).to.deep.equal({});
 
       res.status(202).json({ queued: true });
@@ -177,24 +172,13 @@ describe('AuditLogMiddleware', () => {
     const [entry] = await waitForAuditLogs();
     expect(entry.id).to.equal(initialEntryId);
     expect(entry.durationMs).to.be.a('number');
-    expect(entry.finishedAt).to.not.be.null;
     expect(entry.description).to.contain('Status 202');
 
     const payload = JSON.parse(entry.data);
     expect(payload.statusCode).to.equal(202);
     expect(payload.params.firewallId).to.equal('9');
     expect(payload.durationMs).to.equal(entry.durationMs);
-    expect(payload.finishedAt).to.be.a('string');
-    expect(Number.isNaN(new Date(payload.finishedAt).getTime())).to.be.false;
-
-    const [rawTiming] = await db
-      .getSource()
-      .manager.query(
-        'SELECT TIMESTAMPDIFF(MICROSECOND, started_at, finished_at) AS elapsedMicroseconds FROM audit_logs WHERE id = ?',
-        [entry.id],
-      );
-    const elapsedMs = Number(rawTiming.elapsedMicroseconds) / 1000;
-    expect(Math.abs(elapsedMs - (entry.durationMs ?? 0))).to.be.lessThan(1);
+    expect(payload).to.not.have.property('finishedAt');
   });
 
   it('defaults to the request IP address when forwarded headers are absent', async () => {

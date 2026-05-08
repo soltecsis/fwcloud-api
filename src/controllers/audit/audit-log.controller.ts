@@ -61,7 +61,6 @@ export class AuditLogController extends Controller {
     const auditLogsResponse = auditLogs.map((entry) => ({
       ...entry,
       startedAt: AuditLogHelper.toUtcISOString(entry.startedAt),
-      finishedAt: entry.finishedAt ? AuditLogHelper.toUtcISOString(entry.finishedAt) : null,
     }));
 
     return ResponseBuilder.buildResponse()

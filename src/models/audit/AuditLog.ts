@@ -74,8 +74,7 @@ export class AuditLog extends Model {
 
   @Column({
     type: 'datetime',
-    name: 'started_at',
-    precision: 3,
+    name: 'ts',
     transformer: auditLogUtcDateTransformer,
   })
   startedAt: Date;
@@ -168,15 +167,6 @@ export class AuditLog extends Model {
     nullable: true,
   })
   durationMs: number | null;
-
-  @Column({
-    type: 'datetime',
-    name: 'finished_at',
-    precision: 3,
-    nullable: true,
-    transformer: auditLogUtcDateTransformer,
-  })
-  finishedAt: Date | null;
 
   @Column({
     type: 'longtext',
