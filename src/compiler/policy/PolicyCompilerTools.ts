@@ -188,8 +188,8 @@ export abstract class PolicyCompilerTools {
           throw fwcError.other('Invalid chain for Fail2Ban special rule');
       // eslint-disable-next-line no-fallthrough
       case SpecialPolicyRules.HOOKSCRIPT: {
-        this._cs = '###########################\n# Hook script rule code:\n';
-        this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n`;
+        this._cs = '\n###########################\n# Hook script rule code:\n';
+        this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n\n`;
         break;
       }
 

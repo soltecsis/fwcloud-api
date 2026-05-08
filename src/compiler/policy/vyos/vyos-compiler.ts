@@ -115,8 +115,8 @@ export class VyOSCompiler extends PolicyCompilerTools {
 
   private compileHookScript(): string {
     const runBefore = this._ruleData.run_before ? `${this._ruleData.run_before}` : '';
-    let script = '###########################\n# Hook script rule code:\n';
-    script += `${runBefore}\n###########################\n`;
+    let script = '\n###########################\n# Hook script rule code:\n';
+    script += `${runBefore}\n###########################\n\n`;
 
     if (this._ruleData.fw_apply_to && this._ruleData.firewall_name)
       return `if [ "$HOSTNAME" = "${this._ruleData.firewall_name}" ]; then\n${script}fi\n`;
