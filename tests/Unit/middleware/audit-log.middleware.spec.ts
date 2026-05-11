@@ -120,7 +120,8 @@ describe('AuditLogMiddleware', () => {
     expect(entry.clusterId).to.equal(3);
     expect(entry.call).to.equal('POST /audit/7?cluster=3');
     expect(entry.durationMs).to.be.a('number');
-    expect(entry.description).to.contain('Status 201');
+    expect(entry.status).to.equal(201);
+    expect(entry.description).to.not.contain('Status 201');
     expect(entry.description).to.not.contain('User:');
     expect(entry.description).to.not.contain('IP:');
 
@@ -157,6 +158,7 @@ describe('AuditLogMiddleware', () => {
       const [initialEntry] = entries;
       initialEntryId = initialEntry.id;
       expect(initialEntry.durationMs).to.be.null;
+      expect(initialEntry.status).to.be.null;
 
       const initialPayload = JSON.parse(initialEntry.data);
       expect(initialPayload.statusCode).to.be.null;
@@ -172,13 +174,42 @@ describe('AuditLogMiddleware', () => {
     const [entry] = await waitForAuditLogs();
     expect(entry.id).to.equal(initialEntryId);
     expect(entry.durationMs).to.be.a('number');
-    expect(entry.description).to.contain('Status 202');
+    expect(entry.status).to.equal(202);
 
     const payload = JSON.parse(entry.data);
     expect(payload.statusCode).to.equal(202);
     expect(payload.params.firewallId).to.equal('9');
     expect(payload.durationMs).to.equal(entry.durationMs);
     expect(payload).to.not.have.property('finishedAt');
+  });
+
+  it('stores the final error status for failed requests', async () => {
+    const app = express();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 502, username: 'error-user' };
+      (req as any).sessionID = 'error-session';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+    app.post('/audit/failure', (_req, _res) => {
+      throw new Error('request failed');
+    });
+    app.use((_error, _req, res, _next) => {
+      res.status(500).json({ error: 'request failed' });
+    });
+
+    await request(app).post('/audit/failure').send({ action: 'create' }).expect(500);
+
+    const [entry] = await waitForAuditLogs();
+    expect(entry.status).to.equal(500);
+    expect(entry.description).to.not.contain('Status 500');
+
+    const payload = JSON.parse(entry.data);
+    expect(payload.statusCode).to.equal(500);
+    expect(payload.durationMs).to.equal(entry.durationMs);
   });
 
   it('defaults to the request IP address when forwarded headers are absent', async () => {
@@ -296,7 +327,7 @@ describe('AuditLogMiddleware', () => {
     expect(entry.firewallName).to.equal('Edge-FW');
     expect(entry.clusterId).to.equal(clusterId);
     expect(entry.clusterName).to.equal('Edge Cluster');
-    expect(entry.description).to.contain('Status 200');
+    expect(entry.status).to.equal(200);
     expect(entry.description).to.not.contain('Cluster:');
 
     sinon.assert.calledOnce(firewallStub);
@@ -326,7 +357,7 @@ describe('AuditLogMiddleware', () => {
     expect(entry.sessionId).to.be.null;
     expect(entry.clusterId).to.equal(12);
     expect(entry.firewallId).to.equal(21);
-    expect(entry.description).to.contain('Status 204');
+    expect(entry.status).to.equal(204);
     expect(entry.description).to.not.contain('User:');
   });
 
@@ -585,7 +616,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.call).to.equal('POST /network-objects');
       expect(entry.fwCloudId).to.equal(77);
       expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('Status 201');
+      expect(entry.status).to.equal(201);
       expect(entry.description).to.not.contain('User: net-admin');
 
       const payload = JSON.parse(entry.data);
@@ -665,7 +696,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.call).to.equal('PUT /network-objects/901');
       expect(entry.fwCloudId).to.equal(66);
       expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('Status 200');
+      expect(entry.status).to.equal(200);
       expect(entry.description).to.not.contain('User: net-admin');
 
       const payload = JSON.parse(entry.data);
@@ -689,7 +720,7 @@ describe('AuditLogMiddleware', () => {
       expect(entry.call).to.equal('DELETE /network-objects/1234?fwcloud=55');
       expect(entry.fwCloudId).to.equal(55);
       expect(entry.userId).to.equal(202);
-      expect(entry.description).to.contain('Status 204');
+      expect(entry.status).to.equal(204);
       expect(entry.description).to.not.contain('User: net-admin');
 
       const payload = JSON.parse(entry.data);
@@ -731,7 +762,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /users');
-      expect(entry.description).to.contain('Status 201');
+      expect(entry.status).to.equal(201);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -755,7 +786,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('PATCH /users/41');
-      expect(entry.description).to.contain('Status 200');
+      expect(entry.status).to.equal(200);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -776,7 +807,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('DELETE /users/99?force=true');
-      expect(entry.description).to.contain('Status 204');
+      expect(entry.status).to.equal(204);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -803,7 +834,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /roles');
-      expect(entry.description).to.contain('Status 201');
+      expect(entry.status).to.equal(201);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -830,7 +861,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('PUT /roles/55');
-      expect(entry.description).to.contain('Status 200');
+      expect(entry.status).to.equal(200);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -851,7 +882,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('DELETE /roles/23?reassignedTo=manager');
-      expect(entry.description).to.contain('Status 204');
+      expect(entry.status).to.equal(204);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -875,7 +906,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /permissions');
-      expect(entry.description).to.contain('Status 201');
+      expect(entry.status).to.equal(201);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -898,7 +929,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('PATCH /permissions/perm.view');
-      expect(entry.description).to.contain('Status 200');
+      expect(entry.status).to.equal(200);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 
@@ -919,7 +950,7 @@ describe('AuditLogMiddleware', () => {
 
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('DELETE /permissions/perm.revoke');
-      expect(entry.description).to.contain('Status 204');
+      expect(entry.status).to.equal(204);
       expect(entry.description).to.not.contain('User: security-admin');
       expect(entry.description).to.not.contain('User: 303');
 

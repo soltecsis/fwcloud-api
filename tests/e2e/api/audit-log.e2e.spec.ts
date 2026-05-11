@@ -106,6 +106,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     userOwnedLog = await persistAuditLog({
       call: 'PUT /api/user-owned',
+      status: 200,
       startedAt: new Date('2024-01-02T12:00:00Z'),
       userId: regularUser.id,
       userName: regularUser.username,
@@ -117,6 +118,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     sessionOwnedLog = await persistAuditLog({
       call: 'PUT /api/session-owned',
+      status: 202,
       startedAt: new Date('2024-01-03T12:00:00Z'),
       sessionId: regularSessionNumeric,
       userId: regularUser.id,
@@ -129,6 +131,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     adminOwnedLog = await persistAuditLog({
       call: 'PUT /api/admin-owned',
+      status: 204,
       data: JSON.stringify({ payload: true, durationMs: 9876 }),
       durationMs: null,
       startedAt: new Date('2024-01-04T12:00:00Z'),
@@ -167,6 +170,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
           sessionOwnedLog.id,
           userOwnedLog.id,
         ]);
+        expect(payload.auditLogs.map((entry: AuditLog) => entry.status)).to.deep.equal([202, 200]);
 
         payload.auditLogs.forEach((entry: AuditLog) => {
           expect(entry.userId).to.equal(regularUser.id);
@@ -192,6 +196,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
         expect(payload.auditLogs).to.have.length(1);
         expect(payload.auditLogs[0].id).to.equal(adminOwnedLog.id);
         expect(payload.auditLogs[0].durationMs).to.equal(9876);
+        expect(payload.auditLogs[0].status).to.equal(204);
       });
   });
 
@@ -237,6 +242,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
           userOwnedLog.id,
           foreignLog.id,
         ]);
+        expect(payload.auditLogs[3].status).to.equal(null);
       });
   });
 

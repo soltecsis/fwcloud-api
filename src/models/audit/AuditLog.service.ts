@@ -85,6 +85,7 @@ export type ListAuditLogsOptions = {
 export type AuditLogMutationInput = {
   call: string;
   description: string;
+  status?: number | null;
   data?: unknown;
   userId?: number | null;
   userName?: string | null;
@@ -609,6 +610,7 @@ export class AuditLogService extends Service {
     const auditLog = new AuditLog();
 
     auditLog.call = this.normalizeCall(input.call);
+    auditLog.status = AuditLogHelper.normalizeHttpStatus(input.status);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);
     auditLog.data = this.serializeData(input.data ?? {});
     auditLog.durationMs = this.extractDurationMsFromData(input.data);

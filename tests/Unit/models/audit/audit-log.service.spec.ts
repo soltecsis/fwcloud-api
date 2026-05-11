@@ -367,11 +367,28 @@ describe(describeName('AuditLogService unit suite'), () => {
 
       expect(persisted.call).to.equal('CRON openvpn.history.archive');
       expect(persisted.userName).to.equal('scheduler');
+      expect(persisted.status).to.equal(null);
       expect(payload.source).to.equal('cron');
       expect(payload.token).to.equal('[REDACTED]');
       expect(payload.password).to.equal('[REDACTED]');
       expect(payload.nested.api_key).to.equal('[REDACTED]');
       expect(persisted.durationMs).to.equal(1250);
+    });
+
+    it('persists an optional HTTP status value', async () => {
+      const created = await service.logMutation({
+        call: 'PUT /api/example',
+        description: 'updated example',
+        status: 202,
+        data: {
+          durationMs: 99,
+        },
+      });
+
+      expect(created).to.not.be.null;
+      const persisted = await repository.findOneOrFail({ where: { id: created.id } });
+      expect(persisted.status).to.equal(202);
+      expect(persisted.durationMs).to.equal(99);
     });
 
     it('hydrates missing duration values from stored audit payloads while listing', async () => {
