@@ -91,6 +91,30 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
       expect(script).to.contain('COMMIT');
     });
 
+    it('should add rule labels inside optimized iptables-restore blocks', async () => {
+      firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      expect(script).to.match(
+        /cat <<'FWC_IPTABLES_RESTORE' \| \$IPTABLES_RESTORE\n\*filter\n\n# Rule 1 \(ID: \d+\)\n-A INPUT -m conntrack --ctstate NEW -j ACCEPT/,
+      );
+    });
+
     it('should normalize shell-quoted rule comments to double quotes for iptables-restore', async () => {
       firewall.options = FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
       await db.getSource().manager.getRepository(Firewall).save(firewall);

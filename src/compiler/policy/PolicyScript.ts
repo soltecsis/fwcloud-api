@@ -160,16 +160,20 @@ export class PolicyScript {
 
         if (this.isOptimizedScriptRule(rule.cs)) {
           flushOptimizedBuffer();
-          optimized += rule.cs.endsWith('\n') ? rule.cs : `${rule.cs}\n`;
+          optimized = optimized.replace(/\n*$/, '\n\n');
+          optimized += `echo "Rule ${i + 1} (ID: ${rule.id})"\n`;
+          optimized += this.formatOptimizedScriptRule(rule.cs);
           continue;
         }
 
+        optimizedBuffer += `# Rule ${i + 1} (ID: ${rule.id})\n`;
         optimizedBuffer += rule.cs;
         if (!rule.cs.endsWith('\n')) optimizedBuffer += '\n';
         optimizedRuleLabels.push(`echo "Rule ${i + 1} (ID: ${rule.id})"`);
       }
 
       flushOptimizedBuffer();
+      optimized = optimized.replace(/\n+$/, '\n');
       this.stream.write(optimized);
       return dangerous;
     }
@@ -472,9 +476,16 @@ export class PolicyScript {
     );
   }
 
+  private formatOptimizedScriptRule(cs: string): string {
+    const formattedRule = cs.endsWith('\n') ? cs : `${cs}\n`;
+
+    return `${formattedRule}\n`;
+  }
+
   private renderOptimizedIptablesCommands(cs: string): string {
     let optimized = '';
     let restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null = null;
+    let pendingRuleLabel: string | null = null;
 
     const flushRestoreBuffer = () => {
       optimized += this.flushIptablesRestoreBuffer(restoreBuffer);
@@ -482,8 +493,32 @@ export class PolicyScript {
     };
 
     for (const rawLine of cs.split('\n')) {
+      const trimmedLine = rawLine.trim();
+
+      if (trimmedLine.match(/^# Rule \d+ \(ID: \d+\)$/)) {
+        pendingRuleLabel = trimmedLine;
+        continue;
+      }
+
+      if (trimmedLine.startsWith('if [')) {
+        flushRestoreBuffer();
+        if (pendingRuleLabel) {
+          optimized = optimized.replace(/\n+$/, '\n');
+          optimized += `\n${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
+        optimized += `${rawLine}\n`;
+        continue;
+      }
+
+      if (trimmedLine === 'fi') {
+        flushRestoreBuffer();
+        optimized += `${rawLine}\n`;
+        continue;
+      }
+
       // Skip shell comment lines completely - they are handled separately in dumpCompilation
-      if (rawLine.trim().startsWith('#')) {
+      if (trimmedLine.startsWith('#')) {
         continue;
       }
 
@@ -491,6 +526,10 @@ export class PolicyScript {
 
       if (!parsedLine) {
         flushRestoreBuffer();
+        if (pendingRuleLabel) {
+          optimized += `${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
         optimized += rawLine.length > 0 ? `${rawLine}\n` : '\n';
         continue;
       }
@@ -508,10 +547,22 @@ export class PolicyScript {
         };
       }
 
+      if (pendingRuleLabel) {
+        if (restoreBuffer.lines.length > 0) {
+          restoreBuffer.lines.push('');
+        }
+        restoreBuffer.lines.push(pendingRuleLabel);
+        pendingRuleLabel = null;
+      }
+
       restoreBuffer.lines.push(parsedLine.restoreLine);
     }
 
     flushRestoreBuffer();
+
+    if (pendingRuleLabel) {
+      optimized += `${pendingRuleLabel}\n`;
+    }
 
     return optimized;
   }
