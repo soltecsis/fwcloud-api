@@ -163,6 +163,13 @@ export class AuditLog extends Model {
 
   @Column({
     type: 'int',
+    name: 'status',
+    nullable: true,
+  })
+  status: number | null;
+
+  @Column({
+    type: 'int',
     name: 'duration_ms',
     nullable: true,
   })

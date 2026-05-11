@@ -93,12 +93,6 @@ var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
-const buildFirewallDeleteDescription = (statusCode) => {
-	const pieces = ['Deleted firewall'];
-	if (typeof statusCode === 'number') pieces.push(`Status ${statusCode}`);
-	return pieces.join('. ');
-};
-
 const resolveSourceIp = (req) => {
 	const forwarded = req.headers['x-forwarded-for'];
 	if (Array.isArray(forwarded)) return forwarded[0];
@@ -149,6 +143,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 		}
 
 		auditLog.call = `PUT ${req.originalUrl}`;
+		auditLog.status = AuditLogHelper.normalizeHttpStatus(statusCode);
 		auditLog.durationMs = timing.durationMs;
 		auditLog.data = JSON.stringify({
 			method: req.method,
@@ -170,7 +165,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 		auditLog.fwCloudName = fwCloudName;
 		auditLog.firewallName = firewallName;
 		auditLog.clusterName = null;
-		auditLog.description = buildFirewallDeleteDescription(statusCode);
+		auditLog.description = 'Deleted firewall';
 
 		await repository.save(auditLog);
 

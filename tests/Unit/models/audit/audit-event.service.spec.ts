@@ -70,6 +70,7 @@ describe(describeName('AuditEventService unit suite'), () => {
 
     expect(persisted.call).to.equal('INTERNAL:cron:cleanup');
     expect(persisted.userName).to.equal('system');
+    expect(persisted.status).to.equal(null);
 
     expect(payload.source).to.equal('cron');
     expect(payload.operation).to.equal('cleanup');

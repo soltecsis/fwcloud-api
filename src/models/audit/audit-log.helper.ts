@@ -79,6 +79,11 @@ export class AuditLogHelper {
     return null;
   }
 
+  public static normalizeHttpStatus(value: unknown): number | null {
+    const numeric = this.getNumeric(value);
+    return numeric !== null && numeric >= 100 && numeric <= 599 ? numeric : null;
+  }
+
   public static toUtcISOString(date: Date | null | undefined): string {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
       return '';

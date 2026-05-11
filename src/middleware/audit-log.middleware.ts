@@ -310,12 +310,13 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.startedAt = new Date(start);
 
       auditLog.call = this.buildCall(req);
+      auditLog.status = null;
       auditLog.durationMs = null;
       auditLog.data = this.buildPayload(req, res, null, instrumentationContext);
 
       await this.populateRequestContext(auditLog, req, res);
 
-      auditLog.description = this.buildDescription(req, res, instrumentationContext, false);
+      auditLog.description = this.buildDescription(req, res, instrumentationContext);
 
       return await db.getSource().manager.getRepository(AuditLog).save(auditLog);
     } catch (error) {
@@ -357,6 +358,7 @@ export class AuditLogMiddleware extends Middleware {
 
       auditLog.startedAt = startedAt;
       auditLog.call = this.buildCall(req);
+      auditLog.status = AuditLogHelper.normalizeHttpStatus(res.statusCode);
       auditLog.durationMs = durationMs;
       auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext);
 
@@ -476,7 +478,6 @@ export class AuditLogMiddleware extends Middleware {
     req: Request,
     res: Response,
     instrumentation: Record<string, string | number> = {},
-    includeStatus: boolean = true,
   ): string {
     const pieces: string[] = [];
     const usedLabels = new Set<string>();
@@ -484,11 +485,6 @@ export class AuditLogMiddleware extends Middleware {
     const narrative = this.buildOperationNarrative(req, routeMetadata);
     if (narrative) {
       pieces.push(narrative);
-    }
-
-    if (includeStatus) {
-      pieces.push(`Status ${res.statusCode}`);
-      usedLabels.add('status');
     }
 
     const instrumentationEntries = this.buildInstrumentationEntries(instrumentation, usedLabels);
