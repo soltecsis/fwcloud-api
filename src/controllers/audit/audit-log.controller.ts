@@ -25,6 +25,7 @@ import { Validate, ValidateQuery } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import {
+  AuditLogSummary,
   AuditLogService,
   ListAuditLogsOptions,
   ListAuditLogsCursor,
@@ -33,6 +34,8 @@ import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 import { AuditLogListQueryDto } from './dtos/audit-log-query.dto';
 import { AuditLogPolicy } from '../../policies/auditlog.policy';
 import { User } from '../../models/user/User';
+import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
+import { AuditLog } from '../../models/audit/AuditLog';
 
 export class AuditLogController extends Controller {
   private static readonly DEFAULT_LIMIT = 50;
@@ -58,14 +61,44 @@ export class AuditLogController extends Controller {
         ? results.auditLogs
         : await this._auditLogService.syncEntriesWithUser(results.auditLogs, currentUser);
 
-    const auditLogsResponse = auditLogs.map((entry) => ({
-      ...entry,
-      startedAt: AuditLogHelper.toUtcISOString(entry.startedAt),
-    }));
+    const auditLogsResponse = auditLogs.map((entry) => this.formatSummary(entry));
 
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({ auditLogs: auditLogsResponse, total: results.total });
+  }
+
+  @Validate()
+  public async show(request: Request): Promise<ResponseBuilder> {
+    (await AuditLogPolicy.show(request)).authorize();
+
+    const currentUser = AuditLogHelper.getSessionUser(request);
+    const id = this.parsePositiveInteger(request.params.auditlog);
+
+    if (id === undefined) {
+      throw new NotFoundException('Audit log not found');
+    }
+
+    const scopedFwCloudId = this.parsePositiveInteger(request.params.fwcloud);
+    const auditLog = await this._auditLogService.getAuditLog(id, {
+      isAdmin: AuditLogHelper.isAdmin(currentUser),
+      sessionId: AuditLogHelper.resolveSessionId(request),
+      userId: currentUser?.id ?? null,
+      fwCloudId: scopedFwCloudId,
+    });
+
+    if (!auditLog) {
+      throw new NotFoundException('Audit log not found');
+    }
+
+    const syncedAuditLogs =
+      AuditLogHelper.isAdmin(currentUser) || !currentUser
+        ? [auditLog]
+        : await this._auditLogService.syncEntriesWithUser([auditLog], currentUser);
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({ auditLog: this.formatDetail(syncedAuditLogs[0]) });
   }
 
   protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {
@@ -102,7 +135,7 @@ export class AuditLogController extends Controller {
       options.userName = userName;
     }
 
-    const sessionFilter = this.parsePositiveInteger(request.query.session_id);
+    const sessionFilter = this.parseNonNegativeInteger(request.query.session_id);
     if (sessionFilter !== undefined) {
       options.sessionIdFilter = sessionFilter;
     }
@@ -212,5 +245,116 @@ export class AuditLogController extends Controller {
     } catch {
       return undefined;
     }
+  }
+
+  private formatSummary(entry: AuditLogSummary): Record<string, unknown> {
+    return {
+      id: entry.id,
+      startedAt: AuditLogHelper.toUtcISOString(entry.startedAt),
+      finishedAt: this.formatFinishedAt(entry),
+      durationMs: entry.durationMs,
+      userId: entry.userId,
+      userName: entry.userName,
+      sessionId: entry.sessionId,
+      sourceIp: entry.sourceIp,
+      fwCloudId: entry.fwCloudId,
+      fwCloudName: entry.fwCloudName,
+      fwCloud: this.formatEntityRef(entry.fwCloudId, entry.fwCloudName),
+      firewallId: entry.firewallId,
+      firewallName: entry.firewallName,
+      firewall: this.formatEntityRef(entry.firewallId, entry.firewallName),
+      clusterId: entry.clusterId,
+      clusterName: entry.clusterName,
+      cluster: this.formatEntityRef(entry.clusterId, entry.clusterName),
+      call: entry.call,
+      status: entry.status,
+      description: entry.description,
+    };
+  }
+
+  private formatDetail(entry: AuditLog): Record<string, unknown> {
+    const data = this._auditLogService.parseAuditLogData(entry.data);
+    const payload = this.asPayloadRecord(data);
+    const detail: Record<string, unknown> = {
+      ...this.formatSummary(entry),
+      data,
+    };
+
+    const requestDetails = this.extractRequestDetails(payload);
+    if (requestDetails) {
+      detail['request'] = requestDetails;
+    }
+
+    const responseDetails = this.extractResponseDetails(payload, entry);
+    if (responseDetails) {
+      detail['response'] = responseDetails;
+    }
+
+    if (payload && payload.context !== undefined) {
+      detail['context'] = payload.context;
+    }
+
+    return detail;
+  }
+
+  private formatFinishedAt(
+    entry: Pick<AuditLogSummary, 'startedAt' | 'durationMs'>,
+  ): string | null {
+    if (!(entry.startedAt instanceof Date) || entry.durationMs === null) {
+      return null;
+    }
+
+    return new Date(entry.startedAt.getTime() + entry.durationMs).toISOString();
+  }
+
+  private formatEntityRef(
+    id: number | null,
+    name: string | null,
+  ): { id: number | null; name: string | null } | null {
+    return id !== null || name !== null ? { id, name } : null;
+  }
+
+  private asPayloadRecord(data: unknown): Record<string, unknown> | null {
+    return data !== null && typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  }
+
+  private extractRequestDetails(
+    payload: Record<string, unknown> | null,
+  ): Record<string, unknown> | null {
+    if (!payload) {
+      return null;
+    }
+
+    const requestKeys = ['method', 'url', 'ip', 'headers', 'query', 'params', 'body'];
+    if (!requestKeys.some((key) => Object.prototype.hasOwnProperty.call(payload, key))) {
+      return null;
+    }
+
+    return {
+      method: payload.method ?? null,
+      url: payload.url ?? null,
+      ip: payload.ip ?? null,
+      headers: payload.headers ?? null,
+      query: payload.query ?? null,
+      params: payload.params ?? null,
+      body: payload.body ?? null,
+    };
+  }
+
+  private extractResponseDetails(
+    payload: Record<string, unknown> | null,
+    entry: AuditLog,
+  ): Record<string, unknown> | null {
+    const statusCode = payload?.statusCode ?? entry.status;
+    const durationMs = payload?.durationMs ?? entry.durationMs;
+
+    return statusCode !== null || durationMs !== null
+      ? {
+          statusCode,
+          durationMs,
+        }
+      : null;
   }
 }

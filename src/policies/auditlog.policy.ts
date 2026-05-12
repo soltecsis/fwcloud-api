@@ -28,4 +28,8 @@ export class AuditLogPolicy extends Policy {
 
     return Authorization.revoke();
   }
+
+  static async show(request: Request): Promise<Authorization> {
+    return this.list(request);
+  }
 }

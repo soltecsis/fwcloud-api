@@ -23,7 +23,7 @@
 import * as fse from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
-import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { AuditLogService } from '../../../../src/models/audit/AuditLog.service';
@@ -198,6 +198,24 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(auditLogs[0].id).to.equal(expected.id);
     });
 
+    it('returns summary entries without the serialized data payload', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({ payload: 'x'.repeat(10_000), durationMs: 1234 }),
+        durationMs: 1234,
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        take: 10,
+      });
+
+      expect(total).to.be.greaterThan(0);
+      const summary = auditLogs.find((entry) => entry.id === expected.id);
+      expect(summary).to.not.be.undefined;
+      expect(Object.prototype.hasOwnProperty.call(summary, 'data')).to.equal(false);
+      expect(summary?.durationMs).to.equal(1234);
+    });
+
     it('injects cursor guard clauses when paginating', async () => {
       const captured: unknown[] = [];
       const getCountStub = sinon.stub().resolves(0);
@@ -206,6 +224,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       const fakeQueryBuilder = {
         clone: sinon.stub().returnsThis(),
         select: sinon.stub().returnsThis(),
+        addSelect: sinon.stub().returnsThis(),
         orderBy: sinon.stub().returnsThis(),
         addOrderBy: sinon.stub().returnsThis(),
         andWhere: sinon.stub().callsFake((condition: unknown) => {
@@ -230,14 +249,13 @@ describe(describeName('AuditLogService unit suite'), () => {
         },
       });
 
-      const guardClause = captured.find((entry) => entry instanceof Brackets) as
-        | Brackets
-        | undefined;
+      const guardClause = captured.find(
+        (entry) => typeof entry === 'string' && entry.includes('auditLog.id < :cursorId'),
+      ) as string | undefined;
       expect(guardClause).to.not.be.undefined;
 
-      const clauseSource = guardClause?.whereFactory?.toString() ?? '';
-      expect(clauseSource).to.contain('cursorStartedAt');
-      expect(clauseSource).to.contain('auditLog.id < :cursorId');
+      expect(guardClause).to.contain('`auditLog`.`ts`');
+      expect(guardClause).to.contain('auditLog.id < :cursorId');
       expect(getCountStub.calledOnce).to.be.true;
       expect(getRawManyStub.calledOnce).to.be.true;
     });
@@ -260,6 +278,74 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(total).to.equal(1);
       expect(auditLogs).to.have.length(1);
       expect(auditLogs[0].id).to.equal(expected.id);
+    });
+  });
+
+  describe('getAuditLog', () => {
+    it('returns full detail for an allowed entry and sanitizes parsed data', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({
+          method: 'PUT',
+          url: '/api/example',
+          query: {
+            token: 'plain-token',
+          },
+          body: {
+            name: 'visible',
+            password: 'plain-password',
+          },
+          context: {
+            source: 'unit-test',
+          },
+        }),
+        userId: 77,
+      });
+
+      const auditLog = await service.getAuditLog(expected.id, {
+        isAdmin: false,
+        userId: 77,
+        sessionId: null,
+      });
+
+      expect(auditLog?.id).to.equal(expected.id);
+      expect(auditLog?.data).to.be.a('string');
+
+      const data = service.parseAuditLogData(auditLog?.data) as {
+        query: { token: string };
+        body: { name: string; password: string };
+      };
+
+      expect(data.query.token).to.equal('[REDACTED]');
+      expect(data.body.name).to.equal('visible');
+      expect(data.body.password).to.equal('[REDACTED]');
+    });
+
+    it('returns null when a regular user requests a foreign entry', async () => {
+      const foreign = await createAuditLog({
+        userId: 999,
+        sessionId: 888,
+      });
+
+      const auditLog = await service.getAuditLog(foreign.id, {
+        isAdmin: false,
+        userId: 77,
+        sessionId: 66,
+      });
+
+      expect(auditLog).to.equal(null);
+    });
+
+    it('hydrates missing duration values from stored audit payloads while reading detail', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({ payload: true, durationMs: 3456 }),
+        durationMs: null,
+      });
+
+      const auditLog = await service.getAuditLog(expected.id, {
+        isAdmin: true,
+      });
+
+      expect(auditLog?.durationMs).to.equal(3456);
     });
   });
 
@@ -391,22 +477,6 @@ describe(describeName('AuditLogService unit suite'), () => {
       const persisted = await repository.findOneOrFail({ where: { id: created.id } });
       expect(persisted.status).to.equal(202);
       expect(persisted.durationMs).to.equal(99);
-    });
-
-    it('hydrates missing duration values from stored audit payloads while listing', async () => {
-      const expected = await createAuditLog({
-        data: JSON.stringify({ payload: true, durationMs: 3456 }),
-        durationMs: null,
-      });
-
-      const { auditLogs, total } = await service.listAuditLogs({
-        isAdmin: true,
-        take: 10,
-      });
-
-      expect(total).to.be.greaterThan(0);
-      const hydrated = auditLogs.find((entry) => entry.id === expected.id);
-      expect(hydrated?.durationMs).to.equal(3456);
     });
 
     it('derives entity names and identifiers from firewall references', async () => {
