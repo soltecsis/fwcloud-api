@@ -348,7 +348,7 @@ describe(describeName('AuditLogService unit suite'), () => {
     it('persists non-http mutation entries and redacts sensitive payload fields', async () => {
       const created = await service.logMutation({
         call: 'CRON openvpn.history.archive',
-        description: 'cron=openvpn.history.archive | status=success',
+        description: 'Cron task. Archived OpenVPN history.',
         userName: 'scheduler',
         data: {
           source: 'cron',
@@ -368,6 +368,8 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(persisted.call).to.equal('CRON openvpn.history.archive');
       expect(persisted.userName).to.equal('scheduler');
       expect(persisted.status).to.equal(null);
+      expect(persisted.description).to.equal('Cron task. Archived OpenVPN history.');
+      expect(persisted.description).to.not.contain('status=');
       expect(payload.source).to.equal('cron');
       expect(payload.token).to.equal('[REDACTED]');
       expect(payload.password).to.equal('[REDACTED]');
@@ -425,7 +427,7 @@ describe(describeName('AuditLogService unit suite'), () => {
 
       const created = await service.logMutation({
         call: 'WORKER openvpn.status.sync',
-        description: 'worker=openvpn.status.sync | status=success',
+        description: 'Worker task. Synced OpenVPN status history.',
         firewallId: 91,
         data: { source: 'worker' },
       });

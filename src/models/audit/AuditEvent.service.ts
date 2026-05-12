@@ -321,7 +321,72 @@ export class AuditEventService extends Service {
     affectedCount: number;
     status: AuditEventStatus;
   }): string {
-    return `${payload.source} ${payload.operation} on ${payload.entity} | status=${payload.status} | affected=${payload.affectedCount}`;
+    const source = this.humanizeSource(payload.source);
+    const entity = this.humanizeEntity(payload.entity);
+    const action = this.humanizeOperation(payload.operation, payload.status);
+    const description = [`${source}.`, `${action} ${entity}.`];
+
+    if (payload.status === 'success' && payload.affectedCount > 0) {
+      const recordLabel = payload.affectedCount === 1 ? 'record' : 'records';
+      description.push(`${payload.affectedCount} ${recordLabel} affected.`);
+    }
+
+    return description.join(' ');
+  }
+
+  protected humanizeSource(source: AuditEventSource): string {
+    const labels: Record<AuditEventSource, string> = {
+      cron: 'Cron task',
+      worker: 'Worker task',
+      importer: 'Importer task',
+    };
+
+    return labels[source];
+  }
+
+  protected humanizeOperation(operation: AuditEventOperation, status: AuditEventStatus): string {
+    if (status === 'failed') {
+      const failedLabels: Record<AuditEventOperation, string> = {
+        archive: 'Failed to archive',
+        retention: 'Failed to apply retention to',
+        import: 'Failed to import',
+        sync: 'Failed to sync',
+        cleanup: 'Failed to clean up',
+      };
+
+      return failedLabels[operation];
+    }
+
+    const labels: Record<AuditEventOperation, string> = {
+      archive: 'Archived',
+      retention: 'Applied retention to',
+      import: 'Imported',
+      sync: 'Synced',
+      cleanup: 'Cleaned up',
+    };
+
+    return labels[operation];
+  }
+
+  protected humanizeEntity(entity: string): string {
+    const normalized = entity.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (normalized.length === 0) {
+      return 'unknown entity';
+    }
+
+    const labels: Record<string, string> = {
+      api: 'API',
+      audit: 'audit',
+      logs: 'logs',
+      openvpn: 'OpenVPN',
+      status: 'status',
+      history: 'history',
+    };
+
+    return normalized
+      .split(' ')
+      .map((token) => labels[token.toLowerCase()] ?? token.toLowerCase())
+      .join(' ');
   }
 
   protected isInternalAuditEnabledForSource(source: AuditEventSource): boolean {
