@@ -107,15 +107,8 @@ const ACTION_VERB_MAP: Record<string, string> = {
 
 const ACTION_TOKENS = new Set(Object.keys(ACTION_VERB_MAP));
 const IGNORED_RESOURCE_TOKENS = new Set(['id', 'ids', 'uuid']);
-const DESCRIPTION_COLUMN_KEYS = new Set([
-  'user',
-  'fwcloud',
-  'firewall',
-  'cluster',
-  'ip',
-  'sourceip',
-]);
 const HUMANIZE_TOKEN_OVERRIDES: Record<string, string> = {
+  '2fa': '2FA',
   api: 'API',
   auditlog: 'Audit log',
   auditlogs: 'Audit logs',
@@ -148,11 +141,6 @@ type AuditRouteMetadata = {
   controller?: string | null;
   action?: string | null;
   name?: string | null;
-};
-
-type RenderableInstrumentationEntry = {
-  normalizedLabel: string | null;
-  text: string;
 };
 
 export class AuditLogMiddleware extends Middleware {
@@ -316,7 +304,7 @@ export class AuditLogMiddleware extends Middleware {
 
       await this.populateRequestContext(auditLog, req, res);
 
-      auditLog.description = this.buildDescription(req, res, instrumentationContext);
+      auditLog.description = this.buildDescription(req, res);
 
       return await db.getSource().manager.getRepository(AuditLog).save(auditLog);
     } catch (error) {
@@ -364,7 +352,7 @@ export class AuditLogMiddleware extends Middleware {
 
       await this.populateRequestContext(auditLog, req, res, true);
 
-      auditLog.description = this.buildDescription(req, res, instrumentationContext);
+      auditLog.description = this.buildDescription(req, res);
 
       await repository.save(auditLog);
     } catch (error) {
@@ -474,126 +462,14 @@ export class AuditLogMiddleware extends Middleware {
     return base.length <= 255 ? base : `${base.substring(0, 252)}...`;
   }
 
-  private buildDescription(
-    req: Request,
-    res: Response,
-    instrumentation: Record<string, string | number> = {},
-  ): string {
-    const pieces: string[] = [];
-    const usedLabels = new Set<string>();
+  private buildDescription(req: Request, res: Response): string {
     const routeMetadata = this.resolveRouteMetadata(req, res);
     const narrative = this.buildOperationNarrative(req, routeMetadata);
     if (narrative) {
-      pieces.push(narrative);
+      return this.toSentence(narrative);
     }
 
-    const instrumentationEntries = this.buildInstrumentationEntries(instrumentation, usedLabels);
-    const excludedSectionKeys = new Set<string>([
-      ...this.buildDescriptionKeySet(usedLabels),
-      ...DESCRIPTION_COLUMN_KEYS,
-    ]);
-    for (const entry of instrumentationEntries) {
-      if (entry.normalizedLabel) {
-        excludedSectionKeys.add(entry.normalizedLabel);
-      }
-    }
-
-    const paramsLabel = this.renderDescriptionSection('Params', req.params, excludedSectionKeys);
-    if (paramsLabel) {
-      pieces.push(paramsLabel);
-      usedLabels.add('params');
-    }
-
-    const queryLabel = this.renderDescriptionSection('Query', req.query, excludedSectionKeys);
-    if (queryLabel) {
-      pieces.push(queryLabel);
-      usedLabels.add('query');
-    }
-
-    const bodyLabel = this.renderDescriptionSection('Body', req.body, excludedSectionKeys);
-    if (bodyLabel) {
-      pieces.push(bodyLabel);
-      usedLabels.add('body');
-    }
-
-    for (const entry of instrumentationEntries) {
-      pieces.push(entry.text);
-    }
-
-    const description = pieces.join('. ');
-    return description.length > 0 ? description : this.buildCall(req);
-  }
-
-  private buildInstrumentationEntries(
-    instrumentation: Record<string, string | number>,
-    usedLabels: ReadonlySet<string>,
-  ): RenderableInstrumentationEntry[] {
-    const entries: RenderableInstrumentationEntry[] = [];
-
-    for (const [label, value] of Object.entries(instrumentation)) {
-      if (value === null || value === undefined) {
-        continue;
-      }
-
-      if (usedLabels.has(label)) {
-        continue;
-      }
-
-      const normalizedLabel = this.normalizeDescriptionKey(label);
-      if (normalizedLabel && DESCRIPTION_COLUMN_KEYS.has(normalizedLabel)) {
-        continue;
-      }
-
-      const rendered =
-        typeof value === 'string'
-          ? value.trim()
-          : Number.isFinite(value)
-            ? String(value)
-            : String(value);
-
-      if (rendered.length === 0) {
-        continue;
-      }
-
-      const labelTitle = this.humanizeToken(label);
-      const safeLabel = labelTitle && labelTitle.trim().length > 0 ? labelTitle : label;
-      entries.push({
-        normalizedLabel,
-        text: `${safeLabel}: ${rendered}`,
-      });
-    }
-
-    return entries;
-  }
-
-  private buildDescriptionKeySet(labels: Iterable<string>): Set<string> {
-    const normalizedLabels = new Set<string>();
-
-    for (const label of labels) {
-      const normalized = this.normalizeDescriptionKey(label);
-      if (normalized) {
-        normalizedLabels.add(normalized);
-      }
-    }
-
-    return normalizedLabels;
-  }
-
-  private normalizeDescriptionKey(rawLabel: string): string | null {
-    if (!rawLabel || rawLabel.trim().length === 0) {
-      return null;
-    }
-
-    const tokens = this.tokenize(rawLabel).filter((token) => !IGNORED_RESOURCE_TOKENS.has(token));
-    if (tokens.length === 0) {
-      return null;
-    }
-
-    if (tokens[0] === 'target' && tokens[1] === 'scope') {
-      return 'scope';
-    }
-
-    return tokens.join('');
+    return this.buildFallbackDescription(req);
   }
 
   private buildOperationNarrative(
@@ -613,7 +489,11 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     const pastVerb = verb ? this.toPastTense(verb) : null;
-    const base = pastVerb && resource ? `${pastVerb} ${resource}` : (pastVerb ?? resource ?? '');
+    const narrativeResource = resource ? this.formatNarrativeResource(resource) : null;
+    const base =
+      pastVerb && narrativeResource
+        ? `${pastVerb} ${narrativeResource}`
+        : (pastVerb ?? narrativeResource ?? '');
     const trimmed = base.trim();
 
     if (!trimmed) {
@@ -621,6 +501,20 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     return this.truncateDescription(trimmed, MAX_DESCRIPTION_SECTION_LENGTH);
+  }
+
+  private buildFallbackDescription(req: Request): string {
+    const method = typeof req.method === 'string' ? req.method.toUpperCase() : 'HTTP';
+    return `Processed ${method} request.`;
+  }
+
+  private toSentence(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
   }
 
   private buildPolicyMoveNarrative(
@@ -892,53 +786,6 @@ export class AuditLogMiddleware extends Middleware {
     return null;
   }
 
-  private renderDescriptionSection(
-    label: string,
-    value: unknown,
-    excludedKeys: Set<string> = new Set<string>(),
-  ): string | null {
-    const sanitized = this.sanitize(value);
-    const filtered = this.filterDescriptionSectionValue(sanitized, excludedKeys);
-    const rendered = this.renderDescriptionValue(filtered, 0);
-    if (!rendered || rendered.length === 0) {
-      return null;
-    }
-
-    return `${label}: ${rendered}`;
-  }
-
-  private filterDescriptionSectionValue(value: unknown, excludedKeys: Set<string>): unknown {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return value;
-    }
-
-    const objectValue = value as Record<string, unknown>;
-    const filtered: Record<string, unknown> = {};
-    let hasOwnKey = false;
-    for (const key in objectValue) {
-      if (!Object.prototype.hasOwnProperty.call(objectValue, key)) {
-        continue;
-      }
-
-      hasOwnKey = true;
-      const entryValue = objectValue[key];
-      const normalizedKey = this.normalizeDescriptionKey(key);
-      const isRenderable = this.renderDescriptionValue(entryValue, 1) !== null;
-
-      if (normalizedKey && excludedKeys.has(normalizedKey) && isRenderable) {
-        continue;
-      }
-
-      if (normalizedKey && isRenderable) {
-        excludedKeys.add(normalizedKey);
-      }
-
-      filtered[key] = entryValue;
-    }
-
-    return hasOwnKey ? filtered : value;
-  }
-
   private renderDescriptionValue(value: any, depth: number): string | null {
     if (value === null || value === undefined) {
       return null;
@@ -1023,6 +870,23 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     return cleaned.map((token) => this.humanizeToken(token)).join(' ');
+  }
+
+  private formatNarrativeResource(resource: string): string {
+    return resource
+      .split(/\s+/)
+      .map((part) => {
+        if (!part) {
+          return part;
+        }
+
+        if (/^[A-Z0-9]+$/.test(part) || /[A-Z].*[A-Z]/.test(part)) {
+          return part;
+        }
+
+        return part.charAt(0).toLowerCase() + part.slice(1);
+      })
+      .join(' ');
   }
 
   private normalizeResourceToken(token: string): string {

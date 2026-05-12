@@ -122,6 +122,9 @@ describe('AuditLogMiddleware', () => {
     expect(entry.durationMs).to.be.a('number');
     expect(entry.status).to.equal(201);
     expect(entry.description).to.not.contain('Status 201');
+    expect(entry.description).to.not.contain('Query:');
+    expect(entry.description).to.not.contain('Body:');
+    expect(entry.description).to.not.contain('cluster=3');
     expect(entry.description).to.not.contain('User:');
     expect(entry.description).to.not.contain('IP:');
 
@@ -210,6 +213,47 @@ describe('AuditLogMiddleware', () => {
     const payload = JSON.parse(entry.data);
     expect(payload.statusCode).to.equal(500);
     expect(payload.durationMs).to.equal(entry.durationMs);
+  });
+
+  it('builds concise HTTP descriptions without duplicating query or body data', async () => {
+    const app = express();
+    const router = express.Router();
+    const middleware = new AuditLogMiddleware();
+
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      (req as any).session = { user_id: 88, username: 'vpn-admin' };
+      (req as any).sessionID = 'vpn-session';
+      next();
+    });
+    app.use((req, res, next) => middleware.handle(req, res, next));
+    router.put('/2fa/client', (_req, res) => {
+      res.status(200).json({ updated: true });
+    });
+    app.use('/vpn/openvpn', router);
+
+    await request(app)
+      .put('/vpn/openvpn/2fa/client')
+      .query({ channel_id: 'channel-123' })
+      .send({ openvpn: 344, enabled: true, token: 'sensitive-token' });
+
+    const [entry] = await waitForAuditLogs();
+    expect(entry.call).to.equal('PUT /vpn/openvpn/2fa/client?channel_id=channel-123');
+    expect(entry.status).to.equal(200);
+    expect(entry.description).to.equal('Updated 2FA client.');
+    expect(entry.description).to.not.contain('Status 200');
+    expect(entry.description).to.not.contain('Query:');
+    expect(entry.description).to.not.contain('Body:');
+    expect(entry.description).to.not.contain('channel_id');
+    expect(entry.description).to.not.contain('openvpn');
+    expect(entry.description).to.not.contain('enabled');
+    expect(entry.description).to.not.contain('sensitive-token');
+
+    const payload = JSON.parse(entry.data);
+    expect(payload.query.channel_id).to.equal('channel-123');
+    expect(payload.body.openvpn).to.equal(344);
+    expect(payload.body.enabled).to.equal(true);
+    expect(payload.body.token).to.equal('[REDACTED]');
   });
 
   it('defaults to the request IP address when forwarded headers are absent', async () => {
@@ -403,7 +447,7 @@ describe('AuditLogMiddleware', () => {
     expect(payload.body.nested.details.secretValue).to.equal('[REDACTED]');
   });
 
-  it('should not summarize long audit descriptions', async () => {
+  it('keeps raw request bodies out of audit descriptions', async () => {
     const app = express();
     const middleware = new AuditLogMiddleware();
 
@@ -438,12 +482,19 @@ describe('AuditLogMiddleware', () => {
 
     const [entry] = await waitForAuditLogs();
 
-    expect(entry.description).to.contain('Body:');
-    expect(entry.description).to.contain('item13=value13');
-    expect(entry.description).to.contain('item14=value14');
+    expect(entry.description).to.equal('Created firewall.');
+    expect(entry.description).to.not.contain('Body:');
+    expect(entry.description).to.not.contain('item13=value13');
+    expect(entry.description).to.not.contain('item14=value14');
     expect(entry.description).to.not.contain('+');
-    expect(entry.description).to.contain('install_apikey=[REDACTED]');
-    expect(entry.description).to.contain('install_target=edge-node');
+    expect(entry.description).to.not.contain('install_apikey');
+    expect(entry.description).to.not.contain('install_target');
+
+    const payload = JSON.parse(entry.data);
+    expect(payload.body.item13).to.equal('value13');
+    expect(payload.body.item14).to.equal('value14');
+    expect(payload.body.install_apikey).to.equal('[REDACTED]');
+    expect(payload.body.install_target).to.equal('edge-node');
   });
 
   describe('authentication events', () => {
@@ -539,9 +590,9 @@ describe('AuditLogMiddleware', () => {
       const [entry] = await waitForAuditLogs();
       expect(entry.call).to.equal('POST /firewalls/45/policies/91/attach?scope=cluster');
       expect(entry.userName).to.equal('policy-admin');
-      expect(entry.description).to.contain('Policy: 91');
-      expect(entry.description).to.contain('Device: 3101');
-      expect(entry.description).to.contain('Scope: cluster');
+      expect(entry.description).to.not.contain('Policy: 91');
+      expect(entry.description).to.not.contain('Device: 3101');
+      expect(entry.description).to.not.contain('Scope: cluster');
 
       const payload = JSON.parse(entry.data);
       expect(payload.context.device).to.equal(3101);
@@ -567,10 +618,10 @@ describe('AuditLogMiddleware', () => {
         'DELETE /firewalls/60/policies/32/attach?target_scope=firewall&target=edge',
       );
       expect(entry.userName).to.equal('policy-admin');
-      expect(entry.description).to.contain('Policy: 32');
-      expect(entry.description).to.contain('Device: dev-9');
-      expect(entry.description).to.contain('Scope: firewall');
-      expect(entry.description).to.contain('Target: edge');
+      expect(entry.description).to.not.contain('Policy: 32');
+      expect(entry.description).to.not.contain('Device: dev-9');
+      expect(entry.description).to.not.contain('Scope: firewall');
+      expect(entry.description).to.not.contain('Target: edge');
 
       const payload = JSON.parse(entry.data);
       expect(payload.context.device).to.equal('dev-9');

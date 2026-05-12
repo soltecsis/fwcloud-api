@@ -650,7 +650,22 @@ export class AuditLogService extends Service {
 
   protected normalizeDescription(description: string, fallback: string): string {
     const normalized = typeof description === 'string' ? description.trim() : '';
-    return normalized.length > 0 ? normalized : fallback;
+    const withoutTechnicalStatus = this.stripTechnicalStatusFragments(normalized);
+    return withoutTechnicalStatus.length > 0 ? withoutTechnicalStatus : fallback;
+  }
+
+  protected stripTechnicalStatusFragments(description: string): string {
+    if (!description) {
+      return '';
+    }
+
+    return description
+      .replace(/\s*\|\s*status\s*=\s*[^|.]+/gi, '')
+      .replace(/\bHTTP\s+status\s*(?:code\s*)?\d{3}\b\.?/gi, '')
+      .replace(/\bStatus\s+\d{3}\b\.?/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+\./g, '.')
+      .trim();
   }
 
   protected normalizeLabel(value: unknown): string | null {
