@@ -130,6 +130,7 @@ export class Routes extends RouteCollection {
       router.prefix('/auditlogs', (router: RouterParser) => {
         router.get('/', AuditLogController, 'list').name('auditlogs.list');
         router.put('/', AuditLogController, 'list');
+        router.get('/:auditlog', AuditLogController, 'show').name('auditlogs.show');
       });
 
       //Systemctl routes
@@ -235,6 +236,9 @@ export class Routes extends RouteCollection {
 
         router.prefix('/:fwcloud', (router: RouterParser) => {
           router.put('/', FwCloudController, 'update').name('fwclouds.update');
+          router
+            .get('/auditlogs/:auditlog', AuditLogController, 'show')
+            .name('fwclouds.auditlogs.show');
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
               router.put('/', CaController, 'update').name('fwclouds.cas.update');
