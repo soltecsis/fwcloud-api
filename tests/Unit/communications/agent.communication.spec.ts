@@ -26,6 +26,7 @@ import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect } from '../../mocha/global-setup';
 import * as https from 'https';
+import { getOpenVPNClientConfigDirScript } from '../../../src/communications/openvpn-config-parser';
 
 describe(AgentCommunication.name, () => {
   let agent: AgentCommunication;
@@ -37,6 +38,10 @@ describe(AgentCommunication.name, () => {
       port: 0,
       apikey: '',
     });
+  });
+
+  afterEach(() => {
+    sinon.restore();
   });
 
   it('should set custom agent when https is enabled', () => {
@@ -70,6 +75,49 @@ describe(AgentCommunication.name, () => {
         { filename: 'crt1', hash: 'hash1' },
         { filename: 'crt2', hash: 'hash2' },
       ]);
+    });
+  });
+
+  describe('installOpenVPNServerConfigs', () => {
+    it('should set up the client-config-dir through the existing agent script endpoint before uploading server configs', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: '' });
+
+      await agent.installOpenVPNServerConfigs('/etc/openvpn', [
+        {
+          name: 'server.conf',
+          content: `
+            port 1194
+            --client-config-dir /etc/openvpn/ccd
+            --group nogroup
+          `,
+        },
+      ]);
+
+      expect(postStub.calledTwice).to.equal(true);
+      expect(postStub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/upload');
+      expect(postStub.secondCall.args[0]).to.equal('http://host:0/api/v1/openvpn/files/upload');
+    });
+
+    it('should not create a client-config-dir when the directive is not present', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: '' });
+
+      await agent.installOpenVPNServerConfigs('/etc/openvpn', [
+        {
+          name: 'users_2fa_users.txt',
+          content: '',
+        },
+      ]);
+
+      expect(postStub.calledOnce).to.equal(true);
+      expect(postStub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/files/upload');
+    });
+
+    it('should build a client-config-dir script with the configured group and mode', () => {
+      const script = getOpenVPNClientConfigDirScript('/etc/openvpn/ccd', 'nogroup');
+
+      expect(script).to.contain("mkdir -p '/etc/openvpn/ccd'");
+      expect(script).to.contain("chown 'root:nogroup' '/etc/openvpn/ccd'");
+      expect(script).to.contain("chmod 750 '/etc/openvpn/ccd'");
     });
   });
 });

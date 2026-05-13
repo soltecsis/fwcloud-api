@@ -21,6 +21,7 @@
 */
 
 import axios from 'axios';
+import { EventEmitter } from 'events';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect, testSuite } from '../../mocha/global-setup';
@@ -28,6 +29,7 @@ import { SSHCommunication } from '../../../src/communications/ssh.communication'
 import sshTools from '../../../src/utils/ssh';
 import { Application } from '../../../src/Application';
 import errorTable from '../../../src/utils/error_table';
+import { getOpenVPNServerConfigInstallData } from '../../../src/communications/openvpn-config-parser';
 
 describe(SSHCommunication.name, () => {
   let ssh: SSHCommunication;
@@ -40,6 +42,71 @@ describe(SSHCommunication.name, () => {
       username: 'username',
       password: 'password',
       options: 0,
+    });
+  });
+
+  afterEach(() => {
+    sinon.restore();
+    testSuite.app.config.set('firewall_communication.ssh_enable', true);
+  });
+
+  describe('OpenVPN server config install data', () => {
+    it('should parse client-config-dir and group directives', () => {
+      const result = getOpenVPNServerConfigInstallData(`
+        # client-config-dir /ignored
+        client-config-dir /etc/openvpn/old-ccd
+        group root
+        --client-config-dir="/etc/openvpn/ccd" # inline comment
+        --group=nogroup
+        <ca>
+        group ignored
+        </ca>
+      `);
+
+      expect(result).to.deep.equal({
+        clientConfigDir: '/etc/openvpn/ccd',
+        group: 'nogroup',
+      });
+    });
+
+    it('should use nogroup if group directive is not present', () => {
+      const result = getOpenVPNServerConfigInstallData(`client-config-dir '/etc/openvpn/ccd'`);
+
+      expect(result).to.deep.equal({
+        clientConfigDir: '/etc/openvpn/ccd',
+        group: 'nogroup',
+      });
+    });
+  });
+
+  describe('installOpenVPNServerConfigs', () => {
+    it('should create the OpenVPN client-config-dir with the configured group and mode', async () => {
+      testSuite.app.config.set('firewall_communication.ssh_enable', true);
+
+      const runCommandStub = sinon.stub(sshTools, 'runCommand').resolves('');
+      runCommandStub.onFirstCall().resolves('1');
+      sinon.stub(sshTools, 'uploadStringToFile').resolves();
+
+      await ssh.installOpenVPNServerConfigs(
+        '/etc/openvpn',
+        [
+          {
+            name: 'server.conf',
+            content: `
+              port 1194
+              client-config-dir /etc/openvpn/ccd
+              group nogroup
+            `,
+          },
+        ],
+        new EventEmitter(),
+      );
+
+      const commands = runCommandStub.getCalls().map((call) => call.args[1]);
+
+      expect(commands).to.include(`sudo mkdir -p '/etc/openvpn/ccd'`);
+      expect(commands).to.include(`sudo chown root:nogroup '/etc/openvpn/ccd'`);
+      expect(commands).to.include(`sudo chmod 750 '/etc/openvpn/ccd'`);
     });
   });
 

@@ -44,6 +44,10 @@ import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
+import {
+  getOpenVPNClientConfigDirScript,
+  getOpenVPNServerConfigInstallData,
+} from './openvpn-config-parser';
 
 type AgentCommunicationData = {
   protocol: 'https' | 'http';
@@ -130,6 +134,17 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter?: EventEmitter,
   ): Promise<void> {
     try {
+      for (const config of configs) {
+        const installData = getOpenVPNServerConfigInstallData(config.content);
+        if (installData.clientConfigDir) {
+          await this.ensureOpenVPNClientConfigDir(
+            installData.clientConfigDir,
+            installData.group,
+            eventEmitter,
+          );
+        }
+      }
+
       const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
       form.append('dst_dir', dir);
@@ -140,7 +155,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       form.append('perms', applies2FAPermissions ? 644 : 600);
 
       configs.forEach((config) => {
-        eventEmitter.emit(
+        eventEmitter?.emit(
           'message',
           new ProgressInfoPayload(
             `Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
@@ -156,6 +171,39 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
+  }
+
+  protected async ensureOpenVPNClientConfigDir(
+    dir: string,
+    group: string,
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    const pathUrl: string = this.url + '/api/v1/fwcloud_script/upload';
+    const form = new FormData();
+    form.append('dst_dir', './tmp');
+    form.append('perms', 700);
+    form.append('upload', Buffer.from(getOpenVPNClientConfigDirScript(dir, group)), {
+      filename: 'fwcloud.sh',
+      contentType: 'text/x-shellscript',
+    });
+
+    eventEmitter?.emit(
+      'message',
+      new ProgressInfoPayload(
+        `Preparing OpenVPN client-config-dir directory '${dir}' on: (${this.connectionData.host})\n`,
+      ),
+    );
+
+    const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+    requestConfig.timeout = 0;
+    requestConfig.headers = Object.assign({}, requestConfig.headers, form.getHeaders());
+
+    const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
+
+    response.data
+      ?.split('\n')
+      .filter((item) => item !== '')
+      .forEach((item) => eventEmitter?.emit('message', new ProgressSSHCmdPayload(item)));
   }
 
   async installOpenVPNClientConfigs(
