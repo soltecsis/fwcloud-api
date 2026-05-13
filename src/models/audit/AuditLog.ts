@@ -74,6 +74,7 @@ export class AuditLog extends Model {
 
   @Column({
     type: 'datetime',
+    precision: 3,
     name: 'ts',
     transformer: auditLogUtcDateTransformer,
   })
