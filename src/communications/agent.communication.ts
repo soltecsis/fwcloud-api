@@ -178,7 +178,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     group: string,
     eventEmitter?: EventEmitter,
   ): Promise<void> {
-    const pathUrl: string = this.url + '/api/v1/fwcloud_script/upload';
+    const pathUrl: string = this.url + '/api/v1/fwcloud_script/install-only';
     const form = new FormData();
     form.append('dst_dir', './tmp');
     form.append('perms', 700);
