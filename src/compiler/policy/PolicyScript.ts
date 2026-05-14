@@ -513,7 +513,7 @@ export class PolicyScript {
 
       if (trimmedLine === 'fi') {
         flushRestoreBuffer();
-        optimized += `${rawLine}\n`;
+        optimized += `${rawLine}\n\n`;
         continue;
       }
 
