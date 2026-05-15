@@ -3,7 +3,7 @@ name: FWCloud-API OpenAPI Docs Deploy Test
 on:
   pull_request:
     branches:
-      - tsoa
+      - fixes
 
 jobs:
   ftp-test:
@@ -82,8 +82,8 @@ jobs:
           set ftp:passive-mode true
           mkdir -f uploads/openapi-docs
           cd uploads/openapi-docs
-          put upload/openapi-docs/index.html -o index.html
-          put upload/openapi-docs/openapi.json -o openapi.json
+          put src/openapi-docs/index.html -o index.html
+          put src/openapi-docs/openapi.json -o openapi.json
           ls -la
           bye
           EOF
