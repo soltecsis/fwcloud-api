@@ -94,7 +94,9 @@ describe(AgentCommunication.name, () => {
       ]);
 
       expect(postStub.calledTwice).to.equal(true);
-      expect(postStub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/upload');
+      expect(postStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/fwcloud_script/install-only',
+      );
       expect(postStub.secondCall.args[0]).to.equal('http://host:0/api/v1/openvpn/files/upload');
     });
 
