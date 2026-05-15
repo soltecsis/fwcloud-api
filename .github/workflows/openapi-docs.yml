@@ -3,7 +3,7 @@ name: FWCloud-API OpenAPI Docs Deploy
 on:
   push:
     tags:
-    - '*'
+      - "v*.*.*"
 
 jobs:
   openapi-docs:

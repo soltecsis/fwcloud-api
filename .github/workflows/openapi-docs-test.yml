@@ -1,7 +1,7 @@
 name: FWCloud-API OpenAPI Docs Deploy Test
 
 on:
-  push:
+  pull_request:
     branches:
       - tsoa
 
