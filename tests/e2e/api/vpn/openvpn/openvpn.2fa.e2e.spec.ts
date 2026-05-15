@@ -226,6 +226,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
             'script-security',
             'auth-user-pass-optional',
             'auth-user-pass-verify',
+            'auth-gen-token',
             'setenv',
           ]);
 
@@ -242,6 +243,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
             },
           ]);
           expect(options).to.deep.equal([
+            { name: 'auth-gen-token', arg: '86400' },
             { name: 'auth-user-pass-optional', arg: '' },
             { name: 'auth-user-pass-verify', arg: '/etc/openvpn/bin/check_2fa.sh via-file' },
             { name: 'script-security', arg: '2' },
@@ -338,9 +340,18 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         manager.getRepository(OpenVPNOption).create({
           openVPNId: fwcProduct.openvpnServer.id,
           ipObjId: null,
+          name: 'auth-gen-token',
+          arg: '86400',
+          order: 14,
+          scope: 1,
+          comment: null,
+        }),
+        manager.getRepository(OpenVPNOption).create({
+          openVPNId: fwcProduct.openvpnServer.id,
+          ipObjId: null,
           name: 'setenv',
           arg: `SERVER_CN ${serverCN}`,
-          order: 14,
+          order: 15,
           scope: 1,
           comment: null,
         }),
@@ -366,6 +377,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
             'script-security',
             'auth-user-pass-optional',
             'auth-user-pass-verify',
+            'auth-gen-token',
             'setenv',
           ]);
 
