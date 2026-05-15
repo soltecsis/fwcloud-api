@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Body, Example, Post, Put, Response, Route, SuccessResponse, Tags } from 'tsoa';
+import { Body, Example, Post, Put, Response, Route, Security, SuccessResponse, Tags } from 'tsoa';
 
 interface LegacyCustomerErrorResponse {
   fwcErr?: number;
@@ -67,6 +67,7 @@ type LegacyCustomerGetResponse = LegacyCustomerResponse | LegacyCustomerSummary[
 
 @Route('customer')
 @Tags('customer')
+@Security('sessionCookie')
 export class CustomerLegacyController {
   /**
    * Create new customer. Customers allow group users.
@@ -74,6 +75,7 @@ export class CustomerLegacyController {
    * @example requestBody { "customer": 1, "name": "FWCloud.net", "addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain", "phone": "+34 966 446 046", "email": "info@fwcloud.net", "web": "https://fwcloud.net" }
    */
   @Post('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'New customer')
   @Response<LegacyCustomerErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 1004,
@@ -93,6 +95,7 @@ export class CustomerLegacyController {
    * @example requestBody { "customer": 2, "name": "FWCloud.net", "addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain", "phone": "+34 966 446 046", "email": "info@fwcloud.net", "web": "https://www.fwcloud.net" }
    */
   @Put('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Update customer')
   @Response<LegacyCustomerErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 1002,
@@ -162,6 +165,7 @@ export class CustomerLegacyController {
    * @example requestBody { "customer": 1 }
    */
   @Put('del')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Delete customer')
   @Response<LegacyCustomerErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 1002,

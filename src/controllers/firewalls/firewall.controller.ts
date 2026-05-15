@@ -82,6 +82,7 @@ import {
   Request,
   Response,
   Route,
+  Security,
   SuccessResponse,
   Tags,
 } from 'tsoa';
@@ -112,6 +113,7 @@ type FirewallKeepalivedCompilationResponse = KeepalivedCompiled;
 
 @Route('fwclouds/{fwcloud}/firewalls')
 @Tags('firewall')
+@Security('sessionCookie')
 export class FirewallController extends Controller {
   protected firewallService: FirewallService;
   protected policyRuleService: PolicyRuleService;
@@ -427,6 +429,7 @@ export class FirewallController extends Controller {
   @Validate(PingDto)
   @OperationId('Ping firewall communication.')
   @Post('communication/ping')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Communication validated')
   @Example<FirewallApiEnvelopeResponse<FirewallCommunicationPingOkResponse>>({
     status: 200,
@@ -495,6 +498,7 @@ export class FirewallController extends Controller {
   @Validate(InfoDto)
   @OperationId('Get firewall communication info.')
   @Post('communication/info')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Communication info collected')
   @Example<FirewallApiEnvelopeResponse<FwcAgentInfo>>({
     status: 200,
@@ -645,6 +649,7 @@ export class FirewallController extends Controller {
   @Validate(PluginDto)
   @OperationId('Install or uninstall firewall plugin.')
   @Post('plugin')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Plugin action executed')
   @Example<FirewallApiEnvelopeResponse<string>>({
     status: 200,

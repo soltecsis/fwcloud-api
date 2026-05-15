@@ -24,7 +24,17 @@ import { Controller } from '../../fonaments/http/controller';
 import { Request as ExpressRequest } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { Validate } from '../../decorators/validate.decorator';
-import { Example, OperationId, Put, Request, Response, Route, SuccessResponse, Tags } from 'tsoa';
+import {
+  Example,
+  OperationId,
+  Put,
+  Request,
+  Response,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+} from 'tsoa';
 
 interface PingApiEnvelopeResponse {
   status: number;
@@ -35,6 +45,7 @@ interface PingApiEnvelopeResponse {
 
 @Route('ping')
 @Tags('ping')
+@Security('sessionCookie')
 export class PingController extends Controller {
   /**
    * Keep current authenticated session alive.

@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Body, Example, Post, Put, Response, Route, SuccessResponse, Tags } from 'tsoa';
+import { Body, Example, Post, Put, Response, Route, Security, SuccessResponse, Tags } from 'tsoa';
 
 interface LegacyFirewallErrorResponse {
   fwcErr?: number;
@@ -102,6 +102,7 @@ interface LegacyFirewallResponse {
 
 @Route('firewall')
 @Tags('firewall')
+@Security('sessionCookie')
 export class FirewallLegacyController {
   /**
    * Create a new firewall.
@@ -109,6 +110,7 @@ export class FirewallLegacyController {
    * @example requestBody { "fwcloud": 1, "name": "Firewall-01", "save_user_pass": 0, "install_port": 22, "fwmaster": 0, "options": 0, "node_id": 1 }
    */
   @Post('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'New firewall')
   @Example<LegacyFirewallInsertResponse>({ insertId: 1 })
   @Response<LegacyFirewallErrorResponse>(400, 'Legacy endpoint error', {
@@ -131,6 +133,7 @@ export class FirewallLegacyController {
    * @example requestBody { "fwcloud": 1, "firewall": 5, "name": "Firewall-UPDATED", "comment": "Comment for the updated firewall.", "save_user_pass": 0, "install_port": 22, "fwmaster": 0, "options": 3 }
    */
   @Put('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Update firewall')
   @Response<LegacyFirewallErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 7001,
@@ -452,6 +455,7 @@ export class FirewallLegacyController {
    * @example requestBody { "fwcloud": 1, "firewall": 5, "name": "Firewall-CLONED", "comment": "Comment for the cloned firewall.", "node_id": 1 }
    */
   @Put('clone')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Clone firewall')
   @Example<LegacyFirewallInsertResponse>({ insertId: 7 })
   @Response<LegacyFirewallErrorResponse>(400, 'Legacy endpoint error', {
@@ -470,6 +474,7 @@ export class FirewallLegacyController {
    * @example requestBody { "fwcloud": 1, "firewall": 7 }
    */
   @Put('del')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Delete firewall')
   @Response<LegacyFirewallErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 7001,

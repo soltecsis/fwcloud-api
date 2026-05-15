@@ -41,6 +41,7 @@ import {
   Request,
   Response,
   Route,
+  Security,
   SuccessResponse,
   Tags,
 } from 'tsoa';
@@ -102,6 +103,7 @@ interface FwCloudApiEnvelopeResponse<TData> {
 
 @Route('')
 @Tags('fwclouds')
+@Security('sessionCookie')
 export class FwCloudController extends Controller {
   protected _fwCloudService: FwCloudService;
 
@@ -115,6 +117,7 @@ export class FwCloudController extends Controller {
    */
   @OperationId('New FwCloud.')
   @Post('fwclouds')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('201', 'Created')
   @Example<FwCloudApiEnvelopeResponse<FwCloudDataResponse>>({
     status: 201,
@@ -172,6 +175,7 @@ export class FwCloudController extends Controller {
    */
   @OperationId('Update FwCloud.')
   @Put('fwclouds/{fwcloud}')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Updated')
   @Example<FwCloudApiEnvelopeResponse<FwCloudDataResponse>>({
     status: 200,

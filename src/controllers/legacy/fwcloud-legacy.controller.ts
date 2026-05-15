@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Body, Example, Get, Put, Response, Route, SuccessResponse, Tags } from 'tsoa';
+import { Body, Example, Get, Put, Response, Route, Security, SuccessResponse, Tags } from 'tsoa';
 
 interface LegacyFwcloudErrorResponse {
   fwcErr?: number;
@@ -60,6 +60,7 @@ interface LegacyFwcloudLockResponse {
 
 @Route('fwcloud')
 @Tags('fwcloud')
+@Security('sessionCookie')
 export class FwcloudLegacyController {
   /**
    * Get fwcloud data for all the fwclouds to which the logged user has access.
@@ -192,6 +193,7 @@ export class FwcloudLegacyController {
    * @example requestBody { "fwcloud": 2 }
    */
   @Put('del')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Delete fwcloud')
   @Response<LegacyFwcloudErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 7000,
@@ -207,6 +209,7 @@ export class FwcloudLegacyController {
    * @example requestBody { "fwcloud": 2 }
    */
   @Put('lock')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Lock result')
   @Example<LegacyFwcloudLockResponse>({
     result: true,
@@ -237,6 +240,7 @@ export class FwcloudLegacyController {
    * @example requestBody { "fwcloud": 2 }
    */
   @Put('unlock')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Unlock result')
   @Example<LegacyFwcloudLockResponse>({
     result: true,
@@ -261,6 +265,7 @@ export class FwcloudLegacyController {
    * @example requestBody { "fwcloud": 2 }
    */
   @Put('forcelock')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Force unlock result')
   @Example<LegacyFwcloudLockResponse>({
     result: true,

@@ -20,7 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Body, Example, Post, Put, Response, Route, SuccessResponse, Tags } from 'tsoa';
+import {
+  Body,
+  Example,
+  NoSecurity,
+  Post,
+  Put,
+  Response,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+} from 'tsoa';
 
 interface LegacyErrorResponse {
   fwcErr?: number;
@@ -131,6 +142,7 @@ interface LegacyFwCloudAccessItem {
 
 @Route('user')
 @Tags('user')
+@Security('sessionCookie')
 export class UserLegacyController {
   /**
    * Validate the user credentials and initialize data in the session file.
@@ -138,6 +150,7 @@ export class UserLegacyController {
    * @example requestBody { "customer": 1, "username": "fwcadmin", "password": "fwcadmin" }
    */
   @Post('login')
+  @NoSecurity()
   @SuccessResponse('200', 'Log into the API')
   @Example<LegacyLoginResponse>({ user: 1, role: 1 })
   @Response<LegacyErrorResponse>(401, 'Legacy endpoint error', {
@@ -156,6 +169,7 @@ export class UserLegacyController {
    * @summary Log out the API.
    */
   @Post('logout')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Log out the API')
   public async logout(): Promise<void> {
     return;
@@ -167,6 +181,7 @@ export class UserLegacyController {
    * @example requestBody { "customer": 2, "name": "My Personal Name", "email": "info@fwcloud.net", "username": "fwcusr", "password": "mysecret", "enabled": 1, "role": 1, "allowed_from": "10.99.4.10,192.168.1.1" }
    */
   @Post('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'New user')
   @Example<LegacyUserCreatedResponse>({ user: 5 })
   @Response<LegacyErrorResponse>(400, 'Legacy endpoint error', { fwcErr: 1002, msg: 'Not found' })
@@ -188,6 +203,7 @@ export class UserLegacyController {
    * @example requestBody { "customer": 2, "name": "My Personal Name", "email": "info@fwcloud.net", "username": "fwcloud", "password": "mysecret", "enabled": 1, "role": 1, "allowed_from": "10.99.4.10,192.168.1.1" }
    */
   @Put('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Update user')
   @Response<LegacyErrorResponse>(400, 'Legacy endpoint error', { fwcErr: 1002, msg: 'Not found' })
   public async update(@Body() requestBody?: LegacyUserUpsertRequest): Promise<void> {
@@ -200,6 +216,7 @@ export class UserLegacyController {
    * @example requestBody { "password": "mynewsecrec" }
    */
   @Put('changepass')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Modify logged user password')
   @Response<LegacyErrorResponse>(400, 'Legacy endpoint error', { fwcErr: 1002, msg: 'Not found' })
   public async changePass(@Body() requestBody?: LegacyChangePasswordRequest): Promise<void> {
@@ -257,6 +274,7 @@ export class UserLegacyController {
    * @example requestBody { "customer": 2 }
    */
   @Put('del')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Delete user')
   @Response<LegacyErrorResponse>(400, 'Legacy endpoint error', { fwcErr: 1002, msg: 'Not found' })
   public async delete(@Body() requestBody?: LegacyUserDeleteRequest): Promise<void> {
@@ -297,6 +315,7 @@ export class UserLegacyController {
    * @example requestBody { "user": 5, "fwcloud": 2 }
    */
   @Post('fwcloud')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Enable cloud access')
   public async enableFwCloudAccess(
     @Body() requestBody?: LegacyUserFwCloudAccessRequest,
@@ -310,6 +329,7 @@ export class UserLegacyController {
    * @example requestBody { "user": 5, "fwcloud": 2 }
    */
   @Put('fwcloud/del')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Disable cloud access')
   public async disableFwCloudAccess(
     @Body() requestBody?: LegacyUserFwCloudAccessRequest,

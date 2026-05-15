@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Body, Example, Post, Put, Response, Route, SuccessResponse, Tags } from 'tsoa';
+import { Body, Example, Post, Put, Response, Route, Security, SuccessResponse, Tags } from 'tsoa';
 
 interface LegacyClusterErrorResponse {
   fwcErr?: number;
@@ -150,6 +150,7 @@ interface LegacyClusterRestrictionsResponse {
 
 @Route('cluster')
 @Tags('cluster')
+@Security('sessionCookie')
 export class ClusterLegacyController {
   /**
    * Create a new cluster of firewalls.
@@ -157,6 +158,7 @@ export class ClusterLegacyController {
    * @example requestBody { "fwcloud": 3, "node_id": 391, "clusterData": { "name": "Cluster-01", "options": 3, "fwnodes": [ { "name": "node1", "comment": null, "install_user": null, "install_pass": null, "save_user_pass": 1, "install_interface": null, "install_ipobj": null, "fwmaster": 1, "install_port": 22 }, { "name": "node2", "comment": null, "install_user": null, "install_pass": null, "save_user_pass": 1, "install_interface": null, "install_ipobj": null, "fwmaster": 0, "install_port": 22 }, { "name": "node3", "comment": null, "install_user": null, "install_pass": null, "save_user_pass": 1, "install_interface": null, "install_ipobj": null, "fwmaster": 0, "install_port": 22 } ] } }
    */
   @Post('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'New cluster')
   @Example<LegacyClusterStoreResponse>({
     insertId: 1,
@@ -319,6 +321,7 @@ export class ClusterLegacyController {
    * @example requestBody { "fwcloud": 2, "clusterData": { "cluster": 5, "name": "Cluster-UPDATED", "options": 3 } }
    */
   @Put('/')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Update cluster')
   @Response<LegacyClusterErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 1002,
@@ -334,6 +337,7 @@ export class ClusterLegacyController {
    * @example requestBody { "fwcloud": 2, "firewall": 5, "node_id": 391 }
    */
   @Put('fwtocluster')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Firewall converted to cluster')
   @Example<LegacyClusterConvertResponse>({
     result: true,
@@ -358,6 +362,7 @@ export class ClusterLegacyController {
    * @example requestBody { "fwcloud": 2, "cluster": 6, "node_id": 391 }
    */
   @Put('clustertofw')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Cluster converted to firewall')
   @Example<LegacyClusterConvertResponse>({
     result: true,
@@ -382,6 +387,7 @@ export class ClusterLegacyController {
    * @example requestBody { "fwcloud": 2, "cluster": 5, "name": "Cluster-CLONED", "comment": "Comment for cloned cluster.", "node_id": 391 }
    */
   @Put('clone')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('200', 'Clone cluster')
   @Example<LegacyClusterCloneResponse>({
     insertId: 7,
@@ -421,6 +427,7 @@ export class ClusterLegacyController {
    * @example requestBody { "fwcloud": 2, "cluster": 5 }
    */
   @Put('del')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @SuccessResponse('204', 'Delete cluster')
   @Response<LegacyClusterErrorResponse>(400, 'Legacy endpoint error', {
     fwcErr: 1002,

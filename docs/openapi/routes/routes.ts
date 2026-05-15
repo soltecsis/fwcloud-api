@@ -787,6 +787,7 @@ export function RegisterRoutes(app: Router) {
                 request: {"in":"request","name":"request","required":true,"dataType":"object"},
         };
         app.put('/ping',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(PingController)),
             ...(fetchMiddlewares<RequestHandler>(PingController.prototype.ping)),
 
@@ -818,6 +819,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"FwCloudControllerStoreDto"},
         };
         app.post('/fwclouds',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController)),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController.prototype.store)),
 
@@ -850,6 +852,7 @@ export function RegisterRoutes(app: Router) {
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
         };
         app.put('/fwclouds/:fwcloud',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController)),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController.prototype.update)),
 
@@ -881,6 +884,7 @@ export function RegisterRoutes(app: Router) {
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/colors',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController)),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController.prototype.colors)),
 
@@ -910,6 +914,7 @@ export function RegisterRoutes(app: Router) {
         const argsFwCloudController_getConfig: Record<string, TsoaRoute.ParameterSchema> = {
         };
         app.get('/config',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController)),
             ...(fetchMiddlewares<RequestHandler>(FwCloudController.prototype.getConfig)),
 
@@ -943,6 +948,7 @@ export function RegisterRoutes(app: Router) {
                 ruleIds: {"in":"query","name":"rules","dataType":"array","array":{"dataType":"double"}},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/routingRules/compile',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.compileRoutingRules)),
 
@@ -976,6 +982,7 @@ export function RegisterRoutes(app: Router) {
                 ruleIds: {"in":"query","name":"rules","dataType":"array","array":{"dataType":"double"}},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/haproxyRules/compile',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.compileHAProxyRules)),
 
@@ -1009,6 +1016,7 @@ export function RegisterRoutes(app: Router) {
                 ruleIds: {"in":"query","name":"rules","dataType":"array","array":{"dataType":"double"}},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/compile',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.compileDHCPRules)),
 
@@ -1042,6 +1050,7 @@ export function RegisterRoutes(app: Router) {
                 ruleIds: {"in":"query","name":"rules","dataType":"array","array":{"dataType":"double"}},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/keepalivedRules/compile',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.compileKeepalivedRules)),
 
@@ -1074,6 +1083,7 @@ export function RegisterRoutes(app: Router) {
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/communication/ping',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.pingCommunication)),
 
@@ -1106,6 +1116,7 @@ export function RegisterRoutes(app: Router) {
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/communication/info',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.infoCommunication)),
 
@@ -1138,6 +1149,7 @@ export function RegisterRoutes(app: Router) {
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/plugin',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallController.prototype.installPlugin)),
 
@@ -1197,6 +1209,7 @@ export function RegisterRoutes(app: Router) {
         const argsUserLegacyController_logout: Record<string, TsoaRoute.ParameterSchema> = {
         };
         app.post('/user/logout',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.logout)),
 
@@ -1227,6 +1240,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserUpsertRequest"},
         };
         app.post('/user',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.store)),
 
@@ -1257,6 +1271,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserUpsertRequest"},
         };
         app.put('/user',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.update)),
 
@@ -1287,6 +1302,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyChangePasswordRequest"},
         };
         app.put('/user/changepass',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.changePass)),
 
@@ -1317,6 +1333,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserGetRequest"},
         };
         app.put('/user/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.get)),
 
@@ -1347,6 +1364,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserDeleteRequest"},
         };
         app.put('/user/del',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.delete)),
 
@@ -1377,6 +1395,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserRestrictedRequest"},
         };
         app.put('/user/restricted',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.restricted)),
 
@@ -1407,6 +1426,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserFwCloudAccessRequest"},
         };
         app.post('/user/fwcloud',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.enableFwCloudAccess)),
 
@@ -1437,6 +1457,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserFwCloudAccessRequest"},
         };
         app.put('/user/fwcloud/del',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.disableFwCloudAccess)),
 
@@ -1467,6 +1488,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyUserFwCloudAccessListRequest"},
         };
         app.put('/user/fwcloud/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(UserLegacyController.prototype.listFwCloudAccess)),
 
@@ -1496,6 +1518,7 @@ export function RegisterRoutes(app: Router) {
         const argsFwcloudLegacyController_getAllowed: Record<string, TsoaRoute.ParameterSchema> = {
         };
         app.get('/fwcloud/all/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.getAllowed)),
 
@@ -1526,6 +1549,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFwcloudRequest"},
         };
         app.put('/fwcloud/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.get)),
 
@@ -1556,6 +1580,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFwcloudRequest"},
         };
         app.put('/fwcloud/restricted',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.restricted)),
 
@@ -1586,6 +1611,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFwcloudRequest"},
         };
         app.put('/fwcloud/del',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.delete)),
 
@@ -1616,6 +1642,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFwcloudRequest"},
         };
         app.put('/fwcloud/lock',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.lock)),
 
@@ -1646,6 +1673,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFwcloudRequest"},
         };
         app.put('/fwcloud/unlock',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.unlock)),
 
@@ -1676,6 +1704,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFwcloudRequest"},
         };
         app.put('/fwcloud/forcelock',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FwcloudLegacyController.prototype.forceUnlock)),
 
@@ -1706,6 +1735,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallStoreRequest"},
         };
         app.post('/firewall',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.store)),
 
@@ -1736,6 +1766,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallUpdateRequest"},
         };
         app.put('/firewall',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.update)),
 
@@ -1766,6 +1797,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallGetRequest"},
         };
         app.put('/firewall/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.get)),
 
@@ -1796,6 +1828,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallCloudRequest"},
         };
         app.put('/firewall/cloud/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.getByCloud)),
 
@@ -1826,6 +1859,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallClusterRequest"},
         };
         app.put('/firewall/cluster/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.getByCluster)),
 
@@ -1856,6 +1890,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallCloneRequest"},
         };
         app.put('/firewall/clone',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.clone)),
 
@@ -1886,6 +1921,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyFirewallGetRequest"},
         };
         app.put('/firewall/del',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(FirewallLegacyController.prototype.destroy)),
 
@@ -1916,6 +1952,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyCustomerUpsertRequest"},
         };
         app.post('/customer',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController.prototype.store)),
 
@@ -1946,6 +1983,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyCustomerUpsertRequest"},
         };
         app.put('/customer',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController.prototype.update)),
 
@@ -1976,6 +2014,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyCustomerRequest"},
         };
         app.put('/customer/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController.prototype.get)),
 
@@ -2006,6 +2045,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyCustomerRequest"},
         };
         app.put('/customer/del',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController.prototype.delete)),
 
@@ -2036,6 +2076,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyCustomerRequest"},
         };
         app.put('/customer/restricted',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(CustomerLegacyController.prototype.restricted)),
 
@@ -2066,6 +2107,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterStoreRequest"},
         };
         app.post('/cluster',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.store)),
 
@@ -2096,6 +2138,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterGetRequest"},
         };
         app.put('/cluster/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.get)),
 
@@ -2126,6 +2169,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterGetByCloudRequest"},
         };
         app.put('/cluster/cloud/get',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.getByCloud)),
 
@@ -2156,6 +2200,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterUpdateRequest"},
         };
         app.put('/cluster',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.update)),
 
@@ -2186,6 +2231,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterFirewallToClusterRequest"},
         };
         app.put('/cluster/fwtocluster',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.firewallToCluster)),
 
@@ -2216,6 +2262,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterClusterToFirewallRequest"},
         };
         app.put('/cluster/clustertofw',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.clusterToFirewall)),
 
@@ -2246,6 +2293,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterCloneRequest"},
         };
         app.put('/cluster/clone',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.clone)),
 
@@ -2276,6 +2324,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterGetRequest"},
         };
         app.put('/cluster/restricted',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.restricted)),
 
@@ -2306,6 +2355,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","ref":"LegacyClusterGetRequest"},
         };
         app.put('/cluster/del',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController)),
             ...(fetchMiddlewares<RequestHandler>(ClusterLegacyController.prototype.delete)),
 
@@ -2335,6 +2385,76 @@ export function RegisterRoutes(app: Router) {
 
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
+
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+    function authenticateMiddleware(security: TsoaRoute.Security[] = []) {
+        return async function runAuthenticationMiddleware(request: any, response: any, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            // keep track of failed auth attempts so we can hand back the most
+            // recent one.  This behavior was previously existing so preserving it
+            // here
+            const failedAttempts: any[] = [];
+            const pushAndRethrow = (error: any) => {
+                failedAttempts.push(error);
+                throw error;
+            };
+
+            const secMethodOrPromises: Promise<any>[] = [];
+            for (const secMethod of security) {
+                if (Object.keys(secMethod).length > 1) {
+                    const secMethodAndPromises: Promise<any>[] = [];
+
+                    for (const name in secMethod) {
+                        secMethodAndPromises.push(
+                            expressAuthenticationRecasted(request, name, secMethod[name], response)
+                                .catch(pushAndRethrow)
+                        );
+                    }
+
+                    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+                    secMethodOrPromises.push(Promise.all(secMethodAndPromises)
+                        .then(users => { return users[0]; }));
+                } else {
+                    for (const name in secMethod) {
+                        secMethodOrPromises.push(
+                            expressAuthenticationRecasted(request, name, secMethod[name], response)
+                                .catch(pushAndRethrow)
+                        );
+                    }
+                }
+            }
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            try {
+                request['user'] = await Promise.any(secMethodOrPromises);
+
+                // Response was sent in middleware, abort
+                if (response.writableEnded) {
+                    return;
+                }
+
+                next();
+            }
+            catch(err) {
+                // Show most recent error as response
+                const error = failedAttempts.pop();
+                error.status = error.status || 401;
+
+                // Response was sent in middleware, abort
+                if (response.writableEnded) {
+                    return;
+                }
+                next(error);
+            }
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        }
+    }
 
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 }
