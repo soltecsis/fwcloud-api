@@ -1,0 +1,5422 @@
+{
+	"openapi": "3.0.0",
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"Record_string.unknown_": {
+				"properties": {},
+				"additionalProperties": {},
+				"type": "object",
+				"description": "Construct a type with a set of properties K of type T"
+			},
+			"ResponseObject": {
+				"$ref": "#/components/schemas/Record_string.unknown_"
+			},
+			"ResponseData": {
+				"anyOf": [
+					{
+						"$ref": "#/components/schemas/ResponseObject"
+					},
+					{
+						"items": {
+							"$ref": "#/components/schemas/ResponseObject"
+						},
+						"type": "array"
+					}
+				],
+				"nullable": true
+			},
+			"ResponseBody": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"response": {
+						"type": "string"
+					},
+					"data": {
+						"$ref": "#/components/schemas/ResponseData"
+					},
+					"message": {
+						"type": "string"
+					},
+					"errors": {
+						"$ref": "#/components/schemas/ResponseObject"
+					},
+					"stack": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"status",
+					"response",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseBuilder": {
+				"$ref": "#/components/schemas/ResponseBody"
+			},
+			"FwCloudLimitErrorResponse": {
+				"properties": {
+					"fwcErr": {
+						"type": "number",
+						"format": "double"
+					},
+					"msg": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FwCloudControllerStoreDto": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name",
+					"image",
+					"comment"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FwCloudNotFoundResponse": {
+				"properties": {
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FwCloudControllerUpdateDto": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name",
+					"image",
+					"comment"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FirewallApiErrorEnvelopeResponse": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"response": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					},
+					"errors": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
+					},
+					"stack": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"status",
+					"response",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FirewallApiEnvelopeResponse_null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"response": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"type": "number",
+						"enum": [
+							null
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"response",
+					"message",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FirewallInstallCommunication": {
+				"enum": [
+					"ssh",
+					"agent"
+				],
+				"type": "string"
+			},
+			"FirewallInstallProtocol": {
+				"enum": [
+					"https",
+					"http"
+				],
+				"type": "string"
+			},
+			"PingDto": {
+				"properties": {
+					"communication": {
+						"$ref": "#/components/schemas/FirewallInstallCommunication"
+					},
+					"host": {
+						"type": "string"
+					},
+					"port": {
+						"type": "number",
+						"format": "double"
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					},
+					"protocol": {
+						"$ref": "#/components/schemas/FirewallInstallProtocol"
+					},
+					"apikey": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"communication",
+					"host",
+					"port"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"InfoDto": {
+				"properties": {
+					"communication": {
+						"$ref": "#/components/schemas/FirewallInstallCommunication"
+					},
+					"host": {
+						"type": "string"
+					},
+					"port": {
+						"type": "number",
+						"format": "double"
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					},
+					"protocol": {
+						"$ref": "#/components/schemas/FirewallInstallProtocol"
+					},
+					"apikey": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"communication",
+					"host",
+					"port"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PluginsFlags": {
+				"enum": [
+					"openvpn",
+					"geoip",
+					"crowdsec",
+					"ntopng",
+					"suricata",
+					"keepalived",
+					"zeek",
+					"elasticsearch",
+					"filebeat",
+					"websafety",
+					"kibana",
+					"logstash",
+					"dnssafety",
+					"isc-bind9",
+					"isc-dhcp",
+					"haproxy",
+					"wireguard",
+					"ipsec",
+					"irqbalance"
+				],
+				"type": "string"
+			},
+			"PluginDto": {
+				"properties": {
+					"firewallId": {
+						"type": "number",
+						"format": "double"
+					},
+					"communication": {
+						"$ref": "#/components/schemas/FirewallInstallCommunication"
+					},
+					"host": {
+						"type": "string"
+					},
+					"port": {
+						"type": "number",
+						"format": "double"
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					},
+					"protocol": {
+						"$ref": "#/components/schemas/FirewallInstallProtocol"
+					},
+					"apikey": {
+						"type": "string"
+					},
+					"plugin": {
+						"$ref": "#/components/schemas/PluginsFlags"
+					},
+					"enable": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"communication",
+					"host",
+					"port",
+					"plugin",
+					"enable"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyLoginResponse": {
+				"properties": {
+					"user": {
+						"type": "number",
+						"format": "double"
+					},
+					"role": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"user",
+					"role"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyErrorResponse": {
+				"properties": {
+					"fwcErr": {
+						"type": "number",
+						"format": "double"
+					},
+					"msg": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyLoginRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"customer",
+					"username",
+					"password"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserCreatedResponse": {
+				"properties": {
+					"user": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"user"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserUpsertRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					},
+					"enabled": {
+						"type": "number",
+						"format": "double"
+					},
+					"role": {
+						"type": "number",
+						"format": "double"
+					},
+					"allowed_from": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"customer",
+					"name",
+					"email",
+					"username",
+					"password",
+					"enabled",
+					"role",
+					"allowed_from"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyChangePasswordRequest": {
+				"properties": {
+					"password": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"password"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"customer": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					},
+					"enabled": {
+						"type": "number",
+						"format": "double"
+					},
+					"role": {
+						"type": "number",
+						"format": "double"
+					},
+					"allowed_from": {
+						"type": "string"
+					},
+					"last_login": {
+						"type": "string",
+						"nullable": true
+					},
+					"confirmation_token": {
+						"type": "string",
+						"nullable": true
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"created_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"updated_by": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"customer",
+					"name",
+					"email",
+					"username",
+					"password",
+					"enabled",
+					"role",
+					"allowed_from",
+					"last_login",
+					"confirmation_token",
+					"created_at",
+					"updated_at",
+					"created_by",
+					"updated_by"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserGetRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					},
+					"user": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"customer",
+					"user"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserDeleteRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"customer"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyRestrictionDetailsResponse": {
+				"properties": {
+					"response": {
+						"properties": {
+							"errorMsg": {
+								"type": "string"
+							},
+							"errorCode": {
+								"type": "string"
+							},
+							"respMsg": {
+								"type": "string"
+							},
+							"respCodeMsg": {
+								"type": "string"
+							},
+							"respCode": {
+								"type": "string"
+							},
+							"respStatus": {
+								"type": "boolean"
+							}
+						},
+						"required": [
+							"errorMsg",
+							"errorCode",
+							"respMsg",
+							"respCodeMsg",
+							"respCode",
+							"respStatus"
+						],
+						"type": "object"
+					},
+					"data": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
+					}
+				},
+				"required": [
+					"response",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"Record_string.boolean_": {
+				"properties": {},
+				"additionalProperties": {
+					"type": "boolean"
+				},
+				"type": "object",
+				"description": "Construct a type with a set of properties K of type T"
+			},
+			"LegacyRestrictionDeniedResponse": {
+				"properties": {
+					"result": {
+						"type": "boolean"
+					},
+					"restrictions": {
+						"$ref": "#/components/schemas/Record_string.boolean_"
+					}
+				},
+				"required": [
+					"result",
+					"restrictions"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserRestrictedRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					},
+					"user": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"customer",
+					"user"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserFwCloudAccessRequest": {
+				"properties": {
+					"user": {
+						"type": "number",
+						"format": "double"
+					},
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"user",
+					"fwcloud"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFwCloudAccessItem": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"created_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"updated_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"locked_at": {
+						"type": "string",
+						"nullable": true
+					},
+					"locked_by": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"locked": {
+						"type": "number",
+						"format": "double"
+					},
+					"image": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"created_at",
+					"updated_at",
+					"created_by",
+					"updated_by",
+					"locked_at",
+					"locked_by",
+					"locked",
+					"image",
+					"comment"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyUserFwCloudAccessListRequest": {
+				"properties": {
+					"user": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"user"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFwcloudResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"created_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"updated_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"locked_at": {
+						"type": "string",
+						"nullable": true
+					},
+					"locked_by": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"locked": {
+						"type": "number",
+						"format": "double"
+					},
+					"image": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"created_at",
+					"updated_at",
+					"created_by",
+					"updated_by",
+					"locked_at",
+					"locked_by",
+					"locked",
+					"image",
+					"comment"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFwcloudErrorResponse": {
+				"properties": {
+					"fwcErr": {
+						"type": "number",
+						"format": "double"
+					},
+					"msg": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFwcloudRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFwcloudLockInfo": {
+				"properties": {
+					"locked_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"ip_user": {
+						"type": "string"
+					},
+					"ip_name": {
+						"type": "string"
+					},
+					"locked_at": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"locked_by",
+					"ip_user",
+					"ip_name",
+					"locked_at"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFwcloudLockResponse": {
+				"properties": {
+					"result": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"info": {
+						"$ref": "#/components/schemas/LegacyFwcloudLockInfo"
+					}
+				},
+				"required": [
+					"result",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallInsertResponse": {
+				"properties": {
+					"insertId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"insertId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallErrorResponse": {
+				"properties": {
+					"fwcErr": {
+						"type": "number",
+						"format": "double"
+					},
+					"msg": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallStoreRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"save_user_pass": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_port": {
+						"type": "number",
+						"format": "double"
+					},
+					"fwmaster": {
+						"type": "number",
+						"format": "double"
+					},
+					"options": {
+						"type": "number",
+						"format": "double"
+					},
+					"node_id": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"name",
+					"save_user_pass",
+					"install_port",
+					"fwmaster",
+					"options",
+					"node_id"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallUpdateRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"firewall": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					},
+					"save_user_pass": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_port": {
+						"type": "number",
+						"format": "double"
+					},
+					"fwmaster": {
+						"type": "number",
+						"format": "double"
+					},
+					"options": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"firewall",
+					"name",
+					"comment",
+					"save_user_pass",
+					"install_port",
+					"fwmaster",
+					"options"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"cluster": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string",
+						"nullable": true
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"compiled_at": {
+						"type": "string",
+						"nullable": true
+					},
+					"installed_at": {
+						"type": "string",
+						"nullable": true
+					},
+					"by_user": {
+						"type": "number",
+						"format": "double"
+					},
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_user": {
+						"type": "string"
+					},
+					"install_pass": {
+						"type": "string"
+					},
+					"save_user_pass": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_interface": {
+						"type": "string",
+						"nullable": true
+					},
+					"install_ipobj": {
+						"type": "string",
+						"nullable": true
+					},
+					"fwmaster": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_port": {
+						"type": "number",
+						"format": "double"
+					},
+					"options": {
+						"type": "number",
+						"format": "double"
+					},
+					"interface_name": {
+						"type": "string",
+						"nullable": true
+					},
+					"ip_name": {
+						"type": "string",
+						"nullable": true
+					},
+					"ip": {
+						"type": "string",
+						"nullable": true
+					},
+					"id_fwmaster": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					}
+				},
+				"required": [
+					"id",
+					"cluster",
+					"fwcloud",
+					"name",
+					"comment",
+					"created_at",
+					"updated_at",
+					"compiled_at",
+					"installed_at",
+					"by_user",
+					"status",
+					"install_user",
+					"install_pass",
+					"save_user_pass",
+					"install_interface",
+					"install_ipobj",
+					"fwmaster",
+					"install_port",
+					"options",
+					"interface_name",
+					"ip_name",
+					"ip",
+					"id_fwmaster"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallGetRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"firewall": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"firewall"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallCloudRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallClusterRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"cluster": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"cluster"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyFirewallCloneRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"firewall": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					},
+					"node_id": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"firewall",
+					"name",
+					"comment",
+					"node_id"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyCustomerErrorResponse": {
+				"properties": {
+					"fwcErr": {
+						"type": "number",
+						"format": "double"
+					},
+					"msg": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyCustomerUpsertRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"addr": {
+						"type": "string"
+					},
+					"phone": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"web": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"customer",
+					"name",
+					"addr",
+					"phone",
+					"email",
+					"web"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyCustomerResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"addr": {
+						"type": "string"
+					},
+					"phone": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"web": {
+						"type": "string"
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"created_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"updated_by": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"addr",
+					"phone",
+					"email",
+					"web",
+					"created_at",
+					"updated_at",
+					"created_by",
+					"updated_by"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyCustomerSummary": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyCustomerGetResponse": {
+				"anyOf": [
+					{
+						"$ref": "#/components/schemas/LegacyCustomerResponse"
+					},
+					{
+						"items": {
+							"$ref": "#/components/schemas/LegacyCustomerSummary"
+						},
+						"type": "array"
+					}
+				]
+			},
+			"LegacyCustomerRequest": {
+				"properties": {
+					"customer": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"customer"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyCustomerRestrictionResponse": {
+				"properties": {
+					"result": {
+						"type": "boolean"
+					},
+					"restrictions": {
+						"$ref": "#/components/schemas/Record_string.boolean_"
+					}
+				},
+				"required": [
+					"result",
+					"restrictions"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterStoreResponse": {
+				"properties": {
+					"insertId": {
+						"type": "number",
+						"format": "double"
+					},
+					"loData": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
+					}
+				},
+				"required": [
+					"insertId",
+					"loData"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterErrorResponse": {
+				"properties": {
+					"fwcErr": {
+						"type": "number",
+						"format": "double"
+					},
+					"msg": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterNodePayload": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string",
+						"nullable": true
+					},
+					"install_user": {
+						"type": "string",
+						"nullable": true
+					},
+					"install_pass": {
+						"type": "string",
+						"nullable": true
+					},
+					"save_user_pass": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_interface": {
+						"type": "string",
+						"nullable": true
+					},
+					"install_ipobj": {
+						"type": "string",
+						"nullable": true
+					},
+					"fwmaster": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_port": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"name",
+					"comment",
+					"install_user",
+					"install_pass",
+					"save_user_pass",
+					"install_interface",
+					"install_ipobj",
+					"fwmaster",
+					"install_port"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterStoreRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"node_id": {
+						"type": "number",
+						"format": "double"
+					},
+					"clusterData": {
+						"properties": {
+							"fwnodes": {
+								"items": {
+									"$ref": "#/components/schemas/LegacyClusterNodePayload"
+								},
+								"type": "array"
+							},
+							"options": {
+								"type": "number",
+								"format": "double"
+							},
+							"name": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"fwnodes",
+							"options",
+							"name"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"node_id",
+					"clusterData"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterNodeResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"cluster": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string",
+						"nullable": true
+					},
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_user": {
+						"type": "string"
+					},
+					"install_pass": {
+						"type": "string"
+					},
+					"save_user_pass": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_interface": {
+						"type": "string",
+						"nullable": true
+					},
+					"install_ipobj": {
+						"type": "string",
+						"nullable": true
+					},
+					"fwmaster": {
+						"type": "number",
+						"format": "double"
+					},
+					"install_port": {
+						"type": "number",
+						"format": "double"
+					},
+					"interface_name": {
+						"type": "string",
+						"nullable": true
+					},
+					"ip_name": {
+						"type": "string",
+						"nullable": true
+					},
+					"ip": {
+						"type": "string",
+						"nullable": true
+					},
+					"options": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"cluster",
+					"name",
+					"comment",
+					"status",
+					"install_user",
+					"install_pass",
+					"save_user_pass",
+					"install_interface",
+					"install_ipobj",
+					"fwmaster",
+					"install_port",
+					"interface_name",
+					"ip_name",
+					"ip",
+					"options"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string",
+						"nullable": true
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"created_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"updated_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"nodes": {
+						"items": {
+							"$ref": "#/components/schemas/LegacyClusterNodeResponse"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"id",
+					"fwcloud",
+					"name",
+					"comment",
+					"created_at",
+					"updated_at",
+					"created_by",
+					"updated_by",
+					"nodes"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterGetRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"cluster": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"cluster"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterSummary": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string",
+						"nullable": true
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"created_by": {
+						"type": "number",
+						"format": "double"
+					},
+					"updated_by": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"fwcloud",
+					"name",
+					"comment",
+					"created_at",
+					"updated_at",
+					"created_by",
+					"updated_by"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterGetByCloudRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterUpdateRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"clusterData": {
+						"properties": {
+							"options": {
+								"type": "number",
+								"format": "double"
+							},
+							"name": {
+								"type": "string"
+							},
+							"cluster": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"options",
+							"name",
+							"cluster"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"clusterData"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterConvertResponse": {
+				"properties": {
+					"result": {
+						"type": "boolean"
+					},
+					"insertId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"result",
+					"insertId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterFirewallToClusterRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"firewall": {
+						"type": "number",
+						"format": "double"
+					},
+					"node_id": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"firewall",
+					"node_id"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterClusterToFirewallRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"cluster": {
+						"type": "number",
+						"format": "double"
+					},
+					"node_id": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"cluster",
+					"node_id"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterCloneResponse": {
+				"properties": {
+					"insertId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"insertId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterCloneRequest": {
+				"properties": {
+					"fwcloud": {
+						"type": "number",
+						"format": "double"
+					},
+					"cluster": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					},
+					"node_id": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"fwcloud",
+					"cluster",
+					"name",
+					"comment",
+					"node_id"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LegacyClusterRestrictionsResponse": {
+				"properties": {
+					"result": {
+						"type": "boolean"
+					},
+					"restrictions": {
+						"$ref": "#/components/schemas/Record_string.boolean_"
+					}
+				},
+				"required": [
+					"result",
+					"restrictions"
+				],
+				"type": "object",
+				"additionalProperties": false
+			}
+		},
+		"securitySchemes": {}
+	},
+	"info": {
+		"title": "FWCloud API",
+		"version": "2.4.1",
+		"description": "FWCloud RESTful API.",
+		"contact": {}
+	},
+	"paths": {
+		"/ping": {
+			"put": {
+				"operationId": "Ping session keepalive.",
+				"responses": {
+					"200": {
+						"description": "Ping processed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": null
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"description": "Keep current authenticated session alive.",
+				"summary": "Session keepalive ping.",
+				"tags": [
+					"ping"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/fwclouds": {
+			"post": {
+				"operationId": "New FwCloud.",
+				"responses": {
+					"201": {
+						"description": "Created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 201,
+											"response": "Created",
+											"message": "",
+											"data": {
+												"id": 1,
+												"name": "FWCloud-01",
+												"created_at": "2019-05-14T11:37:19.000Z",
+												"updated_at": "2019-05-14T11:37:19.000Z",
+												"created_by": 0,
+												"updated_by": 0,
+												"locked_at": null,
+												"locked_by": null,
+												"locked": 0,
+												"image": "",
+												"comment": "Main customer cloud"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "FWCloud limit reached",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FwCloudLimitErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7000,
+											"msg": "FWCloud limit reached"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new FWCloud.",
+				"tags": [
+					"fwclouds"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FwCloudControllerStoreDto"
+							},
+							"example": {
+								"name": "FWCloud-01",
+								"image": "",
+								"comment": "Main customer cloud"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwclouds/{fwcloud}": {
+			"put": {
+				"operationId": "Update FwCloud.",
+				"responses": {
+					"200": {
+						"description": "Updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": {
+												"id": 1,
+												"name": "FWCloud-01-Updated",
+												"created_at": "2019-05-14T11:37:19.000Z",
+												"updated_at": "2019-05-14T11:57:06.000Z",
+												"created_by": 0,
+												"updated_by": 0,
+												"locked_at": null,
+												"locked_by": null,
+												"locked": 0,
+												"image": "",
+												"comment": "Updated description"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "FWCloud not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FwCloudNotFoundResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"message": "FWCloud not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Update an existing FWCloud.",
+				"tags": [
+					"fwclouds"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FwCloudControllerUpdateDto"
+							},
+							"example": {
+								"name": "FWCloud-01-Updated",
+								"image": "",
+								"comment": "Updated description"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwclouds/{fwcloud}/colors": {
+			"get": {
+				"operationId": "Get FwCloud Colors.",
+				"responses": {
+					"200": {
+						"description": "Color usage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": [
+												{
+													"color": "#4CAF50",
+													"count": 14
+												},
+												{
+													"color": "#2196F3",
+													"count": 6
+												},
+												{
+													"color": "#FF9800",
+													"count": 2
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "FWCloud not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FwCloudNotFoundResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"message": "FWCloud not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get FWCloud color usage details.",
+				"tags": [
+					"fwclouds"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/config": {
+			"get": {
+				"operationId": "Get FwCloud Config.",
+				"responses": {
+					"200": {
+						"description": "Configuration",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": {
+												"availablecommunications": [
+													"agent",
+													"ssh"
+												],
+												"auditLogs": {
+													"internal": {
+														"enabled": true,
+														"cron": {
+															"enabled": true
+														},
+														"worker": {
+															"enabled": true
+														},
+														"importer": {
+															"enabled": true
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get global FWCloud-related configuration.",
+				"tags": [
+					"fwclouds"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/{firewall}/routingRules/compile": {
+			"get": {
+				"operationId": "Compile firewall routing rules.",
+				"responses": {
+					"200": {
+						"description": "Routing rules compiled",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": [
+												{
+													"id": 31,
+													"active": true,
+													"comment": "Route traffic from DMZ network through table 200",
+													"cs": "$IP rule add priority 1001 from 172.16.10.0/24 table 200\n"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Validation failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "path",
+						"name": "firewall",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rules",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "number",
+								"format": "double"
+							}
+						}
+					}
+				]
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/{firewall}/system/haproxyRules/compile": {
+			"get": {
+				"operationId": "Compile firewall HAProxy rules.",
+				"responses": {
+					"200": {
+						"description": "HAProxy rules compiled",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": [
+												{
+													"id": 12,
+													"active": true,
+													"cs": "# Publish HTTPS\nfrontend front_public_https\n\tmode\ttcp\n"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Validation failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "path",
+						"name": "firewall",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rules",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "number",
+								"format": "double"
+							}
+						}
+					}
+				]
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/{firewall}/system/dhcpRules/compile": {
+			"get": {
+				"operationId": "Compile firewall DHCP rules.",
+				"responses": {
+					"200": {
+						"description": "DHCP rules compiled",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": [
+												{
+													"id": 8,
+													"active": true,
+													"cs": "subnet 10.0.10.0 netmask 255.255.255.0 {\n\toption routers 10.0.10.1;\n}\n"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Validation failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "path",
+						"name": "firewall",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rules",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "number",
+								"format": "double"
+							}
+						}
+					}
+				]
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/{firewall}/system/keepalivedRules/compile": {
+			"get": {
+				"operationId": "Compile firewall Keepalived rules.",
+				"responses": {
+					"200": {
+						"description": "Keepalived rules compiled",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": [
+												{
+													"id": 21,
+													"active": true,
+													"cs": "# Keepalived rule\nvrrp_script VI_eth0 {\n\tinterface eth0\n\tstate BACKUP\n}\n"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Validation failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "path",
+						"name": "firewall",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rules",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "number",
+								"format": "double"
+							}
+						}
+					}
+				]
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/communication/ping": {
+			"post": {
+				"operationId": "Ping firewall communication.",
+				"responses": {
+					"200": {
+						"description": "Communication validated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": {
+												"status": "OK"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"501": {
+						"description": "Method not implemented",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiEnvelopeResponse_null_"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 501,
+											"response": "Not Implemented",
+											"message": "",
+											"data": null
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Connection failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PingDto"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/communication/info": {
+			"post": {
+				"operationId": "Get firewall communication info.",
+				"responses": {
+					"200": {
+						"description": "Communication info collected",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": {
+												"fwc_agent_version": "2.5.0",
+												"host_name": "fw-edge-01",
+												"system_name": "Debian GNU/Linux",
+												"os_version": "12",
+												"kernel_version": "6.1.0-25-amd64"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"501": {
+						"description": "Method not implemented",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiEnvelopeResponse_null_"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 501,
+											"response": "Not Implemented",
+											"message": "",
+											"data": null
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Connection failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/InfoDto"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwclouds/{fwcloud}/firewalls/plugin": {
+			"post": {
+				"operationId": "Install or uninstall firewall plugin.",
+				"responses": {
+					"200": {
+						"description": "Plugin action executed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseBuilder"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 200,
+											"response": "OK",
+											"message": "",
+											"data": ""
+										}
+									}
+								}
+							}
+						}
+					},
+					"501": {
+						"description": "Method not implemented",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiEnvelopeResponse_null_"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 501,
+											"response": "Not Implemented",
+											"message": "",
+											"data": null
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FirewallApiErrorEnvelopeResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"response": "Bad Request",
+											"message": "Connection failed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fwcloud",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PluginDto"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/login": {
+			"post": {
+				"operationId": "Login",
+				"responses": {
+					"200": {
+						"description": "Log into the API",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyLoginResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"user": 1,
+											"role": 1
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1001,
+											"msg": "Bad username or password"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Validate the user credentials and initialize data in the session file.",
+				"summary": "Log into the API.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyLoginRequest"
+							},
+							"example": {
+								"customer": 1,
+								"username": "fwcadmin",
+								"password": "fwcadmin"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/logout": {
+			"post": {
+				"operationId": "Logout",
+				"responses": {
+					"204": {
+						"description": "Log out the API"
+					}
+				},
+				"description": "Close a previous created user session.",
+				"summary": "Log out the API.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/user": {
+			"post": {
+				"operationId": "Store",
+				"responses": {
+					"200": {
+						"description": "New user",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyUserCreatedResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"user": 5
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1003,
+											"msg": "Already exists"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Create new user.",
+				"summary": "New user.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserUpsertRequest"
+							},
+							"example": {
+								"customer": 2,
+								"name": "My Personal Name",
+								"email": "info@fwcloud.net",
+								"username": "fwcusr",
+								"password": "mysecret",
+								"enabled": 1,
+								"role": 1,
+								"allowed_from": "10.99.4.10,192.168.1.1"
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"operationId": "Update",
+				"responses": {
+					"204": {
+						"description": "Update user"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Update user's data.",
+				"summary": "Update user.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserUpsertRequest"
+							},
+							"example": {
+								"customer": 2,
+								"name": "My Personal Name",
+								"email": "info@fwcloud.net",
+								"username": "fwcloud",
+								"password": "mysecret",
+								"enabled": 1,
+								"role": 1,
+								"allowed_from": "10.99.4.10,192.168.1.1"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/changepass": {
+			"put": {
+				"operationId": "ChangePass",
+				"responses": {
+					"204": {
+						"description": "Modify logged user password"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Modify the password of the logged user.",
+				"summary": "Modify logged user password.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyChangePasswordRequest"
+							},
+							"example": {
+								"password": "mynewsecrec"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/get": {
+			"put": {
+				"operationId": "Get",
+				"responses": {
+					"200": {
+						"description": "Get user data",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyUserResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"id": 2,
+											"customer": 2,
+											"name": "My Personal Name",
+											"email": "info@fwcloud.net",
+											"username": "fwcusr",
+											"password": "mysecret",
+											"enabled": 1,
+											"role": 1,
+											"allowed_from": "10.99.4.10,192.168.1.1",
+											"last_login": null,
+											"confirmation_token": null,
+											"created_at": "2019-05-13T15:11:20.000Z",
+											"updated_at": "2019-05-13T15:11:20.000Z",
+											"created_by": 0,
+											"updated_by": 0
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get user data.",
+				"summary": "Get user data.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserGetRequest"
+							},
+							"example": {
+								"customer": 2,
+								"user": 1
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/del": {
+			"put": {
+				"operationId": "Delete",
+				"responses": {
+					"204": {
+						"description": "Delete user"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete user from the database.",
+				"summary": "Delete user.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserDeleteRequest"
+							},
+							"example": {
+								"customer": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/restricted": {
+			"put": {
+				"operationId": "Restricted",
+				"responses": {
+					"200": {
+						"description": "Restriction details",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyRestrictionDetailsResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"response": {
+												"respStatus": true,
+												"respCode": "ACR_OK",
+												"respCodeMsg": "Ok",
+												"respMsg": "",
+												"errorCode": "",
+												"errorMsg": ""
+											},
+											"data": {}
+										}
+									}
+								}
+							}
+						}
+					},
+					"204": {
+						"description": "No deletion restrictions"
+					},
+					"403": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyRestrictionDeniedResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"restrictions": {
+												"CustomerHasUsers": true
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Check that there are no restrictions for user deletion.",
+				"summary": "Restrictions for user deletion.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserRestrictedRequest"
+							},
+							"example": {
+								"customer": 10,
+								"user": 5
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/fwcloud": {
+			"post": {
+				"operationId": "EnableFwCloudAccess",
+				"responses": {
+					"204": {
+						"description": "Enable cloud access"
+					}
+				},
+				"description": "Allow a user the access to a fwcloud.",
+				"summary": "Enable cloud access.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserFwCloudAccessRequest"
+							},
+							"example": {
+								"user": 5,
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/fwcloud/del": {
+			"put": {
+				"operationId": "DisableFwCloudAccess",
+				"responses": {
+					"204": {
+						"description": "Disable cloud access"
+					}
+				},
+				"description": "Disable user access to a fwcloud.",
+				"summary": "Disable cloud access.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserFwCloudAccessRequest"
+							},
+							"example": {
+								"user": 5,
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/user/fwcloud/get": {
+			"put": {
+				"operationId": "ListFwCloudAccess",
+				"responses": {
+					"200": {
+						"description": "List of fwclouds with access",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/LegacyFwCloudAccessItem"
+									},
+									"type": "array"
+								},
+								"examples": {
+									"Example 1": {
+										"value": [
+											{
+												"id": 4,
+												"name": "FWCloud-02",
+												"created_at": "2019-05-14T11:37:19.000Z",
+												"updated_at": "2019-05-14T11:37:19.000Z",
+												"created_by": 0,
+												"updated_by": 0,
+												"locked_at": null,
+												"locked_by": null,
+												"locked": 0,
+												"image": "",
+												"comment": ""
+											},
+											{
+												"id": 5,
+												"name": "FWCloud-03",
+												"created_at": "2019-05-14T11:37:24.000Z",
+												"updated_at": "2019-05-14T11:57:06.000Z",
+												"created_by": 0,
+												"updated_by": 0,
+												"locked_at": "2019-05-14T11:57:06.000Z",
+												"locked_by": 1,
+												"locked": 1,
+												"image": "",
+												"comment": ""
+											}
+										]
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "List of fwclouds to which the indicated user has access to.",
+				"summary": "List of fwclouds with access.",
+				"tags": [
+					"user"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyUserFwCloudAccessListRequest"
+							},
+							"example": {
+								"user": 5
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwcloud/all/get": {
+			"get": {
+				"operationId": "GetAllowed",
+				"responses": {
+					"200": {
+						"description": "Get allowed fwclouds",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/LegacyFwcloudResponse"
+									},
+									"type": "array"
+								},
+								"examples": {
+									"Example 1": {
+										"value": [
+											{
+												"id": 4,
+												"name": "FWCloud-02",
+												"created_at": "2019-05-14T11:37:19.000Z",
+												"updated_at": "2019-05-14T11:37:19.000Z",
+												"created_by": 0,
+												"updated_by": 0,
+												"locked_at": null,
+												"locked_by": null,
+												"locked": 0,
+												"image": "",
+												"comment": ""
+											},
+											{
+												"id": 5,
+												"name": "FWCloud-03",
+												"created_at": "2019-05-14T11:37:24.000Z",
+												"updated_at": "2019-05-14T11:57:06.000Z",
+												"created_by": 0,
+												"updated_by": 0,
+												"locked_at": "2019-05-14T11:57:06.000Z",
+												"locked_by": 1,
+												"locked": 1,
+												"image": "",
+												"comment": ""
+											}
+										]
+									}
+								}
+							}
+						}
+					},
+					"204": {
+						"description": "No allowed fwclouds"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7000,
+											"msg": "FWCloud access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get fwcloud data for all the fwclouds to which the logged user has access.",
+				"summary": "Get allowed fwclouds.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/fwcloud/get": {
+			"put": {
+				"operationId": "Get",
+				"responses": {
+					"200": {
+						"description": "Get fwcloud data",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"id": 3,
+											"name": "FWCloud-Updated",
+											"created_at": "2019-05-14T11:37:15.000Z",
+											"updated_at": "2019-05-14T11:37:54.000Z",
+											"created_by": 0,
+											"updated_by": 0,
+											"locked_at": "2019-05-14T11:37:51.000Z",
+											"locked_by": 1,
+											"locked": 1,
+											"image": "",
+											"comment": "Comment for the updated fwcloud."
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7000,
+											"msg": "FWCloud access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get fwcloud data.",
+				"summary": "Get fwcloud data.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFwcloudRequest"
+							},
+							"example": {
+								"fwcloud": 3
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwcloud/restricted": {
+			"put": {
+				"operationId": "Restricted",
+				"responses": {
+					"204": {
+						"description": "No deletion restrictions"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7000,
+											"msg": "FWCloud access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Check if the fwcloud indicated as a parameter has any deletion restriction.",
+				"summary": "Check delete restrictions.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFwcloudRequest"
+							},
+							"example": {
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwcloud/del": {
+			"put": {
+				"operationId": "Delete",
+				"responses": {
+					"204": {
+						"description": "Delete fwcloud"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7000,
+											"msg": "FWCloud access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete the firewall cloud indicated in the request body.",
+				"summary": "Delete fwcloud.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFwcloudRequest"
+							},
+							"example": {
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwcloud/lock": {
+			"put": {
+				"operationId": "Lock",
+				"responses": {
+					"200": {
+						"description": "Lock result",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudLockResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"message": "FWCLOUD LOCKED OK"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Lock fwcloud status.",
+				"summary": "Lock fwcloud.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFwcloudRequest"
+							},
+							"example": {
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwcloud/unlock": {
+			"put": {
+				"operationId": "Unlock",
+				"responses": {
+					"200": {
+						"description": "Unlock result",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudLockResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"message": "FWCLOUD UNLOCKED OK"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Unlock fwcloud status.",
+				"summary": "Unlock fwcloud.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFwcloudRequest"
+							},
+							"example": {
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fwcloud/forcelock": {
+			"put": {
+				"operationId": "ForceUnlock",
+				"responses": {
+					"200": {
+						"description": "Force unlock result",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFwcloudLockResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"message": "FWCLOUD FORCE UNLOCKED OK"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Force unlock fwcloud status.",
+				"summary": "Force unlock fwcloud.",
+				"tags": [
+					"fwcloud"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFwcloudRequest"
+							},
+							"example": {
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/firewall": {
+			"post": {
+				"operationId": "Store",
+				"responses": {
+					"200": {
+						"description": "New firewall",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallInsertResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"insertId": 1
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7002,
+											"msg": "Tree node access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new firewall.",
+				"summary": "New firewall.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallStoreRequest"
+							},
+							"example": {
+								"fwcloud": 1,
+								"name": "Firewall-01",
+								"save_user_pass": 0,
+								"install_port": 22,
+								"fwmaster": 0,
+								"options": 0,
+								"node_id": 1
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"operationId": "Update",
+				"responses": {
+					"204": {
+						"description": "Update firewall"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7001,
+											"msg": "Firewall access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Update firewall information.",
+				"summary": "Update firewall.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallUpdateRequest"
+							},
+							"example": {
+								"fwcloud": 1,
+								"firewall": 5,
+								"name": "Firewall-UPDATED",
+								"comment": "Comment for the updated firewall.",
+								"save_user_pass": 0,
+								"install_port": 22,
+								"fwmaster": 0,
+								"options": 3
+							}
+						}
+					}
+				}
+			}
+		},
+		"/firewall/get": {
+			"put": {
+				"operationId": "Get",
+				"responses": {
+					"200": {
+						"description": "Get firewall data",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"id": 5,
+											"cluster": null,
+											"fwcloud": 1,
+											"name": "Firewall-05",
+											"comment": null,
+											"created_at": "2019-05-15T10:34:46.000Z",
+											"updated_at": "2019-05-15T10:34:47.000Z",
+											"compiled_at": null,
+											"installed_at": null,
+											"by_user": 1,
+											"status": 3,
+											"install_user": "",
+											"install_pass": "",
+											"save_user_pass": 0,
+											"install_interface": null,
+											"install_ipobj": null,
+											"fwmaster": 0,
+											"install_port": 22,
+											"options": 0,
+											"interface_name": null,
+											"ip_name": null,
+											"ip": null,
+											"id_fwmaster": null
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7001,
+											"msg": "Firewall access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get firewall data.",
+				"summary": "Get firewall data.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallGetRequest"
+							},
+							"example": {
+								"fwcloud": 1,
+								"firewall": 5
+							}
+						}
+					}
+				}
+			}
+		},
+		"/firewall/cloud/get": {
+			"put": {
+				"operationId": "GetByCloud",
+				"responses": {
+					"200": {
+						"description": "Get firewalls in cloud",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/LegacyFirewallResponse"
+									},
+									"type": "array"
+								},
+								"examples": {
+									"Example 1": {
+										"value": [
+											{
+												"id": 1,
+												"cluster": null,
+												"fwcloud": 1,
+												"name": "Firewall-01",
+												"comment": null,
+												"created_at": "2019-05-15T10:34:46.000Z",
+												"updated_at": "2019-05-15T10:34:47.000Z",
+												"compiled_at": null,
+												"installed_at": null,
+												"by_user": 1,
+												"status": 3,
+												"install_user": "",
+												"install_pass": "",
+												"save_user_pass": 0,
+												"install_interface": null,
+												"install_ipobj": null,
+												"fwmaster": 0,
+												"install_port": 22,
+												"options": 0,
+												"interface_name": null,
+												"ip_name": null,
+												"ip": null,
+												"id_fwmaster": null
+											},
+											{
+												"id": 2,
+												"cluster": null,
+												"fwcloud": 1,
+												"name": "Firewall-02",
+												"comment": null,
+												"created_at": "2019-05-15T10:34:46.000Z",
+												"updated_at": "2019-05-15T10:34:47.000Z",
+												"compiled_at": null,
+												"installed_at": null,
+												"by_user": 1,
+												"status": 3,
+												"install_user": "",
+												"install_pass": "",
+												"save_user_pass": 0,
+												"install_interface": null,
+												"install_ipobj": null,
+												"fwmaster": 0,
+												"install_port": 22,
+												"options": 0,
+												"interface_name": null,
+												"ip_name": null,
+												"ip": null,
+												"id_fwmaster": null
+											}
+										]
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7001,
+											"msg": "Firewall access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get firewalls data by fwcloud.",
+				"summary": "Get firewalls in cloud.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallCloudRequest"
+							},
+							"example": {
+								"fwcloud": 1
+							}
+						}
+					}
+				}
+			}
+		},
+		"/firewall/cluster/get": {
+			"put": {
+				"operationId": "GetByCluster",
+				"responses": {
+					"200": {
+						"description": "Get firewalls in cluster",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/LegacyFirewallResponse"
+									},
+									"type": "array"
+								},
+								"examples": {
+									"Example 1": {
+										"value": [
+											{
+												"id": 1,
+												"cluster": 2,
+												"fwcloud": 1,
+												"name": "Firewall-01",
+												"comment": null,
+												"created_at": "2019-05-15T10:34:46.000Z",
+												"updated_at": "2019-05-15T10:34:47.000Z",
+												"compiled_at": null,
+												"installed_at": null,
+												"by_user": 1,
+												"status": 3,
+												"install_user": "",
+												"install_pass": "",
+												"save_user_pass": 0,
+												"install_interface": null,
+												"install_ipobj": null,
+												"fwmaster": 1,
+												"install_port": 22,
+												"options": 0,
+												"interface_name": null,
+												"ip_name": null,
+												"ip": null,
+												"id_fwmaster": null
+											},
+											{
+												"id": 2,
+												"cluster": 2,
+												"fwcloud": 1,
+												"name": "Firewall-02",
+												"comment": null,
+												"created_at": "2019-05-15T10:34:46.000Z",
+												"updated_at": "2019-05-15T10:34:47.000Z",
+												"compiled_at": null,
+												"installed_at": null,
+												"by_user": 1,
+												"status": 3,
+												"install_user": "",
+												"install_pass": "",
+												"save_user_pass": 0,
+												"install_interface": null,
+												"install_ipobj": null,
+												"fwmaster": 0,
+												"install_port": 22,
+												"options": 0,
+												"interface_name": null,
+												"ip_name": null,
+												"ip": null,
+												"id_fwmaster": null
+											}
+										]
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7001,
+											"msg": "Firewall access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get firewalls data by cluster.",
+				"summary": "Get firewalls in cluster.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallClusterRequest"
+							},
+							"example": {
+								"fwcloud": 1,
+								"cluster": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/firewall/clone": {
+			"put": {
+				"operationId": "Clone",
+				"responses": {
+					"200": {
+						"description": "Clone firewall",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallInsertResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"insertId": 7
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7001,
+											"msg": "Firewall access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new firewall cloning the one indicated in the request's parameters.",
+				"summary": "Clone firewall.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallCloneRequest"
+							},
+							"example": {
+								"fwcloud": 1,
+								"firewall": 5,
+								"name": "Firewall-CLONED",
+								"comment": "Comment for the cloned firewall.",
+								"node_id": 1
+							}
+						}
+					}
+				}
+			}
+		},
+		"/firewall/del": {
+			"put": {
+				"operationId": "Destroy",
+				"responses": {
+					"204": {
+						"description": "Delete firewall"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyFirewallErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7001,
+											"msg": "Firewall access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a firewall.",
+				"summary": "Delete firewall.",
+				"tags": [
+					"firewall"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyFirewallGetRequest"
+							},
+							"example": {
+								"fwcloud": 1,
+								"firewall": 7
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer": {
+			"post": {
+				"operationId": "Store",
+				"responses": {
+					"204": {
+						"description": "New customer"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1004,
+											"msg": "Already exists with the same id"
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1005,
+											"msg": "Already exists with the same name"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Create new customer. Customers allow group users.",
+				"summary": "New customer.",
+				"tags": [
+					"customer"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyCustomerUpsertRequest"
+							},
+							"example": {
+								"customer": 1,
+								"name": "FWCloud.net",
+								"addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain",
+								"phone": "+34 966 446 046",
+								"email": "info@fwcloud.net",
+								"web": "https://fwcloud.net"
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"operationId": "Update",
+				"responses": {
+					"204": {
+						"description": "Update customer"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1005,
+											"msg": "Already exists with the same name"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Update customer's information.",
+				"summary": "Update customer.",
+				"tags": [
+					"customer"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyCustomerUpsertRequest"
+							},
+							"example": {
+								"customer": 2,
+								"name": "FWCloud.net",
+								"addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain",
+								"phone": "+34 966 446 046",
+								"email": "info@fwcloud.net",
+								"web": "https://www.fwcloud.net"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer/get": {
+			"put": {
+				"operationId": "Get",
+				"responses": {
+					"200": {
+						"description": "Get customer data",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerGetResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"id": 2,
+											"name": "FWCloud.net",
+											"addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain",
+											"phone": "+34 966 446 046",
+											"email": "info@fwcloud.net",
+											"web": "https://fwcloud.net",
+											"created_at": "2019-05-13T10:40:36.000Z",
+											"updated_at": "2019-05-13T10:40:36.000Z",
+											"created_by": 0,
+											"updated_by": 0
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get customer data. If `customer` is empty, returns all customers with id and name.",
+				"summary": "Get customer data.",
+				"tags": [
+					"customer"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyCustomerRequest"
+							},
+							"example": {
+								"customer": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer/del": {
+			"put": {
+				"operationId": "Delete",
+				"responses": {
+					"204": {
+						"description": "Delete customer"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Legacy endpoint restriction",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerRestrictionResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"restrictions": {
+												"CustomerHasUsers": true
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete customer from the database.",
+				"summary": "Delete customer.",
+				"tags": [
+					"customer"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyCustomerRequest"
+							},
+							"example": {
+								"customer": 1
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer/restricted": {
+			"put": {
+				"operationId": "Restricted",
+				"responses": {
+					"204": {
+						"description": "No deletion restrictions"
+					},
+					"403": {
+						"description": "Legacy endpoint restriction",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyCustomerRestrictionResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"restrictions": {
+												"CustomerHasUsers": true
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Check that there are no restrictions for customer deletion.",
+				"summary": "Restrictions for customer deletion.",
+				"tags": [
+					"customer"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyCustomerRequest"
+							},
+							"example": {
+								"customer": 10
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster": {
+			"post": {
+				"operationId": "Store",
+				"responses": {
+					"200": {
+						"description": "New cluster",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterStoreResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"insertId": 1,
+											"loData": {}
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7002,
+											"msg": "Tree node access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new cluster of firewalls.",
+				"summary": "New cluster.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterStoreRequest"
+							},
+							"example": {
+								"fwcloud": 3,
+								"node_id": 391,
+								"clusterData": {
+									"name": "Cluster-01",
+									"options": 3,
+									"fwnodes": [
+										{
+											"name": "node1",
+											"comment": null,
+											"install_user": null,
+											"install_pass": null,
+											"save_user_pass": 1,
+											"install_interface": null,
+											"install_ipobj": null,
+											"fwmaster": 1,
+											"install_port": 22
+										},
+										{
+											"name": "node2",
+											"comment": null,
+											"install_user": null,
+											"install_pass": null,
+											"save_user_pass": 1,
+											"install_interface": null,
+											"install_ipobj": null,
+											"fwmaster": 0,
+											"install_port": 22
+										},
+										{
+											"name": "node3",
+											"comment": null,
+											"install_user": null,
+											"install_pass": null,
+											"save_user_pass": 1,
+											"install_interface": null,
+											"install_ipobj": null,
+											"fwmaster": 0,
+											"install_port": 22
+										}
+									]
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"operationId": "Update",
+				"responses": {
+					"204": {
+						"description": "Update cluster"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Update cluster data.",
+				"summary": "Update cluster.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterUpdateRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"clusterData": {
+									"cluster": 5,
+									"name": "Cluster-UPDATED",
+									"options": 3
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/get": {
+			"put": {
+				"operationId": "Get",
+				"responses": {
+					"200": {
+						"description": "Get cluster data",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"id": 2,
+											"fwcloud": 2,
+											"name": "Cluster-02",
+											"comment": null,
+											"created_at": "2019-05-17T11:47:00.000Z",
+											"updated_at": "2019-05-17T11:47:00.000Z",
+											"created_by": 0,
+											"updated_by": 0,
+											"nodes": [
+												{
+													"id": 10,
+													"cluster": 2,
+													"name": "node1",
+													"comment": null,
+													"status": 3,
+													"install_user": "",
+													"install_pass": "",
+													"save_user_pass": 1,
+													"install_interface": null,
+													"install_ipobj": null,
+													"fwmaster": 1,
+													"install_port": 22,
+													"interface_name": null,
+													"ip_name": null,
+													"ip": null,
+													"options": 3
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7002,
+											"msg": "Cluster access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get cluster data.",
+				"summary": "Get cluster data.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterGetRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"cluster": 5
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/cloud/get": {
+			"put": {
+				"operationId": "GetByCloud",
+				"responses": {
+					"200": {
+						"description": "Get cloud clusters",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/LegacyClusterSummary"
+									},
+									"type": "array"
+								},
+								"examples": {
+									"Example 1": {
+										"value": [
+											{
+												"id": 1,
+												"fwcloud": 2,
+												"name": "Cluster-01",
+												"comment": null,
+												"created_at": "2019-05-17T11:46:57.000Z",
+												"updated_at": "2019-05-17T11:46:57.000Z",
+												"created_by": 0,
+												"updated_by": 0
+											},
+											{
+												"id": 2,
+												"fwcloud": 2,
+												"name": "Cluster-02",
+												"comment": null,
+												"created_at": "2019-05-17T11:47:00.000Z",
+												"updated_at": "2019-05-17T11:47:00.000Z",
+												"created_by": 0,
+												"updated_by": 0
+											}
+										]
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7002,
+											"msg": "Cluster access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all the cluster data for the indicated fwcloud.",
+				"summary": "Get cloud clusters.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterGetByCloudRequest"
+							},
+							"example": {
+								"fwcloud": 2
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/fwtocluster": {
+			"put": {
+				"operationId": "FirewallToCluster",
+				"responses": {
+					"200": {
+						"description": "Firewall converted to cluster",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterConvertResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"insertId": 6
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Convert a firewall into a new cluster.",
+				"summary": "Firewall to cluster.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterFirewallToClusterRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"firewall": 5,
+								"node_id": 391
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/clustertofw": {
+			"put": {
+				"operationId": "ClusterToFirewall",
+				"responses": {
+					"200": {
+						"description": "Cluster converted to firewall",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterConvertResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"insertId": 12
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Convert a cluster into a single firewall.",
+				"summary": "Cluster to firewall.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterClusterToFirewallRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"cluster": 6,
+								"node_id": 391
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/clone": {
+			"put": {
+				"operationId": "Clone",
+				"responses": {
+					"200": {
+						"description": "Clone cluster",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterCloneResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"insertId": 7
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 7002,
+											"msg": "Tree node access not allowed"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Clone an existing cluster.",
+				"summary": "Clone cluster.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterCloneRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"cluster": 5,
+								"name": "Cluster-CLONED",
+								"comment": "Comment for cloned cluster.",
+								"node_id": 391
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/restricted": {
+			"put": {
+				"operationId": "Restricted",
+				"responses": {
+					"204": {
+						"description": "No deletion restrictions"
+					},
+					"403": {
+						"description": "Legacy endpoint restriction",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterRestrictionsResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"result": true,
+											"restrictions": {
+												"FirewallHasInterfaces": true
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Check if there are restrictions for cluster deletion.",
+				"summary": "Restrictions for cluster deletion.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterGetRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"cluster": 5
+							}
+						}
+					}
+				}
+			}
+		},
+		"/cluster/del": {
+			"put": {
+				"operationId": "Delete",
+				"responses": {
+					"204": {
+						"description": "Delete cluster"
+					},
+					"400": {
+						"description": "Legacy endpoint error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LegacyClusterErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"fwcErr": 1002,
+											"msg": "Not found"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete cluster.",
+				"summary": "Delete cluster.",
+				"tags": [
+					"cluster"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LegacyClusterGetRequest"
+							},
+							"example": {
+								"fwcloud": 2,
+								"cluster": 5
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/"
+		}
+	],
+	"tags": [
+		{
+			"name": "user",
+			"description": "Legacy endpoints under src/routes/user"
+		},
+		{
+			"name": "customer",
+			"description": "Legacy endpoints under src/routes/user/customer.js"
+		},
+		{
+			"name": "firewall",
+			"description": "Firewall endpoints under src/routes/firewall plus src/controllers/firewalls/firewall.controller.ts"
+		},
+		{
+			"name": "cluster",
+			"description": "Legacy endpoints under src/routes/firewall/cluster.js"
+		},
+		{
+			"name": "fwclouds",
+			"description": "Endpoints under src/controllers/fwclouds/fwcloud.controller.ts"
+		},
+		{
+			"name": "fwcloud",
+			"description": "Legacy endpoints under src/routes/fwcloud"
+		},
+		{
+			"name": "ping",
+			"description": "Non-legacy ping endpoint"
+		}
+	],
+	"x-tagGroups": [
+		{
+			"name": "user",
+			"tags": [
+				"user",
+				"customer"
+			]
+		},
+		{
+			"name": "firewall",
+			"tags": [
+				"firewall",
+				"cluster"
+			]
+		},
+		{
+			"name": "fwclouds",
+			"tags": [
+				"fwclouds"
+			]
+		},
+		{
+			"name": "fwcloud",
+			"tags": [
+				"fwcloud"
+			]
+		},
+		{
+			"name": "ping",
+			"tags": [
+				"ping"
+			]
+		}
+	]
+}

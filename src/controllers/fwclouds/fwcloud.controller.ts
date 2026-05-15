@@ -21,7 +21,7 @@
 */
 
 import { Controller } from '../../fonaments/http/controller';
-import { Request } from 'express';
+import { Request as ExpressRequest } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { FwCloudService } from '../../models/fwcloud/fwcloud.service';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
@@ -30,18 +30,119 @@ import { Validate } from '../../decorators/validate.decorator';
 import { FwCloudPolicy } from '../../policies/fwcloud.policy';
 import { FwCloudControllerStoreDto } from './dtos/store.dto';
 import { FwCloudControllerUpdateDto } from './dtos/update.dto';
+import {
+  Body,
+  Example,
+  Get,
+  OperationId,
+  Path,
+  Post,
+  Put,
+  Request,
+  Response,
+  Route,
+  SuccessResponse,
+  Tags,
+} from 'tsoa';
 
 const fwcError = require('../../utils/error_table');
 
+interface FwCloudLimitErrorResponse {
+  fwcErr?: number;
+  msg?: string;
+}
+
+interface FwCloudNotFoundResponse {
+  message: string;
+}
+
+interface FwCloudDataResponse {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  created_by: number;
+  updated_by: number;
+  locked_at: string | null;
+  locked_by: number | null;
+  locked: number;
+  image: string;
+  comment: string;
+}
+
+interface FwCloudColorsResponse {
+  color: string;
+  count: number;
+}
+
+interface FwCloudConfigDataResponse {
+  availablecommunications: string[];
+  auditLogs: {
+    internal: {
+      enabled: boolean;
+      cron: {
+        enabled: boolean;
+      };
+      worker: {
+        enabled: boolean;
+      };
+      importer: {
+        enabled: boolean;
+      };
+    };
+  };
+}
+
+interface FwCloudApiEnvelopeResponse<TData> {
+  status: number;
+  response: string;
+  message: string;
+  data: TData;
+}
+
+@Route('')
+@Tags('fwclouds')
 export class FwCloudController extends Controller {
   protected _fwCloudService: FwCloudService;
 
-  public async make(request: Request): Promise<void> {
+  public async make(request: ExpressRequest): Promise<void> {
     this._fwCloudService = await this._app.getService<FwCloudService>(FwCloudService.name);
   }
 
+  /**
+   * Create a new FWCloud.
+   * @example requestBody { "name": "FWCloud-01", "image": "", "comment": "Main customer cloud" }
+   */
+  @OperationId('New FwCloud.')
+  @Post('fwclouds')
+  @SuccessResponse('201', 'Created')
+  @Example<FwCloudApiEnvelopeResponse<FwCloudDataResponse>>({
+    status: 201,
+    response: 'Created',
+    message: '',
+    data: {
+      id: 1,
+      name: 'FWCloud-01',
+      created_at: '2019-05-14T11:37:19.000Z',
+      updated_at: '2019-05-14T11:37:19.000Z',
+      created_by: 0,
+      updated_by: 0,
+      locked_at: null,
+      locked_by: null,
+      locked: 0,
+      image: '',
+      comment: 'Main customer cloud',
+    },
+  })
+  @Response<FwCloudLimitErrorResponse>(403, 'FWCloud limit reached', {
+    fwcErr: 7000,
+    msg: 'FWCloud limit reached',
+  })
   @Validate(FwCloudControllerStoreDto)
-  public async store(request: Request): Promise<ResponseBuilder> {
+  public async store(
+    @Request() request: ExpressRequest,
+    @Body() requestBody: FwCloudControllerStoreDto,
+  ): Promise<ResponseBuilder> {
     let errorLimit: boolean = false;
 
     (await FwCloudPolicy.store(request.session.user)).authorize();
@@ -65,8 +166,40 @@ export class FwCloudController extends Controller {
     }
   }
 
+  /**
+   * Update an existing FWCloud.
+   * @example requestBody { "name": "FWCloud-01-Updated", "image": "", "comment": "Updated description" }
+   */
+  @OperationId('Update FwCloud.')
+  @Put('fwclouds/{fwcloud}')
+  @SuccessResponse('200', 'Updated')
+  @Example<FwCloudApiEnvelopeResponse<FwCloudDataResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      id: 1,
+      name: 'FWCloud-01-Updated',
+      created_at: '2019-05-14T11:37:19.000Z',
+      updated_at: '2019-05-14T11:57:06.000Z',
+      created_by: 0,
+      updated_by: 0,
+      locked_at: null,
+      locked_by: null,
+      locked: 0,
+      image: '',
+      comment: 'Updated description',
+    },
+  })
+  @Response<FwCloudNotFoundResponse>(404, 'FWCloud not found', {
+    message: 'FWCloud not found',
+  })
   @Validate(FwCloudControllerUpdateDto)
-  public async update(request: Request): Promise<ResponseBuilder> {
+  public async update(
+    @Request() request: ExpressRequest,
+    @Body() requestBody: FwCloudControllerUpdateDto,
+    @Path() fwcloud: number,
+  ): Promise<ResponseBuilder> {
     (await FwCloudPolicy.update(request.session.user)).authorize();
 
     let fwCloud: FwCloud = await FwCloud.findOneOrFail({
@@ -82,8 +215,30 @@ export class FwCloudController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(fwCloud);
   }
 
+  /**
+   * Get FWCloud color usage details.
+   */
+  @OperationId('Get FwCloud Colors.')
+  @Get('fwclouds/{fwcloud}/colors')
+  @SuccessResponse('200', 'Color usage')
+  @Example<FwCloudApiEnvelopeResponse<FwCloudColorsResponse[]>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: [
+      { color: '#4CAF50', count: 14 },
+      { color: '#2196F3', count: 6 },
+      { color: '#FF9800', count: 2 },
+    ],
+  })
+  @Response<FwCloudNotFoundResponse>(404, 'FWCloud not found', {
+    message: 'FWCloud not found',
+  })
   @Validate()
-  public async colors(request: Request): Promise<ResponseBuilder> {
+  public async colors(
+    @Request() request: ExpressRequest,
+    @Path() fwcloud: number,
+  ): Promise<ResponseBuilder> {
     const fwCloud: FwCloud = await FwCloud.findOneOrFail({
       where: { id: parseInt(String(request.params.fwcloud)) },
     });
@@ -95,6 +250,28 @@ export class FwCloudController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(colors);
   }
 
+  /**
+   * Get global FWCloud-related configuration.
+   */
+  @OperationId('Get FwCloud Config.')
+  @Get('config')
+  @SuccessResponse('200', 'Configuration')
+  @Example<FwCloudApiEnvelopeResponse<FwCloudConfigDataResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      availablecommunications: ['agent', 'ssh'],
+      auditLogs: {
+        internal: {
+          enabled: true,
+          cron: { enabled: true },
+          worker: { enabled: true },
+          importer: { enabled: true },
+        },
+      },
+    },
+  })
   @Validate()
   public async getConfig(): Promise<ResponseBuilder> {
     let availablecommunications: string[] = ['agent'];

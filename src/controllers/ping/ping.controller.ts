@@ -21,13 +21,37 @@
 */
 
 import { Controller } from '../../fonaments/http/controller';
-import { Request } from 'express';
+import { Request as ExpressRequest } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { Validate } from '../../decorators/validate.decorator';
+import { Example, OperationId, Put, Request, Response, Route, SuccessResponse, Tags } from 'tsoa';
 
+interface PingApiEnvelopeResponse {
+  status: number;
+  response: string;
+  message: string;
+  data: null;
+}
+
+@Route('ping')
+@Tags('ping')
 export class PingController extends Controller {
+  /**
+   * Keep current authenticated session alive.
+   * @summary Session keepalive ping.
+   */
   @Validate()
-  public async ping(request: Request): Promise<ResponseBuilder> {
+  @OperationId('Ping session keepalive.')
+  @Put('')
+  @SuccessResponse('200', 'Ping processed')
+  @Example<PingApiEnvelopeResponse>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: null,
+  })
+  @Response<{ message: string }>('default', 'Unexpected error')
+  public async ping(@Request() request: ExpressRequest): Promise<ResponseBuilder> {
     return ResponseBuilder.buildResponse().status(200);
   }
 }
