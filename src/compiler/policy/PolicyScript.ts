@@ -91,7 +91,7 @@ export class PolicyScript {
     this.stream.write(
       'greeting_msg() {\n' +
         `  log "FWCloud.net - Loading firewall policy generated: ${Date()} "\n` +
-        '}\n\n',
+        '}\n',
     );
     return;
   }
