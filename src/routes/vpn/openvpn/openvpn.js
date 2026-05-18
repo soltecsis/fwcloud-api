@@ -85,6 +85,7 @@ const OPENVPN_2FA_REQUIRED_OPTIONS = {
 	scriptSecurity: { name: 'script-security', arg: '2' },
 	authUserPassOptional: { name: 'auth-user-pass-optional', arg: '' },
 	authUserPassVerify: { name: 'auth-user-pass-verify', arg: '/etc/openvpn/bin/check_2fa.sh via-file' },
+	authGenToken: { name: 'auth-gen-token', arg: '86400' },
 	setenvServerCn: { name: 'setenv' }
 };
 
@@ -431,6 +432,7 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.scriptSecurity);
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional);
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify);
+	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authGenToken);
 	await ensureOption({
 		name: OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
 		arg: `SERVER_CN ${serverCN}`,
@@ -448,6 +450,7 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			 OR name=?
 			 OR name=?
 			 OR name=?
+			 OR name=?
 			 OR (name=? AND arg LIKE ?)
 			 )`,
 		[
@@ -456,6 +459,7 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			OPENVPN_2FA_REQUIRED_OPTIONS.scriptSecurity.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.authGenToken.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
 			'SERVER_CN %'
 		]
