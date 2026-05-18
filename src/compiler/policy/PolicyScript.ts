@@ -58,6 +58,7 @@ export class PolicyScript {
   private policyCompiler: AvailablePolicyCompilers;
   private policyCompilationMode: PolicyCompilationMode;
   private restoreExecutions: Map<string, number> = new Map();
+  private restoreFilterPolicies: Set<string> = new Set();
   private path: string;
   private stream: any;
 
@@ -465,15 +466,28 @@ export class PolicyScript {
 
     const executions = this.restoreExecutions.get(restoreBuffer.restoreCommand) ?? 0;
     this.restoreExecutions.set(restoreBuffer.restoreCommand, executions + 1);
+    const chainPolicies = this.getIptablesRestoreChainPolicies(restoreBuffer);
 
     return (
       `cat <<'FWC_IPTABLES_RESTORE' | ${restoreBuffer.restoreCommand}` +
       `${executions > 0 ? ' --noflush' : ''}\n` +
       `*${restoreBuffer.table}\n\n` +
+      `${chainPolicies.length > 0 ? `${chainPolicies.join('\n')}\n\n` : ''}` +
       `${restoreBuffer.lines.join('\n')}\n\n` +
       'COMMIT\n' +
       'FWC_IPTABLES_RESTORE\n'
     );
+  }
+
+  private getIptablesRestoreChainPolicies(restoreBuffer: {
+    restoreCommand: string;
+    table: string;
+  }): string[] {
+    if (restoreBuffer.table !== 'filter') return [];
+    if (this.restoreFilterPolicies.has(restoreBuffer.restoreCommand)) return [];
+
+    this.restoreFilterPolicies.add(restoreBuffer.restoreCommand);
+    return [':INPUT DROP [0:0]', ':OUTPUT DROP [0:0]', ':FORWARD DROP [0:0]'];
   }
 
   private formatOptimizedScriptRule(cs: string): string {
