@@ -40,7 +40,7 @@ policy_load_elapsed_msg() {
   ELAPSED_TIME_MS=`expr $END_TIME_MS - $POLICY_LOAD_START_TIME_MS`
   ELAPSED_TIME_S=`expr $ELAPSED_TIME_MS / 1000`
   ELAPSED_TIME_REST_MS=`expr $ELAPSED_TIME_MS % 1000`
-  printf 'Policy load completed in %s.%03ds\n' "$ELAPSED_TIME_S" "$ELAPSED_TIME_REST_MS"
+  printf '\nPolicy load completed in %s.%03ds\n' "$ELAPSED_TIME_S" "$ELAPSED_TIME_REST_MS"
 }
 
 policy_load_timestamp_ms() {

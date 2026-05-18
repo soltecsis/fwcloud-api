@@ -87,6 +87,9 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
       const script = fs.readFileSync(filePath, 'utf8');
       expect(script).to.contain("cat <<'FWC_IPTABLES_RESTORE' | $IPTABLES_RESTORE");
       expect(script).to.contain('*filter');
+      expect(script).to.contain(':INPUT DROP [0:0]');
+      expect(script).to.contain(':OUTPUT DROP [0:0]');
+      expect(script).to.contain(':FORWARD DROP [0:0]');
       expect(script).to.contain('-A INPUT -m conntrack --ctstate NEW -j ACCEPT');
       expect(script).to.contain('COMMIT');
     });
@@ -111,7 +114,7 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
 
       const script = fs.readFileSync(filePath, 'utf8');
       expect(script).to.match(
-        /cat <<'FWC_IPTABLES_RESTORE' \| \$IPTABLES_RESTORE\n\*filter\n\n# Rule 1 \(ID: \d+\)\n-A INPUT -m conntrack --ctstate NEW -j ACCEPT/,
+        /cat <<'FWC_IPTABLES_RESTORE' \| \$IPTABLES_RESTORE\n\*filter\n\n:INPUT DROP \[0:0\]\n:OUTPUT DROP \[0:0\]\n:FORWARD DROP \[0:0\]\n\n# Rule 1 \(ID: \d+\)\n-A INPUT -m conntrack --ctstate NEW -j ACCEPT/,
       );
     });
 
