@@ -7,7 +7,6 @@ on:
 
 jobs:
   openapi-docs:
-    if: github.repository_owner == 'soltecsis'
     name: Build OpenAPI static docs and deploy by FTPS
     runs-on: ubuntu-latest
 
@@ -52,7 +51,6 @@ jobs:
           path: src/openapi-docs/
 
       - name: Sync files by FTPS
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FWCLOUD_API_DOC_FTP_SERVER }}
