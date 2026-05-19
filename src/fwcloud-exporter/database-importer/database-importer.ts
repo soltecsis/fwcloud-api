@@ -313,14 +313,13 @@ export class DatabaseImporter {
     startedAt: Date,
     error: unknown = null,
   ): Promise<void> {
-    const finishedAt = new Date();
+    const endedAt = new Date();
     const status: ImportStatus = error ? 'failed' : 'success';
     await this.emitImportAuditEvent(auditEventService, {
       importId,
       phase: 'table_processed',
       entity: tableName,
       startedAt,
-      finishedAt,
       status,
       error,
       affectedCount: counts.inserted + counts.updated,
@@ -328,7 +327,7 @@ export class DatabaseImporter {
         tableName,
         tableIndex,
         tableCount,
-        durationMs: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
+        durationMs: Math.max(0, endedAt.getTime() - startedAt.getTime()),
         counts: {
           inserted: counts.inserted,
           updated: counts.updated,
@@ -352,7 +351,6 @@ export class DatabaseImporter {
       phase: 'transaction',
       entity: IMPORT_AUDIT_ENTITY,
       startedAt,
-      finishedAt: new Date(),
       status: committed ? 'success' : 'failed',
       error,
       affectedCount: totals.inserted + totals.updated,
@@ -388,7 +386,6 @@ export class DatabaseImporter {
       phase: 'final_summary',
       entity: IMPORT_AUDIT_ENTITY,
       startedAt: input.startedAt,
-      finishedAt: new Date(),
       status: input.status,
       error: input.error,
       affectedCount: input.totals.inserted + input.totals.updated,
@@ -412,7 +409,6 @@ export class DatabaseImporter {
       phase: ImportPhase;
       entity: string;
       startedAt: Date;
-      finishedAt?: Date;
       status: ImportStatus;
       affectedCount: number;
       error?: unknown;
@@ -429,7 +425,6 @@ export class DatabaseImporter {
         operation: IMPORT_OPERATION,
         entity: input.entity,
         startedAt: input.startedAt,
-        finishedAt: input.finishedAt ?? new Date(),
         status: input.status,
         error: input.error,
         affectedCount: input.affectedCount,

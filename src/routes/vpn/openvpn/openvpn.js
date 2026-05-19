@@ -85,6 +85,7 @@ const OPENVPN_2FA_REQUIRED_OPTIONS = {
 	scriptSecurity: { name: 'script-security', arg: '2' },
 	authUserPassOptional: { name: 'auth-user-pass-optional', arg: '' },
 	authUserPassVerify: { name: 'auth-user-pass-verify', arg: '/etc/openvpn/bin/check_2fa.sh via-file' },
+	authGenToken: { name: 'auth-gen-token', arg: '86400' },
 	setenvServerCn: { name: 'setenv' }
 };
 
@@ -431,6 +432,7 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.scriptSecurity);
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional);
 	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify);
+	await ensureOption(OPENVPN_2FA_REQUIRED_OPTIONS.authGenToken);
 	await ensureOption({
 		name: OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
 		arg: `SERVER_CN ${serverCN}`,
@@ -439,13 +441,13 @@ const ensureServer2FAOpenVPNOptions = async (dbCon, openvpnId, serverCN) => {
 };
 
 const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
-	console.log(`Removing 2FA options for OpenVPN configuration ${openvpnId}`);
 	await queryDb(
 		dbCon,
 		`DELETE FROM openvpn_opt
 		 WHERE openvpn=?
 			 AND (
 			 name=?
+			 OR name=?
 			 OR name=?
 			 OR name=?
 			 OR name=?
@@ -457,6 +459,7 @@ const removeServer2FAOpenVPNOptions = async (dbCon, openvpnId) => {
 			OPENVPN_2FA_REQUIRED_OPTIONS.scriptSecurity.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassOptional.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.authUserPassVerify.name,
+			OPENVPN_2FA_REQUIRED_OPTIONS.authGenToken.name,
 			OPENVPN_2FA_REQUIRED_OPTIONS.setenvServerCn.name,
 			'SERVER_CN %'
 		]
@@ -514,6 +517,27 @@ const buildClient2FASecretFile = (secret) => {
 		'" DISALLOW_REUSE',
 		'" RATE_LIMIT 3 30'
 	].join('\n');
+};
+
+const installOpenVPNClientCCD = async (
+	dbCon,
+	fwcloudId,
+	clientOpenvpnId,
+	parentOpenvpnId,
+	crt,
+	communication,
+	channel
+) => {
+	const openvpnOpt = await OpenVPN.getOptData(dbCon, parentOpenvpnId, 'client-config-dir');
+	if (!openvpnOpt) {
+		throw fwcError.VPN_NOT_FOUND_CFGDIR;
+	}
+
+	const cfgDump = await OpenVPN.dumpCfg(dbCon, fwcloudId, clientOpenvpnId);
+	await communication.installOpenVPNClientConfigs(openvpnOpt.arg, [{
+		content: cfgDump.ccd,
+		name: crt.cn
+	}], channel);
 };
 
 /**
@@ -1408,6 +1432,16 @@ router.put('/2fa/client', async (req, res, next) => {
 			const preparedTargets = await prepareOpenVPN2FATargets(req, targetFirewalls, channel, clusterName);
 			for (const { firewall: targetFirewall, communication } of preparedTargets) {
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN CCD for client '${crt.cn}' on '${targetFirewall.name}'`);
+				await installOpenVPNClientCCD(
+					req.dbCon,
+					req.body.fwcloud,
+					req.body.openvpn,
+					req.openvpn.openvpn,
+					crt,
+					communication,
+					channel
+				);
 				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA secret for client '${crt.cn}' on '${targetFirewall.name}'`);
 				await communication.installOpenVPNServerConfigs(getOpenVPN2FASecretDir(serverCN), [{
 					name: getOpenVPN2FASecretFilename(serverCN, crt.cn),

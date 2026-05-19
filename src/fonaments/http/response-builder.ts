@@ -32,15 +32,17 @@ import { classToPlain } from 'class-transformer';
 import * as stream from 'stream';
 
 type Attachment = FileAttached | ContentAttached;
+type ResponseObject = Record<string, unknown>;
+type ResponseData = ResponseObject | ResponseObject[] | null;
 
 interface ResponseBody {
   status: number;
   response: string;
 
-  data?: object | Array<object>;
+  data?: ResponseData;
 
   message: string;
-  errors?: object;
+  errors?: ResponseObject;
   stack?: Array<string>;
 }
 
@@ -55,7 +57,7 @@ interface ContentAttached {
 }
 
 interface DataPayload {
-  data: object | Array<object>;
+  data: ResponseData;
 }
 
 function isFileAttached(value: Attachment): value is FileAttached {
@@ -68,7 +70,7 @@ function isContentAttached(value: Attachment): value is ContentAttached {
 
 export interface ErrorPayload {
   message: string;
-  errors?: object;
+  errors?: ResponseObject;
   stack?: Array<string>;
 }
 
@@ -77,7 +79,7 @@ export class ResponseBuilder {
   protected _response: Response;
 
   protected _status: number;
-  protected _payload: object;
+  protected _payload: unknown;
   protected _error: HttpException;
 
   protected _attachment: Attachment;
@@ -99,7 +101,7 @@ export class ResponseBuilder {
     return this;
   }
 
-  public body(payload: any): ResponseBuilder {
+  public body(payload: unknown): ResponseBuilder {
     if (this._payload) {
       throw new Error('Message already defined for the given response');
     }
@@ -205,7 +207,7 @@ export class ResponseBuilder {
     return this.buildMessage();
   }
 
-  protected buildPayload(payload: any): ErrorPayload | DataPayload {
+  protected buildPayload(payload: unknown): ErrorPayload | DataPayload {
     if (this._error) {
       return this.buildErrorPayload(this._error);
     }
@@ -214,21 +216,28 @@ export class ResponseBuilder {
       : this.buildDataPayload(payload);
   }
 
-  protected buildDataPayload(payload: object): DataPayload {
+  protected buildDataPayload(payload: unknown): DataPayload {
     if (payload === null || payload === undefined) {
       return { data: null };
     }
 
-    const data: object = isResponsable(payload) ? payload.toResponse() : payload;
+    const data: ResponseObject = isResponsable(payload)
+      ? (payload.toResponse() as ResponseObject)
+      : (payload as ResponseObject);
 
     return { data: data };
   }
 
-  protected buildArrayDataPayload(payload: Array<any>): DataPayload {
-    const result: Array<object> = [];
+  protected buildArrayDataPayload(payload: Array<unknown>): DataPayload {
+    const result: ResponseObject[] = [];
 
     for (let i = 0; i < payload.length; i++) {
-      result.push(isResponsable(payload[i]) ? payload[i].toResponse() : classToPlain(payload[i]));
+      const item = payload[i];
+      result.push(
+        isResponsable(item)
+          ? (item.toResponse() as ResponseObject)
+          : (classToPlain(item) as ResponseObject),
+      );
     }
 
     return { data: result };

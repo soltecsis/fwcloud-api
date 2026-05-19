@@ -43,7 +43,7 @@ export class BackupRestoreCommand extends Command {
       await backupService.restore(backup, eventEmitter);
       await auditLogService.logMutation({
         call: 'CLI backup:restore',
-        description: `cli=backup:restore | status=success | backup=${backup.id}`,
+        description: `CLI command. Backup restored with id ${backup.id}.`,
         userName: operator,
         data: {
           source: 'cli',
@@ -55,7 +55,7 @@ export class BackupRestoreCommand extends Command {
     } catch (error) {
       await auditLogService.logMutation({
         call: 'CLI backup:restore',
-        description: `cli=backup:restore | status=error | backup=${backup.id}`,
+        description: `CLI command. Backup restore failed for id ${backup.id}.`,
         userName: operator,
         data: {
           source: 'cli',

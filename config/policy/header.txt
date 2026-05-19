@@ -15,6 +15,8 @@ LSMOD=`which lsmod 2>/dev/null`
 MODPROBE=`which modprobe 2>/dev/null`
 IPTABLES=`which iptables 2>/dev/null`
 IP6TABLES=`which ip6tables 2>/dev/null`
+IPTABLES_RESTORE=`which iptables-restore 2>/dev/null`
+IP6TABLES_RESTORE=`which ip6tables-restore 2>/dev/null`
 NFT=`which nft 2>/dev/null`
 IP=`which ip 2>/dev/null`
 SYSTEMCTL=`which systemctl 2>/dev/null`
@@ -32,11 +34,26 @@ log() {
   which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"
 }
 
+policy_load_elapsed_msg() {
+  test -z "$POLICY_LOAD_START_TIME_MS" && return
+  END_TIME_MS=`policy_load_timestamp_ms`
+  ELAPSED_TIME_MS=`expr $END_TIME_MS - $POLICY_LOAD_START_TIME_MS`
+  ELAPSED_TIME_S=`expr $ELAPSED_TIME_MS / 1000`
+  ELAPSED_TIME_REST_MS=`expr $ELAPSED_TIME_MS % 1000`
+  printf '\nPolicy load completed in %s.%03ds\n' "$ELAPSED_TIME_S" "$ELAPSED_TIME_REST_MS"
+}
+
+policy_load_timestamp_ms() {
+  LC_ALL=C date +%s%3N
+}
+
 check_cmds() {
   test -z "$LSMOD" && echo "ERROR: Command 'lsmod' not found." && exit 1
   test -z "$MODPROBE" && echo "ERROR: Command 'modprobe' not found." && exit 1
   test -z "$IP" && echo "ERROR: Command 'ip' not found." && exit 1
   test "$POLICY_COMPILER" = "IPTables" -a -z "$IPTABLES" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'iptables' not found." && exit 1
+  test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IPTABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'iptables-restore'." && exit 1
+  test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IP6TABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'ip6tables-restore'." && exit 1
   test "$POLICY_COMPILER" = "NFTables" -a -z "$NFT" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'nft' not found." && exit 1
 }
 
@@ -47,7 +64,7 @@ iptables_default_filter_policy() {
     $IPTABLES  -P FORWARD $1
   fi
 
-  if [ ! -z "$IPTABLES6" -a -f "$IPTABLES6" -a -x "$IPTABLES6" ]; then
+  if [ ! -z "$IP6TABLES" -a -f "$IP6TABLES" -a -x "$IP6TABLES" ]; then
     $IP6TABLES -P OUTPUT  $1
     $IP6TABLES -P INPUT   $1
     $IP6TABLES -P FORWARD $1
@@ -84,7 +101,7 @@ reset_iptables_v4() {
 }
 
 reset_iptables_v6() {
-  if [ ! -z "$IPTABLES6" -a -f "$IPTABLES6" -a -x "$IPTABLES6" ]; then
+  if [ ! -z "$IP6TABLES" -a -f "$IP6TABLES" -a -x "$IP6TABLES" ]; then
     IPv6_TABLES="filter nat mangle"
     for table in $IPv6_TABLES; do
       $IP6TABLES -t $table -L -n | while read c chain rest; do
@@ -198,6 +215,9 @@ status() {
 policy_apply() {
   load_nat_modules
   policy_empty
-  policy_load
-  options_load
+  if ! policy_load || ! options_load; then
+    echo "ERROR: Policy load failed"
+    iptables_default_filter_policy ACCEPT
+    return 1
+  fi
 }

@@ -23,7 +23,7 @@
 import * as fse from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
-import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { AuditLogService } from '../../../../src/models/audit/AuditLog.service';
@@ -52,7 +52,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       call: 'PUT /api/example',
       data: JSON.stringify({ sample: true }),
       description: 'audit log entry',
-      timestamp: new Date('2024-01-01T00:00:00Z'),
+      startedAt: new Date('2024-01-01T00:00:00Z'),
       sessionId: null,
       userId: null,
       userName: null,
@@ -100,16 +100,16 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('restricts non administrative users to their own session or user entries', async () => {
       const ownedBySession = await createAuditLog({
-        timestamp: new Date('2024-01-03T12:00:00Z'),
+        startedAt: new Date('2024-01-03T12:00:00Z'),
         sessionId: 88,
       });
       const ownedByUser = await createAuditLog({
-        timestamp: new Date('2024-01-02T12:00:00Z'),
+        startedAt: new Date('2024-01-02T12:00:00Z'),
         userId: 501,
         userName: 'current-user',
       });
       await createAuditLog({
-        timestamp: new Date('2024-01-04T12:00:00Z'),
+        startedAt: new Date('2024-01-04T12:00:00Z'),
         sessionId: 99,
         userId: 999,
         userName: 'foreign',
@@ -134,7 +134,7 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('applies date range and textual filters for administrative users', async () => {
       await createAuditLog({
-        timestamp: new Date('2024-01-01T08:00:00Z'),
+        startedAt: new Date('2024-01-01T08:00:00Z'),
         userName: 'Alpha Tester',
         fwCloudName: 'North Cloud',
         firewallName: 'North Firewall',
@@ -142,7 +142,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       });
 
       const expected = await createAuditLog({
-        timestamp: new Date('2024-01-05T10:00:00Z'),
+        startedAt: new Date('2024-01-05T10:00:00Z'),
         userName: 'Beta Operator',
         fwCloudName: 'Production Stack',
         firewallName: 'Prod Shield',
@@ -150,7 +150,7 @@ describe(describeName('AuditLogService unit suite'), () => {
       });
 
       await createAuditLog({
-        timestamp: new Date('2024-01-09T20:00:00Z'),
+        startedAt: new Date('2024-01-09T20:00:00Z'),
         userName: 'Gamma Engineer',
         fwCloudName: 'Staging Stack',
         firewallName: 'Stage Shield',
@@ -159,8 +159,8 @@ describe(describeName('AuditLogService unit suite'), () => {
 
       const { auditLogs, total } = await service.listAuditLogs({
         isAdmin: true,
-        timestampFrom: new Date('2024-01-03T00:00:00Z'),
-        timestampTo: new Date('2024-01-07T00:00:00Z'),
+        startedAtFrom: new Date('2024-01-03T00:00:00Z'),
+        startedAtTo: new Date('2024-01-07T00:00:00Z'),
         userName: 'beta',
         fwCloudName: 'production',
         firewallName: 'prod',
@@ -174,17 +174,17 @@ describe(describeName('AuditLogService unit suite'), () => {
 
     it('filters administrative requests by source IP address', async () => {
       await createAuditLog({
-        timestamp: new Date('2024-01-05T10:00:00Z'),
+        startedAt: new Date('2024-01-05T10:00:00Z'),
         sourceIp: '198.51.100.10',
       });
 
       const expected = await createAuditLog({
-        timestamp: new Date('2024-01-06T10:00:00Z'),
+        startedAt: new Date('2024-01-06T10:00:00Z'),
         sourceIp: '198.51.100.20',
       });
 
       await createAuditLog({
-        timestamp: new Date('2024-01-07T10:00:00Z'),
+        startedAt: new Date('2024-01-07T10:00:00Z'),
         sourceIp: '203.0.113.30',
       });
 
@@ -198,20 +198,43 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(auditLogs[0].id).to.equal(expected.id);
     });
 
+    it('returns summary entries without the serialized data payload', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({ payload: 'x'.repeat(10_000), durationMs: 1234 }),
+        durationMs: 1234,
+      });
+
+      const { auditLogs, total } = await service.listAuditLogs({
+        isAdmin: true,
+        take: 10,
+      });
+
+      expect(total).to.be.greaterThan(0);
+      const summary = auditLogs.find((entry) => entry.id === expected.id);
+      expect(summary).to.not.be.undefined;
+      expect(Object.prototype.hasOwnProperty.call(summary, 'data')).to.equal(false);
+      expect(summary?.durationMs).to.equal(1234);
+    });
+
     it('injects cursor guard clauses when paginating', async () => {
       const captured: unknown[] = [];
-      const getManyAndCountStub = sinon.stub().resolves([[], 0]);
+      const getCountStub = sinon.stub().resolves(0);
+      const getRawManyStub = sinon.stub().resolves([]);
 
       const fakeQueryBuilder = {
+        clone: sinon.stub().returnsThis(),
+        select: sinon.stub().returnsThis(),
+        addSelect: sinon.stub().returnsThis(),
         orderBy: sinon.stub().returnsThis(),
         addOrderBy: sinon.stub().returnsThis(),
         andWhere: sinon.stub().callsFake((condition: unknown) => {
           captured.push(condition);
           return fakeQueryBuilder;
         }),
-        skip: sinon.stub().returnsThis(),
-        take: sinon.stub().returnsThis(),
-        getManyAndCount: getManyAndCountStub,
+        limit: sinon.stub().returnsThis(),
+        offset: sinon.stub().returnsThis(),
+        getCount: getCountStub,
+        getRawMany: getRawManyStub,
       } as unknown as SelectQueryBuilder<AuditLog>;
 
       sinon
@@ -221,29 +244,29 @@ describe(describeName('AuditLogService unit suite'), () => {
       await service.listAuditLogs({
         isAdmin: true,
         cursor: {
-          timestamp: new Date('2024-01-10T12:00:00Z'),
+          startedAt: new Date('2024-01-10T12:00:00Z'),
           id: 321,
         },
       });
 
-      const guardClause = captured.find((entry) => entry instanceof Brackets) as
-        | Brackets
-        | undefined;
+      const guardClause = captured.find(
+        (entry) => typeof entry === 'string' && entry.includes('auditLog.id < :cursorId'),
+      ) as string | undefined;
       expect(guardClause).to.not.be.undefined;
 
-      const clauseSource = guardClause?.whereFactory?.toString() ?? '';
-      expect(clauseSource).to.contain('auditLog.timestamp < :cursorTimestamp');
-      expect(clauseSource).to.contain('auditLog.id < :cursorId');
-      expect(getManyAndCountStub.calledOnce).to.be.true;
+      expect(guardClause).to.contain('`auditLog`.`ts`');
+      expect(guardClause).to.contain('auditLog.id < :cursorId');
+      expect(getCountStub.calledOnce).to.be.true;
+      expect(getRawManyStub.calledOnce).to.be.true;
     });
 
     it('filters administrative requests by an explicit session identifier', async () => {
       await createAuditLog({
-        timestamp: new Date('2024-01-02T08:00:00Z'),
+        startedAt: new Date('2024-01-02T08:00:00Z'),
         sessionId: 11,
       });
       const expected = await createAuditLog({
-        timestamp: new Date('2024-01-03T08:00:00Z'),
+        startedAt: new Date('2024-01-03T08:00:00Z'),
         sessionId: 22,
       });
 
@@ -255,6 +278,74 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(total).to.equal(1);
       expect(auditLogs).to.have.length(1);
       expect(auditLogs[0].id).to.equal(expected.id);
+    });
+  });
+
+  describe('getAuditLog', () => {
+    it('returns full detail for an allowed entry and sanitizes parsed data', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({
+          method: 'PUT',
+          url: '/api/example',
+          query: {
+            token: 'plain-token',
+          },
+          body: {
+            name: 'visible',
+            password: 'plain-password',
+          },
+          context: {
+            source: 'unit-test',
+          },
+        }),
+        userId: 77,
+      });
+
+      const auditLog = await service.getAuditLog(expected.id, {
+        isAdmin: false,
+        userId: 77,
+        sessionId: null,
+      });
+
+      expect(auditLog?.id).to.equal(expected.id);
+      expect(auditLog?.data).to.be.a('string');
+
+      const data = service.parseAuditLogData(auditLog?.data) as {
+        query: { token: string };
+        body: { name: string; password: string };
+      };
+
+      expect(data.query.token).to.equal('[REDACTED]');
+      expect(data.body.name).to.equal('visible');
+      expect(data.body.password).to.equal('[REDACTED]');
+    });
+
+    it('returns null when a regular user requests a foreign entry', async () => {
+      const foreign = await createAuditLog({
+        userId: 999,
+        sessionId: 888,
+      });
+
+      const auditLog = await service.getAuditLog(foreign.id, {
+        isAdmin: false,
+        userId: 77,
+        sessionId: 66,
+      });
+
+      expect(auditLog).to.equal(null);
+    });
+
+    it('hydrates missing duration values from stored audit payloads while reading detail', async () => {
+      const expected = await createAuditLog({
+        data: JSON.stringify({ payload: true, durationMs: 3456 }),
+        durationMs: null,
+      });
+
+      const auditLog = await service.getAuditLog(expected.id, {
+        isAdmin: true,
+      });
+
+      expect(auditLog?.durationMs).to.equal(3456);
     });
   });
 
@@ -343,7 +434,7 @@ describe(describeName('AuditLogService unit suite'), () => {
     it('persists non-http mutation entries and redacts sensitive payload fields', async () => {
       const created = await service.logMutation({
         call: 'CRON openvpn.history.archive',
-        description: 'cron=openvpn.history.archive | status=success',
+        description: 'Cron task. Archived OpenVPN history.',
         userName: 'scheduler',
         data: {
           source: 'cron',
@@ -352,6 +443,7 @@ describe(describeName('AuditLogService unit suite'), () => {
           nested: {
             api_key: 'should-be-hidden',
           },
+          durationMs: 1250,
         },
       });
 
@@ -361,10 +453,30 @@ describe(describeName('AuditLogService unit suite'), () => {
 
       expect(persisted.call).to.equal('CRON openvpn.history.archive');
       expect(persisted.userName).to.equal('scheduler');
+      expect(persisted.status).to.equal(null);
+      expect(persisted.description).to.equal('Cron task. Archived OpenVPN history.');
+      expect(persisted.description).to.not.contain('status=');
       expect(payload.source).to.equal('cron');
       expect(payload.token).to.equal('[REDACTED]');
       expect(payload.password).to.equal('[REDACTED]');
       expect(payload.nested.api_key).to.equal('[REDACTED]');
+      expect(persisted.durationMs).to.equal(1250);
+    });
+
+    it('persists an optional HTTP status value', async () => {
+      const created = await service.logMutation({
+        call: 'PUT /api/example',
+        description: 'updated example',
+        status: 202,
+        data: {
+          durationMs: 99,
+        },
+      });
+
+      expect(created).to.not.be.null;
+      const persisted = await repository.findOneOrFail({ where: { id: created.id } });
+      expect(persisted.status).to.equal(202);
+      expect(persisted.durationMs).to.equal(99);
     });
 
     it('derives entity names and identifiers from firewall references', async () => {
@@ -385,7 +497,7 @@ describe(describeName('AuditLogService unit suite'), () => {
 
       const created = await service.logMutation({
         call: 'WORKER openvpn.status.sync',
-        description: 'worker=openvpn.status.sync | status=success',
+        description: 'Worker task. Synced OpenVPN status history.',
         firewallId: 91,
         data: { source: 'worker' },
       });

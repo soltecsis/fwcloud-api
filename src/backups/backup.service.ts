@@ -89,7 +89,7 @@ export class BackupService extends Service {
         logger().info(`BACKUP job completed: ${backup.id}`);
         await this._auditLogService.logMutation({
           call: 'CRON backups.create',
-          description: `cron=backups.create | status=success | backup=${backup.id}`,
+          description: `Cron task. Backup created with id ${backup.id}.`,
           data: {
             source: 'cron',
             task: 'backups.create',
@@ -103,7 +103,7 @@ export class BackupService extends Service {
         logger().error('BACKUP job ERROR: ', error.message);
         await this._auditLogService.logMutation({
           call: 'CRON backups.create',
-          description: 'cron=backups.create | status=error',
+          description: 'Cron task. Backup creation failed.',
           data: {
             source: 'cron',
             task: 'backups.create',
@@ -124,7 +124,7 @@ export class BackupService extends Service {
         logger().info(`BACKUPS removed: ${backups.length}`);
         await this._auditLogService.logMutation({
           call: 'CRON backups.retention',
-          description: `cron=backups.retention | status=success | removed=${backups.length}`,
+          description: `Cron task. Backup retention removed ${backups.length} backup${backups.length === 1 ? '' : 's'}.`,
           data: {
             source: 'cron',
             task: 'backups.retention',
@@ -137,7 +137,7 @@ export class BackupService extends Service {
         logger().error('BACKUP job ERROR: ', error.message);
         await this._auditLogService.logMutation({
           call: 'CRON backups.retention',
-          description: 'cron=backups.retention | status=error',
+          description: 'Cron task. Backup retention failed.',
           data: {
             source: 'cron',
             task: 'backups.retention',

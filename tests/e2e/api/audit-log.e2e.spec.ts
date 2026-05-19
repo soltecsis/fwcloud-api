@@ -67,7 +67,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
       call: 'PUT /api/example',
       data: JSON.stringify({ payload: true }),
       description: 'audit log entry',
-      timestamp: new Date('2024-01-01T00:00:00Z'),
+      startedAt: new Date('2024-01-01T00:00:00Z'),
       userId: null,
       userName: null,
       sessionId: null,
@@ -91,6 +91,18 @@ describe(describeName('AuditLog API E2E suite'), () => {
       .send({});
   };
 
+  const getAuditLog = (sessionId: string, id: number) => {
+    return request(app.express)
+      .get(_URL().getURL('auditlogs.show', { auditlog: id }))
+      .set('Cookie', [attachSession(sessionId)]);
+  };
+
+  const getScopedAuditLog = (sessionId: string, fwCloudId: number, id: number) => {
+    return request(app.express)
+      .get(_URL().getURL('fwclouds.auditlogs.show', { fwcloud: fwCloudId, auditlog: id }))
+      .set('Cookie', [attachSession(sessionId)]);
+  };
+
   beforeEach(async () => {
     app = testSuite.app;
     repository = db.getSource().manager.getRepository(AuditLog);
@@ -106,9 +118,31 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     userOwnedLog = await persistAuditLog({
       call: 'PUT /api/user-owned',
-      timestamp: new Date('2024-01-02T12:00:00Z'),
+      status: 200,
+      durationMs: 55,
+      data: JSON.stringify({
+        method: 'PUT',
+        url: '/api/user-owned?token=plain-token',
+        statusCode: 200,
+        durationMs: 55,
+        query: {
+          token: 'plain-token',
+        },
+        params: {
+          fwcloud: '101',
+        },
+        body: {
+          name: 'visible',
+          password: 'plain-password',
+        },
+        context: {
+          source: 'e2e',
+        },
+      }),
+      startedAt: new Date('2024-01-02T12:00:00Z'),
       userId: regularUser.id,
       userName: regularUser.username,
+      fwCloudId: 101,
       fwCloudName: 'User Cloud',
       firewallName: 'User Firewall',
       clusterName: 'User Cluster',
@@ -117,7 +151,8 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     sessionOwnedLog = await persistAuditLog({
       call: 'PUT /api/session-owned',
-      timestamp: new Date('2024-01-03T12:00:00Z'),
+      status: 202,
+      startedAt: new Date('2024-01-03T12:00:00Z'),
       sessionId: regularSessionNumeric,
       userId: regularUser.id,
       userName: null,
@@ -129,7 +164,10 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     adminOwnedLog = await persistAuditLog({
       call: 'PUT /api/admin-owned',
-      timestamp: new Date('2024-01-04T12:00:00Z'),
+      status: 204,
+      data: JSON.stringify({ payload: true, durationMs: 9876 }),
+      durationMs: 9876,
+      startedAt: new Date('2024-01-04T12:00:00Z'),
       userId: adminUser.id,
       userName: adminUser.username,
       fwCloudName: 'Production Cloud',
@@ -140,7 +178,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
     foreignLog = await persistAuditLog({
       call: 'PUT /api/foreign',
-      timestamp: new Date('2024-01-01T12:00:00Z'),
+      startedAt: new Date('2024-01-01T12:00:00Z'),
       userId: 9999,
       userName: 'foreign-user',
       fwCloudName: 'Foreign Cloud',
@@ -152,6 +190,9 @@ describe(describeName('AuditLog API E2E suite'), () => {
 
   it('rejects unauthenticated access attempts', async () => {
     await request(app.express).put(_URL().getURL('auditlogs.list')).expect(401);
+    await request(app.express)
+      .get(_URL().getURL('auditlogs.show', { auditlog: userOwnedLog.id }))
+      .expect(401);
   });
 
   it('limits regular users to their own entries and synchronises ownership details', async () => {
@@ -165,18 +206,47 @@ describe(describeName('AuditLog API E2E suite'), () => {
           sessionOwnedLog.id,
           userOwnedLog.id,
         ]);
+        expect(payload.auditLogs.map((entry: AuditLog) => entry.status)).to.deep.equal([202, 200]);
 
         payload.auditLogs.forEach((entry: AuditLog) => {
           expect(entry.userId).to.equal(regularUser.id);
           expect(entry.userName).to.equal(regularUser.username);
+          expect(entry).to.not.have.property('data');
         });
       });
   });
 
+  it('returns structured detail data for an allowed audit log', async () => {
+    await getAuditLog(regularSessionToken, userOwnedLog.id)
+      .expect(200)
+      .then((response) => {
+        const auditLog = response.body.data.auditLog;
+
+        expect(auditLog.id).to.equal(userOwnedLog.id);
+        expect(auditLog.data.body.name).to.equal('visible');
+        expect(auditLog.data.body.password).to.equal('[REDACTED]');
+        expect(auditLog.data.query.token).to.equal('[REDACTED]');
+        expect(auditLog.request.body.password).to.equal('[REDACTED]');
+        expect(auditLog.request.params.fwcloud).to.equal('101');
+        expect(auditLog.response.statusCode).to.equal(200);
+        expect(auditLog.response.durationMs).to.equal(55);
+        expect(auditLog.context.source).to.equal('e2e');
+      });
+  });
+
+  it('honours fwcloud scoped detail requests', async () => {
+    await getScopedAuditLog(adminSessionToken, 101, userOwnedLog.id).expect(200);
+    await getScopedAuditLog(adminSessionToken, 999, userOwnedLog.id).expect(404);
+  });
+
+  it('hides foreign detail entries from regular users', async () => {
+    await getAuditLog(regularSessionToken, foreignLog.id).expect(404);
+  });
+
   it('allows administrators to filter by text fields and time windows', async () => {
     await listAuditLogs(adminSessionToken, {
-      ts_from: '2024-01-04T00:00:00.000Z',
-      ts_to: '2024-01-05T00:00:00.000Z',
+      started_at_from: '2024-01-04T00:00:00.000Z',
+      started_at_to: '2024-01-05T00:00:00.000Z',
       user_name: 'admin',
       fwcloud_name: 'production',
       firewall_name: 'production',
@@ -189,6 +259,9 @@ describe(describeName('AuditLog API E2E suite'), () => {
         expect(payload.total).to.equal(1);
         expect(payload.auditLogs).to.have.length(1);
         expect(payload.auditLogs[0].id).to.equal(adminOwnedLog.id);
+        expect(payload.auditLogs[0].durationMs).to.equal(9876);
+        expect(payload.auditLogs[0].status).to.equal(204);
+        expect(payload.auditLogs[0]).to.not.have.property('data');
       });
   });
 
@@ -234,6 +307,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
           userOwnedLog.id,
           foreignLog.id,
         ]);
+        expect(payload.auditLogs[3].status).to.equal(null);
       });
   });
 
@@ -250,7 +324,7 @@ describe(describeName('AuditLog API E2E suite'), () => {
     ]);
 
     const pivot = baseline.auditLogs[baseline.auditLogs.length - 2];
-    const cursor = `${pivot.timestamp}:${pivot.id}`;
+    const cursor = `${pivot.startedAt}:${pivot.id}`;
 
     await listAuditLogs(adminSessionToken, { cursor })
       .expect(200)
