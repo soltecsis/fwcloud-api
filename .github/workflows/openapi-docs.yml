@@ -1,0 +1,61 @@
+name: FWCloud-API OpenAPI Docs Deploy
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  openapi-docs:
+    name: Build OpenAPI static docs and deploy by FTPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest code
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+
+      - name: Cache node modules
+        uses: actions/cache@v5
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build OpenAPI JSON and static HTML
+        run: npm run openapi:redoc:build
+
+      - name: Prepare static bundle
+        run: |
+          rm -rf src/openapi-docs
+          mkdir -p src/openapi-docs
+          cp docs/openapi/openapi.html src/openapi-docs/index.html
+          cp docs/openapi/openapi.json src/openapi-docs/openapi.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: openapi-docs
+          path: src/openapi-docs/
+
+      - name: Sync files by FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FWCLOUD_API_DOC_FTP_SERVER }}
+          username: ${{ secrets.FWCLOUD_API_DOC_FTP_USERNAME }}
+          password: ${{ secrets.FWCLOUD_API_DOC_FTP_PASSWORD }}
+          local-dir: src/openapi-docs/
+          server-dir: ./
+          protocol: ftps

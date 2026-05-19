@@ -120,7 +120,10 @@ export enum FireWallOptMask {
   FAIL2BAN_COMPAT = 0x0080,
   PDR_WARNING = 0x0100,
   PDR_CRITICAL = 0x0200,
+  IPTABLES_OPTIMIZED_COMPILATION = 0x0400,
 }
+
+export type PolicyCompilationMode = 'normal' | 'optimized';
 
 @Entity(tableName)
 export class Firewall extends Model {
@@ -1553,6 +1556,24 @@ export class Firewall extends Model {
         reject(error);
       }
     });
+  }
+
+  public static getPolicyCompilationMode(
+    fwcloud: number,
+    firewall: number,
+  ): Promise<PolicyCompilationMode> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const options = await this.getFirewallOptions(fwcloud, firewall);
+        resolve(this.getPolicyCompilationModeFromOptions(options));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  public static getPolicyCompilationModeFromOptions(options: number): PolicyCompilationMode {
+    return options & FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION ? 'optimized' : 'normal';
   }
 
   public static getMasterFirewallId = (fwcloud, cluster) => {

@@ -7,12 +7,12 @@ export class AuditLogListQueryDto {
   @IsOptional()
   @IsISO8601({ strict: true })
   @Transform(trim)
-  ts_from?: string;
+  started_at_from?: string;
 
   @IsOptional()
   @IsISO8601({ strict: true })
   @Transform(trim)
-  ts_to?: string;
+  started_at_to?: string;
 
   @IsOptional()
   @IsString()

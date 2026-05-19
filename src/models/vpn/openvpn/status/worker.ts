@@ -99,7 +99,6 @@ export async function iterate(
   let auditEventService: AuditEventService | null = null;
   let eventId: string | null = null;
   const startedAt = new Date();
-  let finishedAt: Date;
   let status: AuditEventStatus = 'success';
   let errorSummary: string | null = null;
   const recoverableErrors: string[] = [];
@@ -173,8 +172,6 @@ export async function iterate(
     errorSummary = getErrorMessage(error);
     application.logger().error(`WorkerError: ${errorSummary}`);
   } finally {
-    finishedAt = new Date();
-
     if (status === 'success') {
       errorSummary = buildRecoverableErrorSummary(recoverableErrors);
     }
@@ -184,7 +181,6 @@ export async function iterate(
         affectedCount: summary.insertedEntries,
         status,
         error: status === 'failed' ? errorSummary : null,
-        finishedAt,
         details: {
           source: 'worker',
           operation: 'sync',
@@ -194,7 +190,6 @@ export async function iterate(
           updatedDisconnections: summary.updatedDisconnections,
           errorsCount: summary.errorsCount,
           startedAt: startedAt.toISOString(),
-          finishedAt: finishedAt.toISOString(),
           status,
           error: errorSummary,
         },

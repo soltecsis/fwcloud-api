@@ -55,7 +55,6 @@ export type FinishAuditEventInput = {
   affectedCount: number;
   status: AuditEventStatus;
   error?: unknown;
-  finishedAt?: Date | string;
   context?: AuditEventContext;
   details?: Record<string, unknown>;
 };
@@ -138,7 +137,6 @@ export class AuditEventService extends Service {
         affectedCount: input.affectedCount,
         status: input.status,
         error: input.error,
-        finishedAt: input.finishedAt,
         context: this.mergeContexts(runningEvent.context, input.context),
         details: this.mergeDetails(runningEvent.details, input.details),
       });
@@ -160,8 +158,9 @@ export class AuditEventService extends Service {
     const operation = input.operation;
     const entity = this.normalizeEntity(input.entity);
     const startedAt = this.normalizeDate(input.startedAt, new Date());
-    const finishedAt = this.normalizeDate(input.finishedAt, new Date());
-    const normalizedFinishedAt = finishedAt >= startedAt ? finishedAt : startedAt;
+    const endedAt = new Date();
+    const normalizedEndedAt = endedAt >= startedAt ? endedAt : startedAt;
+    const durationMs = Math.max(0, normalizedEndedAt.getTime() - startedAt.getTime());
     const status = input.status;
     const affectedCount = this.normalizeAffectedCount(input.affectedCount);
     const error =
@@ -175,7 +174,7 @@ export class AuditEventService extends Service {
       entity,
       affectedCount,
       startedAt: startedAt.toISOString(),
-      finishedAt: normalizedFinishedAt.toISOString(),
+      durationMs,
       status,
       error,
       details,
@@ -195,6 +194,7 @@ export class AuditEventService extends Service {
       firewallName: context.firewallName ?? null,
       clusterId: context.clusterId ?? null,
       clusterName: context.clusterName ?? null,
+      startedAt,
     });
   }
 
@@ -321,7 +321,72 @@ export class AuditEventService extends Service {
     affectedCount: number;
     status: AuditEventStatus;
   }): string {
-    return `${payload.source} ${payload.operation} on ${payload.entity} | status=${payload.status} | affected=${payload.affectedCount}`;
+    const source = this.humanizeSource(payload.source);
+    const entity = this.humanizeEntity(payload.entity);
+    const action = this.humanizeOperation(payload.operation, payload.status);
+    const description = [`${source}.`, `${action} ${entity}.`];
+
+    if (payload.status === 'success' && payload.affectedCount > 0) {
+      const recordLabel = payload.affectedCount === 1 ? 'record' : 'records';
+      description.push(`${payload.affectedCount} ${recordLabel} affected.`);
+    }
+
+    return description.join(' ');
+  }
+
+  protected humanizeSource(source: AuditEventSource): string {
+    const labels: Record<AuditEventSource, string> = {
+      cron: 'Cron task',
+      worker: 'Worker task',
+      importer: 'Importer task',
+    };
+
+    return labels[source];
+  }
+
+  protected humanizeOperation(operation: AuditEventOperation, status: AuditEventStatus): string {
+    if (status === 'failed') {
+      const failedLabels: Record<AuditEventOperation, string> = {
+        archive: 'Failed to archive',
+        retention: 'Failed to apply retention to',
+        import: 'Failed to import',
+        sync: 'Failed to sync',
+        cleanup: 'Failed to clean up',
+      };
+
+      return failedLabels[operation];
+    }
+
+    const labels: Record<AuditEventOperation, string> = {
+      archive: 'Archived',
+      retention: 'Applied retention to',
+      import: 'Imported',
+      sync: 'Synced',
+      cleanup: 'Cleaned up',
+    };
+
+    return labels[operation];
+  }
+
+  protected humanizeEntity(entity: string): string {
+    const normalized = entity.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (normalized.length === 0) {
+      return 'unknown entity';
+    }
+
+    const labels: Record<string, string> = {
+      api: 'API',
+      audit: 'audit',
+      logs: 'logs',
+      openvpn: 'OpenVPN',
+      status: 'status',
+      history: 'history',
+    };
+
+    return normalized
+      .split(' ')
+      .map((token) => labels[token.toLowerCase()] ?? token.toLowerCase())
+      .join(' ');
   }
 
   protected isInternalAuditEnabledForSource(source: AuditEventSource): boolean {

@@ -5,6 +5,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.5.0] - 2026-05-19
+### Added
+- OpenAPI documentation generation based on TSOA, including generated `openapi.json`, static Redoc HTML output, and npm scripts to rebuild the specification.
+- TSOA documentation coverage for FWCloud, firewall, ping, and selected legacy user, customer, firewall, cluster, and FWCloud API routes.
+- OpenAPI documentation introduction, reusable documentation prompts, and a documented process for adding TSOA coverage to legacy and non-legacy endpoints.
+- GitHub Actions workflow to build and publish OpenAPI static documentation on version tags.
+- Optimized IPTables policy compilation mode, generating `iptables-restore` and `ip6tables-restore` blocks from firewall policy rules when the firewall `Optimized IPTables compilation` option is enabled.
+- Audit log request duration and HTTP status persistence, including database migrations and API response fields for request timing and result status.
+- Audit log detail endpoint, available globally and scoped to a FWCloud, with sanitized payload data and request/response details.
+- OpenVPN server 2FA now ensures the `auth-gen-token` option is configured when 2FA is enabled.
+
+### Changed
+- API route documentation now declares session-cookie and confirmation-token security requirements for documented protected and mutating operations.
+- Response builder typing was refined to support documented response payloads with objects, arrays, and null values.
+- TypeScript lint-staged matching was narrowed to source, app, lib, and test TypeScript files.
+- Audit log list responses now return summaries without full payload data, while detailed payloads are exposed through the dedicated detail endpoint.
+- Audit log timestamps, filters, cursors, and descriptions were normalized around UTC `startedAt` values, duration in milliseconds, and consistent HTTP/internal event descriptions.
+- Firewall policy compilation now resolves the configured compilation mode from firewall options and validates optimized compilation for IPTables firewalls only.
+- Generated firewall policy scripts now provide clearer spacing, rule labels, optimized block grouping, and millisecond precision for policy installation timing.
+- Updated npm packages to the latest versions, including Axios to resolve security audit vulnerabilities.
+
+### Fixed
+- OpenAPI documentation deployment triggers and paths were corrected so publishing only runs from version tags with the expected static bundle.
+- Audit log lifecycle timestamps are recorded consistently in UTC, preserve millisecond precision, and keep published migration history stable.
+- OpenVPN client 2FA enable flow now uploads the client CCD file to the target firewall before installing the 2FA secret.
+
+
 ## [2.4.1] - 2026-04-29
 ### Changed
 - Before enabling or disabling OpenVPN 2FA, cluster and node operations now verify connectivity with each target firewall and report progress during the check.

@@ -21,9 +21,51 @@
 */
 
 import Model from '../Model';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ValueTransformer } from 'typeorm';
 
 const tableName = 'audit_logs';
+
+const pad = (value: number, size: number = 2): string => value.toString().padStart(size, '0');
+
+export const formatAuditLogDateForDb = (date: Date): string =>
+  `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.${pad(date.getUTCMilliseconds(), 3)}`;
+
+const parseAuditLogDateFromDb = (value: Date | string | null | undefined): Date | null => {
+  if (value == null) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return new Date(
+      Date.UTC(
+        value.getFullYear(),
+        value.getMonth(),
+        value.getDate(),
+        value.getHours(),
+        value.getMinutes(),
+        value.getSeconds(),
+        value.getMilliseconds(),
+      ),
+    );
+  }
+
+  const normalized = value.trim().replace(' ', 'T');
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
+  const date = new Date(hasTimezone ? normalized : `${normalized}Z`);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const auditLogUtcDateTransformer: ValueTransformer = {
+  to: (value: Date | string | null | undefined): string | null => {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : formatAuditLogDateForDb(value);
+    }
+
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+  },
+  from: parseAuditLogDateFromDb,
+};
 
 @Entity(tableName)
 export class AuditLog extends Model {
@@ -32,10 +74,11 @@ export class AuditLog extends Model {
 
   @Column({
     type: 'datetime',
+    precision: 3,
     name: 'ts',
-    default: () => 'CURRENT_TIMESTAMP',
+    transformer: auditLogUtcDateTransformer,
   })
-  timestamp: Date;
+  startedAt: Date;
 
   @Column({
     type: 'int',
@@ -118,6 +161,20 @@ export class AuditLog extends Model {
     name: 'call',
   })
   call: string;
+
+  @Column({
+    type: 'int',
+    name: 'status',
+    nullable: true,
+  })
+  status: number | null;
+
+  @Column({
+    type: 'int',
+    name: 'duration_ms',
+    nullable: true,
+  })
+  durationMs: number | null;
 
   @Column({
     type: 'longtext',
