@@ -26,7 +26,7 @@ import {
   FirewallInstallCommunication,
   PluginsFlags,
 } from '../../models/firewall/Firewall';
-import { Request } from 'express';
+import { Request as ExpressRequest } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { FirewallService, SSHConfig } from '../../models/firewall/firewall.service';
 import { FirewallPolicy } from '../../policies/firewall.policy';
@@ -40,7 +40,7 @@ import {
   RoutingRuleService,
 } from '../../models/routing/routing-rule/routing-rule.service';
 import { RoutingRuleItemForCompiler } from '../../models/routing/shared';
-import { RoutingCompiler } from '../../compiler/routing/RoutingCompiler';
+import { RoutingCompiled, RoutingCompiler } from '../../compiler/routing/RoutingCompiler';
 import { FirewallControllerCompileRoutingRuleQueryDto } from './dtos/compile-routing-rules.dto';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PingDto } from './dtos/ping.dto';
@@ -55,7 +55,7 @@ import {
   HAProxyRulesData,
 } from '../../models/system/haproxy/haproxy_r/haproxy_r.service';
 import { HAProxyRuleItemForCompiler } from '../../models/system/haproxy/shared';
-import { HAProxyCompiler } from '../../compiler/system/haproxy/HAProxyCompiler';
+import { HAProxyCompiled, HAProxyCompiler } from '../../compiler/system/haproxy/HAProxyCompiler';
 import { DHCPRuleService, DHCPRulesData } from '../../models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleItemForCompiler } from '../../models/system/dhcp/shared';
 import { DHCPCompiled, DHCPCompiler } from '../../compiler/system/dhcp/DHCPCompiler';
@@ -63,12 +63,57 @@ import {
   KeepalivedRuleService,
   KeepalivedRulesData,
 } from '../../models/system/keepalived/keepalived_r/keepalived_r.service';
-import { KeepalivedCompiler } from '../../compiler/system/keepalived/KeepalivedCompiler';
+import {
+  KeepalivedCompiled,
+  KeepalivedCompiler,
+} from '../../compiler/system/keepalived/KeepalivedCompiler';
 import { KeepalivedRuleItemForCompiler } from '../../models/system/keepalived/shared';
 import db from '../../database/database-manager';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
+import {
+  Body,
+  Example,
+  Get,
+  OperationId,
+  Path,
+  Post,
+  Query,
+  Request,
+  Response,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+} from 'tsoa';
 
+interface FirewallApiEnvelopeResponse<TData> {
+  status: number;
+  response: string;
+  message: string;
+  data: TData;
+}
+
+interface FirewallApiErrorEnvelopeResponse {
+  status: number;
+  response: string;
+  message: string;
+  errors?: Record<string, unknown>;
+  stack?: string[];
+}
+
+interface FirewallCommunicationPingOkResponse {
+  status: 'OK';
+}
+
+type FirewallRoutingCompilationResponse = RoutingCompiled;
+type FirewallHAProxyCompilationResponse = HAProxyCompiled;
+type FirewallDHCPCompilationResponse = DHCPCompiled;
+type FirewallKeepalivedCompilationResponse = KeepalivedCompiled;
+
+@Route('fwclouds/{fwcloud}/firewalls')
+@Tags('firewall')
+@Security('sessionCookie')
 export class FirewallController extends Controller {
   protected firewallService: FirewallService;
   protected policyRuleService: PolicyRuleService;
@@ -78,7 +123,7 @@ export class FirewallController extends Controller {
   protected keepalivedService: KeepalivedRuleService;
   protected _fwCloud: FwCloud;
 
-  public async make(request: Request): Promise<void> {
+  public async make(request: ExpressRequest): Promise<void> {
     //Get the fwcloud from the URL which contains the firewall
     this._fwCloud = await db
       .getSource()
@@ -102,7 +147,7 @@ export class FirewallController extends Controller {
   }
 
   @Validate(FirewallControllerCompileDto)
-  public async compile(request: Request): Promise<ResponseBuilder> {
+  public async compile(request: ExpressRequest): Promise<ResponseBuilder> {
     /**
      * This method is not used temporarily
      */
@@ -128,7 +173,7 @@ export class FirewallController extends Controller {
   }
 
   @Validate(FirewallControllerInstallDto)
-  public async install(request: Request): Promise<ResponseBuilder> {
+  public async install(request: ExpressRequest): Promise<ResponseBuilder> {
     /**
      * This method is not used temporarily
      */
@@ -160,7 +205,33 @@ export class FirewallController extends Controller {
 
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
-  async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
+  @OperationId('Compile firewall routing rules.')
+  @Get('{firewall}/routingRules/compile')
+  @SuccessResponse('200', 'Routing rules compiled')
+  @Example<FirewallApiEnvelopeResponse<FirewallRoutingCompilationResponse[]>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: [
+      {
+        id: 31,
+        active: true,
+        comment: 'Route traffic from DMZ network through table 200',
+        cs: '$IP rule add priority 1001 from 172.16.10.0/24 table 200\n',
+      },
+    ],
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Validation failed',
+  })
+  async compileRoutingRules(
+    @Request() request: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+    @Query('rules') ruleIds?: number[],
+  ): Promise<ResponseBuilder> {
     const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
@@ -189,7 +260,32 @@ export class FirewallController extends Controller {
 
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
-  async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
+  @OperationId('Compile firewall HAProxy rules.')
+  @Get('{firewall}/system/haproxyRules/compile')
+  @SuccessResponse('200', 'HAProxy rules compiled')
+  @Example<FirewallApiEnvelopeResponse<FirewallHAProxyCompilationResponse[]>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: [
+      {
+        id: 12,
+        active: true,
+        cs: '# Publish HTTPS\nfrontend front_public_https\n\tmode\ttcp\n',
+      },
+    ],
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Validation failed',
+  })
+  async compileHAProxyRules(
+    @Request() request: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+    @Query('rules') ruleIds?: number[],
+  ): Promise<ResponseBuilder> {
     const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
@@ -223,25 +319,52 @@ export class FirewallController extends Controller {
 
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
-  async compileDHCPRules(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Compile firewall DHCP rules.')
+  @Get('{firewall}/system/dhcpRules/compile')
+  @SuccessResponse('200', 'DHCP rules compiled')
+  @Example<FirewallApiEnvelopeResponse<FirewallDHCPCompilationResponse[]>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: [
+      {
+        id: 8,
+        active: true,
+        cs: 'subnet 10.0.10.0 netmask 255.255.255.0 {\n\toption routers 10.0.10.1;\n}\n',
+      },
+    ],
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Validation failed',
+  })
+  async compileDHCPRules(
+    @Request() request: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+    @Query('rules') ruleIds?: number[],
+  ): Promise<ResponseBuilder> {
     const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: {
-          id: parseInt(String(req.params.firewall)),
-          fwCloudId: parseInt(String(req.params.fwcloud)),
+          id: parseInt(String(request.params.firewall)),
+          fwCloudId: parseInt(String(request.params.fwcloud)),
         },
       });
 
-    (await FirewallPolicy.compile(firewall, req.session.user)).authorize();
+    (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
       await this.dhcpRuleService.getDHCPRulesData(
         'compiler',
         firewall.fwCloudId,
         firewall.id,
-        req.query.rules ? (req.query.rules as string[]).map((item) => parseInt(item)) : undefined,
+        request.query.rules
+          ? (request.query.rules as string[]).map((item) => parseInt(item))
+          : undefined,
       );
 
     const compilation: DHCPCompiled[] = new DHCPCompiler().compile(rules);
@@ -251,7 +374,32 @@ export class FirewallController extends Controller {
 
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
-  async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
+  @OperationId('Compile firewall Keepalived rules.')
+  @Get('{firewall}/system/keepalivedRules/compile')
+  @SuccessResponse('200', 'Keepalived rules compiled')
+  @Example<FirewallApiEnvelopeResponse<FirewallKeepalivedCompilationResponse[]>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: [
+      {
+        id: 21,
+        active: true,
+        cs: '# Keepalived rule\nvrrp_script VI_eth0 {\n\tinterface eth0\n\tstate BACKUP\n}\n',
+      },
+    ],
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Validation failed',
+  })
+  async compileKeepalivedRules(
+    @Request() request: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+    @Query('rules') ruleIds?: number[],
+  ): Promise<ResponseBuilder> {
     const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
@@ -279,8 +427,35 @@ export class FirewallController extends Controller {
   }
 
   @Validate(PingDto)
-  async pingCommunication(request: Request): Promise<ResponseBuilder> {
-    const input: PingDto = request.body;
+  @OperationId('Ping firewall communication.')
+  @Post('communication/ping')
+  @Security({ sessionCookie: [], confirmToken: [] })
+  @SuccessResponse('200', 'Communication validated')
+  @Example<FirewallApiEnvelopeResponse<FirewallCommunicationPingOkResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      status: 'OK',
+    },
+  })
+  @Response<FirewallApiEnvelopeResponse<null>>(501, 'Method not implemented', {
+    status: 501,
+    response: 'Not Implemented',
+    message: '',
+    data: null,
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Connection failed',
+  })
+  async pingCommunication(
+    @Request() request: ExpressRequest,
+    @Body() requestBody: PingDto,
+    @Path() fwcloud: number,
+  ): Promise<ResponseBuilder> {
+    const input: PingDto = requestBody;
 
     (await FirewallPolicy.ping(this._fwCloud, request.session.user)).authorize();
 
@@ -321,8 +496,39 @@ export class FirewallController extends Controller {
   }
 
   @Validate(InfoDto)
-  async infoCommunication(request: Request): Promise<ResponseBuilder> {
-    const input: InfoDto = request.body;
+  @OperationId('Get firewall communication info.')
+  @Post('communication/info')
+  @Security({ sessionCookie: [], confirmToken: [] })
+  @SuccessResponse('200', 'Communication info collected')
+  @Example<FirewallApiEnvelopeResponse<FwcAgentInfo>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      fwc_agent_version: '2.5.0',
+      host_name: 'fw-edge-01',
+      system_name: 'Debian GNU/Linux',
+      os_version: '12',
+      kernel_version: '6.1.0-25-amd64',
+    },
+  })
+  @Response<FirewallApiEnvelopeResponse<null>>(501, 'Method not implemented', {
+    status: 501,
+    response: 'Not Implemented',
+    message: '',
+    data: null,
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Connection failed',
+  })
+  async infoCommunication(
+    @Request() request: ExpressRequest,
+    @Body() requestBody: InfoDto,
+    @Path() fwcloud: number,
+  ): Promise<ResponseBuilder> {
+    const input: InfoDto = requestBody;
     (await FirewallPolicy.info(this._fwCloud, request.session.user)).authorize();
 
     const pgp = new PgpHelper(request.session.pgp);
@@ -441,20 +647,49 @@ export class FirewallController extends Controller {
   }
 
   @Validate(PluginDto)
-  async installPlugin(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Install or uninstall firewall plugin.')
+  @Post('plugin')
+  @Security({ sessionCookie: [], confirmToken: [] })
+  @SuccessResponse('200', 'Plugin action executed')
+  @Example<FirewallApiEnvelopeResponse<string>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: '',
+  })
+  @Response<FirewallApiEnvelopeResponse<null>>(501, 'Method not implemented', {
+    status: 501,
+    response: 'Not Implemented',
+    message: '',
+    data: null,
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Connection failed',
+  })
+  async installPlugin(
+    @Request() req: ExpressRequest,
+    @Body() requestBody: PluginDto,
+    @Path() fwcloud: number,
+  ): Promise<ResponseBuilder> {
     try {
       const channel = await Channel.fromRequest(req);
       const pgp = new PgpHelper(req.session.pgp);
       const communication = new AgentCommunication({
-        protocol: req.body.protocol,
-        host: req.body.host,
-        port: req.body.port,
-        apikey: await pgp.decrypt(req.body.apikey),
+        protocol: requestBody.protocol,
+        host: requestBody.host,
+        port: requestBody.port,
+        apikey: await pgp.decrypt(requestBody.apikey),
       });
 
-      if (req.body.plugin === PluginsFlags.openvpn && !req.body.enable && req.body.firewallId) {
+      if (
+        requestBody.plugin === PluginsFlags.openvpn &&
+        !requestBody.enable &&
+        requestBody.firewallId
+      ) {
         const fwcloudId = parseInt(String(req.params.fwcloud));
-        const firewallId = parseInt(String(req.body.firewallId));
+        const firewallId = parseInt(String(requestBody.firewallId));
 
         const has2FAEnabled = await this.hasOpenVPN2FAEnabledInScope(fwcloudId, firewallId);
         if (has2FAEnabled) {
@@ -465,7 +700,11 @@ export class FirewallController extends Controller {
         }
       }
 
-      const data = await communication.installPlugin(req.body.plugin, req.body.enable, channel);
+      const data = await communication.installPlugin(
+        requestBody.plugin,
+        requestBody.enable,
+        channel,
+      );
 
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {

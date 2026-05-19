@@ -1,0 +1,104 @@
+{
+  "$schema": "https://raw.githubusercontent.com/lukeautry/tsoa/master/packages/cli/schema.json",
+  "entryFile": "src/bin/fwcloud.ts",
+  "noImplicitAdditionalProperties": "silently-remove-extras",
+  "controllerPathGlobs": [
+    "src/controllers/ping/ping.controller.ts",
+    "src/controllers/fwclouds/fwcloud.controller.ts",
+    "src/controllers/firewalls/firewall.controller.ts",
+    "src/controllers/legacy/*.controller.ts"
+  ],
+  "spec": {
+    "outputDirectory": "docs/openapi",
+    "specFileBaseName": "openapi",
+    "specVersion": 3,
+    "name": "FWCloud API",
+    "version": "2.4.1",
+    "securityDefinitions": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "name": "FWCloud.net-cookie",
+        "in": "cookie",
+        "description": "Session cookie obtained from POST /user/login."
+      },
+      "confirmToken": {
+        "type": "apiKey",
+        "name": "X-FWC-Confirm-Token",
+        "in": "header",
+        "description": "Confirmation token required by mutating operations."
+      }
+    },
+    "specMerging": "recursive",
+    "spec": {
+      "tags": [
+
+        {
+          "name": "user",
+          "description": "Legacy endpoints under src/routes/user"
+        },
+        {
+          "name": "customer",
+          "description": "Legacy endpoints under src/routes/user/customer.js"
+        },
+        {
+          "name": "firewall",
+          "description": "Firewall endpoints under src/routes/firewall plus src/controllers/firewalls/firewall.controller.ts"
+        },
+        {
+          "name": "cluster",
+          "description": "Legacy endpoints under src/routes/firewall/cluster.js"
+        },
+        {
+          "name": "fwclouds",
+          "description": "Endpoints under src/controllers/fwclouds/fwcloud.controller.ts"
+        },
+        {
+          "name": "fwcloud",
+          "description": "Legacy endpoints under src/routes/fwcloud"
+        },
+        {
+          "name": "ping",
+          "description": "Non-legacy ping endpoint"
+        }
+      ],
+      "x-tagGroups": [
+        {
+          "name": "user",
+          "tags": [
+            "user",
+            "customer"
+          ]
+        },
+        {
+          "name": "firewall",
+          "tags": [
+            "firewall",
+            "cluster"
+          ]
+        },
+        {
+          "name": "fwclouds",
+          "tags": [
+            "fwclouds"
+          ]
+        },
+        {
+          "name": "fwcloud",
+          "tags": [
+            "fwcloud"
+          ]
+        },
+        {
+          "name": "ping",
+          "tags": [
+            "ping"
+          ]
+        }
+      ]
+    }
+  },
+  "routes": {
+    "routesDir": "docs/openapi/routes",
+    "middleware": "express"
+  }
+}
