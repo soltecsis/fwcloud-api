@@ -2,8 +2,6 @@ name: FWCloud-API OpenAPI Docs Deploy
 
 on:
   push:
-    branches:
-      - fixes
     tags:
       - "v*.*.*"
 
