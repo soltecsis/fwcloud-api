@@ -2,11 +2,10 @@ name: FWCloud-API OpenAPI Docs Deploy
 
 on:
   push:
-    tags:
-      - "v*.*.*"
-  pull_request:
     branches:
       - fixes
+    tags:
+      - "v*.*.*"
 
 jobs:
   openapi-docs:
