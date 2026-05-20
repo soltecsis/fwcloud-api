@@ -13,15 +13,18 @@ Rules:
 5. Apply complete TSOA decorators:
    - class: `@Route`, `@Tags`
    - method: `@OperationId`, `@Get/@Post/@Put/@Delete`, `@SuccessResponse`, `@Response`, `@Example`
-   - parameters: `@Request`, `@Body`, `@Path`, `@Query`
-6. Adjust `@Route` and method paths to avoid duplicated prefixes.
-7. Infer request/response examples from DTOs, services, and comments in the codebase itself.
-8. If needed, update `tsoa.json` (`controllerPathGlobs`, `tags`, `x-tagGroups`) while keeping consistency.
-9. At the end, run:
+   - parameters: `@Request()`, `@Body()`, `@Path()`, `@Query()`
+6. For request payloads, always model the body with TSOA decorator syntax and DTO typing (for example: `@Body() requestBody: CreateXDto`).
+7. Keep `@Request() request: ExpressRequest` only for context/session/db access, and avoid documenting payloads through `req.body` alone.
+8. If the controller already uses a body helper pattern (for example `this.getBody(request, requestBody)`), keep that pattern and wire `@Body()` into it.
+9. Adjust `@Route` and method paths to avoid duplicated prefixes.
+10. Infer request/response examples from DTOs, services, and comments in the codebase itself.
+11. If needed, update `tsoa.json` (`controllerPathGlobs`, `tags`, `x-tagGroups`) while keeping consistency.
+12. At the end, run:
    - `npm run openapi:tsoa:spec`
    - `npm run openapi:tsoa:routes`
    - `npm run build`
-10. Return a summary with:
+13. Return a summary with:
    - documented endpoints,
    - modified files,
    - validation status and possible warnings.
