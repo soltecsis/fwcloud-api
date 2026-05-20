@@ -159,10 +159,11 @@ export class FwCloudController extends Controller {
     if (errorLimit) {
       return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS);
     } else {
+      const input: FwCloudControllerStoreDto = this.getBody(request, requestBody);
       const fwCloud: FwCloud = await this._fwCloudService.store({
-        name: request.body.name,
-        image: request.body.image,
-        comment: request.body.comment,
+        name: input.name,
+        image: input.image,
+        comment: input.comment,
       });
 
       return ResponseBuilder.buildResponse().status(201).body(fwCloud);
@@ -210,10 +211,11 @@ export class FwCloudController extends Controller {
       where: { id: parseInt(String(request.params.fwcloud)) },
     });
 
+    const input: FwCloudControllerUpdateDto = this.getBody(request, requestBody);
     fwCloud = await this._fwCloudService.update(fwCloud, {
-      name: request.body.name,
-      image: request.body.image,
-      comment: request.body.comment,
+      name: input.name,
+      image: input.image,
+      comment: input.comment,
     });
 
     return ResponseBuilder.buildResponse().status(200).body(fwCloud);

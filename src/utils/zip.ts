@@ -2,7 +2,7 @@ import yauzl from 'yauzl';
 import { FSHelper } from './fs-helper';
 import * as path from 'path';
 import * as fs from 'fs';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 
 export class Zip {
   /**
@@ -70,7 +70,7 @@ export class Zip {
       }
 
       const output = fs.createWriteStream(destinationPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
+      const archive = new ZipArchive({ zlib: { level: 9 } });
 
       output.on('close', async () => {
         return resolve();

@@ -1,6 +1,6 @@
 {
   "name": "FWCloud-API",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "description": "FWCloud RESTful API.",
   "private": true,
   "scripts": {
@@ -23,7 +23,7 @@
     "lint:fix": "npm run lint -- --fix",
     "openapi:tsoa:spec": "node scripts/openapi/generate-ts-openapi.cjs",
     "openapi:tsoa:routes": "rm -rf docs/openapi/routes && tsoa routes --configuration tsoa.json",
-    "openapi:redoc:html": "npx --yes @redocly/cli@2.1.0 build-docs docs/openapi/openapi.json -o docs/openapi/openapi.html",
+    "openapi:redoc:html": "npx --yes @redocly/cli@2.31.2 build-docs docs/openapi/openapi.json -o docs/openapi/openapi.html",
     "openapi:redoc:build": "npm run openapi:tsoa:spec && npm run openapi:redoc:html",
     "prepare": "husky",
     "dev": "nodemon --ext js,ts --watch src --exec \"npm run build && node dist/src/bin/fwcloud\""
