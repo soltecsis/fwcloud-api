@@ -8,6 +8,7 @@ const configFile = path.resolve(__dirname, '../../tsoa.json');
 const tsoaBin = path.resolve(__dirname, '../../node_modules/.bin/tsoa');
 const specFile = path.resolve(__dirname, '../../docs/openapi/openapi.json');
 const introFile = path.resolve(__dirname, '../../docs/openapi/INTRODUCTION.md');
+const packageFile = path.resolve(__dirname, '../../package.json');
 
 const result = spawnSync(tsoaBin, ['spec', '--configuration', configFile], {
   stdio: 'inherit',
@@ -29,15 +30,21 @@ try {
     process.exit(1);
   }
 
-  if (!fs.existsSync(introFile)) {
-    process.exit(0);
-  }
-
   const spec = JSON.parse(fs.readFileSync(specFile, 'utf8'));
-  const introMarkdown = fs.readFileSync(introFile, 'utf8').trim();
 
   spec.info = spec.info || {};
-  spec.info.description = introMarkdown;
+
+  if (fs.existsSync(packageFile)) {
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
+    if (packageJson.version) {
+      spec.info.version = packageJson.version;
+    }
+  }
+
+  if (fs.existsSync(introFile)) {
+    const introMarkdown = fs.readFileSync(introFile, 'utf8').trim();
+    spec.info.description = introMarkdown;
+  }
 
   fs.writeFileSync(specFile, JSON.stringify(spec, null, 2) + '\n');
 } catch (error) {

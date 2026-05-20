@@ -455,7 +455,7 @@ export class FirewallController extends Controller {
     @Body() requestBody: PingDto,
     @Path() fwcloud: number,
   ): Promise<ResponseBuilder> {
-    const input: PingDto = requestBody;
+    const input: PingDto = this.getBody(request, requestBody);
 
     (await FirewallPolicy.ping(this._fwCloud, request.session.user)).authorize();
 
@@ -528,7 +528,7 @@ export class FirewallController extends Controller {
     @Body() requestBody: InfoDto,
     @Path() fwcloud: number,
   ): Promise<ResponseBuilder> {
-    const input: InfoDto = requestBody;
+    const input: InfoDto = this.getBody(request, requestBody);
     (await FirewallPolicy.info(this._fwCloud, request.session.user)).authorize();
 
     const pgp = new PgpHelper(request.session.pgp);
@@ -669,27 +669,24 @@ export class FirewallController extends Controller {
     message: 'Connection failed',
   })
   async installPlugin(
-    @Request() req: ExpressRequest,
+    @Request() request: ExpressRequest,
     @Body() requestBody: PluginDto,
     @Path() fwcloud: number,
   ): Promise<ResponseBuilder> {
     try {
-      const channel = await Channel.fromRequest(req);
-      const pgp = new PgpHelper(req.session.pgp);
+      const input: PluginDto = this.getBody(request, requestBody);
+      const channel = await Channel.fromRequest(request);
+      const pgp = new PgpHelper(request.session.pgp);
       const communication = new AgentCommunication({
-        protocol: requestBody.protocol,
-        host: requestBody.host,
-        port: requestBody.port,
-        apikey: await pgp.decrypt(requestBody.apikey),
+        protocol: input.protocol,
+        host: input.host,
+        port: input.port,
+        apikey: await pgp.decrypt(input.apikey),
       });
 
-      if (
-        requestBody.plugin === PluginsFlags.openvpn &&
-        !requestBody.enable &&
-        requestBody.firewallId
-      ) {
-        const fwcloudId = parseInt(String(req.params.fwcloud));
-        const firewallId = parseInt(String(requestBody.firewallId));
+      if (input.plugin === PluginsFlags.openvpn && !input.enable && input.firewallId) {
+        const fwcloudId = parseInt(String(request.params.fwcloud));
+        const firewallId = parseInt(String(input.firewallId));
 
         const has2FAEnabled = await this.hasOpenVPN2FAEnabledInScope(fwcloudId, firewallId);
         if (has2FAEnabled) {
@@ -700,11 +697,7 @@ export class FirewallController extends Controller {
         }
       }
 
-      const data = await communication.installPlugin(
-        requestBody.plugin,
-        requestBody.enable,
-        channel,
-      );
+      const data = await communication.installPlugin(input.plugin, input.enable, channel);
 
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
