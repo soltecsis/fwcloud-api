@@ -28,6 +28,10 @@ export class Controller {
 
   public async make(request: Request): Promise<void> {}
 
+  protected getBody<T>(request: Request, requestBody?: T): T {
+    return requestBody ?? (request.body as T);
+  }
+
   public static methodExists(method: string): boolean {
     return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
   }

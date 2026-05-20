@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.5.1] - 2026-05-20
+### Added
+- New `getBody(request, requestBody)` helper in the base controller class to standardize payload reading and preserve compatibility between `@Body()` and `request.body`.
+
+### Changed
+- Automatic synchronization of the `openapi.json` version using the `package.json` version during specification generation.
+- Updated the Redoc generation command (`@redocly/cli`) to a newer version and regenerated the static documentation.
+- Updated firewall and FWCloud controllers to use DTOs with `@Body()` and unified body access through the helper (`this.getBody(...)`).
+
+
 ## [2.5.0] - 2026-05-19
 ### Added
 - OpenAPI documentation generation based on TSOA, including generated `openapi.json`, static Redoc HTML output, and npm scripts to rebuild the specification.

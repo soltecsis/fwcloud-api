@@ -1144,7 +1144,7 @@ export function RegisterRoutes(app: Router) {
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsFirewallController_installPlugin: Record<string, TsoaRoute.ParameterSchema> = {
-                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                request: {"in":"request","name":"request","required":true,"dataType":"object"},
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"PluginDto"},
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
         };
