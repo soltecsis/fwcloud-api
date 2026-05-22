@@ -127,6 +127,12 @@ export abstract class Communication<ConnectionData> {
     files: string[],
     channel?: EventEmitter,
   ): Promise<void>;
+  abstract ensureOpenVPNClientConfigDir(
+    dir: string,
+    group: string,
+    channel?: EventEmitter,
+  ): Promise<void>;
+  abstract removeOpenVPNClientConfigDirIfEmpty(dir: string, channel?: EventEmitter): Promise<void>;
   abstract uninstallWireGuardConfigs(
     dir: string,
     files: string[],

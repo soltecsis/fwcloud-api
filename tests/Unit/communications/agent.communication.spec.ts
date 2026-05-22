@@ -39,6 +39,10 @@ describe(AgentCommunication.name, () => {
     });
   });
 
+  afterEach(() => {
+    sinon.restore();
+  });
+
   it('should set custom agent when https is enabled', () => {
     agent = new AgentCommunication({
       protocol: 'https',
@@ -70,6 +74,33 @@ describe(AgentCommunication.name, () => {
         { filename: 'crt1', hash: 'hash1' },
         { filename: 'crt2', hash: 'hash2' },
       ]);
+    });
+  });
+
+  describe('OpenVPN client config directory', () => {
+    it('should request directory creation with ownership and permissions', async () => {
+      const stub = sinon.stub(axios, 'put').resolves({ status: 200 });
+
+      await agent.ensureOpenVPNClientConfigDir('/etc/openvpn/ccd', 'nogroup');
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/dirs/ensure');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        dir: '/etc/openvpn/ccd',
+        owner: 'root',
+        group: 'nogroup',
+        mode: '750',
+      });
+    });
+
+    it('should request empty directory removal', async () => {
+      const stub = sinon.stub(axios, 'delete').resolves({ status: 200 });
+
+      await agent.removeOpenVPNClientConfigDirIfEmpty('/etc/openvpn/ccd');
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/dirs/remove-empty');
+      expect(stub.firstCall.args[1].data).to.deep.equal({ dir: '/etc/openvpn/ccd' });
     });
   });
 });
