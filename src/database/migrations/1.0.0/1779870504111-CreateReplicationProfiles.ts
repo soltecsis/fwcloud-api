@@ -44,7 +44,7 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
           },
           {
             name: 'model',
-            type: 'json',
+            type: 'longtext',
             isNullable: false,
           },
           {

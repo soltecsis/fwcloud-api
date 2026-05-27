@@ -24,7 +24,7 @@ export class ReplicationProfile extends Model {
   scope: string;
 
   @Column({
-    type: 'json',
+    type: 'simple-json',
   })
   model: Record<string, unknown>;
 
