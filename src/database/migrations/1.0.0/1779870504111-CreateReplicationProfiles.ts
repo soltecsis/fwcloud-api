@@ -43,6 +43,12 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
             default: "'generic'",
           },
           {
+            name: 'target_kind',
+            type: 'varchar',
+            isNullable: false,
+            default: "'firewall'",
+          },
+          {
             name: 'model',
             type: 'json',
             isNullable: false,
@@ -98,13 +104,14 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
         name,
         description,
         scope,
+        target_kind,
         model,
         is_built_in,
         is_active,
         is_deprecated
       )
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
       [
         defaultReplicationProfile.code,
@@ -112,6 +119,7 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
         defaultReplicationProfile.name,
         defaultReplicationProfile.description,
         defaultReplicationProfile.scope,
+        defaultReplicationProfile.target_kind,
         JSON.stringify(defaultReplicationProfile.model),
         1,
         1,
