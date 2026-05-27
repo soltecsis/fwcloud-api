@@ -834,7 +834,6 @@ describe(IPSecPrefix.name, () => {
 
       // Create a server without prefixes
       const tempServer = await manager.getRepository(IPSec).save({
-        id: Math.floor(Math.random() * (100000 - 10)) + 10,
         parentId: null,
         firewallId: fwcloudProduct.firewall.id,
         crtId: serverCert.id,
@@ -850,8 +849,7 @@ describe(IPSecPrefix.name, () => {
         days: 365,
       });
 
-      const ipsecClient1 = await manager.getRepository(IPSec).save({
-        id: Math.floor(Math.random() * (100000 - 10)) + 10,
+      await manager.getRepository(IPSec).save({
         parentId: tempServer.id,
         crtId: cert1.id,
         firewallId: fwcloudProduct.firewall.id,

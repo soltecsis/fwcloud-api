@@ -1,0 +1,38 @@
+{
+  "code": "default",
+  "version": 1,
+  "name": "Default replication profile",
+  "description": "Default predefined replication profile for standard firewall provisioning.",
+  "scope": "generic",
+  "model": {
+    "replicate": {
+      "firewall": {
+        "interfaces": true,
+        "routing": true,
+        "policyRules": true,
+        "natRules": true,
+        "objects": true,
+        "services": true,
+        "ipObjects": true,
+        "ipObjectGroups": true
+      },
+      "vpn": {
+        "openvpn": true,
+        "wireguard": true,
+        "ipsec": false
+      },
+      "system": {
+        "dns": false,
+        "ntp": false,
+        "users": false,
+        "certificates": false
+      }
+    },
+    "options": {
+      "overwriteExisting": false,
+      "preserveLocalNames": true,
+      "preserveTargetSpecificValues": true,
+      "validateBeforeApply": true
+    }
+  }
+}
