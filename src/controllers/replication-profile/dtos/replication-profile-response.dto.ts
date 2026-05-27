@@ -5,5 +5,6 @@ export interface ReplicationProfileResponseDto {
   name: string;
   description: string | null;
   scope: string;
+  targetKind: string;
   model: Record<string, unknown>;
 }
