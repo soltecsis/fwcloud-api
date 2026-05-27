@@ -9,6 +9,7 @@ on:
       - devel
       - fixes
       - auditlogs
+      - firewallTemplateAssistant
 
 jobs:
   test:
