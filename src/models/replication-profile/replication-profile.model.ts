@@ -33,12 +33,7 @@ export class ReplicationProfile extends Model {
   scope: string;
 
   @Column({
-    name: 'target_kind',
-  })
-  targetKind: ReplicationProfileTargetKind;
-
-  @Column({
-    type: 'json',
+    type: 'simple-json',
   })
   model: Record<string, unknown>;
 
