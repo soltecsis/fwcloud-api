@@ -4,7 +4,11 @@
   "name": "Default replication profile",
   "description": "Default predefined replication profile for standard firewall provisioning.",
   "scope": "generic",
+  "target_kind": "firewall",
   "model": {
+    "compatibility": {
+      "target_kinds": ["firewall"]
+    },
     "replicate": {
       "firewall": {
         "interfaces": true,

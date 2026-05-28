@@ -19,6 +19,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       name: 'Test replication profile',
       description: null,
       scope: 'generic',
+      targetKind: 'firewall',
       model: {
         replicate: {},
         options: {},
@@ -67,6 +68,33 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         `${codePrefix}b:1`,
       ]);
     });
+
+    it('should filter active profiles by target kind and compatibility metadata', async () => {
+      await repository.save([
+        makeProfile({ code: `${codePrefix}firewall`, targetKind: 'firewall' }),
+        makeProfile({ code: `${codePrefix}cluster`, targetKind: 'cluster' }),
+        makeProfile({
+          code: `${codePrefix}compatible-cluster`,
+          targetKind: 'firewall',
+          model: {
+            compatibility: {
+              target_kinds: ['cluster'],
+            },
+            replicate: {},
+            options: {},
+          },
+        }),
+      ]);
+
+      const profiles = (await service.findActive('cluster')).filter((profile) =>
+        profile.code.startsWith(codePrefix),
+      );
+
+      expect(profiles.map((profile) => profile.code)).to.be.deep.eq([
+        `${codePrefix}cluster`,
+        `${codePrefix}compatible-cluster`,
+      ]);
+    });
   });
 
   describe('findByCodeAndVersion()', () => {
@@ -100,6 +128,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(profile.name).to.be.deep.eq(defaultReplicationProfile.name);
       expect(profile.description).to.be.deep.eq(defaultReplicationProfile.description);
       expect(profile.scope).to.be.deep.eq(defaultReplicationProfile.scope);
+      expect(profile.targetKind).to.be.deep.eq(defaultReplicationProfile.target_kind);
       expect(profile.model).to.be.deep.eq(defaultReplicationProfile.model);
       expect(profile.isBuiltin).to.be.true;
       expect(profile.isActive).to.be.true;
