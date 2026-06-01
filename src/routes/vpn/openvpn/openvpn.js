@@ -289,6 +289,7 @@ const disableOpenVPNServer2FA = async (req, firewall, crt, clusterName = null) =
 			await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
 		}
 		emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
+		await ensureOpenVPNClientConfigDir(req.dbCon, req.body.openvpn, communication, channel);
 		await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 			content: cfgDump.cfg,
 			name: openvpnCfg.install_name
@@ -325,6 +326,7 @@ const uninstallOpenVPNServerConfig = async (req, firewall) => {
 
 		emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN server configuration '${req.openvpn.install_name}' from '${targetFirewall.name}'`);
 		await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir, [req.openvpn.install_name], channel);
+		await removeOpenVPNClientConfigDirIfEmpty(req.dbCon, req.body.openvpn, communication, channel);
 	}
 };
 
@@ -517,6 +519,37 @@ const buildClient2FASecretFile = (secret) => {
 		'" DISALLOW_REUSE',
 		'" RATE_LIMIT 3 30'
 	].join('\n');
+};
+
+const getOpenVPNClientConfigDirSettings = async (dbCon, openvpnId) => {
+	const clientConfigDirOpt = await OpenVPN.getOptData(dbCon, openvpnId, 'client-config-dir');
+	if (!clientConfigDirOpt) return null;
+
+	const groupOpt = await OpenVPN.getOptData(dbCon, openvpnId, 'group');
+	const group = groupOpt?.arg || 'nogroup';
+
+	if (!/^[a-zA-Z_]([a-zA-Z0-9_-]{0,31}|[a-zA-Z0-9_-]{0,30}\$)$/.test(group)) {
+		throw fwcError.other('Invalid OpenVPN group option');
+	}
+
+	return {
+		dir: clientConfigDirOpt.arg,
+		group
+	};
+};
+
+const ensureOpenVPNClientConfigDir = async (dbCon, openvpnId, communication, channel) => {
+	const settings = await getOpenVPNClientConfigDirSettings(dbCon, openvpnId);
+	if (!settings) return;
+
+	await communication.ensureOpenVPNClientConfigDir(settings.dir, settings.group, channel);
+};
+
+const removeOpenVPNClientConfigDirIfEmpty = async (dbCon, openvpnId, communication, channel) => {
+	const settings = await getOpenVPNClientConfigDirSettings(dbCon, openvpnId);
+	if (!settings) return;
+
+	await communication.removeOpenVPNClientConfigDirIfEmpty(settings.dir, channel);
 };
 
 const installOpenVPNClientCCD = async (
@@ -852,6 +885,7 @@ router.put('/install', async (req, res, next) => {
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw { 'msg': 'Empty install dir or install name' };
+			await ensureOpenVPNClientConfigDir(req.dbCon, req.body.openvpn, communication, channel);
 			await communication.installOpenVPNServerConfigs(req.openvpn.install_dir, [{
 				content: cfgDump.cfg,
 				name: req.openvpn.install_name
@@ -933,6 +967,7 @@ router.put('/uninstall', async (req, res, next) => {
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw { 'msg': 'Empty install dir or install name' };
 			await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir, [req.openvpn.install_name], channel);
+			await removeOpenVPNClientConfigDirIfEmpty(req.dbCon, req.body.openvpn, communication, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -1342,6 +1377,7 @@ router.put('/2fa/server', async (req, res, next) => {
 					}], channel);
 				}
 				emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
+				await ensureOpenVPNClientConfigDir(req.dbCon, req.body.openvpn, targetCommunication, channel);
 				await targetCommunication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 					content: cfgDump.cfg,
 					name: openvpnCfg.install_name
