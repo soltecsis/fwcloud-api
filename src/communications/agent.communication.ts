@@ -209,6 +209,57 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async ensureOpenVPNClientConfigDir(
+    dir: string,
+    group: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      eventEmitter.emit(
+        'message',
+        new ProgressInfoPayload(
+          `Preparing OpenVPN client configuration directory '${dir}' on: (${this.connectionData.host})\n`,
+        ),
+      );
+
+      const pathUrl: string = this.url + '/api/v1/openvpn/dirs/ensure';
+      await axios.put(
+        pathUrl,
+        {
+          dir,
+          owner: 'root',
+          group,
+          mode: '750',
+        },
+        this.config,
+      );
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async removeOpenVPNClientConfigDirIfEmpty(
+    dir: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      eventEmitter.emit(
+        'message',
+        new ProgressInfoPayload(
+          `Removing OpenVPN client configuration directory '${dir}' if empty from: (${this.connectionData.host})\n`,
+        ),
+      );
+
+      const pathUrl: string = this.url + '/api/v1/openvpn/dirs/remove-empty';
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.data = { dir };
+
+      await axios.delete(pathUrl, config);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
   async installWireGuardServerConfigs(
     dir: string,
     configs: { name: string; content: string }[],

@@ -43,6 +43,11 @@ describe(SSHCommunication.name, () => {
     });
   });
 
+  afterEach(() => {
+    sinon.restore();
+    testSuite.app.config.set('firewall_communication.ssh_enable', true);
+  });
+
   describe('ccdHashList', () => {
     let stub: sinon.SinonStub;
 
@@ -95,6 +100,20 @@ describe(SSHCommunication.name, () => {
       });
     });
 
+    it('ensure OpenVPN client config dir and communication is disabled, it should throw an error', (done) => {
+      ssh.ensureOpenVPNClientConfigDir('/etc/openvpn/ccd', 'nogroup').catch((error) => {
+        expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+        done();
+      });
+    });
+
+    it('remove OpenVPN client config dir and communication is disabled, it should throw an error', (done) => {
+      ssh.removeOpenVPNClientConfigDirIfEmpty('/etc/openvpn/ccd').catch((error) => {
+        expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+        done();
+      });
+    });
+
     it('get firewalls interfaces and communication is disabled, it should throw an error', (done) => {
       ssh.getFirewallInterfaces().catch((error) => {
         expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
@@ -121,6 +140,30 @@ describe(SSHCommunication.name, () => {
         expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
         done();
       });
+    });
+  });
+
+  describe('OpenVPN client config directory', () => {
+    let stub: sinon.SinonStub;
+
+    beforeEach(() => {
+      testSuite.app.config.set('firewall_communication.ssh_enable', true);
+      stub = sinon.stub(sshTools, 'runCommand').resolves('');
+    });
+
+    it('should create and set ownership and permissions', async () => {
+      await ssh.ensureOpenVPNClientConfigDir('/etc/openvpn/ccd', 'nogroup');
+
+      expect(stub.getCall(0).args[1]).to.equal("sudo mkdir -p '/etc/openvpn/ccd'");
+      expect(stub.getCall(1).args[1]).to.equal("sudo chown 'root:nogroup' '/etc/openvpn/ccd'");
+      expect(stub.getCall(2).args[1]).to.equal("sudo chmod 750 '/etc/openvpn/ccd'");
+    });
+
+    it('should remove the directory only when it is empty', async () => {
+      await ssh.removeOpenVPNClientConfigDirIfEmpty('/etc/openvpn/ccd');
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[1]).to.equal("sudo rmdir '/etc/openvpn/ccd' 2>/dev/null || true");
     });
   });
 });

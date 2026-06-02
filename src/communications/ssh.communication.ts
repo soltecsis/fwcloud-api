@@ -118,6 +118,8 @@ const getOpenVPN2FACheckScriptPath = (): string => {
   throw new Error(`OpenVPN 2FA check script not found: ${candidatePaths.join(', ')}`);
 };
 
+const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
     throw new Error('Method not implemented.');
@@ -302,6 +304,61 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
         await sshTools.runCommand(this.connectionData, `${sudo} rm -f "${dir}/${file}"`);
       }
+
+      return;
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async ensureOpenVPNClientConfigDir(
+    dir: string,
+    group: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+
+      eventEmitter.emit(
+        'message',
+        new ProgressNoticePayload(`Preparing OpenVPN client configuration directory.\n`),
+      );
+
+      await sshTools.runCommand(this.connectionData, `${sudo} mkdir -p ${shellQuote(dir)}`);
+      await sshTools.runCommand(
+        this.connectionData,
+        `${sudo} chown ${shellQuote(`root:${group}`)} ${shellQuote(dir)}`,
+      );
+      await sshTools.runCommand(this.connectionData, `${sudo} chmod 750 ${shellQuote(dir)}`);
+
+      return;
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async removeOpenVPNClientConfigDirIfEmpty(
+    dir: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+
+      eventEmitter.emit(
+        'message',
+        new ProgressNoticePayload(`Removing OpenVPN client configuration directory if empty.\n`),
+      );
+
+      await sshTools.runCommand(
+        this.connectionData,
+        `${sudo} rmdir ${shellQuote(dir)} 2>/dev/null || true`,
+      );
 
       return;
     } catch (error) {
