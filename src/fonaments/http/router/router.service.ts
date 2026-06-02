@@ -107,6 +107,7 @@ export class RouterService extends Service {
       'routingRule',
       'snapshot',
       'auditlog',
+      'version',
     ];
 
     const digitsOnly = /^\d+$/;

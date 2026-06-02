@@ -63,6 +63,7 @@ import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.
 import { AuditLogController } from '../controllers/audit/audit-log.controller';
 import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
+import { ReplicationProfileController } from '../controllers/replication-profile/replication-profile.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -239,6 +240,14 @@ export class Routes extends RouteCollection {
           router
             .get('/auditlogs/:auditlog', AuditLogController, 'show')
             .name('fwclouds.auditlogs.show');
+          router.prefix('/assistant', (router: RouterParser) => {
+            router
+              .get('/profiles', ReplicationProfileController, 'index')
+              .name('fwclouds.assistant.profiles.index');
+            router
+              .get('/profiles/:code/:version', ReplicationProfileController, 'show')
+              .name('fwclouds.assistant.profiles.show');
+          });
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
               router.put('/', CaController, 'update').name('fwclouds.cas.update');

@@ -3,6 +3,15 @@ import Model from '../Model';
 
 const tableName = 'replication_profiles';
 
+export const REPLICATION_PROFILE_TARGET_KINDS = ['firewall', 'cluster'] as const;
+export type ReplicationProfileTargetKind = (typeof REPLICATION_PROFILE_TARGET_KINDS)[number];
+
+export function isReplicationProfileTargetKind(
+  value: string,
+): value is ReplicationProfileTargetKind {
+  return (REPLICATION_PROFILE_TARGET_KINDS as readonly string[]).includes(value);
+}
+
 @Entity(tableName)
 export class ReplicationProfile extends Model {
   @PrimaryGeneratedColumn()
@@ -22,6 +31,11 @@ export class ReplicationProfile extends Model {
 
   @Column()
   scope: string;
+
+  @Column({
+    name: 'target_kind',
+  })
+  targetKind: ReplicationProfileTargetKind;
 
   @Column({
     type: 'simple-json',

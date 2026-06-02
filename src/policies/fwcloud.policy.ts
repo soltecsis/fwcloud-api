@@ -33,7 +33,15 @@ export class FwCloudPolicy extends Policy {
     return user.role === 1 ? Authorization.grant() : Authorization.revoke();
   }
 
+  static async show(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.userCanAccessFwCloud(user, fwCloud);
+  }
+
   static async colors(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.userCanAccessFwCloud(user, fwCloud);
+  }
+
+  private static async userCanAccessFwCloud(user: User, fwCloud: FwCloud): Promise<Authorization> {
     if (user.role === 1) {
       return Authorization.grant();
     }
