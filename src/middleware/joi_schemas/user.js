@@ -29,65 +29,72 @@ const sharedSch = require('./shared');
 const fwcError = require('../../utils/error_table');
 import { PgpHelper } from '../../utils/pgp';
 
-schema.validate = req => {
-	return new Promise(async(resolve, reject) => {
-		var schema = {};
+schema.validate = async req => {
+	let schema;
 
-		if (req.method === 'POST' && (req.url === '/user/login' || req.url === '/user/logout')) {
-			if (req.url === '/user/login') {
-				schema = Joi.object().keys({
-					customer: sharedSch.id,
-					username: sharedSch.username,
-					password: sharedSch.password,
-					authCode: sharedSch.authCode,
-					publicKey: Joi.string()
-				});
-			} else if (req.url === '/user/logout') {
-				return resolve();
+	if (req.method === 'POST' && req.url === '/user/login') {
+		schema = Joi.object().keys({
+			customer: sharedSch.id,
+			username: sharedSch.username,
+			password: sharedSch.password,
+			authCode: sharedSch.authCode,
+			publicKey: Joi.string()
+		});
+	} else if (req.method === 'POST' && req.url === '/user/logout') {
+		return;
+	} else if (req.url === '/user' && (req.method === 'POST' || req.method === 'PUT')) {
+		const isPost = req.method === 'POST';
+
+		if (typeof req.body.password === 'string' && req.body.password !== '') {
+			try {
+				const pgp = new PgpHelper(req.session ? req.session.pgp : undefined);
+				req.body.password = await pgp.decrypt(req.body.password);
+			} catch (error) {
+				throw fwcError.other(`PGP decrypt: ${error.message}`);
 			}
-		} else if (req.url === '/user' && (req.method === 'POST' || req.method === 'PUT')) {
-			if (req.method === 'PUT' && typeof req.body.password === 'string' && req.body.password !== '') {
-				try {
-					const pgp = new PgpHelper(req.session ? req.session.pgp : undefined);
-					req.body.password = await pgp.decrypt(req.body.password);
-				} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
-			}
+		}
 
-			schema = Joi.object().keys({
-				customer: sharedSch.id,
-				email: Joi.string().email().optional(),
-				username: sharedSch.username,
-				enabled: sharedSch._0_1,
-				role: sharedSch.role,
-				allowed_from: sharedSch.comment
-			});
+		const baseSchema = Joi.object().keys({
+			customer: sharedSch.id,
+			email: Joi.string().email().optional(),
+			username: sharedSch.username,
+			enabled: sharedSch._0_1,
+			role: sharedSch.role,
+			allowed_from: sharedSch.comment
+		});
 
-			if (req.method === 'POST')
-				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/), password: sharedSch.password, });
-			else
-				schema = schema.append({
-					user: sharedSch.id,
-					customer: sharedSch.id,
-					name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional(),
-					password: sharedSch.password.optional()
-				});
-		} else if ((req.url === '/user/fwcloud' && req.method === 'POST') || (req.url === '/user/fwcloud/del' && req.method === 'PUT')) {
-			schema = Joi.object().keys({ user: sharedSch.id, fwcloud: sharedSch.id });
-		} else if (req.method === 'PUT') {
-			if (req.url === '/user/get')
+		schema = baseSchema.append(isPost ? {
+			name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/),
+			password: sharedSch.password
+		} : {
+			user: sharedSch.id,
+			customer: sharedSch.id,
+			name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional(),
+			password: sharedSch.password.optional()
+		});
+	} else if ((req.url === '/user/fwcloud' && req.method === 'POST') || (req.url === '/user/fwcloud/del' && req.method === 'PUT')) {
+		schema = Joi.object().keys({ user: sharedSch.id, fwcloud: sharedSch.id });
+	} else if (req.method === 'PUT') {
+		switch (req.url) {
+			case '/user/get':
 				schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id.optional() });
-			else if (req.url === '/user/del' || req.url === '/user/restricted')
+				break;
+			case '/user/del':
+			case '/user/restricted':
 				schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id });
-			else if (req.url === '/user/fwcloud/get')
+				break;
+			case '/user/fwcloud/get':
 				schema = Joi.object().keys({ user: sharedSch.id });
-			else if (req.url === '/user/changepass')
+				break;
+			case '/user/changepass':
 				schema = Joi.object().keys({ password: sharedSch.password });
-			else return reject(fwcError.BAD_API_CALL);
-		}else return reject(fwcError.BAD_API_CALL);
+				break;
+			default:
+				throw fwcError.BAD_API_CALL;
+		}
+	} else {
+		throw fwcError.BAD_API_CALL;
+	}
 
-		try {
-			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
-			resolve();
-		} catch (error) { return reject(error) }
-	});
+	await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 };
