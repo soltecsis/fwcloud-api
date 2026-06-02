@@ -764,8 +764,6 @@ export class PolicyScript {
               this.stream.write('policy_load() {\n');
 
               if (this.policyCompiler == 'NFTables') {
-                await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
-
                 this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
                 this.stream.write('# How do they interact?\n');
                 this.stream.write(
@@ -781,6 +779,7 @@ export class PolicyScript {
                   '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
                 );
                 this.stream.write('iptables_default_filter_policy ACCEPT\n');
+                await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
               } else {
                 // IPTables compiler.
                 this.stream.write('\n# Default IPTables chains policy.\n');
