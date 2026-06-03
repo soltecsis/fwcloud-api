@@ -106,7 +106,6 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
         active: 1,
         special: 0,
         options: 1,
-        comment: 'Stateful firewall rule.',
         run_before: null,
         run_after: null,
       });
@@ -198,6 +197,7 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
         active: 1,
         special: 0,
         options: 1,
+        comment: 'Stateful firewall rule.',
         run_before: null,
         run_after: null,
       });
@@ -257,6 +257,19 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
     it('should generate nft -f blocks for automatic NFTables tables and mangle rules', async () => {
       firewall.options = 0x1000 | FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
       await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        mark: fwcProduct.mark.id,
+        run_before: null,
+        run_after: null,
+      });
 
       await service.compile(fwcloud.id, firewall.id);
 
