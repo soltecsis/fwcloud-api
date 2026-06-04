@@ -139,14 +139,14 @@ export class PolicyScript {
 
     const dangerous: Array<RuleCompilationResult> = [];
 
-    if (this.useOptimizedIptablesRestore() && !options.plain) {
+    if (this.useOptimizedPolicyCompilation() && !options.plain) {
       let optimized = '';
       let optimizedBuffer = '';
       let optimizedRuleLabels: string[] = [];
 
       const flushOptimizedBuffer = () => {
         if (!optimizedBuffer) return;
-        optimized += this.renderOptimizedIptablesCommands(optimizedBuffer);
+        optimized += this.renderOptimizedPolicyCommands(optimizedBuffer);
         if (optimizedRuleLabels.length > 0) {
           optimized += `${optimizedRuleLabels.join('\n')}\n`;
         }
@@ -185,15 +185,15 @@ export class PolicyScript {
       if (options.plain) {
         if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
         if (rule.active)
-          cs += this.useOptimizedIptablesRestore()
-            ? this.renderOptimizedIptablesCommands(rule.cs)
+          cs += this.useOptimizedPolicyCompilation()
+            ? this.renderOptimizedPolicyCommands(rule.cs)
             : rule.cs;
       } else {
         cs += `\necho "Rule ${i + 1} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n`;
         if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
         if (rule.active)
-          cs += this.useOptimizedIptablesRestore()
-            ? this.renderOptimizedIptablesCommands(rule.cs)
+          cs += this.useOptimizedPolicyCompilation()
+            ? this.renderOptimizedPolicyCommands(rule.cs)
             : rule.cs;
       }
       if (rule.dangerousRuleData) dangerous.push(rule);
@@ -389,13 +389,25 @@ export class PolicyScript {
   }
 
   private validatePolicyCompilationMode(): void {
-    if (this.policyCompilationMode === 'optimized' && this.policyCompiler !== 'IPTables') {
-      throw fwcError.other('Optimized policy compilation is only supported for IPTables firewalls');
+    if (this.policyCompilationMode !== 'optimized') return;
+
+    if (!this.useOptimizedIptablesRestore() && !this.useOptimizedNftablesFile()) {
+      throw fwcError.other(
+        'Optimized policy compilation is only supported for IPTables and NFTables firewalls',
+      );
     }
   }
 
   private useOptimizedIptablesRestore(): boolean {
     return this.policyCompiler === 'IPTables' && this.policyCompilationMode === 'optimized';
+  }
+
+  private useOptimizedNftablesFile(): boolean {
+    return this.policyCompiler === 'NFTables' && this.policyCompilationMode === 'optimized';
+  }
+
+  private useOptimizedPolicyCompilation(): boolean {
+    return this.useOptimizedIptablesRestore() || this.useOptimizedNftablesFile();
   }
 
   private stripShellComments(line: string): string {
@@ -459,6 +471,30 @@ export class PolicyScript {
     return { restoreCommand, table, restoreLine: command };
   }
 
+  private parseNftablesFileLine(
+    line: string,
+  ): { family: string; table: string; chain: string; fileLine: string } | null {
+    const commandMatch = line.trim().match(/^\$NFT\s+(.+)$/);
+    if (!commandMatch) return null;
+
+    const command = this.normalizeNftablesFileQuotes(
+      this.stripShellComments(commandMatch[1]).trim(),
+    );
+    const ruleMatch = command.match(/^add\s+rule\s+(ip|ip6)\s+(filter|nat|mangle)\s+(\S+)\s+(.+)$/);
+    if (!ruleMatch) return null;
+
+    return {
+      family: ruleMatch[1],
+      table: ruleMatch[2],
+      chain: ruleMatch[3],
+      fileLine: command,
+    };
+  }
+
+  private normalizeNftablesFileQuotes(command: string): string {
+    return command.replace(/\\"/g, '"').replace(/\\'/g, "'");
+  }
+
   private flushIptablesRestoreBuffer(
     restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null,
   ): string {
@@ -477,6 +513,22 @@ export class PolicyScript {
       'COMMIT\n' +
       'FWC_IPTABLES_RESTORE\n'
     );
+  }
+
+  private flushNftablesFileBuffer(
+    nftBuffer: { family: string; table: string; chain: string; lines: string[] } | null,
+  ): string {
+    if (!nftBuffer || nftBuffer.lines.length === 0) return '';
+
+    return this.renderNftablesFileCommands(nftBuffer.lines);
+  }
+
+  private renderNftablesFileCommands(lines: string[]): string {
+    if (lines.length === 0) return '';
+
+    // Previous rules cleanup belongs to policy_empty/reset_nft;
+    // partial nft -f blocks must not flush.
+    return "cat <<'FWC_NFT_RULES' | $NFT -f -\n" + `${lines.join('\n')}\n` + 'FWC_NFT_RULES\n';
   }
 
   private getIptablesRestoreChainPolicies(restoreBuffer: {
@@ -581,6 +633,99 @@ export class PolicyScript {
     return optimized;
   }
 
+  private renderOptimizedNftablesCommands(cs: string): string {
+    let optimized = '';
+    let nftBuffer: { family: string; table: string; chain: string; lines: string[] } | null = null;
+    let pendingRuleLabel: string | null = null;
+
+    const flushNftBuffer = () => {
+      optimized += this.flushNftablesFileBuffer(nftBuffer);
+      nftBuffer = null;
+    };
+
+    for (const rawLine of cs.split('\n')) {
+      const trimmedLine = rawLine.trim();
+
+      if (trimmedLine.match(/^# Rule \d+ \(ID: \d+\)$/)) {
+        pendingRuleLabel = trimmedLine;
+        continue;
+      }
+
+      if (trimmedLine.startsWith('if [')) {
+        flushNftBuffer();
+        if (pendingRuleLabel) {
+          optimized = optimized.replace(/\n+$/, '\n');
+          optimized += `\n${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
+        optimized += `${rawLine}\n`;
+        continue;
+      }
+
+      if (trimmedLine === 'fi') {
+        flushNftBuffer();
+        optimized += `${rawLine}\n\n`;
+        continue;
+      }
+
+      // Skip shell comment lines completely - they are handled separately in dumpCompilation
+      if (trimmedLine.startsWith('#')) {
+        continue;
+      }
+
+      const parsedLine = this.parseNftablesFileLine(rawLine);
+
+      if (!parsedLine) {
+        flushNftBuffer();
+        if (pendingRuleLabel) {
+          optimized += `${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
+        optimized += rawLine.length > 0 ? `${rawLine}\n` : '\n';
+        continue;
+      }
+
+      if (
+        !nftBuffer ||
+        nftBuffer.family !== parsedLine.family ||
+        nftBuffer.table !== parsedLine.table ||
+        nftBuffer.chain !== parsedLine.chain
+      ) {
+        flushNftBuffer();
+        nftBuffer = {
+          family: parsedLine.family,
+          table: parsedLine.table,
+          chain: parsedLine.chain,
+          lines: [],
+        };
+      }
+
+      if (pendingRuleLabel) {
+        if (nftBuffer.lines.length > 0) {
+          nftBuffer.lines.push('');
+        }
+        nftBuffer.lines.push(pendingRuleLabel);
+        pendingRuleLabel = null;
+      }
+
+      nftBuffer.lines.push(parsedLine.fileLine);
+    }
+
+    flushNftBuffer();
+
+    if (pendingRuleLabel) {
+      optimized += `${pendingRuleLabel}\n`;
+    }
+
+    return optimized;
+  }
+
+  private renderOptimizedPolicyCommands(cs: string): string {
+    return this.useOptimizedIptablesRestore()
+      ? this.renderOptimizedIptablesCommands(cs)
+      : this.renderOptimizedNftablesCommands(cs);
+  }
+
   private isOptimizedScriptRule(cs: string): boolean {
     return cs.includes('# Hook script rule code:');
   }
@@ -619,8 +764,6 @@ export class PolicyScript {
               this.stream.write('policy_load() {\n');
 
               if (this.policyCompiler == 'NFTables') {
-                await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
-
                 this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
                 this.stream.write('# How do they interact?\n');
                 this.stream.write(
@@ -636,6 +779,7 @@ export class PolicyScript {
                   '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
                 );
                 this.stream.write('iptables_default_filter_policy ACCEPT\n');
+                await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
               } else {
                 // IPTables compiler.
                 this.stream.write('\n# Default IPTables chains policy.\n');
@@ -792,47 +936,54 @@ export class PolicyScript {
     this.stream.write('echo "* NFTABLES TABLES AND CHAINS *"\n');
     this.stream.write('echo "******************************"\n');
     const families = ['ip', 'ip6'];
+    const nftablesStdCommands: string[] = [];
     for (const family of families) {
-      this.stream.write(`$NFT add table ${family} filter\n`);
-      this.stream.write(
-        `$NFT add chain ${family} filter INPUT { type filter hook input priority 0\\; policy drop\\; }\n`,
+      nftablesStdCommands.push(`add table ${family} filter`);
+      nftablesStdCommands.push(
+        `add chain ${family} filter INPUT { type filter hook input priority 0; policy drop; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0\\; policy drop\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} filter FORWARD { type filter hook forward priority 0; policy drop; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} filter OUTPUT { type filter hook output priority 0\\; policy drop\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} filter OUTPUT { type filter hook output priority 0; policy drop; }`,
       );
-      this.stream.write(`$NFT add table ${family} nat\n`);
-      this.stream.write(
-        `$NFT add chain ${family} nat PREROUTING { type nat hook prerouting priority - 100\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(`add table ${family} nat`);
+      nftablesStdCommands.push(
+        `add chain ${family} nat PREROUTING { type nat hook prerouting priority - 100; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} nat INPUT { type nat hook input priority 100\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} nat INPUT { type nat hook input priority 100; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} nat OUTPUT { type nat hook output priority - 100\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} nat OUTPUT { type nat hook output priority - 100; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} nat POSTROUTING { type nat hook postrouting priority 100\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} nat POSTROUTING { type nat hook postrouting priority 100; policy accept; }`,
       );
-      this.stream.write(`$NFT add table ${family} mangle\n`);
-      this.stream.write(
-        `$NFT add chain ${family} mangle PREROUTING { type filter hook prerouting priority - 150\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(`add table ${family} mangle`);
+      nftablesStdCommands.push(
+        `add chain ${family} mangle PREROUTING { type filter hook prerouting priority - 150; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} mangle INPUT { type filter hook input priority - 150\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} mangle INPUT { type filter hook input priority - 150; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} mangle FORWARD { type filter hook forward priority - 150\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} mangle FORWARD { type filter hook forward priority - 150; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} mangle OUTPUT { type route hook output priority - 150\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} mangle OUTPUT { type route hook output priority - 150; policy accept; }`,
       );
-      this.stream.write(
-        `$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority - 150\\; policy accept\\; }\n`,
+      nftablesStdCommands.push(
+        `add chain ${family} mangle POSTROUTING { type filter hook postrouting priority - 150; policy accept; }`,
       );
     }
+    this.stream.write(
+      this.useOptimizedNftablesFile()
+        ? this.renderNftablesFileCommands(nftablesStdCommands)
+        : nftablesStdCommands.map((command) => `$NFT ${command.replace(/;/g, '\\;')}`).join('\n') +
+            '\n',
+    );
     return;
   }
 
@@ -859,12 +1010,19 @@ export class PolicyScript {
       );
     } else {
       // NFTables
-      this.stream.write('$NFT add rule ip mangle PREROUTING counter meta mark set ct mark\n');
-      this.stream.write('$NFT add rule ip mangle PREROUTING mark != 0x0 counter accept\n');
-      this.stream.write('$NFT add rule ip mangle OUTPUT counter meta mark set ct mark\n');
-      this.stream.write('$NFT add rule ip mangle OUTPUT mark != 0x0 counter accept\n');
-      this.stream.write('$NFT add rule ip mangle POSTROUTING counter meta mark set ct mark\n');
-      this.stream.write('$NFT add rule ip mangle POSTROUTING mark != 0x0 counter accept\n');
+      const mangleRules = [
+        'add rule ip mangle PREROUTING counter meta mark set ct mark',
+        'add rule ip mangle PREROUTING mark != 0x0 counter accept',
+        'add rule ip mangle OUTPUT counter meta mark set ct mark',
+        'add rule ip mangle OUTPUT mark != 0x0 counter accept',
+        'add rule ip mangle POSTROUTING counter meta mark set ct mark',
+        'add rule ip mangle POSTROUTING mark != 0x0 counter accept',
+      ];
+      this.stream.write(
+        this.useOptimizedNftablesFile()
+          ? this.renderNftablesFileCommands(mangleRules)
+          : mangleRules.map((rule) => `$NFT ${rule}`).join('\n') + '\n',
+      );
     }
     return;
   }
