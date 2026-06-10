@@ -106,8 +106,26 @@ before(async () => {
   await testSuite.resetDatabaseData();
 });
 
+async function removePlayground(): Promise<void> {
+  const maxAttempts = 5;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      fse.removeSync(playgroundPath);
+      return;
+    } catch (err) {
+      // The application logger can write into playground/logs while the tree
+      // is being removed, leaving the directory non-empty again. Retrying
+      // re-walks the tree and removes any files created mid-deletion.
+      if (attempt >= maxAttempts || !['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(err.code)) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+    }
+  }
+}
+
 beforeEach(async () => {
-  fse.removeSync(playgroundPath);
+  await removePlayground();
   fse.mkdirSync(playgroundPath);
   testSuite.app.generateDirectories();
 });
