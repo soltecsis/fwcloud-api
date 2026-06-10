@@ -101,6 +101,7 @@ router.put('/', async (req, res) =>{
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
         const ids = await Tree.createObjectsTree(req.dbCon,req.body.fwcloud);
+        await Tree.recreateCountriesTree(req.dbCon, req.body.fwcloud);
 
         channel.emit('message', new ProgressNoticePayload(`Checking addresses objects.\n`));
         await Repair.checkNonStdIPObj(ids.Addresses,'OIA',5);
