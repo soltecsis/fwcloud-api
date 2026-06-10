@@ -106,17 +106,17 @@ before(async () => {
   await testSuite.resetDatabaseData();
 });
 
-async function removePlayground(): Promise<void> {
+async function emptyPlayground(): Promise<void> {
   const maxAttempts = 5;
-  for (let attempt = 1; ; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      fse.removeSync(playgroundPath);
+      fse.emptyDirSync(playgroundPath);
       return;
     } catch (err) {
       // The application logger can write into playground/logs while the tree
-      // is being removed, leaving the directory non-empty again. Retrying
+      // is being removed, leaving a directory non-empty again. Retrying
       // re-walks the tree and removes any files created mid-deletion.
-      if (attempt >= maxAttempts || !['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(err.code)) {
+      if (attempt === maxAttempts || !['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(err.code)) {
         throw err;
       }
       await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
@@ -125,8 +125,7 @@ async function removePlayground(): Promise<void> {
 }
 
 beforeEach(async () => {
-  await removePlayground();
-  fse.mkdirSync(playgroundPath);
+  await emptyPlayground();
   testSuite.app.generateDirectories();
 });
 
