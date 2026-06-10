@@ -40,7 +40,10 @@ import {
   FindResponse,
   GraphDataResponse,
   GraphOpenVPNStatusHistoryOptions,
+  OpenVPNHistorySortField,
+  OpenVPNHistorySortOrder,
   OpenVPNStatusHistoryService,
+  PaginatedFindResponse,
 } from '../../../models/vpn/openvpn/status/openvpn-status-history.service';
 import { HistoryQueryDto } from './dtos/history-query.dto';
 import { GraphQueryDto } from './dtos/graph-query.dto';
@@ -150,7 +153,10 @@ export class OpenVPNController extends Controller {
 
     const historyService: OpenVPNStatusHistoryService =
       await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
-    const results: FindResponse = await historyService.history(openVPN.id, options);
+    const results: FindResponse | PaginatedFindResponse = await historyService.history(
+      openVPN.id,
+      options,
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(results);
   }
@@ -227,6 +233,22 @@ export class OpenVPNController extends Controller {
 
     if (query.address) {
       options.address = query.address as string;
+    }
+
+    if (query.page) {
+      options.page = parseInt(query.page as string);
+    }
+
+    if (query.limit) {
+      options.limit = parseInt(query.limit as string);
+    }
+
+    if (query.sort) {
+      options.sort = query.sort as OpenVPNHistorySortField;
+    }
+
+    if (query.order) {
+      options.order = (query.order as string).toUpperCase() as OpenVPNHistorySortOrder;
     }
 
     return options;

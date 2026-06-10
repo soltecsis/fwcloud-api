@@ -5,6 +5,7 @@ import {
   FindResponse,
   GraphDataResponse,
   OpenVPNStatusHistoryService,
+  PaginatedFindResponse,
 } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
 import { describeName, expect, testSuite } from '../../../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../../../utils/fwcloud-factory';
@@ -288,6 +289,128 @@ describe(describeName(OpenVPNStatusHistoryService.name + ' Unit Tests'), () => {
         });
 
         expect(results).to.not.have.property('name');
+      });
+    });
+
+    describe('pagination', () => {
+      beforeEach(async () => {
+        await manager.getRepository(OpenVPNStatusHistory).save([
+          {
+            timestampInSeconds: 100,
+            name: 'Cli1',
+            address: '10.0.0.1:1000',
+            bytesReceived: '100',
+            bytesSent: '200',
+            connectedAtTimestampInSeconds: 90,
+            openVPNServerId: fwcProduct.openvpnServer.id,
+          },
+          {
+            timestampInSeconds: 101,
+            name: 'Cli1',
+            address: '10.0.0.1:1000',
+            bytesReceived: '150',
+            bytesSent: '250',
+            connectedAtTimestampInSeconds: 90,
+            openVPNServerId: fwcProduct.openvpnServer.id,
+          },
+          {
+            timestampInSeconds: 102,
+            name: 'Cli2',
+            address: '10.0.0.2:1000',
+            bytesReceived: '300',
+            bytesSent: '400',
+            connectedAtTimestampInSeconds: 92,
+            disconnectedAtTimestampInSeconds: 102,
+            openVPNServerId: fwcProduct.openvpnServer.id,
+          },
+          {
+            timestampInSeconds: 103,
+            name: 'Cli3',
+            address: '10.0.0.3:1000',
+            bytesReceived: '500',
+            bytesSent: '600',
+            connectedAtTimestampInSeconds: 93,
+            openVPNServerId: fwcProduct.openvpnServer.id,
+          },
+        ]);
+      });
+
+      it('should return a paginated connection list without changing the legacy history format inside data', async () => {
+        const results: PaginatedFindResponse = await service.history(fwcProduct.openvpnServer.id, {
+          rangeTimestamp: [new Date(100000), new Date(103000)],
+          page: 1,
+          limit: 2,
+          sort: 'cn',
+          order: 'ASC',
+        });
+
+        expect(results.pagination).to.deep.eq({
+          page: 1,
+          limit: 2,
+          total: 3,
+        });
+        expect(Object.keys(results.history)).to.deep.eq(['Cli1', 'Cli2']);
+        expect(results.history['Cli1'].connections).to.have.length(1);
+        expect(results.history['Cli1'].connections[0]).to.deep.eq({
+          connected_at: new Date(90000),
+          disconnected_at: null,
+          bytesReceived: 150,
+          bytesSent: 250,
+          address: '10.0.0.1:1000',
+        });
+      });
+
+      it('should apply offset using the requested page and limit', async () => {
+        const results: PaginatedFindResponse = await service.history(fwcProduct.openvpnServer.id, {
+          rangeTimestamp: [new Date(100000), new Date(103000)],
+          page: 2,
+          limit: 2,
+          sort: 'cn',
+          order: 'ASC',
+        });
+
+        expect(results.pagination).to.deep.eq({
+          page: 2,
+          limit: 2,
+          total: 3,
+        });
+        expect(Object.keys(results.history)).to.deep.eq(['Cli3']);
+      });
+
+      it('should keep applying the current name filter before paginating', async () => {
+        const results: PaginatedFindResponse = await service.history(fwcProduct.openvpnServer.id, {
+          rangeTimestamp: [new Date(100000), new Date(103000)],
+          name: 'Cli2',
+          page: 1,
+          limit: 50,
+        });
+
+        expect(results.pagination.total).to.eq(1);
+        expect(Object.keys(results.history)).to.deep.eq(['Cli2']);
+      });
+
+      it('should keep applying the current address filter before paginating', async () => {
+        const results: PaginatedFindResponse = await service.history(fwcProduct.openvpnServer.id, {
+          rangeTimestamp: [new Date(100000), new Date(103000)],
+          address: '10.0.0.3:1000',
+          page: 1,
+          limit: 50,
+        });
+
+        expect(results.pagination.total).to.eq(1);
+        expect(Object.keys(results.history)).to.deep.eq(['Cli3']);
+      });
+
+      it('should sort paginated connections by the requested field', async () => {
+        const results: PaginatedFindResponse = await service.history(fwcProduct.openvpnServer.id, {
+          rangeTimestamp: [new Date(100000), new Date(103000)],
+          page: 1,
+          limit: 2,
+          sort: 'connected_at',
+          order: 'DESC',
+        });
+
+        expect(Object.keys(results.history)).to.deep.eq(['Cli3', 'Cli2']);
       });
     });
   });
