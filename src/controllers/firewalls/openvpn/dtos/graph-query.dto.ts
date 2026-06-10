@@ -1,7 +1,7 @@
 import { IsNumber, IsOptional } from 'class-validator';
-import { HistoryQueryDto } from './history-query.dto';
+import { HistoryBaseQueryDto } from './history-query.dto';
 
-export class GraphQueryDto extends HistoryQueryDto {
+export class GraphQueryDto extends HistoryBaseQueryDto {
   @IsNumber()
   @IsOptional()
   limit: number;
