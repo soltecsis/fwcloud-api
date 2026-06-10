@@ -23,7 +23,7 @@
 import Model from '../Model';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { Tree } from '../tree/Tree';
+import { COUNTRY_TREE_ROOT_NAME, COUNTRY_TREE_ROOT_NODE_TYPE, Tree } from '../tree/Tree';
 import { PrimaryColumn, Column } from 'typeorm';
 import Query from '../../database/Query';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
@@ -34,6 +34,13 @@ let dbCon;
 let fwcloud;
 
 const tableName: string = 'fwc_tree';
+const validRootNodes = new Map<string, string>([
+  ['FIREWALLS', 'FDF'],
+  ['OBJECTS', 'FDO'],
+  ['SERVICES', 'FDS'],
+  ['CA', 'FCA'],
+  [COUNTRY_TREE_ROOT_NAME, COUNTRY_TREE_ROOT_NODE_TYPE],
+]);
 
 export class Repair extends Model {
   @PrimaryColumn()
@@ -64,12 +71,9 @@ export class Repair extends Model {
     return tableName;
   }
 
-  public static initData(req): Promise<void> {
-    return new Promise(async (resolve) => {
-      dbCon = req.dbCon;
-      fwcloud = req.body.fwcloud;
-      resolve();
-    });
+  public static async initData(req): Promise<void> {
+    dbCon = req.dbCon;
+    fwcloud = req.body.fwcloud;
   }
 
   //Ontain all root nodes.
@@ -84,26 +88,30 @@ export class Repair extends Model {
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
 
-        // The nodes must have the names: FIREWALLS, OBJECTS and SERVICES; with
-        // the respective node types FDF, FDO, FDS.
+        // COUNTRIES is optional for old clouds, but it is a valid root when present.
         let update_obj_to_null = 0;
         let firewalls_found = 0;
         let objects_found = 0;
         let services_found = 0;
         let ca_found = 0;
         for (const node of nodes) {
-          if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
+          if (validRootNodes.get(node.name) === node.node_type) {
             channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
-            firewalls_found = 1;
-          } else if (node.name === 'OBJECTS' && node.node_type === 'FDO') {
-            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
-            objects_found = 1;
-          } else if (node.name === 'SERVICES' && node.node_type === 'FDS') {
-            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
-            services_found = 1;
-          } else if (node.name === 'CA' && node.node_type === 'FCA') {
-            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
-            ca_found = 1;
+
+            switch (node.node_type) {
+              case 'FDF':
+                firewalls_found = 1;
+                break;
+              case 'FDO':
+                objects_found = 1;
+                break;
+              case 'FDS':
+                services_found = 1;
+                break;
+              case 'FCA':
+                ca_found = 1;
+                break;
+            }
           } else {
             channel.emit(
               'message',
