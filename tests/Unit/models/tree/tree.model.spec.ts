@@ -1,11 +1,12 @@
 import { expect, testSuite } from '../../../mocha/global-setup';
-import { Tree } from '../../../../src/models/tree/Tree';
+import { COUNTRY_TREE_ROOT_NODE_TYPE, Tree } from '../../../../src/models/tree/Tree';
 import { EntityManager } from 'typeorm';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import db from '../../../../src/database/database-manager';
 import StringHelper from '../../../../src/utils/string.helper';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
+import { Repair } from '../../../../src/models/tree/Repair';
 
 describe('Tree Model Unit Tests', function () {
   let fwCloud: FwCloud;
@@ -166,6 +167,23 @@ describe('Tree Model Unit Tests', function () {
       const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
       expect(ipSecNode).to.exist;
       expect(ipSecNode.text).to.equal('IPSec');
+    });
+  });
+
+  describe('repair root checks', () => {
+    it('should keep the countries root node as a valid tree root', async () => {
+      const dbCon = db.getQuery();
+
+      await Tree.createAllTreeCloud(fwCloud);
+      await Repair.initData({ dbCon, body: { fwcloud: fwCloud.id } });
+      await Repair.checkRootNodes(dbCon);
+
+      const countryRootNodes = await manager.query(
+        'SELECT id FROM fwc_tree WHERE fwcloud = ? AND id_parent IS NULL AND node_type = ?',
+        [fwCloud.id, COUNTRY_TREE_ROOT_NODE_TYPE],
+      );
+
+      expect(countryRootNodes).to.have.length(1);
     });
   });
 });

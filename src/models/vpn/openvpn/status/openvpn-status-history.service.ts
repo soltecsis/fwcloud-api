@@ -24,11 +24,25 @@ export type FindOpenVPNStatusHistoryOptions = {
   rangeTimestamp?: [Date, Date];
   name?: string;
   address?: string;
+  page?: number;
+  limit?: number;
+  sort?: OpenVPNHistorySortField;
+  order?: OpenVPNHistorySortOrder;
 };
 
 export type GraphOpenVPNStatusHistoryOptions = {
   limit?: number;
-} & FindOpenVPNStatusHistoryOptions;
+} & Omit<FindOpenVPNStatusHistoryOptions, 'page' | 'sort' | 'order'>;
+
+export type OpenVPNHistorySortField =
+  | 'cn'
+  | 'address'
+  | 'connected_at'
+  | 'disconnected_at'
+  | 'bytesReceived'
+  | 'bytesSent';
+
+export type OpenVPNHistorySortOrder = 'ASC' | 'DESC';
 
 export type ClientHistoryConnection = {
   connected_at: Date;
@@ -46,6 +60,15 @@ export type FindResponse = {
   [cn: string]: ClientHistory;
 };
 
+export type PaginatedFindResponse = {
+  history: FindResponse;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+};
+
 type GraphDataPoint = {
   timestamp: number;
   bytesReceived: number;
@@ -55,6 +78,15 @@ type GraphDataPoint = {
 };
 
 export type GraphDataResponse = GraphDataPoint[];
+
+type HistoryConnectionRow = {
+  name: string;
+  address: string;
+  bytesReceived: string;
+  bytesSent: string;
+  connectedAtTimestampInSeconds: number;
+  disconnectedAtTimestampInSeconds: number | null;
+};
 
 export class OpenVPNStatusHistoryService extends Service {
   protected _repository: Repository<OpenVPNStatusHistory>;
@@ -199,6 +231,15 @@ export class OpenVPNStatusHistoryService extends Service {
     openVpnServerId: number,
     options: FindOpenVPNStatusHistoryOptions = {},
   ): Promise<OpenVPNStatusHistory[]> {
+    return this.buildFindQuery(openVpnServerId, options)
+      .orderBy('record.timestampInSeconds', 'ASC')
+      .getMany();
+  }
+
+  protected buildFindQuery(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions = {},
+  ): SelectQueryBuilder<OpenVPNStatusHistory> {
     const query: SelectQueryBuilder<OpenVPNStatusHistory> = this._repository
       .createQueryBuilder('record')
       .andWhere(`record.openVPNServerId = :serverId`, { serverId: openVpnServerId });
@@ -218,7 +259,7 @@ export class OpenVPNStatusHistoryService extends Service {
       query.andWhere(`record.address = :address`, { address: options.address });
     }
 
-    return query.orderBy('record.timestampInSeconds', 'ASC').getMany();
+    return query;
   }
 
   /**
@@ -228,12 +269,134 @@ export class OpenVPNStatusHistoryService extends Service {
    * @param options
    * @returns
    */
+  history(openVpnServerId: number): Promise<FindResponse>;
+  history(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions & { page?: undefined; limit?: undefined },
+  ): Promise<FindResponse>;
+  history(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions & ({ page: number } | { limit: number }),
+  ): Promise<PaginatedFindResponse>;
+  history(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions,
+  ): Promise<FindResponse | PaginatedFindResponse>;
   async history(
     openVpnServerId: number,
     options: FindOpenVPNStatusHistoryOptions = {},
-  ): Promise<FindResponse> {
+  ): Promise<FindResponse | PaginatedFindResponse> {
+    if (options.page || options.limit) {
+      return this.paginatedHistory(openVpnServerId, options);
+    }
+
     const results: OpenVPNStatusHistory[] = await this.find(openVpnServerId, options);
 
+    const result: FindResponse = this.buildHistoryResponse(results);
+
+    return result;
+  }
+
+  protected async paginatedHistory(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions = {},
+  ): Promise<PaginatedFindResponse> {
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.min(Math.max(1, options.limit ?? 50), 200);
+    const offset = (page - 1) * limit;
+
+    const [rows, total] = await Promise.all([
+      this.findConnectionRows(openVpnServerId, options, limit, offset),
+      this.countConnectionRows(openVpnServerId, options),
+    ]);
+
+    const result: FindResponse = this.buildHistoryResponseFromConnectionRows(rows);
+
+    return {
+      history: result,
+      pagination: {
+        page,
+        limit,
+        total,
+      },
+    };
+  }
+
+  protected findConnectionRows(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions,
+    limit: number,
+    offset: number,
+  ): Promise<HistoryConnectionRow[]> {
+    const query = this.buildConnectionRowsQuery(openVpnServerId, options);
+    const order = options.order ?? 'ASC';
+
+    switch (options.sort) {
+      case 'address':
+        query.orderBy('address', order);
+        break;
+      case 'connected_at':
+        query.orderBy('connectedAtTimestampInSeconds', order);
+        break;
+      case 'disconnected_at':
+        query.orderBy('disconnectedAtTimestampInSeconds', order);
+        break;
+      case 'bytesReceived':
+        query.orderBy('bytesReceived', order);
+        break;
+      case 'bytesSent':
+        query.orderBy('bytesSent', order);
+        break;
+      case 'cn':
+      default:
+        query.orderBy('record.name', order);
+        break;
+    }
+
+    if (options.sort !== 'cn') {
+      query.addOrderBy('record.name', 'ASC');
+    }
+
+    if (options.sort !== 'connected_at') {
+      query.addOrderBy('connectedAtTimestampInSeconds', 'ASC');
+    }
+
+    query.limit(limit).offset(offset);
+
+    return query.getRawMany<HistoryConnectionRow>();
+  }
+
+  protected countConnectionRows(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions,
+  ): Promise<number> {
+    const query = this.buildConnectionRowsQuery(openVpnServerId, options);
+    const countQuery = db
+      .getSource()
+      .manager.createQueryBuilder()
+      .select('COUNT(*)', 'total')
+      .from(`(${query.getQuery()})`, 'connections')
+      .setParameters(query.getParameters());
+
+    return countQuery.getRawOne<{ total: string }>().then((result) => parseInt(result.total, 10));
+  }
+
+  protected buildConnectionRowsQuery(
+    openVpnServerId: number,
+    options: FindOpenVPNStatusHistoryOptions,
+  ): SelectQueryBuilder<OpenVPNStatusHistory> {
+    return this.buildFindQuery(openVpnServerId, options)
+      .select('record.name', 'name')
+      .addSelect('MAX(record.address)', 'address')
+      .addSelect('MAX(record.bytesReceived)', 'bytesReceived')
+      .addSelect('MAX(record.bytesSent)', 'bytesSent')
+      .addSelect('record.connectedAtTimestampInSeconds', 'connectedAtTimestampInSeconds')
+      .addSelect('MAX(record.disconnectedAtTimestampInSeconds)', 'disconnectedAtTimestampInSeconds')
+      .groupBy('record.name')
+      .addGroupBy('record.connectedAtTimestampInSeconds');
+  }
+
+  protected buildHistoryResponse(results: OpenVPNStatusHistory[]): FindResponse {
     const names: string[] = [...new Set(results.map((item) => item.name))];
     const result: FindResponse = {};
 
@@ -276,6 +439,30 @@ export class OpenVPNStatusHistoryService extends Service {
     return result;
   }
 
+  protected buildHistoryResponseFromConnectionRows(rows: HistoryConnectionRow[]): FindResponse {
+    const result: FindResponse = {};
+
+    for (const row of rows) {
+      if (!result[row.name]) {
+        result[row.name] = {
+          connections: [],
+        };
+      }
+
+      result[row.name].connections.push({
+        connected_at: new Date(row.connectedAtTimestampInSeconds * 1000),
+        disconnected_at: row.disconnectedAtTimestampInSeconds
+          ? new Date(row.disconnectedAtTimestampInSeconds * 1000)
+          : null,
+        bytesSent: parseInt(row.bytesSent, 10),
+        bytesReceived: parseInt(row.bytesReceived, 10),
+        address: row.address,
+      });
+    }
+
+    return result;
+  }
+
   /**
    * Returns the graph points data in order to print graphs
    *
@@ -289,38 +476,38 @@ export class OpenVPNStatusHistoryService extends Service {
   ): Promise<GraphDataResponse> {
     const results: OpenVPNStatusHistory[] = await this.find(openVpnServerId, options);
 
-    // Get results timestamps
-    // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-    const timestamps: number[] = [...new Set(results.map((item) => item.timestampInSeconds))].sort(
-      (a, b) => (a < b ? -1 : 1),
+    const graph: GraphDataResponse = this.buildGraphResponse(results, options.limit);
+
+    return graph;
+  }
+
+  protected buildGraphResponse(results: OpenVPNStatusHistory[], limit?: number): GraphDataResponse {
+    const timestampBytes: Map<number, [number, number]> = new Map();
+
+    for (const item of results) {
+      const bytesReceivedSent: [number, number] = timestampBytes.get(item.timestampInSeconds) ?? [
+        0, 0,
+      ];
+
+      bytesReceivedSent[0] += parseInt(item.bytesReceived);
+      bytesReceivedSent[1] += parseInt(item.bytesSent);
+      timestampBytes.set(item.timestampInSeconds, bytesReceivedSent);
+    }
+
+    const response: GraphDataResponse = Array.from(timestampBytes.entries()).map(
+      ([timestampInSeconds, bytesReceivedSent]) => {
+        return {
+          timestamp: timestampInSeconds * 1000,
+          bytesReceived: bytesReceivedSent[0],
+          bytesSent: bytesReceivedSent[1],
+          bytesReceivedSpeed: null,
+          bytesSentSpeed: null,
+        };
+      },
     );
 
-    const response: GraphDataResponse = timestamps.map((timestampInSeconds) => {
-      //Get all records with the same timestamp
-      const records: OpenVPNStatusHistory[] = results.filter(
-        (item) => item.timestampInSeconds === timestampInSeconds,
-      );
-
-      // Then calculate bytesReceived/bytesSent accumulated.
-      // bytesReceviedSent will contain all bytesReceived added in index 0 and all bytesSent added in index 1
-      const bytesReceivedSent: [number, number] = records.reduce<[number, number]>(
-        (bytes: [number, number], item: OpenVPNStatusHistory) => {
-          return [bytes[0] + parseInt(item.bytesReceived), bytes[1] + parseInt(item.bytesSent)];
-        },
-        [0, 0],
-      );
-
-      return {
-        timestamp: timestampInSeconds * 1000,
-        bytesReceived: bytesReceivedSent[0],
-        bytesSent: bytesReceivedSent[1],
-        bytesReceivedSpeed: null,
-        bytesSentSpeed: null,
-      };
-    });
-
     return (
-      this.limitGraphPoints(response, options.limit)
+      this.limitGraphPoints(response, limit)
         // bytesReceivedSpeed and bytesSentSpeed calculation
         .map((item, index, results) => {
           // If index = 0, there is not previous value thus speeds must be null
