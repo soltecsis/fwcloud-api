@@ -54,6 +54,13 @@ export enum SpecialPolicyRules {
   HOOKSCRIPT = 6,
 }
 
+// Comments that identify the default rules created by insertDefaultPolicy
+// which are not flagged through the special column.
+export const DefaultPolicyRuleComments = {
+  SELF_HOST_TRAFFIC: 'Allow all incoming traffic from self host.',
+  USEFUL_ICMP: 'Allow useful ICMP.',
+} as const;
+
 export enum PolicyRuleOptMask {
   STATEFUL = 0x0001,
   STATELESS = 0x0002,
@@ -820,7 +827,7 @@ export class PolicyRule extends Model {
           // Allow all incoming traffic from self host.
           policy_rData.special = 0;
           policy_rData.rule_order = 2;
-          policy_rData.comment = 'Allow all incoming traffic from self host.';
+          policy_rData.comment = DefaultPolicyRuleComments.SELF_HOST_TRAFFIC;
           policy_rData.type = 1; // INPUT IPv4
           policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
           policy_r__interfaceData.position = 20;
@@ -832,7 +839,7 @@ export class PolicyRule extends Model {
 
           // Allow useful ICMP traffic.
           policy_rData.rule_order = 3;
-          policy_rData.comment = 'Allow useful ICMP.';
+          policy_rData.comment = DefaultPolicyRuleComments.USEFUL_ICMP;
           policy_rData.type = 1; // INPUT IPv4
           policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
           policy_r__ipobjData.position = 3;
