@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -23,35 +23,24 @@
 import { Policy, Authorization } from '../fonaments/authorization/policy';
 import { User } from '../models/user/User';
 import { FwCloud } from '../models/fwcloud/FwCloud';
+import { FwCloudPolicy } from './fwcloud.policy';
 
-export class FwCloudPolicy extends Policy {
-  static async store(user: User): Promise<Authorization> {
-    return user.role === 1 ? Authorization.grant() : Authorization.revoke();
-  }
-
-  static async update(user: User): Promise<Authorization> {
-    return user.role === 1 ? Authorization.grant() : Authorization.revoke();
+/**
+ * Authorization rules for the assistant replication profiles: listing the
+ * catalog, reading a profile detail and applying a profile to a firewall or
+ * cluster of a FWCloud. Every operation requires access to the FWCloud the
+ * profile is being used in.
+ */
+export class ReplicationProfilePolicy extends Policy {
+  static async index(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
   }
 
   static async show(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.userCanAccessFwCloud(user, fwCloud);
+    return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
   }
 
-  static async colors(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.userCanAccessFwCloud(user, fwCloud);
-  }
-
-  static async userCanAccessFwCloud(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    user = await User.findOne({
-      where: { id: user.id },
-      relations: ['fwClouds'],
-    });
-    return user.fwClouds.findIndex((item) => item.id === fwCloud.id) >= 0
-      ? Authorization.grant()
-      : Authorization.revoke();
+  static async apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
   }
 }
