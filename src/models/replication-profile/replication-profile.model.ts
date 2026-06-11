@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../Model';
+import { assertProfileDefinitionHasNoSecrets } from './replication-profile-secret.guard';
 
 const tableName = 'replication_profiles';
 
@@ -65,6 +66,16 @@ export class ReplicationProfile extends Model {
 
   @Column()
   updated_at: Date;
+
+  /**
+   * Credentials must never be persisted inside profile definitions: they may
+   * only exist as transient runtime input of the wizard execution flow.
+   */
+  @BeforeInsert()
+  @BeforeUpdate()
+  rejectSecretsInDefinition(): void {
+    assertProfileDefinitionHasNoSecrets(this.model);
+  }
 
   public getTableName(): string {
     return tableName;
