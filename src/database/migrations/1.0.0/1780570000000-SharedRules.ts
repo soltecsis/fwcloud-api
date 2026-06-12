@@ -181,33 +181,46 @@ export class SharedRules1780570000000 implements MigrationInterface {
          )`,
     );
 
-    await queryRunner.query(
-      `INSERT INTO fwc_tree (name, id_parent, node_order, node_type, id_obj, obj_type, fwcloud)
-       SELECT policyTypes.name, policyTree.id, policyTypes.node_order, policyTypes.node_type, policyTypes.policy_type, NULL, policyTree.fwcloud
-       FROM fwc_tree policyTree
-       INNER JOIN (
-         SELECT 'INPUT' AS name, 1 AS node_order, 'SRI' AS node_type, 1 AS policy_type, 'SRP4' AS parent_type
-         UNION ALL SELECT 'OUTPUT', 2, 'SRO', 2, 'SRP4'
-         UNION ALL SELECT 'FORWARD', 3, 'SRFW', 3, 'SRP4'
-         UNION ALL SELECT 'SNAT', 4, 'SRSN', 4, 'SRP4'
-         UNION ALL SELECT 'DNAT', 5, 'SRDN', 5, 'SRP4'
-         UNION ALL SELECT 'INPUT', 1, 'SRI6', 61, 'SRP6'
-         UNION ALL SELECT 'OUTPUT', 2, 'SRO6', 62, 'SRP6'
-         UNION ALL SELECT 'FORWARD', 3, 'SRFW6', 63, 'SRP6'
-         UNION ALL SELECT 'SNAT', 4, 'SRSN6', 64, 'SRP6'
-         UNION ALL SELECT 'DNAT', 5, 'SRDN6', 65, 'SRP6'
-       ) policyTypes ON policyTypes.parent_type=policyTree.node_type
-       INNER JOIN fwc_tree sharedRules ON sharedRules.id=policyTree.id_parent
-       WHERE sharedRules.node_type='SRF'
-         AND policyTree.node_type IN ('SRP4', 'SRP6')
-         AND NOT EXISTS (
-           SELECT 1
-           FROM fwc_tree child
-           WHERE child.id_parent=policyTree.id
-             AND child.node_type=policyTypes.node_type
-             AND child.id_obj=policyTypes.policy_type
-         )`,
-    );
+    const sharedRulePolicyNodes = [
+      { name: 'INPUT', nodeOrder: 1, nodeType: 'SRI', policyType: 1, parentType: 'SRP4' },
+      { name: 'OUTPUT', nodeOrder: 2, nodeType: 'SRO', policyType: 2, parentType: 'SRP4' },
+      { name: 'FORWARD', nodeOrder: 3, nodeType: 'SRFW', policyType: 3, parentType: 'SRP4' },
+      { name: 'SNAT', nodeOrder: 4, nodeType: 'SRSN', policyType: 4, parentType: 'SRP4' },
+      { name: 'DNAT', nodeOrder: 5, nodeType: 'SRDN', policyType: 5, parentType: 'SRP4' },
+      { name: 'INPUT', nodeOrder: 1, nodeType: 'SRI6', policyType: 61, parentType: 'SRP6' },
+      { name: 'OUTPUT', nodeOrder: 2, nodeType: 'SRO6', policyType: 62, parentType: 'SRP6' },
+      { name: 'FORWARD', nodeOrder: 3, nodeType: 'SRFW6', policyType: 63, parentType: 'SRP6' },
+      { name: 'SNAT', nodeOrder: 4, nodeType: 'SRSN6', policyType: 64, parentType: 'SRP6' },
+      { name: 'DNAT', nodeOrder: 5, nodeType: 'SRDN6', policyType: 65, parentType: 'SRP6' },
+    ];
+
+    for (const policyNode of sharedRulePolicyNodes) {
+      await queryRunner.query(
+        `INSERT INTO fwc_tree (name, id_parent, node_order, node_type, id_obj, obj_type, fwcloud)
+         SELECT ?, policyTree.id, ?, ?, ?, NULL, policyTree.fwcloud
+         FROM fwc_tree policyTree
+         INNER JOIN fwc_tree sharedRules ON sharedRules.id=policyTree.id_parent
+         WHERE sharedRules.node_type=?
+           AND policyTree.node_type=?
+           AND NOT EXISTS (
+             SELECT 1
+             FROM fwc_tree child
+             WHERE child.id_parent=policyTree.id
+               AND child.node_type=?
+               AND child.id_obj=?
+           )`,
+        [
+          policyNode.name,
+          policyNode.nodeOrder,
+          policyNode.nodeType,
+          policyNode.policyType,
+          'SRF',
+          policyNode.parentType,
+          policyNode.nodeType,
+          policyNode.policyType,
+        ],
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
