@@ -273,6 +273,7 @@ export class Tree extends Model {
             if (treeType === 'FIREWALLS' && level > 1) orderBy = 'id';
             else if ((treeType === 'OBJECTS' || treeType === 'SERVICES') && level === 1)
               orderBy = 'id';
+            else if (treeType === 'OBJECTS') orderBy = 'id_parent, node_order, name';
             else orderBy = 'name';
 
             nodes = await this.nodesUnderNodes(dbCon, nodes, orderBy);
@@ -772,6 +773,18 @@ export class Tree extends Model {
         id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
         await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
+        // OBJECTS / Shared Rules
+        ids.SharedRules = await this.newNode(
+          dbCon,
+          fwCloudId,
+          'Shared Rules',
+          ids.OBJECTS,
+          'SRF',
+          null,
+          null,
+        );
+        await this.createSharedRulesPolicyTree(dbCon, fwCloudId, ids.SharedRules);
+
         // COUNTRIES
         ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, 'COUNTRIES', null, 'COF', null, null);
 
@@ -847,6 +860,66 @@ export class Tree extends Model {
         resolve(ids);
       } catch (error) {
         return reject(error);
+      }
+    });
+  }
+
+  public static createSharedRulesPolicyTree(
+    dbCon: Query,
+    fwCloudId: number,
+    sharedRulesNodeId: number,
+  ): Promise<void> {
+    const insertNode = (
+      name: string,
+      parentId: number,
+      nodeOrder: number,
+      nodeType: string,
+      objectId: number,
+    ): Promise<number> => {
+      return new Promise((resolve, reject) => {
+        dbCon.query(
+          `INSERT INTO fwc_tree
+            (name, id_parent, node_order, node_type, id_obj, obj_type, fwcloud)
+           VALUES (${dbCon.escape(name)}, ${parentId}, ${nodeOrder}, ${dbCon.escape(nodeType)}, ${objectId}, NULL, ${fwCloudId})`,
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result.insertId);
+          },
+        );
+      });
+    };
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        const ipv4PolicyNodeId = await insertNode(
+          'IPv4 POLICY',
+          sharedRulesNodeId,
+          1,
+          'SRP4',
+          null,
+        );
+        await insertNode('INPUT', ipv4PolicyNodeId, 1, 'SRI', 1);
+        await insertNode('OUTPUT', ipv4PolicyNodeId, 2, 'SRO', 2);
+        await insertNode('FORWARD', ipv4PolicyNodeId, 3, 'SRFW', 3);
+        await insertNode('SNAT', ipv4PolicyNodeId, 4, 'SRSN', 4);
+        await insertNode('DNAT', ipv4PolicyNodeId, 5, 'SRDN', 5);
+
+        const ipv6PolicyNodeId = await insertNode(
+          'IPv6 POLICY',
+          sharedRulesNodeId,
+          2,
+          'SRP6',
+          null,
+        );
+        await insertNode('INPUT', ipv6PolicyNodeId, 1, 'SRI6', 61);
+        await insertNode('OUTPUT', ipv6PolicyNodeId, 2, 'SRO6', 62);
+        await insertNode('FORWARD', ipv6PolicyNodeId, 3, 'SRFW6', 63);
+        await insertNode('SNAT', ipv6PolicyNodeId, 4, 'SRSN6', 64);
+        await insertNode('DNAT', ipv6PolicyNodeId, 5, 'SRDN6', 65);
+
+        resolve();
+      } catch (error) {
+        reject(error);
       }
     });
   }
