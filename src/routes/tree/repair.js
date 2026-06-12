@@ -124,6 +124,9 @@ router.put('/', async (req, res) =>{
 
         channel.emit('message', new ProgressNoticePayload(`Checking objects groups.\n`));
         await Repair.checkNonStdIPObjGroup(ids.Groups,'OIG',20);
+
+        channel.emit('message', new ProgressNoticePayload(`Checking shared rule sets.\n`));
+        await Repair.checkSharedRuleSets(ids.SharedRules);
         break;
       }
       else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { 

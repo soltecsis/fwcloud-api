@@ -32,7 +32,11 @@ import { logger } from '../../fonaments/abstract-application';
 import { SSHCommunication } from '../../communications/ssh.communication';
 import { AgentCommunication } from '../../communications/agent.communication';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
+import db from '../../database/database-manager';
 const restrictedCheck = require('../../middleware/restricted');
+const {
+	assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible,
+} = require('../policy/shared-rule-helpers');
 
 const fwcError = require('../../utils/error_table');
 
@@ -177,7 +181,7 @@ router.post("/", async (req, res) => {
 });
 
 /* Update interface that exist */
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
 	const fwcloud = req.body.fwcloud;
 	//Save data into object
 	const interfaceData = {
@@ -191,6 +195,18 @@ router.put('/', (req, res) => {
 	};
 
 	if ((interfaceData.id !== null) && (fwcloud !== null)) {
+		try {
+			await assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible(
+				db.getSource(),
+				fwcloud,
+				interfaceData.id,
+				interfaceData.name,
+			);
+		} catch (error) {
+			logger().error('Error validating shared rule interface usage: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
+
 		Interface.updateInterface(interfaceData, async (error, data) => {
 			if (error) {
 				logger().error('Error updating interface: ' + JSON.stringify(error));

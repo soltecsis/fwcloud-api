@@ -705,6 +705,45 @@ export class Repair extends Model {
     });
   }
 
+  // Regenerate shared rule set nodes for this cloud.
+  public static checkSharedRuleSets(sharedRulesNodeId): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT S.id, S.name, policyTypeNode.id AS parent_node_id
+        FROM shared_rule_set S
+        INNER JOIN fwc_tree policyTypeNode
+          ON policyTypeNode.fwcloud=S.fwcloud
+          AND policyTypeNode.id_obj=S.policy_type
+          AND policyTypeNode.obj_type IS NULL
+        INNER JOIN fwc_tree policyRoot
+          ON policyRoot.id=policyTypeNode.id_parent
+          AND policyRoot.id_parent=${dbCon.escape(sharedRulesNodeId)}
+        WHERE S.fwcloud=${dbCon.escape(fwcloud)}
+        ORDER BY S.policy_type, S.name, S.id`;
+
+      dbCon.query(sql, async (error, sharedRuleSets) => {
+        if (error) return reject(error);
+
+        try {
+          for (const sharedRuleSet of sharedRuleSets) {
+            await Tree.newNode(
+              dbCon,
+              fwcloud,
+              sharedRuleSet.name,
+              sharedRuleSet.parent_node_id,
+              'SRS',
+              sharedRuleSet.id,
+              null,
+            );
+          }
+
+          resolve();
+        } catch (error) {
+          return reject(error);
+        }
+      });
+    });
+  }
+
   // Remove orphan nodes (nodes wich id_parent points to a non existing node with this id_parnet value).
   public static deleteOrphanNodes(channel: EventEmitter = new EventEmitter()): Promise<void> {
     return new Promise((resolve, reject) => {
