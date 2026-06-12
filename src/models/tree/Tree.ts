@@ -36,6 +36,51 @@ const _Tree = require('easy-tree');
 const fwc_tree_node = require('./node.js');
 
 const tableName: string = 'fwc_tree';
+export const COUNTRY_TREE_ROOT_NAME = 'COUNTRIES';
+export const COUNTRY_TREE_ROOT_NODE_TYPE = 'COF';
+
+type StandardTreeFolderType = 'objects' | 'groups';
+type StandardTreeFolderSpec = {
+  key?: string;
+  name: string;
+  nodeType: string;
+  objType: number;
+  standard?: StandardTreeFolderType;
+};
+
+const OBJECT_TREE_FOLDERS: StandardTreeFolderSpec[] = [
+  { key: 'Addresses', name: 'Addresses', nodeType: 'OIA', objType: 5, standard: 'objects' },
+  {
+    key: 'AddressesRanges',
+    name: 'Address Ranges',
+    nodeType: 'OIR',
+    objType: 6,
+    standard: 'objects',
+  },
+  { key: 'Networks', name: 'Networks', nodeType: 'OIN', objType: 7, standard: 'objects' },
+  { key: 'DNS', name: 'DNS', nodeType: 'ONS', objType: 9 },
+  { name: 'Hosts', nodeType: 'OIH', objType: 8 },
+  { key: 'Marks', name: 'Iptables Marks', nodeType: 'MRK', objType: 30 },
+  { key: 'Groups', name: 'Groups', nodeType: 'OIG', objType: 20, standard: 'groups' },
+];
+
+const SERVICE_TREE_FOLDERS: StandardTreeFolderSpec[] = [
+  { key: 'IP', name: 'IP', nodeType: 'SOI', objType: 1, standard: 'objects' },
+  { key: 'ICMP', name: 'ICMP', nodeType: 'SOM', objType: 3, standard: 'objects' },
+  { key: 'TCP', name: 'TCP', nodeType: 'SOT', objType: 2, standard: 'objects' },
+  { key: 'UDP', name: 'UDP', nodeType: 'SOU', objType: 4, standard: 'objects' },
+  { key: 'Groups', name: 'Groups', nodeType: 'SOG', objType: 21, standard: 'groups' },
+];
+
+const COUNTRY_TREE_CONTINENTS = [
+  { name: 'AS', idObj: 6 },
+  { name: 'EU', idObj: 7 },
+  { name: 'AF', idObj: 8 },
+  { name: 'OC', idObj: 9 },
+  { name: 'NA', idObj: 10 },
+  { name: 'AN', idObj: 11 },
+  { name: 'SA', idObj: 12 },
+];
 
 export type TreeNode = {
   id: number;
@@ -58,7 +103,7 @@ export type IPSecNode = TreeNode & {
   address: string;
 };
 
-export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA';
+export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA' | 'COUNTRIES';
 
 type ChildrenArrayMap = Map<number, TreeNode[]>;
 type sortType = 'TEXT' | 'NODE_TYPE';
@@ -525,6 +570,38 @@ export class Tree extends Model {
     });
   }
 
+  private static getRootNodesByType(
+    dbCon: Query,
+    fwcloud: number,
+    nodeType: string,
+  ): Promise<Array<{ fwcloud: number; id: number; name: string }>> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT fwcloud,id,name FROM ${tableName}
+        WHERE fwcloud=${dbCon.escape(fwcloud)}
+        AND id_parent IS NULL
+        AND node_type=${dbCon.escape(nodeType)}`;
+
+      dbCon.query(sql, (error, rows) => {
+        if (error) return reject(error);
+        resolve(rows);
+      });
+    });
+  }
+
+  public static async recreateCountriesTree(dbCon: Query, fwCloudId: number): Promise<unknown> {
+    const countryRootNodes = await this.getRootNodesByType(
+      dbCon,
+      fwCloudId,
+      COUNTRY_TREE_ROOT_NODE_TYPE,
+    );
+
+    for (const node of countryRootNodes) {
+      await this.deleteFwc_TreeFullNode(node);
+    }
+
+    return this.createCountriesTree(dbCon, fwCloudId);
+  }
+
   // Delete nodes under the indicated node.
   public static deleteNodesUnderMe(dbCon, fwcloud, node_id): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -695,83 +772,35 @@ export class Tree extends Model {
     });
   }
 
-  public static createObjectsTree(dbCon: Query, fwCloudId: number) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const ids: any = {};
-        let id: any;
+  private static async createStandardTreeFolder(
+    dbCon: Query,
+    fwCloudId: number,
+    parentId: any,
+    folder: StandardTreeFolderSpec,
+  ): Promise<void> {
+    if (!folder.standard) {
+      return;
+    }
 
-        // OBJECTS
-        ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
+    const standardNodeId = await this.newNode(
+      dbCon,
+      fwCloudId,
+      'Standard',
+      parentId,
+      'STD',
+      null,
+      null,
+    );
 
-        // OBJECTS / Addresses
-        ids.Addresses = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Addresses',
-          ids.OBJECTS,
-          'OIA',
-          null,
-          5,
-        );
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Addresses, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
+    if (folder.standard === 'objects') {
+      await this.createStdObjectsTree(dbCon, standardNodeId, folder.nodeType, folder.objType);
+    } else {
+      await this.createStdGroupsTree(dbCon, standardNodeId, folder.nodeType, folder.objType);
+    }
+  }
 
-        // OBJECTS / Addresses Ranges
-        ids.AddressesRanges = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Address Ranges',
-          ids.OBJECTS,
-          'OIR',
-          null,
-          6,
-        );
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Standard',
-          ids.AddressesRanges,
-          'STD',
-          null,
-          null,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
-
-        // OBJECTS / Networks
-        ids.Networks = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Networks',
-          ids.OBJECTS,
-          'OIN',
-          null,
-          7,
-        );
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Networks, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
-
-        // OBJECTS / DNS
-        ids.DNS = await this.newNode(dbCon, fwCloudId, 'DNS', ids.OBJECTS, 'ONS', null, 9);
-
-        // OBJECTS / Hosts
-        await this.newNode(dbCon, fwCloudId, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
-
-        // OBJECTS / Marks
-        ids.Marks = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Iptables Marks',
-          ids.OBJECTS,
-          'MRK',
-          null,
-          30,
-        );
-
-        // OBJECTS / Groups
-        ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.OBJECTS, 'OIG', null, 20);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
-        await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
+  public static async createObjectsTree(dbCon: Query, fwCloudId: number): Promise<any> {
+    const ids: any = {};
 
         // OBJECTS / Shared Rules
         ids.SharedRules = await this.newNode(
@@ -786,82 +815,93 @@ export class Tree extends Model {
         await this.createSharedRulesPolicyTree(dbCon, fwCloudId, ids.SharedRules);
 
         // COUNTRIES
-        ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, 'COUNTRIES', null, 'COF', null, null);
+        ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
 
-        // COUNTRIES / AS
-        id = await this.newNode(dbCon, fwCloudId, 'AS', ids.COUNTRIES, 'CON', 6, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+    for (const folder of OBJECT_TREE_FOLDERS) {
+      const id = await this.newNode(
+        dbCon,
+        fwCloudId,
+        folder.name,
+        ids.OBJECTS,
+        folder.nodeType,
+        null,
+        folder.objType,
+      );
 
-        // COUNTRIES / EU
-        id = await this.newNode(dbCon, fwCloudId, 'EU', ids.COUNTRIES, 'CON', 7, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        // CONTRIES / AF
-        id = await this.newNode(dbCon, fwCloudId, 'AF', ids.COUNTRIES, 'CON', 8, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        // COUNTRIES / OC
-        id = await this.newNode(dbCon, fwCloudId, 'OC', ids.COUNTRIES, 'CON', 9, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        // COUNTRIES / NA
-        id = await this.newNode(dbCon, fwCloudId, 'NA', ids.COUNTRIES, 'CON', 10, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        // COUNTRIES / AN
-        id = await this.newNode(dbCon, fwCloudId, 'AN', ids.COUNTRIES, 'CON', 11, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        // COUNTRIES / SA
-        id = await this.newNode(dbCon, fwCloudId, 'SA', ids.COUNTRIES, 'CON', 12, 23);
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
-
-        resolve(ids);
-      } catch (error) {
-        return reject(error);
+      if (folder.key) {
+        ids[folder.key] = id;
       }
-    });
+
+      await this.createStandardTreeFolder(dbCon, fwCloudId, id, folder);
+    }
+
+    return ids;
   }
 
-  public static createServicesTree(dbCon: Query, fwCloudId: number) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const ids: any = {};
-        let id;
+  public static async createCountriesTree(dbCon: Query, fwCloudId: number): Promise<any> {
+    const ids: any = {};
 
-        // SERVICES
-        ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
+    ids.COUNTRIES = await this.newNode(
+      dbCon,
+      fwCloudId,
+      COUNTRY_TREE_ROOT_NAME,
+      null,
+      COUNTRY_TREE_ROOT_NODE_TYPE,
+      null,
+      null,
+    );
 
-        // SERVICES / IP
-        ids.IP = await this.newNode(dbCon, fwCloudId, 'IP', ids.SERVICES, 'SOI', null, 1);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.IP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
+    for (const continent of COUNTRY_TREE_CONTINENTS) {
+      const id = await this.newNode(
+        dbCon,
+        fwCloudId,
+        continent.name,
+        ids.COUNTRIES,
+        'CON',
+        continent.idObj,
+        23,
+      );
+      await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+    }
 
-        // SERVICES / ICMP
-        ids.ICMP = await this.newNode(dbCon, fwCloudId, 'ICMP', ids.SERVICES, 'SOM', null, 3);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.ICMP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
+    return ids;
+  }
 
-        // SERVICES / TCP
-        ids.TCP = await this.newNode(dbCon, fwCloudId, 'TCP', ids.SERVICES, 'SOT', null, 2);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.TCP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
+  public static async ensureCountriesTree(dbCon: Query, fwCloudId: number): Promise<void> {
+    const countryRootNodes = await this.getRootNodesByType(
+      dbCon,
+      fwCloudId,
+      COUNTRY_TREE_ROOT_NODE_TYPE,
+    );
 
-        // SERVICES / UDP
-        ids.UDP = await this.newNode(dbCon, fwCloudId, 'UDP', ids.SERVICES, 'SOU', null, 4);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.UDP, 'STD', null, null);
-        await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
+    if (!countryRootNodes.some((node) => node.name === COUNTRY_TREE_ROOT_NAME)) {
+      await this.createCountriesTree(dbCon, fwCloudId);
+    }
+  }
 
-        // SERVICES / Groups
-        ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.SERVICES, 'SOG', null, 21);
-        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
-        await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
+  public static async createServicesTree(dbCon: Query, fwCloudId: number): Promise<any> {
+    const ids: any = {};
 
-        resolve(ids);
-      } catch (error) {
-        return reject(error);
+    ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
+
+    for (const folder of SERVICE_TREE_FOLDERS) {
+      const id = await this.newNode(
+        dbCon,
+        fwCloudId,
+        folder.name,
+        ids.SERVICES,
+        folder.nodeType,
+        null,
+        folder.objType,
+      );
+
+      if (folder.key) {
+        ids[folder.key] = id;
       }
-    });
+      await this.createStandardTreeFolder(dbCon, fwCloudId, id, folder);
+    }
+
+    return ids;
   }
 
   public static createSharedRulesPolicyTree(
@@ -924,30 +964,30 @@ export class Tree extends Model {
     });
   }
 
-  public static createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
+  public static async createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
     const dbCon: Query = db.getQuery();
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        // FIREWALLS
-        await this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
+    try {
+      // FIREWALLS
+      await this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
 
-        // OBJECTS
-        await this.createObjectsTree(dbCon, fwCloud.id);
+      // OBJECTS
+      await this.createObjectsTree(dbCon, fwCloud.id);
 
-        // SERVICES
-        await this.createServicesTree(dbCon, fwCloud.id);
+      // COUNTRIES
+      await this.createCountriesTree(dbCon, fwCloud.id);
 
-        // Creating root node for CA (Certification Authorities).
-        await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
-        resolve();
-      } catch (error) {
-        logger().error(
-          `Error in createAllTreeCloud for fwCloud ID: ${fwCloud.id} - ${error.message}`,
-        );
-        reject(error);
-      }
-    });
+      // SERVICES
+      await this.createServicesTree(dbCon, fwCloud.id);
+
+      // Creating root node for CA (Certification Authorities).
+      await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
+    } catch (error) {
+      logger().error(
+        `Error in createAllTreeCloud for fwCloud ID: ${fwCloud.id} - ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   // Create tree with standard objects.

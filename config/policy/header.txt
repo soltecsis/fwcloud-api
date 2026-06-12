@@ -125,9 +125,9 @@ reset_nft() {
 }
 
 policy_empty() {
+  reset_nft
   reset_iptables_v4
   reset_iptables_v6
-  reset_nft
 }
 
 create_systemd_service() {

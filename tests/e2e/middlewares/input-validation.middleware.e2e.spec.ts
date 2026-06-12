@@ -28,6 +28,11 @@ import { attachSession, createUser, generateSession } from '../../utils/utils';
 import { User } from '../../../src/models/user/User';
 import { EntityManager } from 'typeorm';
 import db from '../../../src/database/database-manager';
+import {
+  COUNTRY_TREE_ROOT_NAME,
+  COUNTRY_TREE_ROOT_NODE_TYPE,
+  Tree,
+} from '../../../src/models/tree/Tree';
 
 describe(describeName('InputValidation Middleware E2E test'), () => {
   let app: Application;
@@ -57,6 +62,33 @@ describe(describeName('InputValidation Middleware E2E test'), () => {
       .expect(400)
       .expect((response) => {
         expect(response.body._object).to.be.undefined;
+      });
+  });
+
+  it('should allow loading the objects tree without legacy object filter flags', async () => {
+    app.config.set('confirmation_token', false);
+    adminUser.fwClouds = [fwcProduct.fwcloud];
+    await manager.getRepository(User).save(adminUser);
+    await Tree.createAllTreeCloud(fwcProduct.fwcloud);
+    const countryRootNodes = await manager.query(
+      'SELECT id, fwcloud FROM fwc_tree WHERE fwcloud = ? AND id_parent IS NULL AND node_type = ?',
+      [fwcProduct.fwcloud.id, COUNTRY_TREE_ROOT_NODE_TYPE],
+    );
+
+    for (const node of countryRootNodes) {
+      await Tree.deleteFwc_TreeFullNode(node);
+    }
+
+    await request(app.express)
+      .put('/tree/objects/get')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+      })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).to.be.an('array');
+        expect(response.body[1].text).to.equal(COUNTRY_TREE_ROOT_NAME);
       });
   });
 });
