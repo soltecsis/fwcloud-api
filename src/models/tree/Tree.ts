@@ -802,20 +802,20 @@ export class Tree extends Model {
   public static async createObjectsTree(dbCon: Query, fwCloudId: number): Promise<any> {
     const ids: any = {};
 
-        // OBJECTS / Shared Rules
-        ids.SharedRules = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Shared Rules',
-          ids.OBJECTS,
-          'SRF',
-          null,
-          null,
-        );
-        await this.createSharedRulesPolicyTree(dbCon, fwCloudId, ids.SharedRules);
+    // OBJECTS / Shared Rules
+    ids.SharedRules = await this.newNode(
+      dbCon,
+      fwCloudId,
+      'Shared Rules',
+      ids.OBJECTS,
+      'SRF',
+      null,
+      null,
+    );
+    await this.createSharedRulesPolicyTree(dbCon, fwCloudId, ids.SharedRules);
 
-        // COUNTRIES
-        ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
+    // COUNTRIES
+    ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
 
     for (const folder of OBJECT_TREE_FOLDERS) {
       const id = await this.newNode(
