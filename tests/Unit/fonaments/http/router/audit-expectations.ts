@@ -71,6 +71,7 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /backups/:backup/restore': { audited: true },
   'POST /backups/import': { audited: true },
   'POST /fwclouds': { audited: true },
+  'POST /fwclouds/:fwcloud/assistant/profiles/:code/:version/apply': { audited: true },
   'POST /fwclouds/:fwcloud/export': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/AIassistant': {
     audited: false,

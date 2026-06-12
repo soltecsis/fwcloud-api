@@ -90,6 +90,7 @@ import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
+import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -175,6 +176,7 @@ export class Application extends HTTPApplication {
       OpenVPNStatusHistoryServiceProvider,
       PolicyReplicationServiceProvider,
       PolicyRuleServiceProvider,
+      ProfileApplicationServiceProvider,
       ReplicationProfileServiceProvider,
       RepositoryServiceProvider,
       RouteGroupServiceProvider,

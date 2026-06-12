@@ -247,6 +247,9 @@ export class Routes extends RouteCollection {
             router
               .get('/profiles/:code/:version', ReplicationProfileController, 'show')
               .name('fwclouds.assistant.profiles.show');
+            router
+              .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
+              .name('fwclouds.assistant.profiles.apply');
           });
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {

@@ -3,21 +3,17 @@ import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
+import {
+  ReplicationTargetSide,
+  makeReplicationTargetFirewall,
+} from '../../../utils/replication-profile-fixtures';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { PolicyReplicationService } from '../../../../src/models/replication-profile/policy-replication.service';
 import { PolicyReplicationRequest } from '../../../../src/models/replication-profile/policy-replication.types';
-import StringHelper from '../../../../src/utils/string.helper';
-
-interface TargetSide {
-  firewall: Firewall;
-  wanInterface: Interface;
-  lanInterface: Interface;
-  wanAddress: IPObj;
-}
 
 describe(describeName('PolicyReplicationService Unit Tests'), () => {
   let app: Application;
@@ -122,47 +118,11 @@ describe(describeName('PolicyReplicationService Unit Tests'), () => {
     });
   });
 
-  async function makeTargetFirewall(withWanAddress: boolean = true): Promise<TargetSide> {
-    const manager = db.getSource().manager;
-
-    const firewall = await manager.getRepository(Firewall).save({
-      name: StringHelper.randomize(10),
-      fwCloudId: fwc.fwcloud.id,
-    });
-
-    const wanInterface = await manager.getRepository(Interface).save({
-      name: 'ens18',
-      type: '10',
-      interface_type: '10',
-      firewallId: firewall.id,
-    });
-
-    const lanInterface = await manager.getRepository(Interface).save({
-      name: 'ens19',
-      type: '10',
-      interface_type: '10',
-      firewallId: firewall.id,
-    });
-
-    let wanAddress: IPObj = null;
-    if (withWanAddress) {
-      wanAddress = await manager.getRepository(IPObj).save({
-        name: 'tgt-wan-addr',
-        address: '203.0.113.10',
-        ipObjTypeId: 5,
-        ip_version: 4,
-        interfaceId: wanInterface.id,
-        fwCloudId: fwc.fwcloud.id,
-      });
-    }
-
-    await PolicyRule.insertDefaultPolicy(firewall.id, null, FireWallOptMask.STATEFUL);
-
-    return { firewall, wanInterface, lanInterface, wanAddress };
-  }
+  const makeTargetFirewall = (withWanAddress: boolean = true): Promise<ReplicationTargetSide> =>
+    makeReplicationTargetFirewall(fwc, withWanAddress);
 
   function makeRequest(
-    target: TargetSide,
+    target: ReplicationTargetSide,
     mode: PolicyReplicationRequest['mode'],
     overrides: Partial<PolicyReplicationRequest> = {},
   ): PolicyReplicationRequest {
