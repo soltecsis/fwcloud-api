@@ -140,6 +140,7 @@ export class RouterService extends Service {
       this._express.use('/cluster', require('../../../routes/firewall/cluster'));
       this._express.use('/firewall', require('../../../routes/firewall/firewall'));
       this._express.use('/policy/rule', require('../../../routes/policy/rule'));
+      this._express.use('/policy/shared-rules', require('../../../routes/policy/shared-rules'));
       this._express.use('/policy/compile', require('../../../routes/policy/compile'));
       this._express.use('/policy/install', require('../../../routes/policy/install'));
       this._express.use('/policy/ipobj', require('../../../routes/policy/ipobj'));

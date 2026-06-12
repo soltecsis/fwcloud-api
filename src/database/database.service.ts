@@ -94,6 +94,7 @@ import { RoutingRuleToWireGuardPrefix } from '../models/routing/routing-rule/rou
 import { RoutingRuleToWireGuard } from '../models/routing/routing-rule/routing-rule-to-wireguard.model';
 import { PolicyRuleToIPSec } from '../models/policy/PolicyRuleToIPSec';
 import { PolicyRuleToIPSecPrefix } from '../models/policy/PolicyRuleToIPSecPrefix';
+import { PolicyRuleToSharedRuleSet } from '../models/policy/PolicyRuleToSharedRuleSet';
 import { RouteToIPSecPrefix } from '../models/routing/route/route-to-ipsec-prefix.model';
 import { RouteToIPSec } from '../models/routing/route/route-to-ipsec.model';
 import { RoutingRuleToIPSecPrefix } from '../models/routing/routing-rule/routing-rule-to-ipsec-prefix.model';
@@ -105,6 +106,10 @@ import { AIModel } from '../models/ai-assistant/ai-assistant-models.model';
 import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.model';
 import { AI } from '../models/ai-assistant/ai-assistant.model';
 import { AuditLog } from '../models/audit/AuditLog';
+import { SharedRule } from '../models/policy/SharedRule';
+import { SharedRuleSet } from '../models/policy/SharedRuleSet';
+import { SharedRuleToInterface } from '../models/policy/SharedRuleToInterface';
+import { SharedRuleToIPObj } from '../models/policy/SharedRuleToIPObj';
 
 export interface DatabaseConfig {
   host: string;
@@ -329,7 +334,12 @@ export class DatabaseService extends Service {
         PolicyRuleToWireGuardPrefix,
         PolicyRuleToIPSec,
         PolicyRuleToIPSecPrefix,
+        PolicyRuleToSharedRuleSet,
         PolicyType,
+        SharedRule,
+        SharedRuleSet,
+        SharedRuleToInterface,
+        SharedRuleToIPObj,
         RouteToIPObjGroup,
         RouteToIPObj,
         RouteToOpenVPNPrefix,
