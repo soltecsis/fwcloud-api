@@ -1,0 +1,128 @@
+import { EntityManager } from 'typeorm';
+import { Cluster } from '../../../../../../src/models/firewall/Cluster';
+import {
+  OpenVPNStatusSampling,
+  OpenVPNStatusSamplingFile,
+} from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling';
+import { OpenVPNStatusSamplingService } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling.service';
+import db from '../../../../../../src/database/database-manager';
+import { describeName, expect, testSuite } from '../../../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../../../utils/fwcloud-factory';
+
+describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => {
+  let fwcProduct: FwCloudProduct;
+  let manager: EntityManager;
+  let service: OpenVPNStatusSamplingService;
+
+  beforeEach(async () => {
+    manager = db.getSource().manager;
+    await testSuite.resetDatabaseData();
+    fwcProduct = await new FwCloudFactory().make();
+    service = await testSuite.app.getService<OpenVPNStatusSamplingService>(
+      OpenVPNStatusSamplingService.name,
+    );
+  });
+
+  describe('save', () => {
+    it('should save firewall sampling configuration', async () => {
+      const sampling: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: [
+          '/run/openvpn/server.status',
+          '/run/openvpn/server.status',
+          '/run/openvpn/clients.status',
+        ],
+      });
+
+      expect(Boolean(sampling.enabled)).to.eq(true);
+      expect(sampling.firewallId).to.eq(fwcProduct.firewall.id);
+      expect(sampling.clusterId).to.be.null;
+      expect(sampling.collectorFirewallId).to.eq(fwcProduct.firewall.id);
+      expect(sampling.files).to.have.length(2);
+      expect(sampling.files.map((file) => file.path)).to.have.members([
+        '/run/openvpn/server.status',
+        '/run/openvpn/clients.status',
+      ]);
+      expect(sampling.files[0].pathHash).to.have.length(64);
+    });
+
+    it('should replace the status file list', async () => {
+      const original: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const updated: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/clients.status'],
+      });
+
+      const persistedFiles: OpenVPNStatusSamplingFile[] = await manager
+        .getRepository(OpenVPNStatusSamplingFile)
+        .find({ where: { samplingId: original.id } });
+
+      expect(updated.id).to.eq(original.id);
+      expect(updated.files).to.have.length(1);
+      expect(updated.files[0].path).to.eq('/run/openvpn/clients.status');
+      expect(persistedFiles).to.have.length(1);
+      expect(persistedFiles[0].path).to.eq('/run/openvpn/clients.status');
+    });
+
+    it('should save cluster sampling configuration with a collector firewall', async () => {
+      const cluster: Cluster = await manager.getRepository(Cluster).save(
+        manager.getRepository(Cluster).create({
+          name: 'cluster',
+          fwCloudId: fwcProduct.fwcloud.id,
+        }),
+      );
+
+      const sampling: OpenVPNStatusSampling = await service.save({
+        clusterId: cluster.id,
+        enabled: true,
+        collectorFirewallId: fwcProduct.firewall.id,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      expect(sampling.firewallId).to.be.null;
+      expect(sampling.clusterId).to.eq(cluster.id);
+      expect(sampling.collectorFirewallId).to.eq(fwcProduct.firewall.id);
+      expect(sampling.files).to.have.length(1);
+    });
+
+    it('should reject enabled sampling without status files', async () => {
+      await expect(
+        service.save({
+          firewallId: fwcProduct.firewall.id,
+          enabled: true,
+          statusFiles: [],
+        }),
+      ).to.be.rejectedWith(
+        'OpenVPN status sampling requires at least one status file when enabled',
+      );
+    });
+
+    it('should reject relative status file paths', async () => {
+      await expect(
+        service.save({
+          firewallId: fwcProduct.firewall.id,
+          enabled: true,
+          statusFiles: ['openvpn/server.status'],
+        }),
+      ).to.be.rejectedWith('OpenVPN status file path must be absolute');
+    });
+
+    it('should reject configurations targeting a firewall and a cluster at once', async () => {
+      await expect(
+        service.save({
+          firewallId: fwcProduct.firewall.id,
+          clusterId: 1,
+          enabled: false,
+          statusFiles: [],
+        }),
+      ).to.be.rejectedWith('OpenVPN status sampling must target one firewall or one cluster');
+    });
+  });
+});
