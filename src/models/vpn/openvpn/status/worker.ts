@@ -6,6 +6,7 @@ import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewa
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
 import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
+import { OpenVPNStatusSampling } from './openvpn-status-sampling';
 import {
   CreateOpenVPNStatusHistoryData,
   CreateOpenVPNStatusHistorySummary,
@@ -16,7 +17,7 @@ const AUDIT_ENTITY = 'OpenVPNStatusHistory';
 
 export type OpenVPNStatusWorkerIterationDependencies = {
   getOpenVPNServers: () => Promise<OpenVPN[]>;
-  getClusterFirewalls: (clusterId: number) => Promise<Firewall[]>;
+  getSamplingFirewalls: (openVPN: OpenVPN) => Promise<Firewall[]>;
   getStatusOption: (openVPNId: number) => Promise<OpenVPNOption | null>;
 };
 
@@ -29,23 +30,42 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
       .createQueryBuilder('openvpn')
       .innerJoin('openvpn.crt', 'crt')
       .innerJoinAndSelect('openvpn.firewall', 'firewall')
+      .innerJoin(
+        OpenVPNStatusSampling,
+        'sampling',
+        '(sampling.firewallId = firewall.id OR sampling.clusterId = firewall.clusterId)',
+      )
+      .innerJoin('sampling.collectorFirewall', 'collectorFirewall')
+      .innerJoin('sampling.files', 'files')
       .where('openvpn.parentId IS NULL')
       .andWhere('crt.type = 2')
-      .andWhere('firewall.install_communication = :communication', {
+      .andWhere('sampling.enabled = :enabled', { enabled: true })
+      .andWhere('collectorFirewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
       })
       .getMany();
   },
-  getClusterFirewalls: async (clusterId: number): Promise<Firewall[]> => {
-    return db
+  getSamplingFirewalls: async (openVPN: OpenVPN): Promise<Firewall[]> => {
+    const query = db
       .getSource()
-      .getRepository(Firewall)
-      .createQueryBuilder('firewall')
-      .where('firewall.clusterId = :cluster', { cluster: clusterId })
-      .andWhere('firewall.install_communication = :communication', {
+      .getRepository(OpenVPNStatusSampling)
+      .createQueryBuilder('sampling')
+      .innerJoinAndSelect('sampling.collectorFirewall', 'collectorFirewall')
+      .innerJoin('sampling.files', 'files')
+      .where('sampling.enabled = :enabled', { enabled: true })
+      .andWhere('collectorFirewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
-      })
-      .getMany();
+      });
+
+    if (openVPN.firewall.clusterId) {
+      query.andWhere('sampling.clusterId = :cluster', { cluster: openVPN.firewall.clusterId });
+    } else {
+      query.andWhere('sampling.firewallId = :firewall', { firewall: openVPN.firewall.id });
+    }
+
+    const sampling: OpenVPNStatusSampling[] = await query.getMany();
+
+    return sampling.map((item) => item.collectorFirewall);
   },
   getStatusOption: async (openVPNId: number): Promise<OpenVPNOption | null> => {
     const option = await OpenVPN.getOptData(db.getQuery(), openVPNId, 'status');
@@ -125,9 +145,7 @@ export async function iterate(
     for (const openvpn of openvpns) {
       summary.processedOpenvpns++;
       try {
-        const firewalls: Firewall[] = openvpn.firewall.clusterId
-          ? await dependencies.getClusterFirewalls(openvpn.firewall.clusterId)
-          : [openvpn.firewall];
+        const firewalls: Firewall[] = await dependencies.getSamplingFirewalls(openvpn);
 
         let entries: CreateOpenVPNStatusHistoryData[] = [];
         for (const firewall of firewalls) {

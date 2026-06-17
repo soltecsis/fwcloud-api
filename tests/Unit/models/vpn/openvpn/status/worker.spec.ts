@@ -87,7 +87,7 @@ describe('OpenVPN status worker iteration audit events', () => {
           ]),
         ),
       ],
-      getClusterFirewalls: async () => [],
+      getSamplingFirewalls: async (openVPN: OpenVPN) => [openVPN.firewall],
       getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
     };
 
@@ -164,7 +164,7 @@ describe('OpenVPN status worker iteration audit events', () => {
           ]),
         ),
       ],
-      getClusterFirewalls: async () => [],
+      getSamplingFirewalls: async (openVPN: OpenVPN) => [openVPN.firewall],
       getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
     };
 
@@ -205,7 +205,7 @@ describe('OpenVPN status worker iteration audit events', () => {
       getOpenVPNServers: async () => {
         throw new Error('hard failure');
       },
-      getClusterFirewalls: async () => [],
+      getSamplingFirewalls: async (openVPN: OpenVPN) => [openVPN.firewall],
       getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
     };
 
@@ -231,5 +231,49 @@ describe('OpenVPN status worker iteration audit events', () => {
     expect(finishPayload.details.error).to.equal('hard failure');
     expect(finishPayload.details.errorsCount).to.equal(0);
     expect(loggerError.callCount).to.equal(1);
+  });
+
+  it('uses configured sampling firewalls instead of the OpenVPN firewall', async () => {
+    const loggerError = sandbox.stub();
+    const startEvent = sandbox.stub().returns('event-id');
+    const finishEvent = sandbox.stub().resolves(null);
+    const createWithSummary = sandbox.stub().resolves({
+      entries: [],
+      insertedEntries: 1,
+      updatedDisconnections: 0,
+    } as CreateOpenVPNStatusHistorySummary);
+    const openVPNFirewall = buildFirewall([]);
+    const samplingFirewall = buildFirewall([
+      {
+        timestamp: 10,
+        name: 'alice',
+        address: '10.0.0.2',
+        bytesReceived: 100,
+        bytesSent: 200,
+        connectedAtTimestampInSeconds: 1,
+      },
+    ]);
+    const getSamplingFirewalls = sandbox.stub().resolves([samplingFirewall]);
+
+    const dependencies: OpenVPNStatusWorkerIterationDependencies = {
+      getOpenVPNServers: async () => [buildOpenVPN(10, openVPNFirewall)],
+      getSamplingFirewalls,
+      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
+    };
+
+    await iterate(
+      buildApplication(
+        { startEvent, finishEvent } as Pick<AuditEventService, 'startEvent' | 'finishEvent'>,
+        {
+          createWithSummary,
+        } as Pick<OpenVPNStatusHistoryService, 'createWithSummary'>,
+        loggerError,
+      ),
+      dependencies,
+    );
+
+    expect(getSamplingFirewalls.callCount).to.equal(1);
+    expect(createWithSummary.firstCall.args[1]).to.have.length(1);
+    expect(createWithSummary.firstCall.args[1][0].name).to.equal('alice');
   });
 });
