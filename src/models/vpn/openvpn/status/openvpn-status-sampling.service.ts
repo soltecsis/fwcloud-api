@@ -3,6 +3,7 @@ import * as path from 'path';
 import { EntityManager, Repository } from 'typeorm';
 import db from '../../../../database/database-manager';
 import { Service } from '../../../../fonaments/services/service';
+import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPNStatusSampling, OpenVPNStatusSamplingFile } from './openvpn-status-sampling';
 
 export type OpenVPNStatusSamplingSaveData = {
@@ -33,6 +34,21 @@ export class OpenVPNStatusSamplingService extends Service {
       where: { clusterId },
       relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
     });
+  }
+
+  async findActiveCollectors(): Promise<OpenVPNStatusSampling[]> {
+    return this._repository
+      .createQueryBuilder('sampling')
+      .leftJoinAndSelect('sampling.firewall', 'firewall')
+      .leftJoinAndSelect('sampling.cluster', 'cluster')
+      .innerJoinAndSelect('sampling.collectorFirewall', 'collectorFirewall')
+      .innerJoinAndSelect('sampling.files', 'files')
+      .where('sampling.enabled = :enabled', { enabled: true })
+      .andWhere('sampling.collectorFirewallId IS NOT NULL')
+      .andWhere('collectorFirewall.install_communication = :communication', {
+        communication: FirewallInstallCommunication.Agent,
+      })
+      .getMany();
   }
 
   async save(data: OpenVPNStatusSamplingSaveData): Promise<OpenVPNStatusSampling> {

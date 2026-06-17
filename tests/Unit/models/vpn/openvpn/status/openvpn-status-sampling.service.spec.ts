@@ -1,6 +1,10 @@
 import { EntityManager } from 'typeorm';
 import { Cluster } from '../../../../../../src/models/firewall/Cluster';
 import {
+  Firewall,
+  FirewallInstallCommunication,
+} from '../../../../../../src/models/firewall/Firewall';
+import {
   OpenVPNStatusSampling,
   OpenVPNStatusSamplingFile,
 } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling';
@@ -123,6 +127,55 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
           statusFiles: [],
         }),
       ).to.be.rejectedWith('OpenVPN status sampling must target one firewall or one cluster');
+    });
+  });
+
+  describe('findActiveCollectors', () => {
+    it('should return enabled agent collectors with status files', async () => {
+      fwcProduct.firewall.install_communication = FirewallInstallCommunication.Agent;
+      await manager.getRepository(Firewall).save(fwcProduct.firewall);
+
+      await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const collectors: OpenVPNStatusSampling[] = await service.findActiveCollectors();
+
+      expect(collectors).to.have.length(1);
+      expect(collectors[0].collectorFirewallId).to.eq(fwcProduct.firewall.id);
+      expect(collectors[0].files).to.have.length(1);
+    });
+
+    it('should skip disabled collectors even when status files exist', async () => {
+      fwcProduct.firewall.install_communication = FirewallInstallCommunication.Agent;
+      await manager.getRepository(Firewall).save(fwcProduct.firewall);
+
+      await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: false,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const collectors: OpenVPNStatusSampling[] = await service.findActiveCollectors();
+
+      expect(collectors).to.have.length(0);
+    });
+
+    it('should skip collectors that do not use agent communication', async () => {
+      fwcProduct.firewall.install_communication = FirewallInstallCommunication.SSH;
+      await manager.getRepository(Firewall).save(fwcProduct.firewall);
+
+      await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const collectors: OpenVPNStatusSampling[] = await service.findActiveCollectors();
+
+      expect(collectors).to.have.length(0);
     });
   });
 });
