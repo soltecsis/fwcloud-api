@@ -8,6 +8,7 @@ import {
   OpenVPNStatusSampling,
   OpenVPNStatusSamplingFile,
 } from '../../../models/vpn/openvpn/status/openvpn-status-sampling';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import {
   OpenVPNStatusSamplingAgentStatus,
   OpenVPNStatusSamplingService,
@@ -19,9 +20,9 @@ import { OpenVPNStatusSamplingUpdateDto } from './dtos/status-sampling.dto';
 type OpenVPNStatusSamplingResponse = {
   enabled: boolean;
   firewall: number;
-  cluster: number | null;
+  openvpn: number;
   collector_firewall: number | null;
-  status_files: string[];
+  status_file: string | null;
   last_sync_result: string | null;
   last_sync_error: string | null;
   last_synced_at: Date | null;
@@ -38,6 +39,7 @@ type OpenVPNStatusSamplingResponse = {
 export class OpenVPNStatusSamplingController extends Controller {
   protected _firewall: Firewall;
   protected _fwCloud: FwCloud;
+  protected _openVPN: OpenVPN;
   protected _samplingService: OpenVPNStatusSamplingService;
 
   public async make(request: Request): Promise<void> {
@@ -59,21 +61,29 @@ export class OpenVPNStatusSamplingController extends Controller {
       .getSource()
       .manager.getRepository(FwCloud)
       .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
+
+    this._openVPN = await db
+      .getSource()
+      .manager.getRepository(OpenVPN)
+      .findOneOrFail({
+        where: {
+          id: parseInt(String(request.params.openvpn)),
+          firewallId: this._firewall.id,
+        },
+      });
   }
 
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
     (await FirewallPolicy.compile(this._firewall, request.session.user)).authorize();
 
-    const sampling: OpenVPNStatusSampling | null = await this._samplingService.findOneByFirewall(
-      this._firewall.id,
+    const sampling: OpenVPNStatusSampling | null = await this._samplingService.findOneByOpenVPN(
+      this._openVPN.id,
     );
     const agentStatus: OpenVPNStatusSamplingAgentStatus | null =
       await this._samplingService.getAgentStatus(sampling);
 
-    return ResponseBuilder.buildResponse()
-      .status(200)
-      .body(this.toResponse(sampling, this._firewall.id, agentStatus));
+    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(sampling, agentStatus));
   }
 
   @Validate(OpenVPNStatusSamplingUpdateDto)
@@ -82,32 +92,29 @@ export class OpenVPNStatusSamplingController extends Controller {
     const input = request.inputs.all() as unknown as OpenVPNStatusSamplingUpdateDto;
 
     let sampling: OpenVPNStatusSampling = await this._samplingService.save({
-      firewallId: this._firewall.id,
+      openVPNId: this._openVPN.id,
       enabled: input.enabled,
-      collectorFirewallId: input.collector_firewall,
-      statusFiles: input.status_files ?? [],
+      collectorFirewallId: input.collector_firewall ?? this._firewall.id,
+      statusFile: input.status_file ?? null,
     });
     sampling = await this._samplingService.syncAgent(sampling);
     const agentStatus: OpenVPNStatusSamplingAgentStatus | null =
       await this._samplingService.getAgentStatus(sampling);
 
-    return ResponseBuilder.buildResponse()
-      .status(200)
-      .body(this.toResponse(sampling, this._firewall.id, agentStatus));
+    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(sampling, agentStatus));
   }
 
   protected toResponse(
     sampling: OpenVPNStatusSampling | null,
-    firewallId: number,
     agentStatus: OpenVPNStatusSamplingAgentStatus | null,
   ): OpenVPNStatusSamplingResponse {
     if (!sampling) {
       return {
         enabled: false,
-        firewall: firewallId,
-        cluster: null,
+        firewall: this._firewall.id,
+        openvpn: this._openVPN.id,
         collector_firewall: null,
-        status_files: [],
+        status_file: null,
         last_sync_result: null,
         last_sync_error: null,
         last_synced_at: null,
@@ -120,10 +127,11 @@ export class OpenVPNStatusSamplingController extends Controller {
 
     return {
       enabled: Boolean(sampling.enabled),
-      firewall: sampling.firewallId,
-      cluster: sampling.clusterId,
+      firewall: this._firewall.id,
+      openvpn: sampling.openVPNId,
       collector_firewall: sampling.collectorFirewallId,
-      status_files: (sampling.files ?? []).map((file: OpenVPNStatusSamplingFile) => file.path),
+      status_file:
+        (sampling.files ?? []).map((file: OpenVPNStatusSamplingFile) => file.path)[0] ?? null,
       last_sync_result: sampling.lastSyncResult,
       last_sync_error: sampling.lastSyncError,
       last_synced_at: sampling.lastSyncedAt,

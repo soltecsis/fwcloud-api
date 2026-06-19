@@ -15,18 +15,10 @@ export class openvpnStatusSampling1781712000000 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'firewall',
+            name: 'openvpn',
             type: 'int',
             length: '11',
-            isNullable: true,
-            default: null,
-          },
-          {
-            name: 'cluster',
-            type: 'int',
-            length: '11',
-            isNullable: true,
-            default: null,
+            isNullable: false,
           },
           {
             name: 'enabled',
@@ -94,14 +86,10 @@ export class openvpnStatusSampling1781712000000 implements MigrationInterface {
         ],
         foreignKeys: [
           {
-            columnNames: ['firewall'],
-            referencedTableName: 'firewall',
+            columnNames: ['openvpn'],
+            referencedTableName: 'openvpn',
             referencedColumnNames: ['id'],
-          },
-          {
-            columnNames: ['cluster'],
-            referencedTableName: 'cluster',
-            referencedColumnNames: ['id'],
+            onDelete: 'CASCADE',
           },
           {
             columnNames: ['collector_firewall'],
@@ -115,15 +103,7 @@ export class openvpnStatusSampling1781712000000 implements MigrationInterface {
     await queryRunner.createIndex(
       'openvpn_status_sampling',
       new TableIndex({
-        columnNames: ['firewall'],
-        isUnique: true,
-      }),
-    );
-
-    await queryRunner.createIndex(
-      'openvpn_status_sampling',
-      new TableIndex({
-        columnNames: ['cluster'],
+        columnNames: ['openvpn'],
         isUnique: true,
       }),
     );

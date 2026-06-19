@@ -1,12 +1,12 @@
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class OpenVPNStatusSamplingUpdateDto {
   @IsBoolean()
   enabled: boolean;
 
-  @IsArray()
-  @IsString({ each: true })
-  status_files: string[];
+  @IsOptional()
+  @IsString()
+  status_file?: string;
 
   @IsOptional()
   @IsNumber()

@@ -25,6 +25,7 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
       params: {
         fwcloud: fwcProduct.fwcloud.id,
         firewall: fwcProduct.firewall.id,
+        openvpn: fwcProduct.openvpnServer.id,
       },
     } as unknown as Request);
   });
@@ -33,7 +34,7 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
     sinon.restore();
   });
 
-  it('should return disabled sampling when firewall has no configuration', async () => {
+  it('should return disabled sampling when OpenVPN server has no configuration', async () => {
     const response: ResponseBuilder = await controller.show({
       session: { user: null },
     } as unknown as Request);
@@ -43,9 +44,9 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
     expect(body.data).to.deep.eq({
       enabled: false,
       firewall: fwcProduct.firewall.id,
-      cluster: null,
+      openvpn: fwcProduct.openvpnServer.id,
       collector_firewall: null,
-      status_files: [],
+      status_file: null,
       last_sync_result: null,
       last_sync_error: null,
       last_synced_at: null,
@@ -56,13 +57,13 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
     });
   });
 
-  it('should update firewall sampling configuration', async () => {
+  it('should update OpenVPN server sampling configuration', async () => {
     const response: ResponseBuilder = await controller.update({
       session: { user: null },
       inputs: new RequestInputs({
         body: {
           enabled: true,
-          status_files: ['/run/openvpn/server.status'],
+          status_file: '/run/openvpn/server.status',
         },
         query: {},
       } as unknown as Request),
@@ -73,9 +74,9 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
     expect(body.data).to.include({
       enabled: true,
       firewall: fwcProduct.firewall.id,
-      cluster: null,
+      openvpn: fwcProduct.openvpnServer.id,
       collector_firewall: fwcProduct.firewall.id,
     });
-    expect(body.data).to.have.property('status_files').deep.eq(['/run/openvpn/server.status']);
+    expect(body.data).to.have.property('status_file').eq('/run/openvpn/server.status');
   });
 });

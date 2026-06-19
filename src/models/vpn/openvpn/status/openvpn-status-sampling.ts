@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Cluster } from '../../../firewall/Cluster';
 import { Firewall } from '../../../firewall/Firewall';
 import Model from '../../../Model';
+import { OpenVPN } from '../OpenVPN';
 
 const tableName: string = 'openvpn_status_sampling';
 
@@ -15,19 +15,12 @@ export class OpenVPNStatusSampling extends Model {
   @Column({ type: 'tinyint', default: 0 })
   enabled: boolean;
 
-  @Column({ name: 'firewall', nullable: true })
-  firewallId: number;
+  @Column({ name: 'openvpn' })
+  openVPNId: number;
 
-  @ManyToOne(() => Firewall, { nullable: true })
-  @JoinColumn({ name: 'firewall' })
-  firewall: Firewall;
-
-  @Column({ name: 'cluster', nullable: true })
-  clusterId: number;
-
-  @ManyToOne(() => Cluster, { nullable: true })
-  @JoinColumn({ name: 'cluster' })
-  cluster: Cluster;
+  @ManyToOne(() => OpenVPN, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'openvpn' })
+  openVPN: OpenVPN;
 
   @Column({ name: 'collector_firewall', nullable: true })
   collectorFirewallId: number;

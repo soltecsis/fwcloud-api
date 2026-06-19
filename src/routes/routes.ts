@@ -271,13 +271,13 @@ export class Routes extends RouteCollection {
               });
 
               router.prefix('/openvpns', (router: RouterParser) => {
-                router
-                  .get('/statusSampling', OpenVPNStatusSamplingController, 'show')
-                  .name('fwclouds.firewalls.openvpns.statusSampling.show');
-                router
-                  .put('/statusSampling', OpenVPNStatusSamplingController, 'update')
-                  .name('fwclouds.firewalls.openvpns.statusSampling.update');
                 router.prefix('/:openvpn', (router: RouterParser) => {
+                  router
+                    .get('/statusSampling', OpenVPNStatusSamplingController, 'show')
+                    .name('fwclouds.firewalls.openvpns.statusSampling.show');
+                  router
+                    .put('/statusSampling', OpenVPNStatusSamplingController, 'update')
+                    .name('fwclouds.firewalls.openvpns.statusSampling.update');
                   router
                     .post('/installer', OpenVPNController, 'installer')
                     .name('fwclouds.firewalls.openvpns.installer');

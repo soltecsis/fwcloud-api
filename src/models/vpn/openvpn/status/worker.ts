@@ -35,11 +35,7 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
       .createQueryBuilder('openvpn')
       .innerJoin('openvpn.crt', 'crt')
       .innerJoinAndSelect('openvpn.firewall', 'firewall')
-      .innerJoin(
-        OpenVPNStatusSampling,
-        'sampling',
-        '(sampling.firewallId = firewall.id OR sampling.clusterId = firewall.clusterId)',
-      )
+      .innerJoin(OpenVPNStatusSampling, 'sampling', 'sampling.openVPNId = openvpn.id')
       .innerJoin('sampling.collectorFirewall', 'collectorFirewall')
       .innerJoin('sampling.files', 'files')
       .where('openvpn.parentId IS NULL')
@@ -62,11 +58,7 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
         communication: FirewallInstallCommunication.Agent,
       });
 
-    if (openVPN.firewall.clusterId) {
-      query.andWhere('sampling.clusterId = :cluster', { cluster: openVPN.firewall.clusterId });
-    } else {
-      query.andWhere('sampling.firewallId = :firewall', { firewall: openVPN.firewall.id });
-    }
+    query.andWhere('sampling.openVPNId = :openvpn', { openvpn: openVPN.id });
 
     return query.getMany();
   },

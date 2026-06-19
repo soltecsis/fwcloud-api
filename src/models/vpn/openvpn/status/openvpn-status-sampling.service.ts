@@ -9,11 +9,10 @@ import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPNStatusSampling, OpenVPNStatusSamplingFile } from './openvpn-status-sampling';
 
 export type OpenVPNStatusSamplingSaveData = {
-  firewallId?: number;
-  clusterId?: number;
+  openVPNId: number;
   enabled: boolean;
-  collectorFirewallId?: number;
-  statusFiles?: string[];
+  collectorFirewallId: number;
+  statusFile?: string | null;
 };
 
 export type OpenVPNStatusSamplingAgentStatus = {
@@ -30,25 +29,17 @@ export class OpenVPNStatusSamplingService extends Service {
     return this;
   }
 
-  async findOneByFirewall(firewallId: number): Promise<OpenVPNStatusSampling | null> {
+  async findOneByOpenVPN(openVPNId: number): Promise<OpenVPNStatusSampling | null> {
     return this._repository.findOne({
-      where: { firewallId },
-      relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
-    });
-  }
-
-  async findOneByCluster(clusterId: number): Promise<OpenVPNStatusSampling | null> {
-    return this._repository.findOne({
-      where: { clusterId },
-      relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
+      where: { openVPNId },
+      relations: ['files', 'openVPN', 'collectorFirewall'],
     });
   }
 
   async findActiveCollectors(): Promise<OpenVPNStatusSampling[]> {
     return this._repository
       .createQueryBuilder('sampling')
-      .leftJoinAndSelect('sampling.firewall', 'firewall')
-      .leftJoinAndSelect('sampling.cluster', 'cluster')
+      .innerJoinAndSelect('sampling.openVPN', 'openVPN')
       .innerJoinAndSelect('sampling.collectorFirewall', 'collectorFirewall')
       .innerJoinAndSelect('sampling.files', 'files')
       .where('sampling.enabled = :enabled', { enabled: true })
@@ -71,14 +62,20 @@ export class OpenVPNStatusSamplingService extends Service {
         throw new Error('OpenVPN status sampling collector firewall is not configured');
       }
 
+      const collectorFirewallId = sampling.collectorFirewallId;
       const communication: AgentCommunication =
         (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
+      const activeCollectorSamplings: OpenVPNStatusSampling[] = await samplingRepository.find({
+        where: {
+          enabled: true,
+          collectorFirewallId,
+        },
+        relations: ['files'],
+      });
 
       await communication.syncOpenVPNStatusSampling({
-        enabled: Boolean(sampling.enabled),
-        statusFiles: sampling.enabled
-          ? sampling.files.map((file: OpenVPNStatusSamplingFile) => file.path)
-          : [],
+        enabled: activeCollectorSamplings.length > 0,
+        statusFiles: this.getUniqueStatusFiles(activeCollectorSamplings),
       });
 
       sampling.lastSyncResult = 'accepted';
@@ -93,7 +90,7 @@ export class OpenVPNStatusSamplingService extends Service {
 
     return samplingRepository.findOne({
       where: { id: sampling.id },
-      relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
+      relations: ['files', 'openVPN', 'collectorFirewall'],
     });
   }
 
@@ -127,8 +124,7 @@ export class OpenVPNStatusSamplingService extends Service {
   async save(data: OpenVPNStatusSamplingSaveData): Promise<OpenVPNStatusSampling> {
     const normalizedData: OpenVPNStatusSamplingSaveData = {
       ...data,
-      statusFiles: this.normalizeStatusFiles(data.statusFiles ?? []),
-      collectorFirewallId: this.resolveCollectorFirewallId(data),
+      statusFile: data.statusFile ? this.normalizeStatusFile(data.statusFile) : null,
     };
 
     this.validate(normalizedData);
@@ -136,14 +132,13 @@ export class OpenVPNStatusSamplingService extends Service {
     return db.getSource().transaction(async (manager: EntityManager) => {
       const samplingRepository = manager.getRepository(OpenVPNStatusSampling);
       const fileRepository = manager.getRepository(OpenVPNStatusSamplingFile);
-      let sampling: OpenVPNStatusSampling | null = normalizedData.firewallId
-        ? await samplingRepository.findOne({ where: { firewallId: normalizedData.firewallId } })
-        : await samplingRepository.findOne({ where: { clusterId: normalizedData.clusterId } });
+      let sampling: OpenVPNStatusSampling | null = await samplingRepository.findOne({
+        where: { openVPNId: normalizedData.openVPNId },
+      });
 
       if (!sampling) {
         sampling = samplingRepository.create({
-          firewallId: normalizedData.firewallId ?? null,
-          clusterId: normalizedData.clusterId ?? null,
+          openVPNId: normalizedData.openVPNId,
         });
       }
 
@@ -153,31 +148,25 @@ export class OpenVPNStatusSamplingService extends Service {
 
       await fileRepository.delete({ samplingId: sampling.id });
 
-      if (normalizedData.statusFiles.length > 0) {
+      if (normalizedData.statusFile) {
         await fileRepository.save(
-          normalizedData.statusFiles.map((statusFile) =>
-            fileRepository.create({
-              samplingId: sampling.id,
-              path: statusFile,
-              pathHash: this.hashStatusFilePath(statusFile),
-            }),
-          ),
+          fileRepository.create({
+            samplingId: sampling.id,
+            path: normalizedData.statusFile,
+            pathHash: this.hashStatusFilePath(normalizedData.statusFile),
+          }),
         );
       }
 
       return samplingRepository.findOne({
         where: { id: sampling.id },
-        relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
+        relations: ['files', 'openVPN', 'collectorFirewall'],
       });
     });
   }
 
   protected validate(data: OpenVPNStatusSamplingSaveData): void {
-    if (Boolean(data.firewallId) === Boolean(data.clusterId)) {
-      throw new Error('OpenVPN status sampling must target one firewall or one cluster');
-    }
-
-    if (data.enabled && data.statusFiles.length === 0) {
+    if (data.enabled && !data.statusFile) {
       throw new Error('OpenVPN status sampling requires at least one status file when enabled');
     }
 
@@ -186,30 +175,32 @@ export class OpenVPNStatusSamplingService extends Service {
     }
   }
 
-  protected resolveCollectorFirewallId(data: OpenVPNStatusSamplingSaveData): number | undefined {
-    return data.collectorFirewallId ?? data.firewallId;
+  protected normalizeStatusFile(statusFile: string): string {
+    const normalizedPath = statusFile.trim();
+
+    if (!normalizedPath) {
+      throw new Error('OpenVPN status file path cannot be empty');
+    }
+
+    if (!path.posix.isAbsolute(normalizedPath)) {
+      throw new Error(`OpenVPN status file path must be absolute: ${normalizedPath}`);
+    }
+
+    return normalizedPath;
   }
 
-  protected normalizeStatusFiles(statusFiles: string[]): string[] {
-    const normalizedPaths: string[] = [];
+  protected getUniqueStatusFiles(samplings: OpenVPNStatusSampling[]): string[] {
+    const statusFiles: string[] = [];
 
-    for (const statusFile of statusFiles) {
-      const normalizedPath = statusFile.trim();
-
-      if (!normalizedPath) {
-        throw new Error('OpenVPN status file path cannot be empty');
-      }
-
-      if (!path.posix.isAbsolute(normalizedPath)) {
-        throw new Error(`OpenVPN status file path must be absolute: ${normalizedPath}`);
-      }
-
-      if (!normalizedPaths.includes(normalizedPath)) {
-        normalizedPaths.push(normalizedPath);
+    for (const sampling of samplings) {
+      for (const file of sampling.files ?? []) {
+        if (!statusFiles.includes(file.path)) {
+          statusFiles.push(file.path);
+        }
       }
     }
 
-    return normalizedPaths;
+    return statusFiles;
   }
 
   protected hashStatusFilePath(statusFile: string): string {
