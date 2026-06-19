@@ -77,19 +77,26 @@ export class ReplicationProfileController extends Controller {
     const version = this.parseVersionParam(request);
     const body = request.body as ReplicationProfileApplyDto;
     const replication: PolicyReplicationRequest = {
-      sourceProfile: {
-        firewallId: body.sourceProfile.firewallId,
-        interfaceRoles: body.sourceProfile.interfaceRoles,
-        nodeRoles: body.sourceProfile.nodeRoles,
-      },
       target: {
         kind: body.target.kind as ReplicationProfileTargetKind,
         id: body.target.id,
       },
-      interfaceRoleMapping: body.interfaceRoleMapping,
       nodeRoleMapping: body.nodeRoleMapping,
       mode: body.mode as PolicyReplicationMode,
     };
+
+    // Source side is only present for regular (source-based) profiles; provisioning
+    // profiles are applied with just the target.
+    if (body.sourceProfile) {
+      replication.sourceProfile = {
+        firewallId: body.sourceProfile.firewallId,
+        interfaceRoles: body.sourceProfile.interfaceRoles,
+        nodeRoles: body.sourceProfile.nodeRoles,
+      };
+    }
+    if (body.interfaceRoleMapping) {
+      replication.interfaceRoleMapping = body.interfaceRoleMapping;
+    }
 
     const result = await this._profileApplicationService.apply(
       {

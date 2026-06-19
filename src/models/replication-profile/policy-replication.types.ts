@@ -52,13 +52,126 @@ export interface PolicyReplicationTarget {
 }
 
 export interface PolicyReplicationRequest {
-  sourceProfile: PolicyReplicationSourceProfile;
+  /** Source side. Omitted for declarative provisioning profiles. */
+  sourceProfile?: PolicyReplicationSourceProfile;
   target: PolicyReplicationTarget;
-  /** Logical role -> target interface id. */
-  interfaceRoleMapping: Record<string, number>;
+  /** Logical role -> target interface id. Omitted for provisioning profiles. */
+  interfaceRoleMapping?: Record<string, number>;
   /** Logical role -> target node (cluster member firewall) id. */
   nodeRoleMapping?: Record<string, number>;
   mode: PolicyReplicationMode;
+}
+
+/**
+ * Declarative provisioning describes objects the profile CREATES on the target
+ * firewall, with no source firewall involved. A profile is a "provisioning
+ * profile" when its model carries a `provision` block (see getProfileProvisioning).
+ */
+export interface PolicyReplicationProvisionInterface {
+  /** Interface name created on the target (e.g. "WAN"). */
+  name: string;
+  /** Logical role used to wire rules to this interface. */
+  role: string;
+}
+
+export interface PolicyReplicationProvisionService {
+  protocol: 'tcp' | 'udp';
+  port: number;
+}
+
+export interface PolicyReplicationProvisionRule {
+  /** Only the FORWARD chain is supported for now. */
+  chain: 'forward';
+  /** Defaults to 'accept'. */
+  action?: 'accept' | 'deny';
+  /** Role of the inbound interface (matches a provisioned interface role). */
+  inRole?: string;
+  /** Role of the outbound interface. */
+  outRole?: string;
+  /** Optional service (port) the rule matches. */
+  service?: PolicyReplicationProvisionService;
+  comment?: string;
+}
+
+export interface PolicyReplicationProvision {
+  interfaces: PolicyReplicationProvisionInterface[];
+  rules: PolicyReplicationProvisionRule[];
+}
+
+/**
+ * Extracts and validates the declarative provisioning block from a profile
+ * model. Returns null for regular (source-based) profiles.
+ */
+export function getProfileProvisioning(model: unknown): PolicyReplicationProvision | null {
+  if (!model || typeof model !== 'object' || Array.isArray(model)) {
+    return null;
+  }
+
+  const raw = (model as Record<string, unknown>).provision;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+
+  const provisionRaw = raw as Record<string, unknown>;
+  const interfaces = (Array.isArray(provisionRaw.interfaces) ? provisionRaw.interfaces : [])
+    .map(parseProvisionInterface)
+    .filter((item): item is PolicyReplicationProvisionInterface => item !== null);
+  const rules = (Array.isArray(provisionRaw.rules) ? provisionRaw.rules : [])
+    .map(parseProvisionRule)
+    .filter((item): item is PolicyReplicationProvisionRule => item !== null);
+
+  if (interfaces.length === 0 && rules.length === 0) {
+    return null;
+  }
+
+  return { interfaces, rules };
+}
+
+function parseProvisionInterface(value: unknown): PolicyReplicationProvisionInterface | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const name = typeof record.name === 'string' ? record.name.trim() : '';
+  const role = typeof record.role === 'string' ? record.role.trim() : '';
+  return name && role ? { name, role } : null;
+}
+
+function parseProvisionRule(value: unknown): PolicyReplicationProvisionRule | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (record.chain !== 'forward') {
+    return null;
+  }
+  const inRole = typeof record.inRole === 'string' ? record.inRole.trim() || undefined : undefined;
+  const outRole =
+    typeof record.outRole === 'string' ? record.outRole.trim() || undefined : undefined;
+  const comment = typeof record.comment === 'string' ? record.comment : undefined;
+
+  let service: PolicyReplicationProvisionService | undefined;
+  const serviceRaw = record.service;
+  if (serviceRaw && typeof serviceRaw === 'object' && !Array.isArray(serviceRaw)) {
+    const s = serviceRaw as Record<string, unknown>;
+    const protocol = s.protocol === 'udp' ? 'udp' : s.protocol === 'tcp' ? 'tcp' : null;
+    const port =
+      typeof s.port === 'number' && Number.isInteger(s.port) && s.port > 0 && s.port <= 65535
+        ? s.port
+        : null;
+    if (protocol && port) {
+      service = { protocol, port };
+    }
+  }
+
+  return {
+    chain: 'forward',
+    action: record.action === 'deny' ? 'deny' : 'accept',
+    inRole,
+    outRole,
+    service,
+    comment,
+  };
 }
 
 export type PolicyReplicationConflictType =

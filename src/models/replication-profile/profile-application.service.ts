@@ -31,7 +31,11 @@ import { Firewall } from '../firewall/Firewall';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { User } from '../user/User';
 import { PolicyReplicationService } from './policy-replication.service';
-import { PolicyReplicationRequest, PolicyReplicationResult } from './policy-replication.types';
+import {
+  getProfileProvisioning,
+  PolicyReplicationRequest,
+  PolicyReplicationResult,
+} from './policy-replication.types';
 import { ReplicationProfile } from './replication-profile.model';
 import { ReplicationProfileService } from './replication-profile.service';
 
@@ -128,12 +132,24 @@ export class ProfileApplicationService extends Service {
 
       profile = await this.loadUsableProfile(request);
       target = await this.validateTarget(request);
-      await this.validateSourceFirewall(request);
 
-      const result = await this._policyReplicationService.replicatePolicyFromProfile({
-        ...request.replication,
-        sourceProfile: { ...request.replication.sourceProfile, profile },
-      });
+      const provision = getProfileProvisioning(profile.model);
+      let result: PolicyReplicationResult;
+
+      if (provision) {
+        // Declarative profile: create interfaces/policy on the target; no source firewall needed.
+        result = await this._policyReplicationService.provisionPolicyFromProfile(
+          request.replication.target,
+          provision,
+          request.fwCloudId,
+        );
+      } else {
+        await this.validateSourceFirewall(request);
+        result = await this._policyReplicationService.replicatePolicyFromProfile({
+          ...request.replication,
+          sourceProfile: { ...request.replication.sourceProfile!, profile },
+        });
+      }
 
       await this.auditAttempt(actor, request, profile, target, startedAt, result);
 
@@ -227,7 +243,10 @@ export class ProfileApplicationService extends Service {
 
   /** Verifies that the source profile firewall belongs to the request FWCloud. */
   protected async validateSourceFirewall(request: ProfileApplicationRequest): Promise<void> {
-    const sourceFirewallId = request.replication.sourceProfile.firewallId;
+    const sourceFirewallId = request.replication.sourceProfile?.firewallId;
+    if (!sourceFirewallId) {
+      throw new ProfileApplicationScopeException('This profile requires a source firewall.');
+    }
     const firewall = await this.manager
       .getRepository(Firewall)
       .findOne({ where: { id: sourceFirewallId } });

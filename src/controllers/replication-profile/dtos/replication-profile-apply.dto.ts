@@ -74,16 +74,19 @@ export class ReplicationProfileApplySourceProfileDto {
 }
 
 export class ReplicationProfileApplyDto {
+  // Optional: provisioning profiles are applied with just the target (no source).
+  @IsOptional()
   @ValidateNested()
   @Type(() => ReplicationProfileApplySourceProfileDto)
-  sourceProfile: ReplicationProfileApplySourceProfileDto;
+  sourceProfile?: ReplicationProfileApplySourceProfileDto;
 
   @ValidateNested()
   @Type(() => ReplicationProfileApplyTargetDto)
   target: ReplicationProfileApplyTargetDto;
 
+  @IsOptional()
   @IsRoleIdMap()
-  interfaceRoleMapping: Record<string, number>;
+  interfaceRoleMapping?: Record<string, number>;
 
   @IsOptional()
   @IsRoleIdMap()

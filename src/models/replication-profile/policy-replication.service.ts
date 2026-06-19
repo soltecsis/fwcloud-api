@@ -23,15 +23,24 @@
 import { QueryRunner } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
-import { DefaultPolicyRuleComments, SpecialPolicyRules } from '../policy/PolicyRule';
+import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
+import { RulePositionsMap } from '../policy/PolicyPosition';
+import { FireWallOptMask } from '../firewall/Firewall';
+import { Interface } from '../interface/Interface';
+import { IPObj } from '../ipobj/IPObj';
+import { Tree } from '../tree/Tree';
 import {
   isPolicyReplicationMode,
   PolicyReplicationConflict,
   PolicyReplicationGroupPreview,
+  PolicyReplicationMode,
+  PolicyReplicationProvision,
+  PolicyReplicationProvisionService,
   PolicyReplicationRequest,
   PolicyReplicationResolvedReference,
   PolicyReplicationResult,
   PolicyReplicationRulePreview,
+  PolicyReplicationTarget,
 } from './policy-replication.types';
 
 // Comments used by PolicyRule.insertDefaultPolicy for the default rules that
@@ -253,18 +262,13 @@ export class PolicyReplicationService extends Service {
       throw new Error(`Invalid policy replication mode: ${String(request.mode)}`);
     }
 
-    const result: PolicyReplicationResult = {
-      mode: request.mode,
-      applied: false,
-      createdRules: [],
-      createdGroups: [],
-      resolvedReferences: [],
-      removedDefaultRules: [],
-      skippedRules: [],
-      conflicts: [],
-      warnings: [],
-      errors: [],
-    };
+    if (!request.sourceProfile || !request.interfaceRoleMapping) {
+      throw new Error(
+        'A source profile and interface role mapping are required for source-based replication',
+      );
+    }
+
+    const result = this.createEmptyResult(request.mode);
 
     const context = await this.loadContext(request, result);
 
@@ -287,6 +291,183 @@ export class PolicyReplicationService extends Service {
     return result;
   }
 
+  /**
+   * Declarative provisioning: instead of copying from a source firewall, this
+   * CREATES on the target firewall the interfaces and policy rules declared in
+   * the profile's `provision` block. Used by provisioning profiles, which do
+   * not need a source firewall. Returns the same result shape as the regular
+   * replication so the caller/UI can report what was created.
+   */
+  public async provisionPolicyFromProfile(
+    target: PolicyReplicationTarget,
+    provision: PolicyReplicationProvision,
+    fwCloudId: number,
+  ): Promise<PolicyReplicationResult> {
+    const result = this.createEmptyResult('replace_defaults');
+
+    const firewallId = await this.resolveProvisionTargetFirewallId(target);
+    const manager = db.getSource().manager;
+    const dbCon = await this.legacyConnection();
+
+    // 1. Create the declared interfaces and their tree nodes; remember role -> id.
+    const fdiNode = (
+      await this.query<{ id: number }>(
+        "SELECT id FROM fwc_tree WHERE id_obj = ? AND node_type = 'FDI' AND fwcloud = ?",
+        [firewallId, fwCloudId],
+      )
+    )[0];
+    const interfaceIdByRole = new Map<string, number>();
+    for (const iface of provision.interfaces) {
+      const created = await manager.getRepository(Interface).save({
+        name: iface.name,
+        type: '10',
+        interface_type: '10',
+        firewallId,
+      });
+      if (fdiNode) {
+        await Tree.newNode(dbCon, fwCloudId, iface.name, fdiNode.id, 'IFF', created.id, 10);
+      }
+      interfaceIdByRole.set(iface.role, created.id);
+      result.resolvedReferences.push({
+        kind: 'interface',
+        role: iface.role,
+        sourceId: 0,
+        targetId: created.id,
+      });
+    }
+
+    // 2. Ensure a default policy exists so the catch-all denies everything else.
+    const catchAll = await this.query<{ id: number }>(
+      'SELECT id FROM policy_r WHERE firewall = ? AND type = 3 AND special = ? LIMIT 1',
+      [firewallId, SPECIAL_CATCHALL],
+    );
+    if (catchAll.length === 0) {
+      await PolicyRule.insertDefaultPolicy(firewallId, null, FireWallOptMask.STATEFUL);
+    }
+
+    // 3. Insert the declared rules just above the FORWARD catch-all.
+    const ruleCount = provision.rules.length;
+    if (ruleCount > 0) {
+      await this.query(
+        'UPDATE policy_r SET rule_order = rule_order + ? WHERE firewall = ? AND type = 3 AND special = ?',
+        [ruleCount, firewallId, SPECIAL_CATCHALL],
+      );
+    }
+
+    for (let i = 0; i < ruleCount; i++) {
+      const rule = provision.rules[i];
+      const ruleOrder = 2 + i;
+      const serviceId = rule.service
+        ? await this.createProvisionService(rule.service, fwCloudId)
+        : null;
+      const ruleId = await PolicyRule.insertPolicy_r({
+        firewall: firewallId,
+        type: 3, // IPv4 FORWARD
+        rule_order: ruleOrder,
+        action: rule.action === 'deny' ? 2 : 1,
+        active: 1,
+        options: 0,
+        special: 0,
+        comment: rule.comment ?? 'Provisioned by replication profile.',
+      });
+
+      const inId = rule.inRole ? interfaceIdByRole.get(rule.inRole) : undefined;
+      const outId = rule.outRole ? interfaceIdByRole.get(rule.outRole) : undefined;
+      if (inId) {
+        await this.query(
+          'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
+          [ruleId, inId, RulePositionsMap.get('IPv4:FORWARD:In')],
+        );
+      }
+      if (outId) {
+        await this.query(
+          'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
+          [ruleId, outId, RulePositionsMap.get('IPv4:FORWARD:Out')],
+        );
+      }
+      if (serviceId) {
+        await this.query(
+          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, -1, -1, ?, 1)',
+          [ruleId, serviceId, RulePositionsMap.get('IPv4:FORWARD:Service')],
+        );
+      }
+
+      result.createdRules.push({
+        sourceRuleId: 0,
+        targetRuleId: ruleId,
+        policyTypeId: 3,
+        ruleOrder,
+        comment: rule.comment ?? null,
+      });
+    }
+
+    result.applied = true;
+    return result;
+  }
+
+  /** Resolves the firewall to provision: the firewall itself, or a cluster master. */
+  private async resolveProvisionTargetFirewallId(target: PolicyReplicationTarget): Promise<number> {
+    if (target.kind !== 'cluster') {
+      return target.id;
+    }
+
+    const master = await this.query<{ id: number }>(
+      'SELECT id FROM firewall WHERE cluster = ? AND fwmaster = 1',
+      [target.id],
+    );
+    if (master.length === 0) {
+      throw new Error(`Master firewall of target cluster ${target.id} not found`);
+    }
+
+    return master[0].id;
+  }
+
+  /** Creates a TCP/UDP service object in the FWCloud and returns its id. */
+  private async createProvisionService(
+    service: PolicyReplicationProvisionService,
+    fwCloudId: number,
+  ): Promise<number> {
+    const isTcp = service.protocol === 'tcp';
+    const created = await db
+      .getSource()
+      .manager.getRepository(IPObj)
+      .save({
+        name: `${service.protocol.toUpperCase()}/${service.port}`,
+        ipObjTypeId: isTcp ? 2 : 4,
+        protocol: isTcp ? 6 : 17,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: service.port,
+        destination_port_end: service.port,
+        fwCloudId,
+      });
+
+    return created.id;
+  }
+
+  /** Legacy callback-style connection used by the static model helpers (Tree, etc.). */
+  private legacyConnection(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      db.get((error, connection) => (error ? reject(error) : resolve(connection)));
+    });
+  }
+
+  /** Builds an empty replication/provisioning result for the given mode. */
+  private createEmptyResult(mode: PolicyReplicationMode): PolicyReplicationResult {
+    return {
+      mode,
+      applied: false,
+      createdRules: [],
+      createdGroups: [],
+      resolvedReferences: [],
+      removedDefaultRules: [],
+      skippedRules: [],
+      conflicts: [],
+      warnings: [],
+      errors: [],
+    };
+  }
+
   private query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
     return db.getSource().query(sql, params);
   }
@@ -295,9 +476,9 @@ export class PolicyReplicationService extends Service {
     request: PolicyReplicationRequest,
     result: PolicyReplicationResult,
   ): Promise<ReplicationContext> {
-    const sourceFirewall = await this.findFirewall(request.sourceProfile.firewallId);
+    const sourceFirewall = await this.findFirewall(request.sourceProfile!.firewallId);
     if (!sourceFirewall) {
-      throw new Error(`Source firewall ${request.sourceProfile.firewallId} not found`);
+      throw new Error(`Source firewall ${request.sourceProfile!.firewallId} not found`);
     }
 
     let targetFirewall: FirewallRow | null;
@@ -388,7 +569,7 @@ export class PolicyReplicationService extends Service {
   private validateRoleMappings(context: ReplicationContext): void {
     const { request, result } = context;
 
-    for (const [role, interfaceId] of Object.entries(request.sourceProfile.interfaceRoles)) {
+    for (const [role, interfaceId] of Object.entries(request.sourceProfile!.interfaceRoles)) {
       if (!context.sourceInterfaces.has(interfaceId)) {
         result.errors.push(
           `Interface role "${role}": source interface ${interfaceId} does not belong to source firewall "${context.sourceFirewall.name}"`,
@@ -405,7 +586,7 @@ export class PolicyReplicationService extends Service {
     }
 
     const usedTargetInterfaces = new Map<number, string>();
-    for (const [role, interfaceId] of Object.entries(request.interfaceRoleMapping)) {
+    for (const [role, interfaceId] of Object.entries(request.interfaceRoleMapping!)) {
       if (!context.targetInterfaces.has(interfaceId)) {
         result.errors.push(
           `Interface role mapping "${role}": target interface ${interfaceId} does not belong to target firewall "${context.targetFirewall.name}"`,
@@ -425,7 +606,7 @@ export class PolicyReplicationService extends Service {
       usedTargetInterfaces.set(interfaceId, role);
     }
 
-    for (const [role, nodeId] of Object.entries(request.sourceProfile.nodeRoles ?? {})) {
+    for (const [role, nodeId] of Object.entries(request.sourceProfile!.nodeRoles ?? {})) {
       if (!context.sourceFirewallIds.has(nodeId)) {
         result.errors.push(
           `Node role "${role}": source node ${nodeId} does not belong to the source cluster`,
@@ -781,7 +962,7 @@ export class PolicyReplicationService extends Service {
       return null;
     }
 
-    const targetId = context.request.interfaceRoleMapping[role];
+    const targetId = context.request.interfaceRoleMapping![role];
     if (targetId === undefined) {
       this.pushUniqueError(
         context.result,
