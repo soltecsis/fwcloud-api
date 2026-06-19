@@ -103,4 +103,22 @@ describe(AgentCommunication.name, () => {
       expect(stub.firstCall.args[1].data).to.deep.equal({ dir: '/etc/openvpn/ccd' });
     });
   });
+
+  describe('OpenVPN status sampling', () => {
+    it('should send sampling configuration to the agent', async () => {
+      const stub = sinon.stub(axios, 'put').resolves({ status: 200, data: { accepted: true } });
+
+      await agent.syncOpenVPNStatusSampling({
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/status/sampling');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        enabled: true,
+        status_files: ['/run/openvpn/server.status'],
+      });
+    });
+  });
 });

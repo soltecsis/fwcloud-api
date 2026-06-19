@@ -26,6 +26,7 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  OpenVPNStatusSamplingAgentConfig,
   PluginInstallOptions,
   SystemCtlInfo,
 } from './communication';
@@ -712,6 +713,32 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
 
       throw new Error('Unexpected getOpenVPNHistoryFile response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async syncOpenVPNStatusSampling(configData: OpenVPNStatusSamplingAgentConfig): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.headers['Content-Type'] = 'application/json';
+
+      const response: AxiosResponse<{ accepted: boolean }> = await axios.put(
+        pathUrl,
+        {
+          enabled: configData.enabled,
+          status_files: configData.statusFiles,
+        },
+        config,
+      );
+
+      if (response.status === 200 && response.data.accepted) {
+        return;
+      }
+
+      throw new Error('Unexpected syncOpenVPNStatusSampling response');
     } catch (error) {
       this.handleRequestException(error);
     }

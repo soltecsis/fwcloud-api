@@ -125,6 +125,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
+  syncOpenVPNStatusSampling(): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
   async installFirewallPolicy(
     scriptPath: string,
     eventEmitter: EventEmitter = new EventEmitter(),

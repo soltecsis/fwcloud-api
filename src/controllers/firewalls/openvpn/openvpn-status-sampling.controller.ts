@@ -71,12 +71,13 @@ export class OpenVPNStatusSamplingController extends Controller {
     (await FirewallPolicy.compile(this._firewall, request.session.user)).authorize();
     const input = request.inputs.all() as unknown as OpenVPNStatusSamplingUpdateDto;
 
-    const sampling: OpenVPNStatusSampling = await this._samplingService.save({
+    let sampling: OpenVPNStatusSampling = await this._samplingService.save({
       firewallId: this._firewall.id,
       enabled: input.enabled,
       collectorFirewallId: input.collector_firewall,
       statusFiles: input.status_files ?? [],
     });
+    sampling = await this._samplingService.syncAgent(sampling);
 
     return ResponseBuilder.buildResponse()
       .status(200)

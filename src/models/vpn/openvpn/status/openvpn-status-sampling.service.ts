@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 import * as path from 'path';
 import { EntityManager, Repository } from 'typeorm';
+import { AgentCommunication } from '../../../../communications/agent.communication';
 import db from '../../../../database/database-manager';
 import { Service } from '../../../../fonaments/services/service';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
@@ -49,6 +50,44 @@ export class OpenVPNStatusSamplingService extends Service {
         communication: FirewallInstallCommunication.Agent,
       })
       .getMany();
+  }
+
+  async syncAgent(sampling: OpenVPNStatusSampling): Promise<OpenVPNStatusSampling> {
+    const samplingRepository = db.getSource().manager.getRepository(OpenVPNStatusSampling);
+    sampling = await samplingRepository.findOneOrFail({
+      where: { id: sampling.id },
+      relations: ['files', 'collectorFirewall'],
+    });
+
+    try {
+      if (!sampling.collectorFirewall) {
+        throw new Error('OpenVPN status sampling collector firewall is not configured');
+      }
+
+      const communication: AgentCommunication =
+        (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
+
+      await communication.syncOpenVPNStatusSampling({
+        enabled: Boolean(sampling.enabled),
+        statusFiles: sampling.enabled
+          ? sampling.files.map((file: OpenVPNStatusSamplingFile) => file.path)
+          : [],
+      });
+
+      sampling.lastSyncResult = 'accepted';
+      sampling.lastSyncError = null;
+    } catch (error) {
+      sampling.lastSyncResult = 'failed';
+      sampling.lastSyncError = this.getErrorMessage(error);
+    }
+
+    sampling.lastSyncedAt = new Date();
+    await samplingRepository.save(sampling);
+
+    return samplingRepository.findOne({
+      where: { id: sampling.id },
+      relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
+    });
   }
 
   async save(data: OpenVPNStatusSamplingSaveData): Promise<OpenVPNStatusSampling> {
@@ -141,5 +180,21 @@ export class OpenVPNStatusSamplingService extends Service {
 
   protected hashStatusFilePath(statusFile: string): string {
     return crypto.createHash('sha256').update(statusFile).digest('hex');
+  }
+
+  protected getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown error';
+    }
   }
 }

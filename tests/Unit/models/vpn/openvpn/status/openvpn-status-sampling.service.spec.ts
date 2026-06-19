@@ -1,4 +1,5 @@
 import { EntityManager } from 'typeorm';
+import sinon from 'sinon';
 import { Cluster } from '../../../../../../src/models/firewall/Cluster';
 import {
   Firewall,
@@ -25,6 +26,10 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
     service = await testSuite.app.getService<OpenVPNStatusSamplingService>(
       OpenVPNStatusSamplingService.name,
     );
+  });
+
+  afterEach(() => {
+    sinon.restore();
   });
 
   describe('save', () => {
@@ -176,6 +181,50 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       const collectors: OpenVPNStatusSampling[] = await service.findActiveCollectors();
 
       expect(collectors).to.have.length(0);
+    });
+  });
+
+  describe('syncAgent', () => {
+    it('should record accepted synchronization', async () => {
+      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        syncOpenVPNStatusSampling,
+      } as any);
+
+      const sampling: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const synced: OpenVPNStatusSampling = await service.syncAgent(sampling);
+
+      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+      expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+      expect(synced.lastSyncResult).to.eq('accepted');
+      expect(synced.lastSyncError).to.be.null;
+      expect(synced.lastSyncedAt).not.to.be.null;
+    });
+
+    it('should record failed synchronization', async () => {
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        syncOpenVPNStatusSampling: sinon.stub().rejects(new Error('agent rejected config')),
+      } as any);
+
+      const sampling: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const synced: OpenVPNStatusSampling = await service.syncAgent(sampling);
+
+      expect(synced.lastSyncResult).to.eq('failed');
+      expect(synced.lastSyncError).to.eq('agent rejected config');
+      expect(synced.lastSyncedAt).not.to.be.null;
     });
   });
 });
