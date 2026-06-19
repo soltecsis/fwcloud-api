@@ -37,6 +37,22 @@
       "preserveLocalNames": true,
       "preserveTargetSpecificValues": true,
       "validateBeforeApply": true
+    },
+    "provision": {
+      "interfaces": [
+        { "name": "WAN", "role": "wan" },
+        { "name": "LAN", "role": "lan" }
+      ],
+      "rules": [
+        {
+          "chain": "forward",
+          "action": "accept",
+          "inRole": "lan",
+          "outRole": "wan",
+          "service": { "protocol": "tcp", "port": 800 },
+          "comment": "Allow only LAN -> WAN on tcp/800."
+        }
+      ]
     }
   }
 }
