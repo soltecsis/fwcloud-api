@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import { EntityManager, Repository } from 'typeorm';
 import { AgentCommunication } from '../../../../communications/agent.communication';
+import { OpenVPNStatusSamplingAgentState } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
 import { Service } from '../../../../fonaments/services/service';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
@@ -13,6 +14,12 @@ export type OpenVPNStatusSamplingSaveData = {
   enabled: boolean;
   collectorFirewallId?: number;
   statusFiles?: string[];
+};
+
+export type OpenVPNStatusSamplingAgentStatus = {
+  enabled: boolean;
+  statusFiles: string[];
+  error: string | null;
 };
 
 export class OpenVPNStatusSamplingService extends Service {
@@ -88,6 +95,33 @@ export class OpenVPNStatusSamplingService extends Service {
       where: { id: sampling.id },
       relations: ['files', 'firewall', 'cluster', 'collectorFirewall'],
     });
+  }
+
+  async getAgentStatus(
+    sampling: OpenVPNStatusSampling | null,
+  ): Promise<OpenVPNStatusSamplingAgentStatus | null> {
+    if (!sampling?.collectorFirewall) {
+      return null;
+    }
+
+    try {
+      const communication: AgentCommunication =
+        (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
+      const state: OpenVPNStatusSamplingAgentState =
+        await communication.getOpenVPNStatusSamplingState();
+
+      return {
+        enabled: Boolean(state.enabled),
+        statusFiles: state.statusFiles,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        enabled: false,
+        statusFiles: [],
+        error: this.getErrorMessage(error),
+      };
+    }
   }
 
   async save(data: OpenVPNStatusSamplingSaveData): Promise<OpenVPNStatusSampling> {

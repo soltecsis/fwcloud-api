@@ -8,7 +8,10 @@ import {
   OpenVPNStatusSampling,
   OpenVPNStatusSamplingFile,
 } from '../../../models/vpn/openvpn/status/openvpn-status-sampling';
-import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
+import {
+  OpenVPNStatusSamplingAgentStatus,
+  OpenVPNStatusSamplingService,
+} from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 import { FirewallPolicy } from '../../../policies/firewall.policy';
 import db from '../../../database/database-manager';
 import { OpenVPNStatusSamplingUpdateDto } from './dtos/status-sampling.dto';
@@ -25,6 +28,11 @@ type OpenVPNStatusSamplingResponse = {
   last_poll_result: string | null;
   last_poll_error: string | null;
   last_polled_at: Date | null;
+  agent_state: {
+    enabled: boolean;
+    status_files: string[];
+    error: string | null;
+  } | null;
 };
 
 export class OpenVPNStatusSamplingController extends Controller {
@@ -60,10 +68,12 @@ export class OpenVPNStatusSamplingController extends Controller {
     const sampling: OpenVPNStatusSampling | null = await this._samplingService.findOneByFirewall(
       this._firewall.id,
     );
+    const agentStatus: OpenVPNStatusSamplingAgentStatus | null =
+      await this._samplingService.getAgentStatus(sampling);
 
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body(this.toResponse(sampling, this._firewall.id));
+      .body(this.toResponse(sampling, this._firewall.id, agentStatus));
   }
 
   @Validate(OpenVPNStatusSamplingUpdateDto)
@@ -78,15 +88,18 @@ export class OpenVPNStatusSamplingController extends Controller {
       statusFiles: input.status_files ?? [],
     });
     sampling = await this._samplingService.syncAgent(sampling);
+    const agentStatus: OpenVPNStatusSamplingAgentStatus | null =
+      await this._samplingService.getAgentStatus(sampling);
 
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body(this.toResponse(sampling, this._firewall.id));
+      .body(this.toResponse(sampling, this._firewall.id, agentStatus));
   }
 
   protected toResponse(
     sampling: OpenVPNStatusSampling | null,
     firewallId: number,
+    agentStatus: OpenVPNStatusSamplingAgentStatus | null,
   ): OpenVPNStatusSamplingResponse {
     if (!sampling) {
       return {
@@ -101,6 +114,7 @@ export class OpenVPNStatusSamplingController extends Controller {
         last_poll_result: null,
         last_poll_error: null,
         last_polled_at: null,
+        agent_state: null,
       };
     }
 
@@ -116,6 +130,13 @@ export class OpenVPNStatusSamplingController extends Controller {
       last_poll_result: sampling.lastPollResult,
       last_poll_error: sampling.lastPollError,
       last_polled_at: sampling.lastPolledAt,
+      agent_state: agentStatus
+        ? {
+            enabled: agentStatus.enabled,
+            status_files: agentStatus.statusFiles,
+            error: agentStatus.error,
+          }
+        : null,
     };
   }
 }

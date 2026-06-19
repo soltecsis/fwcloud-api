@@ -120,5 +120,26 @@ describe(AgentCommunication.name, () => {
         status_files: ['/run/openvpn/server.status'],
       });
     });
+
+    it('should read sampling state from the agent', async () => {
+      const stub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: {
+          accepted: true,
+          enabled: true,
+          status_files: ['/run/openvpn/server.status'],
+        },
+      });
+
+      const state = await agent.getOpenVPNStatusSamplingState();
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/status/sampling');
+      expect(state).to.deep.eq({
+        accepted: true,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+    });
   });
 });

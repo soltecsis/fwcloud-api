@@ -33,6 +33,7 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
 } from './communication';
 const config = require('../config/config');
@@ -126,6 +127,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   }
 
   syncOpenVPNStatusSampling(): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState> {
     throw new Error('Method not implemented.');
   }
 

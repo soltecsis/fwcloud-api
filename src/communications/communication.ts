@@ -43,6 +43,12 @@ export type OpenVPNStatusSamplingAgentConfig = {
   statusFiles: string[];
 };
 
+export type OpenVPNStatusSamplingAgentState = {
+  accepted: boolean;
+  enabled: boolean;
+  statusFiles: string[];
+};
+
 export type WireGuardHistoryRecord = {
   timestamp: number;
   name: string;
@@ -127,6 +133,7 @@ export abstract class Communication<ConnectionData> {
   abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>;
   abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
   abstract syncOpenVPNStatusSampling(config: OpenVPNStatusSamplingAgentConfig): Promise<void>;
+  abstract getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState>;
   abstract getRealtimeStatus(statusFilepath: string): Promise<string>;
   abstract uninstallOpenVPNConfigs(
     dir: string,

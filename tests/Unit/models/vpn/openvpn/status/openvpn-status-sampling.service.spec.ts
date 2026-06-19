@@ -227,4 +227,52 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       expect(synced.lastSyncedAt).not.to.be.null;
     });
   });
+
+  describe('getAgentStatus', () => {
+    it('should return the collector agent sampling status', async () => {
+      const getOpenVPNStatusSamplingState = sinon.stub().resolves({
+        accepted: true,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        getOpenVPNStatusSamplingState,
+      } as any);
+
+      const sampling: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const status = await service.getAgentStatus(sampling);
+
+      expect(getOpenVPNStatusSamplingState.calledOnce).to.eq(true);
+      expect(status).to.deep.eq({
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+        error: null,
+      });
+    });
+
+    it('should return an error when the collector agent status cannot be read', async () => {
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        getOpenVPNStatusSamplingState: sinon.stub().rejects(new Error('agent unavailable')),
+      } as any);
+
+      const sampling: OpenVPNStatusSampling = await service.save({
+        firewallId: fwcProduct.firewall.id,
+        enabled: true,
+        statusFiles: ['/run/openvpn/server.status'],
+      });
+
+      const status = await service.getAgentStatus(sampling);
+
+      expect(status).to.deep.eq({
+        enabled: false,
+        statusFiles: [],
+        error: 'agent unavailable',
+      });
+    });
+  });
 });

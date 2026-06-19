@@ -52,6 +52,7 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
       last_poll_result: null,
       last_poll_error: null,
       last_polled_at: null,
+      agent_state: null,
     });
   });
 

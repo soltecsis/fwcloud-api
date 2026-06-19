@@ -27,6 +27,7 @@ import {
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentConfig,
+  OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
   SystemCtlInfo,
 } from './communication';
@@ -739,6 +740,29 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
 
       throw new Error('Unexpected syncOpenVPNStatusSampling response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
+      const response: AxiosResponse<{
+        accepted: boolean;
+        enabled: boolean;
+        status_files: string[];
+      }> = await axios.get(pathUrl, this.config);
+
+      if (response.status === 200 && response.data.accepted) {
+        return {
+          accepted: response.data.accepted,
+          enabled: response.data.enabled,
+          statusFiles: response.data.status_files,
+        };
+      }
+
+      throw new Error('Unexpected getOpenVPNStatusSamplingState response');
     } catch (error) {
       this.handleRequestException(error);
     }
