@@ -51,11 +51,16 @@ function buildFirewall(records: OpenVPNHistoryRecord[]): Firewall {
   } as unknown as Firewall;
 }
 
-function buildSampling(id: number, collectorFirewall: Firewall): OpenVPNStatusSampling {
+function buildSampling(
+  id: number,
+  collectorFirewall: Firewall,
+  statusFile: string = `/tmp/status-${id}`,
+): OpenVPNStatusSampling {
   return {
     id,
     collectorFirewallId: id,
     collectorFirewall,
+    files: [{ path: statusFile }],
   } as unknown as OpenVPNStatusSampling;
 }
 
@@ -97,7 +102,6 @@ describe('OpenVPN status worker iteration audit events', () => {
         ),
       ],
       getSamplingConfigurations: async (openVPN: OpenVPN) => [buildSampling(1, openVPN.firewall)],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
       markSamplingPollStatus: async () => {},
     };
 
@@ -175,7 +179,6 @@ describe('OpenVPN status worker iteration audit events', () => {
         ),
       ],
       getSamplingConfigurations: async (openVPN: OpenVPN) => [buildSampling(1, openVPN.firewall)],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
       markSamplingPollStatus: async () => {},
     };
 
@@ -217,7 +220,6 @@ describe('OpenVPN status worker iteration audit events', () => {
         throw new Error('hard failure');
       },
       getSamplingConfigurations: async (openVPN: OpenVPN) => [buildSampling(1, openVPN.firewall)],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
       markSamplingPollStatus: async () => {},
     };
 
@@ -265,12 +267,13 @@ describe('OpenVPN status worker iteration audit events', () => {
         connectedAtTimestampInSeconds: 1,
       },
     ]);
-    const getSamplingConfigurations = sandbox.stub().resolves([buildSampling(1, samplingFirewall)]);
+    const getSamplingConfigurations = sandbox
+      .stub()
+      .resolves([buildSampling(1, samplingFirewall, '/tmp/sampling-status')]);
 
     const dependencies: OpenVPNStatusWorkerIterationDependencies = {
       getOpenVPNServers: async () => [buildOpenVPN(10, openVPNFirewall)],
       getSamplingConfigurations,
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
       markSamplingPollStatus: async () => {},
     };
 
@@ -324,7 +327,6 @@ describe('OpenVPN status worker iteration audit events', () => {
         buildSampling(1, failingFirewall),
         buildSampling(2, workingFirewall),
       ],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
       markSamplingPollStatus,
     };
 

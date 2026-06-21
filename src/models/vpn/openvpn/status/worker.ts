@@ -4,7 +4,6 @@ import { OpenVPNHistoryRecord } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
-import { OpenVPNOption } from '../openvpn-option.model';
 import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
 import { OpenVPNStatusSampling, OpenVPNStatusSamplingResult } from './openvpn-status-sampling';
 import {
@@ -18,7 +17,6 @@ const AUDIT_ENTITY = 'OpenVPNStatusHistory';
 export type OpenVPNStatusWorkerIterationDependencies = {
   getOpenVPNServers: () => Promise<OpenVPN[]>;
   getSamplingConfigurations: (openVPN: OpenVPN) => Promise<OpenVPNStatusSampling[]>;
-  getStatusOption: (openVPNId: number) => Promise<OpenVPNOption | null>;
   markSamplingPollStatus: (
     samplingId: number,
     result: OpenVPNStatusSamplingResult,
@@ -52,7 +50,7 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
       .getRepository(OpenVPNStatusSampling)
       .createQueryBuilder('sampling')
       .innerJoinAndSelect('sampling.collectorFirewall', 'collectorFirewall')
-      .innerJoin('sampling.files', 'files')
+      .innerJoinAndSelect('sampling.files', 'files')
       .where('sampling.enabled = :enabled', { enabled: true })
       .andWhere('collectorFirewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
@@ -61,10 +59,6 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
     query.andWhere('sampling.openVPNId = :openvpn', { openvpn: openVPN.id });
 
     return query.getMany();
-  },
-  getStatusOption: async (openVPNId: number): Promise<OpenVPNOption | null> => {
-    const option = await OpenVPN.getOptData(db.getQuery(), openVPNId, 'status');
-    return (option as OpenVPNOption) ?? null;
   },
   markSamplingPollStatus: async (
     samplingId: number,
@@ -153,42 +147,44 @@ export async function iterate(
       try {
         const samplingConfigurations: OpenVPNStatusSampling[] =
           await dependencies.getSamplingConfigurations(openvpn);
-        const statusOption: OpenVPNOption | null = await dependencies.getStatusOption(openvpn.id);
 
         let entries: CreateOpenVPNStatusHistoryData[] = [];
-        if (statusOption) {
-          for (const sampling of samplingConfigurations) {
-            try {
-              const communication: AgentCommunication =
-                (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
-              const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(
-                statusOption.arg,
-              );
+        for (const sampling of samplingConfigurations) {
+          try {
+            const statusFile = sampling.files?.[0]?.path;
 
-              entries = entries.concat(
-                data.map((item) => ({
-                  timestampInSeconds: item.timestamp,
-                  name: item.name,
-                  address: item.address,
-                  bytesReceived: item.bytesReceived,
-                  bytesSent: item.bytesSent,
-                  connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
-                })),
-              );
-              await dependencies.markSamplingPollStatus(sampling.id, 'success', null);
-            } catch (error) {
-              summary.errorsCount++;
-              const errorMessage = getErrorMessage(error);
-              recoverableErrors.push(
-                `OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId}: ${errorMessage}`,
-              );
-              application
-                .logger()
-                .error(
-                  `WorkerError: OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId} failed: ${errorMessage}`,
-                );
-              await dependencies.markSamplingPollStatus(sampling.id, 'failed', errorMessage);
+            if (!statusFile) {
+              throw new Error('OpenVPN status sampling has no configured status file');
             }
+
+            const communication: AgentCommunication =
+              (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
+            const data: OpenVPNHistoryRecord[] =
+              await communication.getOpenVPNHistoryFile(statusFile);
+
+            entries = entries.concat(
+              data.map((item) => ({
+                timestampInSeconds: item.timestamp,
+                name: item.name,
+                address: item.address,
+                bytesReceived: item.bytesReceived,
+                bytesSent: item.bytesSent,
+                connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
+              })),
+            );
+            await dependencies.markSamplingPollStatus(sampling.id, 'success', null);
+          } catch (error) {
+            summary.errorsCount++;
+            const errorMessage = getErrorMessage(error);
+            recoverableErrors.push(
+              `OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId}: ${errorMessage}`,
+            );
+            application
+              .logger()
+              .error(
+                `WorkerError: OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId} failed: ${errorMessage}`,
+              );
+            await dependencies.markSamplingPollStatus(sampling.id, 'failed', errorMessage);
           }
         }
 
