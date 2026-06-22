@@ -18,7 +18,7 @@ enum PolicyTypeId {
   SNAT = 4,
 }
 
-describe.only(describeName('Shared Rules E2E Tests'), () => {
+describe(describeName('Shared Rules E2E Tests'), () => {
   let app: Application;
   let manager: EntityManager;
   let fwcProduct: FwCloudProduct;
