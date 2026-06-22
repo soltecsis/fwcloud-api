@@ -53,7 +53,12 @@ const getSharedRuleSetRequiredInterfaceNames = async (
   return rows.map((row) => row.name);
 };
 
-const getFirewallInterfaceNames = async (queryRunner, fwcloud, firewall, interfaceUpdate = null) => {
+const getFirewallInterfaceNames = async (
+  queryRunner,
+  fwcloud,
+  firewall,
+  interfaceUpdate = null,
+) => {
   const rows = await queryRunner.query(
     `SELECT DISTINCT ${interfaceNameExpression('I', interfaceUpdate)} AS name
      FROM interface I
@@ -65,7 +70,7 @@ const getFirewallInterfaceNames = async (queryRunner, fwcloud, firewall, interfa
   return new Set(rows.map((row) => row.name));
 };
 
-const assertSharedRuleSetInterfacesAreCompatible = async (
+export const assertSharedRuleSetInterfacesAreCompatible = async (
   queryRunner,
   fwcloud,
   firewall,
@@ -95,7 +100,7 @@ const assertSharedRuleSetInterfacesAreCompatible = async (
   }
 };
 
-const assertSharedRuleSetApplicationsInterfacesAreCompatible = async (
+export const assertSharedRuleSetApplicationsInterfacesAreCompatible = async (
   queryRunner,
   fwcloud,
   sharedRuleSet,
@@ -120,11 +125,7 @@ const assertSharedRuleSetApplicationsInterfacesAreCompatible = async (
   }
 };
 
-const getSharedRuleSetsAffectedByInterfaceUpdate = async (
-  queryRunner,
-  fwcloud,
-  interfaceId,
-) => {
+const getSharedRuleSetsAffectedByInterfaceUpdate = async (queryRunner, fwcloud, interfaceId) => {
   const rows = await queryRunner.query(
     `SELECT DISTINCT affected.shared_rule_set
      FROM (
@@ -156,7 +157,7 @@ const getSharedRuleSetsAffectedByInterfaceUpdate = async (
   return rows.map((row) => row.shared_rule_set);
 };
 
-const assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible = async (
+export const assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible = async (
   queryRunner,
   fwcloud,
   interfaceId,
@@ -185,10 +186,4 @@ const assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible = async (
       interfaceUpdate,
     );
   }
-};
-
-module.exports = {
-  assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible,
-  assertSharedRuleSetApplicationsInterfacesAreCompatible,
-  assertSharedRuleSetInterfacesAreCompatible,
 };

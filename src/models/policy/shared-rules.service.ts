@@ -1,29 +1,97 @@
-var express = require('express');
-var router = express.Router();
-
+import { AbstractApplication } from '../../fonaments/abstract-application';
 import db from '../../database/database-manager';
-import { logger } from '../../fonaments/abstract-application';
-
-const fwcError = require('../../utils/error_table');
-const {
+import { Service } from '../../fonaments/services/service';
+import {
   assertSharedRuleSetApplicationsInterfacesAreCompatible,
   assertSharedRuleSetInterfacesAreCompatible,
-} = require('./shared-rule-helpers');
+} from './shared-rule-helpers';
+
+const fwcError = require('../../utils/error_table');
 
 const SHARED_RULES_FOLDER_NODE_TYPE = 'SRF';
 const SHARED_RULE_SET_NODE_TYPE = 'SRS';
 const SHARED_RULES_FOLDER_NAME = 'Shared Rules';
 const SHARED_RULE_POLICY_TREE = {
-  1: { parentName: 'IPv4 POLICY', parentNodeType: 'SRP4', parentOrder: 1, name: 'INPUT', nodeType: 'SRI', order: 1 },
-  2: { parentName: 'IPv4 POLICY', parentNodeType: 'SRP4', parentOrder: 1, name: 'OUTPUT', nodeType: 'SRO', order: 2 },
-  3: { parentName: 'IPv4 POLICY', parentNodeType: 'SRP4', parentOrder: 1, name: 'FORWARD', nodeType: 'SRFW', order: 3 },
-  4: { parentName: 'IPv4 POLICY', parentNodeType: 'SRP4', parentOrder: 1, name: 'SNAT', nodeType: 'SRSN', order: 4 },
-  5: { parentName: 'IPv4 POLICY', parentNodeType: 'SRP4', parentOrder: 1, name: 'DNAT', nodeType: 'SRDN', order: 5 },
-  61: { parentName: 'IPv6 POLICY', parentNodeType: 'SRP6', parentOrder: 2, name: 'INPUT', nodeType: 'SRI6', order: 1 },
-  62: { parentName: 'IPv6 POLICY', parentNodeType: 'SRP6', parentOrder: 2, name: 'OUTPUT', nodeType: 'SRO6', order: 2 },
-  63: { parentName: 'IPv6 POLICY', parentNodeType: 'SRP6', parentOrder: 2, name: 'FORWARD', nodeType: 'SRFW6', order: 3 },
-  64: { parentName: 'IPv6 POLICY', parentNodeType: 'SRP6', parentOrder: 2, name: 'SNAT', nodeType: 'SRSN6', order: 4 },
-  65: { parentName: 'IPv6 POLICY', parentNodeType: 'SRP6', parentOrder: 2, name: 'DNAT', nodeType: 'SRDN6', order: 5 },
+  1: {
+    parentName: 'IPv4 POLICY',
+    parentNodeType: 'SRP4',
+    parentOrder: 1,
+    name: 'INPUT',
+    nodeType: 'SRI',
+    order: 1,
+  },
+  2: {
+    parentName: 'IPv4 POLICY',
+    parentNodeType: 'SRP4',
+    parentOrder: 1,
+    name: 'OUTPUT',
+    nodeType: 'SRO',
+    order: 2,
+  },
+  3: {
+    parentName: 'IPv4 POLICY',
+    parentNodeType: 'SRP4',
+    parentOrder: 1,
+    name: 'FORWARD',
+    nodeType: 'SRFW',
+    order: 3,
+  },
+  4: {
+    parentName: 'IPv4 POLICY',
+    parentNodeType: 'SRP4',
+    parentOrder: 1,
+    name: 'SNAT',
+    nodeType: 'SRSN',
+    order: 4,
+  },
+  5: {
+    parentName: 'IPv4 POLICY',
+    parentNodeType: 'SRP4',
+    parentOrder: 1,
+    name: 'DNAT',
+    nodeType: 'SRDN',
+    order: 5,
+  },
+  61: {
+    parentName: 'IPv6 POLICY',
+    parentNodeType: 'SRP6',
+    parentOrder: 2,
+    name: 'INPUT',
+    nodeType: 'SRI6',
+    order: 1,
+  },
+  62: {
+    parentName: 'IPv6 POLICY',
+    parentNodeType: 'SRP6',
+    parentOrder: 2,
+    name: 'OUTPUT',
+    nodeType: 'SRO6',
+    order: 2,
+  },
+  63: {
+    parentName: 'IPv6 POLICY',
+    parentNodeType: 'SRP6',
+    parentOrder: 2,
+    name: 'FORWARD',
+    nodeType: 'SRFW6',
+    order: 3,
+  },
+  64: {
+    parentName: 'IPv6 POLICY',
+    parentNodeType: 'SRP6',
+    parentOrder: 2,
+    name: 'SNAT',
+    nodeType: 'SRSN6',
+    order: 4,
+  },
+  65: {
+    parentName: 'IPv6 POLICY',
+    parentNodeType: 'SRP6',
+    parentOrder: 2,
+    name: 'DNAT',
+    nodeType: 'SRDN6',
+    order: 5,
+  },
 };
 const SHARED_RULE_POLICY_TYPES = Object.keys(SHARED_RULE_POLICY_TREE).map((type) => Number(type));
 const MARK_ALLOWED_POLICY_TYPES = [1, 2, 3, 61, 62, 63];
@@ -32,11 +100,6 @@ const hasOwn = (data, field) => Object.prototype.hasOwnProperty.call(data, field
 const nullIfUndefined = (value) => (value === undefined ? null : value);
 const nullIfZero = (value) => (value === 0 ? null : nullIfUndefined(value));
 const isPositiveId = (value) => Number(value) > 0;
-
-const sendError = (res, message, error) => {
-  logger().error(`${message}: ${error?.message ? error.message : JSON.stringify(error)}`);
-  res.status(400).json(error);
-};
 
 const withTransaction = async (callback) => {
   const queryRunner = db.getSource().createQueryRunner();
@@ -157,7 +220,13 @@ const getSharedRulesPolicyTypeNodeId = async (queryRunner, fwcloud, policyType) 
     const insertParentResult = await queryRunner.query(
       `INSERT INTO fwc_tree (name, id_parent, node_order, node_type, id_obj, obj_type, fwcloud)
        VALUES (?, ?, ?, ?, NULL, NULL, ?)`,
-      [policyTree.parentName, folderNodeId, policyTree.parentOrder, policyTree.parentNodeType, fwcloud],
+      [
+        policyTree.parentName,
+        folderNodeId,
+        policyTree.parentOrder,
+        policyTree.parentNodeType,
+        fwcloud,
+      ],
     );
     parentNodeId = insertParentResult.insertId;
   }
@@ -178,14 +247,7 @@ const getSharedRulesPolicyTypeNodeId = async (queryRunner, fwcloud, policyType) 
   const insertResult = await queryRunner.query(
     `INSERT INTO fwc_tree (name, id_parent, node_order, node_type, id_obj, obj_type, fwcloud)
      VALUES (?, ?, ?, ?, ?, NULL, ?)`,
-    [
-      policyTree.name,
-      parentNodeId,
-      policyTree.order,
-      policyTree.nodeType,
-      policyType,
-      fwcloud,
-    ],
+    [policyTree.name, parentNodeId, policyTree.order, policyTree.nodeType, policyType, fwcloud],
   );
 
   return insertResult.insertId;
@@ -365,11 +427,11 @@ const compactPolicyOrdersAfterDelete = async (queryRunner, firewall, type, delet
   );
 };
 
-const movePolicyApplicationOrder = async (
+const movePolicyApplyOrder = async (
   queryRunner,
   firewall,
   type,
-  application,
+  policyApplyId,
   currentOrder,
   nextOrder,
 ) => {
@@ -388,7 +450,7 @@ const movePolicyApplicationOrder = async (
       `UPDATE policy_r__shared_rule_set
        SET rule_order=rule_order-1
        WHERE firewall=? AND type=? AND id<>? AND rule_order>? AND rule_order<=?`,
-      [firewall, type, application, currentOrder, nextOrder],
+      [firewall, type, policyApplyId, currentOrder, nextOrder],
     );
   } else {
     await queryRunner.query(
@@ -401,18 +463,18 @@ const movePolicyApplicationOrder = async (
       `UPDATE policy_r__shared_rule_set
        SET rule_order=rule_order+1
        WHERE firewall=? AND type=? AND id<>? AND rule_order>=? AND rule_order<?`,
-      [firewall, type, application, nextOrder, currentOrder],
+      [firewall, type, policyApplyId, nextOrder, currentOrder],
     );
   }
 };
 
-const getApplication = async (queryRunner, fwcloud, application) => {
+const getPolicyApply = async (queryRunner, fwcloud, policyApplyId) => {
   const rows = await queryRunner.query(
     `SELECT A.*
      FROM policy_r__shared_rule_set A
      INNER JOIN firewall F ON F.id=A.firewall
      WHERE A.id=? AND F.fwcloud=?`,
-    [application, fwcloud],
+    [policyApplyId, fwcloud],
   );
 
   if (rows.length !== 1) {
@@ -538,7 +600,10 @@ const normalizeSharedIPObjRow = (item, rule, index) => {
     ipobj_g: normalizeId(ipobj_g),
     interface: normalizeId(interfaceName),
     position: normalizeId(firstDefined(item, ['position', 'rule_position_id', 'policyPositionId'])),
-    position_order: normalizeId(firstDefined(item, ['position_order', 'order', 'node_order']), index),
+    position_order: normalizeId(
+      firstDefined(item, ['position_order', 'order', 'node_order']),
+      index,
+    ),
   };
 };
 
@@ -849,10 +914,7 @@ const validateSharedIPObjIPVersion = async (queryRunner, row, fwcloud, type) => 
     }
 
     const groupIPVersions = await getSharedRuleGroupIPVersions(queryRunner, row.ipobj_g);
-    if (
-      (ipVersion === 4 && groupIPVersions.ipv4) ||
-      (ipVersion === 6 && groupIPVersions.ipv6)
-    ) {
+    if ((ipVersion === 4 && groupIPVersions.ipv4) || (ipVersion === 6 && groupIPVersions.ipv6)) {
       return;
     }
 
@@ -971,11 +1033,7 @@ const syncSharedRuleObjects = async (queryRunner, fwcloud, sharedRuleSet, rule, 
     await normalizeSharedRuleInterfaceOrders(queryRunner, rule);
   }
 
-  await assertSharedRuleSetApplicationsInterfacesAreCompatible(
-    queryRunner,
-    fwcloud,
-    sharedRuleSet,
-  );
+  await assertSharedRuleSetApplicationsInterfacesAreCompatible(queryRunner, fwcloud, sharedRuleSet);
 };
 
 const attachSharedRuleObjects = async (queryRunner, rules) => {
@@ -1013,19 +1071,23 @@ const attachSharedRuleObjects = async (queryRunner, rules) => {
   return rules;
 };
 
-router.put('/get', async (req, res) => {
-  try {
-    const filters = ['S.fwcloud=?'];
-    const params = [req.body.fwcloud];
+export class SharedRulesService extends Service {
+  constructor(app: AbstractApplication) {
+    super(app);
+  }
 
-    if (req.body.shared_rule_set) {
+  public async get(body) {
+    const filters = ['S.fwcloud=?'];
+    const params = [body.fwcloud];
+
+    if (body.shared_rule_set) {
       filters.push('S.id=?');
-      params.push(req.body.shared_rule_set);
+      params.push(body.shared_rule_set);
     }
 
-    if (req.body.policy_type) {
+    if (body.policy_type) {
       filters.push('S.policy_type=?');
-      params.push(req.body.policy_type);
+      params.push(body.policy_type);
     }
 
     const data = await db.getSource().query(
@@ -1061,71 +1123,57 @@ router.put('/get', async (req, res) => {
       [SHARED_RULE_SET_NODE_TYPE, ...params],
     );
 
-    if (req.body.shared_rule_set && data.length === 0) {
-      return res.status(204).end();
+    if (body.shared_rule_set && data.length === 0) {
+      return undefined;
     }
 
-    res.status(200).json(req.body.shared_rule_set ? data[0] : data);
-  } catch (error) {
-    sendError(res, 'Error getting shared rule sets', error);
+    return body.shared_rule_set ? data[0] : data;
   }
-});
 
-router.post('/', async (req, res) => {
-  try {
-    const data = await withTransaction(async (queryRunner) => {
+  public async create(body) {
+    return withTransaction(async (queryRunner) => {
       const insertResult = await queryRunner.query(
         `INSERT INTO shared_rule_set (fwcloud, name, policy_type, comment, style, active)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          req.body.fwcloud,
-          req.body.name,
-          req.body.policy_type,
-          nullIfUndefined(req.body.comment),
-          nullIfUndefined(req.body.style),
-          req.body.active === undefined ? 1 : req.body.active,
+          body.fwcloud,
+          body.name,
+          body.policy_type,
+          nullIfUndefined(body.comment),
+          nullIfUndefined(body.style),
+          body.active === undefined ? 1 : body.active,
         ],
       );
 
       const nodeId = await createSharedRuleSetTreeNode(
         queryRunner,
-        req.body.fwcloud,
+        body.fwcloud,
         insertResult.insertId,
-        req.body.name,
-        req.body.policy_type,
+        body.name,
+        body.policy_type,
       );
 
       return { insertId: insertResult.insertId, TreeinsertId: nodeId };
     });
-
-    res.status(200).json(data);
-  } catch (error) {
-    sendError(res, 'Error creating shared rule set', error);
   }
-});
 
-router.put('/', async (req, res) => {
-  try {
+  public async update(body): Promise<void> {
     await withTransaction(async (queryRunner) => {
-      const sharedRuleSet = await getSharedRuleSet(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
-      const nextPolicyType = hasOwn(req.body, 'policy_type')
-        ? req.body.policy_type
+      const sharedRuleSet = await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
+      const nextPolicyType = hasOwn(body, 'policy_type')
+        ? body.policy_type
         : sharedRuleSet.policy_type;
-      const nextName = hasOwn(req.body, 'name') ? req.body.name : sharedRuleSet.name;
+      const nextName = hasOwn(body, 'name') ? body.name : sharedRuleSet.name;
 
       if (
-        hasOwn(req.body, 'policy_type') &&
-        Number(req.body.policy_type) !== Number(sharedRuleSet.policy_type)
+        hasOwn(body, 'policy_type') &&
+        Number(body.policy_type) !== Number(sharedRuleSet.policy_type)
       ) {
         const applications = await queryRunner.query(
           `SELECT COUNT(*) AS count
            FROM policy_r__shared_rule_set
            WHERE shared_rule_set=?`,
-          [req.body.shared_rule_set],
+          [body.shared_rule_set],
         );
 
         if (Number(applications[0].count) > 0) {
@@ -1133,21 +1181,21 @@ router.put('/', async (req, res) => {
         }
 
         await queryRunner.query(`UPDATE shared_rule SET type=? WHERE shared_rule_set=?`, [
-          req.body.policy_type,
-          req.body.shared_rule_set,
+          body.policy_type,
+          body.shared_rule_set,
         ]);
       }
 
       const updates = [];
       const params = [];
-      appendUpdateField(req.body, 'name', 'name', updates, params);
-      appendUpdateField(req.body, 'policy_type', 'policy_type', updates, params);
-      appendUpdateField(req.body, 'comment', 'comment', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'style', 'style', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'active', 'active', updates, params);
+      appendUpdateField(body, 'name', 'name', updates, params);
+      appendUpdateField(body, 'policy_type', 'policy_type', updates, params);
+      appendUpdateField(body, 'comment', 'comment', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'style', 'style', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'active', 'active', updates, params);
 
       if (updates.length > 0) {
-        params.push(req.body.shared_rule_set, req.body.fwcloud);
+        params.push(body.shared_rule_set, body.fwcloud);
         await queryRunner.query(
           `UPDATE shared_rule_set
            SET ${updates.join(', ')}
@@ -1156,69 +1204,49 @@ router.put('/', async (req, res) => {
         );
       }
 
-      if (hasOwn(req.body, 'name') || hasOwn(req.body, 'policy_type')) {
+      if (hasOwn(body, 'name') || hasOwn(body, 'policy_type')) {
         await moveSharedRuleSetTreeNode(
           queryRunner,
-          req.body.fwcloud,
-          req.body.shared_rule_set,
+          body.fwcloud,
+          body.shared_rule_set,
           nextName,
           nextPolicyType,
         );
       }
 
-      await disableAppliedFirewallsCompileStatus(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
+      await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
     });
-
-    res.status(204).end();
-  } catch (error) {
-    sendError(res, 'Error updating shared rule set', error);
   }
-});
 
-router.put('/del', async (req, res) => {
-  try {
+  public async delete(body): Promise<void> {
     await withTransaction(async (queryRunner) => {
-      await getSharedRuleSet(queryRunner, req.body.fwcloud, req.body.shared_rule_set);
-      await disableAppliedFirewallsCompileStatus(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
-      await deleteSharedRuleSetTreeNode(queryRunner, req.body.fwcloud, req.body.shared_rule_set);
+      await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
+      await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
+      await deleteSharedRuleSetTreeNode(queryRunner, body.fwcloud, body.shared_rule_set);
       await queryRunner.query(`DELETE FROM shared_rule_set WHERE id=? AND fwcloud=?`, [
-        req.body.shared_rule_set,
-        req.body.fwcloud,
+        body.shared_rule_set,
+        body.fwcloud,
       ]);
     });
-
-    res.status(204).end();
-  } catch (error) {
-    sendError(res, 'Error deleting shared rule set', error);
   }
-});
 
-router.put('/applications/get', async (req, res) => {
-  try {
+  public async getApplications(body) {
     const filters = ['S.fwcloud=?'];
-    const params = [req.body.fwcloud];
+    const params = [body.fwcloud];
 
-    if (req.body.shared_rule_set) {
+    if (body.shared_rule_set) {
       filters.push('A.shared_rule_set=?');
-      params.push(req.body.shared_rule_set);
+      params.push(body.shared_rule_set);
     }
 
-    if (req.body.firewall) {
+    if (body.firewall) {
       filters.push('A.firewall=?');
-      params.push(req.body.firewall);
+      params.push(body.firewall);
     }
 
-    if (req.body.type) {
+    if (body.type) {
       filters.push('A.type=?');
-      params.push(req.body.type);
+      params.push(body.type);
     }
 
     const applications = await db.getSource().query(
@@ -1231,83 +1259,69 @@ router.put('/applications/get', async (req, res) => {
       params,
     );
 
-    res.status(200).json(applications);
-  } catch (error) {
-    sendError(res, 'Error getting shared rule set applications', error);
+    return applications;
   }
-});
 
-router.post('/apply', async (req, res) => {
-  try {
-    const data = await withTransaction(async (queryRunner) => {
-      const sharedRuleSet = await getSharedRuleSet(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
-      validatePolicyType(sharedRuleSet, req.body.type);
-      await ensureFirewallInFwcloud(queryRunner, req.body.fwcloud, req.body.firewall);
+  public async apply(body) {
+    return withTransaction(async (queryRunner) => {
+      const sharedRuleSet = await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
+      validatePolicyType(sharedRuleSet, body.type);
+      await ensureFirewallInFwcloud(queryRunner, body.fwcloud, body.firewall);
       await assertSharedRuleSetInterfacesAreCompatible(
         queryRunner,
-        req.body.fwcloud,
-        req.body.firewall,
-        req.body.shared_rule_set,
+        body.fwcloud,
+        body.firewall,
+        body.shared_rule_set,
       );
 
-      const ruleOrder = req.body.rule_order
-        ? req.body.rule_order
-        : await getNextPolicyOrder(queryRunner, req.body.firewall, req.body.type);
-      await reorderPolicyAfterRuleOrder(queryRunner, req.body.firewall, req.body.type, ruleOrder);
+      const ruleOrder = body.rule_order
+        ? body.rule_order
+        : await getNextPolicyOrder(queryRunner, body.firewall, body.type);
+      await reorderPolicyAfterRuleOrder(queryRunner, body.firewall, body.type, ruleOrder);
 
       const insertResult = await queryRunner.query(
         `INSERT INTO policy_r__shared_rule_set
           (firewall, type, shared_rule_set, rule_order, active, style)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          req.body.firewall,
-          req.body.type,
-          req.body.shared_rule_set,
+          body.firewall,
+          body.type,
+          body.shared_rule_set,
           ruleOrder,
-          req.body.active === undefined ? 1 : req.body.active,
-          nullIfUndefined(req.body.style),
+          body.active === undefined ? 1 : body.active,
+          nullIfUndefined(body.style),
         ],
       );
 
-      await disableFirewallCompileStatus(queryRunner, req.body.fwcloud, req.body.firewall);
+      await disableFirewallCompileStatus(queryRunner, body.fwcloud, body.firewall);
 
       return { insertId: insertResult.insertId };
     });
-
-    res.status(200).json(data);
-  } catch (error) {
-    sendError(res, 'Error applying shared rule set', error);
   }
-});
 
-router.put('/apply', async (req, res) => {
-  try {
+  public async updateApplication(body): Promise<void> {
     await withTransaction(async (queryRunner) => {
-      const application = await getApplication(queryRunner, req.body.fwcloud, req.body.application);
+      const policyApply = await getPolicyApply(queryRunner, body.fwcloud, body.policyApplyId);
 
-      if (hasOwn(req.body, 'rule_order')) {
-        await movePolicyApplicationOrder(
+      if (hasOwn(body, 'rule_order')) {
+        await movePolicyApplyOrder(
           queryRunner,
-          application.firewall,
-          application.type,
-          application.id,
-          application.rule_order,
-          req.body.rule_order,
+          policyApply.firewall,
+          policyApply.type,
+          policyApply.id,
+          policyApply.rule_order,
+          body.rule_order,
         );
       }
 
       const updates = [];
       const params = [];
-      appendUpdateField(req.body, 'rule_order', 'rule_order', updates, params);
-      appendUpdateField(req.body, 'active', 'active', updates, params);
-      appendUpdateField(req.body, 'style', 'style', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'rule_order', 'rule_order', updates, params);
+      appendUpdateField(body, 'active', 'active', updates, params);
+      appendUpdateField(body, 'style', 'style', updates, params, nullIfUndefined);
 
       if (updates.length > 0) {
-        params.push(req.body.application);
+        params.push(body.policyApplyId);
         await queryRunner.query(
           `UPDATE policy_r__shared_rule_set
            SET ${updates.join(', ')}
@@ -1316,76 +1330,56 @@ router.put('/apply', async (req, res) => {
         );
       }
 
-      await disableFirewallCompileStatus(queryRunner, req.body.fwcloud, application.firewall);
+      await disableFirewallCompileStatus(queryRunner, body.fwcloud, policyApply.firewall);
     });
-
-    res.status(204).end();
-  } catch (error) {
-    sendError(res, 'Error updating shared rule set application', error);
   }
-});
 
-router.put('/unapply', async (req, res) => {
-  try {
+  public async unapply(body): Promise<void> {
     await withTransaction(async (queryRunner) => {
-      const application = await getApplication(queryRunner, req.body.fwcloud, req.body.application);
+      const policyApply = await getPolicyApply(queryRunner, body.fwcloud, body.policyApplyId);
 
       await queryRunner.query(`DELETE FROM policy_r__shared_rule_set WHERE id=?`, [
-        req.body.application,
+        body.policyApplyId,
       ]);
       await compactPolicyOrdersAfterDelete(
         queryRunner,
-        application.firewall,
-        application.type,
-        application.rule_order,
+        policyApply.firewall,
+        policyApply.type,
+        policyApply.rule_order,
       );
-      await disableFirewallCompileStatus(queryRunner, req.body.fwcloud, application.firewall);
+      await disableFirewallCompileStatus(queryRunner, body.fwcloud, policyApply.firewall);
     });
-
-    res.status(204).end();
-  } catch (error) {
-    sendError(res, 'Error unapplying shared rule set', error);
   }
-});
 
-router.put('/rules/get', async (req, res) => {
-  try {
-    await getSharedRuleSet(db.getSource(), req.body.fwcloud, req.body.shared_rule_set);
+  public async getRules(body) {
+    await getSharedRuleSet(db.getSource(), body.fwcloud, body.shared_rule_set);
     const rules = await db.getSource().query(
       `SELECT *
        FROM shared_rule
        WHERE shared_rule_set=?
        ORDER BY rule_order, id`,
-      [req.body.shared_rule_set],
+      [body.shared_rule_set],
     );
 
-    res.status(200).json(await attachSharedRuleObjects(db.getSource(), rules));
-  } catch (error) {
-    sendError(res, 'Error getting shared rules', error);
+    return attachSharedRuleObjects(db.getSource(), rules);
   }
-});
 
-router.post('/rule', async (req, res) => {
-  try {
-    const data = await withTransaction(async (queryRunner) => {
-      const sharedRuleSet = await getSharedRuleSet(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
-      const type = req.body.type ? req.body.type : sharedRuleSet.policy_type;
+  public async createRule(body) {
+    return withTransaction(async (queryRunner) => {
+      const sharedRuleSet = await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
+      const type = body.type ? body.type : sharedRuleSet.policy_type;
       validatePolicyType(sharedRuleSet, type);
-      validateMark(req.body.mark, type);
+      validateMark(body.mark, type);
 
-      const ruleOrder = req.body.rule_order
-        ? req.body.rule_order
-        : await getNextSharedRuleOrder(queryRunner, req.body.shared_rule_set);
+      const ruleOrder = body.rule_order
+        ? body.rule_order
+        : await getNextSharedRuleOrder(queryRunner, body.shared_rule_set);
 
       await queryRunner.query(
         `UPDATE shared_rule
          SET rule_order=rule_order+1
          WHERE shared_rule_set=? AND rule_order>=?`,
-        [req.body.shared_rule_set, ruleOrder],
+        [body.shared_rule_set, ruleOrder],
       );
 
       const insertResult = await queryRunner.query(
@@ -1394,102 +1388,88 @@ router.post('/rule', async (req, res) => {
            active, type, style, fw_apply_to, negate, mark, special, run_before, run_after)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          req.body.shared_rule_set,
+          body.shared_rule_set,
           ruleOrder,
-          nullIfUndefined(req.body.direction),
-          req.body.action,
-          nullIfUndefined(req.body.time_start),
-          nullIfUndefined(req.body.time_end),
-          nullIfUndefined(req.body.comment),
-          req.body.options === undefined ? 0 : req.body.options,
-          req.body.active === undefined ? 1 : req.body.active,
+          nullIfUndefined(body.direction),
+          body.action,
+          nullIfUndefined(body.time_start),
+          nullIfUndefined(body.time_end),
+          nullIfUndefined(body.comment),
+          body.options === undefined ? 0 : body.options,
+          body.active === undefined ? 1 : body.active,
           type,
-          nullIfUndefined(req.body.style),
-          nullIfUndefined(req.body.fw_apply_to),
-          nullIfUndefined(req.body.negate),
-          nullIfZero(req.body.mark),
-          req.body.special === undefined ? 0 : req.body.special,
-          nullIfUndefined(req.body.run_before),
-          nullIfUndefined(req.body.run_after),
+          nullIfUndefined(body.style),
+          nullIfUndefined(body.fw_apply_to),
+          nullIfUndefined(body.negate),
+          nullIfZero(body.mark),
+          body.special === undefined ? 0 : body.special,
+          nullIfUndefined(body.run_before),
+          nullIfUndefined(body.run_after),
         ],
       );
 
       await syncSharedRuleObjects(
         queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
+        body.fwcloud,
+        body.shared_rule_set,
         insertResult.insertId,
         type,
-        req.body,
+        body,
       );
-      await disableAppliedFirewallsCompileStatus(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
+      await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
 
       return { insertId: insertResult.insertId };
     });
-
-    res.status(200).json(data);
-  } catch (error) {
-    sendError(res, 'Error creating shared rule', error);
   }
-});
 
-router.put('/rule', async (req, res) => {
-  try {
+  public async updateRule(body): Promise<void> {
     await withTransaction(async (queryRunner) => {
-      const sharedRuleSet = await getSharedRuleSet(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
+      const sharedRuleSet = await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
       const sharedRule = await getSharedRule(
         queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-        req.body.rule,
+        body.fwcloud,
+        body.shared_rule_set,
+        body.rule,
       );
 
-      if (hasOwn(req.body, 'type')) {
-        validatePolicyType(sharedRuleSet, req.body.type);
+      if (hasOwn(body, 'type')) {
+        validatePolicyType(sharedRuleSet, body.type);
       }
 
-      const type = hasOwn(req.body, 'type') ? req.body.type : sharedRule.type;
-      validateMark(req.body.mark, type);
+      const type = hasOwn(body, 'type') ? body.type : sharedRule.type;
+      validateMark(body.mark, type);
 
-      if (hasOwn(req.body, 'rule_order')) {
+      if (hasOwn(body, 'rule_order')) {
         await moveSharedRuleOrder(
           queryRunner,
-          req.body.shared_rule_set,
-          req.body.rule,
+          body.shared_rule_set,
+          body.rule,
           sharedRule.rule_order,
-          req.body.rule_order,
+          body.rule_order,
         );
       }
 
       const updates = [];
       const params = [];
-      appendUpdateField(req.body, 'rule_order', 'rule_order', updates, params);
-      appendUpdateField(req.body, 'direction', 'direction', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'action', 'action', updates, params);
-      appendUpdateField(req.body, 'time_start', 'time_start', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'time_end', 'time_end', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'comment', 'comment', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'options', 'options', updates, params);
-      appendUpdateField(req.body, 'active', 'active', updates, params);
-      appendUpdateField(req.body, 'type', 'type', updates, params);
-      appendUpdateField(req.body, 'style', 'style', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'fw_apply_to', 'fw_apply_to', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'negate', 'negate', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'mark', 'mark', updates, params, nullIfZero);
-      appendUpdateField(req.body, 'special', 'special', updates, params);
-      appendUpdateField(req.body, 'run_before', 'run_before', updates, params, nullIfUndefined);
-      appendUpdateField(req.body, 'run_after', 'run_after', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'rule_order', 'rule_order', updates, params);
+      appendUpdateField(body, 'direction', 'direction', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'action', 'action', updates, params);
+      appendUpdateField(body, 'time_start', 'time_start', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'time_end', 'time_end', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'comment', 'comment', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'options', 'options', updates, params);
+      appendUpdateField(body, 'active', 'active', updates, params);
+      appendUpdateField(body, 'type', 'type', updates, params);
+      appendUpdateField(body, 'style', 'style', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'fw_apply_to', 'fw_apply_to', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'negate', 'negate', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'mark', 'mark', updates, params, nullIfZero);
+      appendUpdateField(body, 'special', 'special', updates, params);
+      appendUpdateField(body, 'run_before', 'run_before', updates, params, nullIfUndefined);
+      appendUpdateField(body, 'run_after', 'run_after', updates, params, nullIfUndefined);
 
       if (updates.length > 0) {
-        params.push(req.body.rule, req.body.shared_rule_set);
+        params.push(body.rule, body.shared_rule_set);
         await queryRunner.query(
           `UPDATE shared_rule
            SET ${updates.join(', ')}
@@ -1500,51 +1480,31 @@ router.put('/rule', async (req, res) => {
 
       await syncSharedRuleObjects(
         queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-        req.body.rule,
+        body.fwcloud,
+        body.shared_rule_set,
+        body.rule,
         type,
-        req.body,
+        body,
       );
-      await disableAppliedFirewallsCompileStatus(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
+      await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
     });
-
-    res.status(204).end();
-  } catch (error) {
-    sendError(res, 'Error updating shared rule', error);
   }
-});
 
-router.put('/rule/del', async (req, res) => {
-  try {
-    if (req.body.rulesIds.length === 0) {
-      return res.status(204).end();
+  public async deleteRules(body): Promise<void> {
+    if (body.rulesIds.length === 0) {
+      return;
     }
 
     await withTransaction(async (queryRunner) => {
-      await getSharedRuleSet(queryRunner, req.body.fwcloud, req.body.shared_rule_set);
+      await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
 
       await queryRunner.query(
         `DELETE FROM shared_rule
-         WHERE shared_rule_set=? AND id IN (${req.body.rulesIds.map(() => '?').join(',')})`,
-        [req.body.shared_rule_set, ...req.body.rulesIds],
+         WHERE shared_rule_set=? AND id IN (${body.rulesIds.map(() => '?').join(',')})`,
+        [body.shared_rule_set, ...body.rulesIds],
       );
-      await compactSharedRuleOrders(queryRunner, req.body.shared_rule_set);
-      await disableAppliedFirewallsCompileStatus(
-        queryRunner,
-        req.body.fwcloud,
-        req.body.shared_rule_set,
-      );
+      await compactSharedRuleOrders(queryRunner, body.shared_rule_set);
+      await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
     });
-
-    res.status(204).end();
-  } catch (error) {
-    sendError(res, 'Error deleting shared rules', error);
   }
-});
-
-module.exports = router;
+}

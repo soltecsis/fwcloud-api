@@ -68,6 +68,7 @@ import { OpenVPNStatusHistoryServiceProvider } from './models/vpn/openvpn/status
 import { isMainThread } from 'worker_threads';
 import { BackupService } from './backups/backup.service';
 import { PolicyRuleServiceProvider } from './policy-rule/policy-rule.provider';
+import { SharedRulesServiceProvider } from './models/policy/shared-rules.provider';
 import { AuthServiceProvider } from './models/user/auth.provider';
 import { CaServiceProvider } from './ca/ca.provider';
 import { CrtServiceProvider } from './crt/crt.provider';
@@ -175,6 +176,7 @@ export class Application extends HTTPApplication {
       HAProxyRuleServiceProvider,
       HAProxyGroupServiceProvider,
       PolicyRuleServiceProvider,
+      SharedRulesServiceProvider,
       AuthServiceProvider,
       CaServiceProvider,
       CrtServiceProvider,

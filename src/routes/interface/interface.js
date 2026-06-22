@@ -36,7 +36,7 @@ import db from '../../database/database-manager';
 const restrictedCheck = require('../../middleware/restricted');
 const {
 	assertInterfaceUpdateKeepsSharedRuleApplicationsCompatible,
-} = require('../policy/shared-rule-helpers');
+} = require('../../models/policy/shared-rule-helpers');
 
 const fwcError = require('../../utils/error_table');
 
