@@ -12,6 +12,7 @@ import {
 } from '../../../../../../src/models/vpn/openvpn/status/worker';
 import { OpenVPN } from '../../../../../../src/models/vpn/openvpn/OpenVPN';
 import { Firewall } from '../../../../../../src/models/firewall/Firewall';
+import { OpenVPNStatusSampling } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling';
 
 function buildApplication(
   auditService: Pick<AuditEventService, 'startEvent' | 'finishEvent'>,
@@ -48,6 +49,19 @@ function buildFirewall(records: OpenVPNHistoryRecord[]): Firewall {
       };
     },
   } as unknown as Firewall;
+}
+
+function buildSampling(
+  id: number,
+  collectorFirewall: Firewall,
+  statusFile: string = `/tmp/status-${id}`,
+): OpenVPNStatusSampling {
+  return {
+    id,
+    collectorFirewallId: id,
+    collectorFirewall,
+    files: [{ path: statusFile }],
+  } as unknown as OpenVPNStatusSampling;
 }
 
 describe('OpenVPN status worker iteration audit events', () => {
@@ -87,8 +101,8 @@ describe('OpenVPN status worker iteration audit events', () => {
           ]),
         ),
       ],
-      getClusterFirewalls: async () => [],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
+      getSamplingConfigurations: async (openVPN: OpenVPN) => [buildSampling(1, openVPN.firewall)],
+      markSamplingPollStatus: async () => {},
     };
 
     await iterate(
@@ -164,8 +178,8 @@ describe('OpenVPN status worker iteration audit events', () => {
           ]),
         ),
       ],
-      getClusterFirewalls: async () => [],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
+      getSamplingConfigurations: async (openVPN: OpenVPN) => [buildSampling(1, openVPN.firewall)],
+      markSamplingPollStatus: async () => {},
     };
 
     await iterate(
@@ -205,8 +219,8 @@ describe('OpenVPN status worker iteration audit events', () => {
       getOpenVPNServers: async () => {
         throw new Error('hard failure');
       },
-      getClusterFirewalls: async () => [],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
+      getSamplingConfigurations: async (openVPN: OpenVPN) => [buildSampling(1, openVPN.firewall)],
+      markSamplingPollStatus: async () => {},
     };
 
     await iterate(
@@ -231,5 +245,106 @@ describe('OpenVPN status worker iteration audit events', () => {
     expect(finishPayload.details.error).to.equal('hard failure');
     expect(finishPayload.details.errorsCount).to.equal(0);
     expect(loggerError.callCount).to.equal(1);
+  });
+
+  it('uses configured sampling firewalls instead of the OpenVPN firewall', async () => {
+    const loggerError = sandbox.stub();
+    const startEvent = sandbox.stub().returns('event-id');
+    const finishEvent = sandbox.stub().resolves(null);
+    const createWithSummary = sandbox.stub().resolves({
+      entries: [],
+      insertedEntries: 1,
+      updatedDisconnections: 0,
+    } as CreateOpenVPNStatusHistorySummary);
+    const openVPNFirewall = buildFirewall([]);
+    const samplingFirewall = buildFirewall([
+      {
+        timestamp: 10,
+        name: 'alice',
+        address: '10.0.0.2',
+        bytesReceived: 100,
+        bytesSent: 200,
+        connectedAtTimestampInSeconds: 1,
+      },
+    ]);
+    const getSamplingConfigurations = sandbox
+      .stub()
+      .resolves([buildSampling(1, samplingFirewall, '/tmp/sampling-status')]);
+
+    const dependencies: OpenVPNStatusWorkerIterationDependencies = {
+      getOpenVPNServers: async () => [buildOpenVPN(10, openVPNFirewall)],
+      getSamplingConfigurations,
+      markSamplingPollStatus: async () => {},
+    };
+
+    await iterate(
+      buildApplication(
+        { startEvent, finishEvent } as Pick<AuditEventService, 'startEvent' | 'finishEvent'>,
+        {
+          createWithSummary,
+        } as Pick<OpenVPNStatusHistoryService, 'createWithSummary'>,
+        loggerError,
+      ),
+      dependencies,
+    );
+
+    expect(getSamplingConfigurations.callCount).to.equal(1);
+    expect(createWithSummary.firstCall.args[1]).to.have.length(1);
+    expect(createWithSummary.firstCall.args[1][0].name).to.equal('alice');
+  });
+
+  it('marks failed collector polling and continues with the next collector', async () => {
+    const loggerError = sandbox.stub();
+    const startEvent = sandbox.stub().returns('event-id');
+    const finishEvent = sandbox.stub().resolves(null);
+    const markSamplingPollStatus = sandbox.stub().resolves(null);
+    const createWithSummary = sandbox.stub().resolves({
+      entries: [],
+      insertedEntries: 1,
+      updatedDisconnections: 0,
+    } as CreateOpenVPNStatusHistorySummary);
+    const failingFirewall = {
+      getCommunication: async () => ({
+        getOpenVPNHistoryFile: async () => {
+          throw new Error('agent unavailable');
+        },
+      }),
+    } as unknown as Firewall;
+    const workingFirewall = buildFirewall([
+      {
+        timestamp: 10,
+        name: 'alice',
+        address: '10.0.0.2',
+        bytesReceived: 100,
+        bytesSent: 200,
+        connectedAtTimestampInSeconds: 1,
+      },
+    ]);
+
+    const dependencies: OpenVPNStatusWorkerIterationDependencies = {
+      getOpenVPNServers: async () => [buildOpenVPN(10, buildFirewall([]))],
+      getSamplingConfigurations: async () => [
+        buildSampling(1, failingFirewall),
+        buildSampling(2, workingFirewall),
+      ],
+      markSamplingPollStatus,
+    };
+
+    await iterate(
+      buildApplication(
+        { startEvent, finishEvent } as Pick<AuditEventService, 'startEvent' | 'finishEvent'>,
+        {
+          createWithSummary,
+        } as Pick<OpenVPNStatusHistoryService, 'createWithSummary'>,
+        loggerError,
+      ),
+      dependencies,
+    );
+
+    expect(markSamplingPollStatus.callCount).to.equal(2);
+    expect(markSamplingPollStatus.firstCall.args).to.deep.equal([1, 'failed', 'agent unavailable']);
+    expect(markSamplingPollStatus.secondCall.args).to.deep.equal([2, 'success', null]);
+    expect(createWithSummary.firstCall.args[1]).to.have.length(1);
+    expect(finishEvent.firstCall.args[1].details.errorsCount).to.equal(1);
   });
 });

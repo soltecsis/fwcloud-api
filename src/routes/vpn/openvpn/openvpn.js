@@ -59,6 +59,7 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
+import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
@@ -112,6 +113,24 @@ const getTargetFirewalls = async (firewall) => {
 		.orderBy('firewall.fwmaster', 'DESC')
 		.addOrderBy('firewall.id', 'ASC')
 		.getMany();
+};
+
+const disableOpenVPNStatusSamplingIfEnabled = async (openvpnId) => {
+	const samplingService = await new OpenVPNStatusSamplingService(undefined).build();
+	const sampling = await samplingService.findOneByOpenVPN(openvpnId);
+
+	if (!sampling || !sampling.enabled) {
+		return;
+	}
+
+	const disabledSampling = await samplingService.save({
+		openVPNId: openvpnId,
+		enabled: false,
+		collectorFirewallId: sampling.collectorFirewallId ?? null,
+		statusFile: null,
+	});
+
+	await samplingService.syncAgent(disabledSampling);
 };
 
 const getCommunicationForFirewall = async (firewall, req) => {
@@ -786,7 +805,12 @@ router.put('/del',
 				});
 				await disableOpenVPNServer2FA(req, firewall, req.openvpn);
 				await uninstallOpenVPNServerConfig(req, firewall);
-			} else if (req.openvpn.type === 1 && Number(req.openvpn.tfa_enabled) === 1) {
+			}
+
+			if (req.openvpn.type !== 1) {
+				await disableOpenVPNStatusSamplingIfEnabled(req.openvpn.id);
+			}
+			else if (req.openvpn.type === 1 && Number(req.openvpn.tfa_enabled) === 1) {
 				const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
 					where: { id: req.openvpn.firewall }
 				});
