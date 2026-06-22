@@ -9,6 +9,7 @@ import {
   OpenVPNStatusSamplingFile,
 } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling';
 import { OpenVPNStatusSamplingService } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling.service';
+import { OpenVPNOption } from '../../../../../../src/models/vpn/openvpn/openvpn-option.model';
 import db from '../../../../../../src/database/database-manager';
 import { describeName, expect, testSuite } from '../../../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../../../utils/fwcloud-factory';
@@ -207,6 +208,46 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         enabled: true,
         statusFiles: ['/run/openvpn/server.status'],
         error: null,
+      });
+    });
+  });
+
+  describe('importFromAgentEnv', () => {
+    it('should import agent status files matching OpenVPN server status options', async () => {
+      const statusFile = '/run/openvpn/server.status';
+      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
+      const getOpenVPNStatusSamplingEnvState = sinon.stub().resolves({
+        enabled: true,
+        statusFiles: [statusFile, '/run/openvpn/unmatched.status'],
+      });
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        getOpenVPNStatusSamplingEnvState,
+        syncOpenVPNStatusSampling,
+      } as any);
+
+      await manager.getRepository(OpenVPNOption).save(
+        manager.getRepository(OpenVPNOption).create({
+          openVPNId: fwcProduct.openvpnServer.id,
+          name: 'status',
+          arg: statusFile,
+          order: 1,
+          scope: 1,
+        }),
+      );
+
+      const result = await service.importFromAgentEnv(fwcProduct.firewall.id);
+      const sampling = await service.findOneByOpenVPN(fwcProduct.openvpnServer.id);
+
+      expect(result.imported).to.deep.eq([
+        { openvpn: fwcProduct.openvpnServer.id, status_file: statusFile },
+      ]);
+      expect(result.unmatched_status_files).to.deep.eq(['/run/openvpn/unmatched.status']);
+      expect(Boolean(sampling.enabled)).to.eq(true);
+      expect(sampling.files[0].path).to.eq(statusFile);
+      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+      expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
+        enabled: true,
+        statusFiles: [statusFile],
       });
     });
   });

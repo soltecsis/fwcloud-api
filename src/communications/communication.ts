@@ -134,6 +134,7 @@ export abstract class Communication<ConnectionData> {
   abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
   abstract syncOpenVPNStatusSampling(config: OpenVPNStatusSamplingAgentConfig): Promise<void>;
   abstract getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState>;
+  abstract getOpenVPNStatusSamplingEnvState(): Promise<OpenVPNStatusSamplingAgentState>;
   abstract getRealtimeStatus(statusFilepath: string): Promise<string>;
   abstract uninstallOpenVPNConfigs(
     dir: string,

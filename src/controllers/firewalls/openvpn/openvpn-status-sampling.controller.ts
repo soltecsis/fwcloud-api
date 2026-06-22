@@ -11,6 +11,7 @@ import {
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import {
   OpenVPNStatusSamplingAgentStatus,
+  OpenVPNStatusSamplingImportSummary,
   OpenVPNStatusSamplingService,
 } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 import { FirewallPolicy } from '../../../policies/firewall.policy';
@@ -34,6 +35,10 @@ type OpenVPNStatusSamplingResponse = {
     status_files: string[];
     error: string | null;
   } | null;
+};
+
+type OpenVPNStatusSamplingImportResponse = {
+  import_result: OpenVPNStatusSamplingImportSummary;
 };
 
 export class OpenVPNStatusSamplingController extends Controller {
@@ -62,15 +67,17 @@ export class OpenVPNStatusSamplingController extends Controller {
       .manager.getRepository(FwCloud)
       .findOneOrFail({ where: { id: parseInt(String(request.params.fwcloud)) } });
 
-    this._openVPN = await db
-      .getSource()
-      .manager.getRepository(OpenVPN)
-      .findOneOrFail({
-        where: {
-          id: parseInt(String(request.params.openvpn)),
-          firewallId: this._firewall.id,
-        },
-      });
+    if (request.params.openvpn) {
+      this._openVPN = await db
+        .getSource()
+        .manager.getRepository(OpenVPN)
+        .findOneOrFail({
+          where: {
+            id: parseInt(String(request.params.openvpn)),
+            firewallId: this._firewall.id,
+          },
+        });
+    }
   }
 
   @Validate()
@@ -102,6 +109,20 @@ export class OpenVPNStatusSamplingController extends Controller {
       await this._samplingService.getAgentStatus(sampling);
 
     return ResponseBuilder.buildResponse().status(200).body(this.toResponse(sampling, agentStatus));
+  }
+
+  @Validate()
+  public async importFromAgent(request: Request): Promise<ResponseBuilder> {
+    (await FirewallPolicy.compile(this._firewall, request.session.user)).authorize();
+
+    const importResult: OpenVPNStatusSamplingImportSummary =
+      await this._samplingService.importFromAgentEnv(this._firewall.id);
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        import_result: importResult,
+      } as OpenVPNStatusSamplingImportResponse);
   }
 
   protected toResponse(
