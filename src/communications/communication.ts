@@ -82,6 +82,7 @@ export type SystemCtlInfo = {
 
 export type PluginInstallOptions = {
   serverCN?: string;
+  pluginParams?: string[];
 };
 
 type ErrorWithCode = {
