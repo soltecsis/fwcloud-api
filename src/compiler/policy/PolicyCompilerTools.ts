@@ -193,7 +193,10 @@ export abstract class PolicyCompilerTools {
             ? this.removeCommonIndentation(this._ruleData.run_before)
             : this._ruleData.run_before;
 
-        this._cs = '###########################\n';
+        this._cs =
+          this._ruleData.special == SpecialPolicyRules.HOOKSCRIPT
+            ? '###########################\n# Hook script rule code:\n'
+            : '###########################\n';
         this._cs += `${ruleCode ? ruleCode : ''}\n###########################\n`;
         break;
       }
