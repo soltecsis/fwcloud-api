@@ -82,6 +82,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     notes: 'Read-style operation over a mutating HTTP verb.',
   },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/ipsecs/:ipsec/installer': { audited: true },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/openvpns/statusSampling/import': {
+    audited: true,
+  },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/openvpns/:openvpn/installer': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/policyRules/download': {
     audited: false,
@@ -161,6 +164,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routingTables/:routingTable/routes/moveToGateway': {
+    audited: true,
+  },
+  'PUT /fwclouds/:fwcloud/firewalls/:firewall/openvpns/:openvpn/statusSampling': {
     audited: true,
   },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpGroups/:dhcpgroup': { audited: true },

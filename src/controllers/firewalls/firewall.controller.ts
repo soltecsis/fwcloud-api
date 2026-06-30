@@ -697,7 +697,9 @@ export class FirewallController extends Controller {
         }
       }
 
-      const data = await communication.installPlugin(input.plugin, input.enable, channel);
+      const data = await communication.installPlugin(input.plugin, input.enable, channel, {
+        pluginParams: input.pluginParams,
+      });
 
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {

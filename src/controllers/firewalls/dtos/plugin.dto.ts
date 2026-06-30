@@ -1,5 +1,5 @@
 import { FirewallInstallCommunication, PluginsFlags } from './../../../models/firewall/Firewall';
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { FirewallInstallProtocol } from '../../../models/firewall/Firewall';
 
 export class PluginDto {
@@ -37,4 +37,9 @@ export class PluginDto {
 
   @IsBoolean()
   enable: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  pluginParams?: string[];
 }
