@@ -61,11 +61,28 @@ export class ReplicationProfile extends Model {
   })
   isDeprecated: boolean;
 
+  /**
+   * FWCloud that owns this custom profile. NULL for built-in/global profiles,
+   * which are shared by every FWCloud. The DB-only generated column
+   * `fwcloud_ns` (COALESCE(fwcloud_id, 0)) is intentionally not mapped here.
+   */
+  @Column({ name: 'fwcloud_id', nullable: true })
+  fwCloudId: number | null;
+
+  @Column({ nullable: true })
+  category: string | null;
+
   @Column()
   created_at: Date;
 
   @Column()
   updated_at: Date;
+
+  @Column({ nullable: true })
+  created_by: number | null;
+
+  @Column({ nullable: true })
+  updated_by: number | null;
 
   /**
    * Credentials must never be persisted inside profile definitions: they may
