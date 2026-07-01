@@ -1,15 +1,34 @@
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
+import { ReplicationProfile } from './replication-profile.model';
 import {
-  isReplicationProfileTargetKind,
-  ReplicationProfile,
-  ReplicationProfileTargetKind,
-} from './replication-profile.model';
+  getReplicationProfileModelTargetKinds,
+  normalizeReplicationProfileTargetKinds,
+} from './replication-profile.constants';
+import type { ReplicationProfileTargetKind } from './replication-profile.constants';
+import {
+  ReplicationProfileValidationError,
+  ReplicationProfileValidationService,
+} from './replication-profile-validation.service';
 
 export class ReplicationProfileService extends Service {
+  protected _validationService: ReplicationProfileValidationService;
+
   public async build(): Promise<ReplicationProfileService> {
     await super.build();
+    this._validationService = await this._app.getService<ReplicationProfileValidationService>(
+      ReplicationProfileValidationService.name,
+    );
+
     return this;
+  }
+
+  public validateDefinition(payload: unknown): ReplicationProfileValidationError[] {
+    return this._validationService.validate(payload);
+  }
+
+  public assertDefinitionIsValid(payload: unknown): void {
+    this._validationService.assertValid(payload);
   }
 
   public async findActive(
@@ -57,65 +76,11 @@ export class ReplicationProfileService extends Service {
     profile: ReplicationProfile,
     targetKind: ReplicationProfileTargetKind,
   ): boolean {
-    const compatibleTargetKinds = new Set<ReplicationProfileTargetKind>();
-    const profileTargetKind = this.normalizeTargetKind(profile.targetKind);
-
-    if (profileTargetKind) {
-      compatibleTargetKinds.add(profileTargetKind);
-    }
-
-    for (const candidate of this.getModelCompatibilityTargetKinds(profile.model)) {
-      compatibleTargetKinds.add(candidate);
-    }
+    const compatibleTargetKinds = new Set<ReplicationProfileTargetKind>([
+      ...normalizeReplicationProfileTargetKinds(profile.targetKind),
+      ...getReplicationProfileModelTargetKinds(profile.model),
+    ]);
 
     return compatibleTargetKinds.has(targetKind);
-  }
-
-  private getModelCompatibilityTargetKinds(
-    model: Record<string, unknown> | null | undefined,
-  ): ReplicationProfileTargetKind[] {
-    if (!model || typeof model !== 'object' || Array.isArray(model)) {
-      return [];
-    }
-
-    const compatibility = this.asRecord(model.compatibility);
-    const candidates: unknown[] = [
-      model.targetKind,
-      model.target_kind,
-      compatibility?.targetKinds,
-      compatibility?.target_kinds,
-      compatibility?.targetKind,
-      compatibility?.target_kind,
-    ];
-
-    return candidates.flatMap((candidate) => this.normalizeTargetKinds(candidate));
-  }
-
-  private normalizeTargetKinds(value: unknown): ReplicationProfileTargetKind[] {
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => this.normalizeTargetKind(item))
-        .filter((item): item is ReplicationProfileTargetKind => item !== null);
-    }
-
-    const targetKind = this.normalizeTargetKind(value);
-
-    return targetKind ? [targetKind] : [];
-  }
-
-  private normalizeTargetKind(value: unknown): ReplicationProfileTargetKind | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const normalized = value.trim().toLowerCase();
-
-    return isReplicationProfileTargetKind(normalized) ? normalized : null;
-  }
-
-  private asRecord(value: unknown): Record<string, unknown> | null {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : null;
   }
 }

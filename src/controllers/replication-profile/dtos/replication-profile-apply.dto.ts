@@ -14,19 +14,23 @@ import {
   registerDecorator,
 } from 'class-validator';
 import { POLICY_REPLICATION_MODES } from '../../../models/replication-profile/policy-replication.types';
-import { REPLICATION_PROFILE_TARGET_KINDS } from '../../../models/replication-profile/replication-profile.model';
+import {
+  asReplicationProfileNonEmptyString,
+  asReplicationProfileRecord,
+  REPLICATION_PROFILE_TARGET_KINDS,
+} from '../../../models/replication-profile/replication-profile.constants';
 
 @ValidatorConstraint()
 class IsRoleIdMapConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    const record = asReplicationProfileRecord(value);
+    if (!record) {
       return false;
     }
 
-    return Object.entries(value).every(
+    return Object.entries(record).every(
       ([role, id]) =>
-        typeof role === 'string' &&
-        role.trim().length > 0 &&
+        asReplicationProfileNonEmptyString(role) !== null &&
         typeof id === 'number' &&
         Number.isInteger(id) &&
         id > 0,
