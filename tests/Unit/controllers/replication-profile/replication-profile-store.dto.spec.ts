@@ -2,6 +2,7 @@ import { plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { expect } from '../../../mocha/global-setup';
 import { ReplicationProfileStoreDto } from '../../../../src/controllers/replication-profile/dtos/replication-profile-store.dto';
+import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
 
 /**
  * The DTO is exercised through the exact options the production validation
@@ -15,17 +16,7 @@ const VALIDATION_OPTIONS = {
 };
 
 function minimalPayload(): Record<string, unknown> {
-  return {
-    name: 'Basic office firewall',
-    code: 'basic-office-firewall',
-    version: 1,
-    scope: 'custom',
-    targetKind: 'firewall',
-    model: {
-      compatibility: { targetKinds: ['firewall'] },
-      roleAssignments: { interfaceRoles: ['wan', 'lan'] },
-    },
-  };
+  return makeCustomReplicationProfilePayload();
 }
 
 function fullPayload(): Record<string, unknown> {
@@ -100,7 +91,7 @@ describe(ReplicationProfileStoreDto.name, () => {
   });
 
   describe('required fields', () => {
-    for (const field of ['name', 'code', 'version', 'scope', 'targetKind', 'model'] as const) {
+    for (const field of ['name', 'scope', 'targetKind', 'model'] as const) {
       it(`should reject a payload missing "${field}"`, async () => {
         const payload = minimalPayload();
         delete payload[field];
@@ -116,11 +107,10 @@ describe(ReplicationProfileStoreDto.name, () => {
       expect(await validatePayload(payload)).to.include('model.compatibility');
     });
 
-    it('should reject a model missing roleAssignments', async () => {
+    it('should accept a payload without code, version or roleAssignments', async () => {
       const payload = minimalPayload();
-      delete (payload.model as Record<string, unknown>).roleAssignments;
 
-      expect(await validatePayload(payload)).to.include('model.roleAssignments');
+      expect(await validatePayload(payload)).to.be.empty;
     });
   });
 
@@ -259,9 +249,15 @@ describe(ReplicationProfileStoreDto.name, () => {
 
   describe('whitelist / forward compatibility', () => {
     it('should reject server-managed fields the client must not set', async () => {
-      const failed = await validatePayload({ ...minimalPayload(), isBuiltin: true, fwcloud_id: 9 });
+      const failed = await validatePayload({
+        ...minimalPayload(),
+        isBuiltin: true,
+        is_built_in: true,
+        fwcloud_id: 9,
+      });
 
       expect(failed).to.include('isBuiltin');
+      expect(failed).to.include('is_built_in');
       expect(failed).to.include('fwcloud_id');
     });
 

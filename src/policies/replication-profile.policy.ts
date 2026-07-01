@@ -33,14 +33,22 @@ import { FwCloudPolicy } from './fwcloud.policy';
  */
 export class ReplicationProfilePolicy extends Policy {
   static async index(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
+    return this.access(user, fwCloud);
   }
 
   static async show(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
+    return this.access(user, fwCloud);
+  }
+
+  static async store(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.access(user, fwCloud);
   }
 
   static async apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.access(user, fwCloud);
+  }
+
+  private static async access(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
   }
 }

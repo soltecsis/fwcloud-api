@@ -498,6 +498,22 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       expect(entries[0].status).to.be.eq(404);
     });
 
+    it('should reject custom profiles owned by another FWCloud', async () => {
+      const target = await makeTargetFirewall();
+      const otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10) });
+      const foreignProfile = await makeProfile({ fwCloudId: otherFwCloud.id });
+
+      await expect(
+        service.apply(
+          actor(authorizedUser),
+          makeApplyRequest(target, 'replace_defaults', { profileCode: foreignProfile.code }),
+        ),
+      ).to.be.rejectedWith(NotFoundException);
+    });
+
     it('should reject disabled profiles', async () => {
       const target = await makeTargetFirewall();
       const disabledProfile = await makeProfile({ isActive: false });
