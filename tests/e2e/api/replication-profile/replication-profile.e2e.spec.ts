@@ -92,7 +92,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           targetKind: 'firewall',
           model: {
             compatibility: {
-              targetKinds: ['cluster'],
+              targetKinds: ['firewall', 'cluster'],
             },
             replicate: {},
             options: {},
