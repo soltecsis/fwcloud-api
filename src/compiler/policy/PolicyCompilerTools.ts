@@ -663,14 +663,25 @@ export abstract class PolicyCompilerTools {
       action = `${protocol}counter ${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? 'snat to ' : 'dnat to '}`;
     }
 
+    const formatTranslatedSource = (ipobj: any): string =>
+      ipobj.address
+        ? ipobj.address
+        : ipobj.range_start && ipobj.range_end
+          ? `${ipobj.range_start}-${ipobj.range_end}`
+          : //DNS
+            ipobj.name;
+
+    const formatTranslatedPort = (ipobj: any): string =>
+      ipobj.destination_port_start === ipobj.destination_port_end
+        ? `${ipobj.destination_port_start}`
+        : `${ipobj.destination_port_start}-${ipobj.destination_port_end}`;
+
     if (this._ruleData.positions[4].ipobjs.length === 1) {
-      const ipobj = this._ruleData.positions[4].ipobjs[0];
-      action += ` ${ipobj.address ? ipobj.address : `${ipobj.range_start}-${ipobj.range_end}`}`;
+      action += ` ${formatTranslatedSource(this._ruleData.positions[4].ipobjs[0])}`;
     }
 
     if (this._ruleData.positions[5].ipobjs.length === 1) {
-      const ipobj = this._ruleData.positions[5].ipobjs[0];
-      action += `:${ipobj.destination_port_start === ipobj.destination_port_end ? ipobj.destination_port_start : `${ipobj.destination_port_start}-${ipobj.destination_port_end}`}`;
+      action += `:${formatTranslatedPort(this._ruleData.positions[5].ipobjs[0])}`;
     }
 
     return action;
