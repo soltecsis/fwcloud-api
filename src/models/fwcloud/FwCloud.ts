@@ -306,6 +306,11 @@ export class FwCloud extends Model {
         // Users access to this fwcloud.
         `delete from user__fwcloud where fwcloud=${this.id};`,
 
+        // Custom replication profiles owned by this fwcloud. Built-in profiles
+        // have fwcloud_id NULL and are global, so they are never matched here.
+        // Required because the fwcloud_id foreign key is ON DELETE RESTRICT.
+        `delete from replication_profiles where fwcloud_id=${this.id};`,
+
         // Remove the fwcloud itself.
         `delete from fwcloud where id=${this.id};`,
       ];
