@@ -13,6 +13,12 @@ export function isReplicationProfileTargetKind(
   return (REPLICATION_PROFILE_TARGET_KINDS as readonly string[]).includes(value);
 }
 
+/** Interface roles supported by the MVP custom-profile contract. */
+export const REPLICATION_PROFILE_INTERFACE_ROLES = ['wan', 'lan', 'dmz'] as const;
+
+/** Policy rule actions supported by the MVP custom-profile contract. */
+export const REPLICATION_PROFILE_RULE_ACTIONS = ['allow', 'deny'] as const;
+
 @Entity(tableName)
 export class ReplicationProfile extends Model {
   @PrimaryGeneratedColumn()
