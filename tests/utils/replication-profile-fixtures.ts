@@ -13,6 +13,48 @@ export interface ReplicationTargetSide {
   wanAddress: IPObj;
 }
 
+export function makeCustomReplicationProfilePayload(
+  codePrefix: string = '',
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    name: `${codePrefix}Basic LAN/WAN profile`,
+    description: 'Creates WAN/LAN interfaces and allows LAN to WAN traffic.',
+    targetKind: 'firewall',
+    scope: 'generic',
+    category: 'Custom',
+    model: {
+      compatibility: {
+        target_kinds: ['firewall'],
+      },
+      uiDefaults: {
+        targetKind: 'firewall',
+        connectionType: 'agent',
+      },
+      provision: {
+        interfaces: [
+          { name: 'WAN', role: 'wan' },
+          { name: 'LAN', role: 'lan' },
+        ],
+        rules: [
+          {
+            chain: 'forward',
+            action: 'accept',
+            inRole: 'lan',
+            outRole: 'wan',
+            service: {
+              protocol: 'tcp',
+              port: 80,
+            },
+            comment: 'Allow LAN to WAN HTTP',
+          },
+        ],
+      },
+    },
+    ...overrides,
+  };
+}
+
 /**
  * Creates a standalone firewall inside the product FWCloud with wan/lan
  * interfaces, an optional wan interface address and the generated default

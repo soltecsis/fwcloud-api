@@ -265,18 +265,20 @@ class IsSecretFreeConstraint implements ValidatorConstraintInterface {
 const IsSecretFree = profileValidator('isSecretFree', IsSecretFreeConstraint);
 
 /**
- * `model` object of the create contract. Required parts (compatibility,
- * roleAssignments) are strictly validated; the open, wizard-facing parts
- * (uiDefaults, topologyPreset, options) are accepted as plain objects so the
- * profile model can carry forward-compatible metadata the wizard reads
- * defensively.
+ * `model` object of the create contract. Compatibility is strictly validated;
+ * role assignments are optional because provisioning-only profiles can define
+ * their reusable roles through `provision.interfaces`. The open,
+ * wizard-facing parts (uiDefaults, topologyPreset, options) are accepted as
+ * plain objects so the profile model can carry forward-compatible metadata the
+ * wizard reads defensively.
  */
 export class ReplicationProfileStoreModelDto {
   @IsProfileCompatibility()
   compatibility: Record<string, unknown>;
 
+  @IsOptional()
   @IsProfileRoleAssignments()
-  roleAssignments: Record<string, unknown>;
+  roleAssignments?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()
@@ -305,17 +307,21 @@ export class ReplicationProfileStoreDto {
   @IsString()
   description?: string;
 
+  /** Defaults to a stable slug generated from `name` when omitted. */
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   @Matches(CODE_PATTERN, {
     message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
   })
-  code: string;
+  code?: string;
 
+  /** Defaults to version 1 when omitted. */
+  @IsOptional()
   @IsInt()
   @IsPositive()
-  version: number;
+  version?: number;
 
   @IsString()
   @IsNotEmpty()
