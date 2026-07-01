@@ -52,31 +52,30 @@ import {
   registerDecorator,
 } from 'class-validator';
 import {
+  asReplicationProfileNonEmptyString,
+  asReplicationProfileRecord,
+  isReplicationProfilePort,
+  isReplicationProfileStringValue,
+  REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
   REPLICATION_PROFILE_INTERFACE_ROLES,
   REPLICATION_PROFILE_RULE_ACTIONS,
+  REPLICATION_PROFILE_RULE_PROTOCOLS,
   REPLICATION_PROFILE_TARGET_KINDS,
-} from '../../../models/replication-profile/replication-profile.model';
+} from '../../../models/replication-profile/replication-profile.constants';
 import { findSecretLikePaths } from '../../../models/replication-profile/replication-profile-secret.guard';
 
 const TARGET_KINDS: readonly string[] = REPLICATION_PROFILE_TARGET_KINDS;
 const ROLES: readonly string[] = REPLICATION_PROFILE_INTERFACE_ROLES;
 const RULE_ACTIONS: readonly string[] = REPLICATION_PROFILE_RULE_ACTIONS;
+const RULE_PROTOCOLS: readonly string[] = REPLICATION_PROFILE_RULE_PROTOCOLS;
 
 /** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
 const CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function isStringIn(value: unknown, allowed: readonly string[]): boolean {
-  return typeof value === 'string' && allowed.includes(value);
-}
-
 function isArraySubsetOf(value: unknown, allowed: readonly string[]): boolean {
-  return Array.isArray(value) && value.every((item) => isStringIn(item, allowed));
+  return (
+    Array.isArray(value) && value.every((item) => isReplicationProfileStringValue(item, allowed))
+  );
 }
 
 function isNonEmptyArraySubsetOf(value: unknown, allowed: readonly string[]): boolean {
@@ -86,7 +85,23 @@ function isNonEmptyArraySubsetOf(value: unknown, allowed: readonly string[]): bo
 function isArrayOfNonEmptyStrings(value: unknown): boolean {
   return (
     Array.isArray(value) &&
-    value.every((item) => typeof item === 'string' && item.trim().length > 0)
+    value.every((item) => asReplicationProfileNonEmptyString(item) !== null)
+  );
+}
+
+function isProvisionService(value: unknown): boolean {
+  if (asReplicationProfileNonEmptyString(value)) {
+    return true;
+  }
+
+  const record = asReplicationProfileRecord(value);
+  if (!record) {
+    return false;
+  }
+
+  return (
+    isReplicationProfileStringValue(record.protocol, RULE_PROTOCOLS) &&
+    isReplicationProfilePort(record.port)
   );
 }
 
@@ -118,22 +133,15 @@ function profileValidator(name: string, validator: new () => ValidatorConstraint
 @ValidatorConstraint()
 class IsProfileCompatibilityConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
-    const record = asRecord(value);
-    if (!record) {
-      return false;
-    }
+    const record = asReplicationProfileRecord(value);
+    const targetKinds = record?.targetKinds ?? record?.target_kinds;
+    const supportedRoles = record?.supportedRoles ?? record?.supported_roles;
 
-    const targetKinds = record.targetKinds ?? record.target_kinds;
-    if (!isNonEmptyArraySubsetOf(targetKinds, TARGET_KINDS)) {
-      return false;
-    }
-
-    const supportedRoles = record.supportedRoles ?? record.supported_roles;
-    if (supportedRoles !== undefined && !isArraySubsetOf(supportedRoles, ROLES)) {
-      return false;
-    }
-
-    return true;
+    return (
+      !!record &&
+      isNonEmptyArraySubsetOf(targetKinds, TARGET_KINDS) &&
+      (supportedRoles === undefined || isArraySubsetOf(supportedRoles, ROLES))
+    );
   }
 
   defaultMessage(args: ValidationArguments): string {
@@ -155,20 +163,13 @@ const IsProfileCompatibility = profileValidator(
 @ValidatorConstraint()
 class IsProfileRoleAssignmentsConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
-    const record = asRecord(value);
-    if (!record) {
-      return false;
-    }
+    const record = asReplicationProfileRecord(value);
 
-    if (!isNonEmptyArraySubsetOf(record.interfaceRoles, ROLES)) {
-      return false;
-    }
-
-    if (record.nodeRoles !== undefined && !isArrayOfNonEmptyStrings(record.nodeRoles)) {
-      return false;
-    }
-
-    return true;
+    return (
+      !!record &&
+      isNonEmptyArraySubsetOf(record.interfaceRoles, ROLES) &&
+      (record.nodeRoles === undefined || isArrayOfNonEmptyStrings(record.nodeRoles))
+    );
   }
 
   defaultMessage(args: ValidationArguments): string {
@@ -184,7 +185,7 @@ const IsProfileRoleAssignments = profileValidator(
 /**
  * `model.provision` (optional): when present, its declarative interfaces and
  * policy rules must stay within the MVP vocabulary — actions limited to
- * allow/deny and roles limited to wan/lan/dmz. Unknown extra keys are tolerated
+ * accept/deny and roles limited to wan/lan/dmz. Unknown extra keys are tolerated
  * so the block can grow without breaking older clients.
  */
 @ValidatorConstraint()
@@ -194,20 +195,12 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
       return true;
     }
 
-    const record = asRecord(value);
-    if (!record) {
-      return false;
-    }
-
-    if (record.rules !== undefined && !this.areRulesValid(record.rules)) {
-      return false;
-    }
-
-    if (record.interfaces !== undefined && !this.areInterfacesValid(record.interfaces)) {
-      return false;
-    }
-
-    return true;
+    const record = asReplicationProfileRecord(value);
+    return (
+      !!record &&
+      (record.rules === undefined || this.areRulesValid(record.rules)) &&
+      (record.interfaces === undefined || this.areInterfacesValid(record.interfaces))
+    );
   }
 
   private areRulesValid(rules: unknown): boolean {
@@ -216,26 +209,18 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
     }
 
     return rules.every((rule) => {
-      const record = asRecord(rule);
-      if (!record) {
-        return false;
-      }
+      const record = asReplicationProfileRecord(rule);
 
-      if (!isStringIn(record.action, RULE_ACTIONS)) {
-        return false;
-      }
-
-      for (const roleField of ['sourceRole', 'destinationRole'] as const) {
-        if (record[roleField] !== undefined && !isStringIn(record[roleField], ROLES)) {
-          return false;
-        }
-      }
-
-      if (record.service !== undefined && typeof record.service !== 'string') {
-        return false;
-      }
-
-      return true;
+      return (
+        !!record &&
+        isReplicationProfileStringValue(record.action, RULE_ACTIONS) &&
+        REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS.every(
+          (roleField) =>
+            record[roleField] === undefined ||
+            isReplicationProfileStringValue(record[roleField], ROLES),
+        ) &&
+        (record.service === undefined || isProvisionService(record.service))
+      );
     });
   }
 
@@ -245,8 +230,8 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
     }
 
     return interfaces.every((item) => {
-      const record = asRecord(item);
-      if (!record || !isStringIn(record.role, ROLES)) {
+      const record = asReplicationProfileRecord(item);
+      if (!record || !isReplicationProfileStringValue(record.role, ROLES)) {
         return false;
       }
 

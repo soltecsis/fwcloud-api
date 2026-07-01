@@ -5,14 +5,12 @@ import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
-import {
-  isReplicationProfileTargetKind,
-  ReplicationProfile,
-  ReplicationProfileTargetKind,
-} from '../../models/replication-profile/replication-profile.model';
+import { ReplicationProfile } from '../../models/replication-profile/replication-profile.model';
+import { normalizeReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
+import type { ReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
 import { ReplicationProfileService } from '../../models/replication-profile/replication-profile.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
-import {
+import type {
   PolicyReplicationMode,
   PolicyReplicationRequest,
 } from '../../models/replication-profile/policy-replication.types';
@@ -130,13 +128,7 @@ export class ReplicationProfileController extends Controller {
   }
 
   private parseTargetKind(value: unknown): ReplicationProfileTargetKind | undefined {
-    if (typeof value !== 'string') {
-      return undefined;
-    }
-
-    const normalized = value.trim().toLowerCase();
-
-    return isReplicationProfileTargetKind(normalized) ? normalized : undefined;
+    return normalizeReplicationProfileTargetKind(value) ?? undefined;
   }
 
   private toResponse(profile: ReplicationProfile): ReplicationProfileResponseDto {

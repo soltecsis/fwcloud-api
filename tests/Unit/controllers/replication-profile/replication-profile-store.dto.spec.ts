@@ -49,7 +49,12 @@ function fullPayload(): Record<string, unknown> {
       },
       provision: {
         rules: [
-          { action: 'allow', sourceRole: 'lan', destinationRole: 'wan', service: 'any' },
+          {
+            action: 'accept',
+            sourceRole: 'lan',
+            destinationRole: 'wan',
+            service: { protocol: 'tcp', port: 443 },
+          },
           { action: 'deny', sourceRole: 'wan', destinationRole: 'lan', service: 'any' },
         ],
       },
@@ -187,25 +192,43 @@ describe(ReplicationProfileStoreDto.name, () => {
       return payload;
     };
 
-    it('should accept allow/deny rules using wan/lan/dmz roles', async () => {
+    it('should accept accept/deny rules using wan/lan/dmz roles', async () => {
       expect(
         await validatePayload(
           withProvision({
-            rules: [{ action: 'allow', sourceRole: 'lan', destinationRole: 'dmz' }],
+            rules: [{ action: 'accept', sourceRole: 'lan', destinationRole: 'dmz' }],
           }),
         ),
       ).to.be.empty;
     });
 
-    it('should reject a rule action outside allow/deny', async () => {
+    it('should reject a rule action outside accept/deny', async () => {
       expect(
-        await validatePayload(withProvision({ rules: [{ action: 'accept', sourceRole: 'lan' }] })),
+        await validatePayload(withProvision({ rules: [{ action: 'allow', sourceRole: 'lan' }] })),
       ).to.include('model.provision');
     });
 
     it('should reject a rule role outside wan/lan/dmz', async () => {
       expect(
-        await validatePayload(withProvision({ rules: [{ action: 'allow', sourceRole: 'guest' }] })),
+        await validatePayload(
+          withProvision({ rules: [{ action: 'accept', sourceRole: 'guest' }] }),
+        ),
+      ).to.include('model.provision');
+    });
+
+    it('should reject invalid provision service ports and protocols', async () => {
+      expect(
+        await validatePayload(
+          withProvision({
+            rules: [
+              {
+                action: 'accept',
+                sourceRole: 'lan',
+                service: { protocol: 'icmp', port: 0 },
+              },
+            ],
+          }),
+        ),
       ).to.include('model.provision');
     });
 
@@ -227,7 +250,7 @@ describe(ReplicationProfileStoreDto.name, () => {
     it('should reject secrets nested inside model.provision', async () => {
       const payload = minimalPayload();
       (payload.model as Record<string, unknown>).provision = {
-        rules: [{ action: 'allow', apiKey: 'leaked' }],
+        rules: [{ action: 'accept', apiKey: 'leaked' }],
       };
 
       expect(await validatePayload(payload)).to.include('model');

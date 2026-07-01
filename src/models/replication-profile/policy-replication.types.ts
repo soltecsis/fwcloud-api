@@ -20,7 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ReplicationProfile, ReplicationProfileTargetKind } from './replication-profile.model';
+import type { ReplicationProfile } from './replication-profile.model';
+import {
+  asReplicationProfileNonEmptyString,
+  asReplicationProfileRecord,
+  isReplicationProfilePort,
+  isReplicationProfileStringValue,
+  REPLICATION_PROFILE_RULE_ACTIONS,
+  REPLICATION_PROFILE_RULE_PROTOCOLS,
+} from './replication-profile.constants';
+import type { ReplicationProfileTargetKind } from './replication-profile.constants';
 
 export const POLICY_REPLICATION_MODES = ['replace_defaults', 'merge', 'dry_run'] as const;
 export type PolicyReplicationMode = (typeof POLICY_REPLICATION_MODES)[number];
@@ -103,16 +112,12 @@ export interface PolicyReplicationProvision {
  * model. Returns null for regular (source-based) profiles.
  */
 export function getProfileProvisioning(model: unknown): PolicyReplicationProvision | null {
-  if (!model || typeof model !== 'object' || Array.isArray(model)) {
+  const record = asReplicationProfileRecord(model);
+  const provisionRaw = asReplicationProfileRecord(record?.provision);
+  if (!provisionRaw) {
     return null;
   }
 
-  const raw = (model as Record<string, unknown>).provision;
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return null;
-  }
-
-  const provisionRaw = raw as Record<string, unknown>;
   const interfaces = (Array.isArray(provisionRaw.interfaces) ? provisionRaw.interfaces : [])
     .map(parseProvisionInterface)
     .filter((item): item is PolicyReplicationProvisionInterface => item !== null);
@@ -128,37 +133,38 @@ export function getProfileProvisioning(model: unknown): PolicyReplicationProvisi
 }
 
 function parseProvisionInterface(value: unknown): PolicyReplicationProvisionInterface | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  const name = typeof record.name === 'string' ? record.name.trim() : '';
-  const role = typeof record.role === 'string' ? record.role.trim() : '';
+  const record = asReplicationProfileRecord(value);
+  const name = asReplicationProfileNonEmptyString(record?.name);
+  const role = asReplicationProfileNonEmptyString(record?.role);
+
   return name && role ? { name, role } : null;
 }
 
 function parseProvisionRule(value: unknown): PolicyReplicationProvisionRule | null {
-  if (!value || typeof value !== 'object') {
+  const record = asReplicationProfileRecord(value);
+  if (!record) {
     return null;
   }
-  const record = value as Record<string, unknown>;
+
   if (record.chain !== 'forward') {
     return null;
   }
-  const inRole = typeof record.inRole === 'string' ? record.inRole.trim() || undefined : undefined;
-  const outRole =
-    typeof record.outRole === 'string' ? record.outRole.trim() || undefined : undefined;
+
+  const inRole = asReplicationProfileNonEmptyString(record.inRole) ?? undefined;
+  const outRole = asReplicationProfileNonEmptyString(record.outRole) ?? undefined;
   const comment = typeof record.comment === 'string' ? record.comment : undefined;
 
   let service: PolicyReplicationProvisionService | undefined;
-  const serviceRaw = record.service;
-  if (serviceRaw && typeof serviceRaw === 'object' && !Array.isArray(serviceRaw)) {
-    const s = serviceRaw as Record<string, unknown>;
-    const protocol = s.protocol === 'udp' ? 'udp' : s.protocol === 'tcp' ? 'tcp' : null;
-    const port =
-      typeof s.port === 'number' && Number.isInteger(s.port) && s.port > 0 && s.port <= 65535
-        ? s.port
-        : null;
+  const serviceRaw = asReplicationProfileRecord(record.service);
+  if (serviceRaw) {
+    const protocol = isReplicationProfileStringValue(
+      serviceRaw.protocol,
+      REPLICATION_PROFILE_RULE_PROTOCOLS,
+    )
+      ? serviceRaw.protocol
+      : null;
+    const port = isReplicationProfilePort(serviceRaw.port) ? serviceRaw.port : null;
+
     if (protocol && port) {
       service = { protocol, port };
     }
@@ -166,7 +172,9 @@ function parseProvisionRule(value: unknown): PolicyReplicationProvisionRule | nu
 
   return {
     chain: 'forward',
-    action: record.action === 'deny' ? 'deny' : 'accept',
+    action: isReplicationProfileStringValue(record.action, REPLICATION_PROFILE_RULE_ACTIONS)
+      ? record.action
+      : 'accept',
     inRole,
     outRole,
     service,
