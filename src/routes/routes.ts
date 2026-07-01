@@ -63,6 +63,7 @@ import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.
 import { AuditLogController } from '../controllers/audit/audit-log.controller';
 import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
+import { SharedRulesController } from '../controllers/policy/shared-rules/shared-rules.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -227,6 +228,37 @@ export class Routes extends RouteCollection {
             router.put('/where', IPSecPrefixController, 'where').name('vpn.ipsec.prefix.where');
             router.put('/del', IPSecPrefixController, 'delete').name('vpn.ipsec.prefix.del');
           });
+        });
+      });
+
+      router.prefix('/policy', (router: RouterParser) => {
+        router.prefix('/shared-rules', (router: RouterParser) => {
+          router.put('/get', SharedRulesController, 'get').name('policy.shared-rules.get');
+          router.post('/', SharedRulesController, 'store').name('policy.shared-rules.store');
+          router.put('/', SharedRulesController, 'update').name('policy.shared-rules.update');
+          router.put('/del', SharedRulesController, 'delete').name('policy.shared-rules.delete');
+          router
+            .put('/applications/get', SharedRulesController, 'applications')
+            .name('policy.shared-rules.applications.get');
+          router.post('/apply', SharedRulesController, 'apply').name('policy.shared-rules.apply');
+          router
+            .put('/apply', SharedRulesController, 'updateApplication')
+            .name('policy.shared-rules.apply.update');
+          router
+            .put('/unapply', SharedRulesController, 'unapply')
+            .name('policy.shared-rules.unapply');
+          router
+            .put('/rules/get', SharedRulesController, 'rules')
+            .name('policy.shared-rules.rules.get');
+          router
+            .post('/rule', SharedRulesController, 'storeRule')
+            .name('policy.shared-rules.rule.store');
+          router
+            .put('/rule', SharedRulesController, 'updateRule')
+            .name('policy.shared-rules.rule.update');
+          router
+            .put('/rule/del', SharedRulesController, 'deleteRules')
+            .name('policy.shared-rules.rule.delete');
         });
       });
 

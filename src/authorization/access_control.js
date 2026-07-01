@@ -72,6 +72,8 @@ accessCtrl.check = async (req, res, next) => {
 	}
 
 	try {
+		const isSharedRulesRequest = req.url.startsWith("/policy/shared-rules");
+
 		// This MUST be the first access control.
 		if (req.body.fwcloud && !(await checkFwCloudAccess(req)))
 			throw fwcError.ACC_FWCLOUD;
@@ -131,19 +133,27 @@ accessCtrl.check = async (req, res, next) => {
 				throw fwcError.ACC_CRT_PREFIX;
 		}
 
+		// Check access to shared rules.
+		if (isSharedRulesRequest) {
+			if (!(await checkSharedRulesAccess(req)))
+				throw fwcError.ACC_POLICY_RULE;
+		}
+
 		// Check access to the rule indicated by req.body.rule o req.body.new_rule.
-		if (req.body.rule) {
-			if (!(await checkPolicyRuleAccess(req, req.body.rule)))
-				throw fwcError.ACC_POLICY_RULE;
-		}
-		if (req.body.new_rule) {
-			if (!(await checkPolicyRuleAccess(req, req.body.new_rule)))
-				throw fwcError.ACC_POLICY_RULE;
-		}
-		if (req.body.rulesIds) {
-			for (let rule of req.body.rulesIds) {
-				if (!(await checkPolicyRuleAccess(req, rule)))
+		if (!isSharedRulesRequest) {
+			if (req.body.rule) {
+				if (!(await checkPolicyRuleAccess(req, req.body.rule)))
 					throw fwcError.ACC_POLICY_RULE;
+			}
+			if (req.body.new_rule) {
+				if (!(await checkPolicyRuleAccess(req, req.body.new_rule)))
+					throw fwcError.ACC_POLICY_RULE;
+			}
+			if (req.body.rulesIds) {
+				for (let rule of req.body.rulesIds) {
+					if (!(await checkPolicyRuleAccess(req, rule)))
+						throw fwcError.ACC_POLICY_RULE;
+				}
 			}
 		}
 
@@ -157,6 +167,83 @@ accessCtrl.check = async (req, res, next) => {
 		logger().debug("Error during access_control: " + JSON.stringify(error));
 		res.status(400).json(error);
 	}
+};
+
+// Check access to shared rule resources.
+async function checkSharedRulesAccess(req) {
+	const policyApplyId = req.body.policyApplyId;
+
+	if (req.body.shared_rule_set && !(await checkSharedRuleSetAccess(req, req.body.shared_rule_set)))
+		return false;
+
+	if (req.body.rule && !(await checkSharedRuleAccess(req, req.body.rule)))
+		return false;
+
+	if (req.body.rulesIds) {
+		for (let rule of req.body.rulesIds) {
+			if (!(await checkSharedRuleAccess(req, rule)))
+				return false;
+		}
+	}
+
+	if (policyApplyId && !(await checkSharedRulePolicyApplyAccess(req, policyApplyId)))
+		return false;
+
+	return true;
+};
+
+// Check access to shared rule set.
+function checkSharedRuleSetAccess(req, sharedRuleSet) {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT id
+			FROM shared_rule_set
+			WHERE id=${sharedRuleSet} AND fwcloud=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length !== 1) return resolve(false);
+
+			resolve(true);
+		});
+	});
+};
+
+// Check access to shared rule.
+function checkSharedRuleAccess(req, rule) {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT R.id
+			FROM shared_rule R
+			INNER JOIN shared_rule_set S ON S.id=R.shared_rule_set
+			WHERE R.id=${rule} AND S.fwcloud=${req.body.fwcloud}`;
+
+		if (req.body.shared_rule_set)
+			sql += ` AND S.id=${req.body.shared_rule_set}`;
+
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length !== 1) return resolve(false);
+
+			resolve(true);
+		});
+	});
+};
+
+// Check access to a shared rule set policy apply entry.
+function checkSharedRulePolicyApplyAccess(req, policyApplyId) {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT A.id
+			FROM policy_r__shared_rule_set A
+			INNER JOIN shared_rule_set S ON S.id=A.shared_rule_set
+			INNER JOIN firewall F ON F.id=A.firewall
+			WHERE A.id=${policyApplyId}
+				AND S.fwcloud=${req.body.fwcloud}
+				AND F.fwcloud=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length !== 1) return resolve(false);
+
+			resolve(true);
+		});
+	});
 };
 
 // Check access to the firewalls cluster.

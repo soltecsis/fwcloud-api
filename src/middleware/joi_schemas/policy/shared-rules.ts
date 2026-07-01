@@ -1,5 +1,4 @@
-var schema = {};
-module.exports = schema;
+import { Request } from 'express';
 
 const Joi = require('joi');
 const sharedSch = require('../shared');
@@ -97,102 +96,106 @@ const optionalRuleFields = {
   positions: Joi.array().items(sharedRulePosition).optional(),
 };
 
-schema.validate = (req) => {
-  return new Promise(async (resolve, reject) => {
-    let schema = Joi.object().keys({
-      fwcloud: sharedSch.id,
+const schema = {
+  validate: (req: Request): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      let schema = Joi.object().keys({
+        fwcloud: sharedSch.id,
+      });
+
+      if (req.method === 'POST') {
+        if (req.url === '/policy/shared-rules') {
+          schema = schema.append({
+            name: sharedSch.name,
+            policy_type: sharedRulePolicyType,
+            comment: sharedSch.comment,
+            style: sharedSch.style.optional(),
+            active: sharedSch._0_1.optional(),
+          });
+        } else if (req.url === '/policy/shared-rules/apply') {
+          schema = schema.append({
+            firewall: sharedSch.id,
+            shared_rule_set: sharedSch.id,
+            type: sharedRulePolicyType,
+            rule_order: sharedSch.id.optional(),
+            active: sharedSch._0_1.optional(),
+            style: sharedSch.style.optional(),
+          });
+        } else if (req.url === '/policy/shared-rules/rule') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id,
+            ...optionalRuleFields,
+            action: sharedSch.rule_action,
+          });
+        } else {
+          return reject(fwcError.BAD_API_CALL);
+        }
+      } else if (req.method === 'PUT') {
+        if (req.url === '/policy/shared-rules/get') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id.optional(),
+            policy_type: sharedRulePolicyType.optional(),
+          });
+        } else if (req.url === '/policy/shared-rules') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id,
+            name: sharedSch.name.optional(),
+            policy_type: sharedRulePolicyType.optional(),
+            comment: sharedSch.comment,
+            style: sharedSch.style.optional(),
+            active: sharedSch._0_1.optional(),
+          });
+        } else if (req.url === '/policy/shared-rules/del') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id,
+          });
+        } else if (req.url === '/policy/shared-rules/applications/get') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id.optional(),
+            firewall: sharedSch.id.optional(),
+            type: sharedRulePolicyType.optional(),
+          });
+        } else if (req.url === '/policy/shared-rules/apply') {
+          schema = schema.append({
+            policyApplyId: sharedSch.id,
+            rule_order: sharedSch.id.optional(),
+            active: sharedSch._0_1.optional(),
+            style: sharedSch.style.optional(),
+          });
+        } else if (req.url === '/policy/shared-rules/unapply') {
+          schema = schema.append({
+            policyApplyId: sharedSch.id,
+          });
+        } else if (req.url === '/policy/shared-rules/rules/get') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id,
+          });
+        } else if (req.url === '/policy/shared-rules/rule') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id,
+            rule: sharedSch.id,
+            ...optionalRuleFields,
+          });
+        } else if (req.url === '/policy/shared-rules/rule/del') {
+          schema = schema.append({
+            shared_rule_set: sharedSch.id,
+            rulesIds: Joi.array().items(sharedSch.id),
+          });
+        } else {
+          return reject(fwcError.BAD_API_CALL);
+        }
+      } else {
+        return reject(fwcError.BAD_API_CALL);
+      }
+
+      try {
+        await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
+        resolve();
+      } catch (error) {
+        return reject(error);
+      }
     });
-
-    if (req.method === 'POST') {
-      if (req.url === '/policy/shared-rules') {
-        schema = schema.append({
-          name: sharedSch.name,
-          policy_type: sharedRulePolicyType,
-          comment: sharedSch.comment,
-          style: sharedSch.style.optional(),
-          active: sharedSch._0_1.optional(),
-        });
-      } else if (req.url === '/policy/shared-rules/apply') {
-        schema = schema.append({
-          firewall: sharedSch.id,
-          shared_rule_set: sharedSch.id,
-          type: sharedRulePolicyType,
-          rule_order: sharedSch.id.optional(),
-          active: sharedSch._0_1.optional(),
-          style: sharedSch.style.optional(),
-        });
-      } else if (req.url === '/policy/shared-rules/rule') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id,
-          ...optionalRuleFields,
-          action: sharedSch.rule_action,
-        });
-      } else {
-        return reject(fwcError.BAD_API_CALL);
-      }
-    } else if (req.method === 'PUT') {
-      if (req.url === '/policy/shared-rules/get') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id.optional(),
-          policy_type: sharedRulePolicyType.optional(),
-        });
-      } else if (req.url === '/policy/shared-rules') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id,
-          name: sharedSch.name.optional(),
-          policy_type: sharedRulePolicyType.optional(),
-          comment: sharedSch.comment,
-          style: sharedSch.style.optional(),
-          active: sharedSch._0_1.optional(),
-        });
-      } else if (req.url === '/policy/shared-rules/del') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id,
-        });
-      } else if (req.url === '/policy/shared-rules/applications/get') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id.optional(),
-          firewall: sharedSch.id.optional(),
-          type: sharedRulePolicyType.optional(),
-        });
-      } else if (req.url === '/policy/shared-rules/apply') {
-        schema = schema.append({
-          application: sharedSch.id,
-          rule_order: sharedSch.id.optional(),
-          active: sharedSch._0_1.optional(),
-          style: sharedSch.style.optional(),
-        });
-      } else if (req.url === '/policy/shared-rules/unapply') {
-        schema = schema.append({
-          application: sharedSch.id,
-        });
-      } else if (req.url === '/policy/shared-rules/rules/get') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id,
-        });
-      } else if (req.url === '/policy/shared-rules/rule') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id,
-          rule: sharedSch.id,
-          ...optionalRuleFields,
-        });
-      } else if (req.url === '/policy/shared-rules/rule/del') {
-        schema = schema.append({
-          shared_rule_set: sharedSch.id,
-          rulesIds: Joi.array().items(sharedSch.id),
-        });
-      } else {
-        return reject(fwcError.BAD_API_CALL);
-      }
-    } else {
-      return reject(fwcError.BAD_API_CALL);
-    }
-
-    try {
-      await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
-      resolve();
-    } catch (error) {
-      return reject(error);
-    }
-  });
+  },
 };
+
+export = schema;
