@@ -663,13 +663,18 @@ export abstract class PolicyCompilerTools {
       action = `${protocol}counter ${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? 'snat to ' : 'dnat to '}`;
     }
 
-    const formatTranslatedSource = (ipobj: any): string =>
-      ipobj.address
-        ? ipobj.address
-        : ipobj.range_start && ipobj.range_end
-          ? `${ipobj.range_start}-${ipobj.range_end}`
-          : //DNS
-            ipobj.name;
+    const formatTranslatedSource = (ipobj: any): string => {
+      switch (ipobj.type) {
+        case 5: // ADDRESS
+          return ipobj.address;
+        case 6: // ADDRESS RANGE
+          return `${ipobj.range_start}-${ipobj.range_end}`;
+        case 9: // DNS
+          return ipobj.name;
+        default:
+          throw fwcError.other('Invalid translated source object type');
+      }
+    };
 
     const formatTranslatedPort = (ipobj: any): string =>
       ipobj.destination_port_start === ipobj.destination_port_end
