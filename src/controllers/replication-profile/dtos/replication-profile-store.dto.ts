@@ -84,8 +84,7 @@ function isNonEmptyArraySubsetOf(value: unknown, allowed: readonly string[]): bo
 
 function isArrayOfNonEmptyStrings(value: unknown): boolean {
   return (
-    Array.isArray(value) &&
-    value.every((item) => asReplicationProfileNonEmptyString(item) !== null)
+    Array.isArray(value) && value.every((item) => asReplicationProfileNonEmptyString(item) !== null)
   );
 }
 
