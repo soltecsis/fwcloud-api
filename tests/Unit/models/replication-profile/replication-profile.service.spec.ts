@@ -7,6 +7,7 @@ import { ReplicationProfile } from '../../../../src/models/replication-profile/r
 import { ReplicationProfileService } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfileValidationException } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import StringHelper from '../../../../src/utils/string.helper';
+import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
 import { Like, Repository } from 'typeorm';
 
 describe(describeName('Replication Profile Service Unit Tests'), () => {
@@ -33,6 +34,9 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       ...overrides,
     });
   };
+
+  const makeCreatePayload = (overrides: Record<string, unknown> = {}): Record<string, unknown> =>
+    makeCustomReplicationProfilePayload(codePrefix, overrides);
 
   const makeFwCloud = (): Promise<FwCloud> =>
     db
@@ -216,6 +220,76 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect((await service.findByCodeAndVersion(code, 1, fwCloudA.id)).id).to.be.eq(inA.id);
       expect((await service.findByCodeAndVersion(code, 1, fwCloudB.id)).id).to.be.eq(inB.id);
       expect((await service.findByCodeAndVersion(code, 1, 999999)).id).to.be.eq(global.id);
+    });
+  });
+
+  describe('createCustomProfile()', () => {
+    it('should generate slug code and version defaults while forcing FWCloud-owned custom flags', async () => {
+      const fwCloud = await makeFwCloud();
+      const payload = makeCreatePayload();
+      const saved = await service.createCustomProfile(payload as any, {
+        fwCloudId: fwCloud.id,
+        userId: 7,
+      });
+      const reloaded = await repository.findOneOrFail({ where: { id: saved.id } });
+
+      expect(saved.code).to.be.eq(service.slugFromName(payload.name as string));
+      expect(reloaded.version).to.be.eq(1);
+      expect(reloaded.isBuiltin).to.be.false;
+      expect(reloaded.isActive).to.be.true;
+      expect(reloaded.isDeprecated).to.be.false;
+      expect(reloaded.fwCloudId).to.be.eq(fwCloud.id);
+      expect(reloaded.created_by).to.be.eq(7);
+      expect(reloaded.updated_by).to.be.eq(7);
+    });
+
+    it('should preserve explicit code and version when provided', async () => {
+      const fwCloud = await makeFwCloud();
+      const payload = makeCreatePayload({
+        code: `${codePrefix}explicit`,
+        version: 3,
+      });
+
+      const saved = await service.createCustomProfile(payload as any, {
+        fwCloudId: fwCloud.id,
+      });
+
+      expect(saved.code).to.be.eq(`${codePrefix}explicit`);
+      expect(saved.version).to.be.eq(3);
+    });
+
+    it('should produce stable URL-safe slugs from names', () => {
+      expect(service.slugFromName('Basic LAN/WAN profile')).to.be.eq('basic-lan-wan-profile');
+      expect(service.slugFromName('  Ámbito DMZ + WAN  ')).to.be.eq('ambito-dmz-wan');
+    });
+
+    it('should reject invalid definitions through the centralized validation service', async () => {
+      const fwCloud = await makeFwCloud();
+      const payload = makeCreatePayload({
+        name: `${codePrefix}invalid`,
+        targetKind: 'firewall',
+        model: {
+          compatibility: { target_kinds: ['cluster'] },
+        },
+      });
+
+      await expect(
+        service.createCustomProfile(payload as any, { fwCloudId: fwCloud.id }),
+      ).to.be.rejectedWith(ReplicationProfileValidationException);
+    });
+
+    it('should reject duplicate code and version inside the same FWCloud', async () => {
+      const fwCloud = await makeFwCloud();
+      const payload = makeCreatePayload({
+        code: `${codePrefix}duplicate`,
+        version: 1,
+      });
+
+      await service.createCustomProfile(payload as any, { fwCloudId: fwCloud.id });
+
+      await expect(
+        service.createCustomProfile(payload as any, { fwCloudId: fwCloud.id }),
+      ).to.be.rejectedWith(/already exists in this FWCloud/);
     });
   });
 });

@@ -1,4 +1,5 @@
 import db from '../../database/database-manager';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { Service } from '../../fonaments/services/service';
 import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { ReplicationProfile } from './replication-profile.model';
@@ -11,6 +12,24 @@ import {
   ReplicationProfileValidationError,
   ReplicationProfileValidationService,
 } from './replication-profile-validation.service';
+
+export interface CreateCustomReplicationProfilePayload {
+  name: string;
+  description?: string | null;
+  code?: string;
+  version?: number;
+  scope: string;
+  targetKind: string;
+  category?: string | null;
+  model: unknown;
+}
+
+export interface CreateCustomReplicationProfileOptions {
+  fwCloudId: number;
+  userId?: number | null;
+}
+
+const DEFAULT_CUSTOM_PROFILE_VERSION = 1;
 
 export class ReplicationProfileService extends Service {
   protected _validationService: ReplicationProfileValidationService;
@@ -126,6 +145,66 @@ export class ReplicationProfileService extends Service {
           { ...where, fwCloudId: IsNull() },
           { ...where, fwCloudId },
         ];
+  }
+
+  public async createCustomProfile(
+    payload: CreateCustomReplicationProfilePayload,
+    options: CreateCustomReplicationProfileOptions,
+  ): Promise<ReplicationProfile> {
+    const code = payload.code ?? this.slugFromName(payload.name);
+    const version = payload.version ?? DEFAULT_CUSTOM_PROFILE_VERSION;
+    const model = payload.model as Record<string, unknown>;
+    const userId = options.userId ?? null;
+
+    this.assertDefinitionIsValid({
+      targetKind: payload.targetKind,
+      model,
+    });
+
+    const alreadyExists = await this.repository.exists({
+      where: {
+        code,
+        version,
+        fwCloudId: options.fwCloudId,
+      },
+    });
+
+    if (alreadyExists) {
+      throw new HttpException(
+        `Replication profile "${code}" (version ${version}) already exists in this FWCloud.`,
+        409,
+      );
+    }
+
+    const profile = this.repository.create({
+      code,
+      version,
+      name: payload.name,
+      description: payload.description ?? null,
+      scope: payload.scope,
+      targetKind: payload.targetKind as ReplicationProfileTargetKind,
+      model,
+      category: payload.category ?? null,
+      isBuiltin: false,
+      isActive: true,
+      isDeprecated: false,
+      fwCloudId: options.fwCloudId,
+      created_by: userId,
+      updated_by: userId,
+    });
+
+    return this.repository.save(profile);
+  }
+
+  public slugFromName(name: string): string {
+    const slug = name
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return slug.length > 0 ? slug : 'profile';
   }
 
   public supportsTargetKind(

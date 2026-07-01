@@ -9,6 +9,7 @@ import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
+import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
 import request = require('supertest');
 import { Like, Repository } from 'typeorm';
 
@@ -39,6 +40,9 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   };
 
+  const makeCreatePayload = (overrides: Record<string, unknown> = {}): Record<string, unknown> =>
+    makeCustomReplicationProfilePayload(codePrefix, overrides);
+
   beforeEach(async () => {
     app = testSuite.app;
     repository = db.getSource().manager.getRepository(ReplicationProfile);
@@ -55,6 +59,105 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
   afterEach(async () => {
     await repository.delete({ code: Like(`${codePrefix}%`) });
+  });
+
+  describe('POST /fwclouds/:fwcloud/assistant/profiles', () => {
+    it('should create a FWCloud-scoped custom profile with generated code and version defaults', async () => {
+      const expectedCode = `${codePrefix}basic-lan-wan-profile`;
+
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(makeCreatePayload())
+        .expect(201)
+        .then(async (response) => {
+          const result = response.body.data;
+
+          expect(result).to.include({
+            code: expectedCode,
+            version: 1,
+            name: `${codePrefix}Basic LAN/WAN profile`,
+            description: 'Creates WAN/LAN interfaces and allows LAN to WAN traffic.',
+            targetKind: 'firewall',
+            scope: 'generic',
+            category: 'Custom',
+            is_built_in: false,
+            is_active: true,
+            is_deprecated: false,
+            fwcloud_id: fwCloud.id,
+          });
+          expect(result.id).to.be.a('number');
+          expect(result.model.provision.interfaces).to.have.length(2);
+
+          const persisted = await repository.findOneOrFail({ where: { id: result.id } });
+          expect(persisted.isBuiltin).to.be.false;
+          expect(persisted.isActive).to.be.true;
+          expect(persisted.isDeprecated).to.be.false;
+          expect(persisted.fwCloudId).to.be.eq(fwCloud.id);
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const result = response.body.data.find((item) => item.code === expectedCode);
+
+          expect(result).to.include({
+            code: expectedCode,
+            is_built_in: false,
+            fwcloud_id: fwCloud.id,
+          });
+        });
+    });
+
+    it('should preserve explicit code and version from a valid payload', async () => {
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(makeCreatePayload({ code: `${codePrefix}explicit`, version: 3 }))
+        .expect(201)
+        .then((response) => {
+          expect(response.body.data).to.include({
+            code: `${codePrefix}explicit`,
+            version: 3,
+            is_built_in: false,
+            fwcloud_id: fwCloud.id,
+          });
+        });
+    });
+
+    it('should reject users without access to the FWCloud', async () => {
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .send(makeCreatePayload({ code: `${codePrefix}forbidden` }))
+        .expect(403);
+    });
+
+    it('should reject invalid profile definitions through the centralized validator', async () => {
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(
+          makeCreatePayload({
+            code: `${codePrefix}invalid-definition`,
+            model: {
+              compatibility: { target_kinds: ['cluster'] },
+              provision: {
+                interfaces: [
+                  { name: 'WAN', role: 'wan' },
+                  { name: 'LAN', role: 'lan' },
+                ],
+              },
+            },
+          }),
+        )
+        .expect(422);
+    });
   });
 
   describe('GET /fwclouds/:fwcloud/assistant/profiles', () => {
@@ -114,6 +217,31 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
+    it('should not include custom profiles owned by another FWCloud', async () => {
+      const otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+
+      await repository.save([
+        makeProfile({ code: `${codePrefix}global`, isBuiltin: true, fwCloudId: null }),
+        makeProfile({ code: `${codePrefix}owned`, fwCloudId: fwCloud.id }),
+        makeProfile({ code: `${codePrefix}foreign`, fwCloudId: otherFwCloud.id }),
+      ]);
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.deep.equal([`${codePrefix}global`, `${codePrefix}owned`]);
+        });
+    });
+
     it('should reject unknown target kinds', async () => {
       await request(app.express)
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
@@ -151,6 +279,21 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(regularUserSessionId)])
         .expect(401);
+    });
+
+    it('should not return custom profiles owned by another FWCloud', async () => {
+      const otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}foreign-detail`, fwCloudId: otherFwCloud.id }),
+      );
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
     });
   });
 

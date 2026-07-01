@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { Validate, ValidateQuery } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
@@ -18,21 +19,12 @@ import { ReplicationProfilePolicy } from '../../policies/replication-profile.pol
 import { ReplicationProfileListQueryDto } from './dtos/replication-profile-query.dto';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
+import { ReplicationProfileStoreDto } from './dtos/replication-profile-store.dto';
 
 export class ReplicationProfileController extends Controller {
   protected _fwCloud: FwCloud;
-  protected _replicationProfileService: ReplicationProfileService;
-  protected _profileApplicationService: ProfileApplicationService;
 
   public async make(request: Request): Promise<void> {
-    this._replicationProfileService = await this._app.getService<ReplicationProfileService>(
-      ReplicationProfileService.name,
-    );
-
-    this._profileApplicationService = await this._app.getService<ProfileApplicationService>(
-      ProfileApplicationService.name,
-    );
-
     this._fwCloud = await FwCloud.findOneOrFail({
       where: { id: parseInt(String(request.params.fwcloud)) },
     });
@@ -42,9 +34,11 @@ export class ReplicationProfileController extends Controller {
   @ValidateQuery(ReplicationProfileListQueryDto)
   public async index(request: Request): Promise<ResponseBuilder> {
     (await ReplicationProfilePolicy.index(request.session.user, this._fwCloud)).authorize();
+    const replicationProfileService = await this.replicationProfileService();
 
-    const profiles = await this._replicationProfileService.findActive(
+    const profiles = await replicationProfileService.findActive(
       this.parseTargetKind(request.query.targetKind),
+      this._fwCloud.id,
     );
 
     return ResponseBuilder.buildResponse()
@@ -55,12 +49,14 @@ export class ReplicationProfileController extends Controller {
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
     (await ReplicationProfilePolicy.show(request.session.user, this._fwCloud)).authorize();
+    const replicationProfileService = await this.replicationProfileService();
 
     const version = this.parseVersionParam(request);
 
-    const profile = await this._replicationProfileService.findByCodeAndVersion(
+    const profile = await replicationProfileService.findByCodeAndVersion(
       String(request.params.code),
       version,
+      this._fwCloud.id,
     );
 
     if (!profile) {
@@ -70,33 +66,33 @@ export class ReplicationProfileController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile));
   }
 
+  @Validate(ReplicationProfileStoreDto)
+  public async store(request: Request): Promise<ResponseBuilder> {
+    const authorization = await ReplicationProfilePolicy.store(request.session.user, this._fwCloud);
+    if (!authorization.can()) {
+      throw new HttpException('Forbidden', 403);
+    }
+    const replicationProfileService = await this.replicationProfileService();
+
+    const profile = await replicationProfileService.createCustomProfile(
+      request.body as ReplicationProfileStoreDto,
+      {
+        fwCloudId: this._fwCloud.id,
+        userId: request.session.user?.id ?? request.session.user_id ?? null,
+      },
+    );
+
+    return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+  }
+
   @Validate(ReplicationProfileApplyDto)
   public async apply(request: Request): Promise<ResponseBuilder> {
     const version = this.parseVersionParam(request);
     const body = request.body as ReplicationProfileApplyDto;
-    const replication: PolicyReplicationRequest = {
-      target: {
-        kind: body.target.kind as ReplicationProfileTargetKind,
-        id: body.target.id,
-      },
-      nodeRoleMapping: body.nodeRoleMapping,
-      mode: body.mode as PolicyReplicationMode,
-    };
+    const replication = this.toPolicyReplicationRequest(body);
 
-    // Source side is only present for regular (source-based) profiles; provisioning
-    // profiles are applied with just the target.
-    if (body.sourceProfile) {
-      replication.sourceProfile = {
-        firewallId: body.sourceProfile.firewallId,
-        interfaceRoles: body.sourceProfile.interfaceRoles,
-        nodeRoles: body.sourceProfile.nodeRoles,
-      };
-    }
-    if (body.interfaceRoleMapping) {
-      replication.interfaceRoleMapping = body.interfaceRoleMapping;
-    }
-
-    const result = await this._profileApplicationService.apply(
+    const profileApplicationService = await this.profileApplicationService();
+    const result = await profileApplicationService.apply(
       {
         user: request.session.user,
         sessionId: AuditLogHelper.resolveSessionId(request),
@@ -127,8 +123,46 @@ export class ReplicationProfileController extends Controller {
     return version;
   }
 
+  private toPolicyReplicationRequest(body: ReplicationProfileApplyDto): PolicyReplicationRequest {
+    const replication: PolicyReplicationRequest = {
+      target: {
+        kind: body.target.kind as ReplicationProfileTargetKind,
+        id: body.target.id,
+      },
+      nodeRoleMapping: body.nodeRoleMapping,
+      mode: body.mode as PolicyReplicationMode,
+    };
+
+    // Source side is only present for regular (source-based) profiles; provisioning
+    // profiles are applied with just the target.
+    if (body.sourceProfile) {
+      replication.sourceProfile = {
+        firewallId: body.sourceProfile.firewallId,
+        interfaceRoles: body.sourceProfile.interfaceRoles,
+        nodeRoles: body.sourceProfile.nodeRoles,
+      };
+    }
+
+    if (body.interfaceRoleMapping) {
+      replication.interfaceRoleMapping = body.interfaceRoleMapping;
+    }
+
+    return replication;
+  }
+
   private parseTargetKind(value: unknown): ReplicationProfileTargetKind | undefined {
     return normalizeReplicationProfileTargetKind(value) ?? undefined;
+  }
+
+  // Services are resolved lazily so read endpoints never build the heavier
+  // apply-service dependency chain. The DI container already returns cached
+  // singletons, so no per-request memoization is needed here.
+  private replicationProfileService(): Promise<ReplicationProfileService> {
+    return this._app.getService<ReplicationProfileService>(ReplicationProfileService.name);
+  }
+
+  private profileApplicationService(): Promise<ProfileApplicationService> {
+    return this._app.getService<ProfileApplicationService>(ProfileApplicationService.name);
   }
 
   private toResponse(profile: ReplicationProfile): ReplicationProfileResponseDto {
@@ -139,8 +173,13 @@ export class ReplicationProfileController extends Controller {
       name: profile.name,
       description: profile.description,
       scope: profile.scope,
+      category: profile.category,
       targetKind: profile.targetKind,
       model: profile.model,
+      is_built_in: profile.isBuiltin,
+      is_active: profile.isActive,
+      is_deprecated: profile.isDeprecated,
+      fwcloud_id: profile.fwCloudId,
     };
   }
 }
