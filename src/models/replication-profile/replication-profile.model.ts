@@ -1,23 +1,33 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../Model';
 import { assertProfileDefinitionHasNoSecrets } from './replication-profile-secret.guard';
+import { assertReplicationProfilePayloadIsValid } from './replication-profile-validation.service';
+import {
+  isReplicationProfileStringValue,
+  REPLICATION_PROFILE_TARGET_KINDS,
+} from './replication-profile.constants';
+import type { ReplicationProfileTargetKind } from './replication-profile.constants';
 
 const tableName = 'replication_profiles';
 
-export const REPLICATION_PROFILE_TARGET_KINDS = ['firewall', 'cluster'] as const;
-export type ReplicationProfileTargetKind = (typeof REPLICATION_PROFILE_TARGET_KINDS)[number];
+export {
+  REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
+  REPLICATION_PROFILE_INTERFACE_ROLES,
+  REPLICATION_PROFILE_RULE_ACTIONS,
+  REPLICATION_PROFILE_RULE_PROTOCOLS,
+  REPLICATION_PROFILE_TARGET_KINDS,
+  asReplicationProfileNonEmptyString,
+  asReplicationProfileRecord,
+  isReplicationProfilePort,
+  isReplicationProfileStringValue,
+} from './replication-profile.constants';
+export type { ReplicationProfileTargetKind } from './replication-profile.constants';
 
 export function isReplicationProfileTargetKind(
   value: string,
 ): value is ReplicationProfileTargetKind {
-  return (REPLICATION_PROFILE_TARGET_KINDS as readonly string[]).includes(value);
+  return isReplicationProfileStringValue(value, REPLICATION_PROFILE_TARGET_KINDS);
 }
-
-/** Interface roles supported by the MVP custom-profile contract. */
-export const REPLICATION_PROFILE_INTERFACE_ROLES = ['wan', 'lan', 'dmz'] as const;
-
-/** Policy rule actions supported by the MVP custom-profile contract. */
-export const REPLICATION_PROFILE_RULE_ACTIONS = ['allow', 'deny'] as const;
 
 @Entity(tableName)
 export class ReplicationProfile extends Model {
@@ -98,6 +108,24 @@ export class ReplicationProfile extends Model {
   @BeforeUpdate()
   rejectSecretsInDefinition(): void {
     assertProfileDefinitionHasNoSecrets(this.model);
+  }
+
+  /**
+   * Keep the entity as the final persistence boundary, so direct repository
+   * saves and future create/version/clone flows cannot bypass validation.
+   */
+  @BeforeInsert()
+  @BeforeUpdate()
+  rejectInvalidDefinition(): void {
+    assertReplicationProfilePayloadIsValid(
+      {
+        targetKind: this.targetKind,
+        model: this.model,
+      },
+      {
+        validateSecrets: false,
+      },
+    );
   }
 
   public getTableName(): string {

@@ -2,6 +2,7 @@ import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import db from '../../../../src/database/database-manager';
 import defaultReplicationProfile from '../../../../src/models/replication-profile/presets/default-replication-profile.v1.json';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
+import { ReplicationProfileValidationException } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import StringHelper from '../../../../src/utils/string.helper';
 import { Like, QueryFailedError, Repository } from 'typeorm';
@@ -89,6 +90,26 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     expect(reloaded.category).to.be.eq('office');
     expect(reloaded.created_by).to.be.eq(7);
     expect(reloaded.updated_by).to.be.eq(7);
+  });
+
+  it('should reject invalid profile definitions before persistence', async () => {
+    await expect(
+      repository.save(
+        makeProfile({
+          code: `${codePrefix}invalid-definition`,
+          targetKind: 'firewall',
+          model: {
+            compatibility: { target_kinds: ['cluster'] },
+            provision: {
+              interfaces: [
+                { name: 'eth0', role: 'wan' },
+                { name: 'eth1', role: 'wan' },
+              ],
+            },
+          },
+        }),
+      ),
+    ).to.be.rejectedWith(ReplicationProfileValidationException);
   });
 
   it('should allow the same code+version in two different FWClouds', async () => {

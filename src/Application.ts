@@ -92,6 +92,7 @@ import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
+import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -179,6 +180,7 @@ export class Application extends HTTPApplication {
       PolicyReplicationServiceProvider,
       PolicyRuleServiceProvider,
       ProfileApplicationServiceProvider,
+      ReplicationProfileValidationServiceProvider,
       ReplicationProfileServiceProvider,
       RepositoryServiceProvider,
       RouteGroupServiceProvider,

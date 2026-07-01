@@ -4,6 +4,7 @@ import db from '../../../../src/database/database-manager';
 import defaultReplicationProfile from '../../../../src/models/replication-profile/presets/default-replication-profile.v1.json';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { ReplicationProfileService } from '../../../../src/models/replication-profile/replication-profile.service';
+import { ReplicationProfileValidationException } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import { Like, Repository } from 'typeorm';
 
 describe(describeName('Replication Profile Service Unit Tests'), () => {
@@ -48,6 +49,40 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
     expect(service).to.be.instanceOf(ReplicationProfileService);
   });
 
+  describe('profile definition validation', () => {
+    it('should expose reusable validation for profile create/version/clone flows', () => {
+      const validPayload = {
+        targetKind: 'firewall',
+        model: {
+          compatibility: { target_kinds: ['firewall'] },
+          provision: {
+            interfaces: [
+              { name: 'eth0', role: 'wan' },
+              { name: 'eth1', role: 'lan' },
+            ],
+            rules: [
+              {
+                action: 'accept',
+                sourceRole: 'lan',
+                destinationRole: 'wan',
+                service: { protocol: 'tcp', port: 443 },
+              },
+            ],
+          },
+        },
+      };
+      const invalidPayload = {
+        ...validPayload,
+        targetKind: 'gateway',
+      };
+
+      expect(service.validateDefinition(validPayload)).to.be.empty;
+      expect(() => service.assertDefinitionIsValid(invalidPayload)).to.throw(
+        ReplicationProfileValidationException,
+      );
+    });
+  });
+
   describe('findActive()', () => {
     it('should return active non-deprecated profiles ordered by code and descending version', async () => {
       await repository.save([
@@ -78,7 +113,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
           targetKind: 'firewall',
           model: {
             compatibility: {
-              target_kinds: ['cluster'],
+              target_kinds: ['firewall', 'cluster'],
             },
             replicate: {},
             options: {},
