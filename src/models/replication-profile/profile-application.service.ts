@@ -169,9 +169,11 @@ export class ProfileApplicationService extends Service {
   protected async loadUsableProfile(
     request: ProfileApplicationRequest,
   ): Promise<ReplicationProfile> {
-    const profile = await this.manager.getRepository(ReplicationProfile).findOne({
-      where: { code: request.profileCode, version: request.profileVersion },
-    });
+    const profile = await this._replicationProfileService.findAnyByCodeAndVersion(
+      request.profileCode,
+      request.profileVersion,
+      request.fwCloudId,
+    );
 
     if (!profile) {
       throw new NotFoundException(

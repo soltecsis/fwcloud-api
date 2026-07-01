@@ -1,5 +1,6 @@
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
+import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { ReplicationProfile } from './replication-profile.model';
 import {
   getReplicationProfileModelTargetKinds,
@@ -31,22 +32,25 @@ export class ReplicationProfileService extends Service {
     this._validationService.assertValid(payload);
   }
 
+  private get repository(): Repository<ReplicationProfile> {
+    return db.getSource().manager.getRepository(ReplicationProfile);
+  }
+
   public async findActive(
     targetKind?: ReplicationProfileTargetKind,
+    fwCloudId?: number,
   ): Promise<ReplicationProfile[]> {
-    const profiles = await db
-      .getSource()
-      .manager.getRepository(ReplicationProfile)
-      .find({
-        where: {
-          isActive: true,
-          isDeprecated: false,
-        },
-        order: {
-          code: 'ASC',
-          version: 'DESC',
-        },
-      });
+    const activeWhere = {
+      isActive: true,
+      isDeprecated: false,
+    };
+    const profiles = await this.repository.find({
+      where: this.buildFwCloudScopeWhere(activeWhere, fwCloudId),
+      order: {
+        code: 'ASC',
+        version: 'DESC',
+      },
+    });
 
     if (!targetKind) {
       return profiles;
@@ -58,18 +62,70 @@ export class ReplicationProfileService extends Service {
   public async findByCodeAndVersion(
     code: string,
     version: number,
+    fwCloudId?: number,
   ): Promise<ReplicationProfile | null> {
-    return db
-      .getSource()
-      .manager.getRepository(ReplicationProfile)
-      .findOne({
-        where: {
-          code,
-          version,
-          isActive: true,
-          isDeprecated: false,
-        },
-      });
+    return this.findOneInFwCloudScope(
+      {
+        code,
+        version,
+        isActive: true,
+        isDeprecated: false,
+      },
+      fwCloudId,
+    );
+  }
+
+  public async findAnyByCodeAndVersion(
+    code: string,
+    version: number,
+    fwCloudId?: number,
+  ): Promise<ReplicationProfile | null> {
+    return this.findOneInFwCloudScope(
+      {
+        code,
+        version,
+      },
+      fwCloudId,
+    );
+  }
+
+  private async findOneInFwCloudScope(
+    where: FindOptionsWhere<ReplicationProfile>,
+    fwCloudId?: number,
+  ): Promise<ReplicationProfile | null> {
+    if (fwCloudId === undefined) {
+      return this.repository.findOne({ where });
+    }
+
+    const scopedProfile = await this.repository.findOne({
+      where: {
+        ...where,
+        fwCloudId,
+      },
+    });
+
+    if (scopedProfile) {
+      return scopedProfile;
+    }
+
+    return this.repository.findOne({
+      where: {
+        ...where,
+        fwCloudId: IsNull(),
+      },
+    });
+  }
+
+  private buildFwCloudScopeWhere(
+    where: FindOptionsWhere<ReplicationProfile>,
+    fwCloudId?: number,
+  ): FindOptionsWhere<ReplicationProfile> | FindOptionsWhere<ReplicationProfile>[] {
+    return fwCloudId === undefined
+      ? where
+      : [
+          { ...where, fwCloudId: IsNull() },
+          { ...where, fwCloudId },
+        ];
   }
 
   public supportsTargetKind(

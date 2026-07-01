@@ -2,9 +2,11 @@ import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import defaultReplicationProfile from '../../../../src/models/replication-profile/presets/default-replication-profile.v1.json';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { ReplicationProfileService } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfileValidationException } from '../../../../src/models/replication-profile/replication-profile-validation.service';
+import StringHelper from '../../../../src/utils/string.helper';
 import { Like, Repository } from 'typeorm';
 
 describe(describeName('Replication Profile Service Unit Tests'), () => {
@@ -31,6 +33,12 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       ...overrides,
     });
   };
+
+  const makeFwCloud = (): Promise<FwCloud> =>
+    db
+      .getSource()
+      .manager.getRepository(FwCloud)
+      .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -130,6 +138,26 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         `${codePrefix}compatible-cluster`,
       ]);
     });
+
+    it('should return global profiles and profiles owned by the requested FWCloud', async () => {
+      const fwCloudA = await makeFwCloud();
+      const fwCloudB = await makeFwCloud();
+
+      await repository.save([
+        makeProfile({ code: `${codePrefix}global`, isBuiltin: true, fwCloudId: null }),
+        makeProfile({ code: `${codePrefix}owned`, fwCloudId: fwCloudA.id }),
+        makeProfile({ code: `${codePrefix}foreign`, fwCloudId: fwCloudB.id }),
+      ]);
+
+      const profiles = (await service.findActive(undefined, fwCloudA.id)).filter((profile) =>
+        profile.code.startsWith(codePrefix),
+      );
+
+      expect(profiles.map((profile) => profile.code)).to.be.deep.eq([
+        `${codePrefix}global`,
+        `${codePrefix}owned`,
+      ]);
+    });
   });
 
   describe('findByCodeAndVersion()', () => {
@@ -168,6 +196,26 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(profile.isBuiltin).to.be.true;
       expect(profile.isActive).to.be.true;
       expect(profile.isDeprecated).to.be.false;
+    });
+
+    it('should resolve FWCloud-owned profiles before global profiles in scoped lookups', async () => {
+      const fwCloudA = await makeFwCloud();
+      const fwCloudB = await makeFwCloud();
+      const code = `${codePrefix}shared`;
+
+      const global = await repository.save(
+        makeProfile({ code, version: 1, name: 'Global profile', isBuiltin: true, fwCloudId: null }),
+      );
+      const inA = await repository.save(
+        makeProfile({ code, version: 1, name: 'FWCloud A profile', fwCloudId: fwCloudA.id }),
+      );
+      const inB = await repository.save(
+        makeProfile({ code, version: 1, name: 'FWCloud B profile', fwCloudId: fwCloudB.id }),
+      );
+
+      expect((await service.findByCodeAndVersion(code, 1, fwCloudA.id)).id).to.be.eq(inA.id);
+      expect((await service.findByCodeAndVersion(code, 1, fwCloudB.id)).id).to.be.eq(inB.id);
+      expect((await service.findByCodeAndVersion(code, 1, 999999)).id).to.be.eq(global.id);
     });
   });
 });
