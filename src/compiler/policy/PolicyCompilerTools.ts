@@ -188,8 +188,16 @@ export abstract class PolicyCompilerTools {
           throw fwcError.other('Invalid chain for Fail2Ban special rule');
       // eslint-disable-next-line no-fallthrough
       case SpecialPolicyRules.HOOKSCRIPT: {
-        this._cs = '###########################\n# Hook script rule code:\n';
-        this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n`;
+        const ruleCode =
+          this._ruleData.special == SpecialPolicyRules.FAIL2BAN
+            ? this.removeCommonIndentation(this._ruleData.run_before)
+            : this._ruleData.run_before;
+
+        this._cs =
+          this._ruleData.special == SpecialPolicyRules.HOOKSCRIPT
+            ? '###########################\n# Hook script rule code:\n'
+            : '###########################\n';
+        this._cs += `${ruleCode ? ruleCode : ''}\n###########################\n`;
         break;
       }
 
@@ -198,6 +206,25 @@ export abstract class PolicyCompilerTools {
         break;
       }
     }
+  }
+
+  private removeCommonIndentation(code: string): string {
+    if (!code) return code;
+
+    const lines = code.replace(/\r\n/g, '\n').split('\n');
+    while (lines.length > 0 && lines[0].trim().length === 0) lines.shift();
+    while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) lines.pop();
+
+    const indentation = lines
+      .filter((line) => line.trim().length > 0)
+      .reduce((minimum: number, line: string) => {
+        const current = line.match(/^[ \t]*/)?.[0].length ?? 0;
+        return Math.min(minimum, current);
+      }, Number.MAX_SAFE_INTEGER);
+
+    if (!Number.isFinite(indentation) || indentation === 0) return lines.join('\n');
+
+    return lines.map((line) => line.slice(indentation)).join('\n');
   }
 
   protected beforeCompilation(): void {
@@ -296,17 +323,16 @@ export abstract class PolicyCompilerTools {
   }
 
   protected afterCompilation(): string {
+    const preserveRuleCodeFormatting =
+      this._ruleData.special == SpecialPolicyRules.HOOKSCRIPT ||
+      this._ruleData.special == SpecialPolicyRules.FAIL2BAN;
+
     // In NFTables comment goes at the end.
-    if (
-      this._compiler == 'NFTables' &&
-      this._comment &&
-      this._ruleData.special != SpecialPolicyRules.HOOKSCRIPT &&
-      this._ruleData.special != SpecialPolicyRules.FAIL2BAN
-    )
+    if (this._compiler == 'NFTables' && this._comment && !preserveRuleCodeFormatting)
       this._cs = `${this._cs.slice(0, -1)} ${this._comment}`;
 
     // Replace two consecutive spaces by only one.
-    this._cs = this._cs.replace(/  +/g, ' ');
+    if (!preserveRuleCodeFormatting) this._cs = this._cs.replace(/  +/g, ' ');
 
     // Apply rule only to the selected firewall.
     if (this._ruleData.fw_apply_to && this._ruleData.firewall_name)
@@ -314,10 +340,7 @@ export abstract class PolicyCompilerTools {
         'if [ "$HOSTNAME" = "' + this._ruleData.firewall_name + '" ]; then\n' + this._cs + 'fi\n';
 
     // Include before and/or after rule script code.
-    if (
-      this._ruleData.special != SpecialPolicyRules.HOOKSCRIPT &&
-      this._ruleData.special != SpecialPolicyRules.FAIL2BAN
-    ) {
+    if (!preserveRuleCodeFormatting) {
       if (this._ruleData.run_before)
         this._cs = `###########################\n# Before rule load code:\n${this._ruleData.run_before}\n###########################\n${this._cs}`;
       if (this._ruleData.run_after)

@@ -41,7 +41,27 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
   let chain: string;
   let manager: EntityManager;
 
-  const cmd = 'systemctl restart fail2ban';
+  const expectedCmd =
+    'state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
+    'case "$state" in\n' +
+    '  running|degraded)\n' +
+    '    systemctl restart fail2ban\n' +
+    '    ;;\n' +
+    '  *)\n' +
+    '    : ### boot still in progress (or system is in trouble like maintenance)\n' +
+    '    ;;\n' +
+    'esac';
+  const cmd =
+    '\n' +
+    '            state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
+    '            case "$state" in\n' +
+    '              running|degraded)\n' +
+    '                systemctl restart fail2ban\n' +
+    '                ;;\n' +
+    '              *)\n' +
+    '                : ### boot still in progress (or system is in trouble like maintenance)\n' +
+    '                ;;\n' +
+    '            esac\n';
   const comment = 'Fail2Ban compatibility rule';
 
   const ruleData = {
@@ -82,7 +102,7 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
       error = err;
     }
 
-    const cs = `###########################\n# Hook script rule code:\n${cmd}\n###########################\n`;
+    const cs = `###########################\n${expectedCmd}\n###########################\n`;
 
     if (ruleData.type != PolicyTypesMap.get('IPv4:INPUT')) {
       expect(error).to.eql({

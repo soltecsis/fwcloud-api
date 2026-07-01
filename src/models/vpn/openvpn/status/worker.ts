@@ -2,10 +2,10 @@ import { Application } from '../../../../Application';
 import { AgentCommunication } from '../../../../communications/agent.communication';
 import { OpenVPNHistoryRecord } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
-import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewall';
+import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
-import { OpenVPNOption } from '../openvpn-option.model';
 import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
+import { OpenVPNStatusSampling, OpenVPNStatusSamplingResult } from './openvpn-status-sampling';
 import {
   CreateOpenVPNStatusHistoryData,
   CreateOpenVPNStatusHistorySummary,
@@ -16,8 +16,12 @@ const AUDIT_ENTITY = 'OpenVPNStatusHistory';
 
 export type OpenVPNStatusWorkerIterationDependencies = {
   getOpenVPNServers: () => Promise<OpenVPN[]>;
-  getClusterFirewalls: (clusterId: number) => Promise<Firewall[]>;
-  getStatusOption: (openVPNId: number) => Promise<OpenVPNOption | null>;
+  getSamplingConfigurations: (openVPN: OpenVPN) => Promise<OpenVPNStatusSampling[]>;
+  markSamplingPollStatus: (
+    samplingId: number,
+    result: OpenVPNStatusSamplingResult,
+    error: string | null,
+  ) => Promise<void>;
 };
 
 const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
@@ -29,27 +33,43 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
       .createQueryBuilder('openvpn')
       .innerJoin('openvpn.crt', 'crt')
       .innerJoinAndSelect('openvpn.firewall', 'firewall')
+      .innerJoin(OpenVPNStatusSampling, 'sampling', 'sampling.openVPNId = openvpn.id')
+      .innerJoin('sampling.collectorFirewall', 'collectorFirewall')
+      .innerJoin('sampling.files', 'files')
       .where('openvpn.parentId IS NULL')
       .andWhere('crt.type = 2')
-      .andWhere('firewall.install_communication = :communication', {
+      .andWhere('sampling.enabled = :enabled', { enabled: true })
+      .andWhere('collectorFirewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
       })
       .getMany();
   },
-  getClusterFirewalls: async (clusterId: number): Promise<Firewall[]> => {
-    return db
+  getSamplingConfigurations: async (openVPN: OpenVPN): Promise<OpenVPNStatusSampling[]> => {
+    const query = db
       .getSource()
-      .getRepository(Firewall)
-      .createQueryBuilder('firewall')
-      .where('firewall.clusterId = :cluster', { cluster: clusterId })
-      .andWhere('firewall.install_communication = :communication', {
+      .getRepository(OpenVPNStatusSampling)
+      .createQueryBuilder('sampling')
+      .innerJoinAndSelect('sampling.collectorFirewall', 'collectorFirewall')
+      .innerJoinAndSelect('sampling.files', 'files')
+      .where('sampling.enabled = :enabled', { enabled: true })
+      .andWhere('collectorFirewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
-      })
-      .getMany();
+      });
+
+    query.andWhere('sampling.openVPNId = :openvpn', { openvpn: openVPN.id });
+
+    return query.getMany();
   },
-  getStatusOption: async (openVPNId: number): Promise<OpenVPNOption | null> => {
-    const option = await OpenVPN.getOptData(db.getQuery(), openVPNId, 'status');
-    return (option as OpenVPNOption) ?? null;
+  markSamplingPollStatus: async (
+    samplingId: number,
+    result: OpenVPNStatusSamplingResult,
+    error: string | null,
+  ): Promise<void> => {
+    await db.getSource().getRepository(OpenVPNStatusSampling).update(samplingId, {
+      lastPollResult: result,
+      lastPollError: error,
+      lastPolledAt: new Date(),
+    });
   },
 };
 
@@ -125,21 +145,22 @@ export async function iterate(
     for (const openvpn of openvpns) {
       summary.processedOpenvpns++;
       try {
-        const firewalls: Firewall[] = openvpn.firewall.clusterId
-          ? await dependencies.getClusterFirewalls(openvpn.firewall.clusterId)
-          : [openvpn.firewall];
+        const samplingConfigurations: OpenVPNStatusSampling[] =
+          await dependencies.getSamplingConfigurations(openvpn);
 
         let entries: CreateOpenVPNStatusHistoryData[] = [];
-        for (const firewall of firewalls) {
-          const communication: AgentCommunication =
-            (await firewall.getCommunication()) as AgentCommunication;
+        for (const sampling of samplingConfigurations) {
+          try {
+            const statusFile = sampling.files?.[0]?.path;
 
-          const statusOption: OpenVPNOption | null = await dependencies.getStatusOption(openvpn.id);
+            if (!statusFile) {
+              throw new Error('OpenVPN status sampling has no configured status file');
+            }
 
-          if (statusOption) {
-            const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(
-              statusOption.arg,
-            );
+            const communication: AgentCommunication =
+              (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
+            const data: OpenVPNHistoryRecord[] =
+              await communication.getOpenVPNHistoryFile(statusFile);
 
             entries = entries.concat(
               data.map((item) => ({
@@ -151,6 +172,19 @@ export async function iterate(
                 connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
               })),
             );
+            await dependencies.markSamplingPollStatus(sampling.id, 'success', null);
+          } catch (error) {
+            summary.errorsCount++;
+            const errorMessage = getErrorMessage(error);
+            recoverableErrors.push(
+              `OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId}: ${errorMessage}`,
+            );
+            application
+              .logger()
+              .error(
+                `WorkerError: OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId} failed: ${errorMessage}`,
+              );
+            await dependencies.markSamplingPollStatus(sampling.id, 'failed', errorMessage);
           }
         }
 
