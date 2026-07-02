@@ -255,6 +255,9 @@ export class Routes extends RouteCollection {
               .get('/profiles/:code/:version', ReplicationProfileController, 'show')
               .name('fwclouds.assistant.profiles.show');
             router
+              .delete('/profiles/:code/:version', ReplicationProfileController, 'destroy')
+              .name('fwclouds.assistant.profiles.destroy');
+            router
               .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
               .name('fwclouds.assistant.profiles.apply');
           });

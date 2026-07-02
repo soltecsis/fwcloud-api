@@ -48,6 +48,10 @@ export class ReplicationProfilePolicy extends Policy {
     return this.access(user, fwCloud);
   }
 
+  static async destroy(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.access(user, fwCloud);
+  }
+
   static async apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }

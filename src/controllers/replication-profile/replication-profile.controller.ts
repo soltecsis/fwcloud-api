@@ -12,6 +12,7 @@ import type { ReplicationProfileTargetKind } from '../../models/replication-prof
 import {
   ReplicationProfileService,
   type CreateCustomReplicationProfileOptions,
+  type DeactivateCustomReplicationProfileOptions,
 } from '../../models/replication-profile/replication-profile.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
 import type {
@@ -108,6 +109,28 @@ export class ReplicationProfileController extends Controller {
     return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
   }
 
+  @Validate()
+  public async destroy(request: Request): Promise<ResponseBuilder> {
+    const authorization = await ReplicationProfilePolicy.destroy(
+      request.session.user,
+      this._fwCloud,
+    );
+    if (!authorization.can()) {
+      throw new HttpException('Forbidden', 403);
+    }
+    const replicationProfileService = await this.replicationProfileService();
+
+    const version = this.parseVersionParam(request);
+
+    const profile = await replicationProfileService.deactivateCustomProfile(
+      String(request.params.code),
+      version,
+      this.deactivationOptions(request),
+    );
+
+    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile));
+  }
+
   @Validate(ReplicationProfileApplyDto)
   public async apply(request: Request): Promise<ResponseBuilder> {
     const version = this.parseVersionParam(request);
@@ -192,6 +215,20 @@ export class ReplicationProfileController extends Controller {
     return {
       fwCloudId: this._fwCloud.id,
       userId: request.session.user?.id ?? request.session.user_id ?? null,
+    };
+  }
+
+  private deactivationOptions(request: Request): DeactivateCustomReplicationProfileOptions {
+    const user = request.session.user;
+
+    return {
+      fwCloudId: this._fwCloud.id,
+      actor: {
+        userId: user?.id ?? request.session.user_id ?? null,
+        userName: user?.username ?? null,
+        sessionId: AuditLogHelper.resolveSessionId(request),
+        sourceIp: request.ip ?? null,
+      },
     };
   }
 
