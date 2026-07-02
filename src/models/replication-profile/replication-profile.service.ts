@@ -227,19 +227,10 @@ export class ReplicationProfileService extends Service {
     });
 
     if (!latestCustomProfile) {
-      const builtInExists = await this.repository.exists({
-        where: {
-          code,
-          fwCloudId: IsNull(),
-          isBuiltin: true,
-        },
-      });
-
-      if (builtInExists) {
-        throw new HttpException('Built-in profiles cannot be modified through this endpoint.', 403);
-      }
-
-      throw new NotFoundException('Replication profile not found');
+      throw await this.resolveMissingCustomProfileError(
+        { code },
+        'Built-in profiles cannot be modified through this endpoint.',
+      );
     }
 
     this.assertPayloadDefinitionIsValid(payload);
@@ -274,20 +265,10 @@ export class ReplicationProfileService extends Service {
     });
 
     if (!profile) {
-      const builtInExists = await this.repository.exists({
-        where: {
-          code,
-          version,
-          fwCloudId: IsNull(),
-          isBuiltin: true,
-        },
-      });
-
-      if (builtInExists) {
-        throw new HttpException('Built-in profiles cannot be deleted or deactivated.', 403);
-      }
-
-      throw new NotFoundException('Replication profile not found');
+      throw await this.resolveMissingCustomProfileError(
+        { code, version },
+        'Built-in profiles cannot be deleted or deactivated.',
+      );
     }
 
     const previousState: ReplicationProfileActiveState = {
@@ -304,6 +285,30 @@ export class ReplicationProfileService extends Service {
     await this.auditDeactivation(saved, previousState, options, startedAt);
 
     return saved;
+  }
+
+  /**
+   * Builds the error to raise when a custom profile the caller expected to own
+   * could not be found: a built-in profile with the same identity yields a 403
+   * (built-ins are shared and public), everything else -- including profiles
+   * owned by another FWCloud -- yields the generic 404 so their existence is
+   * never leaked.
+   */
+  private async resolveMissingCustomProfileError(
+    builtInIdentity: FindOptionsWhere<ReplicationProfile>,
+    builtInMessage: string,
+  ): Promise<HttpException> {
+    const builtInExists = await this.repository.exists({
+      where: {
+        ...builtInIdentity,
+        fwCloudId: IsNull(),
+        isBuiltin: true,
+      },
+    });
+
+    return builtInExists
+      ? new HttpException(builtInMessage, 403)
+      : new NotFoundException('Replication profile not found');
   }
 
   private async auditDeactivation(

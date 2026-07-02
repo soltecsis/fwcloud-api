@@ -20,6 +20,7 @@ import type {
   PolicyReplicationRequest,
 } from '../../models/replication-profile/policy-replication.types';
 import { ReplicationProfilePolicy } from '../../policies/replication-profile.policy';
+import type { Authorization } from '../../fonaments/authorization/policy';
 import { ReplicationProfileListQueryDto } from './dtos/replication-profile-query.dto';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
@@ -75,10 +76,7 @@ export class ReplicationProfileController extends Controller {
 
   @Validate(ReplicationProfileStoreDto)
   public async store(request: Request): Promise<ResponseBuilder> {
-    const authorization = await ReplicationProfilePolicy.store(request.session.user, this._fwCloud);
-    if (!authorization.can()) {
-      throw new HttpException('Forbidden', 403);
-    }
+    this.assertCanMutate(await ReplicationProfilePolicy.store(request.session.user, this._fwCloud));
     const replicationProfileService = await this.replicationProfileService();
 
     const profile = await replicationProfileService.createCustomProfile(
@@ -91,13 +89,9 @@ export class ReplicationProfileController extends Controller {
 
   @Validate(ReplicationProfileVersionStoreDto)
   public async storeVersion(request: Request): Promise<ResponseBuilder> {
-    const authorization = await ReplicationProfilePolicy.storeVersion(
-      request.session.user,
-      this._fwCloud,
+    this.assertCanMutate(
+      await ReplicationProfilePolicy.storeVersion(request.session.user, this._fwCloud),
     );
-    if (!authorization.can()) {
-      throw new HttpException('Forbidden', 403);
-    }
     const replicationProfileService = await this.replicationProfileService();
 
     const profile = await replicationProfileService.createCustomProfileVersion(
@@ -111,13 +105,9 @@ export class ReplicationProfileController extends Controller {
 
   @Validate()
   public async destroy(request: Request): Promise<ResponseBuilder> {
-    const authorization = await ReplicationProfilePolicy.destroy(
-      request.session.user,
-      this._fwCloud,
+    this.assertCanMutate(
+      await ReplicationProfilePolicy.destroy(request.session.user, this._fwCloud),
     );
-    if (!authorization.can()) {
-      throw new HttpException('Forbidden', 403);
-    }
     const replicationProfileService = await this.replicationProfileService();
 
     const version = this.parseVersionParam(request);
@@ -211,21 +201,29 @@ export class ReplicationProfileController extends Controller {
     return this._app.getService<ProfileApplicationService>(ProfileApplicationService.name);
   }
 
+  private assertCanMutate(authorization: Authorization): void {
+    if (!authorization.can()) {
+      throw new HttpException('Forbidden', 403);
+    }
+  }
+
+  private resolveUserId(request: Request): number | null {
+    return request.session.user?.id ?? request.session.user_id ?? null;
+  }
+
   private customProfileOptions(request: Request): CreateCustomReplicationProfileOptions {
     return {
       fwCloudId: this._fwCloud.id,
-      userId: request.session.user?.id ?? request.session.user_id ?? null,
+      userId: this.resolveUserId(request),
     };
   }
 
   private deactivationOptions(request: Request): DeactivateCustomReplicationProfileOptions {
-    const user = request.session.user;
-
     return {
       fwCloudId: this._fwCloud.id,
       actor: {
-        userId: user?.id ?? request.session.user_id ?? null,
-        userName: user?.username ?? null,
+        userId: this.resolveUserId(request),
+        userName: request.session.user?.username ?? null,
         sessionId: AuditLogHelper.resolveSessionId(request),
         sourceIp: request.ip ?? null,
       },
