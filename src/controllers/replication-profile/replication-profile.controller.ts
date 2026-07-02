@@ -9,7 +9,10 @@ import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 import { ReplicationProfile } from '../../models/replication-profile/replication-profile.model';
 import { normalizeReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
 import type { ReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
-import { ReplicationProfileService } from '../../models/replication-profile/replication-profile.service';
+import {
+  ReplicationProfileService,
+  type CreateCustomReplicationProfileOptions,
+} from '../../models/replication-profile/replication-profile.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
 import type {
   PolicyReplicationMode,
@@ -19,7 +22,10 @@ import { ReplicationProfilePolicy } from '../../policies/replication-profile.pol
 import { ReplicationProfileListQueryDto } from './dtos/replication-profile-query.dto';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
-import { ReplicationProfileStoreDto } from './dtos/replication-profile-store.dto';
+import {
+  ReplicationProfileStoreDto,
+  ReplicationProfileVersionStoreDto,
+} from './dtos/replication-profile-store.dto';
 
 export class ReplicationProfileController extends Controller {
   protected _fwCloud: FwCloud;
@@ -76,10 +82,27 @@ export class ReplicationProfileController extends Controller {
 
     const profile = await replicationProfileService.createCustomProfile(
       request.body as ReplicationProfileStoreDto,
-      {
-        fwCloudId: this._fwCloud.id,
-        userId: request.session.user?.id ?? request.session.user_id ?? null,
-      },
+      this.customProfileOptions(request),
+    );
+
+    return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+  }
+
+  @Validate(ReplicationProfileVersionStoreDto)
+  public async storeVersion(request: Request): Promise<ResponseBuilder> {
+    const authorization = await ReplicationProfilePolicy.storeVersion(
+      request.session.user,
+      this._fwCloud,
+    );
+    if (!authorization.can()) {
+      throw new HttpException('Forbidden', 403);
+    }
+    const replicationProfileService = await this.replicationProfileService();
+
+    const profile = await replicationProfileService.createCustomProfileVersion(
+      String(request.params.code),
+      request.body as ReplicationProfileVersionStoreDto,
+      this.customProfileOptions(request),
     );
 
     return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
@@ -163,6 +186,13 @@ export class ReplicationProfileController extends Controller {
 
   private profileApplicationService(): Promise<ProfileApplicationService> {
     return this._app.getService<ProfileApplicationService>(ProfileApplicationService.name);
+  }
+
+  private customProfileOptions(request: Request): CreateCustomReplicationProfileOptions {
+    return {
+      fwCloudId: this._fwCloud.id,
+      userId: request.session.user?.id ?? request.session.user_id ?? null,
+    };
   }
 
   private toResponse(profile: ReplicationProfile): ReplicationProfileResponseDto {

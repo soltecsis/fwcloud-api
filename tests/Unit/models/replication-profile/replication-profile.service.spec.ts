@@ -96,7 +96,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
   });
 
   describe('findActive()', () => {
-    it('should return active non-deprecated profiles ordered by code and descending version', async () => {
+    it('should return the latest active non-deprecated profile for each code', async () => {
       await repository.save([
         makeProfile({ code: `${codePrefix}b`, version: 1 }),
         makeProfile({ code: `${codePrefix}a`, version: 1 }),
@@ -111,8 +111,23 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
 
       expect(profiles.map((profile) => `${profile.code}:${profile.version}`)).to.be.deep.eq([
         `${codePrefix}a:2`,
-        `${codePrefix}a:1`,
         `${codePrefix}b:1`,
+      ]);
+    });
+
+    it('should fall back to the latest non-deprecated version when newer versions are deprecated', async () => {
+      await repository.save([
+        makeProfile({ code: `${codePrefix}fallback`, version: 1 }),
+        makeProfile({ code: `${codePrefix}fallback`, version: 2 }),
+        makeProfile({ code: `${codePrefix}fallback`, version: 3, isDeprecated: true }),
+      ]);
+
+      const profiles = (await service.findActive()).filter((profile) =>
+        profile.code.startsWith(codePrefix),
+      );
+
+      expect(profiles.map((profile) => `${profile.code}:${profile.version}`)).to.be.deep.eq([
+        `${codePrefix}fallback:2`,
       ]);
     });
 
@@ -290,6 +305,107 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       await expect(
         service.createCustomProfile(payload as any, { fwCloudId: fwCloud.id }),
       ).to.be.rejectedWith(/already exists in this FWCloud/);
+    });
+  });
+
+  describe('createCustomProfileVersion()', () => {
+    it('should create the next immutable custom profile version in the same FWCloud', async () => {
+      const fwCloud = await makeFwCloud();
+      const original = await repository.save(
+        makeProfile({
+          code: `${codePrefix}versioned`,
+          version: 1,
+          fwCloudId: fwCloud.id,
+          created_by: 3,
+          updated_by: 3,
+        }),
+      );
+      const payload = makeCreatePayload({
+        name: `${codePrefix}Versioned profile update`,
+        description: 'Updated profile definition.',
+        scope: 'generic',
+        targetKind: 'firewall',
+      });
+
+      const saved = await service.createCustomProfileVersion(original.code, payload as any, {
+        fwCloudId: fwCloud.id,
+        userId: 9,
+      });
+      const reloadedOriginal = await repository.findOneOrFail({ where: { id: original.id } });
+
+      expect(saved).to.include({
+        code: original.code,
+        version: 2,
+        name: `${codePrefix}Versioned profile update`,
+        isBuiltin: false,
+        isActive: true,
+        isDeprecated: false,
+        fwCloudId: fwCloud.id,
+        created_by: 9,
+        updated_by: 9,
+      });
+      expect(reloadedOriginal.version).to.be.eq(1);
+      expect(reloadedOriginal.isActive).to.be.true;
+      expect(reloadedOriginal.isDeprecated).to.be.false;
+    });
+
+    it('should increment from the highest existing custom version', async () => {
+      const fwCloud = await makeFwCloud();
+      const code = `${codePrefix}highest`;
+      await repository.save([
+        makeProfile({ code, version: 1, fwCloudId: fwCloud.id }),
+        makeProfile({ code, version: 4, fwCloudId: fwCloud.id }),
+      ]);
+
+      const saved = await service.createCustomProfileVersion(code, makeCreatePayload() as any, {
+        fwCloudId: fwCloud.id,
+      });
+
+      expect(saved.version).to.be.eq(5);
+    });
+
+    it('should reject built-in profiles', async () => {
+      const fwCloud = await makeFwCloud();
+      const code = `${codePrefix}builtin`;
+      await repository.save(makeProfile({ code, isBuiltin: true, fwCloudId: null }));
+
+      await expect(
+        service.createCustomProfileVersion(code, makeCreatePayload() as any, {
+          fwCloudId: fwCloud.id,
+        }),
+      ).to.be.rejectedWith('Built-in profiles cannot be modified through this endpoint.');
+    });
+
+    it('should not version custom profiles owned by another FWCloud', async () => {
+      const fwCloudA = await makeFwCloud();
+      const fwCloudB = await makeFwCloud();
+      const code = `${codePrefix}foreign`;
+      await repository.save(makeProfile({ code, fwCloudId: fwCloudB.id }));
+
+      await expect(
+        service.createCustomProfileVersion(code, makeCreatePayload() as any, {
+          fwCloudId: fwCloudA.id,
+        }),
+      ).to.be.rejectedWith('Replication profile not found');
+    });
+
+    it('should reject invalid definitions before saving the new version', async () => {
+      const fwCloud = await makeFwCloud();
+      const code = `${codePrefix}invalid-version`;
+      await repository.save(makeProfile({ code, fwCloudId: fwCloud.id }));
+
+      await expect(
+        service.createCustomProfileVersion(
+          code,
+          makeCreatePayload({
+            targetKind: 'firewall',
+            model: {
+              compatibility: { target_kinds: ['cluster'] },
+            },
+          }) as any,
+          { fwCloudId: fwCloud.id },
+        ),
+      ).to.be.rejectedWith(ReplicationProfileValidationException);
     });
   });
 });

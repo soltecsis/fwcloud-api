@@ -265,9 +265,10 @@ class IsSecretFreeConstraint implements ValidatorConstraintInterface {
 const IsSecretFree = profileValidator('isSecretFree', IsSecretFreeConstraint);
 
 /**
- * `model` object of the create contract. Compatibility is strictly validated;
- * role assignments are optional because provisioning-only profiles can define
- * their reusable roles through `provision.interfaces`. The open,
+ * `model` object accepted by both custom profile creation and version
+ * creation. Compatibility is strictly validated; role assignments are optional
+ * because provisioning-only profiles can define their reusable roles through
+ * `provision.interfaces`. The open,
  * wizard-facing parts (uiDefaults, topologyPreset, options) are accepted as
  * plain objects so the profile model can carry forward-compatible metadata the
  * wizard reads defensively.
@@ -297,7 +298,7 @@ export class ReplicationProfileStoreModelDto {
   options?: Record<string, unknown>;
 }
 
-export class ReplicationProfileStoreDto {
+export class ReplicationProfileVersionStoreDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
@@ -306,22 +307,6 @@ export class ReplicationProfileStoreDto {
   @IsOptional()
   @IsString()
   description?: string;
-
-  /** Defaults to a stable slug generated from `name` when omitted. */
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  @Matches(CODE_PATTERN, {
-    message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
-  })
-  code?: string;
-
-  /** Defaults to version 1 when omitted. */
-  @IsOptional()
-  @IsInt()
-  @IsPositive()
-  version?: number;
 
   @IsString()
   @IsNotEmpty()
@@ -341,4 +326,22 @@ export class ReplicationProfileStoreDto {
   @ValidateNested()
   @Type(() => ReplicationProfileStoreModelDto)
   model: ReplicationProfileStoreModelDto;
+}
+
+export class ReplicationProfileStoreDto extends ReplicationProfileVersionStoreDto {
+  /** Defaults to a stable slug generated from `name` when omitted. */
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  @Matches(CODE_PATTERN, {
+    message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
+  })
+  code?: string;
+
+  /** Defaults to version 1 when omitted. */
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  version?: number;
 }

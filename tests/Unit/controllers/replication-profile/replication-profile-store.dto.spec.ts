@@ -1,7 +1,10 @@
-import { plainToClass } from 'class-transformer';
+import { ClassConstructor, plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { expect } from '../../../mocha/global-setup';
-import { ReplicationProfileStoreDto } from '../../../../src/controllers/replication-profile/dtos/replication-profile-store.dto';
+import {
+  ReplicationProfileStoreDto,
+  ReplicationProfileVersionStoreDto,
+} from '../../../../src/controllers/replication-profile/dtos/replication-profile-store.dto';
 import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
 
 /**
@@ -74,8 +77,11 @@ function failedProps(errors: ValidationError[], prefix = ''): string[] {
   return out;
 }
 
-async function validatePayload(payload: Record<string, unknown>): Promise<string[]> {
-  const instance = plainToClass(ReplicationProfileStoreDto, payload);
+async function validatePayload(
+  payload: Record<string, unknown>,
+  dto: ClassConstructor<object> = ReplicationProfileStoreDto,
+): Promise<string[]> {
+  const instance = plainToClass(dto, payload);
   const errors = await validate(instance, VALIDATION_OPTIONS);
 
   return failedProps(errors);
@@ -277,5 +283,21 @@ describe(ReplicationProfileStoreDto.name, () => {
 
       expect(await validatePayload(payload)).to.be.empty;
     });
+  });
+});
+
+describe(ReplicationProfileVersionStoreDto.name, () => {
+  it('should accept the same editable profile fields as the create DTO', async () => {
+    expect(await validatePayload(minimalPayload(), ReplicationProfileVersionStoreDto)).to.be.empty;
+  });
+
+  it('should reject client-managed code and version overrides', async () => {
+    const failed = await validatePayload(
+      { ...minimalPayload(), code: 'manual-code', version: 99 },
+      ReplicationProfileVersionStoreDto,
+    );
+
+    expect(failed).to.include('code');
+    expect(failed).to.include('version');
   });
 });
