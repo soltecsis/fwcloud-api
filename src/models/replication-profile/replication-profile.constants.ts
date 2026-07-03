@@ -1,6 +1,9 @@
 export const REPLICATION_PROFILE_TARGET_KINDS = ['firewall', 'cluster'] as const;
 export type ReplicationProfileTargetKind = (typeof REPLICATION_PROFILE_TARGET_KINDS)[number];
 
+export const REPLICATION_PROFILE_CATALOG_ORIGINS = ['builtin', 'custom', 'all'] as const;
+export type ReplicationProfileCatalogOrigin = (typeof REPLICATION_PROFILE_CATALOG_ORIGINS)[number];
+
 /** Interface roles supported by the MVP custom-profile DTO contract. */
 export const REPLICATION_PROFILE_INTERFACE_ROLES = ['wan', 'lan', 'dmz'] as const;
 
@@ -43,15 +46,23 @@ export function isReplicationProfileStringValue<T extends string>(
 export function normalizeReplicationProfileTargetKind(
   value: unknown,
 ): ReplicationProfileTargetKind | null {
+  return normalizeAllowedString(value, REPLICATION_PROFILE_TARGET_KINDS);
+}
+
+export function normalizeReplicationProfileCatalogOrigin(
+  value: unknown,
+): ReplicationProfileCatalogOrigin | null {
+  return normalizeAllowedString(value, REPLICATION_PROFILE_CATALOG_ORIGINS);
+}
+
+function normalizeAllowedString<T extends string>(value: unknown, allowed: readonly T[]): T | null {
   if (typeof value !== 'string') {
     return null;
   }
 
   const normalized = value.trim().toLowerCase();
 
-  return isReplicationProfileStringValue(normalized, REPLICATION_PROFILE_TARGET_KINDS)
-    ? normalized
-    : null;
+  return isReplicationProfileStringValue(normalized, allowed) ? normalized : null;
 }
 
 export function normalizeReplicationProfileTargetKinds(

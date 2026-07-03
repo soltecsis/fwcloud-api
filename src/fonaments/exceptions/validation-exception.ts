@@ -28,8 +28,9 @@ export class ValidationException extends HttpException {
   constructor(
     message: string = 'The given data was invalid',
     protected readonly _errors: ErrorBag,
+    status: number = 422,
   ) {
-    super(message, 422);
+    super(message, status);
   }
 
   public toResponse(): ErrorPayload {
