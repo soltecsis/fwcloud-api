@@ -4,6 +4,7 @@ import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
+import { PROFILE_DEACTIVATION_AUDIT_CALL } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
@@ -475,6 +476,174 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
+    });
+  });
+
+  describe('DELETE /fwclouds/:fwcloud/assistant/profiles/:code/:version', () => {
+    const deleteUrl = (code: string, version: number) =>
+      `/fwclouds/${fwCloud.id}/assistant/profiles/${code}/${version}`;
+
+    it('should soft-delete a custom profile and remove it from the catalog', async () => {
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}deactivate`, version: 2, fwCloudId: fwCloud.id }),
+      );
+
+      await request(app.express)
+        .delete(deleteUrl(profile.code, profile.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data).to.include({
+            id: profile.id,
+            code: profile.code,
+            version: profile.version,
+            is_built_in: false,
+            is_active: false,
+            is_deprecated: true,
+            fwcloud_id: fwCloud.id,
+          });
+        });
+
+      const persisted = await repository.findOneOrFail({ where: { id: profile.id } });
+      expect(persisted.isActive).to.be.false;
+      expect(persisted.isDeprecated).to.be.true;
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data.map((item) => item.code);
+          expect(codes).not.to.include(profile.code);
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+    });
+
+    it('should reject built-in profile deactivation', async () => {
+      const builtIn = await repository.save(
+        makeProfile({ code: `${codePrefix}builtin-delete`, isBuiltin: true, fwCloudId: null }),
+      );
+
+      await request(app.express)
+        .delete(deleteUrl(builtIn.code, builtIn.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(403)
+        .then((response) => {
+          expect(response.body.message).to.contain(
+            'Built-in profiles cannot be deleted or deactivated.',
+          );
+        });
+
+      const persisted = await repository.findOneOrFail({ where: { id: builtIn.id } });
+      expect(persisted.isActive).to.be.true;
+      expect(persisted.isDeprecated).to.be.false;
+    });
+
+    it('should not deactivate custom profiles owned by another FWCloud', async () => {
+      const otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+      const foreign = await repository.save(
+        makeProfile({ code: `${codePrefix}foreign-delete`, fwCloudId: otherFwCloud.id }),
+      );
+
+      await request(app.express)
+        .delete(deleteUrl(foreign.code, foreign.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+
+      const persisted = await repository.findOneOrFail({ where: { id: foreign.id } });
+      expect(persisted.isActive).to.be.true;
+      expect(persisted.isDeprecated).to.be.false;
+    });
+
+    it('should reject users without access to the FWCloud', async () => {
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}forbidden-delete`, fwCloudId: fwCloud.id }),
+      );
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .delete(deleteUrl(profile.code, profile.version))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .expect(403);
+
+      const persisted = await repository.findOneOrFail({ where: { id: profile.id } });
+      expect(persisted.isActive).to.be.true;
+    });
+
+    it('should audit the deactivation with the previous and new state', async () => {
+      await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}audited-delete`, version: 3, fwCloudId: fwCloud.id }),
+      );
+
+      await request(app.express)
+        .delete(deleteUrl(profile.code, profile.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      const entries = await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .find({ where: { call: PROFILE_DEACTIVATION_AUDIT_CALL } });
+
+      expect(entries).to.have.length(1);
+      expect(entries[0].userId).to.be.eq(adminUser.id);
+      expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
+
+      const data = JSON.parse(entries[0].data);
+      expect(data.profileId).to.be.eq(profile.id);
+      expect(data.profileCode).to.be.eq(profile.code);
+      expect(data.profileVersion).to.be.eq(profile.version);
+      expect(data.operation).to.be.eq('deactivate');
+      expect(data.previous).to.deep.eq({ isActive: true, isDeprecated: false });
+      expect(data.current).to.deep.eq({ isActive: false, isDeprecated: true });
+
+      await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+    });
+
+    it('should reject applying a profile after it has been deactivated', async () => {
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}deactivated-apply`, fwCloudId: fwCloud.id }),
+      );
+      const firewallRepository = db.getSource().manager.getRepository(Firewall);
+      const sourceFirewall = await firewallRepository.save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwCloud.id,
+      });
+      const targetFirewall = await firewallRepository.save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwCloud.id,
+      });
+
+      await request(app.express)
+        .delete(deleteUrl(profile.code, profile.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}/apply`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          sourceProfile: { firewallId: sourceFirewall.id, interfaceRoles: {} },
+          target: { kind: 'firewall', id: targetFirewall.id },
+          interfaceRoleMapping: {},
+          mode: 'dry_run',
+        })
+        .expect(422);
     });
   });
 

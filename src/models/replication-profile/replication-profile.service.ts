@@ -13,6 +13,9 @@ import {
   ReplicationProfileValidationError,
   ReplicationProfileValidationService,
 } from './replication-profile-validation.service';
+import { AuditLogService } from '../audit/AuditLog.service';
+
+export const PROFILE_DEACTIVATION_AUDIT_CALL = 'assistant.profiles.deactivate';
 
 export interface CreateCustomReplicationProfilePayload {
   name: string;
@@ -30,6 +33,24 @@ export interface CreateCustomReplicationProfileOptions {
   userId?: number | null;
 }
 
+/** Identity of the user requesting a mutation, used to enrich the audit trail. */
+export interface ReplicationProfileMutationActor {
+  userId?: number | null;
+  userName?: string | null;
+  sessionId?: number | null;
+  sourceIp?: string | null;
+}
+
+export interface DeactivateCustomReplicationProfileOptions {
+  fwCloudId: number;
+  actor?: ReplicationProfileMutationActor;
+}
+
+interface ReplicationProfileActiveState {
+  isActive: boolean;
+  isDeprecated: boolean;
+}
+
 export type CreateCustomReplicationProfileVersionPayload = Omit<
   CreateCustomReplicationProfilePayload,
   'code' | 'version'
@@ -44,12 +65,14 @@ const DEFAULT_CUSTOM_PROFILE_VERSION = 1;
 
 export class ReplicationProfileService extends Service {
   protected _validationService: ReplicationProfileValidationService;
+  protected _auditLogService: AuditLogService;
 
   public async build(): Promise<ReplicationProfileService> {
     await super.build();
     this._validationService = await this._app.getService<ReplicationProfileValidationService>(
       ReplicationProfileValidationService.name,
     );
+    this._auditLogService = await this._app.getService<AuditLogService>(AuditLogService.name);
 
     return this;
   }
@@ -204,19 +227,10 @@ export class ReplicationProfileService extends Service {
     });
 
     if (!latestCustomProfile) {
-      const builtInExists = await this.repository.exists({
-        where: {
-          code,
-          fwCloudId: IsNull(),
-          isBuiltin: true,
-        },
-      });
-
-      if (builtInExists) {
-        throw new HttpException('Built-in profiles cannot be modified through this endpoint.', 403);
-      }
-
-      throw new NotFoundException('Replication profile not found');
+      throw await this.resolveMissingCustomProfileError(
+        { code },
+        'Built-in profiles cannot be modified through this endpoint.',
+      );
     }
 
     this.assertPayloadDefinitionIsValid(payload);
@@ -224,6 +238,110 @@ export class ReplicationProfileService extends Service {
     return this.persistCustomProfile(payload, options, {
       code,
       version: latestCustomProfile.version + 1,
+    });
+  }
+
+  /**
+   * Soft-deletes a custom profile: the row is preserved but flagged as
+   * inactive/deprecated so it disappears from the catalog and can no longer be
+   * applied. Built-in profiles cannot be deactivated (403) and profiles from
+   * another FWCloud are indistinguishable from missing ones (404) so their
+   * existence is never leaked.
+   */
+  public async deactivateCustomProfile(
+    code: string,
+    version: number,
+    options: DeactivateCustomReplicationProfileOptions,
+  ): Promise<ReplicationProfile> {
+    const startedAt = new Date();
+
+    const profile = await this.repository.findOne({
+      where: {
+        code,
+        version,
+        fwCloudId: options.fwCloudId,
+        isBuiltin: false,
+      },
+    });
+
+    if (!profile) {
+      throw await this.resolveMissingCustomProfileError(
+        { code, version },
+        'Built-in profiles cannot be deleted or deactivated.',
+      );
+    }
+
+    const previousState: ReplicationProfileActiveState = {
+      isActive: profile.isActive,
+      isDeprecated: profile.isDeprecated,
+    };
+
+    profile.isActive = false;
+    profile.isDeprecated = true;
+    profile.updated_by = options.actor?.userId ?? profile.updated_by ?? null;
+
+    const saved = await this.repository.save(profile);
+
+    await this.auditDeactivation(saved, previousState, options, startedAt);
+
+    return saved;
+  }
+
+  /**
+   * Builds the error to raise when a custom profile the caller expected to own
+   * could not be found: a built-in profile with the same identity yields a 403
+   * (built-ins are shared and public), everything else -- including profiles
+   * owned by another FWCloud -- yields the generic 404 so their existence is
+   * never leaked.
+   */
+  private async resolveMissingCustomProfileError(
+    builtInIdentity: FindOptionsWhere<ReplicationProfile>,
+    builtInMessage: string,
+  ): Promise<HttpException> {
+    const builtInExists = await this.repository.exists({
+      where: {
+        ...builtInIdentity,
+        fwCloudId: IsNull(),
+        isBuiltin: true,
+      },
+    });
+
+    return builtInExists
+      ? new HttpException(builtInMessage, 403)
+      : new NotFoundException('Replication profile not found');
+  }
+
+  private async auditDeactivation(
+    profile: ReplicationProfile,
+    previousState: ReplicationProfileActiveState,
+    options: DeactivateCustomReplicationProfileOptions,
+    startedAt: Date,
+  ): Promise<void> {
+    const actor = options.actor;
+
+    await this._auditLogService.logMutation({
+      call: PROFILE_DEACTIVATION_AUDIT_CALL,
+      description: `Custom assistant profile ${profile.code} v${profile.version} deactivated.`,
+      status: 200,
+      startedAt,
+      userId: actor?.userId ?? null,
+      userName: actor?.userName ?? null,
+      sessionId: actor?.sessionId ?? null,
+      sourceIp: actor?.sourceIp ?? null,
+      fwCloudId: profile.fwCloudId,
+      data: {
+        profileId: profile.id,
+        profileCode: profile.code,
+        profileVersion: profile.version,
+        profileName: profile.name,
+        fwCloudId: profile.fwCloudId,
+        operation: 'deactivate',
+        previous: previousState,
+        current: {
+          isActive: profile.isActive,
+          isDeprecated: profile.isDeprecated,
+        },
+      },
     });
   }
 
