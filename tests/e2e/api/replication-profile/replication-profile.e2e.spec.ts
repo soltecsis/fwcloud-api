@@ -4,7 +4,11 @@ import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
-import { PROFILE_DEACTIVATION_AUDIT_CALL } from '../../../../src/models/replication-profile/replication-profile.service';
+import {
+  PROFILE_CLONE_AUDIT_CALL,
+  PROFILE_CREATE_AUDIT_CALL,
+  PROFILE_DEACTIVATION_AUDIT_CALL,
+} from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
@@ -130,14 +134,34 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
 
     it('should reject users without access to the FWCloud', async () => {
+      const auditRepository = db.getSource().manager.getRepository(AuditLog);
+      await auditRepository.delete({ call: PROFILE_CREATE_AUDIT_CALL });
       const regularUser = await createUser({ role: 0 });
       const regularUserSessionId = generateSession(regularUser);
+      const code = `${codePrefix}forbidden`;
 
       await request(app.express)
         .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
         .set('Cookie', [attachSession(regularUserSessionId)])
-        .send(makeCreatePayload({ code: `${codePrefix}forbidden` }))
+        .send(makeCreatePayload({ code }))
         .expect(403);
+
+      const entries = await auditRepository.find({
+        where: { call: PROFILE_CREATE_AUDIT_CALL },
+      });
+      expect(entries).to.have.length(1);
+      expect(entries[0].status).to.be.eq(403);
+      expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
+
+      const data = JSON.parse(entries[0].data);
+      expect(data).to.include({
+        operation: 'create',
+        result: 'failure',
+        profileCode: code,
+        fwCloudId: fwCloud.id,
+      });
+
+      await auditRepository.delete({ call: PROFILE_CREATE_AUDIT_CALL });
     });
 
     it('should reject invalid profile definitions through the centralized validator', async () => {
@@ -159,6 +183,125 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           }),
         )
         .expect(422);
+    });
+  });
+
+  describe('POST /fwclouds/:fwcloud/assistant/profiles/:code/:version/clone', () => {
+    const cloneUrl = (code: string, version: number) =>
+      `/fwclouds/${fwCloud.id}/assistant/profiles/${code}/${version}/clone`;
+
+    it('should clone a built-in profile into a custom FWCloud profile and audit the operation', async () => {
+      const auditRepository = db.getSource().manager.getRepository(AuditLog);
+      await auditRepository.delete({ call: PROFILE_CLONE_AUDIT_CALL });
+      const marker = `${codePrefix}source-model-marker`;
+      const sourcePayload = makeCreatePayload() as any;
+      sourcePayload.model.provision.rules[0].comment = marker;
+      const builtIn = await repository.save(
+        makeProfile({
+          code: `${codePrefix}builtin-clone`,
+          isBuiltin: true,
+          fwCloudId: null,
+          model: sourcePayload.model,
+        }),
+      );
+
+      await request(app.express)
+        .post(cloneUrl(builtIn.code, builtIn.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ code: `${codePrefix}builtin-clone-copy`, name: 'Built-in clone copy' })
+        .expect(201)
+        .then(async (response) => {
+          const result = response.body.data;
+
+          expect(result).to.include({
+            code: `${codePrefix}builtin-clone-copy`,
+            version: 1,
+            name: 'Built-in clone copy',
+            is_built_in: false,
+            fwcloud_id: fwCloud.id,
+          });
+          expect(result.model).to.deep.eq(builtIn.model);
+
+          const source = await repository.findOneOrFail({ where: { id: builtIn.id } });
+          expect(source.isBuiltin).to.be.true;
+          expect(source.fwCloudId).to.be.null;
+        });
+
+      const entries = await auditRepository.find({
+        where: { call: PROFILE_CLONE_AUDIT_CALL },
+      });
+      expect(entries).to.have.length(1);
+      expect(entries[0].userId).to.be.eq(adminUser.id);
+      expect(entries[0].data).not.to.contain(marker);
+
+      const data = JSON.parse(entries[0].data);
+      expect(data).to.include({
+        operation: 'clone',
+        result: 'success',
+        profileCode: `${codePrefix}builtin-clone-copy`,
+        sourceProfileCode: builtIn.code,
+        sourceProfileVersion: builtIn.version,
+        sourceProfileIsBuiltin: true,
+        fwCloudId: fwCloud.id,
+      });
+      expect(data).not.to.have.property('model');
+
+      await auditRepository.delete({ call: PROFILE_CLONE_AUDIT_CALL });
+    });
+
+    it('should reject users without access to clone profiles and audit the failure', async () => {
+      const auditRepository = db.getSource().manager.getRepository(AuditLog);
+      await auditRepository.delete({ call: PROFILE_CLONE_AUDIT_CALL });
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}forbidden-clone`, fwCloudId: fwCloud.id }),
+      );
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .post(cloneUrl(profile.code, profile.version))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .send({ code: `${codePrefix}forbidden-clone-copy` })
+        .expect(403);
+
+      const entries = await auditRepository.find({
+        where: { call: PROFILE_CLONE_AUDIT_CALL },
+      });
+      expect(entries).to.have.length(1);
+      expect(entries[0].status).to.be.eq(403);
+
+      const data = JSON.parse(entries[0].data);
+      expect(data).to.include({
+        operation: 'clone',
+        result: 'failure',
+        profileCode: `${codePrefix}forbidden-clone-copy`,
+        sourceProfileCode: profile.code,
+        sourceProfileVersion: profile.version,
+        fwCloudId: fwCloud.id,
+      });
+
+      await auditRepository.delete({ call: PROFILE_CLONE_AUDIT_CALL });
+    });
+
+    it('should not clone custom profiles owned by another FWCloud', async () => {
+      const otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+      const foreign = await repository.save(
+        makeProfile({ code: `${codePrefix}foreign-clone`, fwCloudId: otherFwCloud.id }),
+      );
+
+      await request(app.express)
+        .post(cloneUrl(foreign.code, foreign.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ code: `${codePrefix}foreign-clone-copy` })
+        .expect(404);
+
+      const cloned = await repository.findOne({
+        where: { code: `${codePrefix}foreign-clone-copy`, fwCloudId: fwCloud.id },
+      });
+      expect(cloned).to.be.null;
     });
   });
 
