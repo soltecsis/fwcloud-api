@@ -1,16 +1,27 @@
 import { Request } from 'express';
-import { Validate, ValidateQuery } from '../../decorators/validate.decorator';
+import { Validate } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
+import { ValidationException } from '../../fonaments/exceptions/validation-exception';
+import type { ErrorBag } from '../../fonaments/validation/validator';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 import { ReplicationProfile } from '../../models/replication-profile/replication-profile.model';
-import { normalizeReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
-import type { ReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
+import {
+  REPLICATION_PROFILE_CATALOG_ORIGINS,
+  REPLICATION_PROFILE_TARGET_KINDS,
+  normalizeReplicationProfileCatalogOrigin,
+  normalizeReplicationProfileTargetKind,
+} from '../../models/replication-profile/replication-profile.constants';
+import type {
+  ReplicationProfileCatalogOrigin,
+  ReplicationProfileTargetKind,
+} from '../../models/replication-profile/replication-profile.constants';
 import {
   ReplicationProfileService,
+  type ReplicationProfileCatalogFilters,
   type CreateCustomReplicationProfileOptions,
   type DeactivateCustomReplicationProfileOptions,
 } from '../../models/replication-profile/replication-profile.service';
@@ -21,7 +32,6 @@ import type {
 } from '../../models/replication-profile/policy-replication.types';
 import { ReplicationProfilePolicy } from '../../policies/replication-profile.policy';
 import type { Authorization } from '../../fonaments/authorization/policy';
-import { ReplicationProfileListQueryDto } from './dtos/replication-profile-query.dto';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
 import {
@@ -32,6 +42,13 @@ import {
 export class ReplicationProfileController extends Controller {
   protected _fwCloud: FwCloud;
 
+  private static readonly catalogQueryKeys = new Set([
+    'targetKind',
+    'origin',
+    'includeDeprecated',
+    'search',
+  ]);
+
   public async make(request: Request): Promise<void> {
     this._fwCloud = await FwCloud.findOneOrFail({
       where: { id: parseInt(String(request.params.fwcloud)) },
@@ -39,14 +56,12 @@ export class ReplicationProfileController extends Controller {
   }
 
   @Validate()
-  @ValidateQuery(ReplicationProfileListQueryDto)
   public async index(request: Request): Promise<ResponseBuilder> {
     (await ReplicationProfilePolicy.index(request.session.user, this._fwCloud)).authorize();
     const replicationProfileService = await this.replicationProfileService();
 
-    const profiles = await replicationProfileService.findActive(
-      this.parseTargetKind(request.query.targetKind),
-      this._fwCloud.id,
+    const profiles = await replicationProfileService.findCatalog(
+      this.parseCatalogQuery(request.query),
     );
 
     return ResponseBuilder.buildResponse()
@@ -186,8 +201,128 @@ export class ReplicationProfileController extends Controller {
     return replication;
   }
 
-  private parseTargetKind(value: unknown): ReplicationProfileTargetKind | undefined {
-    return normalizeReplicationProfileTargetKind(value) ?? undefined;
+  private parseCatalogQuery(query: Request['query']): ReplicationProfileCatalogFilters {
+    const errors: ErrorBag = {};
+
+    for (const key of Object.keys(query)) {
+      if (!ReplicationProfileController.catalogQueryKeys.has(key)) {
+        errors[key] = ['Unsupported catalog filter.'];
+      }
+    }
+
+    const targetKind = this.parseTargetKindFilter(query.targetKind, errors);
+    const origin = this.parseOriginFilter(query.origin, errors);
+    const includeDeprecated = this.parseIncludeDeprecatedFilter(query.includeDeprecated, errors);
+    const search = this.parseSearchFilter(query.search, errors);
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException('The given data is invalid.', errors, 400);
+    }
+
+    return {
+      fwCloudId: this._fwCloud.id,
+      targetKind,
+      origin,
+      includeDeprecated,
+      search,
+    };
+  }
+
+  private parseTargetKindFilter(
+    value: unknown,
+    errors: ErrorBag,
+  ): ReplicationProfileTargetKind | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return this.parseAllowedQueryValue(
+      value,
+      errors,
+      'targetKind',
+      REPLICATION_PROFILE_TARGET_KINDS,
+      normalizeReplicationProfileTargetKind,
+    );
+  }
+
+  private parseOriginFilter(value: unknown, errors: ErrorBag): ReplicationProfileCatalogOrigin {
+    if (value === undefined) {
+      return 'all';
+    }
+
+    return (
+      this.parseAllowedQueryValue(
+        value,
+        errors,
+        'origin',
+        REPLICATION_PROFILE_CATALOG_ORIGINS,
+        normalizeReplicationProfileCatalogOrigin,
+      ) ?? 'all'
+    );
+  }
+
+  private parseIncludeDeprecatedFilter(value: unknown, errors: ErrorBag): boolean {
+    if (value === undefined) {
+      return false;
+    }
+
+    const parsed = this.parseSingleQueryValue(value);
+    const normalized = typeof parsed === 'string' ? parsed.trim().toLowerCase() : parsed;
+
+    if (normalized === 'true' || normalized === true) {
+      return true;
+    }
+
+    if (normalized === 'false' || normalized === false) {
+      return false;
+    }
+
+    errors.includeDeprecated = ['includeDeprecated must be either true or false.'];
+    return false;
+  }
+
+  private parseSearchFilter(value: unknown, errors: ErrorBag): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const parsed = this.parseSingleQueryValue(value);
+    if (typeof parsed !== 'string') {
+      errors.search = ['search must be a string.'];
+      return undefined;
+    }
+
+    const trimmed = parsed.trim();
+
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  private parseAllowedQueryValue<T extends string>(
+    value: unknown,
+    errors: ErrorBag,
+    field: string,
+    allowed: readonly T[],
+    normalize: (value: unknown) => T | null,
+  ): T | undefined {
+    const parsed = normalize(this.parseSingleQueryValue(value));
+
+    if (!parsed) {
+      errors[field] = [`${field} must be one of: ${allowed.join(', ')}.`];
+    }
+
+    return parsed ?? undefined;
+  }
+
+  private parseSingleQueryValue(value: unknown): string | boolean | null {
+    if (typeof value === 'string' || typeof value === 'boolean') {
+      return value;
+    }
+
+    return null;
+  }
+
+  private toIsoString(value: Date | string): string {
+    return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
   }
 
   // Services are resolved lazily so read endpoints never build the heavier
@@ -231,6 +366,8 @@ export class ReplicationProfileController extends Controller {
   }
 
   private toResponse(profile: ReplicationProfile): ReplicationProfileResponseDto {
+    const isCustom = !profile.isBuiltin;
+
     return {
       id: profile.id,
       code: profile.code,
@@ -241,6 +378,15 @@ export class ReplicationProfileController extends Controller {
       category: profile.category,
       targetKind: profile.targetKind,
       model: profile.model,
+      isBuiltin: profile.isBuiltin,
+      isCustom,
+      isActive: profile.isActive,
+      isDeprecated: profile.isDeprecated,
+      fwcloudId: profile.fwCloudId,
+      createdBy: profile.created_by,
+      updatedBy: profile.updated_by,
+      createdAt: this.toIsoString(profile.created_at),
+      updatedAt: this.toIsoString(profile.updated_at),
       is_built_in: profile.isBuiltin,
       is_active: profile.isActive,
       is_deprecated: profile.isDeprecated,

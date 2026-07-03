@@ -5,6 +5,7 @@ import { Service } from '../../fonaments/services/service';
 import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { ReplicationProfile } from './replication-profile.model';
 import {
+  type ReplicationProfileCatalogOrigin,
   getReplicationProfileModelTargetKinds,
   normalizeReplicationProfileTargetKinds,
 } from './replication-profile.constants';
@@ -49,6 +50,14 @@ export interface DeactivateCustomReplicationProfileOptions {
 interface ReplicationProfileActiveState {
   isActive: boolean;
   isDeprecated: boolean;
+}
+
+export interface ReplicationProfileCatalogFilters {
+  fwCloudId: number;
+  targetKind?: ReplicationProfileTargetKind;
+  origin?: ReplicationProfileCatalogOrigin;
+  includeDeprecated?: boolean;
+  search?: string;
 }
 
 export type CreateCustomReplicationProfileVersionPayload = Omit<
@@ -112,6 +121,28 @@ export class ReplicationProfileService extends Service {
     }
 
     return preferredProfiles.filter((profile) => this.supportsTargetKind(profile, targetKind));
+  }
+
+  public async findCatalog(
+    filters: ReplicationProfileCatalogFilters,
+  ): Promise<ReplicationProfile[]> {
+    const where: FindOptionsWhere<ReplicationProfile> = {
+      isActive: true,
+    };
+
+    if (!filters.includeDeprecated) {
+      where.isDeprecated = false;
+    }
+
+    const profiles = await this.repository.find({
+      where: this.buildCatalogWhere(where, filters.fwCloudId, filters.origin ?? 'all'),
+      order: {
+        code: 'ASC',
+        version: 'DESC',
+      },
+    });
+
+    return this.filterCatalogProfiles(this.preferLatestCatalogProfiles(profiles), filters);
   }
 
   public async findByCodeAndVersion(
@@ -181,6 +212,33 @@ export class ReplicationProfileService extends Service {
           { ...where, fwCloudId: IsNull() },
           { ...where, fwCloudId },
         ];
+  }
+
+  private buildCatalogWhere(
+    where: FindOptionsWhere<ReplicationProfile>,
+    fwCloudId: number,
+    origin: ReplicationProfileCatalogOrigin,
+  ): FindOptionsWhere<ReplicationProfile> | FindOptionsWhere<ReplicationProfile>[] {
+    const builtinWhere: FindOptionsWhere<ReplicationProfile> = {
+      ...where,
+      isBuiltin: true,
+      fwCloudId: IsNull(),
+    };
+    const customWhere: FindOptionsWhere<ReplicationProfile> = {
+      ...where,
+      isBuiltin: false,
+      fwCloudId,
+    };
+
+    if (origin === 'builtin') {
+      return builtinWhere;
+    }
+
+    if (origin === 'custom') {
+      return customWhere;
+    }
+
+    return [builtinWhere, customWhere];
   }
 
   public async createCustomProfile(
@@ -372,32 +430,12 @@ export class ReplicationProfileService extends Service {
     profiles: ReplicationProfile[],
     fwCloudId?: number,
   ): ReplicationProfile[] {
-    const preferredByCode = new Map<string, ReplicationProfile>();
-
-    for (const profile of profiles) {
-      const key =
-        fwCloudId === undefined ? `${profile.fwCloudId ?? 'global'}:${profile.code}` : profile.code;
-      const current = preferredByCode.get(key);
-
-      if (!current || this.isPreferredProfile(profile, current, fwCloudId)) {
-        preferredByCode.set(key, profile);
-      }
-    }
-
-    return Array.from(preferredByCode.values()).sort((left, right) => {
-      const codeOrder = left.code.localeCompare(right.code);
-      if (codeOrder !== 0) {
-        return codeOrder;
-      }
-
-      const leftNamespace = left.fwCloudId ?? 0;
-      const rightNamespace = right.fwCloudId ?? 0;
-      if (leftNamespace !== rightNamespace) {
-        return leftNamespace - rightNamespace;
-      }
-
-      return right.version - left.version;
-    });
+    return this.preferLatestByKey(
+      profiles,
+      (profile) =>
+        fwCloudId === undefined ? `${profile.fwCloudId ?? 'global'}:${profile.code}` : profile.code,
+      (candidate, current) => this.isPreferredProfile(candidate, current, fwCloudId),
+    ).sort((left, right) => this.compareScopedProfiles(left, right));
   }
 
   private isPreferredProfile(
@@ -417,6 +455,82 @@ export class ReplicationProfileService extends Service {
     return candidate.version > current.version;
   }
 
+  private preferLatestCatalogProfiles(profiles: ReplicationProfile[]): ReplicationProfile[] {
+    return this.preferLatestByKey(
+      profiles,
+      (profile) =>
+        `${profile.isBuiltin ? 'builtin' : `custom:${profile.fwCloudId}`}:${profile.code}`,
+      (candidate, current) => candidate.version > current.version,
+    ).sort((left, right) => this.compareCatalogProfiles(left, right));
+  }
+
+  private filterCatalogProfiles(
+    profiles: ReplicationProfile[],
+    filters: ReplicationProfileCatalogFilters,
+  ): ReplicationProfile[] {
+    const search = filters.search?.trim().toLowerCase();
+
+    return profiles.filter(
+      (profile) =>
+        (!filters.targetKind || this.supportsTargetKind(profile, filters.targetKind)) &&
+        (!search || this.matchesCatalogSearch(profile, search)),
+    );
+  }
+
+  private preferLatestByKey(
+    profiles: ReplicationProfile[],
+    keyFor: (profile: ReplicationProfile) => string,
+    isPreferred: (candidate: ReplicationProfile, current: ReplicationProfile) => boolean,
+  ): ReplicationProfile[] {
+    const preferredProfiles = new Map<string, ReplicationProfile>();
+
+    for (const profile of profiles) {
+      const key = keyFor(profile);
+      const current = preferredProfiles.get(key);
+
+      if (!current || isPreferred(profile, current)) {
+        preferredProfiles.set(key, profile);
+      }
+    }
+
+    return Array.from(preferredProfiles.values());
+  }
+
+  private compareScopedProfiles(left: ReplicationProfile, right: ReplicationProfile): number {
+    const codeOrder = left.code.localeCompare(right.code);
+    if (codeOrder !== 0) {
+      return codeOrder;
+    }
+
+    const leftNamespace = left.fwCloudId ?? 0;
+    const rightNamespace = right.fwCloudId ?? 0;
+    if (leftNamespace !== rightNamespace) {
+      return leftNamespace - rightNamespace;
+    }
+
+    return right.version - left.version;
+  }
+
+  private compareCatalogProfiles(left: ReplicationProfile, right: ReplicationProfile): number {
+    const codeOrder = left.code.localeCompare(right.code);
+    if (codeOrder !== 0) {
+      return codeOrder;
+    }
+
+    const originOrder = Number(right.isBuiltin) - Number(left.isBuiltin);
+    if (originOrder !== 0) {
+      return originOrder;
+    }
+
+    return right.version - left.version;
+  }
+
+  private matchesCatalogSearch(profile: ReplicationProfile, search: string): boolean {
+    return [profile.name, profile.description, profile.code, profile.category].some((value) =>
+      (value ?? '').toLowerCase().includes(search),
+    );
+  }
+
   private assertPayloadDefinitionIsValid(
     payload: CreateCustomReplicationProfileVersionPayload,
   ): void {
@@ -432,6 +546,7 @@ export class ReplicationProfileService extends Service {
     identity: CustomReplicationProfileIdentity,
   ): Promise<ReplicationProfile> {
     const userId = options.userId ?? null;
+    const now = new Date();
     const profile = this.repository.create({
       code: identity.code,
       version: identity.version,
@@ -447,6 +562,8 @@ export class ReplicationProfileService extends Service {
       fwCloudId: options.fwCloudId,
       created_by: userId,
       updated_by: userId,
+      created_at: now,
+      updated_at: now,
     });
 
     return this.repository.save(profile);
