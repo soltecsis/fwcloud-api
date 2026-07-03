@@ -48,7 +48,6 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
@@ -62,14 +61,12 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
       const updated: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: false,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: null,
       });
 
@@ -82,7 +79,6 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         service.save({
           openVPNId: fwcProduct.openvpnServer.id,
           enabled: true,
-          collectorFirewallId: fwcProduct.firewall.id,
           statusFile: null,
         }),
       ).to.be.rejectedWith('OpenVPN status sampling requires a status option when enabled');
@@ -93,7 +89,6 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         service.save({
           openVPNId: fwcProduct.openvpnServer.id,
           enabled: true,
-          collectorFirewallId: fwcProduct.firewall.id,
           statusFile: 'openvpn/server.status',
         }),
       ).to.be.rejectedWith('OpenVPN status file path must be absolute');
@@ -109,7 +104,6 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
@@ -129,7 +123,6 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: false,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
@@ -150,7 +143,6 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
@@ -173,41 +165,10 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
-        collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
       await expect(service.syncAgent(openVPN)).to.be.rejectedWith('agent rejected config');
-    });
-  });
-
-  describe('getAgentStatus', () => {
-    it('should return the collector agent sampling status', async () => {
-      const getOpenVPNStatusSamplingState = sinon.stub().resolves({
-        accepted: true,
-        enabled: true,
-        statusFiles: ['/run/openvpn/server.status'],
-      });
-      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
-        getOpenVPNStatusSamplingState,
-      } as any);
-
-      await setStatusOption('/run/openvpn/server.status');
-      const openVPN: OpenVPN = await service.save({
-        openVPNId: fwcProduct.openvpnServer.id,
-        enabled: true,
-        collectorFirewallId: fwcProduct.firewall.id,
-        statusFile: '/run/openvpn/server.status',
-      });
-
-      const status = await service.getAgentStatus(openVPN);
-
-      expect(getOpenVPNStatusSamplingState.calledOnce).to.eq(true);
-      expect(status).to.deep.eq({
-        enabled: true,
-        statusFiles: ['/run/openvpn/server.status'],
-        error: null,
-      });
     });
   });
 

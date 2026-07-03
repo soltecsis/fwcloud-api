@@ -10,14 +10,7 @@ import { OpenVPNOption } from '../openvpn-option.model';
 export type OpenVPNStatusSamplingSaveData = {
   openVPNId: number;
   enabled: boolean;
-  collectorFirewallId: number;
   statusFile?: string | null;
-};
-
-export type OpenVPNStatusSamplingAgentStatus = {
-  enabled: boolean;
-  statusFiles: string[];
-  error: string | null;
 };
 
 export type OpenVPNStatusSamplingImportSummary = {
@@ -91,38 +84,11 @@ export class OpenVPNStatusSamplingService extends Service {
     });
   }
 
-  async getAgentStatus(openVPN: OpenVPN | null): Promise<OpenVPNStatusSamplingAgentStatus | null> {
-    if (!openVPN?.firewall) {
-      return null;
-    }
-
-    try {
-      const communication: AgentCommunication =
-        (await openVPN.firewall.getCommunication()) as AgentCommunication;
-      const state: OpenVPNStatusSamplingAgentState =
-        await communication.getOpenVPNStatusSamplingState();
-
-      return {
-        enabled: Boolean(state.enabled),
-        statusFiles: state.statusFiles,
-        error: null,
-      };
-    } catch (error) {
-      return {
-        enabled: false,
-        statusFiles: [],
-        error: this.getErrorMessage(error),
-      };
-    }
-  }
-
   async save(data: OpenVPNStatusSamplingSaveData): Promise<OpenVPN> {
     const normalizedData: OpenVPNStatusSamplingSaveData = {
       ...data,
       statusFile: data.statusFile ? this.normalizeStatusFile(data.statusFile) : null,
     };
-
-    this.validate(normalizedData);
 
     return db.getSource().transaction(async (manager) => {
       const openVPNRepository = manager.getRepository(OpenVPN);
@@ -189,7 +155,6 @@ export class OpenVPNStatusSamplingService extends Service {
       lastOpenVPN = await this.save({
         openVPNId: option.openVPNId,
         enabled: true,
-        collectorFirewallId: firewallId,
         statusFile,
       });
 
@@ -208,12 +173,6 @@ export class OpenVPNStatusSamplingService extends Service {
       imported,
       unmatched_status_files: statusFiles.filter((file) => !matchedStatusFiles.includes(file)),
     };
-  }
-
-  protected validate(data: OpenVPNStatusSamplingSaveData): void {
-    if (data.enabled && !data.collectorFirewallId) {
-      throw new Error('OpenVPN status sampling requires a collector firewall when enabled');
-    }
   }
 
   protected normalizeStatusFile(statusFile: string): string {
@@ -248,21 +207,5 @@ export class OpenVPNStatusSamplingService extends Service {
     return (
       openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
     );
-  }
-
-  protected getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    if (typeof error === 'string') {
-      return error;
-    }
-
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return 'Unknown error';
-    }
   }
 }
