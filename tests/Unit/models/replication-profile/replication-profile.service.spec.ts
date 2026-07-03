@@ -183,6 +183,134 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
     });
   });
 
+  describe('findCatalog()', () => {
+    it('should return built-in profiles and current-FWCloud custom profiles only', async () => {
+      const fwCloudA = await makeFwCloud();
+      const fwCloudB = await makeFwCloud();
+
+      await repository.save([
+        makeProfile({ code: `${codePrefix}builtin`, isBuiltin: true, fwCloudId: null }),
+        makeProfile({ code: `${codePrefix}owned`, fwCloudId: fwCloudA.id }),
+        makeProfile({ code: `${codePrefix}foreign`, fwCloudId: fwCloudB.id }),
+        makeProfile({ code: `${codePrefix}orphan-custom`, fwCloudId: null }),
+      ]);
+
+      const profiles = (await service.findCatalog({ fwCloudId: fwCloudA.id })).filter((profile) =>
+        profile.code.startsWith(codePrefix),
+      );
+
+      expect(profiles.map((profile) => profile.code)).to.deep.eq([
+        `${codePrefix}builtin`,
+        `${codePrefix}owned`,
+      ]);
+    });
+
+    it('should filter catalog profiles by origin', async () => {
+      const fwCloud = await makeFwCloud();
+
+      await repository.save([
+        makeProfile({ code: `${codePrefix}builtin`, isBuiltin: true, fwCloudId: null }),
+        makeProfile({ code: `${codePrefix}custom`, fwCloudId: fwCloud.id }),
+      ]);
+
+      const builtin = (await service.findCatalog({ fwCloudId: fwCloud.id, origin: 'builtin' }))
+        .filter((profile) => profile.code.startsWith(codePrefix))
+        .map((profile) => profile.code);
+      const custom = (await service.findCatalog({ fwCloudId: fwCloud.id, origin: 'custom' }))
+        .filter((profile) => profile.code.startsWith(codePrefix))
+        .map((profile) => profile.code);
+      const all = (await service.findCatalog({ fwCloudId: fwCloud.id, origin: 'all' }))
+        .filter((profile) => profile.code.startsWith(codePrefix))
+        .map((profile) => profile.code);
+
+      expect(builtin).to.deep.eq([`${codePrefix}builtin`]);
+      expect(custom).to.deep.eq([`${codePrefix}custom`]);
+      expect(all).to.deep.eq([`${codePrefix}builtin`, `${codePrefix}custom`]);
+    });
+
+    it('should hide deprecated catalog profiles unless explicitly requested', async () => {
+      const fwCloud = await makeFwCloud();
+
+      await repository.save([
+        makeProfile({ code: `${codePrefix}active`, fwCloudId: fwCloud.id }),
+        makeProfile({
+          code: `${codePrefix}deprecated`,
+          fwCloudId: fwCloud.id,
+          isDeprecated: true,
+        }),
+        makeProfile({ code: `${codePrefix}inactive`, fwCloudId: fwCloud.id, isActive: false }),
+      ]);
+
+      const defaultCodes = (await service.findCatalog({ fwCloudId: fwCloud.id }))
+        .filter((profile) => profile.code.startsWith(codePrefix))
+        .map((profile) => profile.code);
+      const withDeprecatedCodes = (
+        await service.findCatalog({ fwCloudId: fwCloud.id, includeDeprecated: true })
+      )
+        .filter((profile) => profile.code.startsWith(codePrefix))
+        .map((profile) => profile.code);
+
+      expect(defaultCodes).to.deep.eq([`${codePrefix}active`]);
+      expect(withDeprecatedCodes).to.deep.eq([`${codePrefix}active`, `${codePrefix}deprecated`]);
+    });
+
+    it('should filter catalog profiles by target kind and search fields', async () => {
+      const fwCloud = await makeFwCloud();
+
+      await repository.save([
+        makeProfile({
+          code: `${codePrefix}cluster-lan`,
+          fwCloudId: fwCloud.id,
+          targetKind: 'cluster',
+        }),
+        makeProfile({
+          code: `${codePrefix}description-hit`,
+          fwCloudId: fwCloud.id,
+          targetKind: 'cluster',
+          description: 'LAN cluster profile',
+        }),
+        makeProfile({
+          code: `${codePrefix}firewall-lan`,
+          fwCloudId: fwCloud.id,
+          targetKind: 'firewall',
+        }),
+      ]);
+
+      const profiles = (
+        await service.findCatalog({
+          fwCloudId: fwCloud.id,
+          targetKind: 'cluster',
+          search: 'lan',
+        })
+      ).filter((profile) => profile.code.startsWith(codePrefix));
+
+      expect(profiles.map((profile) => profile.code)).to.have.members([
+        `${codePrefix}cluster-lan`,
+        `${codePrefix}description-hit`,
+      ]);
+    });
+
+    it('should keep built-in and custom catalog entries distinct when they share a code', async () => {
+      const fwCloud = await makeFwCloud();
+      const code = `${codePrefix}shared-code`;
+
+      await repository.save([
+        makeProfile({ code, version: 1, isBuiltin: true, fwCloudId: null, name: 'Built-in v1' }),
+        makeProfile({ code, version: 2, isBuiltin: true, fwCloudId: null, name: 'Built-in v2' }),
+        makeProfile({ code, version: 1, fwCloudId: fwCloud.id, name: 'Custom v1' }),
+        makeProfile({ code, version: 2, fwCloudId: fwCloud.id, name: 'Custom v2' }),
+      ]);
+
+      const profiles = (await service.findCatalog({ fwCloudId: fwCloud.id })).filter(
+        (profile) => profile.code === code,
+      );
+
+      expect(
+        profiles.map((profile) => `${profile.isBuiltin ? 'builtin' : 'custom'}:${profile.version}`),
+      ).to.deep.eq(['builtin:2', 'custom:2']);
+    });
+  });
+
   describe('findByCodeAndVersion()', () => {
     it('should return only active non-deprecated profiles for the requested code and version', async () => {
       const active = await repository.save(

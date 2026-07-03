@@ -37,6 +37,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       isBuiltin: false,
       isActive: true,
       isDeprecated: false,
+      fwCloudId: fwCloud?.id ?? null,
       ...overrides,
     });
   };
@@ -316,7 +317,14 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
   describe('GET /fwclouds/:fwcloud/assistant/profiles', () => {
     it('should return active profile summaries with detail data for the wizard', async () => {
-      const profile = await repository.save(makeProfile({ code: `${codePrefix}firewall` }));
+      const profile = await repository.save(
+        makeProfile({
+          code: `${codePrefix}firewall`,
+          category: 'Custom',
+          created_by: adminUser.id,
+          updated_by: adminUser.id,
+        }),
+      );
 
       await request(app.express)
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
@@ -333,10 +341,22 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             description: profile.description,
             scope: profile.scope,
             targetKind: profile.targetKind,
+            category: profile.category,
+            isBuiltin: false,
+            isCustom: true,
+            isActive: true,
+            isDeprecated: false,
+            fwcloudId: fwCloud.id,
+            createdBy: adminUser.id,
+            updatedBy: adminUser.id,
+            is_built_in: false,
+            is_active: true,
+            is_deprecated: false,
+            fwcloud_id: fwCloud.id,
           });
           expect(result.model).to.deep.equal(profile.model);
-          expect(result).not.to.have.property('isActive');
-          expect(result).not.to.have.property('isDeprecated');
+          expect(result.createdAt).to.be.a('string');
+          expect(result.updatedAt).to.be.a('string');
         });
     });
 
@@ -396,6 +416,113 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
+    it('should filter profiles by origin', async () => {
+      await repository.save([
+        makeProfile({ code: `${codePrefix}builtin`, isBuiltin: true, fwCloudId: null }),
+        makeProfile({ code: `${codePrefix}custom`, fwCloudId: fwCloud.id }),
+      ]);
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ origin: 'builtin' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.deep.equal([`${codePrefix}builtin`]);
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ origin: 'custom' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.deep.equal([`${codePrefix}custom`]);
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ origin: 'all' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.deep.equal([`${codePrefix}builtin`, `${codePrefix}custom`]);
+        });
+    });
+
+    it('should hide deprecated profiles by default and include them when requested', async () => {
+      await repository.save([
+        makeProfile({ code: `${codePrefix}active` }),
+        makeProfile({ code: `${codePrefix}deprecated`, isDeprecated: true }),
+        makeProfile({ code: `${codePrefix}inactive`, isActive: false }),
+      ]);
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.deep.equal([`${codePrefix}active`]);
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ includeDeprecated: 'true' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.deep.equal([`${codePrefix}active`, `${codePrefix}deprecated`]);
+        });
+    });
+
+    it('should filter profiles by search text', async () => {
+      await repository.save([
+        makeProfile({ code: `${codePrefix}category-hit`, category: 'LAN' }),
+        makeProfile({ code: `${codePrefix}description-hit`, description: 'Copies LAN rules' }),
+        makeProfile({ code: `${codePrefix}lan-code`, name: 'Plain profile' }),
+        makeProfile({ code: `${codePrefix}name-hit`, name: 'LAN template' }),
+        makeProfile({ code: `${codePrefix}outside`, name: 'WAN template' }),
+      ]);
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ search: 'lan' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const codes = response.body.data
+            .map((profile) => profile.code)
+            .filter((code) => code.startsWith(codePrefix));
+
+          expect(codes).to.have.members([
+            `${codePrefix}category-hit`,
+            `${codePrefix}description-hit`,
+            `${codePrefix}lan-code`,
+            `${codePrefix}name-hit`,
+          ]);
+        });
+    });
+
     it('should return the latest active custom profile version by default', async () => {
       const code = `${codePrefix}catalog-latest`;
       await repository.save([
@@ -424,12 +551,33 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
-    it('should reject unknown target kinds', async () => {
+    it('should reject invalid catalog filters', async () => {
       await request(app.express)
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
         .query({ targetKind: 'gateway' })
         .set('Cookie', [attachSession(adminUserSessionId)])
-        .expect(422);
+        .expect(400)
+        .then((response) => {
+          expect(response.body.errors.targetKind[0]).to.contain('targetKind');
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ origin: 'external' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(400)
+        .then((response) => {
+          expect(response.body.errors.origin[0]).to.contain('origin');
+        });
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .query({ includeDeprecated: 'maybe' })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(400)
+        .then((response) => {
+          expect(response.body.errors.includeDeprecated[0]).to.contain('includeDeprecated');
+        });
     });
   });
 
