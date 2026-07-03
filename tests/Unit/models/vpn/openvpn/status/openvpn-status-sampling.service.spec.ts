@@ -4,12 +4,9 @@ import {
   Firewall,
   FirewallInstallCommunication,
 } from '../../../../../../src/models/firewall/Firewall';
-import {
-  OpenVPNStatusSampling,
-  OpenVPNStatusSamplingFile,
-} from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling';
 import { OpenVPNStatusSamplingService } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling.service';
 import { OpenVPNOption } from '../../../../../../src/models/vpn/openvpn/openvpn-option.model';
+import { OpenVPN } from '../../../../../../src/models/vpn/openvpn/OpenVPN';
 import db from '../../../../../../src/database/database-manager';
 import { describeName, expect, testSuite } from '../../../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../../../utils/fwcloud-factory';
@@ -32,50 +29,55 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
     sinon.restore();
   });
 
+  async function setStatusOption(statusFile: string): Promise<void> {
+    await manager.getRepository(OpenVPNOption).save(
+      manager.getRepository(OpenVPNOption).create({
+        openVPNId: fwcProduct.openvpnServer.id,
+        name: 'status',
+        arg: statusFile,
+        order: 1,
+        scope: 1,
+      }),
+    );
+  }
+
   describe('save', () => {
     it('should save OpenVPN server sampling configuration', async () => {
-      const sampling: OpenVPNStatusSampling = await service.save({
+      await setStatusOption('/run/openvpn/server.status');
+
+      const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
-      expect(Boolean(sampling.enabled)).to.eq(true);
-      expect(sampling.openVPNId).to.eq(fwcProduct.openvpnServer.id);
-      expect(sampling.collectorFirewallId).to.eq(fwcProduct.firewall.id);
-      expect(sampling.files).to.have.length(1);
-      expect(sampling.files[0].path).to.eq('/run/openvpn/server.status');
-      expect(sampling.files[0].pathHash).to.have.length(64);
+      expect(openVPN.id).to.eq(fwcProduct.openvpnServer.id);
+      expect(Boolean(openVPN.statusSamplingEnabled)).to.eq(true);
     });
 
-    it('should replace the OpenVPN server status file', async () => {
-      const original: OpenVPNStatusSampling = await service.save({
+    it('should disable OpenVPN server sampling configuration', async () => {
+      await setStatusOption('/run/openvpn/server.status');
+
+      await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
-      const updated: OpenVPNStatusSampling = await service.save({
+      const updated: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
-        enabled: true,
+        enabled: false,
         collectorFirewallId: fwcProduct.firewall.id,
-        statusFile: '/run/openvpn/clients.status',
+        statusFile: null,
       });
 
-      const persistedFiles: OpenVPNStatusSamplingFile[] = await manager
-        .getRepository(OpenVPNStatusSamplingFile)
-        .find({ where: { samplingId: original.id } });
-
-      expect(updated.id).to.eq(original.id);
-      expect(updated.files).to.have.length(1);
-      expect(updated.files[0].path).to.eq('/run/openvpn/clients.status');
-      expect(persistedFiles).to.have.length(1);
-      expect(persistedFiles[0].path).to.eq('/run/openvpn/clients.status');
+      expect(updated.id).to.eq(fwcProduct.openvpnServer.id);
+      expect(Boolean(updated.statusSamplingEnabled)).to.eq(false);
     });
 
-    it('should reject enabled sampling without status file', async () => {
+    it('should reject enabled sampling without OpenVPN status option', async () => {
       await expect(
         service.save({
           openVPNId: fwcProduct.openvpnServer.id,
@@ -83,9 +85,7 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
           collectorFirewallId: fwcProduct.firewall.id,
           statusFile: null,
         }),
-      ).to.be.rejectedWith(
-        'OpenVPN status sampling requires at least one status file when enabled',
-      );
+      ).to.be.rejectedWith('OpenVPN status sampling requires a status option when enabled');
     });
 
     it('should reject relative status file paths', async () => {
@@ -104,6 +104,7 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
     it('should return enabled agent collectors with status files', async () => {
       fwcProduct.firewall.install_communication = FirewallInstallCommunication.Agent;
       await manager.getRepository(Firewall).save(fwcProduct.firewall);
+      await setStatusOption('/run/openvpn/server.status');
 
       await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
@@ -112,17 +113,18 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         statusFile: '/run/openvpn/server.status',
       });
 
-      const collectors: OpenVPNStatusSampling[] = await service.findActiveCollectors();
+      const collectors: OpenVPN[] = await service.findActiveCollectors();
 
       expect(collectors).to.have.length(1);
-      expect(collectors[0].openVPNId).to.eq(fwcProduct.openvpnServer.id);
-      expect(collectors[0].collectorFirewallId).to.eq(fwcProduct.firewall.id);
-      expect(collectors[0].files).to.have.length(1);
+      expect(collectors[0].id).to.eq(fwcProduct.openvpnServer.id);
+      expect(collectors[0].firewallId).to.eq(fwcProduct.firewall.id);
+      expect(collectors[0].openVPNOptions).to.have.length(1);
     });
 
     it('should skip disabled collectors even when a status file exists', async () => {
       fwcProduct.firewall.install_communication = FirewallInstallCommunication.Agent;
       await manager.getRepository(Firewall).save(fwcProduct.firewall);
+      await setStatusOption('/run/openvpn/server.status');
 
       await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
@@ -131,7 +133,7 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         statusFile: '/run/openvpn/server.status',
       });
 
-      const collectors: OpenVPNStatusSampling[] = await service.findActiveCollectors();
+      const collectors: OpenVPN[] = await service.findActiveCollectors();
 
       expect(collectors).to.have.length(0);
     });
@@ -144,42 +146,38 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         syncOpenVPNStatusSampling,
       } as any);
 
-      const sampling: OpenVPNStatusSampling = await service.save({
+      await setStatusOption('/run/openvpn/server.status');
+      const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
-      const synced: OpenVPNStatusSampling = await service.syncAgent(sampling);
+      const synced: OpenVPN = await service.syncAgent(openVPN);
 
       expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
       expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
         enabled: true,
         statusFiles: ['/run/openvpn/server.status'],
       });
-      expect(synced.lastSyncResult).to.eq('accepted');
-      expect(synced.lastSyncError).to.be.null;
-      expect(synced.lastSyncedAt).not.to.be.null;
+      expect(synced.id).to.eq(fwcProduct.openvpnServer.id);
     });
 
-    it('should record failed synchronization', async () => {
+    it('should report failed synchronization', async () => {
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         syncOpenVPNStatusSampling: sinon.stub().rejects(new Error('agent rejected config')),
       } as any);
 
-      const sampling: OpenVPNStatusSampling = await service.save({
+      await setStatusOption('/run/openvpn/server.status');
+      const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
-      const synced: OpenVPNStatusSampling = await service.syncAgent(sampling);
-
-      expect(synced.lastSyncResult).to.eq('failed');
-      expect(synced.lastSyncError).to.eq('agent rejected config');
-      expect(synced.lastSyncedAt).not.to.be.null;
+      await expect(service.syncAgent(openVPN)).to.be.rejectedWith('agent rejected config');
     });
   });
 
@@ -194,14 +192,15 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         getOpenVPNStatusSamplingState,
       } as any);
 
-      const sampling: OpenVPNStatusSampling = await service.save({
+      await setStatusOption('/run/openvpn/server.status');
+      const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         collectorFirewallId: fwcProduct.firewall.id,
         statusFile: '/run/openvpn/server.status',
       });
 
-      const status = await service.getAgentStatus(sampling);
+      const status = await service.getAgentStatus(openVPN);
 
       expect(getOpenVPNStatusSamplingState.calledOnce).to.eq(true);
       expect(status).to.deep.eq({
@@ -236,14 +235,13 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       );
 
       const result = await service.importFromAgentEnv(fwcProduct.firewall.id);
-      const sampling = await service.findOneByOpenVPN(fwcProduct.openvpnServer.id);
+      const openVPN = await service.findOneByOpenVPN(fwcProduct.openvpnServer.id);
 
       expect(result.imported).to.deep.eq([
         { openvpn: fwcProduct.openvpnServer.id, status_file: statusFile },
       ]);
       expect(result.unmatched_status_files).to.deep.eq(['/run/openvpn/unmatched.status']);
-      expect(Boolean(sampling.enabled)).to.eq(true);
-      expect(sampling.files[0].path).to.eq(statusFile);
+      expect(Boolean(openVPN.statusSamplingEnabled)).to.eq(true);
       expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
       expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
         enabled: true,

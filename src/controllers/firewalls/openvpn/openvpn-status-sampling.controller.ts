@@ -4,11 +4,8 @@ import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from '../../../models/fwcloud/FwCloud';
-import {
-  OpenVPNStatusSampling,
-  OpenVPNStatusSamplingFile,
-} from '../../../models/vpn/openvpn/status/openvpn-status-sampling';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { OpenVPNOption } from '../../../models/vpn/openvpn/openvpn-option.model';
 import {
   OpenVPNStatusSamplingAgentStatus,
   OpenVPNStatusSamplingImportSummary,
@@ -84,13 +81,11 @@ export class OpenVPNStatusSamplingController extends Controller {
   public async show(request: Request): Promise<ResponseBuilder> {
     (await FirewallPolicy.compile(this._firewall, request.session.user)).authorize();
 
-    const sampling: OpenVPNStatusSampling | null = await this._samplingService.findOneByOpenVPN(
-      this._openVPN.id,
-    );
+    const openVPN: OpenVPN | null = await this._samplingService.findOneByOpenVPN(this._openVPN.id);
     const agentStatus: OpenVPNStatusSamplingAgentStatus | null =
-      await this._samplingService.getAgentStatus(sampling);
+      await this._samplingService.getAgentStatus(openVPN);
 
-    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(sampling, agentStatus));
+    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(openVPN, agentStatus));
   }
 
   @Validate(OpenVPNStatusSamplingUpdateDto)
@@ -98,17 +93,17 @@ export class OpenVPNStatusSamplingController extends Controller {
     (await FirewallPolicy.compile(this._firewall, request.session.user)).authorize();
     const input = request.inputs.all() as unknown as OpenVPNStatusSamplingUpdateDto;
 
-    let sampling: OpenVPNStatusSampling = await this._samplingService.save({
+    let openVPN: OpenVPN = await this._samplingService.save({
       openVPNId: this._openVPN.id,
       enabled: input.enabled,
       collectorFirewallId: this._firewall.id,
       statusFile: input.status_file ?? null,
     });
-    sampling = await this._samplingService.syncAgent(sampling);
+    openVPN = await this._samplingService.syncAgent(openVPN);
     const agentStatus: OpenVPNStatusSamplingAgentStatus | null =
-      await this._samplingService.getAgentStatus(sampling);
+      await this._samplingService.getAgentStatus(openVPN);
 
-    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(sampling, agentStatus));
+    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(openVPN, agentStatus));
   }
 
   @Validate()
@@ -126,10 +121,10 @@ export class OpenVPNStatusSamplingController extends Controller {
   }
 
   protected toResponse(
-    sampling: OpenVPNStatusSampling | null,
+    openVPN: OpenVPN | null,
     agentStatus: OpenVPNStatusSamplingAgentStatus | null,
   ): OpenVPNStatusSamplingResponse {
-    if (!sampling) {
+    if (!openVPN) {
       return {
         enabled: false,
         firewall: this._firewall.id,
@@ -147,18 +142,17 @@ export class OpenVPNStatusSamplingController extends Controller {
     }
 
     return {
-      enabled: Boolean(sampling.enabled),
+      enabled: Boolean(openVPN.statusSamplingEnabled),
       firewall: this._firewall.id,
-      openvpn: sampling.openVPNId,
-      collector_firewall: sampling.collectorFirewallId,
-      status_file:
-        (sampling.files ?? []).map((file: OpenVPNStatusSamplingFile) => file.path)[0] ?? null,
-      last_sync_result: sampling.lastSyncResult,
-      last_sync_error: sampling.lastSyncError,
-      last_synced_at: sampling.lastSyncedAt,
-      last_poll_result: sampling.lastPollResult,
-      last_poll_error: sampling.lastPollError,
-      last_polled_at: sampling.lastPolledAt,
+      openvpn: openVPN.id,
+      collector_firewall: openVPN.firewallId,
+      status_file: this.getStatusFile(openVPN),
+      last_sync_result: null,
+      last_sync_error: null,
+      last_synced_at: null,
+      last_poll_result: null,
+      last_poll_error: null,
+      last_polled_at: null,
       agent_state: agentStatus
         ? {
             enabled: agentStatus.enabled,
@@ -167,5 +161,11 @@ export class OpenVPNStatusSamplingController extends Controller {
           }
         : null,
     };
+  }
+
+  protected getStatusFile(openVPN: OpenVPN): string | null {
+    return (
+      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+    );
   }
 }
