@@ -6,10 +6,7 @@ import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from '../../../models/fwcloud/FwCloud';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNOption } from '../../../models/vpn/openvpn/openvpn-option.model';
-import {
-  OpenVPNStatusSamplingImportSummary,
-  OpenVPNStatusSamplingService,
-} from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
+import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 import { FirewallPolicy } from '../../../policies/firewall.policy';
 import db from '../../../database/database-manager';
 import { OpenVPNStatusSamplingUpdateDto } from './dtos/status-sampling.dto';
@@ -19,10 +16,6 @@ type OpenVPNStatusSamplingResponse = {
   firewall: number;
   openvpn: number;
   status_file: string | null;
-};
-
-type OpenVPNStatusSamplingImportResponse = {
-  import_result: OpenVPNStatusSamplingImportSummary;
 };
 
 export class OpenVPNStatusSamplingController extends Controller {
@@ -86,20 +79,6 @@ export class OpenVPNStatusSamplingController extends Controller {
     openVPN = await this._samplingService.syncAgent(openVPN);
 
     return ResponseBuilder.buildResponse().status(200).body(this.toResponse(openVPN));
-  }
-
-  @Validate()
-  public async importFromAgent(request: Request): Promise<ResponseBuilder> {
-    (await FirewallPolicy.compile(this._firewall, request.session.user)).authorize();
-
-    const importResult: OpenVPNStatusSamplingImportSummary =
-      await this._samplingService.importFromAgentEnv(this._firewall.id);
-
-    return ResponseBuilder.buildResponse()
-      .status(200)
-      .body({
-        import_result: importResult,
-      } as OpenVPNStatusSamplingImportResponse);
   }
 
   protected toResponse(openVPN: OpenVPN | null): OpenVPNStatusSamplingResponse {

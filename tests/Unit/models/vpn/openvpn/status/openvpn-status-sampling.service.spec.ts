@@ -171,43 +171,4 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       await expect(service.syncAgent(openVPN)).to.be.rejectedWith('agent rejected config');
     });
   });
-
-  describe('importFromAgentEnv', () => {
-    it('should import agent status files matching OpenVPN server status options', async () => {
-      const statusFile = '/run/openvpn/server.status';
-      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
-      const getOpenVPNStatusSamplingEnvState = sinon.stub().resolves({
-        enabled: true,
-        statusFiles: [statusFile, '/run/openvpn/unmatched.status'],
-      });
-      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
-        getOpenVPNStatusSamplingEnvState,
-        syncOpenVPNStatusSampling,
-      } as any);
-
-      await manager.getRepository(OpenVPNOption).save(
-        manager.getRepository(OpenVPNOption).create({
-          openVPNId: fwcProduct.openvpnServer.id,
-          name: 'status',
-          arg: statusFile,
-          order: 1,
-          scope: 1,
-        }),
-      );
-
-      const result = await service.importFromAgentEnv(fwcProduct.firewall.id);
-      const openVPN = await service.findOneByOpenVPN(fwcProduct.openvpnServer.id);
-
-      expect(result.imported).to.deep.eq([
-        { openvpn: fwcProduct.openvpnServer.id, status_file: statusFile },
-      ]);
-      expect(result.unmatched_status_files).to.deep.eq(['/run/openvpn/unmatched.status']);
-      expect(Boolean(openVPN.statusSamplingEnabled)).to.eq(true);
-      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
-      expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
-        enabled: true,
-        statusFiles: [statusFile],
-      });
-    });
-  });
 });

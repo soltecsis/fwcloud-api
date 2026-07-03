@@ -1,9 +1,8 @@
 import * as path from 'path';
 import { AgentCommunication } from '../../../../communications/agent.communication';
-import { OpenVPNStatusSamplingAgentState } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
 import { Service } from '../../../../fonaments/services/service';
-import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewall';
+import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
 
@@ -11,11 +10,6 @@ export type OpenVPNStatusSamplingSaveData = {
   openVPNId: number;
   enabled: boolean;
   statusFile?: string | null;
-};
-
-export type OpenVPNStatusSamplingImportSummary = {
-  imported: Array<{ openvpn: number; status_file: string }>;
-  unmatched_status_files: string[];
 };
 
 export class OpenVPNStatusSamplingService extends Service {
@@ -114,65 +108,6 @@ export class OpenVPNStatusSamplingService extends Service {
         relations: ['openVPNOptions', 'firewall'],
       });
     });
-  }
-
-  async importFromAgentEnv(firewallId: number): Promise<OpenVPNStatusSamplingImportSummary> {
-    const firewallRepository = db.getSource().manager.getRepository(Firewall);
-    const firewall = await firewallRepository.findOneOrFail({ where: { id: firewallId } });
-    const communication: AgentCommunication =
-      (await firewall.getCommunication()) as AgentCommunication;
-    const state: OpenVPNStatusSamplingAgentState =
-      await communication.getOpenVPNStatusSamplingEnvState();
-    const statusFiles = state.statusFiles ?? [];
-    const imported: Array<{ openvpn: number; status_file: string }> = [];
-    const matchedStatusFiles: string[] = [];
-
-    if (!state.enabled || statusFiles.length === 0) {
-      return { imported, unmatched_status_files: [] };
-    }
-
-    const serverOptions = await db
-      .getSource()
-      .getRepository(OpenVPNOption)
-      .createQueryBuilder('option')
-      .innerJoinAndSelect('option.openVPN', 'openvpn')
-      .innerJoin('openvpn.crt', 'crt')
-      .where('openvpn.firewallId = :firewallId', { firewallId })
-      .andWhere('openvpn.parentId IS NULL')
-      .andWhere('crt.type = :type', { type: 2 })
-      .andWhere('option.name = :name', { name: 'status' })
-      .getMany();
-
-    let lastOpenVPN: OpenVPN | null = null;
-
-    for (const option of serverOptions) {
-      const statusFile = statusFiles.find((file) => file === option.arg);
-
-      if (!statusFile) {
-        continue;
-      }
-
-      lastOpenVPN = await this.save({
-        openVPNId: option.openVPNId,
-        enabled: true,
-        statusFile,
-      });
-
-      imported.push({ openvpn: option.openVPNId, status_file: statusFile });
-
-      if (!matchedStatusFiles.includes(statusFile)) {
-        matchedStatusFiles.push(statusFile);
-      }
-    }
-
-    if (lastOpenVPN) {
-      await this.syncAgent(lastOpenVPN);
-    }
-
-    return {
-      imported,
-      unmatched_status_files: statusFiles.filter((file) => !matchedStatusFiles.includes(file)),
-    };
   }
 
   protected normalizeStatusFile(statusFile: string): string {
