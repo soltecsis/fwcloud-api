@@ -101,7 +101,7 @@ export class OpenVPNStatusSamplingController extends Controller {
     let sampling: OpenVPNStatusSampling = await this._samplingService.save({
       openVPNId: this._openVPN.id,
       enabled: input.enabled,
-      collectorFirewallId: input.collector_firewall ?? this._firewall.id,
+      collectorFirewallId: this._firewall.id,
       statusFile: input.status_file ?? null,
     });
     sampling = await this._samplingService.syncAgent(sampling);
