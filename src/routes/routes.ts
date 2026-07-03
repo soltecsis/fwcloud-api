@@ -252,6 +252,9 @@ export class Routes extends RouteCollection {
               .post('/profiles/:code/versions', ReplicationProfileController, 'storeVersion')
               .name('fwclouds.assistant.profiles.versions.store');
             router
+              .post('/profiles/:code/:version/clone', ReplicationProfileController, 'clone')
+              .name('fwclouds.assistant.profiles.clone');
+            router
               .get('/profiles/:code/:version', ReplicationProfileController, 'show')
               .name('fwclouds.assistant.profiles.show');
             router

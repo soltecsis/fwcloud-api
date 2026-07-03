@@ -40,20 +40,36 @@ export class ReplicationProfilePolicy extends Policy {
     return this.access(user, fwCloud);
   }
 
-  static async store(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static async create(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async storeVersion(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static async clone(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async destroy(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static async update(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.access(user, fwCloud);
+  }
+
+  static async delete(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
   static async apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
+  }
+
+  static async store(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.create(user, fwCloud);
+  }
+
+  static async storeVersion(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.update(user, fwCloud);
+  }
+
+  static async destroy(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.delete(user, fwCloud);
   }
 
   private static async access(user: User, fwCloud: FwCloud): Promise<Authorization> {
