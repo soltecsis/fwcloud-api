@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class OpenVPNStatusSamplingUpdateDto {
   @IsBoolean()
@@ -7,8 +7,4 @@ export class OpenVPNStatusSamplingUpdateDto {
   @IsOptional()
   @IsString()
   status_file?: string;
-
-  @IsOptional()
-  @IsNumber()
-  collector_firewall?: number;
 }

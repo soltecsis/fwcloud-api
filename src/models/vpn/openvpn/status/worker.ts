@@ -4,8 +4,8 @@ import { OpenVPNHistoryRecord } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
+import { OpenVPNOption } from '../openvpn-option.model';
 import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
-import { OpenVPNStatusSampling, OpenVPNStatusSamplingResult } from './openvpn-status-sampling';
 import {
   CreateOpenVPNStatusHistoryData,
   CreateOpenVPNStatusHistorySummary,
@@ -16,12 +16,6 @@ const AUDIT_ENTITY = 'OpenVPNStatusHistory';
 
 export type OpenVPNStatusWorkerIterationDependencies = {
   getOpenVPNServers: () => Promise<OpenVPN[]>;
-  getSamplingConfigurations: (openVPN: OpenVPN) => Promise<OpenVPNStatusSampling[]>;
-  markSamplingPollStatus: (
-    samplingId: number,
-    result: OpenVPNStatusSamplingResult,
-    error: string | null,
-  ) => Promise<void>;
 };
 
 const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
@@ -33,43 +27,14 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
       .createQueryBuilder('openvpn')
       .innerJoin('openvpn.crt', 'crt')
       .innerJoinAndSelect('openvpn.firewall', 'firewall')
-      .innerJoin(OpenVPNStatusSampling, 'sampling', 'sampling.openVPNId = openvpn.id')
-      .innerJoin('sampling.collectorFirewall', 'collectorFirewall')
-      .innerJoin('sampling.files', 'files')
+      .leftJoinAndSelect('openvpn.openVPNOptions', 'options')
       .where('openvpn.parentId IS NULL')
       .andWhere('crt.type = 2')
-      .andWhere('sampling.enabled = :enabled', { enabled: true })
-      .andWhere('collectorFirewall.install_communication = :communication', {
+      .andWhere('openvpn.statusSamplingEnabled = :enabled', { enabled: true })
+      .andWhere('firewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
       })
       .getMany();
-  },
-  getSamplingConfigurations: async (openVPN: OpenVPN): Promise<OpenVPNStatusSampling[]> => {
-    const query = db
-      .getSource()
-      .getRepository(OpenVPNStatusSampling)
-      .createQueryBuilder('sampling')
-      .innerJoinAndSelect('sampling.collectorFirewall', 'collectorFirewall')
-      .innerJoinAndSelect('sampling.files', 'files')
-      .where('sampling.enabled = :enabled', { enabled: true })
-      .andWhere('collectorFirewall.install_communication = :communication', {
-        communication: FirewallInstallCommunication.Agent,
-      });
-
-    query.andWhere('sampling.openVPNId = :openvpn', { openvpn: openVPN.id });
-
-    return query.getMany();
-  },
-  markSamplingPollStatus: async (
-    samplingId: number,
-    result: OpenVPNStatusSamplingResult,
-    error: string | null,
-  ): Promise<void> => {
-    await db.getSource().getRepository(OpenVPNStatusSampling).update(samplingId, {
-      lastPollResult: result,
-      lastPollError: error,
-      lastPolledAt: new Date(),
-    });
   },
 };
 
@@ -112,6 +77,12 @@ function buildRecoverableErrorSummary(messages: string[]): string | null {
   return `${messages[0]} (+${messages.length - 1} more errors)`;
 }
 
+function getStatusFile(openvpn: OpenVPN): string | null {
+  return (
+    openvpn.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+  );
+}
+
 export async function iterate(
   application: Application,
   dependencies: OpenVPNStatusWorkerIterationDependencies = defaultDependencies,
@@ -145,49 +116,23 @@ export async function iterate(
     for (const openvpn of openvpns) {
       summary.processedOpenvpns++;
       try {
-        const samplingConfigurations: OpenVPNStatusSampling[] =
-          await dependencies.getSamplingConfigurations(openvpn);
+        const statusFile = getStatusFile(openvpn);
 
-        let entries: CreateOpenVPNStatusHistoryData[] = [];
-        for (const sampling of samplingConfigurations) {
-          try {
-            const statusFile = sampling.files?.[0]?.path;
-
-            if (!statusFile) {
-              throw new Error('OpenVPN status sampling has no configured status file');
-            }
-
-            const communication: AgentCommunication =
-              (await sampling.collectorFirewall.getCommunication()) as AgentCommunication;
-            const data: OpenVPNHistoryRecord[] =
-              await communication.getOpenVPNHistoryFile(statusFile);
-
-            entries = entries.concat(
-              data.map((item) => ({
-                timestampInSeconds: item.timestamp,
-                name: item.name,
-                address: item.address,
-                bytesReceived: item.bytesReceived,
-                bytesSent: item.bytesSent,
-                connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
-              })),
-            );
-            await dependencies.markSamplingPollStatus(sampling.id, 'success', null);
-          } catch (error) {
-            summary.errorsCount++;
-            const errorMessage = getErrorMessage(error);
-            recoverableErrors.push(
-              `OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId}: ${errorMessage}`,
-            );
-            application
-              .logger()
-              .error(
-                `WorkerError: OpenVPN ${openvpn.id} collector ${sampling.collectorFirewallId} failed: ${errorMessage}`,
-              );
-            await dependencies.markSamplingPollStatus(sampling.id, 'failed', errorMessage);
-          }
+        if (!statusFile) {
+          throw new Error('OpenVPN status sampling has no configured status file');
         }
 
+        const communication: AgentCommunication =
+          (await openvpn.firewall.getCommunication()) as AgentCommunication;
+        const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(statusFile);
+        const entries: CreateOpenVPNStatusHistoryData[] = data.map((item) => ({
+          timestampInSeconds: item.timestamp,
+          name: item.name,
+          address: item.address,
+          bytesReceived: item.bytesReceived,
+          bytesSent: item.bytesSent,
+          connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
+        }));
         const persistedEntries: CreateOpenVPNStatusHistorySummary = await service.createWithSummary(
           openvpn.id,
           entries,

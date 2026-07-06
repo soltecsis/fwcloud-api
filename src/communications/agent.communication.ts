@@ -769,29 +769,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getOpenVPNStatusSamplingEnvState(): Promise<OpenVPNStatusSamplingAgentState> {
-    try {
-      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling/env';
-      const response: AxiosResponse<{
-        accepted: boolean;
-        enabled: boolean;
-        status_files: string[];
-      }> = await axios.get(pathUrl, this.config);
-
-      if (response.status === 200 && response.data.accepted) {
-        return {
-          accepted: response.data.accepted,
-          enabled: response.data.enabled,
-          statusFiles: response.data.status_files,
-        };
-      }
-
-      throw new Error('Unexpected getOpenVPNStatusSamplingEnvState response');
-    } catch (error) {
-      this.handleRequestException(error);
-    }
-  }
-
   async systemctlManagement(command: string, service: string): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/systemctl';
