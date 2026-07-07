@@ -11,6 +11,7 @@ import { Application } from '../../../../../src/Application';
 import request = require('supertest');
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { PgpHelper } from '../../../../../src/utils/pgp';
+import { Channel } from '../../../../../src/sockets/channels/channel';
 import sinon from 'sinon';
 
 let app: Application;
@@ -216,6 +217,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         install_communication: 'ssh' as any,
       });
 
+      const progressMessages: Array<{ type: string; message: string; task_id?: string }> = [];
       const installPlugin = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const ensureOpenVPNClientConfigDir = sinon.stub().resolves();
@@ -230,6 +232,12 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       } as any);
 
       sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: 'server_config', ccd: '' } as any);
+      sinon.stub(Channel, 'fromRequest').resolves({
+        emit: (_event: string, payload: { type: string; message: string; task_id?: string }) => {
+          progressMessages.push(payload);
+          return true;
+        },
+      } as any);
 
       await request(app.express)
         .put(SERVER_2FA_ROUTE)
@@ -265,6 +273,26 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
               content: '',
               name: `${serverCN}_2fa_users.txt`,
             },
+          ]);
+          expect(progressMessages.map((message) => message.type)).to.deep.equal([
+            'start_task',
+            'info',
+            'notice',
+            'notice',
+            'notice',
+            'success',
+            'end_task',
+          ]);
+          expect(
+            progressMessages
+              .filter((message) => message.type !== 'start_task' && message.type !== 'end_task')
+              .map((message) => message.message),
+          ).to.deep.equal([
+            `Enabling 2FA for the OpenVPN server '${serverCN}'`,
+            'Installing OpenVPN 2FA runtime',
+            'Creating OpenVPN 2FA users file',
+            'Updating OpenVPN server configuration',
+            '2FA successfully enabled',
           ]);
           expect(options).to.deep.equal([
             { name: 'auth-gen-token', arg: '86400' },
@@ -536,6 +564,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         }),
       );
 
+      const progressMessages: Array<{ type: string; message: string; task_id?: string }> = [];
       const installOpenVPNClientConfigs = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
@@ -552,6 +581,12 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         ping,
       } as any);
       sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: '', ccd: 'client_ccd' } as any);
+      sinon.stub(Channel, 'fromRequest').resolves({
+        emit: (_event: string, payload: { type: string; message: string; task_id?: string }) => {
+          progressMessages.push(payload);
+          return true;
+        },
+      } as any);
 
       // Stub encryption to return the text as is for easier assertions
       sinon.stub(PgpHelper.prototype, 'encrypt').callsFake(async (text: string) => text);
@@ -601,6 +636,26 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
               name: `${serverCN}_2fa_users.txt`,
               content: `${clientCN}\n`,
             },
+          ]);
+          expect(progressMessages.map((message) => message.type)).to.deep.equal([
+            'start_task',
+            'info',
+            'notice',
+            'notice',
+            'notice',
+            'success',
+            'end_task',
+          ]);
+          expect(
+            progressMessages
+              .filter((message) => message.type !== 'start_task' && message.type !== 'end_task')
+              .map((message) => message.message),
+          ).to.deep.equal([
+            `Enabling 2FA for the OpenVPN client '${clientCN}'`,
+            'Uploading CCD configuration file',
+            'Installing OpenVPN 2FA secret',
+            'Updating OpenVPN 2FA users list',
+            '2FA successfully enabled',
           ]);
         });
     });
