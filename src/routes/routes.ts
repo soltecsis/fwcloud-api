@@ -303,13 +303,6 @@ export class Routes extends RouteCollection {
               });
 
               router.prefix('/openvpns', (router: RouterParser) => {
-                router
-                  .post(
-                    '/statusSampling/import',
-                    OpenVPNStatusSamplingController,
-                    'importFromAgent',
-                  )
-                  .name('fwclouds.firewalls.openvpns.statusSampling.import');
                 router.prefix('/:openvpn', (router: RouterParser) => {
                   router
                     .get('/statusSampling', OpenVPNStatusSamplingController, 'show')

@@ -70,10 +70,6 @@ import { OpenVPNOption } from '../models/vpn/openvpn/openvpn-option.model';
 import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPNStatusHistory } from '../models/vpn/openvpn/status/openvpn-status-history';
-import {
-  OpenVPNStatusSampling,
-  OpenVPNStatusSamplingFile,
-} from '../models/vpn/openvpn/status/openvpn-status-sampling';
 import { Ca } from '../models/vpn/pki/Ca';
 import { CaPrefix } from '../models/vpn/pki/CaPrefix';
 import { Crt } from '../models/vpn/pki/Crt';
@@ -374,8 +370,6 @@ export class DatabaseService extends Service {
         OpenVPN,
         OpenVPNPrefix,
         OpenVPNStatusHistory,
-        OpenVPNStatusSampling,
-        OpenVPNStatusSamplingFile,
         WireGuardOption,
         WireGuard,
         WireGuardPrefix,
