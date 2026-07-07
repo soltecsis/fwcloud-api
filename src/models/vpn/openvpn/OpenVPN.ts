@@ -89,6 +89,9 @@ export class OpenVPN extends Model {
   @Column({ name: 'tfa_enabled', type: 'tinyint', default: 0 })
   tfaEnabled: number;
 
+  @Column({ name: 'status_sampling_enabled', type: 'tinyint', default: 0 })
+  statusSamplingEnabled: number;
+
   @Column({ name: 'openvpn' })
   parentId: number;
 
