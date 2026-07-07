@@ -16,7 +16,12 @@ import {
 } from './replication-profile-validation.service';
 import { AuditLogService } from '../audit/AuditLog.service';
 
+export const PROFILE_CREATE_AUDIT_CALL = 'assistant.profiles.create';
+export const PROFILE_CLONE_AUDIT_CALL = 'assistant.profiles.clone';
+export const PROFILE_VERSION_AUDIT_CALL = 'assistant.profiles.version';
 export const PROFILE_DEACTIVATION_AUDIT_CALL = 'assistant.profiles.deactivate';
+
+export type ReplicationProfileManagementOperation = 'create' | 'clone' | 'update' | 'deactivate';
 
 export interface CreateCustomReplicationProfilePayload {
   name: string;
@@ -32,6 +37,16 @@ export interface CreateCustomReplicationProfilePayload {
 export interface CreateCustomReplicationProfileOptions {
   fwCloudId: number;
   userId?: number | null;
+  actor?: ReplicationProfileMutationActor;
+}
+
+export interface CloneCustomReplicationProfilePayload {
+  code?: string;
+  name?: string;
+  description?: string | null;
+  scope?: string;
+  targetKind?: string;
+  category?: string | null;
 }
 
 /** Identity of the user requesting a mutation, used to enrich the audit trail. */
@@ -45,6 +60,37 @@ export interface ReplicationProfileMutationActor {
 export interface DeactivateCustomReplicationProfileOptions {
   fwCloudId: number;
   actor?: ReplicationProfileMutationActor;
+}
+
+export interface ReplicationProfileManagementFailureAuditInput {
+  operation: ReplicationProfileManagementOperation;
+  fwCloudId: number;
+  actor?: ReplicationProfileMutationActor;
+  profileId?: number | null;
+  profileCode?: string | null;
+  profileVersion?: number | null;
+  profileName?: string | null;
+  sourceProfileId?: number | null;
+  sourceProfileCode?: string | null;
+  sourceProfileVersion?: number | null;
+  sourceProfileIsBuiltin?: boolean | null;
+  targetKind?: string | null;
+  scope?: string | null;
+  category?: string | null;
+  reason?: string | null;
+  status?: number | null;
+  startedAt?: Date;
+}
+
+interface ReplicationProfileManagementSuccessAuditInput {
+  operation: ReplicationProfileManagementOperation;
+  profile: ReplicationProfile;
+  startedAt: Date;
+  status: number;
+  actor?: ReplicationProfileMutationActor;
+  sourceProfile?: ReplicationProfile | null;
+  previousProfile?: ReplicationProfile | null;
+  data?: Record<string, unknown>;
 }
 
 interface ReplicationProfileActiveState {
@@ -245,27 +291,114 @@ export class ReplicationProfileService extends Service {
     payload: CreateCustomReplicationProfilePayload,
     options: CreateCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
+    const startedAt = new Date();
     const code = payload.code ?? this.slugFromName(payload.name);
     const version = payload.version ?? DEFAULT_CUSTOM_PROFILE_VERSION;
+    const actor = this.actorFromCreateOptions(options);
 
-    this.assertPayloadDefinitionIsValid(payload);
+    try {
+      this.assertPayloadDefinitionIsValid(payload);
 
-    const alreadyExists = await this.repository.exists({
-      where: {
-        code,
-        version,
+      await this.assertCustomProfileIdentityIsAvailable(code, version, options.fwCloudId);
+
+      const profile = await this.persistCustomProfile(payload, options, { code, version });
+      await this.auditProfileManagementSuccess({
+        operation: 'create',
+        profile,
+        actor,
+        status: 201,
+        startedAt,
+      });
+
+      return profile;
+    } catch (error) {
+      await this.auditProfileManagementFailure({
+        operation: 'create',
         fwCloudId: options.fwCloudId,
-      },
-    });
+        actor,
+        profileCode: code,
+        profileVersion: version,
+        profileName: payload.name,
+        targetKind: payload.targetKind,
+        scope: payload.scope,
+        category: payload.category,
+        reason: this.errorReason(error),
+        status: this.statusFromError(error),
+        startedAt,
+      });
 
-    if (alreadyExists) {
-      throw new HttpException(
-        `Replication profile "${code}" (version ${version}) already exists in this FWCloud.`,
-        409,
-      );
+      throw error;
     }
+  }
 
-    return this.persistCustomProfile(payload, options, { code, version });
+  public async cloneCustomProfile(
+    code: string,
+    version: number,
+    payload: CloneCustomReplicationProfilePayload,
+    options: CreateCustomReplicationProfileOptions,
+  ): Promise<ReplicationProfile> {
+    const startedAt = new Date();
+    const actor = this.actorFromCreateOptions(options);
+    let sourceProfile: ReplicationProfile | null = null;
+    let targetPayload: CreateCustomReplicationProfilePayload | null = null;
+
+    try {
+      sourceProfile = await this.findAnyByCodeAndVersion(code, version, options.fwCloudId);
+
+      if (!sourceProfile) {
+        throw new NotFoundException('Replication profile not found');
+      }
+
+      if (!sourceProfile.isActive || sourceProfile.isDeprecated) {
+        throw new HttpException('Inactive or deprecated profiles cannot be cloned.', 422);
+      }
+
+      const cloneCode = payload.code ?? `${sourceProfile.code}-copy`;
+      const cloneVersion = DEFAULT_CUSTOM_PROFILE_VERSION;
+
+      await this.assertCustomProfileIdentityIsAvailable(cloneCode, cloneVersion, options.fwCloudId);
+
+      targetPayload = this.buildClonePayload(sourceProfile, payload, cloneCode, cloneVersion);
+
+      this.assertPayloadDefinitionIsValid(targetPayload);
+
+      const profile = await this.persistCustomProfile(targetPayload, options, {
+        code: cloneCode,
+        version: cloneVersion,
+      });
+
+      await this.auditProfileManagementSuccess({
+        operation: 'clone',
+        profile,
+        actor,
+        status: 201,
+        startedAt,
+        sourceProfile,
+      });
+
+      return profile;
+    } catch (error) {
+      await this.auditProfileManagementFailure({
+        operation: 'clone',
+        fwCloudId: options.fwCloudId,
+        actor,
+        profileCode: targetPayload?.code ?? payload.code ?? null,
+        profileVersion: targetPayload?.version ?? DEFAULT_CUSTOM_PROFILE_VERSION,
+        profileName: targetPayload?.name ?? payload.name ?? null,
+        sourceProfileId: sourceProfile?.id ?? null,
+        sourceProfileCode: sourceProfile?.code ?? code,
+        sourceProfileVersion: sourceProfile?.version ?? version,
+        sourceProfileIsBuiltin: sourceProfile?.isBuiltin ?? null,
+        targetKind: targetPayload?.targetKind ?? payload.targetKind ?? null,
+        scope: targetPayload?.scope ?? payload.scope ?? null,
+        category: targetPayload?.category ?? payload.category ?? null,
+        reason: this.errorReason(error),
+        status: this.statusFromError(error),
+        startedAt,
+      });
+
+      throw error;
+    }
   }
 
   public async createCustomProfileVersion(
@@ -273,29 +406,87 @@ export class ReplicationProfileService extends Service {
     payload: CreateCustomReplicationProfileVersionPayload,
     options: CreateCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
-    const latestCustomProfile = await this.repository.findOne({
-      where: {
+    const startedAt = new Date();
+    const actor = this.actorFromCreateOptions(options);
+    let latestCustomProfile: ReplicationProfile | null = null;
+    let nextVersion: number | null = null;
+
+    try {
+      latestCustomProfile = await this.findLatestCustomProfile(code, options.fwCloudId);
+
+      if (!latestCustomProfile) {
+        throw await this.resolveMissingCustomProfileError(
+          { code },
+          'Built-in profiles cannot be modified through this endpoint.',
+        );
+      }
+
+      if (!latestCustomProfile.isActive || latestCustomProfile.isDeprecated) {
+        throw new HttpException(
+          'Inactive or deprecated profiles cannot be modified through this endpoint.',
+          422,
+        );
+      }
+
+      this.assertPayloadDefinitionIsValid(payload);
+
+      nextVersion = latestCustomProfile.version + 1;
+      const profile = await this.persistCustomProfile(payload, options, {
         code,
+        version: nextVersion,
+      });
+
+      await this.auditProfileManagementSuccess({
+        operation: 'update',
+        profile,
+        actor,
+        status: 201,
+        startedAt,
+        previousProfile: latestCustomProfile,
+      });
+
+      return profile;
+    } catch (error) {
+      await this.auditProfileManagementFailure({
+        operation: 'update',
         fwCloudId: options.fwCloudId,
-        isBuiltin: false,
-      },
-      order: {
-        version: 'DESC',
-      },
-    });
+        actor,
+        profileCode: code,
+        profileVersion: nextVersion,
+        profileName: payload.name,
+        sourceProfileId: latestCustomProfile?.id ?? null,
+        sourceProfileCode: latestCustomProfile?.code ?? code,
+        sourceProfileVersion: latestCustomProfile?.version ?? null,
+        sourceProfileIsBuiltin: latestCustomProfile?.isBuiltin ?? null,
+        targetKind: payload.targetKind,
+        scope: payload.scope,
+        category: payload.category,
+        reason: this.errorReason(error),
+        status: this.statusFromError(error),
+        startedAt,
+      });
 
-    if (!latestCustomProfile) {
-      throw await this.resolveMissingCustomProfileError(
-        { code },
-        'Built-in profiles cannot be modified through this endpoint.',
-      );
+      throw error;
     }
+  }
 
-    this.assertPayloadDefinitionIsValid(payload);
+  public async auditProfileManagementFailure(
+    input: ReplicationProfileManagementFailureAuditInput,
+  ): Promise<void> {
+    const reason = input.reason ?? 'operation failed';
+    const actor = input.actor;
 
-    return this.persistCustomProfile(payload, options, {
-      code,
-      version: latestCustomProfile.version + 1,
+    await this._auditLogService.logMutation({
+      call: this.auditCallForOperation(input.operation),
+      description: this.failureAuditDescription(input, reason),
+      status: input.status ?? 403,
+      startedAt: input.startedAt,
+      userId: actor?.userId ?? null,
+      userName: actor?.userName ?? null,
+      sessionId: actor?.sessionId ?? null,
+      sourceIp: actor?.sourceIp ?? null,
+      fwCloudId: input.fwCloudId,
+      data: this.failureAuditData(input, reason),
     });
   }
 
@@ -312,37 +503,78 @@ export class ReplicationProfileService extends Service {
     options: DeactivateCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
     const startedAt = new Date();
+    let profile: ReplicationProfile | null = null;
 
-    const profile = await this.repository.findOne({
-      where: {
-        code,
-        version,
+    try {
+      profile = await this.repository.findOne({
+        where: {
+          code,
+          version,
+          fwCloudId: options.fwCloudId,
+          isBuiltin: false,
+        },
+      });
+
+      if (!profile) {
+        throw await this.resolveMissingCustomProfileError(
+          { code, version },
+          'Built-in profiles cannot be deleted or deactivated.',
+        );
+      }
+
+      if (!profile.isActive || profile.isDeprecated) {
+        throw new HttpException(
+          'Inactive or deprecated profiles cannot be deleted or deactivated.',
+          422,
+        );
+      }
+
+      const previousState: ReplicationProfileActiveState = {
+        isActive: profile.isActive,
+        isDeprecated: profile.isDeprecated,
+      };
+
+      profile.isActive = false;
+      profile.isDeprecated = true;
+      profile.updated_by = options.actor?.userId ?? profile.updated_by ?? null;
+
+      const saved = await this.repository.save(profile);
+
+      await this.auditProfileManagementSuccess({
+        operation: 'deactivate',
+        profile: saved,
+        actor: options.actor,
+        status: 200,
+        startedAt,
+        data: {
+          previous: previousState,
+          current: {
+            isActive: saved.isActive,
+            isDeprecated: saved.isDeprecated,
+          },
+        },
+      });
+
+      return saved;
+    } catch (error) {
+      await this.auditProfileManagementFailure({
+        operation: 'deactivate',
         fwCloudId: options.fwCloudId,
-        isBuiltin: false,
-      },
-    });
+        actor: options.actor,
+        profileId: profile?.id ?? null,
+        profileCode: profile?.code ?? code,
+        profileVersion: profile?.version ?? version,
+        profileName: profile?.name ?? null,
+        targetKind: profile?.targetKind ?? null,
+        scope: profile?.scope ?? null,
+        category: profile?.category ?? null,
+        reason: this.errorReason(error),
+        status: this.statusFromError(error),
+        startedAt,
+      });
 
-    if (!profile) {
-      throw await this.resolveMissingCustomProfileError(
-        { code, version },
-        'Built-in profiles cannot be deleted or deactivated.',
-      );
+      throw error;
     }
-
-    const previousState: ReplicationProfileActiveState = {
-      isActive: profile.isActive,
-      isDeprecated: profile.isDeprecated,
-    };
-
-    profile.isActive = false;
-    profile.isDeprecated = true;
-    profile.updated_by = options.actor?.userId ?? profile.updated_by ?? null;
-
-    const saved = await this.repository.save(profile);
-
-    await this.auditDeactivation(saved, previousState, options, startedAt);
-
-    return saved;
   }
 
   /**
@@ -369,38 +601,241 @@ export class ReplicationProfileService extends Service {
       : new NotFoundException('Replication profile not found');
   }
 
-  private async auditDeactivation(
-    profile: ReplicationProfile,
-    previousState: ReplicationProfileActiveState,
-    options: DeactivateCustomReplicationProfileOptions,
-    startedAt: Date,
+  private async assertCustomProfileIdentityIsAvailable(
+    code: string,
+    version: number,
+    fwCloudId: number,
   ): Promise<void> {
-    const actor = options.actor;
+    const alreadyExists = await this.repository.exists({
+      where: {
+        code,
+        version,
+        fwCloudId,
+      },
+    });
+
+    if (alreadyExists) {
+      throw new HttpException(
+        `Replication profile "${code}" (version ${version}) already exists in this FWCloud.`,
+        409,
+      );
+    }
+  }
+
+  private findLatestCustomProfile(
+    code: string,
+    fwCloudId: number,
+  ): Promise<ReplicationProfile | null> {
+    return this.repository.findOne({
+      where: {
+        code,
+        fwCloudId,
+        isBuiltin: false,
+      },
+      order: {
+        version: 'DESC',
+      },
+    });
+  }
+
+  private buildClonePayload(
+    sourceProfile: ReplicationProfile,
+    payload: CloneCustomReplicationProfilePayload,
+    code: string,
+    version: number,
+  ): CreateCustomReplicationProfilePayload {
+    return {
+      name: payload.name ?? `${sourceProfile.name} copy`,
+      description: payload.description ?? sourceProfile.description,
+      code,
+      version,
+      scope: payload.scope ?? sourceProfile.scope,
+      targetKind: payload.targetKind ?? sourceProfile.targetKind,
+      category: payload.category ?? sourceProfile.category,
+      model: this.cloneProfileModel(sourceProfile.model),
+    };
+  }
+
+  private async auditProfileManagementSuccess(
+    input: ReplicationProfileManagementSuccessAuditInput,
+  ): Promise<void> {
+    const actor = input.actor;
 
     await this._auditLogService.logMutation({
-      call: PROFILE_DEACTIVATION_AUDIT_CALL,
-      description: `Custom assistant profile ${profile.code} v${profile.version} deactivated.`,
-      status: 200,
-      startedAt,
+      call: this.auditCallForOperation(input.operation),
+      description: this.successAuditDescription(input),
+      status: input.status,
+      startedAt: input.startedAt,
       userId: actor?.userId ?? null,
       userName: actor?.userName ?? null,
       sessionId: actor?.sessionId ?? null,
       sourceIp: actor?.sourceIp ?? null,
-      fwCloudId: profile.fwCloudId,
-      data: {
-        profileId: profile.id,
-        profileCode: profile.code,
-        profileVersion: profile.version,
-        profileName: profile.name,
-        fwCloudId: profile.fwCloudId,
-        operation: 'deactivate',
-        previous: previousState,
-        current: {
-          isActive: profile.isActive,
-          isDeprecated: profile.isDeprecated,
-        },
-      },
+      fwCloudId: input.profile.fwCloudId,
+      data: this.cleanAuditData({
+        operation: input.operation,
+        result: 'success',
+        ...this.profileAuditData(input.profile),
+        ...this.sourceProfileAuditData(input.sourceProfile),
+        ...this.previousProfileAuditData(input.previousProfile),
+        ...input.data,
+      }),
     });
+  }
+
+  private auditCallForOperation(operation: ReplicationProfileManagementOperation): string {
+    switch (operation) {
+      case 'create':
+        return PROFILE_CREATE_AUDIT_CALL;
+      case 'clone':
+        return PROFILE_CLONE_AUDIT_CALL;
+      case 'update':
+        return PROFILE_VERSION_AUDIT_CALL;
+      case 'deactivate':
+        return PROFILE_DEACTIVATION_AUDIT_CALL;
+    }
+  }
+
+  private successAuditDescription(input: ReplicationProfileManagementSuccessAuditInput): string {
+    if (input.operation === 'create') {
+      return `Custom assistant profile ${input.profile.code} v${input.profile.version} created.`;
+    }
+
+    if (input.operation === 'clone') {
+      const source = input.sourceProfile;
+      const sourceLabel = source
+        ? `${source.code} v${source.version}`
+        : 'selected assistant profile';
+
+      return `Assistant profile ${sourceLabel} cloned as custom profile ${input.profile.code} v${input.profile.version}.`;
+    }
+
+    if (input.operation === 'deactivate') {
+      return `Custom assistant profile ${input.profile.code} v${input.profile.version} deactivated.`;
+    }
+
+    return `Custom assistant profile ${input.profile.code} updated by creating version ${input.profile.version}.`;
+  }
+
+  private failureAuditData(
+    input: ReplicationProfileManagementFailureAuditInput,
+    reason: string,
+  ): Record<string, unknown> {
+    return this.cleanAuditData({
+      operation: input.operation,
+      result: 'failure',
+      errorReason: reason,
+      profileId: input.profileId,
+      profileCode: input.profileCode,
+      profileVersion: input.profileVersion,
+      profileName: input.profileName,
+      sourceProfileId: input.sourceProfileId,
+      sourceProfileCode: input.sourceProfileCode,
+      sourceProfileVersion: input.sourceProfileVersion,
+      sourceProfileIsBuiltin: input.sourceProfileIsBuiltin,
+      fwCloudId: input.fwCloudId,
+      targetKind: input.targetKind,
+      scope: input.scope,
+      category: input.category,
+    });
+  }
+
+  private profileAuditData(profile: ReplicationProfile): Record<string, unknown> {
+    return {
+      profileId: profile.id,
+      profileCode: profile.code,
+      profileVersion: profile.version,
+      profileName: profile.name,
+      fwCloudId: profile.fwCloudId,
+      targetKind: profile.targetKind,
+      scope: profile.scope,
+      category: profile.category,
+    };
+  }
+
+  private sourceProfileAuditData(
+    profile: ReplicationProfile | null | undefined,
+  ): Record<string, unknown> {
+    return profile
+      ? {
+          sourceProfileId: profile.id,
+          sourceProfileCode: profile.code,
+          sourceProfileVersion: profile.version,
+          sourceProfileIsBuiltin: profile.isBuiltin,
+        }
+      : {};
+  }
+
+  private previousProfileAuditData(
+    profile: ReplicationProfile | null | undefined,
+  ): Record<string, unknown> {
+    return profile
+      ? {
+          previousProfileId: profile.id,
+          previousProfileVersion: profile.version,
+        }
+      : {};
+  }
+
+  private failureAuditDescription(
+    input: ReplicationProfileManagementFailureAuditInput,
+    reason: string,
+  ): string {
+    const profileLabel = this.profileAuditLabel(input.profileCode, input.profileVersion);
+    const sourceLabel = this.profileAuditLabel(input.sourceProfileCode, input.sourceProfileVersion);
+
+    switch (input.operation) {
+      case 'create':
+        return `Failed to create custom assistant profile ${profileLabel}: ${reason}.`;
+      case 'clone':
+        return `Failed to clone assistant profile ${sourceLabel}: ${reason}.`;
+      case 'update':
+        return `Failed to update custom assistant profile ${profileLabel}: ${reason}.`;
+      case 'deactivate':
+        return `Failed to deactivate custom assistant profile ${profileLabel}: ${reason}.`;
+    }
+  }
+
+  private profileAuditLabel(code?: string | null, version?: number | null): string {
+    if (!code) {
+      return 'profile';
+    }
+
+    return version ? `${code} v${version}` : code;
+  }
+
+  private actorFromCreateOptions(
+    options: CreateCustomReplicationProfileOptions,
+  ): ReplicationProfileMutationActor | undefined {
+    if (options.actor) {
+      return options.actor;
+    }
+
+    return options.userId !== undefined ? { userId: options.userId } : undefined;
+  }
+
+  private statusFromError(error: unknown): number {
+    return error instanceof HttpException && Number.isFinite(error.status) ? error.status : 500;
+  }
+
+  private errorReason(error: unknown): string {
+    if (error instanceof HttpException && typeof error.message === 'string') {
+      const message = error.message.trim();
+      return message.length > 0 ? message : 'operation failed';
+    }
+
+    return 'operation failed';
+  }
+
+  private cloneProfileModel(
+    model: Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(model ?? {}));
+  }
+
+  private cleanAuditData(data: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    ) as Record<string, unknown>;
   }
 
   public slugFromName(name: string): string {
@@ -545,7 +980,7 @@ export class ReplicationProfileService extends Service {
     options: CreateCustomReplicationProfileOptions,
     identity: CustomReplicationProfileIdentity,
   ): Promise<ReplicationProfile> {
-    const userId = options.userId ?? null;
+    const userId = options.actor?.userId ?? options.userId ?? null;
     const now = new Date();
     const profile = this.repository.create({
       code: identity.code,

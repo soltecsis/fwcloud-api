@@ -345,3 +345,41 @@ export class ReplicationProfileStoreDto extends ReplicationProfileVersionStoreDt
   @IsPositive()
   version?: number;
 }
+
+export class ReplicationProfileCloneDto {
+  /** Defaults to the source profile code suffixed with "-copy" when omitted. */
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  @Matches(CODE_PATTERN, {
+    message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
+  })
+  code?: string;
+
+  /** Defaults to the source profile name suffixed with " copy" when omitted. */
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  scope?: string;
+
+  @IsOptional()
+  @IsIn(REPLICATION_PROFILE_TARGET_KINDS)
+  targetKind?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  category?: string;
+}

@@ -24,6 +24,8 @@ import {
   type ReplicationProfileCatalogFilters,
   type CreateCustomReplicationProfileOptions,
   type DeactivateCustomReplicationProfileOptions,
+  type ReplicationProfileManagementFailureAuditInput,
+  type ReplicationProfileMutationActor,
 } from '../../models/replication-profile/replication-profile.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
 import type {
@@ -35,6 +37,7 @@ import type { Authorization } from '../../fonaments/authorization/policy';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
 import {
+  ReplicationProfileCloneDto,
   ReplicationProfileStoreDto,
   ReplicationProfileVersionStoreDto,
 } from './dtos/replication-profile-store.dto';
@@ -91,11 +94,60 @@ export class ReplicationProfileController extends Controller {
 
   @Validate(ReplicationProfileStoreDto)
   public async store(request: Request): Promise<ResponseBuilder> {
-    this.assertCanMutate(await ReplicationProfilePolicy.store(request.session.user, this._fwCloud));
     const replicationProfileService = await this.replicationProfileService();
+    const body = request.body as ReplicationProfileStoreDto;
+
+    await this.assertCanManageProfile(
+      request,
+      await ReplicationProfilePolicy.create(request.session.user, this._fwCloud),
+      replicationProfileService,
+      {
+        operation: 'create',
+        profileCode: this.requestProfileCode(body, replicationProfileService),
+        profileVersion: typeof body.version === 'number' ? body.version : 1,
+        profileName: body.name,
+        targetKind: body.targetKind,
+        scope: body.scope,
+        category: body.category,
+      },
+    );
 
     const profile = await replicationProfileService.createCustomProfile(
-      request.body as ReplicationProfileStoreDto,
+      body,
+      this.customProfileOptions(request),
+    );
+
+    return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+  }
+
+  @Validate(ReplicationProfileCloneDto)
+  public async clone(request: Request): Promise<ResponseBuilder> {
+    const code = String(request.params.code);
+    const version = this.parseVersionParam(request);
+    const body = request.body as ReplicationProfileCloneDto;
+    const replicationProfileService = await this.replicationProfileService();
+
+    await this.assertCanManageProfile(
+      request,
+      await ReplicationProfilePolicy.clone(request.session.user, this._fwCloud),
+      replicationProfileService,
+      {
+        operation: 'clone',
+        profileCode: body.code ?? null,
+        profileVersion: 1,
+        profileName: body.name ?? null,
+        sourceProfileCode: code,
+        sourceProfileVersion: version,
+        targetKind: body.targetKind ?? null,
+        scope: body.scope ?? null,
+        category: body.category ?? null,
+      },
+    );
+
+    const profile = await replicationProfileService.cloneCustomProfile(
+      code,
+      version,
+      body,
       this.customProfileOptions(request),
     );
 
@@ -104,14 +156,27 @@ export class ReplicationProfileController extends Controller {
 
   @Validate(ReplicationProfileVersionStoreDto)
   public async storeVersion(request: Request): Promise<ResponseBuilder> {
-    this.assertCanMutate(
-      await ReplicationProfilePolicy.storeVersion(request.session.user, this._fwCloud),
-    );
+    const code = String(request.params.code);
     const replicationProfileService = await this.replicationProfileService();
+    const body = request.body as ReplicationProfileVersionStoreDto;
+
+    await this.assertCanManageProfile(
+      request,
+      await ReplicationProfilePolicy.update(request.session.user, this._fwCloud),
+      replicationProfileService,
+      {
+        operation: 'update',
+        profileCode: code,
+        profileName: body.name,
+        targetKind: body.targetKind,
+        scope: body.scope,
+        category: body.category,
+      },
+    );
 
     const profile = await replicationProfileService.createCustomProfileVersion(
-      String(request.params.code),
-      request.body as ReplicationProfileVersionStoreDto,
+      code,
+      body,
       this.customProfileOptions(request),
     );
 
@@ -120,15 +185,23 @@ export class ReplicationProfileController extends Controller {
 
   @Validate()
   public async destroy(request: Request): Promise<ResponseBuilder> {
-    this.assertCanMutate(
-      await ReplicationProfilePolicy.destroy(request.session.user, this._fwCloud),
-    );
+    const code = String(request.params.code);
     const replicationProfileService = await this.replicationProfileService();
-
     const version = this.parseVersionParam(request);
 
+    await this.assertCanManageProfile(
+      request,
+      await ReplicationProfilePolicy.delete(request.session.user, this._fwCloud),
+      replicationProfileService,
+      {
+        operation: 'deactivate',
+        profileCode: code,
+        profileVersion: version,
+      },
+    );
+
     const profile = await replicationProfileService.deactivateCustomProfile(
-      String(request.params.code),
+      code,
       version,
       this.deactivationOptions(request),
     );
@@ -336,33 +409,70 @@ export class ReplicationProfileController extends Controller {
     return this._app.getService<ProfileApplicationService>(ProfileApplicationService.name);
   }
 
-  private assertCanMutate(authorization: Authorization): void {
-    if (!authorization.can()) {
-      throw new HttpException('Forbidden', 403);
+  private async assertCanManageProfile(
+    request: Request,
+    authorization: Authorization,
+    replicationProfileService: ReplicationProfileService,
+    failure: Omit<
+      ReplicationProfileManagementFailureAuditInput,
+      'actor' | 'fwCloudId' | 'reason' | 'startedAt' | 'status'
+    >,
+  ): Promise<void> {
+    if (authorization.can()) {
+      return;
     }
+
+    await replicationProfileService.auditProfileManagementFailure({
+      ...failure,
+      fwCloudId: this._fwCloud.id,
+      actor: this.mutationActor(request),
+      reason: 'Forbidden',
+      status: 403,
+      startedAt: new Date(),
+    });
+
+    throw new HttpException('Forbidden', 403);
   }
 
   private resolveUserId(request: Request): number | null {
     return request.session.user?.id ?? request.session.user_id ?? null;
   }
 
+  private mutationActor(request: Request): ReplicationProfileMutationActor {
+    return {
+      userId: this.resolveUserId(request),
+      userName: request.session.user?.username ?? null,
+      sessionId: AuditLogHelper.resolveSessionId(request),
+      sourceIp: request.ip ?? null,
+    };
+  }
+
   private customProfileOptions(request: Request): CreateCustomReplicationProfileOptions {
     return {
       fwCloudId: this._fwCloud.id,
       userId: this.resolveUserId(request),
+      actor: this.mutationActor(request),
     };
   }
 
   private deactivationOptions(request: Request): DeactivateCustomReplicationProfileOptions {
     return {
       fwCloudId: this._fwCloud.id,
-      actor: {
-        userId: this.resolveUserId(request),
-        userName: request.session.user?.username ?? null,
-        sessionId: AuditLogHelper.resolveSessionId(request),
-        sourceIp: request.ip ?? null,
-      },
+      actor: this.mutationActor(request),
     };
+  }
+
+  private requestProfileCode(
+    body: Partial<ReplicationProfileStoreDto>,
+    replicationProfileService: ReplicationProfileService,
+  ): string | null {
+    if (typeof body.code === 'string' && body.code.trim().length > 0) {
+      return body.code;
+    }
+
+    return typeof body.name === 'string' && body.name.trim().length > 0
+      ? replicationProfileService.slugFromName(body.name)
+      : null;
   }
 
   private toResponse(profile: ReplicationProfile): ReplicationProfileResponseDto {
