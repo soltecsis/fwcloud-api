@@ -44,7 +44,17 @@ policy_load_elapsed_msg() {
 }
 
 policy_load_timestamp_ms() {
-  LC_ALL=C date +%s%3N
+  TIMESTAMP_S=`LC_ALL=C date +%s`
+  TIMESTAMP_NS=`LC_ALL=C date +%N`
+  case "$TIMESTAMP_NS" in
+    *[!0-9]*|'')
+      TIMESTAMP_MS="000"
+      ;;
+    *)
+      TIMESTAMP_MS=`expr "$TIMESTAMP_NS" : '\(...\)'`
+      ;;
+  esac
+  printf '%s%s\n' "$TIMESTAMP_S" "$TIMESTAMP_MS"
 }
 
 check_cmds() {
@@ -125,9 +135,9 @@ reset_nft() {
 }
 
 policy_empty() {
+  reset_nft
   reset_iptables_v4
   reset_iptables_v6
-  reset_nft
 }
 
 create_systemd_service() {

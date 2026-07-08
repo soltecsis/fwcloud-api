@@ -43,6 +43,7 @@ import { RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { RoutingCompiled, RoutingCompiler } from '../../compiler/routing/RoutingCompiler';
 import { FirewallControllerCompileRoutingRuleQueryDto } from './dtos/compile-routing-rules.dto';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { Interface } from '../../models/interface/Interface';
 import { PingDto } from './dtos/ping.dto';
 import { InfoDto } from './dtos/info.dto';
 import { Communication, FwcAgentInfo } from '../../communications/communication';
@@ -71,6 +72,7 @@ import { KeepalivedRuleItemForCompiler } from '../../models/system/keepalived/sh
 import db from '../../database/database-manager';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import {
   Body,
   Example,
@@ -110,6 +112,8 @@ type FirewallRoutingCompilationResponse = RoutingCompiled;
 type FirewallHAProxyCompilationResponse = HAProxyCompiled;
 type FirewallDHCPCompilationResponse = DHCPCompiled;
 type FirewallKeepalivedCompilationResponse = KeepalivedCompiled;
+
+const SURICATA_OINKCODE_REGEXP = /^[A-Za-z0-9]+$/;
 
 @Route('fwclouds/{fwcloud}/firewalls')
 @Tags('firewall')
@@ -646,6 +650,49 @@ export class FirewallController extends Controller {
       .execute();
   }
 
+  private async validateSuricataPluginParams(input: PluginDto): Promise<void> {
+    if (input.plugin !== PluginsFlags.suricata || !input.enable) {
+      return;
+    }
+
+    if (!input.firewallId) {
+      throw new HttpException('Suricata activation requires a firewall id', 400);
+    }
+
+    if (
+      !Array.isArray(input.pluginParams) ||
+      input.pluginParams.length < 1 ||
+      input.pluginParams.length > 2
+    ) {
+      throw new HttpException(
+        'Suricata activation requires one interface and an optional OINKCODE',
+        400,
+      );
+    }
+
+    const [interfaceName, oinkcode] = input.pluginParams;
+
+    if (!interfaceName) {
+      throw new HttpException('Suricata activation requires a network interface', 400);
+    }
+
+    const interfaceCount = await db
+      .getSource()
+      .manager.getRepository(Interface)
+      .createQueryBuilder('interface')
+      .where('interface.firewallId = :firewallId', { firewallId: input.firewallId })
+      .andWhere('interface.name = :name', { name: interfaceName })
+      .getCount();
+
+    if (interfaceCount === 0) {
+      throw new HttpException('Suricata network interface is not valid', 400);
+    }
+
+    if (oinkcode !== undefined && !SURICATA_OINKCODE_REGEXP.test(oinkcode)) {
+      throw new HttpException('Suricata OINKCODE must contain only letters and numbers', 400);
+    }
+  }
+
   @Validate(PluginDto)
   @OperationId('Install or uninstall firewall plugin.')
   @Post('plugin')
@@ -677,6 +724,7 @@ export class FirewallController extends Controller {
       const input: PluginDto = this.getBody(request, requestBody);
       const channel = await Channel.fromRequest(request);
       const pgp = new PgpHelper(request.session.pgp);
+      await this.validateSuricataPluginParams(input);
       const communication = new AgentCommunication({
         protocol: input.protocol,
         host: input.host,
@@ -697,7 +745,9 @@ export class FirewallController extends Controller {
         }
       }
 
-      const data = await communication.installPlugin(input.plugin, input.enable, channel);
+      const data = await communication.installPlugin(input.plugin, input.enable, channel, {
+        pluginParams: input.pluginParams,
+      });
 
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {

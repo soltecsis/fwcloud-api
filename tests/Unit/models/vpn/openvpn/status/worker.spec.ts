@@ -32,10 +32,15 @@ function buildApplication(
   };
 }
 
-function buildOpenVPN(id: number, firewall: Firewall): OpenVPN {
+function buildOpenVPN(
+  id: number,
+  firewall: Firewall,
+  statusFile: string = `/tmp/status-${id}`,
+): OpenVPN {
   return {
     id,
     firewall,
+    openVPNOptions: [{ name: 'status', arg: statusFile }],
   } as unknown as OpenVPN;
 }
 
@@ -87,8 +92,6 @@ describe('OpenVPN status worker iteration audit events', () => {
           ]),
         ),
       ],
-      getClusterFirewalls: async () => [],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
     };
 
     await iterate(
@@ -164,8 +167,6 @@ describe('OpenVPN status worker iteration audit events', () => {
           ]),
         ),
       ],
-      getClusterFirewalls: async () => [],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
     };
 
     await iterate(
@@ -205,8 +206,6 @@ describe('OpenVPN status worker iteration audit events', () => {
       getOpenVPNServers: async () => {
         throw new Error('hard failure');
       },
-      getClusterFirewalls: async () => [],
-      getStatusOption: async () => ({ arg: '/tmp/status' }) as any,
     };
 
     await iterate(
@@ -231,5 +230,95 @@ describe('OpenVPN status worker iteration audit events', () => {
     expect(finishPayload.details.error).to.equal('hard failure');
     expect(finishPayload.details.errorsCount).to.equal(0);
     expect(loggerError.callCount).to.equal(1);
+  });
+
+  it('uses the OpenVPN firewall and status option', async () => {
+    const loggerError = sandbox.stub();
+    const startEvent = sandbox.stub().returns('event-id');
+    const finishEvent = sandbox.stub().resolves(null);
+    const createWithSummary = sandbox.stub().resolves({
+      entries: [],
+      insertedEntries: 1,
+      updatedDisconnections: 0,
+    } as CreateOpenVPNStatusHistorySummary);
+    const openVPNFirewall = buildFirewall([
+      {
+        timestamp: 10,
+        name: 'alice',
+        address: '10.0.0.2',
+        bytesReceived: 100,
+        bytesSent: 200,
+        connectedAtTimestampInSeconds: 1,
+      },
+    ]);
+
+    const dependencies: OpenVPNStatusWorkerIterationDependencies = {
+      getOpenVPNServers: async () => [buildOpenVPN(10, openVPNFirewall, '/tmp/openvpn-status')],
+    };
+
+    await iterate(
+      buildApplication(
+        { startEvent, finishEvent } as Pick<AuditEventService, 'startEvent' | 'finishEvent'>,
+        {
+          createWithSummary,
+        } as Pick<OpenVPNStatusHistoryService, 'createWithSummary'>,
+        loggerError,
+      ),
+      dependencies,
+    );
+
+    expect(createWithSummary.firstCall.args[1]).to.have.length(1);
+    expect(createWithSummary.firstCall.args[1][0].name).to.equal('alice');
+  });
+
+  it('continues with the next OpenVPN server when polling fails', async () => {
+    const loggerError = sandbox.stub();
+    const startEvent = sandbox.stub().returns('event-id');
+    const finishEvent = sandbox.stub().resolves(null);
+    const createWithSummary = sandbox.stub().resolves({
+      entries: [],
+      insertedEntries: 1,
+      updatedDisconnections: 0,
+    } as CreateOpenVPNStatusHistorySummary);
+    const failingFirewall = {
+      getCommunication: async () => ({
+        getOpenVPNHistoryFile: async () => {
+          throw new Error('agent unavailable');
+        },
+      }),
+    } as unknown as Firewall;
+    const workingFirewall = buildFirewall([
+      {
+        timestamp: 10,
+        name: 'alice',
+        address: '10.0.0.2',
+        bytesReceived: 100,
+        bytesSent: 200,
+        connectedAtTimestampInSeconds: 1,
+      },
+    ]);
+
+    const dependencies: OpenVPNStatusWorkerIterationDependencies = {
+      getOpenVPNServers: async () => [
+        buildOpenVPN(10, failingFirewall),
+        buildOpenVPN(11, workingFirewall),
+      ],
+    };
+
+    await iterate(
+      buildApplication(
+        { startEvent, finishEvent } as Pick<AuditEventService, 'startEvent' | 'finishEvent'>,
+        {
+          createWithSummary,
+        } as Pick<OpenVPNStatusHistoryService, 'createWithSummary'>,
+        loggerError,
+      ),
+      dependencies,
+    );
+
+    expect(createWithSummary.callCount).to.equal(1);
+    expect(createWithSummary.firstCall.args[0]).to.equal(11);
+    expect(createWithSummary.firstCall.args[1]).to.have.length(1);
+    expect(finishEvent.firstCall.args[1].details.errorsCount).to.equal(1);
   });
 });

@@ -1756,7 +1756,11 @@ CgKCAQEA7RcsQCJXHPbJGCBRGPq6rz+qN1YU3J6QsGl0oK6MhF4xKu2LzB3YkV
   describe('searchIPSecUsage', () => {
     it('should detect usages across rules, routes, and groups', async () => {
       // Ensure the IPSec is added to a group at least
-      IPSec.addToGroup(db.getQuery(), fwcloudProduct.ipsecServer.id, fwcloudProduct.ipobjGroup.id);
+      await IPSec.addToGroup(
+        db.getQuery(),
+        fwcloudProduct.ipsecServer.id,
+        fwcloudProduct.ipobjGroup.id,
+      );
 
       const result = await IPSec.searchIPSecUsage(
         db.getQuery(),
