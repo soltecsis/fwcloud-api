@@ -11,6 +11,7 @@ import { Application } from '../../../../../src/Application';
 import request = require('supertest');
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { PgpHelper } from '../../../../../src/utils/pgp';
+import { Channel } from '../../../../../src/sockets/channels/channel';
 import sinon from 'sinon';
 
 let app: Application;
@@ -26,6 +27,8 @@ const SERVER_CLIENTS_ENABLED_ROUTE = '/vpn/openvpn/2fa/server/clients/enabled';
 const SERVER_2FA_ROUTE = '/vpn/openvpn/2fa/server';
 const CLIENT_2FA_ROUTE = '/vpn/openvpn/2fa/client';
 const REGENERATE_2FA_ROUTE = '/vpn/openvpn/2fa/regenerate';
+const INSTALL_ROUTE = '/vpn/openvpn/install';
+const UNINSTALL_ROUTE = '/vpn/openvpn/uninstall';
 
 const getOpenVPNCertificateCN = async (openvpnId: number): Promise<string> => {
   const rows = await manager.query(
@@ -59,6 +62,26 @@ const getPersistedOptions = async (
   return options
     .filter((option) => !optionNames || optionNames.includes(option.name))
     .map((option) => ({ name: option.name, arg: option.arg }));
+};
+
+const saveOpenVPNOption = async (
+  openvpnId: number,
+  name: string,
+  arg: string | null,
+  order: number,
+  scope = 1,
+): Promise<void> => {
+  await manager.getRepository(OpenVPNOption).save(
+    manager.getRepository(OpenVPNOption).create({
+      openVPNId: openvpnId,
+      ipObjId: null,
+      name,
+      arg,
+      order,
+      scope,
+      comment: null,
+    }),
+  );
 };
 
 describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
@@ -194,18 +217,27 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         install_communication: 'ssh' as any,
       });
 
+      const progressMessages: Array<{ type: string; message: string; task_id?: string }> = [];
       const installPlugin = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
+      const ensureOpenVPNClientConfigDir = sinon.stub().resolves();
       const ping = sinon.stub().resolves();
       const serverCN = await getOpenVPNCertificateCN(fwcProduct.openvpnServer.id);
 
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         installPlugin,
         installOpenVPNServerConfigs,
+        ensureOpenVPNClientConfigDir,
         ping,
       } as any);
 
       sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: 'server_config', ccd: '' } as any);
+      sinon.stub(Channel, 'fromRequest').resolves({
+        emit: (_event: string, payload: { type: string; message: string; task_id?: string }) => {
+          progressMessages.push(payload);
+          return true;
+        },
+      } as any);
 
       await request(app.express)
         .put(SERVER_2FA_ROUTE)
@@ -241,6 +273,26 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
               content: '',
               name: `${serverCN}_2fa_users.txt`,
             },
+          ]);
+          expect(progressMessages.map((message) => message.type)).to.deep.equal([
+            'start_task',
+            'info',
+            'notice',
+            'notice',
+            'notice',
+            'success',
+            'end_task',
+          ]);
+          expect(
+            progressMessages
+              .filter((message) => message.type !== 'start_task' && message.type !== 'end_task')
+              .map((message) => message.message),
+          ).to.deep.equal([
+            `Enabling 2FA for the OpenVPN server '${serverCN}'`,
+            'Installing OpenVPN 2FA runtime',
+            'Creating OpenVPN 2FA users file',
+            'Updating OpenVPN server configuration',
+            '2FA successfully enabled',
           ]);
           expect(options).to.deep.equal([
             { name: 'auth-gen-token', arg: '86400' },
@@ -287,6 +339,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
       const installPlugin = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
+      const ensureOpenVPNClientConfigDir = sinon.stub().resolves();
       const ping = sinon.stub().resolves();
       const serverCN = await getOpenVPNCertificateCN(fwcProduct.openvpnServer.id);
 
@@ -294,6 +347,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         installPlugin,
         installOpenVPNServerConfigs,
         uninstallOpenVPNConfigs,
+        ensureOpenVPNClientConfigDir,
         ping,
       } as any);
 
@@ -396,6 +450,83 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
     });
   });
 
+  describe('install and uninstall OpenVPN server', () => {
+    beforeEach(async () => {
+      await manager.getRepository(OpenVPN).update(fwcProduct.openvpnServer.id, {
+        install_dir: '/etc/openvpn',
+        install_name: 'server.conf',
+      });
+      await manager.getRepository(Firewall).update(fwcProduct.firewall.id, {
+        install_communication: 'agent' as any,
+      });
+      await saveOpenVPNOption(
+        fwcProduct.openvpnServer.id,
+        'client-config-dir',
+        '/etc/openvpn/ccd',
+        1,
+      );
+      await saveOpenVPNOption(fwcProduct.openvpnServer.id, 'group', 'nogroup', 2);
+    });
+
+    it('admin user should prepare client-config-dir before installing server config', async () => {
+      const ensureOpenVPNClientConfigDir = sinon.stub().resolves();
+      const installOpenVPNServerConfigs = sinon.stub().resolves();
+
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        ensureOpenVPNClientConfigDir,
+        installOpenVPNServerConfigs,
+      } as any);
+
+      sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: 'server_config', ccd: '' } as any);
+
+      await request(app.express)
+        .put(INSTALL_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnServer.id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(200);
+          expect(ensureOpenVPNClientConfigDir.calledOnce).to.be.true;
+          expect(ensureOpenVPNClientConfigDir.firstCall.args[0]).to.equal('/etc/openvpn/ccd');
+          expect(ensureOpenVPNClientConfigDir.firstCall.args[1]).to.equal('nogroup');
+          expect(installOpenVPNServerConfigs.calledOnce).to.be.true;
+          expect(ensureOpenVPNClientConfigDir.calledBefore(installOpenVPNServerConfigs)).to.be.true;
+        });
+    });
+
+    it('admin user should remove client-config-dir after uninstalling server config', async () => {
+      const uninstallOpenVPNConfigs = sinon.stub().resolves();
+      const removeOpenVPNClientConfigDirIfEmpty = sinon.stub().resolves();
+
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        uninstallOpenVPNConfigs,
+        removeOpenVPNClientConfigDirIfEmpty,
+      } as any);
+
+      await request(app.express)
+        .put(UNINSTALL_ROUTE)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          fwcloud: fwcProduct.fwcloud.id,
+          firewall: fwcProduct.firewall.id,
+          openvpn: fwcProduct.openvpnServer.id,
+        })
+        .then((response) => {
+          expect(response.status).to.equal(200);
+          expect(uninstallOpenVPNConfigs.calledOnce).to.be.true;
+          expect(removeOpenVPNClientConfigDirIfEmpty.calledOnce).to.be.true;
+          expect(removeOpenVPNClientConfigDirIfEmpty.firstCall.args[0]).to.equal(
+            '/etc/openvpn/ccd',
+          );
+          expect(uninstallOpenVPNConfigs.calledBefore(removeOpenVPNClientConfigDirIfEmpty)).to.be
+            .true;
+        });
+    });
+  });
+
   describe('enable and disable 2FA on an OpenVPN client', () => {
     it('admin user should return error when server 2FA is disabled', async () => {
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
@@ -433,6 +564,7 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         }),
       );
 
+      const progressMessages: Array<{ type: string; message: string; task_id?: string }> = [];
       const installOpenVPNClientConfigs = sinon.stub().resolves();
       const installOpenVPNServerConfigs = sinon.stub().resolves();
       const uninstallOpenVPNConfigs = sinon.stub().resolves();
@@ -449,6 +581,12 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
         ping,
       } as any);
       sinon.stub(OpenVPN, 'dumpCfg').resolves({ cfg: '', ccd: 'client_ccd' } as any);
+      sinon.stub(Channel, 'fromRequest').resolves({
+        emit: (_event: string, payload: { type: string; message: string; task_id?: string }) => {
+          progressMessages.push(payload);
+          return true;
+        },
+      } as any);
 
       // Stub encryption to return the text as is for easier assertions
       sinon.stub(PgpHelper.prototype, 'encrypt').callsFake(async (text: string) => text);
@@ -498,6 +636,26 @@ describe(describeName('OpenVPN 2FA Routes E2E Tests'), () => {
               name: `${serverCN}_2fa_users.txt`,
               content: `${clientCN}\n`,
             },
+          ]);
+          expect(progressMessages.map((message) => message.type)).to.deep.equal([
+            'start_task',
+            'info',
+            'notice',
+            'notice',
+            'notice',
+            'success',
+            'end_task',
+          ]);
+          expect(
+            progressMessages
+              .filter((message) => message.type !== 'start_task' && message.type !== 'end_task')
+              .map((message) => message.message),
+          ).to.deep.equal([
+            `Enabling 2FA for the OpenVPN client '${clientCN}'`,
+            'Uploading CCD configuration file',
+            'Installing OpenVPN 2FA secret',
+            'Updating OpenVPN 2FA users list',
+            '2FA successfully enabled',
           ]);
         });
     });

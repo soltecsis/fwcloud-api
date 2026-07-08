@@ -26,6 +26,8 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  OpenVPNStatusSamplingAgentConfig,
+  OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
   SystemCtlInfo,
 } from './communication';
@@ -202,6 +204,57 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         dir: dir,
         files: files,
       };
+
+      await axios.delete(pathUrl, config);
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async ensureOpenVPNClientConfigDir(
+    dir: string,
+    group: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      eventEmitter.emit(
+        'message',
+        new ProgressInfoPayload(
+          `Preparing OpenVPN client configuration directory '${dir}' on: (${this.connectionData.host})\n`,
+        ),
+      );
+
+      const pathUrl: string = this.url + '/api/v1/openvpn/dirs/ensure';
+      await axios.put(
+        pathUrl,
+        {
+          dir,
+          owner: 'root',
+          group,
+          mode: '750',
+        },
+        this.config,
+      );
+    } catch (error) {
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async removeOpenVPNClientConfigDirIfEmpty(
+    dir: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      eventEmitter.emit(
+        'message',
+        new ProgressInfoPayload(
+          `Removing OpenVPN client configuration directory '${dir}' if empty from: (${this.connectionData.host})\n`,
+        ),
+      );
+
+      const pathUrl: string = this.url + '/api/v1/openvpn/dirs/remove-empty';
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.data = { dir };
 
       await axios.delete(pathUrl, config);
     } catch (error) {
@@ -465,6 +518,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         action: enabled ? 'enable' : 'disable',
         ws_id: await this.createPluginWebSocket(eventEmitter),
         server_cn: options?.serverCN ?? null,
+        plugin_params: options?.pluginParams ?? null,
       };
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
@@ -661,6 +715,55 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
 
       throw new Error('Unexpected getOpenVPNHistoryFile response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async syncOpenVPNStatusSampling(configData: OpenVPNStatusSamplingAgentConfig): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.headers['Content-Type'] = 'application/json';
+
+      const response: AxiosResponse<{ accepted: boolean }> = await axios.put(
+        pathUrl,
+        {
+          enabled: configData.enabled,
+          status_files: configData.statusFiles,
+        },
+        config,
+      );
+
+      if (response.status === 200 && response.data.accepted) {
+        return;
+      }
+
+      throw new Error('Unexpected syncOpenVPNStatusSampling response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
+      const response: AxiosResponse<{
+        accepted: boolean;
+        enabled: boolean;
+        status_files: string[];
+      }> = await axios.get(pathUrl, this.config);
+
+      if (response.status === 200 && response.data.accepted) {
+        return {
+          accepted: response.data.accepted,
+          enabled: response.data.enabled,
+          statusFiles: response.data.status_files,
+        };
+      }
+
+      throw new Error('Unexpected getOpenVPNStatusSamplingState response');
     } catch (error) {
       this.handleRequestException(error);
     }

@@ -2,7 +2,7 @@ import { Application } from '../../../../Application';
 import { AgentCommunication } from '../../../../communications/agent.communication';
 import { OpenVPNHistoryRecord } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
-import { Firewall, FirewallInstallCommunication } from '../../../firewall/Firewall';
+import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
 import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
@@ -16,8 +16,6 @@ const AUDIT_ENTITY = 'OpenVPNStatusHistory';
 
 export type OpenVPNStatusWorkerIterationDependencies = {
   getOpenVPNServers: () => Promise<OpenVPN[]>;
-  getClusterFirewalls: (clusterId: number) => Promise<Firewall[]>;
-  getStatusOption: (openVPNId: number) => Promise<OpenVPNOption | null>;
 };
 
 const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
@@ -29,27 +27,14 @@ const defaultDependencies: OpenVPNStatusWorkerIterationDependencies = {
       .createQueryBuilder('openvpn')
       .innerJoin('openvpn.crt', 'crt')
       .innerJoinAndSelect('openvpn.firewall', 'firewall')
+      .leftJoinAndSelect('openvpn.openVPNOptions', 'options')
       .where('openvpn.parentId IS NULL')
       .andWhere('crt.type = 2')
+      .andWhere('openvpn.statusSamplingEnabled = :enabled', { enabled: true })
       .andWhere('firewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
       })
       .getMany();
-  },
-  getClusterFirewalls: async (clusterId: number): Promise<Firewall[]> => {
-    return db
-      .getSource()
-      .getRepository(Firewall)
-      .createQueryBuilder('firewall')
-      .where('firewall.clusterId = :cluster', { cluster: clusterId })
-      .andWhere('firewall.install_communication = :communication', {
-        communication: FirewallInstallCommunication.Agent,
-      })
-      .getMany();
-  },
-  getStatusOption: async (openVPNId: number): Promise<OpenVPNOption | null> => {
-    const option = await OpenVPN.getOptData(db.getQuery(), openVPNId, 'status');
-    return (option as OpenVPNOption) ?? null;
   },
 };
 
@@ -92,6 +77,12 @@ function buildRecoverableErrorSummary(messages: string[]): string | null {
   return `${messages[0]} (+${messages.length - 1} more errors)`;
 }
 
+function getStatusFile(openvpn: OpenVPN): string | null {
+  return (
+    openvpn.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+  );
+}
+
 export async function iterate(
   application: Application,
   dependencies: OpenVPNStatusWorkerIterationDependencies = defaultDependencies,
@@ -125,35 +116,23 @@ export async function iterate(
     for (const openvpn of openvpns) {
       summary.processedOpenvpns++;
       try {
-        const firewalls: Firewall[] = openvpn.firewall.clusterId
-          ? await dependencies.getClusterFirewalls(openvpn.firewall.clusterId)
-          : [openvpn.firewall];
+        const statusFile = getStatusFile(openvpn);
 
-        let entries: CreateOpenVPNStatusHistoryData[] = [];
-        for (const firewall of firewalls) {
-          const communication: AgentCommunication =
-            (await firewall.getCommunication()) as AgentCommunication;
-
-          const statusOption: OpenVPNOption | null = await dependencies.getStatusOption(openvpn.id);
-
-          if (statusOption) {
-            const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(
-              statusOption.arg,
-            );
-
-            entries = entries.concat(
-              data.map((item) => ({
-                timestampInSeconds: item.timestamp,
-                name: item.name,
-                address: item.address,
-                bytesReceived: item.bytesReceived,
-                bytesSent: item.bytesSent,
-                connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
-              })),
-            );
-          }
+        if (!statusFile) {
+          throw new Error('OpenVPN status sampling has no configured status file');
         }
 
+        const communication: AgentCommunication =
+          (await openvpn.firewall.getCommunication()) as AgentCommunication;
+        const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(statusFile);
+        const entries: CreateOpenVPNStatusHistoryData[] = data.map((item) => ({
+          timestampInSeconds: item.timestamp,
+          name: item.name,
+          address: item.address,
+          bytesReceived: item.bytesReceived,
+          bytesSent: item.bytesSent,
+          connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
+        }));
         const persistedEntries: CreateOpenVPNStatusHistorySummary = await service.createWithSummary(
           openvpn.id,
           entries,
