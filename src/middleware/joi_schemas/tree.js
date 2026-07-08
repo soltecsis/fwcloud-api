@@ -47,7 +47,7 @@ schema.validate = req => {
     
     if (req.method==='PUT') {
       if (req.url==='/tree/objects/get' || req.url==='/tree/services/get')
-        schema = schema.append({ objStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
+        schema = schema.append({ objStandard: sharedSch._0_1.optional(), objCloud: sharedSch._0_1.optional() });
       else if (req.url==='/tree/node/get')
         schema = schema.append({ node_type: sharedSch.name, id_obj: sharedSch.id.allow(null) });
       else if (req.url === '/tree/node/getByNodeType') {

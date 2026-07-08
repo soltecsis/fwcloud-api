@@ -174,15 +174,115 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
       expect(fs.readFileSync(filePath, 'utf8')).to.contain('$IPTABLES_RESTORE --noflush');
     });
 
-    it('should reject saved optimized mode when the real compiler is NFTables', async () => {
+    it('should allow saved optimized mode when the real compiler is NFTables', async () => {
       firewall.options = 0x1000 | FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
       await db.getSource().manager.getRepository(Firewall).save(firewall);
 
-      await service.compile(fwcloud.id, firewall.id).catch((error) => {
-        expect(error).to.deep.include({
-          msg: 'Optimized policy compilation is only supported for IPTables firewalls',
-        });
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      expect(script).to.contain('POLICY_COMPILER="NFTables"');
+      expect(script).to.contain('POLICY_COMPILATION_MODE="optimized"');
+    });
+
+    it('should generate nft -f blocks for optimizable NFTables rules', async () => {
+      firewall.options = 0x1000 | FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        comment: 'Stateful firewall rule.',
+        run_before: null,
+        run_after: null,
       });
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:OUTPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      expect(script).to.contain("cat <<'FWC_NFT_RULES' | $NFT -f -");
+      expect(script).to.contain('add rule ip filter INPUT');
+      expect(script).to.contain('add rule ip filter OUTPUT');
+      expect(script).to.contain('comment "Stateful firewall rule."');
+      expect(script).not.to.contain('comment \\"Stateful firewall rule.\\"');
+    });
+
+    it('should not flush previous NFTables rules inside optimized nft -f blocks', async () => {
+      firewall.options = 0x1000 | FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      const nftBlocks =
+        script.match(/cat <<'FWC_NFT_RULES' \| \$NFT -f -\n[\s\S]*?\nFWC_NFT_RULES/g) ?? [];
+
+      expect(nftBlocks.length).to.be.greaterThan(0);
+      expect(script).to.contain('reset_nft()');
+      expect(script).to.contain('$NFT flush ruleset ip');
+      for (const nftBlock of nftBlocks) {
+        expect(nftBlock).not.to.contain('flush ruleset');
+        expect(nftBlock).not.to.contain('flush chain');
+      }
+    });
+
+    it('should generate nft -f blocks for automatic NFTables tables and mangle rules', async () => {
+      firewall.options = 0x1000 | FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION;
+      await db.getSource().manager.getRepository(Firewall).save(firewall);
+
+      await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: PolicyTypesMap.get('IPv4:INPUT'),
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        special: 0,
+        options: 1,
+        mark: fwcProduct.mark.id,
+        run_before: null,
+        run_after: null,
+      });
+
+      await service.compile(fwcloud.id, firewall.id);
+
+      const script = fs.readFileSync(filePath, 'utf8');
+      const nftBlocks =
+        script.match(/cat <<'FWC_NFT_RULES' \| \$NFT -f -\n[\s\S]*?\nFWC_NFT_RULES/g) ?? [];
+
+      expect(nftBlocks.some((block) => block.includes('add table ip filter'))).to.be.true;
+      expect(
+        nftBlocks.some((block) =>
+          block.includes('add rule ip mangle PREROUTING counter meta mark set ct mark'),
+        ),
+      ).to.be.true;
     });
   });
 

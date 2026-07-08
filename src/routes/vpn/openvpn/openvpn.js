@@ -59,6 +59,7 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
+import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
@@ -77,6 +78,7 @@ import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { SSHCommunication } from '../../../communications/ssh.communication';
 import { PgpHelper } from '../../../utils/pgp';
+import { EventEmitter } from 'events';
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -100,6 +102,20 @@ const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
 
 const getOpenVPN2FATaskId = (firewallId) => `openvpn-2fa-firewall-${firewallId}`;
 
+const getOpenVPN2FASilentChannel = () => new EventEmitter();
+
+const getOpenVPN2FARuntimeChannel = (channel) => {
+	const runtimeChannel = new EventEmitter();
+
+	runtimeChannel.on('message', (payload) => {
+		if (payload?.type === 'ssh_cmd_output' || payload?.type === 'error') {
+			channel.emit('message', payload);
+		}
+	});
+
+	return runtimeChannel;
+};
+
 const getTargetFirewalls = async (firewall) => {
 	if (!firewall.clusterId) {
 		return [firewall];
@@ -112,6 +128,24 @@ const getTargetFirewalls = async (firewall) => {
 		.orderBy('firewall.fwmaster', 'DESC')
 		.addOrderBy('firewall.id', 'ASC')
 		.getMany();
+};
+
+const disableOpenVPNStatusSamplingIfEnabled = async (openvpnId) => {
+	const samplingService = await new OpenVPNStatusSamplingService(undefined).build();
+	const sampling = await samplingService.findOneByOpenVPN(openvpnId);
+
+	if (!sampling || !sampling.enabled) {
+		return;
+	}
+
+	const disabledSampling = await samplingService.save({
+		openVPNId: openvpnId,
+		enabled: false,
+		collectorFirewallId: sampling.collectorFirewallId ?? null,
+		statusFile: null,
+	});
+
+	await samplingService.syncAgent(disabledSampling);
 };
 
 const getCommunicationForFirewall = async (firewall, req) => {
@@ -168,16 +202,16 @@ const emitOpenVPN2FANodeStart = (channel, firewall, enabled, clusterName = null)
 	channel.emit('message', new ProgressPayload('start_task', false, message, getOpenVPN2FATaskId(firewall.id)));
 };
 
-const emitOpenVPN2FANodeEnd = (channel, firewall, enabled) => {
-	channel.emit(
-		'message',
-		new ProgressSuccessPayload(
-			enabled
-				? `OpenVPN 2FA enabled successfully on '${firewall.name}'`
-				: `OpenVPN 2FA disabled successfully on '${firewall.name}'`
-		)
-	);
+const emitOpenVPN2FANodeEnd = (channel, firewall) => {
 	channel.emit('message', new ProgressPayload('end_task', false, '', getOpenVPN2FATaskId(firewall.id)));
+};
+
+const emitOpenVPN2FAMainAction = (channel, message) => {
+	channel.emit('message', new ProgressInfoPayload(message));
+};
+
+const emitOpenVPN2FASuccess = (channel, message = '2FA successfully enabled') => {
+	channel.emit('message', new ProgressSuccessPayload(message));
 };
 
 const emitOpenVPN2FANodeNotice = (channel, message) => {
@@ -277,22 +311,23 @@ const disableOpenVPNServer2FA = async (req, firewall, crt, clusterName = null) =
 		emitOpenVPN2FANodeStart(channel, targetFirewall, false, clusterName);
 		if (targetFirewall.install_communication === FirewallInstallCommunication.Agent) {
 			emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime and server data for '${crt.cn}' on '${targetFirewall.name}'`);
-			await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
+			await communication.installPlugin('openvpn-2fa', false, getOpenVPN2FARuntimeChannel(channel), { serverCN: crt.cn });
 		} else {
 			if (!hasOtherServersWith2FA) {
 				emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA runtime from '${targetFirewall.name}'`);
-				await communication.installPlugin('openvpn-2fa', false, channel);
+				await communication.installPlugin('openvpn-2fa', false, getOpenVPN2FARuntimeChannel(channel));
 			}
 			emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA secrets directory for server '${crt.cn}' on '${targetFirewall.name}'`);
-			await communication.installPlugin('openvpn-2fa', false, channel, { serverCN: crt.cn });
+			await communication.installPlugin('openvpn-2fa', false, getOpenVPN2FARuntimeChannel(channel), { serverCN: crt.cn });
 			emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN 2FA users file '${serverUsersFilename}' from '${targetFirewall.name}'`);
-			await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], channel);
+			await communication.uninstallOpenVPNConfigs('/etc/openvpn', [serverUsersFilename], getOpenVPN2FASilentChannel());
 		}
 		emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
+		await ensureOpenVPNClientConfigDir(req.dbCon, req.body.openvpn, communication, getOpenVPN2FASilentChannel());
 		await communication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 			content: cfgDump.cfg,
 			name: openvpnCfg.install_name
-		}], channel);
+		}], getOpenVPN2FASilentChannel());
 		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
 	}
 
@@ -325,6 +360,7 @@ const uninstallOpenVPNServerConfig = async (req, firewall) => {
 
 		emitOpenVPN2FANodeNotice(channel, `Removing OpenVPN server configuration '${req.openvpn.install_name}' from '${targetFirewall.name}'`);
 		await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir, [req.openvpn.install_name], channel);
+		await removeOpenVPNClientConfigDirIfEmpty(req.dbCon, req.body.openvpn, communication, channel);
 	}
 };
 
@@ -353,7 +389,7 @@ const disableOpenVPNClient2FA = async (req, firewall, crt, clusterName = null) =
 			await communication.uninstallOpenVPNConfigs(
 				getOpenVPN2FASecretDir(serverCN),
 				[getOpenVPN2FASecretFilename(serverCN, crt.cn)],
-				channel
+				getOpenVPN2FASilentChannel()
 			);
 		} catch (error) {
 			if (!error?.message || error.message.indexOf('Directory not found') === -1) {
@@ -364,7 +400,7 @@ const disableOpenVPNClient2FA = async (req, firewall, crt, clusterName = null) =
 		await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
 			name: getOpenVPN2FAServerUsersFilename(serverCN),
 			content: usersListContent
-		}], channel);
+		}], getOpenVPN2FASilentChannel());
 		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
 	}
 
@@ -517,6 +553,37 @@ const buildClient2FASecretFile = (secret) => {
 		'" DISALLOW_REUSE',
 		'" RATE_LIMIT 3 30'
 	].join('\n');
+};
+
+const getOpenVPNClientConfigDirSettings = async (dbCon, openvpnId) => {
+	const clientConfigDirOpt = await OpenVPN.getOptData(dbCon, openvpnId, 'client-config-dir');
+	if (!clientConfigDirOpt) return null;
+
+	const groupOpt = await OpenVPN.getOptData(dbCon, openvpnId, 'group');
+	const group = groupOpt?.arg || 'nogroup';
+
+	if (!/^[a-zA-Z_]([a-zA-Z0-9_-]{0,31}|[a-zA-Z0-9_-]{0,30}\$)$/.test(group)) {
+		throw fwcError.other('Invalid OpenVPN group option');
+	}
+
+	return {
+		dir: clientConfigDirOpt.arg,
+		group
+	};
+};
+
+const ensureOpenVPNClientConfigDir = async (dbCon, openvpnId, communication, channel) => {
+	const settings = await getOpenVPNClientConfigDirSettings(dbCon, openvpnId);
+	if (!settings) return;
+
+	await communication.ensureOpenVPNClientConfigDir(settings.dir, settings.group, channel);
+};
+
+const removeOpenVPNClientConfigDirIfEmpty = async (dbCon, openvpnId, communication, channel) => {
+	const settings = await getOpenVPNClientConfigDirSettings(dbCon, openvpnId);
+	if (!settings) return;
+
+	await communication.removeOpenVPNClientConfigDirIfEmpty(settings.dir, channel);
 };
 
 const installOpenVPNClientCCD = async (
@@ -753,7 +820,12 @@ router.put('/del',
 				});
 				await disableOpenVPNServer2FA(req, firewall, req.openvpn);
 				await uninstallOpenVPNServerConfig(req, firewall);
-			} else if (req.openvpn.type === 1 && Number(req.openvpn.tfa_enabled) === 1) {
+			}
+
+			if (req.openvpn.type !== 1) {
+				await disableOpenVPNStatusSamplingIfEnabled(req.openvpn.id);
+			}
+			else if (req.openvpn.type === 1 && Number(req.openvpn.tfa_enabled) === 1) {
 				const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
 					where: { id: req.openvpn.firewall }
 				});
@@ -852,6 +924,7 @@ router.put('/install', async (req, res, next) => {
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw { 'msg': 'Empty install dir or install name' };
+			await ensureOpenVPNClientConfigDir(req.dbCon, req.body.openvpn, communication, channel);
 			await communication.installOpenVPNServerConfigs(req.openvpn.install_dir, [{
 				content: cfgDump.cfg,
 				name: req.openvpn.install_name
@@ -933,6 +1006,7 @@ router.put('/uninstall', async (req, res, next) => {
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw { 'msg': 'Empty install dir or install name' };
 			await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir, [req.openvpn.install_name], channel);
+			await removeOpenVPNClientConfigDirIfEmpty(req.dbCon, req.body.openvpn, communication, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -1327,26 +1401,30 @@ router.put('/2fa/server', async (req, res, next) => {
 			const preparedTargets = await prepareOpenVPN2FATargets(req, targetFirewalls, channel, clusterName);
 			for (const { firewall: targetFirewall, communication: targetCommunication } of preparedTargets) {
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
+				emitOpenVPN2FAMainAction(channel, `Enabling 2FA for the OpenVPN server '${crt.cn}'`);
 				if (targetFirewall.install_communication === FirewallInstallCommunication.Agent) {
-					emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA runtime and server data for '${crt.cn}' on '${targetFirewall.name}'`);
-					await targetCommunication.installPlugin('openvpn-2fa', true, channel, { serverCN: crt.cn });
+					emitOpenVPN2FANodeNotice(channel, 'Installing OpenVPN 2FA runtime');
+					await targetCommunication.installPlugin('openvpn-2fa', true, getOpenVPN2FARuntimeChannel(channel), { serverCN: crt.cn });
+					emitOpenVPN2FANodeNotice(channel, 'Creating OpenVPN 2FA users file');
 				} else {
 					if (!hasOtherServersWith2FA) {
-						emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA runtime on '${targetFirewall.name}'`);
-						await targetCommunication.installPlugin('openvpn-2fa', true, channel);
+						emitOpenVPN2FANodeNotice(channel, 'Installing OpenVPN 2FA runtime');
+						await targetCommunication.installPlugin('openvpn-2fa', true, getOpenVPN2FARuntimeChannel(channel));
 					}
-					emitOpenVPN2FANodeNotice(channel, `Creating OpenVPN 2FA users file '${serverUsersFilename}' on '${targetFirewall.name}'`);
+					emitOpenVPN2FANodeNotice(channel, 'Creating OpenVPN 2FA users file');
 					await targetCommunication.installOpenVPNServerConfigs('/etc/openvpn', [{
 						content: '',
 						name: serverUsersFilename
-					}], channel);
+					}], getOpenVPN2FASilentChannel());
 				}
-				emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN server configuration '${openvpnCfg.install_name}' on '${targetFirewall.name}'`);
+				emitOpenVPN2FANodeNotice(channel, 'Updating OpenVPN server configuration');
+				await ensureOpenVPNClientConfigDir(req.dbCon, req.body.openvpn, targetCommunication);
 				await targetCommunication.installOpenVPNServerConfigs(openvpnCfg.install_dir, [{
 					content: cfgDump.cfg,
 					name: openvpnCfg.install_name
-				}], channel);
-				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
+				}], getOpenVPN2FASilentChannel());
+				emitOpenVPN2FASuccess(channel);
+				emitOpenVPN2FANodeEnd(channel, targetFirewall);
 			}
 		}
 
@@ -1432,27 +1510,28 @@ router.put('/2fa/client', async (req, res, next) => {
 			const preparedTargets = await prepareOpenVPN2FATargets(req, targetFirewalls, channel, clusterName);
 			for (const { firewall: targetFirewall, communication } of preparedTargets) {
 				emitOpenVPN2FANodeStart(channel, targetFirewall, enabled, clusterName);
-				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN CCD for client '${crt.cn}' on '${targetFirewall.name}'`);
+				emitOpenVPN2FAMainAction(channel, `Enabling 2FA for the OpenVPN client '${crt.cn}'`);
+				emitOpenVPN2FANodeNotice(channel, 'Uploading CCD configuration file');
 				await installOpenVPNClientCCD(
 					req.dbCon,
 					req.body.fwcloud,
 					req.body.openvpn,
 					req.openvpn.openvpn,
 					crt,
-					communication,
-					channel
+					communication
 				);
-				emitOpenVPN2FANodeNotice(channel, `Installing OpenVPN 2FA secret for client '${crt.cn}' on '${targetFirewall.name}'`);
+				emitOpenVPN2FANodeNotice(channel, 'Installing OpenVPN 2FA secret');
 				await communication.installOpenVPNServerConfigs(getOpenVPN2FASecretDir(serverCN), [{
 					name: getOpenVPN2FASecretFilename(serverCN, crt.cn),
 					content: secretFileContent
-				}], channel);
-				emitOpenVPN2FANodeNotice(channel, `Updating OpenVPN 2FA users list '${getOpenVPN2FAServerUsersFilename(serverCN)}' on '${targetFirewall.name}'`);
+				}], getOpenVPN2FASilentChannel());
+				emitOpenVPN2FANodeNotice(channel, 'Updating OpenVPN 2FA users list');
 				await communication.installOpenVPNServerConfigs('/etc/openvpn', [{
 					name: getOpenVPN2FAServerUsersFilename(serverCN),
 					content: usersListContent
-				}], channel);
-				emitOpenVPN2FANodeEnd(channel, targetFirewall, enabled);
+				}], getOpenVPN2FASilentChannel());
+				emitOpenVPN2FASuccess(channel);
+				emitOpenVPN2FANodeEnd(channel, targetFirewall);
 			}
 			await ensureClient2FAOpenVPNOptions(req.dbCon, req.body.openvpn, crt.cn);
 
