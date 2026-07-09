@@ -67,6 +67,57 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     await repository.delete({ code: Like(`${codePrefix}%`) });
   });
 
+  describe('POST /fwclouds/:fwcloud/assistant/profiles/validate', () => {
+    it('should validate profile definitions without requiring a confirmation token', async () => {
+      const previousConfirmationTokenSetting = app.config.get('confirmation_token');
+      app.config.set('confirmation_token', true);
+
+      try {
+        await request(app.express)
+          .post(`/fwclouds/${fwCloud.id}/assistant/profiles/validate`)
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({
+            targetKind: 'firewall',
+            model: {
+              compatibility: {
+                target_kinds: ['firewall'],
+                supportedRoles: ['interface'],
+              },
+              policyStructure: {
+                interfaces: [],
+                rules: [
+                  {
+                    chain: 'forward',
+                    action: 'accept',
+                    source: [{ type: 'interface', value: 'interface' }],
+                  },
+                ],
+              },
+              provision: {
+                interfaces: [{ name: 'interface', role: 'interface' }],
+                rules: [{ chain: 'forward', action: 'accept', inRole: 'interface' }],
+              },
+            },
+            name: 'Profile',
+            description: null,
+            scope: 'fwcloud',
+            category: 'Custom',
+          })
+          .expect(200)
+          .then((response) => {
+            expect(response.body).not.to.haveOwnProperty('fwc_confirm_token');
+            expect(response.body.data).to.deep.eq({
+              valid: true,
+              errors: [],
+              warnings: [],
+            });
+          });
+      } finally {
+        app.config.set('confirmation_token', previousConfirmationTokenSetting);
+      }
+    });
+  });
+
   describe('POST /fwclouds/:fwcloud/assistant/profiles', () => {
     it('should create a FWCloud-scoped custom profile with generated code and version defaults', async () => {
       const expectedCode = `${codePrefix}basic-lan-wan-profile`;

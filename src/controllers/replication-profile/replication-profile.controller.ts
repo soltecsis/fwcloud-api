@@ -20,6 +20,7 @@ import type {
   ReplicationProfileTargetKind,
 } from '../../models/replication-profile/replication-profile.constants';
 import {
+  DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
   ReplicationProfileService,
   type ReplicationProfileCatalogFilters,
   type CreateCustomReplicationProfileOptions,
@@ -27,6 +28,7 @@ import {
   type ReplicationProfileManagementFailureAuditInput,
   type ReplicationProfileMutationActor,
 } from '../../models/replication-profile/replication-profile.service';
+import type { ReplicationProfileValidationError } from '../../models/replication-profile/replication-profile-validation.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
 import type {
   PolicyReplicationMode,
@@ -118,6 +120,22 @@ export class ReplicationProfileController extends Controller {
     );
 
     return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+  }
+
+  @Validate(ReplicationProfileStoreDto)
+  public async validateDefinition(request: Request): Promise<ResponseBuilder> {
+    (await ReplicationProfilePolicy.create(request.session.user, this._fwCloud)).authorize();
+    const replicationProfileService = await this.replicationProfileService();
+    const body = request.body as ReplicationProfileStoreDto;
+
+    const validationErrors = replicationProfileService.validateDefinition({
+      targetKind: body.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
+      model: body.model,
+    });
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(this.toValidationResponse(validationErrors));
   }
 
   @Validate(ReplicationProfileCloneDto)
@@ -501,6 +519,19 @@ export class ReplicationProfileController extends Controller {
       is_active: profile.isActive,
       is_deprecated: profile.isDeprecated,
       fwcloud_id: profile.fwCloudId,
+    };
+  }
+
+  private toValidationResponse(
+    validationErrors: ReplicationProfileValidationError[],
+  ): Record<string, unknown> {
+    const warnings = validationErrors.filter((error) => error.severity === 'warning');
+    const errors = validationErrors.filter((error) => error.severity !== 'warning');
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
     };
   }
 }
