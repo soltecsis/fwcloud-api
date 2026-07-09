@@ -57,7 +57,6 @@ import {
   isReplicationProfilePort,
   isReplicationProfileStringValue,
   REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
-  REPLICATION_PROFILE_INTERFACE_ROLES,
   REPLICATION_PROFILE_RULE_ACTIONS,
   REPLICATION_PROFILE_RULE_PROTOCOLS,
   REPLICATION_PROFILE_TARGET_KINDS,
@@ -65,7 +64,6 @@ import {
 import { findSecretLikePaths } from '../../../models/replication-profile/replication-profile-secret.guard';
 
 const TARGET_KINDS: readonly string[] = REPLICATION_PROFILE_TARGET_KINDS;
-const ROLES: readonly string[] = REPLICATION_PROFILE_INTERFACE_ROLES;
 const RULE_ACTIONS: readonly string[] = REPLICATION_PROFILE_RULE_ACTIONS;
 const RULE_PROTOCOLS: readonly string[] = REPLICATION_PROFILE_RULE_PROTOCOLS;
 
@@ -86,6 +84,10 @@ function isArrayOfNonEmptyStrings(value: unknown): boolean {
   return (
     Array.isArray(value) && value.every((item) => asReplicationProfileNonEmptyString(item) !== null)
   );
+}
+
+function isNonEmptyArrayOfNonEmptyStrings(value: unknown): boolean {
+  return Array.isArray(value) && value.length > 0 && isArrayOfNonEmptyStrings(value);
 }
 
 function isProvisionService(value: unknown): boolean {
@@ -125,7 +127,7 @@ function profileValidator(name: string, validator: new () => ValidatorConstraint
 
 /**
  * `model.compatibility` (required): declares which target kinds the profile
- * supports and, optionally, which interface roles it relies on. Both the
+ * supports and, optionally, which logical interface names it relies on. Both the
  * camelCase (`targetKinds`) and snake_case (`target_kinds`) spellings are
  * accepted, mirroring the tolerant reader in ReplicationProfileService.
  */
@@ -139,12 +141,12 @@ class IsProfileCompatibilityConstraint implements ValidatorConstraintInterface {
     return (
       !!record &&
       isNonEmptyArraySubsetOf(targetKinds, TARGET_KINDS) &&
-      (supportedRoles === undefined || isArraySubsetOf(supportedRoles, ROLES))
+      (supportedRoles === undefined || isArrayOfNonEmptyStrings(supportedRoles))
     );
   }
 
   defaultMessage(args: ValidationArguments): string {
-    return `${args.property} must declare targetKinds (a non-empty array of ${TARGET_KINDS.join('/')}) and, if present, supportedRoles limited to ${ROLES.join('/')}`;
+    return `${args.property} must declare targetKinds (a non-empty array of ${TARGET_KINDS.join('/')}) and, if present, supportedRoles as non-empty strings`;
   }
 }
 
@@ -166,13 +168,13 @@ class IsProfileRoleAssignmentsConstraint implements ValidatorConstraintInterface
 
     return (
       !!record &&
-      isNonEmptyArraySubsetOf(record.interfaceRoles, ROLES) &&
+      isNonEmptyArrayOfNonEmptyStrings(record.interfaceRoles) &&
       (record.nodeRoles === undefined || isArrayOfNonEmptyStrings(record.nodeRoles))
     );
   }
 
   defaultMessage(args: ValidationArguments): string {
-    return `${args.property} must declare interfaceRoles (a non-empty array of ${ROLES.join('/')}) and, if present, nodeRoles as an array of non-empty strings`;
+    return `${args.property} must declare interfaceRoles and, if present, nodeRoles as arrays of non-empty strings`;
   }
 }
 
@@ -183,9 +185,9 @@ const IsProfileRoleAssignments = profileValidator(
 
 /**
  * `model.provision` (optional): when present, its declarative interfaces and
- * policy rules must stay within the MVP vocabulary — actions limited to
- * accept/deny and roles limited to wan/lan/dmz. Unknown extra keys are tolerated
- * so the block can grow without breaking older clients.
+ * policy rules must stay within the MVP action/service vocabulary while allowing
+ * custom logical interface names. Unknown extra keys are tolerated so the block
+ * can grow without breaking older clients.
  */
 @ValidatorConstraint()
 class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
@@ -212,11 +214,12 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
 
       return (
         !!record &&
-        isReplicationProfileStringValue(record.action, RULE_ACTIONS) &&
+        (record.action === undefined ||
+          isReplicationProfileStringValue(record.action, RULE_ACTIONS)) &&
         REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS.every(
           (roleField) =>
             record[roleField] === undefined ||
-            isReplicationProfileStringValue(record[roleField], ROLES),
+            asReplicationProfileNonEmptyString(record[roleField]) !== null,
         ) &&
         (record.service === undefined || isProvisionService(record.service))
       );
@@ -230,7 +233,7 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
 
     return interfaces.every((item) => {
       const record = asReplicationProfileRecord(item);
-      if (!record || !isReplicationProfileStringValue(record.role, ROLES)) {
+      if (!record || asReplicationProfileNonEmptyString(record.role) === null) {
         return false;
       }
 
@@ -239,7 +242,7 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
   }
 
   defaultMessage(args: ValidationArguments): string {
-    return `${args.property} rules must use action ${RULE_ACTIONS.join('/')} and roles limited to ${ROLES.join('/')}`;
+    return `${args.property} rules must use action ${RULE_ACTIONS.join('/')} and non-empty interface role strings`;
   }
 }
 
@@ -295,6 +298,22 @@ export class ReplicationProfileStoreModelDto {
 
   @IsOptional()
   @IsObject()
+  templateStructure?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  template_structure?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  policyStructure?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  policy_structure?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
   options?: Record<string, unknown>;
 }
 
@@ -313,8 +332,9 @@ export class ReplicationProfileVersionStoreDto {
   @MaxLength(255)
   scope: string;
 
+  @IsOptional()
   @IsIn(REPLICATION_PROFILE_TARGET_KINDS)
-  targetKind: string;
+  targetKind?: string;
 
   @IsOptional()
   @IsString()

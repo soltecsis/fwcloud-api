@@ -97,7 +97,7 @@ describe(ReplicationProfileStoreDto.name, () => {
   });
 
   describe('required fields', () => {
-    for (const field of ['name', 'scope', 'targetKind', 'model'] as const) {
+    for (const field of ['name', 'scope', 'model'] as const) {
       it(`should reject a payload missing "${field}"`, async () => {
         const payload = minimalPayload();
         delete payload[field];
@@ -115,6 +115,13 @@ describe(ReplicationProfileStoreDto.name, () => {
 
     it('should accept a payload without code, version or roleAssignments', async () => {
       const payload = minimalPayload();
+
+      expect(await validatePayload(payload)).to.be.empty;
+    });
+
+    it('should accept a payload without targetKind', async () => {
+      const payload = minimalPayload();
+      delete payload.targetKind;
 
       expect(await validatePayload(payload)).to.be.empty;
     });
@@ -153,11 +160,21 @@ describe(ReplicationProfileStoreDto.name, () => {
       expect(await validatePayload(payload)).to.include('model.compatibility');
     });
 
-    it('should reject unsupported supportedRoles', async () => {
+    it('should accept custom supportedRoles', async () => {
       const payload = minimalPayload();
       (payload.model as Record<string, unknown>).compatibility = {
         targetKinds: ['firewall'],
         supportedRoles: ['wan', 'guest'],
+      };
+
+      expect(await validatePayload(payload)).to.be.empty;
+    });
+
+    it('should reject invalid supportedRoles values', async () => {
+      const payload = minimalPayload();
+      (payload.model as Record<string, unknown>).compatibility = {
+        targetKinds: ['firewall'],
+        supportedRoles: ['wan', ''],
       };
 
       expect(await validatePayload(payload)).to.include('model.compatibility');
@@ -172,9 +189,16 @@ describe(ReplicationProfileStoreDto.name, () => {
       expect(await validatePayload(payload)).to.include('model.roleAssignments');
     });
 
-    it('should reject unsupported interface roles', async () => {
+    it('should accept custom interface roles', async () => {
       const payload = minimalPayload();
       (payload.model as Record<string, unknown>).roleAssignments = { interfaceRoles: ['vpn'] };
+
+      expect(await validatePayload(payload)).to.be.empty;
+    });
+
+    it('should reject invalid interface role values', async () => {
+      const payload = minimalPayload();
+      (payload.model as Record<string, unknown>).roleAssignments = { interfaceRoles: [''] };
 
       expect(await validatePayload(payload)).to.include('model.roleAssignments');
     });
@@ -204,12 +228,12 @@ describe(ReplicationProfileStoreDto.name, () => {
       ).to.include('model.provision');
     });
 
-    it('should reject a rule role outside wan/lan/dmz', async () => {
+    it('should accept custom rule roles', async () => {
       expect(
         await validatePayload(
           withProvision({ rules: [{ action: 'accept', sourceRole: 'guest' }] }),
         ),
-      ).to.include('model.provision');
+      ).to.be.empty;
     });
 
     it('should reject invalid provision service ports and protocols', async () => {
@@ -228,10 +252,76 @@ describe(ReplicationProfileStoreDto.name, () => {
       ).to.include('model.provision');
     });
 
-    it('should reject a provision interface role outside wan/lan/dmz', async () => {
-      expect(await validatePayload(withProvision({ interfaces: [{ role: 'guest' }] }))).to.include(
-        'model.provision',
-      );
+    it('should accept custom provision interface roles', async () => {
+      expect(await validatePayload(withProvision({ interfaces: [{ role: 'guest' }] }))).to.be.empty;
+    });
+  });
+
+  describe('model policy/template structure', () => {
+    it('should accept structure-only table profiles created by the profile editor', async () => {
+      const payload = minimalPayload();
+      const templateStructure = {
+        mode: 'table',
+        entries: [
+          {
+            target: 'input',
+            ipVersion: 'ipv4',
+            action: 'accept',
+            structure: { source: 'office-lan' },
+            comment: 'Input policy skeleton',
+          },
+          { target: 'vpn', ipVersion: 'any', structure: { tunnels: [] } },
+          { target: 'routing', ipVersion: 'any', structure: { routes: [] } },
+          { target: 'system', ipVersion: 'any', structure: { settings: [] } },
+        ],
+      };
+
+      payload.model = {
+        compatibility: {
+          target_kinds: ['firewall', 'cluster'],
+          supportedTargets: ['input', 'vpn', 'routing', 'system'],
+        },
+        policyStructure: templateStructure,
+        provision: { structure: templateStructure },
+        options: { structureMode: 'table' },
+      };
+
+      expect(await validatePayload(payload)).to.be.empty;
+    });
+
+    it('should accept pasted JSON structure profiles', async () => {
+      const payload = minimalPayload();
+      const templateStructure = {
+        mode: 'json',
+        value: {
+          policies: {
+            ipv4: {
+              forward: [],
+              snat: [],
+              dnat: [],
+            },
+            ipv6: {
+              input: [],
+              output: [],
+            },
+          },
+          vpn: [],
+          routing: [],
+          system: [],
+        },
+      };
+
+      payload.model = {
+        compatibility: {
+          target_kinds: ['firewall', 'cluster'],
+          supportedTargets: ['json'],
+        },
+        template_structure: templateStructure,
+        provision: { structure: templateStructure },
+        options: { structureMode: 'json' },
+      };
+
+      expect(await validatePayload(payload)).to.be.empty;
     });
   });
 
