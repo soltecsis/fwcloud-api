@@ -43,6 +43,11 @@ import {
   ReplicationProfileStoreDto,
   ReplicationProfileVersionStoreDto,
 } from './dtos/replication-profile-store.dto';
+import { ReplicationProfileFromSourceDto } from './dtos/replication-profile-from-source.dto';
+import {
+  ReplicationProfileSnapshotService,
+  type ReplicationProfileSnapshotSource,
+} from '../../models/replication-profile/replication-profile-snapshot.service';
 
 export class ReplicationProfileController extends Controller {
   protected _fwCloud: FwCloud;
@@ -120,6 +125,53 @@ export class ReplicationProfileController extends Controller {
     );
 
     return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+  }
+
+  /**
+   * Creates a custom profile by capturing the interfaces and IPv4 FORWARD
+   * policy of an existing firewall or cluster of this FWCloud. Responds with
+   * the created profile plus the warnings for the rules that could not be
+   * expressed in the template vocabulary.
+   */
+  @Validate(ReplicationProfileFromSourceDto)
+  public async storeFromSource(request: Request): Promise<ResponseBuilder> {
+    const replicationProfileService = await this.replicationProfileService();
+    const body = request.body as ReplicationProfileFromSourceDto;
+
+    await this.assertCanManageProfile(
+      request,
+      await ReplicationProfilePolicy.create(request.session.user, this._fwCloud),
+      replicationProfileService,
+      {
+        operation: 'create',
+        profileCode: this.requestProfileCode(body, replicationProfileService),
+        profileVersion: 1,
+        profileName: body.name,
+        targetKind: body.source?.kind ?? null,
+        scope: body.scope ?? null,
+        category: body.category ?? null,
+      },
+    );
+
+    const snapshotService = await this.replicationProfileSnapshotService();
+    const { profile, warnings } = await snapshotService.createProfileFromSource(
+      {
+        source: body.source as ReplicationProfileSnapshotSource,
+        name: body.name,
+        description: body.description,
+        code: body.code,
+        scope: body.scope,
+        category: body.category,
+      },
+      this.customProfileOptions(request),
+    );
+
+    return ResponseBuilder.buildResponse()
+      .status(201)
+      .body({
+        ...this.toResponse(profile),
+        warnings,
+      });
   }
 
   @Validate(ReplicationProfileStoreDto)
@@ -425,6 +477,12 @@ export class ReplicationProfileController extends Controller {
 
   private profileApplicationService(): Promise<ProfileApplicationService> {
     return this._app.getService<ProfileApplicationService>(ProfileApplicationService.name);
+  }
+
+  private replicationProfileSnapshotService(): Promise<ReplicationProfileSnapshotService> {
+    return this._app.getService<ReplicationProfileSnapshotService>(
+      ReplicationProfileSnapshotService.name,
+    );
   }
 
   private async assertCanManageProfile(

@@ -315,6 +315,11 @@ export class ReplicationProfileStoreModelDto {
   @IsOptional()
   @IsObject()
   options?: Record<string, unknown>;
+
+  /** Provenance of profiles captured from an existing firewall/cluster. */
+  @IsOptional()
+  @IsObject()
+  sourceRef?: Record<string, unknown>;
 }
 
 export class ReplicationProfileVersionStoreDto {

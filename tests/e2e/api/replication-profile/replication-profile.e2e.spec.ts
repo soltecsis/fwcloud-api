@@ -3,6 +3,8 @@ import db from '../../../../src/database/database-manager';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Interface } from '../../../../src/models/interface/Interface';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
 import {
   PROFILE_CLONE_AUDIT_CALL,
@@ -234,6 +236,174 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           }),
         )
         .expect(422);
+    });
+  });
+
+  describe('POST /fwclouds/:fwcloud/assistant/profiles/from-source', () => {
+    const fromSourceUrl = () => `/fwclouds/${fwCloud.id}/assistant/profiles/from-source`;
+
+    async function makeSourceFirewall(): Promise<Firewall> {
+      const manager = db.getSource().manager;
+      const firewall = await manager
+        .getRepository(Firewall)
+        .save({ name: StringHelper.randomize(10), fwCloudId: fwCloud.id });
+      const wanInterface = await manager.getRepository(Interface).save({
+        name: 'eth0',
+        labelName: 'wan',
+        type: '10',
+        interface_type: '10',
+        firewallId: firewall.id,
+      });
+
+      const ruleId = await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: 3, // IPv4 FORWARD
+        rule_order: 1,
+        action: 1,
+        active: 1,
+        options: 0,
+        special: 0,
+        comment: 'Allow forwarded traffic from WAN.',
+      });
+      await db
+        .getSource()
+        .query(
+          'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, 22, 1)',
+          [ruleId, wanInterface.id],
+        );
+
+      return firewall;
+    }
+
+    it('should capture an existing firewall into a custom profile', async () => {
+      const firewall = await makeSourceFirewall();
+      const code = `${codePrefix}from-source`;
+
+      await request(app.express)
+        .post(fromSourceUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          source: { kind: 'firewall', id: firewall.id },
+          name: 'Edge firewall snapshot',
+          code,
+        })
+        .expect(201)
+        .then(async (response) => {
+          const result = response.body.data;
+
+          expect(result).to.include({
+            code,
+            version: 1,
+            name: 'Edge firewall snapshot',
+            targetKind: 'firewall',
+            scope: 'fwcloud',
+            is_built_in: false,
+            is_active: true,
+            fwcloud_id: fwCloud.id,
+          });
+          expect(result.warnings).to.deep.eq([]);
+          expect(result.model.sourceRef).to.include({
+            kind: 'firewall',
+            id: firewall.id,
+            name: firewall.name,
+          });
+          expect(result.model.provision.interfaces).to.deep.eq([{ name: 'eth0', role: 'wan' }]);
+          expect(result.model.provision.rules).to.deep.eq([
+            {
+              chain: 'forward',
+              action: 'accept',
+              inRole: 'wan',
+              comment: 'Allow forwarded traffic from WAN.',
+            },
+          ]);
+
+          const persisted = await repository.findOneOrFail({ where: { code, version: 1 } });
+          expect(persisted.fwCloudId).to.be.eq(fwCloud.id);
+          expect(persisted.isBuiltin).to.be.false;
+        });
+    });
+
+    it('should reject requests without a session', async () => {
+      const firewall = await makeSourceFirewall();
+
+      await request(app.express)
+        .post(fromSourceUrl())
+        .send({
+          source: { kind: 'firewall', id: firewall.id },
+          name: 'Unauthenticated snapshot',
+        })
+        .expect(401);
+    });
+
+    it('should honour the confirmation-token handshake used by production deployments', async () => {
+      const previousConfirmationTokenSetting = app.config.get('confirmation_token');
+      app.config.set('confirmation_token', true);
+
+      try {
+        const firewall = await makeSourceFirewall();
+        const payload = {
+          source: { kind: 'firewall', id: firewall.id },
+          name: 'Snapshot with confirmation token',
+          code: `${codePrefix}confirm-token`,
+        };
+
+        // First call: rejected with the token the client must resend.
+        const tokenResponse = await request(app.express)
+          .post(fromSourceUrl())
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(payload)
+          .expect(403);
+
+        const confirmationToken = tokenResponse.body.fwc_confirm_token;
+        expect(confirmationToken).to.be.a('string');
+
+        // Second call, with the token attached: the profile is created.
+        await request(app.express)
+          .post(fromSourceUrl())
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .set('x-fwc-confirm-token', confirmationToken)
+          .send(payload)
+          .expect(201);
+      } finally {
+        app.config.set('confirmation_token', previousConfirmationTokenSetting);
+      }
+    });
+
+    it('should reject users without access to the FWCloud', async () => {
+      const firewall = await makeSourceFirewall();
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .post(fromSourceUrl())
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .send({
+          source: { kind: 'firewall', id: firewall.id },
+          name: 'Forbidden snapshot',
+          code: `${codePrefix}forbidden-source`,
+        })
+        .expect(403);
+    });
+
+    it('should return 404 when the source firewall belongs to another FWCloud', async () => {
+      const otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+      const foreignFirewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .save({ name: StringHelper.randomize(10), fwCloudId: otherFwCloud.id });
+
+      await request(app.express)
+        .post(fromSourceUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          source: { kind: 'firewall', id: foreignFirewall.id },
+          name: 'Cross-cloud snapshot',
+          code: `${codePrefix}cross-cloud`,
+        })
+        .expect(404);
     });
   });
 
