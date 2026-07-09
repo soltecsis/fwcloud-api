@@ -150,6 +150,16 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
     expect(pathsFor(payload)).to.include('model.provision.rules[0].destinationRole');
   });
 
+  it('should accept rule roles declared in roleAssignments or compatibility instead of provision.interfaces', () => {
+    const payload = firewallProfile();
+    delete provision(payload).interfaces;
+    model(payload).roleAssignments = { interfaceRoles: ['lan'] };
+    model(payload).compatibility = { target_kinds: ['firewall'], supportedRoles: ['wan'] };
+    provision(payload).rules = [{ action: 'accept', sourceRole: 'lan', destinationRole: 'wan' }];
+
+    expect(errorsFor(payload)).to.be.empty;
+  });
+
   it('should reject invalid numeric ports', () => {
     const payload = firewallProfile();
     provision(payload).rules = [

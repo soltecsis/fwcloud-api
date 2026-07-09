@@ -305,7 +305,37 @@ class ReplicationProfileDefinitionValidator {
       provision.path,
       errors,
     );
+    this.addModelDeclaredInterfaceRoles(model, interfaceRoles);
     this.validateProvisionRules(provisionRecord, provision.path, interfaceRoles, errors);
+  }
+
+  /**
+   * Interface roles a rule may reference are not only the ones declared inline
+   * in `provision.interfaces`: `roleAssignments.interfaceRoles` and
+   * `compatibility.supportedRoles` are equally valid declaration sites (the DTO,
+   * the provisioning parser and the cluster-topology check all honour them), so
+   * fold them into the accepted set before validating rule role references.
+   */
+  private addModelDeclaredInterfaceRoles(model: ValidationRecord, roles: Set<string>): void {
+    this.addRoleAssignmentInterfaceRoles(model, roles);
+
+    const compatibility = asReplicationProfileRecord(model.compatibility);
+    if (compatibility) {
+      this.addStringRolesFromUnknown(
+        compatibility.supportedRoles ?? compatibility.supported_roles,
+        roles,
+      );
+    }
+  }
+
+  private addRoleAssignmentInterfaceRoles(model: ValidationRecord, roles: Set<string>): void {
+    const roleAssignments = asReplicationProfileRecord(model.roleAssignments);
+    if (roleAssignments) {
+      this.addStringRolesFromUnknown(
+        roleAssignments.interfaceRoles ?? roleAssignments.interface_roles,
+        roles,
+      );
+    }
   }
 
   private validateProvisionInterfaces(
@@ -460,7 +490,7 @@ class ReplicationProfileDefinitionValidator {
       this.addError(
         errors,
         'invalid_rule_role',
-        `Rule references role "${role}", but this role is not defined in model.provision.interfaces.`,
+        `Rule references role "${role}", but this role is not declared by the profile (model.provision.interfaces, model.roleAssignments.interfaceRoles or model.compatibility.supportedRoles).`,
         path,
       );
     }
@@ -1081,15 +1111,9 @@ class ReplicationProfileDefinitionValidator {
 
   private collectProfileInterfaceRoles(model: ValidationRecord): Set<string> {
     const roles = new Set<string>();
-    const roleAssignments = asReplicationProfileRecord(model.roleAssignments);
     const provision = asReplicationProfileRecord(model.provision);
 
-    if (roleAssignments) {
-      this.addStringRolesFromUnknown(
-        roleAssignments.interfaceRoles ?? roleAssignments.interface_roles,
-        roles,
-      );
-    }
+    this.addRoleAssignmentInterfaceRoles(model, roles);
 
     if (provision && Array.isArray(provision.interfaces)) {
       for (const item of provision.interfaces) {
