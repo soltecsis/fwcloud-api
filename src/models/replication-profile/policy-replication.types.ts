@@ -107,6 +107,13 @@ export interface PolicyReplicationProvision {
   rules: PolicyReplicationProvisionRule[];
 }
 
+const POLICY_STRUCTURE_FIELDS = [
+  'policyStructure',
+  'policy_structure',
+  'templateStructure',
+  'template_structure',
+] as const;
+
 /**
  * Extracts and validates the declarative provisioning block from a profile
  * model. Returns null for regular (source-based) profiles.
@@ -114,61 +121,131 @@ export interface PolicyReplicationProvision {
 export function getProfileProvisioning(model: unknown): PolicyReplicationProvision | null {
   const record = asReplicationProfileRecord(model);
   const provisionRaw = asReplicationProfileRecord(record?.provision);
-  if (!provisionRaw) {
+  const structureRaw = getProfileStructureRecord(record);
+  const provisionSource = hasProvisionCollections(provisionRaw)
+    ? provisionRaw
+    : (structureRaw ?? provisionRaw);
+
+  if (!provisionSource) {
     return null;
   }
 
-  const interfaces = (Array.isArray(provisionRaw.interfaces) ? provisionRaw.interfaces : [])
-    .map(parseProvisionInterface)
-    .filter((item): item is PolicyReplicationProvisionInterface => item !== null);
+  const provision = parseProvision(provisionSource);
+
+  if (provision.interfaces.length === 0 && provision.rules.length === 0 && !structureRaw) {
+    return null;
+  }
+
+  return provision;
+}
+
+function getProfileStructureRecord(
+  record: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  if (!record) {
+    return null;
+  }
+
+  for (const field of POLICY_STRUCTURE_FIELDS) {
+    const structure = asReplicationProfileRecord(record[field]);
+
+    if (structure) {
+      return structure;
+    }
+  }
+
+  return null;
+}
+
+function hasProvisionCollections(
+  record: Record<string, unknown> | null,
+): record is Record<string, unknown> {
+  return !!record && (Array.isArray(record.interfaces) || Array.isArray(record.rules));
+}
+
+function parseProvision(provisionRaw: Record<string, unknown>): PolicyReplicationProvision {
+  const interfacesByRole = new Map<string, PolicyReplicationProvisionInterface>();
+
+  const ensureInterface = (role: string, name: string = role): string => {
+    const key = role.toLowerCase();
+    if (!interfacesByRole.has(key)) {
+      interfacesByRole.set(key, { name, role });
+    }
+
+    return role;
+  };
+
+  for (const item of Array.isArray(provisionRaw.interfaces) ? provisionRaw.interfaces : []) {
+    const iface = parseProvisionInterface(item);
+
+    if (iface) {
+      ensureInterface(iface.role, iface.name);
+    }
+  }
+
   const rules = (Array.isArray(provisionRaw.rules) ? provisionRaw.rules : [])
-    .map(parseProvisionRule)
+    .map((rule) => parseProvisionRule(rule, ensureInterface))
     .filter((item): item is PolicyReplicationProvisionRule => item !== null);
 
-  if (interfaces.length === 0 && rules.length === 0) {
-    return null;
+  return { interfaces: Array.from(interfacesByRole.values()), rules };
+}
+
+/**
+ * Returns the first of `fields` that holds a non-empty string, or null. Reads
+ * the several tolerated spellings of interface/service references in one pass.
+ */
+function firstNonEmptyString(
+  record: Record<string, unknown>,
+  fields: readonly string[],
+): string | null {
+  for (const field of fields) {
+    const value = asReplicationProfileNonEmptyString(record[field]);
+
+    if (value) {
+      return value;
+    }
   }
 
-  return { interfaces, rules };
+  return null;
 }
 
 function parseProvisionInterface(value: unknown): PolicyReplicationProvisionInterface | null {
-  const record = asReplicationProfileRecord(value);
-  const name = asReplicationProfileNonEmptyString(record?.name);
-  const role = asReplicationProfileNonEmptyString(record?.role);
-
-  return name && role ? { name, role } : null;
-}
-
-function parseProvisionRule(value: unknown): PolicyReplicationProvisionRule | null {
   const record = asReplicationProfileRecord(value);
   if (!record) {
     return null;
   }
 
-  if (record.chain !== 'forward') {
+  const name = firstNonEmptyString(record, ['name', 'value']);
+  const role = asReplicationProfileNonEmptyString(record.role) ?? name;
+
+  return name && role ? { name, role } : null;
+}
+
+function parseProvisionRule(
+  value: unknown,
+  ensureInterface: (role: string, name?: string) => string,
+): PolicyReplicationProvisionRule | null {
+  const record = asReplicationProfileRecord(value);
+  if (!record) {
     return null;
   }
 
-  const inRole = asReplicationProfileNonEmptyString(record.inRole) ?? undefined;
-  const outRole = asReplicationProfileNonEmptyString(record.outRole) ?? undefined;
-  const comment = typeof record.comment === 'string' ? record.comment : undefined;
-
-  let service: PolicyReplicationProvisionService | undefined;
-  const serviceRaw = asReplicationProfileRecord(record.service);
-  if (serviceRaw) {
-    const protocol = isReplicationProfileStringValue(
-      serviceRaw.protocol,
-      REPLICATION_PROFILE_RULE_PROTOCOLS,
-    )
-      ? serviceRaw.protocol
-      : null;
-    const port = isReplicationProfilePort(serviceRaw.port) ? serviceRaw.port : null;
-
-    if (protocol && port) {
-      service = { protocol, port };
-    }
+  if (record.chain !== undefined && record.chain !== 'forward') {
+    return null;
   }
+
+  const inRole =
+    asReplicationProfileNonEmptyString(record.inRole) ??
+    asReplicationProfileNonEmptyString(record.sourceRole) ??
+    parseProvisionRuleSide(record.source, ensureInterface) ??
+    undefined;
+  const outRole =
+    asReplicationProfileNonEmptyString(record.outRole) ??
+    asReplicationProfileNonEmptyString(record.destinationRole) ??
+    parseProvisionRuleSide(record.destination, ensureInterface) ??
+    undefined;
+  const comment = typeof record.comment === 'string' ? record.comment : undefined;
+  const service = parseProvisionService(record.service);
 
   return {
     chain: 'forward',
@@ -180,6 +257,96 @@ function parseProvisionRule(value: unknown): PolicyReplicationProvisionRule | nu
     service,
     comment,
   };
+}
+
+function parseProvisionRuleSide(
+  value: unknown,
+  ensureInterface: (role: string, name?: string) => string,
+): string | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const role = parseInterfaceReference(item, ensureInterface);
+
+      if (role) {
+        return role;
+      }
+    }
+
+    return undefined;
+  }
+
+  if (value && typeof value === 'object') {
+    return parseInterfaceReference(value, ensureInterface) ?? undefined;
+  }
+
+  return asReplicationProfileNonEmptyString(value) ?? undefined;
+}
+
+function parseInterfaceReference(
+  value: unknown,
+  ensureInterface: (role: string, name?: string) => string,
+): string | null {
+  const record = asReplicationProfileRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  const type = firstNonEmptyString(record, ['type', 'kind', 'objectType'])?.toLowerCase();
+
+  if (type && type !== 'interface') {
+    return null;
+  }
+
+  const role = firstNonEmptyString(record, ['role', 'value', 'name', 'ref', 'label']);
+
+  return role ? ensureInterface(role) : null;
+}
+
+function parseProvisionService(value: unknown): PolicyReplicationProvisionService | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const service = parseProvisionService(item);
+
+      if (service) {
+        return service;
+      }
+    }
+
+    return undefined;
+  }
+
+  const record = asReplicationProfileRecord(value);
+  if (record) {
+    const protocol = isReplicationProfileStringValue(
+      record.protocol,
+      REPLICATION_PROFILE_RULE_PROTOCOLS,
+    )
+      ? record.protocol
+      : null;
+    const port = isReplicationProfilePort(record.port) ? record.port : null;
+
+    if (protocol && port) {
+      return { protocol, port };
+    }
+
+    const shorthand = firstNonEmptyString(record, ['value', 'name', 'ref', 'label']);
+
+    return shorthand ? parseProvisionService(shorthand) : undefined;
+  }
+
+  const shorthand = asReplicationProfileNonEmptyString(value)?.match(/^(tcp|udp)[/:](\d+)$/i);
+  if (!shorthand) {
+    return undefined;
+  }
+
+  const protocol = shorthand[1].toLowerCase();
+  const port = Number(shorthand[2]);
+
+  return isReplicationProfileStringValue(protocol, REPLICATION_PROFILE_RULE_PROTOCOLS) &&
+    isReplicationProfilePort(port)
+    ? { protocol, port }
+    : undefined;
 }
 
 export type PolicyReplicationConflictType =
