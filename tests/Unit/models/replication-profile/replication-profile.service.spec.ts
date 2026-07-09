@@ -408,6 +408,35 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(saved.version).to.be.eq(3);
     });
 
+    it('should create structure profiles without requiring a targetKind in the payload', async () => {
+      const fwCloud = await makeFwCloud();
+      const payload = makeCreatePayload({
+        code: `${codePrefix}no-target-kind`,
+        model: {
+          compatibility: { target_kinds: ['firewall', 'cluster'] },
+          policyStructure: {
+            interfaces: [],
+            rules: [],
+          },
+          provision: {
+            interfaces: [],
+            rules: [],
+          },
+        },
+      });
+      delete payload.targetKind;
+
+      const saved = await service.createCustomProfile(payload as any, {
+        fwCloudId: fwCloud.id,
+      });
+
+      expect(saved.targetKind).to.be.eq('firewall');
+      expect((saved.model.compatibility as Record<string, unknown>).target_kinds).to.deep.eq([
+        'firewall',
+        'cluster',
+      ]);
+    });
+
     it('should produce stable URL-safe slugs from names', () => {
       expect(service.slugFromName('Basic LAN/WAN profile')).to.be.eq('basic-lan-wan-profile');
       expect(service.slugFromName('  Ámbito DMZ + WAN  ')).to.be.eq('ambito-dmz-wan');

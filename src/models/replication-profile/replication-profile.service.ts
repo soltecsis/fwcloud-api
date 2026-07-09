@@ -7,7 +7,9 @@ import { ReplicationProfile } from './replication-profile.model';
 import {
   type ReplicationProfileCatalogOrigin,
   getReplicationProfileModelTargetKinds,
+  isReplicationProfileStringValue,
   normalizeReplicationProfileTargetKinds,
+  REPLICATION_PROFILE_TARGET_KINDS,
 } from './replication-profile.constants';
 import type { ReplicationProfileTargetKind } from './replication-profile.constants';
 import {
@@ -20,6 +22,7 @@ export const PROFILE_CREATE_AUDIT_CALL = 'assistant.profiles.create';
 export const PROFILE_CLONE_AUDIT_CALL = 'assistant.profiles.clone';
 export const PROFILE_VERSION_AUDIT_CALL = 'assistant.profiles.version';
 export const PROFILE_DEACTIVATION_AUDIT_CALL = 'assistant.profiles.deactivate';
+export const DEFAULT_CUSTOM_PROFILE_TARGET_KIND: ReplicationProfileTargetKind = 'firewall';
 
 export type ReplicationProfileManagementOperation = 'create' | 'clone' | 'update' | 'deactivate';
 
@@ -29,7 +32,7 @@ export interface CreateCustomReplicationProfilePayload {
   code?: string;
   version?: number;
   scope: string;
-  targetKind: string;
+  targetKind?: string;
   category?: string | null;
   model: unknown;
 }
@@ -970,7 +973,7 @@ export class ReplicationProfileService extends Service {
     payload: CreateCustomReplicationProfileVersionPayload,
   ): void {
     this.assertDefinitionIsValid({
-      targetKind: payload.targetKind,
+      targetKind: payload.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
       model: payload.model,
     });
   }
@@ -988,7 +991,7 @@ export class ReplicationProfileService extends Service {
       name: payload.name,
       description: payload.description ?? null,
       scope: payload.scope,
-      targetKind: payload.targetKind as ReplicationProfileTargetKind,
+      targetKind: this.effectiveProfileTargetKind(payload.targetKind),
       model: payload.model as Record<string, unknown>,
       category: payload.category ?? null,
       isBuiltin: false,
@@ -1002,5 +1005,11 @@ export class ReplicationProfileService extends Service {
     });
 
     return this.repository.save(profile);
+  }
+
+  private effectiveProfileTargetKind(targetKind: string | undefined): ReplicationProfileTargetKind {
+    return isReplicationProfileStringValue(targetKind, REPLICATION_PROFILE_TARGET_KINDS)
+      ? targetKind
+      : DEFAULT_CUSTOM_PROFILE_TARGET_KIND;
   }
 }
