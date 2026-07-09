@@ -93,6 +93,7 @@ import { ReplicationProfileServiceProvider } from './models/replication-profile/
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
+import { ReplicationProfileSnapshotServiceProvider } from './models/replication-profile/replication-profile-snapshot.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -182,6 +183,7 @@ export class Application extends HTTPApplication {
       ProfileApplicationServiceProvider,
       ReplicationProfileValidationServiceProvider,
       ReplicationProfileServiceProvider,
+      ReplicationProfileSnapshotServiceProvider,
       RepositoryServiceProvider,
       RouteGroupServiceProvider,
       RouteServiceProvider,
