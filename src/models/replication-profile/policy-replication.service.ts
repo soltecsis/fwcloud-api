@@ -23,6 +23,7 @@
 import { QueryRunner } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
+import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import { RulePositionsMap } from '../policy/PolicyPosition';
 import { FireWallOptMask } from '../firewall/Firewall';
@@ -57,7 +58,7 @@ const SPECIAL_CATCHALL: number = SpecialPolicyRules.CATCHALL;
  * owner firewall of a reference (to detect source-owned VPNs) and the prefix
  * used when building rule signatures.
  */
-const VPN_RELATION_TABLES = [
+export const VPN_RELATION_TABLES = [
   {
     key: 'openvpns',
     table: 'policy_r__openvpn',
@@ -311,7 +312,7 @@ export class PolicyReplicationService extends Service {
 
     // 1. Create the declared interfaces and their tree nodes; remember role -> id.
     const fdiNode = (
-      await this.query<{ id: number }>(
+      await dbQuery<{ id: number }>(
         "SELECT id FROM fwc_tree WHERE id_obj = ? AND node_type = 'FDI' AND fwcloud = ?",
         [firewallId, fwCloudId],
       )
@@ -337,7 +338,7 @@ export class PolicyReplicationService extends Service {
     }
 
     // 2. Ensure a default policy exists so the catch-all denies everything else.
-    const catchAll = await this.query<{ id: number }>(
+    const catchAll = await dbQuery<{ id: number }>(
       'SELECT id FROM policy_r WHERE firewall = ? AND type = 3 AND special = ? LIMIT 1',
       [firewallId, SPECIAL_CATCHALL],
     );
@@ -348,7 +349,7 @@ export class PolicyReplicationService extends Service {
     // 3. Insert the declared rules just above the FORWARD catch-all.
     const ruleCount = provision.rules.length;
     if (ruleCount > 0) {
-      await this.query(
+      await dbQuery(
         'UPDATE policy_r SET rule_order = rule_order + ? WHERE firewall = ? AND type = 3 AND special = ?',
         [ruleCount, firewallId, SPECIAL_CATCHALL],
       );
@@ -374,19 +375,19 @@ export class PolicyReplicationService extends Service {
       const inId = rule.inRole ? interfaceIdByRole.get(rule.inRole) : undefined;
       const outId = rule.outRole ? interfaceIdByRole.get(rule.outRole) : undefined;
       if (inId) {
-        await this.query(
+        await dbQuery(
           'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
           [ruleId, inId, RulePositionsMap.get('IPv4:FORWARD:In')],
         );
       }
       if (outId) {
-        await this.query(
+        await dbQuery(
           'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
           [ruleId, outId, RulePositionsMap.get('IPv4:FORWARD:Out')],
         );
       }
       if (serviceId) {
-        await this.query(
+        await dbQuery(
           'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, -1, -1, ?, 1)',
           [ruleId, serviceId, RulePositionsMap.get('IPv4:FORWARD:Service')],
         );
@@ -411,7 +412,7 @@ export class PolicyReplicationService extends Service {
       return target.id;
     }
 
-    const master = await this.query<{ id: number }>(
+    const master = await dbQuery<{ id: number }>(
       'SELECT id FROM firewall WHERE cluster = ? AND fwmaster = 1',
       [target.id],
     );
@@ -468,10 +469,6 @@ export class PolicyReplicationService extends Service {
     };
   }
 
-  private query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-    return db.getSource().query(sql, params);
-  }
-
   private async loadContext(
     request: PolicyReplicationRequest,
     result: PolicyReplicationResult,
@@ -487,7 +484,7 @@ export class PolicyReplicationService extends Service {
 
     if (request.target.kind === 'cluster') {
       targetClusterId = request.target.id;
-      const members = await this.query<FirewallRow>(
+      const members = await dbQuery<FirewallRow>(
         'SELECT id, name, cluster, fwcloud, fwmaster FROM firewall WHERE cluster = ?',
         [targetClusterId],
       );
@@ -513,10 +510,9 @@ export class PolicyReplicationService extends Service {
 
     const sourceFirewallIds = new Set<number>([sourceFirewall.id]);
     if (sourceFirewall.cluster) {
-      for (const row of await this.query<{ id: number }>(
-        'SELECT id FROM firewall WHERE cluster = ?',
-        [sourceFirewall.cluster],
-      )) {
+      for (const row of await dbQuery<{ id: number }>('SELECT id FROM firewall WHERE cluster = ?', [
+        sourceFirewall.cluster,
+      ])) {
         sourceFirewallIds.add(row.id);
       }
     }
@@ -548,7 +544,7 @@ export class PolicyReplicationService extends Service {
   }
 
   private async findFirewall(id: number): Promise<FirewallRow | null> {
-    const rows = await this.query<FirewallRow>(
+    const rows = await dbQuery<FirewallRow>(
       'SELECT id, name, cluster, fwcloud, fwmaster FROM firewall WHERE id = ?',
       [id],
     );
@@ -557,7 +553,7 @@ export class PolicyReplicationService extends Service {
 
   private async loadFirewallInterfaces(firewallId: number): Promise<Map<number, InterfaceRow>> {
     const map = new Map<number, InterfaceRow>();
-    for (const row of await this.query<InterfaceRow>(
+    for (const row of await dbQuery<InterfaceRow>(
       'SELECT id, name, firewall FROM interface WHERE firewall = ?',
       [firewallId],
     )) {
@@ -631,7 +627,7 @@ export class PolicyReplicationService extends Service {
       }
     }
 
-    const sourceRules = await this.query<PolicyRuleRow>(
+    const sourceRules = await dbQuery<PolicyRuleRow>(
       'SELECT * FROM policy_r WHERE firewall = ? ORDER BY type, rule_order',
       [context.sourceFirewall.id],
     );
@@ -649,7 +645,7 @@ export class PolicyReplicationService extends Service {
 
     const groups = await this.planGroups(context, plannedRules);
 
-    const targetRules = await this.query<PolicyRuleRow>(
+    const targetRules = await dbQuery<PolicyRuleRow>(
       'SELECT * FROM policy_r WHERE firewall = ? ORDER BY type, rule_order',
       [context.targetFirewall.id],
     );
@@ -665,7 +661,7 @@ export class PolicyReplicationService extends Service {
     const targetSignatures = await this.buildTargetSignatures(context, targetRules);
 
     if (request.mode === 'merge' || request.mode === 'dry_run') {
-      const targetGroups = await this.query<PolicyGroupRow>(
+      const targetGroups = await dbQuery<PolicyGroupRow>(
         'SELECT id, name, comment, idgroup, groupstyle FROM policy_g WHERE firewall = ?',
         [context.targetFirewall.id],
       );
@@ -708,7 +704,7 @@ export class PolicyReplicationService extends Service {
     };
 
     for (const { key, table } of RELATION_TABLES) {
-      const rows = await this.query(
+      const rows = await dbQuery(
         `SELECT R.* FROM ${table} R INNER JOIN policy_r P ON P.id = R.rule WHERE P.firewall = ? ORDER BY R.rule, R.position, R.position_order`,
         [firewallId],
       );
@@ -741,8 +737,8 @@ export class PolicyReplicationService extends Service {
     }
 
     if (ipobjIds.size > 0) {
-      const rows = await this.query<IPObjRow>(
-        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE id IN (${this.placeholders(ipobjIds.size)})`,
+      const rows = await dbQuery<IPObjRow>(
+        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE id IN (${sqlPlaceholders(ipobjIds.size)})`,
         Array.from(ipobjIds),
       );
       for (const row of rows) {
@@ -752,8 +748,8 @@ export class PolicyReplicationService extends Service {
 
     const targetInterfaceIds = Array.from(context.targetInterfaces.keys());
     if (targetInterfaceIds.length > 0) {
-      const rows = await this.query<IPObjRow>(
-        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE interface IN (${this.placeholders(targetInterfaceIds.length)})`,
+      const rows = await dbQuery<IPObjRow>(
+        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE interface IN (${sqlPlaceholders(targetInterfaceIds.length)})`,
         targetInterfaceIds,
       );
       for (const row of rows) {
@@ -771,8 +767,8 @@ export class PolicyReplicationService extends Service {
         if (ids.size === 0) {
           return;
         }
-        const rows = await this.query<{ id: number; firewall: number }>(
-          `${ownerSql} (${this.placeholders(ids.size)})`,
+        const rows = await dbQuery<{ id: number; firewall: number }>(
+          `${ownerSql} (${sqlPlaceholders(ids.size)})`,
           Array.from(ids),
         );
         for (const row of rows) {
@@ -780,10 +776,6 @@ export class PolicyReplicationService extends Service {
         }
       }),
     );
-  }
-
-  private placeholders(count: number): string {
-    return new Array(count).fill('?').join(', ');
   }
 
   /**
@@ -1109,8 +1101,8 @@ export class PolicyReplicationService extends Service {
       return [];
     }
 
-    const rows = await this.query<PolicyGroupRow>(
-      `SELECT id, name, comment, idgroup, groupstyle FROM policy_g WHERE firewall = ? AND id IN (${this.placeholders(referencedGroupIds.size)})`,
+    const rows = await dbQuery<PolicyGroupRow>(
+      `SELECT id, name, comment, idgroup, groupstyle FROM policy_g WHERE firewall = ? AND id IN (${sqlPlaceholders(referencedGroupIds.size)})`,
       [context.sourceFirewall.id, ...referencedGroupIds],
     );
 
@@ -1327,7 +1319,7 @@ export class PolicyReplicationService extends Service {
         for (const relation of planned.relations) {
           const columns = ['rule', ...Object.keys(relation.values)];
           await queryRunner.query(
-            `INSERT INTO ${relation.table} (${columns.join(', ')}) VALUES (${this.placeholders(columns.length)})`,
+            `INSERT INTO ${relation.table} (${columns.join(', ')}) VALUES (${sqlPlaceholders(columns.length)})`,
             [newRuleId, ...Object.values(relation.values)],
           );
         }
@@ -1345,7 +1337,7 @@ export class PolicyReplicationService extends Service {
   }
 
   private async removeRules(queryRunner: QueryRunner, ruleIds: number[]): Promise<void> {
-    const inClause = this.placeholders(ruleIds.length);
+    const inClause = sqlPlaceholders(ruleIds.length);
 
     for (const { table } of RELATION_TABLES) {
       await queryRunner.query(`DELETE FROM ${table} WHERE rule IN (${inClause})`, ruleIds);
