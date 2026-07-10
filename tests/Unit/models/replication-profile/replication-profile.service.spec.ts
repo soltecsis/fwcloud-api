@@ -8,7 +8,7 @@ import { ReplicationProfile } from '../../../../src/models/replication-profile/r
 import {
   PROFILE_CLONE_AUDIT_CALL,
   PROFILE_CREATE_AUDIT_CALL,
-  PROFILE_DEACTIVATION_AUDIT_CALL,
+  PROFILE_REMOVE_AUDIT_CALL,
   PROFILE_VERSION_AUDIT_CALL,
   ReplicationProfileService,
 } from '../../../../src/models/replication-profile/replication-profile.service';
@@ -471,6 +471,28 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       ).to.be.rejectedWith(/already exists in this FWCloud/);
     });
 
+    it('should clean up inactive duplicate rows before creating the same code and version', async () => {
+      const fwCloud = await makeFwCloud();
+      const code = `${codePrefix}recreate-after-remove`;
+      const stale = await repository.save(
+        makeProfile({
+          code,
+          version: 1,
+          fwCloudId: fwCloud.id,
+          isActive: false,
+          isDeprecated: true,
+        }),
+      );
+      const payload = makeCreatePayload({ code, version: 1 });
+
+      const saved = await service.createCustomProfile(payload as any, { fwCloudId: fwCloud.id });
+
+      expect(saved.id).not.to.be.eq(stale.id);
+      expect(saved.code).to.be.eq(code);
+      const deletedStaleProfile = await repository.findOne({ where: { id: stale.id } });
+      expect(deletedStaleProfile).to.be.null;
+    });
+
     it('should audit successful profile creation with secret-safe metadata only', async () => {
       const fwCloud = await makeFwCloud();
       const auditRepository = db.getSource().manager.getRepository(AuditLog);
@@ -798,60 +820,58 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
     });
   });
 
-  describe('deactivateCustomProfile()', () => {
-    it('should soft-delete a custom profile preserving the row and recording the acting user', async () => {
+  describe('removeCustomProfile()', () => {
+    it('should delete a custom profile row and return the removed profile', async () => {
       const fwCloud = await makeFwCloud();
       const profile = await repository.save(
         makeProfile({
-          code: `${codePrefix}deactivate`,
+          code: `${codePrefix}remove`,
           version: 2,
           fwCloudId: fwCloud.id,
           updated_by: 3,
         }),
       );
 
-      const result = await service.deactivateCustomProfile(profile.code, profile.version, {
+      const result = await service.removeCustomProfile(profile.code, profile.version, {
         fwCloudId: fwCloud.id,
         actor: { userId: 11 },
       });
 
       expect(result).to.include({
         id: profile.id,
-        isActive: false,
-        isDeprecated: true,
-        updated_by: 11,
+        code: profile.code,
+        version: profile.version,
+        updated_by: 3,
       });
 
-      const reloaded = await repository.findOneOrFail({ where: { id: profile.id } });
-      expect(reloaded.isActive).to.be.false;
-      expect(reloaded.isDeprecated).to.be.true;
-      expect(reloaded.updated_by).to.be.eq(11);
+      const reloaded = await repository.findOne({ where: { id: profile.id } });
+      expect(reloaded).to.be.null;
     });
 
     it('should reject built-in profiles', async () => {
       const fwCloud = await makeFwCloud();
-      const code = `${codePrefix}builtin-deactivate`;
+      const code = `${codePrefix}builtin-remove`;
       const builtIn = await repository.save(
         makeProfile({ code, isBuiltin: true, fwCloudId: null }),
       );
 
       await expect(
-        service.deactivateCustomProfile(code, builtIn.version, { fwCloudId: fwCloud.id }),
-      ).to.be.rejectedWith('Built-in profiles cannot be deleted or deactivated.');
+        service.removeCustomProfile(code, builtIn.version, { fwCloudId: fwCloud.id }),
+      ).to.be.rejectedWith('Built-in profiles cannot be deleted.');
 
       const reloaded = await repository.findOneOrFail({ where: { id: builtIn.id } });
       expect(reloaded.isActive).to.be.true;
       expect(reloaded.isDeprecated).to.be.false;
     });
 
-    it('should not deactivate custom profiles owned by another FWCloud', async () => {
+    it('should not remove custom profiles owned by another FWCloud', async () => {
       const fwCloudA = await makeFwCloud();
       const fwCloudB = await makeFwCloud();
-      const code = `${codePrefix}foreign-deactivate`;
+      const code = `${codePrefix}foreign-remove`;
       const foreign = await repository.save(makeProfile({ code, fwCloudId: fwCloudB.id }));
 
       await expect(
-        service.deactivateCustomProfile(code, foreign.version, { fwCloudId: fwCloudA.id }),
+        service.removeCustomProfile(code, foreign.version, { fwCloudId: fwCloudA.id }),
       ).to.be.rejectedWith('Replication profile not found');
 
       const reloaded = await repository.findOneOrFail({ where: { id: foreign.id } });
@@ -863,14 +883,14 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       const fwCloud = await makeFwCloud();
 
       await expect(
-        service.deactivateCustomProfile(`${codePrefix}missing`, 1, { fwCloudId: fwCloud.id }),
+        service.removeCustomProfile(`${codePrefix}missing`, 1, { fwCloudId: fwCloud.id }),
       ).to.be.rejectedWith('Replication profile not found');
     });
 
-    it('should audit failed deactivation attempts with safe metadata', async () => {
+    it('should audit failed remove attempts with safe metadata', async () => {
       const fwCloud = await makeFwCloud();
       const auditRepository = db.getSource().manager.getRepository(AuditLog);
-      await auditRepository.delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+      await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
       const builtIn = await repository.save(
         makeProfile({
           code: `${codePrefix}audited-builtin-delete`,
@@ -880,14 +900,14 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       );
 
       await expect(
-        service.deactivateCustomProfile(builtIn.code, builtIn.version, {
+        service.removeCustomProfile(builtIn.code, builtIn.version, {
           fwCloudId: fwCloud.id,
           actor: { userId: 41, userName: 'deleter' },
         }),
-      ).to.be.rejectedWith('Built-in profiles cannot be deleted or deactivated.');
+      ).to.be.rejectedWith('Built-in profiles cannot be deleted.');
 
       const entries = await auditRepository.find({
-        where: { call: PROFILE_DEACTIVATION_AUDIT_CALL },
+        where: { call: PROFILE_REMOVE_AUDIT_CALL },
       });
       expect(entries).to.have.length(1);
       expect(entries[0].status).to.be.eq(403);
@@ -895,7 +915,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
 
       const data = JSON.parse(entries[0].data);
       expect(data).to.include({
-        operation: 'deactivate',
+        operation: 'remove',
         result: 'failure',
         profileCode: builtIn.code,
         profileVersion: builtIn.version,
@@ -903,25 +923,25 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       });
       expect(data).not.to.have.property('model');
 
-      await auditRepository.delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+      await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
     });
 
-    it('should audit the deactivation with the previous and new active state', async () => {
+    it('should audit the removal', async () => {
       const fwCloud = await makeFwCloud();
       const auditRepository = db.getSource().manager.getRepository(AuditLog);
-      await auditRepository.delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+      await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
 
       const profile = await repository.save(
         makeProfile({ code: `${codePrefix}audited`, version: 4, fwCloudId: fwCloud.id }),
       );
 
-      await service.deactivateCustomProfile(profile.code, profile.version, {
+      await service.removeCustomProfile(profile.code, profile.version, {
         fwCloudId: fwCloud.id,
         actor: { userId: 7, userName: 'auditor' },
       });
 
       const entries = await auditRepository.find({
-        where: { call: PROFILE_DEACTIVATION_AUDIT_CALL },
+        where: { call: PROFILE_REMOVE_AUDIT_CALL },
       });
       expect(entries).to.have.length(1);
       expect(entries[0].userId).to.be.eq(7);
@@ -931,11 +951,12 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(data.profileId).to.be.eq(profile.id);
       expect(data.profileCode).to.be.eq(profile.code);
       expect(data.profileVersion).to.be.eq(profile.version);
-      expect(data.operation).to.be.eq('deactivate');
-      expect(data.previous).to.deep.eq({ isActive: true, isDeprecated: false });
-      expect(data.current).to.deep.eq({ isActive: false, isDeprecated: true });
+      expect(data.operation).to.be.eq('remove');
+      expect(data.removed).to.be.true;
+      expect(data).not.to.have.property('previous');
+      expect(data).not.to.have.property('current');
 
-      await auditRepository.delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+      await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
     });
   });
 });

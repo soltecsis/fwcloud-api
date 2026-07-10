@@ -24,7 +24,7 @@ import {
   ReplicationProfileService,
   type ReplicationProfileCatalogFilters,
   type CreateCustomReplicationProfileOptions,
-  type DeactivateCustomReplicationProfileOptions,
+  type RemoveCustomReplicationProfileOptions,
   type ReplicationProfileManagementFailureAuditInput,
   type ReplicationProfileMutationActor,
 } from '../../models/replication-profile/replication-profile.service';
@@ -264,16 +264,16 @@ export class ReplicationProfileController extends Controller {
       await ReplicationProfilePolicy.delete(request.session.user, this._fwCloud),
       replicationProfileService,
       {
-        operation: 'deactivate',
+        operation: 'remove',
         profileCode: code,
         profileVersion: version,
       },
     );
 
-    const profile = await replicationProfileService.deactivateCustomProfile(
+    const profile = await replicationProfileService.removeCustomProfile(
       code,
       version,
-      this.deactivationOptions(request),
+      this.removeOptions(request),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile));
@@ -524,14 +524,19 @@ export class ReplicationProfileController extends Controller {
   }
 
   private customProfileOptions(request: Request): CreateCustomReplicationProfileOptions {
+    const options = this.profileMutationOptions(request);
+
     return {
-      fwCloudId: this._fwCloud.id,
-      userId: this.resolveUserId(request),
-      actor: this.mutationActor(request),
+      ...options,
+      userId: options.actor?.userId ?? null,
     };
   }
 
-  private deactivationOptions(request: Request): DeactivateCustomReplicationProfileOptions {
+  private removeOptions(request: Request): RemoveCustomReplicationProfileOptions {
+    return this.profileMutationOptions(request);
+  }
+
+  private profileMutationOptions(request: Request): RemoveCustomReplicationProfileOptions {
     return {
       fwCloudId: this._fwCloud.id,
       actor: this.mutationActor(request),

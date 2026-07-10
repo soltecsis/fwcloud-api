@@ -9,7 +9,7 @@ import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replicati
 import {
   PROFILE_CLONE_AUDIT_CALL,
   PROFILE_CREATE_AUDIT_CALL,
-  PROFILE_DEACTIVATION_AUDIT_CALL,
+  PROFILE_REMOVE_AUDIT_CALL,
 } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { User } from '../../../../src/models/user/User';
@@ -995,9 +995,9 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     const deleteUrl = (code: string, version: number) =>
       `/fwclouds/${fwCloud.id}/assistant/profiles/${code}/${version}`;
 
-    it('should soft-delete a custom profile and remove it from the catalog', async () => {
+    it('should delete a custom profile, remove it from the catalog, and allow recreation', async () => {
       const profile = await repository.save(
-        makeProfile({ code: `${codePrefix}deactivate`, version: 2, fwCloudId: fwCloud.id }),
+        makeProfile({ code: `${codePrefix}remove`, version: 2, fwCloudId: fwCloud.id }),
       );
 
       await request(app.express)
@@ -1010,15 +1010,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             code: profile.code,
             version: profile.version,
             is_built_in: false,
-            is_active: false,
-            is_deprecated: true,
             fwcloud_id: fwCloud.id,
           });
         });
 
-      const persisted = await repository.findOneOrFail({ where: { id: profile.id } });
-      expect(persisted.isActive).to.be.false;
-      expect(persisted.isDeprecated).to.be.true;
+      const persisted = await repository.findOne({ where: { id: profile.id } });
+      expect(persisted).to.be.null;
 
       await request(app.express)
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
@@ -1033,9 +1030,23 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
+
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(makeCreatePayload({ code: profile.code, version: profile.version }))
+        .expect(201)
+        .then((response) => {
+          expect(response.body.data).to.include({
+            code: profile.code,
+            version: profile.version,
+            is_built_in: false,
+            fwcloud_id: fwCloud.id,
+          });
+        });
     });
 
-    it('should reject built-in profile deactivation', async () => {
+    it('should reject built-in profile removal', async () => {
       const builtIn = await repository.save(
         makeProfile({ code: `${codePrefix}builtin-delete`, isBuiltin: true, fwCloudId: null }),
       );
@@ -1045,9 +1056,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(403)
         .then((response) => {
-          expect(response.body.message).to.contain(
-            'Built-in profiles cannot be deleted or deactivated.',
-          );
+          expect(response.body.message).to.contain('Built-in profiles cannot be deleted.');
         });
 
       const persisted = await repository.findOneOrFail({ where: { id: builtIn.id } });
@@ -1055,7 +1064,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(persisted.isDeprecated).to.be.false;
     });
 
-    it('should not deactivate custom profiles owned by another FWCloud', async () => {
+    it('should not remove custom profiles owned by another FWCloud', async () => {
       const otherFwCloud = await db
         .getSource()
         .manager.getRepository(FwCloud)
@@ -1090,11 +1099,11 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(persisted.isActive).to.be.true;
     });
 
-    it('should audit the deactivation with the previous and new state', async () => {
+    it('should audit the removal', async () => {
       await db
         .getSource()
         .manager.getRepository(AuditLog)
-        .delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+        .delete({ call: PROFILE_REMOVE_AUDIT_CALL });
       const profile = await repository.save(
         makeProfile({ code: `${codePrefix}audited-delete`, version: 3, fwCloudId: fwCloud.id }),
       );
@@ -1107,7 +1116,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const entries = await db
         .getSource()
         .manager.getRepository(AuditLog)
-        .find({ where: { call: PROFILE_DEACTIVATION_AUDIT_CALL } });
+        .find({ where: { call: PROFILE_REMOVE_AUDIT_CALL } });
 
       expect(entries).to.have.length(1);
       expect(entries[0].userId).to.be.eq(adminUser.id);
@@ -1117,19 +1126,20 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(data.profileId).to.be.eq(profile.id);
       expect(data.profileCode).to.be.eq(profile.code);
       expect(data.profileVersion).to.be.eq(profile.version);
-      expect(data.operation).to.be.eq('deactivate');
-      expect(data.previous).to.deep.eq({ isActive: true, isDeprecated: false });
-      expect(data.current).to.deep.eq({ isActive: false, isDeprecated: true });
+      expect(data.operation).to.be.eq('remove');
+      expect(data.removed).to.be.true;
+      expect(data).not.to.have.property('previous');
+      expect(data).not.to.have.property('current');
 
       await db
         .getSource()
         .manager.getRepository(AuditLog)
-        .delete({ call: PROFILE_DEACTIVATION_AUDIT_CALL });
+        .delete({ call: PROFILE_REMOVE_AUDIT_CALL });
     });
 
-    it('should reject applying a profile after it has been deactivated', async () => {
+    it('should reject applying a profile after it has been removed', async () => {
       const profile = await repository.save(
-        makeProfile({ code: `${codePrefix}deactivated-apply`, fwCloudId: fwCloud.id }),
+        makeProfile({ code: `${codePrefix}removed-apply`, fwCloudId: fwCloud.id }),
       );
       const firewallRepository = db.getSource().manager.getRepository(Firewall);
       const sourceFirewall = await firewallRepository.save({
@@ -1155,7 +1165,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           interfaceRoleMapping: {},
           mode: 'dry_run',
         })
-        .expect(422);
+        .expect(404);
     });
   });
 

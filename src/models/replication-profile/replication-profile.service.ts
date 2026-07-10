@@ -2,7 +2,7 @@ import db from '../../database/database-manager';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
-import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { FindOptionsOrder, FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { ReplicationProfile } from './replication-profile.model';
 import {
   type ReplicationProfileCatalogOrigin,
@@ -21,10 +21,10 @@ import { AuditLogService } from '../audit/AuditLog.service';
 export const PROFILE_CREATE_AUDIT_CALL = 'assistant.profiles.create';
 export const PROFILE_CLONE_AUDIT_CALL = 'assistant.profiles.clone';
 export const PROFILE_VERSION_AUDIT_CALL = 'assistant.profiles.version';
-export const PROFILE_DEACTIVATION_AUDIT_CALL = 'assistant.profiles.deactivate';
+export const PROFILE_REMOVE_AUDIT_CALL = 'assistant.profiles.remove';
 export const DEFAULT_CUSTOM_PROFILE_TARGET_KIND: ReplicationProfileTargetKind = 'firewall';
 
-export type ReplicationProfileManagementOperation = 'create' | 'clone' | 'update' | 'deactivate';
+export type ReplicationProfileManagementOperation = 'create' | 'clone' | 'update' | 'remove';
 
 export interface CreateCustomReplicationProfilePayload {
   name: string;
@@ -60,7 +60,7 @@ export interface ReplicationProfileMutationActor {
   sourceIp?: string | null;
 }
 
-export interface DeactivateCustomReplicationProfileOptions {
+export interface RemoveCustomReplicationProfileOptions {
   fwCloudId: number;
   actor?: ReplicationProfileMutationActor;
 }
@@ -94,11 +94,6 @@ interface ReplicationProfileManagementSuccessAuditInput {
   sourceProfile?: ReplicationProfile | null;
   previousProfile?: ReplicationProfile | null;
   data?: Record<string, unknown>;
-}
-
-interface ReplicationProfileActiveState {
-  isActive: boolean;
-  isDeprecated: boolean;
 }
 
 export interface ReplicationProfileCatalogFilters {
@@ -494,74 +489,47 @@ export class ReplicationProfileService extends Service {
   }
 
   /**
-   * Soft-deletes a custom profile: the row is preserved but flagged as
-   * inactive/deprecated so it disappears from the catalog and can no longer be
-   * applied. Built-in profiles cannot be deactivated (403) and profiles from
+   * Removes a custom profile from the database so the same code/version can be
+   * created again. Built-in profiles cannot be removed (403) and profiles from
    * another FWCloud are indistinguishable from missing ones (404) so their
    * existence is never leaked.
    */
-  public async deactivateCustomProfile(
+  public async removeCustomProfile(
     code: string,
     version: number,
-    options: DeactivateCustomReplicationProfileOptions,
+    options: RemoveCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
     const startedAt = new Date();
     let profile: ReplicationProfile | null = null;
 
     try {
-      profile = await this.repository.findOne({
-        where: {
-          code,
-          version,
-          fwCloudId: options.fwCloudId,
-          isBuiltin: false,
-        },
-      });
+      profile = await this.findOwnedCustomProfile({ code, version }, options.fwCloudId);
 
       if (!profile) {
         throw await this.resolveMissingCustomProfileError(
           { code, version },
-          'Built-in profiles cannot be deleted or deactivated.',
+          'Built-in profiles cannot be deleted.',
         );
       }
 
-      if (!profile.isActive || profile.isDeprecated) {
-        throw new HttpException(
-          'Inactive or deprecated profiles cannot be deleted or deactivated.',
-          422,
-        );
-      }
-
-      const previousState: ReplicationProfileActiveState = {
-        isActive: profile.isActive,
-        isDeprecated: profile.isDeprecated,
-      };
-
-      profile.isActive = false;
-      profile.isDeprecated = true;
-      profile.updated_by = options.actor?.userId ?? profile.updated_by ?? null;
-
-      const saved = await this.repository.save(profile);
+      const removedProfile = { ...profile } as ReplicationProfile;
+      await this.repository.remove(profile);
 
       await this.auditProfileManagementSuccess({
-        operation: 'deactivate',
-        profile: saved,
+        operation: 'remove',
+        profile: removedProfile,
         actor: options.actor,
         status: 200,
         startedAt,
         data: {
-          previous: previousState,
-          current: {
-            isActive: saved.isActive,
-            isDeprecated: saved.isDeprecated,
-          },
+          removed: true,
         },
       });
 
-      return saved;
+      return removedProfile;
     } catch (error) {
       await this.auditProfileManagementFailure({
-        operation: 'deactivate',
+        operation: 'remove',
         fwCloudId: options.fwCloudId,
         actor: options.actor,
         profileId: profile?.id ?? null,
@@ -609,7 +577,7 @@ export class ReplicationProfileService extends Service {
     version: number,
     fwCloudId: number,
   ): Promise<void> {
-    const alreadyExists = await this.repository.exists({
+    const existingProfile = await this.repository.findOne({
       where: {
         code,
         version,
@@ -617,28 +585,45 @@ export class ReplicationProfileService extends Service {
       },
     });
 
-    if (alreadyExists) {
-      throw new HttpException(
-        `Replication profile "${code}" (version ${version}) already exists in this FWCloud.`,
-        409,
-      );
+    if (!existingProfile) {
+      return;
     }
+
+    if (this.canReuseCustomProfileIdentity(existingProfile)) {
+      await this.repository.remove(existingProfile);
+      return;
+    }
+
+    throw new HttpException(
+      `Replication profile "${code}" (version ${version}) already exists in this FWCloud.`,
+      409,
+    );
   }
 
   private findLatestCustomProfile(
     code: string,
     fwCloudId: number,
   ): Promise<ReplicationProfile | null> {
+    return this.findOwnedCustomProfile({ code }, fwCloudId, { version: 'DESC' });
+  }
+
+  private findOwnedCustomProfile(
+    where: FindOptionsWhere<ReplicationProfile>,
+    fwCloudId: number,
+    order?: FindOptionsOrder<ReplicationProfile>,
+  ): Promise<ReplicationProfile | null> {
     return this.repository.findOne({
       where: {
-        code,
+        ...where,
         fwCloudId,
         isBuiltin: false,
       },
-      order: {
-        version: 'DESC',
-      },
+      ...(order ? { order } : {}),
     });
+  }
+
+  private canReuseCustomProfileIdentity(profile: ReplicationProfile): boolean {
+    return !profile.isBuiltin && (!profile.isActive || profile.isDeprecated);
   }
 
   private buildClonePayload(
@@ -693,8 +678,8 @@ export class ReplicationProfileService extends Service {
         return PROFILE_CLONE_AUDIT_CALL;
       case 'update':
         return PROFILE_VERSION_AUDIT_CALL;
-      case 'deactivate':
-        return PROFILE_DEACTIVATION_AUDIT_CALL;
+      case 'remove':
+        return PROFILE_REMOVE_AUDIT_CALL;
     }
   }
 
@@ -712,8 +697,8 @@ export class ReplicationProfileService extends Service {
       return `Assistant profile ${sourceLabel} cloned as custom profile ${input.profile.code} v${input.profile.version}.`;
     }
 
-    if (input.operation === 'deactivate') {
-      return `Custom assistant profile ${input.profile.code} v${input.profile.version} deactivated.`;
+    if (input.operation === 'remove') {
+      return `Custom assistant profile ${input.profile.code} v${input.profile.version} removed.`;
     }
 
     return `Custom assistant profile ${input.profile.code} updated by creating version ${input.profile.version}.`;
@@ -793,8 +778,8 @@ export class ReplicationProfileService extends Service {
         return `Failed to clone assistant profile ${sourceLabel}: ${reason}.`;
       case 'update':
         return `Failed to update custom assistant profile ${profileLabel}: ${reason}.`;
-      case 'deactivate':
-        return `Failed to deactivate custom assistant profile ${profileLabel}: ${reason}.`;
+      case 'remove':
+        return `Failed to remove custom assistant profile ${profileLabel}: ${reason}.`;
     }
   }
 
