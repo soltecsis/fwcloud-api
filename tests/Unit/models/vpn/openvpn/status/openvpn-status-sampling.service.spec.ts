@@ -49,10 +49,16 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         statusFile: '/run/openvpn/server.status',
+        samplingInterval: 45,
+        requestMaxLines: 500,
+        cacheMaxSize: 2097152,
       });
 
       expect(openVPN.id).to.eq(fwcProduct.openvpnServer.id);
       expect(Boolean(openVPN.statusSamplingEnabled)).to.eq(true);
+      expect(openVPN.statusSamplingInterval).to.eq(45);
+      expect(openVPN.statusSamplingRequestMaxLines).to.eq(500);
+      expect(openVPN.statusSamplingCacheMaxSize).to.eq(2097152);
     });
 
     it('should disable OpenVPN server sampling configuration', async () => {
@@ -92,6 +98,19 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
           statusFile: 'openvpn/server.status',
         }),
       ).to.be.rejectedWith('OpenVPN status file path must be absolute');
+    });
+
+    it('should reject invalid sampling parameters', async () => {
+      await setStatusOption('/run/openvpn/server.status');
+
+      await expect(
+        service.save({
+          openVPNId: fwcProduct.openvpnServer.id,
+          enabled: true,
+          statusFile: '/run/openvpn/server.status',
+          samplingInterval: 0,
+        }),
+      ).to.be.rejectedWith('OpenVPN status sampling interval must be a positive integer');
     });
   });
 

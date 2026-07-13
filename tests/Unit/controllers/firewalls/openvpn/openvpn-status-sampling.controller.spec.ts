@@ -49,6 +49,9 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
       firewall: fwcProduct.firewall.id,
       openvpn: fwcProduct.openvpnServer.id,
       status_file: null,
+      sampling_interval: 30,
+      request_max_lines: 1000,
+      cache_max_size: 10485760,
     });
   });
 
@@ -77,6 +80,9 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
         body: {
           enabled: true,
           status_file: '/run/openvpn/server.status',
+          sampling_interval: 45,
+          request_max_lines: 500,
+          cache_max_size: 2097152,
         },
         query: {},
       } as unknown as Request),
@@ -90,6 +96,9 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
       openvpn: fwcProduct.openvpnServer.id,
     });
     expect(body.data).to.have.property('status_file').eq('/run/openvpn/server.status');
+    expect(body.data).to.have.property('sampling_interval').eq(45);
+    expect(body.data).to.have.property('request_max_lines').eq(500);
+    expect(body.data).to.have.property('cache_max_size').eq(2097152);
     expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
   });
 });

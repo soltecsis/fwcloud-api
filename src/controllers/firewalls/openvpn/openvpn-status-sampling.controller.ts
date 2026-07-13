@@ -16,6 +16,9 @@ type OpenVPNStatusSamplingResponse = {
   firewall: number;
   openvpn: number;
   status_file: string | null;
+  sampling_interval: number;
+  request_max_lines: number;
+  cache_max_size: number;
 };
 
 export class OpenVPNStatusSamplingController extends Controller {
@@ -75,6 +78,9 @@ export class OpenVPNStatusSamplingController extends Controller {
       openVPNId: this._openVPN.id,
       enabled: input.enabled,
       statusFile: input.status_file ?? null,
+      samplingInterval: input.sampling_interval,
+      requestMaxLines: input.request_max_lines,
+      cacheMaxSize: input.cache_max_size,
     });
     openVPN = await this._samplingService.syncAgent(openVPN);
 
@@ -88,6 +94,9 @@ export class OpenVPNStatusSamplingController extends Controller {
         firewall: this._firewall.id,
         openvpn: this._openVPN.id,
         status_file: null,
+        sampling_interval: OpenVPNStatusSamplingService.DEFAULT_SAMPLING_INTERVAL,
+        request_max_lines: OpenVPNStatusSamplingService.DEFAULT_REQUEST_MAX_LINES,
+        cache_max_size: OpenVPNStatusSamplingService.DEFAULT_CACHE_MAX_SIZE,
       };
     }
 
@@ -96,6 +105,13 @@ export class OpenVPNStatusSamplingController extends Controller {
       firewall: this._firewall.id,
       openvpn: openVPN.id,
       status_file: this.getStatusFile(openVPN),
+      sampling_interval:
+        openVPN.statusSamplingInterval ?? OpenVPNStatusSamplingService.DEFAULT_SAMPLING_INTERVAL,
+      request_max_lines:
+        openVPN.statusSamplingRequestMaxLines ??
+        OpenVPNStatusSamplingService.DEFAULT_REQUEST_MAX_LINES,
+      cache_max_size:
+        openVPN.statusSamplingCacheMaxSize ?? OpenVPNStatusSamplingService.DEFAULT_CACHE_MAX_SIZE,
     };
   }
 
