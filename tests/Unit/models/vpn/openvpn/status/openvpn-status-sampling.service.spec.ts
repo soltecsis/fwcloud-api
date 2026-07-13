@@ -162,6 +162,39 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       expect(synced.id).to.eq(fwcProduct.openvpnServer.id);
     });
 
+    it('should send persisted OpenVPN server sampling parameters', async () => {
+      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        syncOpenVPNStatusSampling,
+      } as any);
+
+      await setStatusOption('/run/openvpn/server.status');
+      const openVPN: OpenVPN = await service.save({
+        openVPNId: fwcProduct.openvpnServer.id,
+        enabled: true,
+        statusFile: '/run/openvpn/server.status',
+      });
+
+      openVPN.statusSamplingInterval = 45;
+      openVPN.statusSamplingRequestMaxLines = 500;
+      openVPN.statusSamplingCacheMaxSize = 2097152;
+      await manager.getRepository(OpenVPN).save(openVPN);
+
+      await service.syncAgent(openVPN);
+
+      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+      expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 45,
+            requestMaxLines: 500,
+            cacheMaxSize: 2097152,
+          },
+        ],
+      });
+    });
+
     it('should report failed synchronization', async () => {
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         syncOpenVPNStatusSampling: sinon.stub().rejects(new Error('agent rejected config')),

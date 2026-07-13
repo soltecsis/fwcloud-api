@@ -139,9 +139,9 @@ export class OpenVPNStatusSamplingService extends Service {
       if (statusFile && !statusFiles.some((item) => item.path === statusFile)) {
         statusFiles.push({
           path: statusFile,
-          samplingInterval: DEFAULT_SAMPLING_INTERVAL,
-          requestMaxLines: DEFAULT_REQUEST_MAX_LINES,
-          cacheMaxSize: DEFAULT_CACHE_MAX_SIZE,
+          samplingInterval: openVPN.statusSamplingInterval ?? DEFAULT_SAMPLING_INTERVAL,
+          requestMaxLines: openVPN.statusSamplingRequestMaxLines ?? DEFAULT_REQUEST_MAX_LINES,
+          cacheMaxSize: openVPN.statusSamplingCacheMaxSize ?? DEFAULT_CACHE_MAX_SIZE,
         });
       }
     }
