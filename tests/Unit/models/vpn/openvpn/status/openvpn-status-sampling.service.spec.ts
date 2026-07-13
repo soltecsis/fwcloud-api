@@ -150,8 +150,14 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
 
       expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
       expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
-        enabled: true,
-        statusFiles: ['/run/openvpn/server.status'],
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 30,
+            requestMaxLines: 1000,
+            cacheMaxSize: 10485760,
+          },
+        ],
       });
       expect(synced.id).to.eq(fwcProduct.openvpnServer.id);
     });

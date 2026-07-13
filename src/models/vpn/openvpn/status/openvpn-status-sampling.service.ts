@@ -1,10 +1,15 @@
 import * as path from 'path';
 import { AgentCommunication } from '../../../../communications/agent.communication';
+import { OpenVPNStatusSamplingAgentStatusFile } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
 import { Service } from '../../../../fonaments/services/service';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
+
+const DEFAULT_SAMPLING_INTERVAL = 30;
+const DEFAULT_REQUEST_MAX_LINES = 1000;
+const DEFAULT_CACHE_MAX_SIZE = 10485760;
 
 export type OpenVPNStatusSamplingSaveData = {
   openVPNId: number;
@@ -68,8 +73,7 @@ export class OpenVPNStatusSamplingService extends Service {
     });
 
     await communication.syncOpenVPNStatusSampling({
-      enabled: activeOpenVPNServers.length > 0,
-      statusFiles: this.getUniqueStatusFiles(activeOpenVPNServers),
+      statusFiles: this.getUniqueStatusFileConfigs(activeOpenVPNServers),
     });
 
     return openVPNRepository.findOne({
@@ -124,14 +128,21 @@ export class OpenVPNStatusSamplingService extends Service {
     return normalizedPath;
   }
 
-  protected getUniqueStatusFiles(openVPNServers: OpenVPN[]): string[] {
-    const statusFiles: string[] = [];
+  protected getUniqueStatusFileConfigs(
+    openVPNServers: OpenVPN[],
+  ): OpenVPNStatusSamplingAgentStatusFile[] {
+    const statusFiles: OpenVPNStatusSamplingAgentStatusFile[] = [];
 
     for (const openVPN of openVPNServers) {
       const statusFile = this.getStatusFile(openVPN);
 
-      if (statusFile && !statusFiles.includes(statusFile)) {
-        statusFiles.push(statusFile);
+      if (statusFile && !statusFiles.some((item) => item.path === statusFile)) {
+        statusFiles.push({
+          path: statusFile,
+          samplingInterval: DEFAULT_SAMPLING_INTERVAL,
+          requestMaxLines: DEFAULT_REQUEST_MAX_LINES,
+          cacheMaxSize: DEFAULT_CACHE_MAX_SIZE,
+        });
       }
     }
 

@@ -146,15 +146,27 @@ describe(AgentCommunication.name, () => {
       const stub = sinon.stub(axios, 'put').resolves({ status: 200, data: { accepted: true } });
 
       await agent.syncOpenVPNStatusSampling({
-        enabled: true,
-        statusFiles: ['/run/openvpn/server.status'],
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 30,
+            requestMaxLines: 1000,
+            cacheMaxSize: 10485760,
+          },
+        ],
       });
 
       expect(stub.calledOnce).to.be.true;
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/status/sampling');
       expect(stub.firstCall.args[1]).to.deep.equal({
-        enabled: true,
-        status_files: ['/run/openvpn/server.status'],
+        status_files: [
+          {
+            path: '/run/openvpn/server.status',
+            sampling_interval: 30,
+            request_max_lines: 1000,
+            cache_max_size: 10485760,
+          },
+        ],
       });
     });
 
@@ -163,8 +175,14 @@ describe(AgentCommunication.name, () => {
         status: 200,
         data: {
           accepted: true,
-          enabled: true,
-          status_files: ['/run/openvpn/server.status'],
+          status_files: [
+            {
+              path: '/run/openvpn/server.status',
+              sampling_interval: 30,
+              request_max_lines: 1000,
+              cache_max_size: 10485760,
+            },
+          ],
         },
       });
 
@@ -174,8 +192,14 @@ describe(AgentCommunication.name, () => {
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/status/sampling');
       expect(state).to.deep.eq({
         accepted: true,
-        enabled: true,
-        statusFiles: ['/run/openvpn/server.status'],
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 30,
+            requestMaxLines: 1000,
+            cacheMaxSize: 10485760,
+          },
+        ],
       });
     });
   });
