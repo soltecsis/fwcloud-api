@@ -5,7 +5,7 @@ export class openvpnStatusSampling1781712000000 implements MigrationInterface {
     await queryRunner.addColumn(
       'openvpn',
       new TableColumn({
-        name: 'status_sampling_enabled',
+        name: 'status_sampling',
         type: 'tinyint',
         length: '1',
         isNullable: false,
@@ -15,6 +15,6 @@ export class openvpnStatusSampling1781712000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropColumn('openvpn', 'status_sampling_enabled');
+    await queryRunner.dropColumn('openvpn', 'status_sampling');
   }
 }
