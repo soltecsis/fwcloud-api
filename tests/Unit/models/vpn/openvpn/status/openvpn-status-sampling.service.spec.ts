@@ -7,6 +7,7 @@ import {
 import { OpenVPNStatusSamplingService } from '../../../../../../src/models/vpn/openvpn/status/openvpn-status-sampling.service';
 import { OpenVPNOption } from '../../../../../../src/models/vpn/openvpn/openvpn-option.model';
 import { OpenVPN } from '../../../../../../src/models/vpn/openvpn/OpenVPN';
+import { Crt } from '../../../../../../src/models/vpn/pki/Crt';
 import db from '../../../../../../src/database/database-manager';
 import { describeName, expect, testSuite } from '../../../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../../../utils/fwcloud-factory';
@@ -29,10 +30,13 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
     sinon.restore();
   });
 
-  async function setStatusOption(statusFile: string): Promise<void> {
+  async function setStatusOption(
+    statusFile: string,
+    openVPNId: number = fwcProduct.openvpnServer.id,
+  ): Promise<void> {
     await manager.getRepository(OpenVPNOption).save(
       manager.getRepository(OpenVPNOption).create({
-        openVPNId: fwcProduct.openvpnServer.id,
+        openVPNId,
         name: 'status',
         arg: statusFile,
         order: 1,
@@ -49,10 +53,16 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,
         statusFile: '/run/openvpn/server.status',
+        samplingInterval: 45,
+        requestMaxLines: 500,
+        cacheMaxSize: 2097152,
       });
 
       expect(openVPN.id).to.eq(fwcProduct.openvpnServer.id);
       expect(Boolean(openVPN.statusSamplingEnabled)).to.eq(true);
+      expect(openVPN.statusSamplingInterval).to.eq(45);
+      expect(openVPN.statusSamplingRequestMaxLines).to.eq(500);
+      expect(openVPN.statusSamplingCacheMaxSize).to.eq(2097152);
     });
 
     it('should disable OpenVPN server sampling configuration', async () => {
@@ -92,6 +102,19 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
           statusFile: 'openvpn/server.status',
         }),
       ).to.be.rejectedWith('OpenVPN status file path must be absolute');
+    });
+
+    it('should reject invalid sampling parameters', async () => {
+      await setStatusOption('/run/openvpn/server.status');
+
+      await expect(
+        service.save({
+          openVPNId: fwcProduct.openvpnServer.id,
+          enabled: true,
+          statusFile: '/run/openvpn/server.status',
+          samplingInterval: 0,
+        }),
+      ).to.be.rejectedWith('OpenVPN status sampling interval must be a positive integer');
     });
   });
 
@@ -150,10 +173,107 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
 
       expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
       expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
-        enabled: true,
-        statusFiles: ['/run/openvpn/server.status'],
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 30,
+            requestMaxLines: 1000,
+            cacheMaxSize: 10485760,
+          },
+        ],
       });
       expect(synced.id).to.eq(fwcProduct.openvpnServer.id);
+    });
+
+    it('should send all enabled OpenVPN server configurations for the firewall', async () => {
+      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        syncOpenVPNStatusSampling,
+      } as any);
+
+      const secondServerCrt: Crt = await manager.getRepository(Crt).save(
+        manager.getRepository(Crt).create({
+          caId: fwcProduct.ca.id,
+          cn: 'OpenVPN-Server-2',
+          days: 1000,
+          type: 2,
+        }),
+      );
+      const secondServer: OpenVPN = await manager.getRepository(OpenVPN).save(
+        manager.getRepository(OpenVPN).create({
+          parentId: null,
+          firewallId: fwcProduct.firewall.id,
+          crtId: secondServerCrt.id,
+          statusSamplingEnabled: 1,
+          statusSamplingInterval: 10,
+          statusSamplingRequestMaxLines: 200,
+          statusSamplingCacheMaxSize: 1024,
+        }),
+      );
+
+      await setStatusOption('/run/openvpn/server.status');
+      await setStatusOption('/run/openvpn/server-2.status', secondServer.id);
+      const openVPN: OpenVPN = await service.save({
+        openVPNId: fwcProduct.openvpnServer.id,
+        enabled: true,
+        statusFile: '/run/openvpn/server.status',
+        samplingInterval: 45,
+        requestMaxLines: 500,
+        cacheMaxSize: 2097152,
+      });
+
+      await service.syncAgent(openVPN);
+
+      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+      expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 45,
+            requestMaxLines: 500,
+            cacheMaxSize: 2097152,
+          },
+          {
+            path: '/run/openvpn/server-2.status',
+            samplingInterval: 10,
+            requestMaxLines: 200,
+            cacheMaxSize: 1024,
+          },
+        ],
+      });
+    });
+
+    it('should send persisted OpenVPN server sampling parameters', async () => {
+      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        syncOpenVPNStatusSampling,
+      } as any);
+
+      await setStatusOption('/run/openvpn/server.status');
+      const openVPN: OpenVPN = await service.save({
+        openVPNId: fwcProduct.openvpnServer.id,
+        enabled: true,
+        statusFile: '/run/openvpn/server.status',
+      });
+
+      openVPN.statusSamplingInterval = 45;
+      openVPN.statusSamplingRequestMaxLines = 500;
+      openVPN.statusSamplingCacheMaxSize = 2097152;
+      await manager.getRepository(OpenVPN).save(openVPN);
+
+      await service.syncAgent(openVPN);
+
+      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+      expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 45,
+            requestMaxLines: 500,
+            cacheMaxSize: 2097152,
+          },
+        ],
+      });
     });
 
     it('should report failed synchronization', async () => {

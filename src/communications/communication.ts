@@ -38,15 +38,20 @@ export type OpenVPNHistoryRecord = {
   connectedAtTimestampInSeconds: number;
 };
 
+export type OpenVPNStatusSamplingAgentStatusFile = {
+  path: string;
+  samplingInterval: number;
+  requestMaxLines: number;
+  cacheMaxSize: number;
+};
+
 export type OpenVPNStatusSamplingAgentConfig = {
-  enabled: boolean;
-  statusFiles: string[];
+  statusFiles: OpenVPNStatusSamplingAgentStatusFile[];
 };
 
 export type OpenVPNStatusSamplingAgentState = {
   accepted: boolean;
-  enabled: boolean;
-  statusFiles: string[];
+  statusFiles: OpenVPNStatusSamplingAgentStatusFile[];
 };
 
 export type WireGuardHistoryRecord = {
