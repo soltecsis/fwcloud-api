@@ -134,7 +134,7 @@ export class OpenVPNStatusSamplingService extends Service {
   }
 
   protected normalizeStatusFile(statusFile: string): string {
-    const normalizedPath = statusFile.trim();
+    const normalizedPath = this.extractStatusFilePath(statusFile);
 
     if (!normalizedPath) {
       throw new Error('OpenVPN status file path cannot be empty');
@@ -145,6 +145,16 @@ export class OpenVPNStatusSamplingService extends Service {
     }
 
     return normalizedPath;
+  }
+
+  protected extractStatusFilePath(statusOptionArgument: string | null | undefined): string | null {
+    const normalizedArgument = statusOptionArgument?.trim();
+
+    if (!normalizedArgument) {
+      return null;
+    }
+
+    return normalizedArgument.split(/\s+/)[0] ?? null;
   }
 
   protected normalizeSamplingParameter(
@@ -191,8 +201,8 @@ export class OpenVPNStatusSamplingService extends Service {
   }
 
   protected getStatusFile(openVPN: OpenVPN): string | null {
-    return (
-      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+    return this.extractStatusFilePath(
+      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg,
     );
   }
 }
