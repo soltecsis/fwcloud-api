@@ -148,6 +148,37 @@ const disableOpenVPNStatusSamplingIfEnabled = async (openvpnId) => {
 	await samplingService.syncAgent(disabledSampling);
 };
 
+const getOpenVPNStatusFilePath = (options = []) => {
+	const statusOption = options.find((option) => option.name === 'status');
+	const statusOptionArgument = statusOption?.arg ?? statusOption?.value;
+
+	if (typeof statusOptionArgument !== 'string') {
+		return null;
+	}
+
+	const normalizedArgument = statusOptionArgument.trim();
+	return normalizedArgument ? normalizedArgument.split(/\s+/)[0] : null;
+};
+
+const syncOpenVPNStatusSamplingIfStatusFileChanged = async (
+	openvpnId,
+	currentOptions,
+	nextOptions,
+) => {
+	if (getOpenVPNStatusFilePath(currentOptions) === getOpenVPNStatusFilePath(nextOptions)) {
+		return;
+	}
+
+	const samplingService = await new OpenVPNStatusSamplingService(undefined).build();
+	const sampling = await samplingService.findOneByOpenVPN(openvpnId);
+
+	if (!sampling || !sampling.statusSamplingEnabled) {
+		return;
+	}
+
+	await samplingService.syncAgent(sampling);
+};
+
 const getCommunicationForFirewall = async (firewall, req) => {
 	if (firewall.install_communication === FirewallInstallCommunication.SSH) {
 		const pgp = new PgpHelper(req.session.pgp);
@@ -690,6 +721,12 @@ router.put('/', async (req, res) => {
 			opt.order = order++;
 			await OpenVPN.addCfgOpt(req, opt);
 		}
+
+		await syncOpenVPNStatusSamplingIfStatusFileChanged(
+			req.body.openvpn,
+			currentOptions,
+			req.body.options,
+		);
 
 		// Update the status flag if any option changed (any scope).
 		const formatOptions = (options = []) => options
