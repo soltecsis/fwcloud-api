@@ -16,6 +16,18 @@ export type OpenVPNStatusSamplingSaveData = {
   cacheMaxSize?: number;
 };
 
+export const extractOpenVPNStatusFilePath = (
+  statusOptionArgument: string | null | undefined,
+): string | null => {
+  const normalizedArgument = statusOptionArgument?.trim();
+
+  if (!normalizedArgument) {
+    return null;
+  }
+
+  return normalizedArgument.split(/\s+/)[0] ?? null;
+};
+
 export class OpenVPNStatusSamplingService extends Service {
   static readonly DEFAULT_SAMPLING_INTERVAL = 30;
   static readonly DEFAULT_REQUEST_MAX_LINES = 1000;
@@ -134,7 +146,7 @@ export class OpenVPNStatusSamplingService extends Service {
   }
 
   protected normalizeStatusFile(statusFile: string): string {
-    const normalizedPath = this.extractStatusFilePath(statusFile);
+    const normalizedPath = extractOpenVPNStatusFilePath(statusFile);
 
     if (!normalizedPath) {
       throw new Error('OpenVPN status file path cannot be empty');
@@ -145,16 +157,6 @@ export class OpenVPNStatusSamplingService extends Service {
     }
 
     return normalizedPath;
-  }
-
-  protected extractStatusFilePath(statusOptionArgument: string | null | undefined): string | null {
-    const normalizedArgument = statusOptionArgument?.trim();
-
-    if (!normalizedArgument) {
-      return null;
-    }
-
-    return normalizedArgument.split(/\s+/)[0] ?? null;
   }
 
   protected normalizeSamplingParameter(
@@ -201,7 +203,7 @@ export class OpenVPNStatusSamplingService extends Service {
   }
 
   protected getStatusFile(openVPN: OpenVPN): string | null {
-    return this.extractStatusFilePath(
+    return extractOpenVPNStatusFilePath(
       openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg,
     );
   }

@@ -6,7 +6,10 @@ import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from '../../../models/fwcloud/FwCloud';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNOption } from '../../../models/vpn/openvpn/openvpn-option.model';
-import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
+import {
+  extractOpenVPNStatusFilePath,
+  OpenVPNStatusSamplingService,
+} from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 import { FirewallPolicy } from '../../../policies/firewall.policy';
 import db from '../../../database/database-manager';
 import { OpenVPNStatusSamplingUpdateDto } from './dtos/status-sampling.dto';
@@ -116,8 +119,9 @@ export class OpenVPNStatusSamplingController extends Controller {
   }
 
   protected getStatusFile(openVPN: OpenVPN): string | null {
-    return (
-      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+    return extractOpenVPNStatusFilePath(
+      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ??
+        null,
     );
   }
 }

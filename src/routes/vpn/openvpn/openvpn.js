@@ -59,7 +59,10 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
-import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
+import {
+	extractOpenVPNStatusFilePath,
+	OpenVPNStatusSamplingService,
+} from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
@@ -150,14 +153,7 @@ const disableOpenVPNStatusSamplingIfEnabled = async (openvpnId) => {
 
 const getOpenVPNStatusFilePath = (options = []) => {
 	const statusOption = options.find((option) => option.name === 'status');
-	const statusOptionArgument = statusOption?.arg ?? statusOption?.value;
-
-	if (typeof statusOptionArgument !== 'string') {
-		return null;
-	}
-
-	const normalizedArgument = statusOptionArgument.trim();
-	return normalizedArgument ? normalizedArgument.split(/\s+/)[0] : null;
+	return extractOpenVPNStatusFilePath(statusOption?.arg ?? statusOption?.value);
 };
 
 const syncOpenVPNStatusSamplingIfStatusFileChanged = async (
