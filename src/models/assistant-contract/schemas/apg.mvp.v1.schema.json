@@ -1,0 +1,738 @@
+{
+  "$defs": {
+    "AssistedGeneratedContentResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssistedGeneratedProfileResponse"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "roleAssignments": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssistedRoleAssignmentsResponse"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/AssistedGeneratedRuleResponse"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssistedGeneratedTargetResponse"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "AssistedGeneratedContentResponse",
+      "type": "object"
+    },
+    "AssistedGeneratedInterfaceResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Address"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "node": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Node"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "role"
+      ],
+      "title": "AssistedGeneratedInterfaceResponse",
+      "type": "object"
+    },
+    "AssistedGeneratedNodeResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "AssistedGeneratedNodeResponse",
+      "type": "object"
+    },
+    "AssistedGeneratedProfileResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "requiredRoles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requiredroles",
+          "type": "array"
+        },
+        "targetTypes": {
+          "items": {
+            "$ref": "#/$defs/ResourceType"
+          },
+          "title": "Targettypes",
+          "type": "array"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "targetTypes",
+        "requiredRoles"
+      ],
+      "title": "AssistedGeneratedProfileResponse",
+      "type": "object"
+    },
+    "AssistedGeneratedRuleResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "allow",
+            "deny"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "destinationRole": {
+          "title": "Destinationrole",
+          "type": "string"
+        },
+        "service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service"
+        },
+        "sourceRole": {
+          "title": "Sourcerole",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "sourceRole",
+        "destinationRole"
+      ],
+      "title": "AssistedGeneratedRuleResponse",
+      "type": "object"
+    },
+    "AssistedGeneratedTargetResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "interfaces": {
+          "items": {
+            "$ref": "#/$defs/AssistedGeneratedInterfaceResponse"
+          },
+          "title": "Interfaces",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/AssistedGeneratedNodeResponse"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "type": {
+          "$ref": "#/$defs/ResourceType"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "interfaces"
+      ],
+      "title": "AssistedGeneratedTargetResponse",
+      "type": "object"
+    },
+    "AssistedInterfaceRoleAssignmentResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "interfaceName": {
+          "title": "Interfacename",
+          "type": "string"
+        },
+        "node": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Node"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "interfaceName"
+      ],
+      "title": "AssistedInterfaceRoleAssignmentResponse",
+      "type": "object"
+    },
+    "AssistedNodeRoleAssignmentResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "nodeName": {
+          "title": "Nodename",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "nodeName"
+      ],
+      "title": "AssistedNodeRoleAssignmentResponse",
+      "type": "object"
+    },
+    "AssistedRoleAssignmentsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "interfaceRoles": {
+          "items": {
+            "$ref": "#/$defs/AssistedInterfaceRoleAssignmentResponse"
+          },
+          "title": "Interfaceroles",
+          "type": "array"
+        },
+        "nodeRoles": {
+          "items": {
+            "$ref": "#/$defs/AssistedNodeRoleAssignmentResponse"
+          },
+          "title": "Noderoles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "interfaceRoles"
+      ],
+      "title": "AssistedRoleAssignmentsResponse",
+      "type": "object"
+    },
+    "ClarificationQuestionResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "expectedAnswerType": {
+          "anyOf": [
+            {
+              "enum": [
+                "text",
+                "number",
+                "choice",
+                "boolean"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expectedanswertype"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "question",
+        "required"
+      ],
+      "title": "ClarificationQuestionResponse",
+      "type": "object"
+    },
+    "FWCloudOperation": {
+      "enum": [
+        "create_firewall",
+        "create_cluster",
+        "preview",
+        "apply"
+      ],
+      "title": "FWCloudOperation",
+      "type": "string"
+    },
+    "FWCloudPayloadResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/FWCloudOperation"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "targetType": {
+          "$ref": "#/$defs/ResourceType"
+        }
+      },
+      "required": [
+        "operation",
+        "targetType",
+        "payload"
+      ],
+      "title": "FWCloudPayloadResponse",
+      "type": "object"
+    },
+    "GenerationClarificationResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/ClarificationQuestionResponse"
+          },
+          "title": "Questions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "questions"
+      ],
+      "title": "GenerationClarificationResponse",
+      "type": "object"
+    },
+    "GenerationErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "severity"
+      ],
+      "title": "GenerationErrorResponse",
+      "type": "object"
+    },
+    "GenerationIntentResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "detectedTarget": {
+          "enum": [
+            "firewall",
+            "cluster",
+            "unknown"
+          ],
+          "title": "Detectedtarget",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detectedTarget",
+        "confidence",
+        "summary"
+      ],
+      "title": "GenerationIntentResponse",
+      "type": "object"
+    },
+    "GenerationMetadataResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generatedat"
+        },
+        "modelProvider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modelprovider"
+        },
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion"
+      ],
+      "title": "GenerationMetadataResponse",
+      "type": "object"
+    },
+    "GenerationPlanStepResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "step": {
+          "title": "Step",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "title",
+        "description"
+      ],
+      "title": "GenerationPlanStepResponse",
+      "type": "object"
+    },
+    "GenerationStatus": {
+      "enum": [
+        "success",
+        "needs_clarification",
+        "validation_failed"
+      ],
+      "title": "GenerationStatus",
+      "type": "string"
+    },
+    "GenerationWarningResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "severity"
+      ],
+      "title": "GenerationWarningResponse",
+      "type": "object"
+    },
+    "ResourceType": {
+      "enum": [
+        "firewall",
+        "cluster"
+      ],
+      "title": "ResourceType",
+      "type": "string"
+    }
+  },
+  "$id": "urn:fwcloud:contract:apg.mvp.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "clarification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GenerationClarificationResponse"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/GenerationErrorResponse"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "fwcloudPayload": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FWCloudPayloadResponse"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "generated": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AssistedGeneratedContentResponse"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "intent": {
+      "$ref": "#/$defs/GenerationIntentResponse"
+    },
+    "metadata": {
+      "$ref": "#/$defs/GenerationMetadataResponse"
+    },
+    "plan": {
+      "items": {
+        "$ref": "#/$defs/GenerationPlanStepResponse"
+      },
+      "title": "Plan",
+      "type": "array"
+    },
+    "requestId": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requestid"
+    },
+    "status": {
+      "$ref": "#/$defs/GenerationStatus"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/GenerationWarningResponse"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "intent",
+    "plan",
+    "warnings",
+    "errors",
+    "metadata"
+  ],
+  "title": "GenerationProposalResponse",
+  "type": "object",
+  "x-contract-version": "apg.mvp.v1",
+  "x-payload-schema-version": "1.0.0"
+}
