@@ -1,0 +1,15 @@
+{
+  "status": "success",
+  "plan": [],
+  "warnings": [],
+  "errors": [],
+  "clarification": null,
+  "fwcloudPayload": null,
+  "generated": null,
+  "requestId": "req-missing-intent",
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "modelProvider": "local",
+    "generatedAt": "2026-07-16T10:15:00Z"
+  }
+}

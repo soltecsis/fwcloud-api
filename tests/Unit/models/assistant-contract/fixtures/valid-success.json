@@ -1,0 +1,31 @@
+{
+  "status": "success",
+  "intent": {
+    "detectedTarget": "firewall",
+    "confidence": 0.92,
+    "summary": "Create a firewall allowing inbound HTTP",
+    "language": "en"
+  },
+  "plan": [
+    { "step": 1, "title": "Create target", "description": "Create the firewall resource" },
+    { "step": 2, "title": "Add rule", "description": "Allow WAN -> LAN on http" }
+  ],
+  "warnings": [],
+  "errors": [],
+  "clarification": null,
+  "fwcloudPayload": null,
+  "generated": {
+    "profile": null,
+    "roleAssignments": null,
+    "target": null,
+    "rules": [
+      { "action": "allow", "sourceRole": "wan", "destinationRole": "lan", "service": "http", "description": null }
+    ]
+  },
+  "requestId": "req-success-1",
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "modelProvider": "local",
+    "generatedAt": "2026-07-16T10:00:00Z"
+  }
+}
