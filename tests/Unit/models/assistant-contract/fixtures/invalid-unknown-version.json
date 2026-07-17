@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "intent": {
+    "detectedTarget": "firewall",
+    "confidence": 0.92,
+    "summary": "Create a firewall allowing inbound HTTP",
+    "language": "en"
+  },
+  "plan": [],
+  "warnings": [],
+  "errors": [],
+  "clarification": null,
+  "fwcloudPayload": null,
+  "generated": null,
+  "requestId": "req-unknown-version",
+  "metadata": {
+    "schemaVersion": "9.9.9",
+    "modelProvider": "local",
+    "generatedAt": "2026-07-16T10:25:00Z"
+  }
+}

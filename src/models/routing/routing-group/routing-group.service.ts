@@ -77,17 +77,16 @@ export class RoutingGroupService extends Service {
   }
 
   async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
-    let group: RoutingGroup = await db
-      .getSource()
-      .manager.getRepository(RoutingGroup)
-      .preload(Object.assign(data, { id }));
-    const firewall: Firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOne({ where: { id: group.firewallId } });
+    const repository = db.getSource().manager.getRepository(RoutingGroup);
+    let group: RoutingGroup = await repository.preload(Object.assign(data, { id }));
 
     if (data.routingRules) {
       if (data.routingRules.length === 0) {
+        const firewall: Firewall = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOne({ where: { id: group.firewallId } });
+
         return this.remove({
           id: group.id,
           firewallId: firewall.id,
@@ -98,24 +97,24 @@ export class RoutingGroupService extends Service {
       group.routingRules = data.routingRules as RoutingRule[];
     }
 
-    group = await db.getSource().manager.getRepository(RoutingGroup).save(group);
+    group = await repository.save(group);
 
-    return db
-      .getSource()
-      .manager.getRepository(RoutingGroup)
-      .findOneOrFail({ where: { id: group.id } });
+    return repository.findOneOrFail({ where: { id: group.id } });
   }
 
   async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
     const group: RoutingGroup = await this.findOneInPath(path);
-    db.getSource()
-      .manager.getRepository(RoutingRule)
-      .update(
-        group.routingRules.map((rule) => rule.id),
-        {
-          routingGroupId: null,
-        },
-      );
+    if (group.routingRules.length > 0) {
+      await db
+        .getSource()
+        .manager.getRepository(RoutingRule)
+        .update(
+          group.routingRules.map((rule) => rule.id),
+          {
+            routingGroupId: null,
+          },
+        );
+    }
     await db.getSource().manager.getRepository(RoutingGroup).remove(group);
     return group;
   }
