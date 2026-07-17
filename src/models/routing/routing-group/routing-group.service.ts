@@ -108,14 +108,17 @@ export class RoutingGroupService extends Service {
 
   async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
     const group: RoutingGroup = await this.findOneInPath(path);
-    db.getSource()
-      .manager.getRepository(RoutingRule)
-      .update(
-        group.routingRules.map((rule) => rule.id),
-        {
-          routingGroupId: null,
-        },
-      );
+    if (group.routingRules.length > 0) {
+      await db
+        .getSource()
+        .manager.getRepository(RoutingRule)
+        .update(
+          group.routingRules.map((rule) => rule.id),
+          {
+            routingGroupId: null,
+          },
+        );
+    }
     await db.getSource().manager.getRepository(RoutingGroup).remove(group);
     return group;
   }
