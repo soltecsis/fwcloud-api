@@ -5,6 +5,7 @@ import db from '../../../../database/database-manager';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
 import { OpenVPN } from '../OpenVPN';
 import { OpenVPNOption } from '../openvpn-option.model';
+import { extractOpenVPNStatusFilePath } from './openvpn-status-sampling.service';
 import { AuditEventService, AuditEventStatus } from '../../../audit/AuditEvent.service';
 import {
   CreateOpenVPNStatusHistoryData,
@@ -78,8 +79,8 @@ function buildRecoverableErrorSummary(messages: string[]): string | null {
 }
 
 function getStatusFile(openvpn: OpenVPN): string | null {
-  return (
-    openvpn.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+  return extractOpenVPNStatusFilePath(
+    openvpn.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null,
   );
 }
 

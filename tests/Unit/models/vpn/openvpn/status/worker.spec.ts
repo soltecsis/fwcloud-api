@@ -241,7 +241,7 @@ describe('OpenVPN status worker iteration audit events', () => {
       insertedEntries: 1,
       updatedDisconnections: 0,
     } as CreateOpenVPNStatusHistorySummary);
-    const openVPNFirewall = buildFirewall([
+    const getOpenVPNHistoryFile = sandbox.stub().resolves([
       {
         timestamp: 10,
         name: 'alice',
@@ -251,9 +251,12 @@ describe('OpenVPN status worker iteration audit events', () => {
         connectedAtTimestampInSeconds: 1,
       },
     ]);
+    const openVPNFirewall = {
+      getCommunication: async () => ({ getOpenVPNHistoryFile }),
+    } as unknown as Firewall;
 
     const dependencies: OpenVPNStatusWorkerIterationDependencies = {
-      getOpenVPNServers: async () => [buildOpenVPN(10, openVPNFirewall, '/tmp/openvpn-status')],
+      getOpenVPNServers: async () => [buildOpenVPN(10, openVPNFirewall, '/tmp/openvpn-status 5')],
     };
 
     await iterate(
@@ -269,6 +272,7 @@ describe('OpenVPN status worker iteration audit events', () => {
 
     expect(createWithSummary.firstCall.args[1]).to.have.length(1);
     expect(createWithSummary.firstCall.args[1][0].name).to.equal('alice');
+    expect(getOpenVPNHistoryFile.calledWithExactly('/tmp/openvpn-status')).to.equal(true);
   });
 
   it('continues with the next OpenVPN server when polling fails', async () => {

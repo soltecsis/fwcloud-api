@@ -68,7 +68,7 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
         db.getSource().manager.getRepository(OpenVPNOption).create({
           openVPNId: fwcProduct.openvpnServer.id,
           name: 'status',
-          arg: '/run/openvpn/server.status',
+          arg: '/run/openvpn/server.status 5',
           order: 1,
           scope: 1,
         }),
@@ -79,7 +79,7 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
       inputs: new RequestInputs({
         body: {
           enabled: true,
-          status_file: '/run/openvpn/server.status',
+          status_file: '/run/openvpn/server.status 5',
           sampling_interval: 45,
           request_max_lines: 500,
           cache_max_size: 2097152,
@@ -100,5 +100,15 @@ describe(describeName(OpenVPNStatusSamplingController.name + ' Unit Tests'), () 
     expect(body.data).to.have.property('request_max_lines').eq(500);
     expect(body.data).to.have.property('cache_max_size').eq(2097152);
     expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+    expect(syncOpenVPNStatusSampling.firstCall.args[0]).to.deep.eq({
+      statusFiles: [
+        {
+          path: '/run/openvpn/server.status',
+          samplingInterval: 45,
+          requestMaxLines: 500,
+          cacheMaxSize: 2097152,
+        },
+      ],
+    });
   });
 });
