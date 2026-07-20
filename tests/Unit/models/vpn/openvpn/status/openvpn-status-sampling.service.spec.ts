@@ -104,6 +104,18 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       ).to.be.rejectedWith('OpenVPN status file path must be absolute');
     });
 
+    it('should reject relative status option paths with dump intervals', async () => {
+      await setStatusOption('openvpn/server.status 5');
+
+      await expect(
+        service.save({
+          openVPNId: fwcProduct.openvpnServer.id,
+          enabled: true,
+          statusFile: '/run/openvpn/server.status',
+        }),
+      ).to.be.rejectedWith('OpenVPN status file path must be absolute: openvpn/server.status');
+    });
+
     it('should reject invalid sampling parameters', async () => {
       await setStatusOption('/run/openvpn/server.status');
 
@@ -156,13 +168,13 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
   });
 
   describe('syncAgent', () => {
-    it('should send all enabled OpenVPN server files for the collector', async () => {
+    it('should send the status file path without its dump interval to the collector', async () => {
       const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({
         syncOpenVPNStatusSampling,
       } as any);
 
-      await setStatusOption('/run/openvpn/server.status');
+      await setStatusOption('/run/openvpn/server.status 5');
       const openVPN: OpenVPN = await service.save({
         openVPNId: fwcProduct.openvpnServer.id,
         enabled: true,

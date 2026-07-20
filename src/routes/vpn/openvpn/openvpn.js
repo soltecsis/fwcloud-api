@@ -1287,7 +1287,8 @@ router.put('/status/get', async (req, res, next) => {
 		// Obtain the status log file option of the OpenVPN server configuration.
 		const openvpn_opt = await OpenVPN.getOptData(req.dbCon, req.body.openvpn, 'status');
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_STATUS;
-		const status_file_path = openvpn_opt.arg;
+		const status_file_path = extractOpenVPNStatusFilePath(openvpn_opt.arg);
+		if (!status_file_path) throw fwcError.VPN_NOT_FOUND_STATUS;
 
 		const data = await communication.getRealtimeStatus(status_file_path);
 
