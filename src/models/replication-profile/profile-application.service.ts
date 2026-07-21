@@ -142,6 +142,7 @@ export class ProfileApplicationService extends Service {
           request.replication.target,
           provision,
           request.fwCloudId,
+          request.replication.mode,
         );
       } else {
         await this.validateSourceFirewall(request);

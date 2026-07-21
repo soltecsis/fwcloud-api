@@ -294,19 +294,35 @@ export class PolicyReplicationService extends Service {
 
   /**
    * Declarative provisioning: instead of copying from a source firewall, this
-   * CREATES on the target firewall the interfaces and policy rules declared in
-   * the profile's `provision` block. Used by provisioning profiles, which do
-   * not need a source firewall. Returns the same result shape as the regular
-   * replication so the caller/UI can report what was created.
+   * creates on the target firewall the interfaces and policy rules declared in
+   * the profile's `provision` block (or only previews them in dry-run mode).
+   * Used by provisioning profiles, which do not need a source firewall.
+   * Returns the same result shape as regular replication.
    */
   public async provisionPolicyFromProfile(
     target: PolicyReplicationTarget,
     provision: PolicyReplicationProvision,
     fwCloudId: number,
+    mode: PolicyReplicationMode = 'replace_defaults',
   ): Promise<PolicyReplicationResult> {
-    const result = this.createEmptyResult('replace_defaults');
+    const result = this.createEmptyResult(mode);
 
     const firewallId = await this.resolveProvisionTargetFirewallId(target);
+
+    if (mode === 'dry_run') {
+      result.createdRules = provision.rules.map((rule, index) => ({
+        sourceRuleId: 0,
+        targetRuleId: null,
+        policyTypeId: 3,
+        ruleOrder: 2 + index,
+        comment: rule.comment ?? null,
+      }));
+      result.warnings.push(
+        `Dry run would provision ${provision.interfaces.length} interface(s) on firewall ${firewallId}.`,
+      );
+      return result;
+    }
+
     const manager = db.getSource().manager;
     const dbCon = await this.legacyConnection();
 
