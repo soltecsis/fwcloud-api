@@ -27,6 +27,10 @@ import {
 import { PolicyReplicationRequest } from '../../../../src/models/replication-profile/policy-replication.types';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import StringHelper from '../../../../src/utils/string.helper';
+import { AssistantContractCustoms } from '../../../../src/models/assistant-contract/assistant-contract-customs';
+import { AssistedProfileProposalMapper } from '../../../../src/models/assistant-contract/assisted-profile-proposal.mapper';
+import { validateReplicationProfilePayload } from '../../../../src/models/replication-profile/replication-profile-validation.service';
+import { makeAssistedProfileProposalFixture } from '../../../utils/assisted-profile-proposal-fixtures';
 
 describe(describeName('ProfileApplicationService Unit Tests'), () => {
   let app: Application;
@@ -282,6 +286,68 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       expect(data.mode).to.be.eq('dry_run');
       expect(data.status).to.be.eq('success');
       expect(data.applied).to.be.false;
+    });
+  });
+
+  describe('Assisted Profile mapper integration', () => {
+    it('takes a validated sync cluster proposal through a non-destructive apply dry run', async () => {
+      const gateway = new AssistantContractCustoms();
+      const gatewayResult = gateway.check(
+        makeAssistedProfileProposalFixture({ targetKind: 'cluster' }),
+      );
+      expect(gatewayResult.ok).to.be.true;
+      if (gatewayResult.ok === false) {
+        throw new Error(gatewayResult.message);
+      }
+
+      const dto = new AssistedProfileProposalMapper().map(gatewayResult.payload);
+      expect(validateReplicationProfilePayload(dto)).to.deep.equal([]);
+      expect(dto.model.roleAssignments.interfaceRoles as string[]).to.include('sync');
+
+      profile = await makeProfile({
+        name: dto.name,
+        description: dto.description ?? null,
+        scope: dto.scope,
+        targetKind: 'cluster',
+        category: dto.category ?? null,
+        model: dto.model as unknown as Record<string, unknown>,
+      });
+
+      const manager = db.getSource().manager;
+      const targetCluster = await manager
+        .getRepository(Cluster)
+        .save({ name: StringHelper.randomize(10), fwCloudId: fwc.fwcloud.id });
+      const target = await makeTargetFirewall();
+      await manager
+        .getRepository(Firewall)
+        .update(target.firewall.id, { clusterId: targetCluster.id, fwmaster: 1 });
+
+      const rulesBefore = await countTargetRules(target.firewall.id);
+      const interfacesBefore = await manager
+        .getRepository(Interface)
+        .count({ where: { firewallId: target.firewall.id } });
+      const applyRequest = makeApplyRequest(
+        target,
+        'dry_run',
+        {},
+        {
+          sourceProfile: undefined,
+          interfaceRoleMapping: undefined,
+          target: { kind: 'cluster', id: targetCluster.id },
+        },
+      );
+
+      const result = await service.apply(actor(authorizedUser), applyRequest);
+
+      expect(result.mode).to.equal('dry_run');
+      expect(result.applied).to.be.false;
+      expect(result.errors).to.be.empty;
+      expect(result.createdRules).to.have.length(2);
+      expect(result.createdRules.every((rule) => rule.targetRuleId === null)).to.be.true;
+      expect(await countTargetRules(target.firewall.id)).to.equal(rulesBefore);
+      expect(
+        await manager.getRepository(Interface).count({ where: { firewallId: target.firewall.id } }),
+      ).to.equal(interfacesBefore);
     });
   });
 

@@ -5,7 +5,7 @@ export const REPLICATION_PROFILE_CATALOG_ORIGINS = ['builtin', 'custom', 'all'] 
 export type ReplicationProfileCatalogOrigin = (typeof REPLICATION_PROFILE_CATALOG_ORIGINS)[number];
 
 /** Interface roles supported by the MVP custom-profile DTO contract. */
-export const REPLICATION_PROFILE_INTERFACE_ROLES = ['wan', 'lan', 'dmz'] as const;
+export const REPLICATION_PROFILE_INTERFACE_ROLES = ['wan', 'lan', 'dmz', 'sync'] as const;
 
 /** Policy rule actions supported by the MVP custom-profile contract. */
 export const REPLICATION_PROFILE_RULE_ACTIONS = ['accept', 'deny'] as const;
