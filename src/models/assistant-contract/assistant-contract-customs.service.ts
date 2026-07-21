@@ -22,7 +22,10 @@
 
 import { Service } from '../../fonaments/services/service';
 import { AuditLogService } from '../audit/AuditLog.service';
-import { AssistantContractCustoms } from './assistant-contract-customs';
+import {
+  AssistantContractCustoms,
+  ValidatedAssistedProfileProposal,
+} from './assistant-contract-customs';
 import { AssistantContractMismatchException } from './assistant-contract-mismatch.exception';
 
 export const ASSISTANT_CONTRACT_CUSTOMS_AUDIT_CALL = 'assistant.contract.reject';
@@ -65,7 +68,7 @@ export class AssistantContractCustomsService extends Service {
   public async validate(
     payload: unknown,
     context: AssistantContractValidationContext = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ValidatedAssistedProfileProposal> {
     const result = this._customs.check(payload);
 
     if (result.ok === true) {

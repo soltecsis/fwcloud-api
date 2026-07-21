@@ -45,6 +45,15 @@ export interface VendoredContractSchema {
   vendoredAt: string;
 }
 
+/** Current plus immediately previous schema, per the API-1 retention policy. */
+export const ASSISTED_PROFILE_CONTRACT_WINDOW_SIZE = 2;
+
+export function getSupportedContractSchemas(
+  manifest: readonly VendoredContractSchema[],
+): VendoredContractSchema[] {
+  return manifest.slice(-ASSISTED_PROFILE_CONTRACT_WINDOW_SIZE);
+}
+
 /**
  * Ordered oldest -> newest. The customs module (../assistant-contract-customs.ts)
  * only accepts payloads whose `metadata.schemaVersion` matches one of the LAST

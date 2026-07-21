@@ -21,7 +21,11 @@
 */
 
 import Ajv2020, { ValidateFunction } from 'ajv/dist/2020';
-import { VendoredContractSchema, VENDORED_CONTRACT_SCHEMAS } from './schemas/manifest';
+import {
+  getSupportedContractSchemas,
+  VendoredContractSchema,
+  VENDORED_CONTRACT_SCHEMAS,
+} from './schemas/manifest';
 
 export type ContractCustomsRejectionReason =
   | 'malformed_payload'
@@ -37,7 +41,7 @@ export interface ContractCustomsAccepted {
   ok: true;
   contractVersion: string;
   schemaVersion: string;
-  payload: Record<string, unknown>;
+  payload: ValidatedAssistedProfileProposal;
 }
 
 export interface ContractCustomsRejected {
@@ -50,6 +54,18 @@ export interface ContractCustomsRejected {
 }
 
 export type ContractCustomsResult = ContractCustomsAccepted | ContractCustomsRejected;
+
+declare const validatedAssistedProfileProposal: unique symbol;
+
+/**
+ * An agent proposal that has crossed the API-1 JSON Schema gateway. The brand
+ * deliberately has no runtime representation: only AssistantContractCustoms
+ * can create this type, which prevents downstream mappers from accepting an
+ * arbitrary agent response by accident.
+ */
+export type ValidatedAssistedProfileProposal = Record<string, unknown> & {
+  readonly [validatedAssistedProfileProposal]: true;
+};
 
 /**
  * The "aduana" (customs) gate [D8]: validates any payload received from the
@@ -71,8 +87,7 @@ export class AssistantContractCustoms {
       throw new Error('AssistantContractCustoms requires at least one vendored contract schema');
     }
 
-    // N and N-1: the last two entries of the (oldest -> newest) manifest.
-    const acceptedWindow = manifest.slice(-2);
+    const acceptedWindow = getSupportedContractSchemas(manifest);
     this.contractVersion = manifest[manifest.length - 1].contractVersion;
 
     const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -123,7 +138,7 @@ export class AssistantContractCustoms {
       ok: true,
       contractVersion: this.contractVersion,
       schemaVersion,
-      payload: record,
+      payload: record as ValidatedAssistedProfileProposal,
     };
   }
 
