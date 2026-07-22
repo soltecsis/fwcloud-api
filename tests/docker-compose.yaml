@@ -7,6 +7,7 @@ services:
       dockerfile: e2e/fake-agent/Dockerfile
     environment:
       DEFAULT_BEHAVIOR: "healthy"
+      EXPECTED_API_KEY: "fwcloud-fake-agent-test-key"
       SLOW_DELAY_MS: "5000"
     expose:
       - "8080"
