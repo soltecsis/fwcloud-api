@@ -26,6 +26,8 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  OpenVPNStatusSamplingAgentConfig,
+  OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
   SystemCtlInfo,
 } from './communication';
@@ -516,6 +518,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         action: enabled ? 'enable' : 'disable',
         ws_id: await this.createPluginWebSocket(eventEmitter),
         server_cn: options?.serverCN ?? null,
+        plugin_params: options?.pluginParams ?? null,
       };
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
@@ -712,6 +715,67 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
 
       throw new Error('Unexpected getOpenVPNHistoryFile response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async syncOpenVPNStatusSampling(configData: OpenVPNStatusSamplingAgentConfig): Promise<void> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
+
+      const config: AxiosRequestConfig = Object.assign({}, this.config);
+      config.headers['Content-Type'] = 'application/json';
+
+      const response: AxiosResponse<{ accepted: boolean }> = await axios.put(
+        pathUrl,
+        {
+          status_files: configData.statusFiles.map((statusFile) => ({
+            path: statusFile.path,
+            sampling_interval: statusFile.samplingInterval,
+            request_max_lines: statusFile.requestMaxLines,
+            cache_max_size: statusFile.cacheMaxSize,
+          })),
+        },
+        config,
+      );
+
+      if (response.status === 200 && response.data.accepted) {
+        return;
+      }
+
+      throw new Error('Unexpected syncOpenVPNStatusSampling response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
+      const response: AxiosResponse<{
+        accepted: boolean;
+        status_files: {
+          path: string;
+          sampling_interval: number;
+          request_max_lines: number;
+          cache_max_size: number;
+        }[];
+      }> = await axios.get(pathUrl, this.config);
+
+      if (response.status === 200 && response.data.accepted) {
+        return {
+          accepted: response.data.accepted,
+          statusFiles: response.data.status_files.map((statusFile) => ({
+            path: statusFile.path,
+            samplingInterval: statusFile.sampling_interval,
+            requestMaxLines: statusFile.request_max_lines,
+            cacheMaxSize: statusFile.cache_max_size,
+          })),
+        };
+      }
+
+      throw new Error('Unexpected getOpenVPNStatusSamplingState response');
     } catch (error) {
       this.handleRequestException(error);
     }

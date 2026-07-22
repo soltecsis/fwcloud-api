@@ -38,6 +38,22 @@ export type OpenVPNHistoryRecord = {
   connectedAtTimestampInSeconds: number;
 };
 
+export type OpenVPNStatusSamplingAgentStatusFile = {
+  path: string;
+  samplingInterval: number;
+  requestMaxLines: number;
+  cacheMaxSize: number;
+};
+
+export type OpenVPNStatusSamplingAgentConfig = {
+  statusFiles: OpenVPNStatusSamplingAgentStatusFile[];
+};
+
+export type OpenVPNStatusSamplingAgentState = {
+  accepted: boolean;
+  statusFiles: OpenVPNStatusSamplingAgentStatusFile[];
+};
+
 export type WireGuardHistoryRecord = {
   timestamp: number;
   name: string;
@@ -71,6 +87,7 @@ export type SystemCtlInfo = {
 
 export type PluginInstallOptions = {
   serverCN?: string;
+  pluginParams?: string[];
 };
 
 type ErrorWithCode = {
@@ -121,6 +138,8 @@ export abstract class Communication<ConnectionData> {
   ): Promise<string>;
   abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>;
   abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
+  abstract syncOpenVPNStatusSampling(config: OpenVPNStatusSamplingAgentConfig): Promise<void>;
+  abstract getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState>;
   abstract getRealtimeStatus(statusFilepath: string): Promise<string>;
   abstract uninstallOpenVPNConfigs(
     dir: string,

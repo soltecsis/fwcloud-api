@@ -103,4 +103,104 @@ describe(AgentCommunication.name, () => {
       expect(stub.firstCall.args[1].data).to.deep.equal({ dir: '/etc/openvpn/ccd' });
     });
   });
+
+  describe('installPlugin', () => {
+    it('should send generic plugin parameters to the agent', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200 });
+      sinon.stub(agent as any, 'createPluginWebSocket').resolves('ws-id');
+
+      await agent.installPlugin('suricata', true, undefined, {
+        pluginParams: ['ens18', 'OINKCODE'],
+      });
+
+      expect(postStub.calledOnce).to.be.true;
+      expect(postStub.firstCall.args[0]).to.equal('http://host:0/api/v1/plugin');
+      expect(postStub.firstCall.args[1]).to.deep.equal({
+        name: 'suricata',
+        action: 'enable',
+        ws_id: 'ws-id',
+        server_cn: null,
+        plugin_params: ['ens18', 'OINKCODE'],
+      });
+    });
+
+    it('should keep plugin parameters nullable when they are not provided', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200 });
+      sinon.stub(agent as any, 'createPluginWebSocket').resolves('ws-id');
+
+      await agent.installPlugin('geoip', true);
+
+      expect(postStub.calledOnce).to.be.true;
+      expect(postStub.firstCall.args[1]).to.deep.equal({
+        name: 'geoip',
+        action: 'enable',
+        ws_id: 'ws-id',
+        server_cn: null,
+        plugin_params: null,
+      });
+    });
+  });
+
+  describe('OpenVPN status sampling', () => {
+    it('should send sampling configuration to the agent', async () => {
+      const stub = sinon.stub(axios, 'put').resolves({ status: 200, data: { accepted: true } });
+
+      await agent.syncOpenVPNStatusSampling({
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 30,
+            requestMaxLines: 1000,
+            cacheMaxSize: 10485760,
+          },
+        ],
+      });
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/status/sampling');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        status_files: [
+          {
+            path: '/run/openvpn/server.status',
+            sampling_interval: 30,
+            request_max_lines: 1000,
+            cache_max_size: 10485760,
+          },
+        ],
+      });
+    });
+
+    it('should read sampling state from the agent', async () => {
+      const stub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: {
+          accepted: true,
+          status_files: [
+            {
+              path: '/run/openvpn/server.status',
+              sampling_interval: 30,
+              request_max_lines: 1000,
+              cache_max_size: 10485760,
+            },
+          ],
+        },
+      });
+
+      const state = await agent.getOpenVPNStatusSamplingState();
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/openvpn/status/sampling');
+      expect(state).to.deep.eq({
+        accepted: true,
+        statusFiles: [
+          {
+            path: '/run/openvpn/server.status',
+            samplingInterval: 30,
+            requestMaxLines: 1000,
+            cacheMaxSize: 10485760,
+          },
+        ],
+      });
+    });
+  });
 });

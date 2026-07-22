@@ -32,6 +32,7 @@ import { SnapshotController } from '../controllers/snapshots/snapshot.controller
 import { isLoggedIn } from '../gates/isLoggedIn';
 import { FwCloudExportController } from '../controllers/fwclouds/fwcloud-export/fwcloud-export.controller';
 import { OpenVPNController } from '../controllers/firewalls/openvpn/openvpn.controller';
+import { OpenVPNStatusSamplingController } from '../controllers/firewalls/openvpn/openvpn-status-sampling.controller';
 import { FwCloudController } from '../controllers/fwclouds/fwcloud.controller';
 import { UpdateController } from '../controllers/updates/update.controller';
 import { IptablesSaveController } from '../controllers/iptables-save/iptables-save.controller';
@@ -303,6 +304,12 @@ export class Routes extends RouteCollection {
 
               router.prefix('/openvpns', (router: RouterParser) => {
                 router.prefix('/:openvpn', (router: RouterParser) => {
+                  router
+                    .get('/statusSampling', OpenVPNStatusSamplingController, 'show')
+                    .name('fwclouds.firewalls.openvpns.statusSampling.show');
+                  router
+                    .put('/statusSampling', OpenVPNStatusSamplingController, 'update')
+                    .name('fwclouds.firewalls.openvpns.statusSampling.update');
                   router
                     .post('/installer', OpenVPNController, 'installer')
                     .name('fwclouds.firewalls.openvpns.installer');

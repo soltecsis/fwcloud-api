@@ -28,7 +28,7 @@ const getSharedRuleSetRequiredInterfaceNames = async (
       FROM shared_rule__interface RI
       INNER JOIN shared_rule R ON R.id=RI.rule
       INNER JOIN interface I ON I.id=RI.interface
-      WHERE R.shared_rule_set=? AND I.firewall IS NOT NULL
+      WHERE R.shared_rule_set=?
 
       UNION
 
@@ -39,11 +39,33 @@ const getSharedRuleSetRequiredInterfaceNames = async (
       WHERE R.shared_rule_set=?
         AND RO.interface IS NOT NULL
         AND RO.interface > 0
-        AND I.firewall IS NOT NULL
+
+      UNION
+
+      SELECT ${interfaceNameExpression('I', interfaceUpdate)} AS name
+      FROM shared_rule__ipobj RO
+      INNER JOIN shared_rule R ON R.id=RO.rule
+      INNER JOIN ipobj O ON O.id=RO.ipobj
+      INNER JOIN interface I ON I.id=O.interface
+      WHERE R.shared_rule_set=?
+
+      UNION
+
+      SELECT ${interfaceNameExpression('I', interfaceUpdate)} AS name
+      FROM shared_rule__ipobj RO
+      INNER JOIN shared_rule R ON R.id=RO.rule
+      INNER JOIN ipobj__ipobjg G ON G.ipobj_g=RO.ipobj_g
+      INNER JOIN ipobj O ON O.id=G.ipobj
+      INNER JOIN interface I ON I.id=O.interface
+      WHERE R.shared_rule_set=?
     ) required_interfaces
     WHERE required_interfaces.name IS NOT NULL AND required_interfaces.name<>''`;
 
   const rows = await queryRunner.query(sql, [
+    ...interfaceNameParams(interfaceUpdate),
+    sharedRuleSet,
+    ...interfaceNameParams(interfaceUpdate),
+    sharedRuleSet,
     ...interfaceNameParams(interfaceUpdate),
     sharedRuleSet,
     ...interfaceNameParams(interfaceUpdate),
@@ -96,7 +118,10 @@ export const assertSharedRuleSetInterfacesAreCompatible = async (
   const missingNames = requiredNames.filter((name) => !firewallInterfaceNames.has(name));
 
   if (missingNames.length > 0) {
-    throw fwcError.NOT_ALLOWED;
+    throw {
+      ...fwcError.SHARED_RULE_INTERFACES_INCOMPATIBLE,
+      msg: `${fwcError.SHARED_RULE_INTERFACES_INCOMPATIBLE.msg}: ${missingNames.join(', ')}`,
+    };
   }
 };
 
@@ -145,13 +170,43 @@ const getSharedRuleSetsAffectedByInterfaceUpdate = async (queryRunner, fwcloud, 
 
        UNION
 
+       SELECT R.shared_rule_set
+       FROM shared_rule__ipobj RO
+       INNER JOIN shared_rule R ON R.id=RO.rule
+       INNER JOIN shared_rule_set S ON S.id=R.shared_rule_set
+       INNER JOIN ipobj O ON O.id=RO.ipobj
+       WHERE S.fwcloud=? AND O.interface=?
+
+       UNION
+
+       SELECT R.shared_rule_set
+       FROM shared_rule__ipobj RO
+       INNER JOIN shared_rule R ON R.id=RO.rule
+       INNER JOIN shared_rule_set S ON S.id=R.shared_rule_set
+       INNER JOIN ipobj__ipobjg G ON G.ipobj_g=RO.ipobj_g
+       INNER JOIN ipobj O ON O.id=G.ipobj
+       WHERE S.fwcloud=? AND O.interface=?
+
+       UNION
+
        SELECT A.shared_rule_set
        FROM policy_r__shared_rule_set A
        INNER JOIN firewall F ON F.id=A.firewall
        INNER JOIN interface I ON I.firewall=F.id
        WHERE F.fwcloud=? AND I.id=?
      ) affected`,
-    [fwcloud, interfaceId, fwcloud, interfaceId, fwcloud, interfaceId],
+    [
+      fwcloud,
+      interfaceId,
+      fwcloud,
+      interfaceId,
+      fwcloud,
+      interfaceId,
+      fwcloud,
+      interfaceId,
+      fwcloud,
+      interfaceId,
+    ],
   );
 
   return rows.map((row) => row.shared_rule_set);

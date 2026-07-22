@@ -165,6 +165,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routingTables/:routingTable/routes/moveToGateway': {
     audited: true,
   },
+  'PUT /fwclouds/:fwcloud/firewalls/:firewall/openvpns/:openvpn/statusSampling': {
+    audited: true,
+  },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpGroups/:dhcpgroup': { audited: true },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/:dhcp': { audited: true },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/bulkUpdate': { audited: true },

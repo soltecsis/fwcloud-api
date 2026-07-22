@@ -33,6 +33,7 @@ import {
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
+  OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
 } from './communication';
 const config = require('../config/config');
@@ -122,6 +123,14 @@ const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
+    throw new Error('Method not implemented.');
+  }
+
+  syncOpenVPNStatusSampling(): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState> {
     throw new Error('Method not implemented.');
   }
 
