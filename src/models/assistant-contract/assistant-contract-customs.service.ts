@@ -24,6 +24,7 @@ import { Service } from '../../fonaments/services/service';
 import { AuditLogService } from '../audit/AuditLog.service';
 import {
   AssistantContractCustoms,
+  ContractCustomsRejected,
   ValidatedAssistedProfileProposal,
 } from './assistant-contract-customs';
 import { AssistantContractMismatchException } from './assistant-contract-mismatch.exception';
@@ -36,7 +37,16 @@ export interface AssistantContractValidationContext {
   userName?: string | null;
   sessionId?: number | null;
   sourceIp?: string | null;
+  requestId?: string | null;
+  correlationId?: string | null;
+  agentEndpoint?: string | null;
+  /** Values that must be redacted if an untrusted version field echoes them. */
+  sensitiveValues?: readonly string[];
 }
+
+export const REDACTED_ASSISTANT_CONTRACT_VALUE = '<redacted>' as const;
+
+const SAFE_SCHEMA_VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$/;
 
 /**
  * Secured entry point of the schema customs gate [D8]: validates a payload
@@ -75,16 +85,25 @@ export class AssistantContractCustomsService extends Service {
       return result.payload;
     }
 
+    const schemaVersion = this.safeSchemaVersion(
+      result.schemaVersion,
+      context.sensitiveValues ?? [],
+    );
+    const message = this.safeRejectionMessage(result, schemaVersion);
+
     await this._auditLogService.logMutation({
       call: ASSISTANT_CONTRACT_CUSTOMS_AUDIT_CALL,
-      description: result.message,
+      description: message,
       status: 502,
       data: {
         reason: result.reason,
         contractVersion: result.contractVersion,
-        schemaVersion: result.schemaVersion,
+        schemaVersion,
         acceptedSchemaVersions: this._customs.acceptedSchemaVersions,
         errors: result.errors,
+        requestId: context.requestId,
+        correlationId: context.correlationId,
+        agentEndpoint: context.agentEndpoint,
       },
       userId: context.userId,
       userName: context.userName,
@@ -94,11 +113,51 @@ export class AssistantContractCustomsService extends Service {
     });
 
     throw new AssistantContractMismatchException(
-      result.message,
+      message,
       result.reason,
       result.contractVersion,
-      result.schemaVersion,
+      schemaVersion,
       result.errors,
     );
+  }
+
+  private safeSchemaVersion(
+    schemaVersion: string | null,
+    sensitiveValues: readonly string[],
+  ): string | null {
+    if (schemaVersion === null) {
+      return null;
+    }
+
+    const containsSensitiveValue = sensitiveValues.some(
+      (value) => value.length > 0 && schemaVersion.includes(value),
+    );
+    if (!SAFE_SCHEMA_VERSION_PATTERN.test(schemaVersion) || containsSensitiveValue) {
+      return REDACTED_ASSISTANT_CONTRACT_VALUE;
+    }
+
+    return schemaVersion;
+  }
+
+  private safeRejectionMessage(
+    result: ContractCustomsRejected,
+    schemaVersion: string | null,
+  ): string {
+    switch (result.reason) {
+      case 'malformed_payload':
+        return 'Agent response is not a JSON object';
+      case 'unknown_schema_version':
+        if (schemaVersion === null) {
+          return 'Agent response is missing metadata.schemaVersion';
+        }
+        if (schemaVersion === REDACTED_ASSISTANT_CONTRACT_VALUE) {
+          return `Unsupported contract schema version; accepted: ${this._customs.acceptedSchemaVersions.join(', ')}`;
+        }
+        return `Unsupported contract schema version "${schemaVersion}"; accepted: ${this._customs.acceptedSchemaVersions.join(', ')}`;
+      case 'schema_violation':
+        return schemaVersion === REDACTED_ASSISTANT_CONTRACT_VALUE
+          ? 'Agent response does not conform to a supported contract schema'
+          : `Agent response does not conform to contract schema version "${schemaVersion}"`;
+    }
   }
 }

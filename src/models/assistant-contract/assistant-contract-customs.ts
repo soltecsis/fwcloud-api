@@ -67,6 +67,19 @@ export type ValidatedAssistedProfileProposal = Record<string, unknown> & {
   readonly [validatedAssistedProfileProposal]: true;
 };
 
+/** Reads the version discriminator without trusting the surrounding payload. */
+export function extractAssistantContractSchemaVersion(
+  payload: Record<string, unknown>,
+): string | undefined {
+  const metadata = payload.metadata;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return undefined;
+  }
+
+  const schemaVersion = (metadata as Record<string, unknown>).schemaVersion;
+  return typeof schemaVersion === 'string' ? schemaVersion : undefined;
+}
+
 /**
  * The "aduana" (customs) gate [D8]: validates any payload received from the
  * untrusted assistant agent against the vendored `apg.mvp.v1` JSON Schema
@@ -109,7 +122,7 @@ export class AssistantContractCustoms {
     }
 
     const record = payload as Record<string, unknown>;
-    const schemaVersion = this.extractSchemaVersion(record);
+    const schemaVersion = extractAssistantContractSchemaVersion(record);
     const validate = schemaVersion !== undefined ? this.validators.get(schemaVersion) : undefined;
 
     if (!validate) {
@@ -156,15 +169,5 @@ export class AssistantContractCustoms {
       schemaVersion,
       errors,
     };
-  }
-
-  private extractSchemaVersion(payload: Record<string, unknown>): string | undefined {
-    const metadata = payload.metadata;
-    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-      return undefined;
-    }
-
-    const schemaVersion = (metadata as Record<string, unknown>).schemaVersion;
-    return typeof schemaVersion === 'string' ? schemaVersion : undefined;
   }
 }
