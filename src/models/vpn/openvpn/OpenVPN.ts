@@ -89,8 +89,17 @@ export class OpenVPN extends Model {
   @Column({ name: 'tfa_enabled', type: 'tinyint', default: 0 })
   tfaEnabled: number;
 
-  @Column({ name: 'status_sampling_enabled', type: 'tinyint', default: 0 })
+  @Column({ name: 'status_sampling', type: 'tinyint', default: 0 })
   statusSamplingEnabled: number;
+
+  @Column({ name: 'status_sampling_interval', type: 'int', default: 30 })
+  statusSamplingInterval: number;
+
+  @Column({ name: 'status_sampling_request_max_lines', type: 'int', default: 1000 })
+  statusSamplingRequestMaxLines: number;
+
+  @Column({ name: 'status_sampling_cache_max_size', type: 'int', default: 10485760 })
+  statusSamplingCacheMaxSize: number;
 
   @Column({ name: 'openvpn' })
   parentId: number;

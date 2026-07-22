@@ -5,6 +5,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+### Added
+- Optimized NFTables policy compilation support.
+- OpenVPN status sampling management, including persistence, API endpoints, active collector queries, agent state exposure, and server-scoped lifecycle handling.
+- Generic plugin installation parameters are now forwarded to the agent, enabling parameterized plugin activation flows.
+
+### Changed
+- OpenVPN status sampling state is now stored directly on OpenVPN entities, removing legacy sampling table usage, environment import flow, and collector DTO fields.
+- OpenVPN 2FA activation and deactivation progress logs were simplified for client and server flows.
+- Systemctl service validation now supports `openvpn-server` units.
+- Runtime and development dependencies were aligned with the supported Node.js 20 environment.
+
+### Fixed
+- OpenVPN server installation now manages the client configuration directory correctly.
+- Optimized policy cleanup no longer emits mixed IPTables and NFTables warnings.
+- Firewall policy load elapsed time is calculated portably across operating systems.
+- OpenVPN history and graph queries were optimized for better performance and scalability.
+- Object and service tree loading now works without legacy filter flags and preserves country tree roots during repairs.
+- Fail2Ban compatibility was improved with safer rule handling, command execution, and hook script rule comment formatting.
+- Policy compiler source formatting now handles DNS names and different IP object types more consistently.
+- Suricata plugin parameters are now validated before activation.
+- OpenVPN status sampling column naming was normalized across the model and database layer.
+
+
 ## [2.5.1] - 2026-05-20
 ### Added
 - New `getBody(request, requestBody)` helper in the base controller class to standardize payload reading and preserve compatibility between `@Body()` and `request.body`.

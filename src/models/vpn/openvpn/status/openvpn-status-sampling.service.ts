@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { AgentCommunication } from '../../../../communications/agent.communication';
+import { OpenVPNStatusSamplingAgentStatusFile } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
 import { Service } from '../../../../fonaments/services/service';
 import { FirewallInstallCommunication } from '../../../firewall/Firewall';
@@ -10,9 +11,28 @@ export type OpenVPNStatusSamplingSaveData = {
   openVPNId: number;
   enabled: boolean;
   statusFile?: string | null;
+  samplingInterval?: number;
+  requestMaxLines?: number;
+  cacheMaxSize?: number;
+};
+
+export const extractOpenVPNStatusFilePath = (
+  statusOptionArgument: string | null | undefined,
+): string | null => {
+  const normalizedArgument = statusOptionArgument?.trim();
+
+  if (!normalizedArgument) {
+    return null;
+  }
+
+  return normalizedArgument.split(/\s+/)[0] ?? null;
 };
 
 export class OpenVPNStatusSamplingService extends Service {
+  static readonly DEFAULT_SAMPLING_INTERVAL = 30;
+  static readonly DEFAULT_REQUEST_MAX_LINES = 1000;
+  static readonly DEFAULT_CACHE_MAX_SIZE = 10485760;
+
   public async build(): Promise<Service> {
     return this;
   }
@@ -68,8 +88,7 @@ export class OpenVPNStatusSamplingService extends Service {
     });
 
     await communication.syncOpenVPNStatusSampling({
-      enabled: activeOpenVPNServers.length > 0,
-      statusFiles: this.getUniqueStatusFiles(activeOpenVPNServers),
+      statusFiles: this.getUniqueStatusFileConfigs(activeOpenVPNServers),
     });
 
     return openVPNRepository.findOne({
@@ -101,6 +120,22 @@ export class OpenVPNStatusSamplingService extends Service {
       }
 
       openVPN.statusSamplingEnabled = normalizedData.enabled ? 1 : 0;
+      openVPN.statusSamplingInterval = this.normalizeSamplingParameter(
+        normalizedData.samplingInterval,
+        openVPN.statusSamplingInterval ?? OpenVPNStatusSamplingService.DEFAULT_SAMPLING_INTERVAL,
+        'interval',
+      );
+      openVPN.statusSamplingRequestMaxLines = this.normalizeSamplingParameter(
+        normalizedData.requestMaxLines,
+        openVPN.statusSamplingRequestMaxLines ??
+          OpenVPNStatusSamplingService.DEFAULT_REQUEST_MAX_LINES,
+        'request max lines',
+      );
+      openVPN.statusSamplingCacheMaxSize = this.normalizeSamplingParameter(
+        normalizedData.cacheMaxSize,
+        openVPN.statusSamplingCacheMaxSize ?? OpenVPNStatusSamplingService.DEFAULT_CACHE_MAX_SIZE,
+        'cache max size',
+      );
       await openVPNRepository.save(openVPN);
 
       return openVPNRepository.findOne({
@@ -111,7 +146,7 @@ export class OpenVPNStatusSamplingService extends Service {
   }
 
   protected normalizeStatusFile(statusFile: string): string {
-    const normalizedPath = statusFile.trim();
+    const normalizedPath = extractOpenVPNStatusFilePath(statusFile);
 
     if (!normalizedPath) {
       throw new Error('OpenVPN status file path cannot be empty');
@@ -124,14 +159,43 @@ export class OpenVPNStatusSamplingService extends Service {
     return normalizedPath;
   }
 
-  protected getUniqueStatusFiles(openVPNServers: OpenVPN[]): string[] {
-    const statusFiles: string[] = [];
+  protected normalizeSamplingParameter(
+    value: number | undefined,
+    fallback: number,
+    fieldName: string,
+  ): number {
+    if (value === undefined) {
+      return fallback;
+    }
+
+    if (!Number.isInteger(value) || value < 1) {
+      throw new Error(`OpenVPN status sampling ${fieldName} must be a positive integer`);
+    }
+
+    return value;
+  }
+
+  protected getUniqueStatusFileConfigs(
+    openVPNServers: OpenVPN[],
+  ): OpenVPNStatusSamplingAgentStatusFile[] {
+    const statusFiles: OpenVPNStatusSamplingAgentStatusFile[] = [];
 
     for (const openVPN of openVPNServers) {
       const statusFile = this.getStatusFile(openVPN);
 
-      if (statusFile && !statusFiles.includes(statusFile)) {
-        statusFiles.push(statusFile);
+      if (statusFile && !statusFiles.some((item) => item.path === statusFile)) {
+        statusFiles.push({
+          path: statusFile,
+          samplingInterval:
+            openVPN.statusSamplingInterval ??
+            OpenVPNStatusSamplingService.DEFAULT_SAMPLING_INTERVAL,
+          requestMaxLines:
+            openVPN.statusSamplingRequestMaxLines ??
+            OpenVPNStatusSamplingService.DEFAULT_REQUEST_MAX_LINES,
+          cacheMaxSize:
+            openVPN.statusSamplingCacheMaxSize ??
+            OpenVPNStatusSamplingService.DEFAULT_CACHE_MAX_SIZE,
+        });
       }
     }
 
@@ -139,8 +203,8 @@ export class OpenVPNStatusSamplingService extends Service {
   }
 
   protected getStatusFile(openVPN: OpenVPN): string | null {
-    return (
-      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg ?? null
+    return extractOpenVPNStatusFilePath(
+      openVPN.openVPNOptions?.find((option: OpenVPNOption) => option.name === 'status')?.arg,
     );
   }
 }
