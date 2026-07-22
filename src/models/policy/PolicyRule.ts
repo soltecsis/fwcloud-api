@@ -533,6 +533,63 @@ export class PolicyRule extends Model {
     ];
   }
 
+  private static buildSharedRuleSQLsForCompiler(firewall: number, rules: number[]): string[] {
+    return [
+      // All ipobj under a position excluding hosts.
+      `select R.rule,R.position,O.* from shared_rule__ipobj R
+            inner join ipobj O on O.id=R.ipobj
+            inner join shared_rule SR on SR.id=R.rule
+            where O.type<>8
+            ${rules ? ` and SR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under host (type=8).
+      `select R.rule,R.position,OIF.* from shared_rule__ipobj R
+            inner join ipobj O on O.id=R.ipobj
+            inner join interface__ipobj II on II.ipobj=O.id
+            inner join interface I on I.id=II.interface
+            inner join ipobj OIF on OIF.interface=I.id
+            inner join shared_rule SR on SR.id=R.rule
+            where O.type=8
+            ${rules ? ` and SR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under group excluding hosts (type=8).
+      `select R.rule,R.position,O.* from shared_rule__ipobj R
+            inner join ipobj__ipobjg G on G.ipobj_g=R.ipobj_g
+            inner join ipobj O on O.id=G.ipobj
+            inner join shared_rule SR on SR.id=R.rule
+            where O.type<>8
+            ${rules ? ` and SR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under host (type=8) included in IP objects groups.
+      `select R.rule,R.position,OIF.* from shared_rule__ipobj R
+            inner join ipobj__ipobjg G on G.ipobj_g=R.ipobj_g
+            inner join ipobj O on O.id=G.ipobj
+            inner join interface__ipobj II on II.ipobj=O.id
+            inner join interface I on I.id=II.interface
+            inner join ipobj OIF on OIF.interface=I.id
+            inner join shared_rule SR on SR.id=R.rule
+            where O.type=8
+            ${rules ? ` and SR.id IN (${rules.join(',')})` : ``}`,
+
+      // All interfaces in positions I.
+      `select R.rule,R.position,I.* from shared_rule__interface R
+            inner join interface RI on RI.id=R.interface
+            inner join interface I on I.firewall=${firewall} and I.name=RI.name
+            inner join shared_rule SR on SR.id=R.rule
+            where 1=1
+            ${rules ? ` and SR.id IN (${rules.join(',')})` : ``}`,
+
+      // All ipobj under interfaces in position O.
+      `select R.rule,R.position,O.* from shared_rule__ipobj R
+            inner join interface RI on RI.id=R.interface
+            inner join interface I on I.firewall=${firewall} and I.name=RI.name
+            inner join ipobj O on O.interface=I.id
+            inner join shared_rule SR on SR.id=R.rule
+            where 1=1
+            ${rules ? ` and SR.id IN (${rules.join(',')})` : ``}`,
+    ];
+  }
+
   private static mapPolicyData(
     dbCon: any,
     rulePositionsMap: RulePosMap,
@@ -554,6 +611,216 @@ export class PolicyRule extends Model {
         resolve();
       });
     });
+  }
+
+  private static clonePolicyPositions(positions: PositionNode[], rule: number): PositionNode[] {
+    return positions.map((position) => ({
+      ...position,
+      rule,
+      ipobjs: [],
+    }));
+  }
+
+  private static initRulePositions(
+    rulesData: any[],
+    positions: PositionNode[],
+    ignoreGroupsData?: boolean,
+  ): RulePosMap {
+    const rulePositionsMap: RulePosMap = new Map<string, []>();
+
+    for (let i = 0; i < rulesData.length; i++) {
+      if (rulesData[i].idgroup && ignoreGroupsData) continue;
+
+      rulesData[i].positions = this.clonePolicyPositions(positions, Number(rulesData[i].id) || 0);
+
+      for (let j = 0; j < rulesData[i].positions.length; j++) {
+        rulePositionsMap.set(
+          `${rulesData[i].id}:${positions[j].id}`,
+          rulesData[i].positions[j].ipobjs,
+        );
+      }
+    }
+
+    return rulePositionsMap;
+  }
+
+  private static getSharedRuleSetApplicationRowsForGrid(
+    dbCon: any,
+    fwcloud: number,
+    firewall: number,
+    type: number,
+    positions: PositionNode[],
+  ): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT A.id as policyApplyId,
+                A.firewall, A.type, A.shared_rule_set, A.rule_order, A.active, A.style,
+                S.name as shared_rule_set_name,
+                (select count(*) from shared_rule SR where SR.shared_rule_set=A.shared_rule_set) as shared_rule_set_rules_count
+                FROM policy_r__shared_rule_set A
+                INNER JOIN shared_rule_set S ON S.id=A.shared_rule_set
+                WHERE A.firewall=${firewall} AND A.type=${type} AND S.fwcloud=${fwcloud}
+                ORDER BY A.rule_order, A.id`;
+
+      dbCon.query(sql, (error, applications) => {
+        if (error) return reject(error);
+
+        resolve(
+          applications.map((application) => ({
+            id: null,
+            idgroup: null,
+            firewall: application.firewall,
+            fw_apply_to: null,
+            type: application.type,
+            rule_order: application.rule_order,
+            action: null,
+            time_start: null,
+            time_end: null,
+            comment: '',
+            options: 0,
+            active: application.active,
+            style: application.style,
+            mark: null,
+            mark_code: 0,
+            mark_name: 0,
+            negate: null,
+            special: 0,
+            run_before: null,
+            run_after: null,
+            group_name: null,
+            group_style: null,
+            shared_rule_set: application.shared_rule_set,
+            shared_rule_set_name: application.shared_rule_set_name,
+            shared_rule_set_rules_count: application.shared_rule_set_rules_count,
+            policyApplyId: application.policyApplyId,
+            isSharedRuleSetApplication: 1,
+            positions: this.clonePolicyPositions(positions, 0),
+          })),
+        );
+      });
+    });
+  }
+
+  private static getSharedRuleSetRulesForCompiler(
+    dbCon: any,
+    fwcloud: number,
+    firewall: number,
+    type: number,
+    positions: PositionNode[],
+  ): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT SR.*, A.firewall as firewall,
+                A.id as policyApplyId,
+                A.rule_order as application_rule_order,
+                A.active as application_active,
+                A.style as application_style,
+                S.name as shared_rule_set_name,
+                F.name as firewall_name, F.options as firewall_options,
+                IF(SR.mark>0, (select code from mark where id=SR.mark), 0) as mark_code,
+                IF(SR.mark>0, (select name from mark where id=SR.mark), 0) as mark_name
+                FROM policy_r__shared_rule_set A
+                INNER JOIN shared_rule_set S ON S.id=A.shared_rule_set
+                INNER JOIN shared_rule SR ON SR.shared_rule_set=A.shared_rule_set AND SR.type=A.type
+                LEFT JOIN firewall F ON F.id=(IF((SR.fw_apply_to is NULL),${firewall},SR.fw_apply_to))
+                WHERE A.firewall=${firewall} AND A.type=${type} AND S.fwcloud=${fwcloud}
+                ORDER BY A.rule_order, SR.rule_order, SR.id`;
+
+      dbCon.query(sql, async (error, sharedRulesData) => {
+        if (error) return reject(error);
+        if (sharedRulesData.length === 0) return resolve([]);
+
+        try {
+          const rulePositionsMap = this.initRulePositions(sharedRulesData, positions);
+          const sharedRuleIds = sharedRulesData
+            .map((sharedRule) => Number(sharedRule.id))
+            .filter((sharedRuleId) => !Number.isNaN(sharedRuleId));
+
+          if (sharedRuleIds.length > 0) {
+            const sqls = this.buildSharedRuleSQLsForCompiler(firewall, sharedRuleIds);
+            await Promise.all(
+              sqls.map((query) => this.mapPolicyData(dbCon, rulePositionsMap, query)),
+            );
+          }
+
+          for (let i = 0; i < sharedRulesData.length; i++) {
+            sharedRulesData[i].shared_rule_order = sharedRulesData[i].rule_order;
+            sharedRulesData[i].rule_order = sharedRulesData[i].application_rule_order;
+            sharedRulesData[i].active =
+              Number(sharedRulesData[i].application_active) === 1 &&
+              Number(sharedRulesData[i].active) === 1
+                ? 1
+                : 0;
+
+            if (
+              sharedRulesData[i].application_style !== null &&
+              sharedRulesData[i].application_style !== undefined
+            ) {
+              sharedRulesData[i].style = sharedRulesData[i].application_style;
+            }
+          }
+
+          resolve(sharedRulesData);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  private static mergePolicyCompilerData(policyRules: any[], sharedRules: any[]): any[] {
+    const blocks: Array<{ order: number; shared: boolean; index: number; rows: any[] }> = [];
+    let blockIndex = 0;
+
+    for (let i = 0; i < policyRules.length; i++) {
+      blocks.push({
+        order: Number(policyRules[i].rule_order) || 0,
+        shared: false,
+        index: blockIndex++,
+        rows: [policyRules[i]],
+      });
+    }
+
+    let currentSharedBlock: { order: number; shared: boolean; index: number; rows: any[] } = null;
+
+    for (let i = 0; i < sharedRules.length; i++) {
+      const blockOrder =
+        Number(sharedRules[i].application_rule_order ?? sharedRules[i].rule_order) || 0;
+
+      if (!currentSharedBlock || currentSharedBlock.order !== blockOrder) {
+        currentSharedBlock = {
+          order: blockOrder,
+          shared: true,
+          index: blockIndex++,
+          rows: [],
+        };
+        blocks.push(currentSharedBlock);
+      }
+
+      currentSharedBlock.rows.push(sharedRules[i]);
+    }
+
+    blocks.sort((a, b) => {
+      if (a.order !== b.order) {
+        return a.order - b.order;
+      }
+
+      if (a.shared !== b.shared) {
+        return a.shared ? -1 : 1;
+      }
+
+      return a.index - b.index;
+    });
+
+    const mergedRules: any[] = [];
+
+    for (let i = 0; i < blocks.length; i++) {
+      mergedRules.push(...blocks[i].rows);
+    }
+
+    for (let i = 0; i < mergedRules.length; i++) {
+      mergedRules[i].rule_order = i + 1;
+    }
+
+    return mergedRules;
   }
 
   // Get all the policy data necessary for the compilation process.
@@ -582,44 +849,61 @@ export class PolicyRule extends Model {
 
       dbCon.query(sql, async (error, rulesData) => {
         if (error) return reject(error);
-        if (rulesData.length === 0) return resolve(null);
 
         try {
+          const includeSharedRuleSets = !rules && !idgroup;
+
           // Positions will be always the same for all rules into the same policy type.
           const positions: PositionNode[] = await PolicyPosition.getRulePositions(
             dbCon,
             fwcloud,
-            rulesData[0].firewall,
-            rulesData[0].id,
-            rulesData[0].type,
+            firewall,
+            rulesData?.[0]?.id || 0,
+            type,
           );
 
-          // Init the map for access the position objects array for each rule and position.
-          const rulePositionsMap: RulePosMap = new Map<string, []>();
-          for (let i = 0; i < rulesData.length; i++) {
-            if (rulesData[i].idgroup && ignoreGroupsData) continue;
+          const standardRulesData = rulesData || [];
 
-            // Clone the positions array and generate new ipobjs arrays for each position.
-            rulesData[i].positions = positions.map((a) => ({ ...a }));
-            for (let j = 0; j < positions.length; j++) rulesData[i].positions[j].ipobjs = [];
-
-            // Map each rule id and position with it's corresponding ipobjs array.
-            // These ipobjs array will be filled with objects data in the Promise.all()
-            // next to the outer for loop.
-            for (let j = 0; j < positions.length; j++)
-              rulePositionsMap.set(
-                `${rulesData[i].id}:${positions[j].id}`,
-                rulesData[i].positions[j].ipobjs,
-              );
+          if (standardRulesData.length > 0) {
+            const rulePositionsMap = this.initRulePositions(
+              standardRulesData,
+              positions,
+              ignoreGroupsData,
+            );
+            const sqls =
+              dst === 'compiler'
+                ? this.buildSQLsForCompiler(firewall, type, rules)
+                : this.buildSQLsForGrid(firewall, type, rules);
+            await Promise.all(
+              sqls.map((query) => this.mapPolicyData(dbCon, rulePositionsMap, query)),
+            );
           }
 
-          const sqls =
-            dst === 'compiler'
-              ? this.buildSQLsForCompiler(firewall, type, rules)
-              : this.buildSQLsForGrid(firewall, type, rules);
-          await Promise.all(sqls.map((sql) => this.mapPolicyData(dbCon, rulePositionsMap, sql)));
+          if (dst === 'grid') {
+            const sharedRuleSetApplications = includeSharedRuleSets
+              ? await this.getSharedRuleSetApplicationRowsForGrid(
+                  dbCon,
+                  fwcloud,
+                  firewall,
+                  type,
+                  positions,
+                )
+              : [];
 
-          resolve(rulesData);
+            const policyRows = [...standardRulesData, ...sharedRuleSetApplications].sort(
+              (a, b) => Number(a.rule_order) - Number(b.rule_order),
+            );
+
+            return resolve(policyRows.length === 0 ? null : policyRows);
+          }
+
+          const sharedRulesData = includeSharedRuleSets
+            ? await this.getSharedRuleSetRulesForCompiler(dbCon, fwcloud, firewall, type, positions)
+            : [];
+
+          const policyRows = this.mergePolicyCompilerData(standardRulesData, sharedRulesData);
+
+          resolve(policyRows.length === 0 ? null : policyRows);
         } catch (error) {
           reject(error);
         }

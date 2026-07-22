@@ -3,6 +3,7 @@ import { EntityManager } from 'typeorm';
 import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
@@ -326,6 +327,340 @@ describe(describeName('Shared Rules E2E Tests'), () => {
     expect(policyRule.rule_order).to.eq(1);
   });
 
+  it('should reject applying a shared rule set to an incompatible policy tree node', async () => {
+    const sharedRuleSetId = await createSharedRuleSet(PolicyTypeId.INPUT);
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        firewall: fwcProduct.firewall.id,
+        shared_rule_set: sharedRuleSetId,
+        node_type: 'SRI6',
+      })
+      .expect(400)
+      .then((response) => {
+        expect(response.body).to.deep.eq({
+          fwcErr: 10001,
+          msg: 'The shared rule set policy type does not match the destination policy type',
+        });
+      });
+
+    const [applicationCount] = await manager.query(
+      `SELECT COUNT(*) AS count
+       FROM policy_r__shared_rule_set
+       WHERE shared_rule_set=?`,
+      [sharedRuleSetId],
+    );
+    expect(Number(applicationCount.count)).to.eq(0);
+  });
+
+  it('should reject applying the same shared rule set twice to a firewall policy', async () => {
+    const sharedRuleSetId = await createSharedRuleSet(PolicyTypeId.INPUT);
+    const application = {
+      fwcloud: fwcProduct.fwcloud.id,
+      firewall: fwcProduct.firewall.id,
+      shared_rule_set: sharedRuleSetId,
+      type: PolicyTypeId.INPUT,
+    };
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send(application)
+      .expect(200);
+    await unlockFwcloud();
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send(application)
+      .expect(400)
+      .then((response) => {
+        expect(response.body).to.deep.eq({
+          fwcErr: 10004,
+          msg: 'The shared rule set is already applied to this firewall policy',
+        });
+      });
+
+    const [applicationCount] = await manager.query(
+      `SELECT COUNT(*) AS count
+       FROM policy_r__shared_rule_set
+       WHERE firewall=? AND type=? AND shared_rule_set=?`,
+      [fwcProduct.firewall.id, PolicyTypeId.INPUT, sharedRuleSetId],
+    );
+    expect(Number(applicationCount.count)).to.eq(1);
+  });
+
+  it('should require destination firewalls to have interfaces used by shared rule sets', async () => {
+    const sharedRuleSetId = await createSharedRuleSet(PolicyTypeId.INPUT);
+    const requiredInterface = fwcProduct.interfaces.get('firewall-interface1');
+    const inputInterfacePosition = RulePositionsMap.get('IPv4:INPUT:In');
+
+    await request(app.express)
+      .post('/policy/shared-rules/rule')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        shared_rule_set: sharedRuleSetId,
+        action: 1,
+        comment: '',
+        type: PolicyTypeId.INPUT,
+        interfaces: [
+          {
+            interface: requiredInterface.id,
+            position: inputInterfacePosition,
+            position_order: 1,
+          },
+        ],
+      })
+      .expect(200);
+    await unlockFwcloud();
+
+    const targetFirewall = await manager.getRepository(Firewall).save(
+      manager.getRepository(Firewall).create({
+        name: 'target-without-required-interface',
+        fwCloudId: fwcProduct.fwcloud.id,
+      }),
+    );
+
+    await manager.getRepository(Interface).save(
+      manager.getRepository(Interface).create({
+        name: 'different-interface-name',
+        type: requiredInterface.type,
+        interface_type: requiredInterface.interface_type,
+        firewallId: targetFirewall.id,
+      }),
+    );
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        firewall: targetFirewall.id,
+        shared_rule_set: sharedRuleSetId,
+        type: PolicyTypeId.INPUT,
+      })
+      .expect(400)
+      .then((response) => {
+        expect(response.body.fwcErr).to.eq(10002);
+        expect(response.body.msg).to.include(requiredInterface.name);
+      });
+
+    const [failedApplicationCount] = await manager.query(
+      `SELECT COUNT(*) AS count
+       FROM policy_r__shared_rule_set
+       WHERE firewall=? AND shared_rule_set=?`,
+      [targetFirewall.id, sharedRuleSetId],
+    );
+    expect(Number(failedApplicationCount.count)).to.eq(0);
+    await unlockFwcloud();
+
+    const targetInterface = await manager.getRepository(Interface).save(
+      manager.getRepository(Interface).create({
+        name: requiredInterface.name,
+        type: requiredInterface.type,
+        interface_type: requiredInterface.interface_type,
+        firewallId: targetFirewall.id,
+      }),
+    );
+
+    const applyResponse = await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        firewall: targetFirewall.id,
+        shared_rule_set: sharedRuleSetId,
+        type: PolicyTypeId.INPUT,
+      })
+      .expect(200);
+
+    expect(applyResponse.body.insertId).to.be.a('number');
+
+    const compilerData: any = await PolicyRule.getPolicyData(
+      'compiler',
+      db.getQuery(),
+      fwcProduct.fwcloud.id,
+      targetFirewall.id,
+      PolicyTypeId.INPUT,
+      null,
+      null,
+    );
+    const compiledInterfacePosition = compilerData[0].positions.find(
+      (position) => position.id === inputInterfacePosition,
+    );
+
+    expect(compiledInterfacePosition.ipobjs).to.have.length(1);
+    expect(compiledInterfacePosition.ipobjs[0].id).to.eq(targetInterface.id);
+  });
+
+  it('should check interfaces used as objects in any shared rule position before applying', async () => {
+    const sharedRuleSetId = await createSharedRuleSet(PolicyTypeId.INPUT);
+    const requiredInterface = fwcProduct.interfaces.get('firewall-interface1');
+    const sourcePosition = RulePositionsMap.get('IPv4:INPUT:Source');
+
+    await manager.getRepository(IPObj).save(
+      manager.getRepository(IPObj).create({
+        name: 'required-interface-address',
+        address: '192.0.2.10',
+        ipObjTypeId: 5,
+        ip_version: 4,
+        interfaceId: requiredInterface.id,
+        fwCloudId: fwcProduct.fwcloud.id,
+      }),
+    );
+
+    await request(app.express)
+      .post('/policy/shared-rules/rule')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        shared_rule_set: sharedRuleSetId,
+        action: 1,
+        type: PolicyTypeId.INPUT,
+        ipobjs: [
+          {
+            interface: requiredInterface.id,
+            position: sourcePosition,
+            position_order: 1,
+          },
+        ],
+      })
+      .expect(200);
+    await unlockFwcloud();
+
+    const targetFirewall = await manager.getRepository(Firewall).save(
+      manager.getRepository(Firewall).create({
+        name: 'target-without-object-interface',
+        fwCloudId: fwcProduct.fwcloud.id,
+      }),
+    );
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        firewall: targetFirewall.id,
+        shared_rule_set: sharedRuleSetId,
+        type: PolicyTypeId.INPUT,
+      })
+      .expect(400)
+      .then((response) => {
+        expect(response.body.fwcErr).to.eq(10002);
+        expect(response.body.msg).to.include(requiredInterface.name);
+      });
+
+    const [applicationCount] = await manager.query(
+      `SELECT COUNT(*) AS count
+       FROM policy_r__shared_rule_set
+       WHERE firewall=? AND shared_rule_set=?`,
+      [targetFirewall.id, sharedRuleSetId],
+    );
+    expect(Number(applicationCount.count)).to.eq(0);
+
+    await unlockFwcloud();
+    await manager.getRepository(Interface).save(
+      manager.getRepository(Interface).create({
+        name: requiredInterface.name,
+        type: requiredInterface.type,
+        interface_type: requiredInterface.interface_type,
+        firewallId: targetFirewall.id,
+      }),
+    );
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        firewall: targetFirewall.id,
+        shared_rule_set: sharedRuleSetId,
+        type: PolicyTypeId.INPUT,
+      })
+      .expect(200);
+  });
+
+  it('should roll back shared rule changes incompatible with previously applied firewalls', async () => {
+    const sharedRuleSetId = await createSharedRuleSet(PolicyTypeId.INPUT);
+    const requiredInterface = fwcProduct.interfaces.get('firewall-interface1');
+    const inputInterfacePosition = RulePositionsMap.get('IPv4:INPUT:In');
+
+    const createRuleResponse = await request(app.express)
+      .post('/policy/shared-rules/rule')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        shared_rule_set: sharedRuleSetId,
+        action: 1,
+        comment: 'before incompatible update',
+        type: PolicyTypeId.INPUT,
+      })
+      .expect(200);
+    const sharedRuleId = createRuleResponse.body.insertId;
+    await unlockFwcloud();
+
+    const targetFirewall = await manager.getRepository(Firewall).save(
+      manager.getRepository(Firewall).create({
+        name: 'previously-applied-target',
+        fwCloudId: fwcProduct.fwcloud.id,
+      }),
+    );
+
+    await request(app.express)
+      .post('/policy/shared-rules/apply')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        firewall: targetFirewall.id,
+        shared_rule_set: sharedRuleSetId,
+        type: PolicyTypeId.INPUT,
+      })
+      .expect(200);
+    await unlockFwcloud();
+
+    await request(app.express)
+      .put('/policy/shared-rules/rule')
+      .set('Cookie', [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+        shared_rule_set: sharedRuleSetId,
+        rule: sharedRuleId,
+        comment: 'must be rolled back',
+        interfaces: [
+          {
+            interface: requiredInterface.id,
+            position: inputInterfacePosition,
+            position_order: 1,
+          },
+        ],
+      })
+      .expect(400)
+      .then((response) => {
+        expect(response.body.fwcErr).to.eq(10002);
+        expect(response.body.msg).to.include(requiredInterface.name);
+      });
+
+    const [unchangedRule] = await manager.query(
+      `SELECT comment
+       FROM shared_rule
+       WHERE id=? AND shared_rule_set=?`,
+      [sharedRuleId, sharedRuleSetId],
+    );
+    const [interfaceCount] = await manager.query(
+      `SELECT COUNT(*) AS count
+       FROM shared_rule__interface
+       WHERE rule=?`,
+      [sharedRuleId],
+    );
+
+    expect(unchangedRule.comment).to.eq('before incompatible update');
+    expect(Number(interfaceCount.count)).to.eq(0);
+  });
+
   it('should reject marks in NAT shared rules', async () => {
     const sharedRuleSetId = await createSharedRuleSet(PolicyTypeId.SNAT);
 
@@ -342,7 +677,10 @@ describe(describeName('Shared Rules E2E Tests'), () => {
       })
       .expect(400)
       .then((response) => {
-        expect(response.body.fwcErr).to.eq(1006);
+        expect(response.body).to.deep.eq({
+          fwcErr: 10003,
+          msg: 'Marks are not allowed for this shared rule policy type',
+        });
       });
   });
 });

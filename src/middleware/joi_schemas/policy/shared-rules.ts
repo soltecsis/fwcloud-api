@@ -9,6 +9,18 @@ const nullableText = Joi.string().allow(null).allow('').max(65535).optional();
 const nullableShortText = Joi.string().allow(null).allow('').max(255).optional();
 const nullableDirection = Joi.number().integer().allow(null).optional();
 const sharedRulePolicyType = Joi.number().integer().valid(1, 2, 3, 4, 5, 61, 62, 63, 64, 65);
+const sharedRulePolicyNodeType = Joi.string().valid(
+  'SRI',
+  'SRO',
+  'SRFW',
+  'SRSN',
+  'SRDN',
+  'SRI6',
+  'SRO6',
+  'SRFW6',
+  'SRSN6',
+  'SRDN6',
+);
 const nullableRef = Joi.number().integer().allow(null).optional();
 const sharedRuleIPObj = Joi.object()
   .keys({
@@ -113,14 +125,17 @@ const schema = {
             active: sharedSch._0_1.optional(),
           });
         } else if (req.url === '/policy/shared-rules/apply') {
-          schema = schema.append({
-            firewall: sharedSch.id,
-            shared_rule_set: sharedSch.id,
-            type: sharedRulePolicyType,
-            rule_order: sharedSch.id.optional(),
-            active: sharedSch._0_1.optional(),
-            style: sharedSch.style.optional(),
-          });
+          schema = schema
+            .append({
+              firewall: sharedSch.id,
+              shared_rule_set: sharedSch.id,
+              type: sharedRulePolicyType.optional(),
+              node_type: sharedRulePolicyNodeType.optional(),
+              rule_order: sharedSch.id.optional(),
+              active: sharedSch._0_1.optional(),
+              style: sharedSch.style.optional(),
+            })
+            .or('type', 'node_type');
         } else if (req.url === '/policy/shared-rules/rule') {
           schema = schema.append({
             shared_rule_set: sharedSch.id,

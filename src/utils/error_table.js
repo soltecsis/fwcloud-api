@@ -93,7 +93,14 @@ var errorTable = {
   "LIMIT_CLUSTERS":       {"fwcErr": 8002, "msg": "The maximum of available Clusters has been reached"},
   "LIMIT_NODES":          {"fwcErr": 8003, "msg": "The maximum of available Nodes in Cluster has been reached"},
 
-  "SSH_COMMUNICATION_DISABLE": { "fwcErr": 9000, "msg": "Communication by means of SSH is forbidden in the API" }
+  "SSH_COMMUNICATION_DISABLE": { "fwcErr": 9000, "msg": "Communication by means of SSH is forbidden in the API" },
+
+  // Shared rules.
+  "SHARED_RULE_POLICY_TYPE_NOT_SUPPORTED": { "fwcErr": 10000, "msg": "Policy type is not supported by shared rules" },
+  "SHARED_RULE_POLICY_TYPE_MISMATCH": { "fwcErr": 10001, "msg": "The shared rule set policy type does not match the destination policy type" },
+  "SHARED_RULE_INTERFACES_INCOMPATIBLE": { "fwcErr": 10002, "msg": "The destination firewall does not provide all interfaces required by the shared rule set" },
+  "SHARED_RULE_MARK_NOT_ALLOWED": { "fwcErr": 10003, "msg": "Marks are not allowed for this shared rule policy type" },
+  "SHARED_RULE_SET_ALREADY_APPLIED": { "fwcErr": 10004, "msg": "The shared rule set is already applied to this firewall policy" }
 };
 
 errorTable.other = msg => {

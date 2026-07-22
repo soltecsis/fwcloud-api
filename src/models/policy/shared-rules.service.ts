@@ -94,12 +94,25 @@ const SHARED_RULE_POLICY_TREE = {
   },
 };
 const SHARED_RULE_POLICY_TYPES = Object.keys(SHARED_RULE_POLICY_TREE).map((type) => Number(type));
+const SHARED_RULE_POLICY_TYPE_BY_NODE_TYPE = Object.entries(SHARED_RULE_POLICY_TREE).reduce(
+  (map, [type, policyTree]) => {
+    map[policyTree.nodeType] = Number(type);
+    return map;
+  },
+  {},
+);
 const MARK_ALLOWED_POLICY_TYPES = [1, 2, 3, 61, 62, 63];
 
 const hasOwn = (data, field) => Object.prototype.hasOwnProperty.call(data, field);
+const hasValue = (value) => value !== undefined && value !== null && value !== '';
 const nullIfUndefined = (value) => (value === undefined ? null : value);
 const nullIfZero = (value) => (value === 0 ? null : nullIfUndefined(value));
 const isPositiveId = (value) => Number(value) > 0;
+const isDuplicateEntryError = (error) =>
+  error?.code === 'ER_DUP_ENTRY' ||
+  Number(error?.errno) === 1062 ||
+  error?.driverError?.code === 'ER_DUP_ENTRY' ||
+  Number(error?.driverError?.errno) === 1062;
 
 const withTransaction = async (callback) => {
   const queryRunner = db.getSource().createQueryRunner();
@@ -322,17 +335,61 @@ const disableFirewallCompileStatus = async (queryRunner, fwcloud, firewall) => {
 
 const validatePolicyType = (sharedRuleSet, type) => {
   if (SHARED_RULE_POLICY_TYPES.indexOf(Number(type)) === -1) {
-    throw fwcError.NOT_ALLOWED;
+    throw fwcError.SHARED_RULE_POLICY_TYPE_NOT_SUPPORTED;
   }
 
   if (Number(sharedRuleSet.policy_type) !== Number(type)) {
+    throw fwcError.SHARED_RULE_POLICY_TYPE_MISMATCH;
+  }
+};
+
+const policyTypeFromNodeType = (nodeType) => {
+  const policyType = SHARED_RULE_POLICY_TYPE_BY_NODE_TYPE[nodeType];
+
+  if (!policyType) {
     throw fwcError.NOT_ALLOWED;
   }
+
+  return policyType;
+};
+
+const resolveApplyPolicyType = (body) => {
+  let type = hasValue(body.type) ? Number(body.type) : null;
+
+  if (hasValue(body.node_type)) {
+    const nodeTypePolicyType = policyTypeFromNodeType(body.node_type);
+
+    if (type !== null && type !== nodeTypePolicyType) {
+      throw fwcError.SHARED_RULE_POLICY_TYPE_MISMATCH;
+    }
+
+    type = nodeTypePolicyType;
+  }
+
+  if (type === null) {
+    throw fwcError.NOT_ALLOWED;
+  }
+
+  return type;
 };
 
 const validateMark = (mark, type) => {
   if (mark && MARK_ALLOWED_POLICY_TYPES.indexOf(Number(type)) === -1) {
-    throw fwcError.NOT_ALLOWED;
+    throw fwcError.SHARED_RULE_MARK_NOT_ALLOWED;
+  }
+};
+
+const assertSharedRuleSetIsNotApplied = async (queryRunner, firewall, type, sharedRuleSet) => {
+  const applications = await queryRunner.query(
+    `SELECT id
+     FROM policy_r__shared_rule_set
+     WHERE firewall=? AND type=? AND shared_rule_set=?
+     LIMIT 1`,
+    [firewall, type, sharedRuleSet],
+  );
+
+  if (applications.length > 0) {
+    throw fwcError.SHARED_RULE_SET_ALREADY_APPLIED;
   }
 };
 
@@ -1032,8 +1089,6 @@ const syncSharedRuleObjects = async (queryRunner, fwcloud, sharedRuleSet, rule, 
 
     await normalizeSharedRuleInterfaceOrders(queryRunner, rule);
   }
-
-  await assertSharedRuleSetApplicationsInterfacesAreCompatible(queryRunner, fwcloud, sharedRuleSet);
 };
 
 const attachSharedRuleObjects = async (queryRunner, rules) => {
@@ -1214,6 +1269,11 @@ export class SharedRulesService extends Service {
         );
       }
 
+      await assertSharedRuleSetApplicationsInterfacesAreCompatible(
+        queryRunner,
+        body.fwcloud,
+        body.shared_rule_set,
+      );
       await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
     });
   }
@@ -1265,8 +1325,10 @@ export class SharedRulesService extends Service {
   public async apply(body) {
     return withTransaction(async (queryRunner) => {
       const sharedRuleSet = await getSharedRuleSet(queryRunner, body.fwcloud, body.shared_rule_set);
-      validatePolicyType(sharedRuleSet, body.type);
+      const type = resolveApplyPolicyType(body);
+      validatePolicyType(sharedRuleSet, type);
       await ensureFirewallInFwcloud(queryRunner, body.fwcloud, body.firewall);
+      await assertSharedRuleSetIsNotApplied(queryRunner, body.firewall, type, body.shared_rule_set);
       await assertSharedRuleSetInterfacesAreCompatible(
         queryRunner,
         body.fwcloud,
@@ -1276,22 +1338,30 @@ export class SharedRulesService extends Service {
 
       const ruleOrder = body.rule_order
         ? body.rule_order
-        : await getNextPolicyOrder(queryRunner, body.firewall, body.type);
-      await reorderPolicyAfterRuleOrder(queryRunner, body.firewall, body.type, ruleOrder);
+        : await getNextPolicyOrder(queryRunner, body.firewall, type);
+      await reorderPolicyAfterRuleOrder(queryRunner, body.firewall, type, ruleOrder);
 
-      const insertResult = await queryRunner.query(
-        `INSERT INTO policy_r__shared_rule_set
-          (firewall, type, shared_rule_set, rule_order, active, style)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          body.firewall,
-          body.type,
-          body.shared_rule_set,
-          ruleOrder,
-          body.active === undefined ? 1 : body.active,
-          nullIfUndefined(body.style),
-        ],
-      );
+      let insertResult;
+      try {
+        insertResult = await queryRunner.query(
+          `INSERT INTO policy_r__shared_rule_set
+            (firewall, type, shared_rule_set, rule_order, active, style)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            body.firewall,
+            type,
+            body.shared_rule_set,
+            ruleOrder,
+            body.active === undefined ? 1 : body.active,
+            nullIfUndefined(body.style),
+          ],
+        );
+      } catch (error) {
+        if (isDuplicateEntryError(error)) {
+          throw fwcError.SHARED_RULE_SET_ALREADY_APPLIED;
+        }
+        throw error;
+      }
 
       await disableFirewallCompileStatus(queryRunner, body.fwcloud, body.firewall);
 
@@ -1416,6 +1486,11 @@ export class SharedRulesService extends Service {
         type,
         body,
       );
+      await assertSharedRuleSetApplicationsInterfacesAreCompatible(
+        queryRunner,
+        body.fwcloud,
+        body.shared_rule_set,
+      );
       await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
 
       return { insertId: insertResult.insertId };
@@ -1486,6 +1561,11 @@ export class SharedRulesService extends Service {
         type,
         body,
       );
+      await assertSharedRuleSetApplicationsInterfacesAreCompatible(
+        queryRunner,
+        body.fwcloud,
+        body.shared_rule_set,
+      );
       await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
     });
   }
@@ -1504,6 +1584,11 @@ export class SharedRulesService extends Service {
         [body.shared_rule_set, ...body.rulesIds],
       );
       await compactSharedRuleOrders(queryRunner, body.shared_rule_set);
+      await assertSharedRuleSetApplicationsInterfacesAreCompatible(
+        queryRunner,
+        body.fwcloud,
+        body.shared_rule_set,
+      );
       await disableAppliedFirewallsCompileStatus(queryRunner, body.fwcloud, body.shared_rule_set);
     });
   }
