@@ -25,13 +25,8 @@ import type { User } from '../models/user/User';
 import type { FwCloud } from '../models/fwcloud/FwCloud';
 import { FwCloudPolicy } from './fwcloud.policy';
 
-/**
- * Authorization rules for the assistant replication profiles: listing the
- * catalog, reading a profile detail and applying a profile to a firewall or
- * cluster of a FWCloud. Every operation requires access to the FWCloud the
- * profile is being used in.
- */
-export class ReplicationProfilePolicy extends Policy {
+/** Drafts are shared resources available to every member of their FWCloud. */
+export class DraftPolicy extends Policy {
   static index(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
@@ -40,36 +35,8 @@ export class ReplicationProfilePolicy extends Policy {
     return this.access(user, fwCloud);
   }
 
-  static create(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static discard(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
-  }
-
-  static clone(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.access(user, fwCloud);
-  }
-
-  static update(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.access(user, fwCloud);
-  }
-
-  static delete(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.access(user, fwCloud);
-  }
-
-  static apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.access(user, fwCloud);
-  }
-
-  static store(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.create(user, fwCloud);
-  }
-
-  static storeVersion(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.update(user, fwCloud);
-  }
-
-  static destroy(user: User, fwCloud: FwCloud): Promise<Authorization> {
-    return this.delete(user, fwCloud);
   }
 
   private static access(user: User, fwCloud: FwCloud): Promise<Authorization> {

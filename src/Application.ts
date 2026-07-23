@@ -93,6 +93,7 @@ import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
 import { FirewallProfileDraftStateServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft-state.provider';
+import { FirewallProfileDraftServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft.provider';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
@@ -171,6 +172,7 @@ export class Application extends HTTPApplication {
       DHCPRuleServiceProvider,
       FirewallServiceProvider,
       FirewallProfileDraftStateServiceProvider,
+      FirewallProfileDraftServiceProvider,
       FwCloudExportServiceProvider,
       FwCloudServiceProvider,
       HAProxyGroupServiceProvider,
