@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from '../fonaments/authorization/policy';
-import { User } from '../models/user/User';
-import { FwCloud } from '../models/fwcloud/FwCloud';
+import { Policy, type Authorization } from '../fonaments/authorization/policy';
+import type { User } from '../models/user/User';
+import type { FwCloud } from '../models/fwcloud/FwCloud';
 import { FwCloudPolicy } from './fwcloud.policy';
 
 /**
@@ -32,47 +32,47 @@ import { FwCloudPolicy } from './fwcloud.policy';
  * profile is being used in.
  */
 export class ReplicationProfilePolicy extends Policy {
-  static async index(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static index(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async show(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static show(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async create(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static create(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async clone(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static clone(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async update(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static update(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async delete(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static delete(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static apply(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.access(user, fwCloud);
   }
 
-  static async store(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static store(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.create(user, fwCloud);
   }
 
-  static async storeVersion(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static storeVersion(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.update(user, fwCloud);
   }
 
-  static async destroy(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  static destroy(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return this.delete(user, fwCloud);
   }
 
-  private static async access(user: User, fwCloud: FwCloud): Promise<Authorization> {
+  private static access(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
   }
 }
