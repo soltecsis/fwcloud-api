@@ -1,5 +1,4 @@
-import { DataSource } from 'typeorm';
-import type { EntityManager } from 'typeorm';
+import { DataSource, type EntityManager, type FindOptionsSelect } from 'typeorm';
 import type { AbstractApplication } from '../../fonaments/abstract-application';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
@@ -57,6 +56,29 @@ const LIFECYCLE_TIMESTAMP_BY_STATUS = Object.freeze({
 const transitionResult = (status: FirewallProfileDraftStatus): 'success' | 'failed' =>
   status === 'apply_failed' ? 'failed' : 'success';
 
+const DRAFT_SUMMARY_SELECT = {
+  id: true,
+  fwCloudId: true,
+  createdBy: true,
+  status: true,
+  contractVersion: true,
+  requestId: true,
+  createdAt: true,
+  updatedAt: true,
+  validatedAt: true,
+  previewedAt: true,
+  applyPendingAt: true,
+  appliedAt: true,
+  failedAt: true,
+  discardedAt: true,
+  expiredAt: true,
+} as const satisfies FindOptionsSelect<FirewallProfileDraft>;
+
+export type FirewallProfileDraftSummary = Pick<
+  FirewallProfileDraft,
+  keyof typeof DRAFT_SUMMARY_SELECT
+>;
+
 class GuardedTransitionLostError extends Error {}
 
 export class FirewallProfileDraftStateService extends Service {
@@ -101,6 +123,15 @@ export class FirewallProfileDraftStateService extends Service {
     }
     this.assertSupportedContractVersion(draft);
     return draft;
+  }
+
+  /** Lists draft history without loading internal payload and integrity columns. */
+  public listByFwCloud(fwCloudId: number): Promise<FirewallProfileDraftSummary[]> {
+    return this.dataSource.getRepository(FirewallProfileDraft).find({
+      select: DRAFT_SUMMARY_SELECT,
+      where: { fwCloudId },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
   }
 
   public async transition(

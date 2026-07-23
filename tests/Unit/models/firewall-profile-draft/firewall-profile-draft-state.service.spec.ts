@@ -13,7 +13,7 @@ import {
 } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.errors';
 import {
   FIREWALL_PROFILE_DRAFT_STATUSES,
-  FirewallProfileDraftStatus,
+  type FirewallProfileDraftStatus,
 } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.types';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 
@@ -180,5 +180,26 @@ describe(describeName('FirewallProfileDraftStateService Unit Tests'), () => {
     expect(unsupported.receivedVersion).to.equal('retired.v0');
     expect(unsupported.supportedVersions).to.include('apg.mvp.v1');
     expect(unsupported.supportedVersions).to.include('1.0.0');
+  });
+
+  it('lists unsupported draft versions without loading detail or integrity columns', async () => {
+    const draft = await createDraft('validated', 'retired.v0');
+    const summary = (await service.listByFwCloud(fwCloudId)).find(({ id }) => id === draft.id);
+
+    expect(summary).to.include({
+      id: draft.id,
+      fwCloudId,
+      contractVersion: 'retired.v0',
+      status: 'validated',
+    });
+    expect(summary).not.to.have.any.keys(
+      'proposal',
+      'proposalHash',
+      'previewHash',
+      'applyHash',
+      'stepLog',
+      'targetIds',
+      'idempotencyKeyRef',
+    );
   });
 });

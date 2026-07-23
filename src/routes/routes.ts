@@ -64,6 +64,7 @@ import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.
 import { AuditLogController } from '../controllers/audit/audit-log.controller';
 import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
+import { DraftController } from '../controllers/draft/draft.controller';
 import { ReplicationProfileController } from '../controllers/replication-profile/replication-profile.controller';
 
 export class Routes extends RouteCollection {
@@ -269,6 +270,13 @@ export class Routes extends RouteCollection {
             router
               .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
               .name('fwclouds.assistant.profiles.apply');
+            router.get('/drafts', DraftController, 'index').name('fwclouds.assistant.drafts.index');
+            router
+              .get('/drafts/:draft', DraftController, 'show')
+              .name('fwclouds.assistant.drafts.show');
+            router
+              .delete('/drafts/:draft', DraftController, 'discard')
+              .name('fwclouds.assistant.drafts.discard');
           });
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
