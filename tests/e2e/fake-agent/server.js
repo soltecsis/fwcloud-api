@@ -21,6 +21,10 @@ function nonNegativeInteger(value, fallback) {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function firstHeaderValue(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function readFixture(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -50,9 +54,15 @@ function createFakeAgentServer(options = {}) {
   );
   const defaultBehavior = options.defaultBehavior || process.env.DEFAULT_BEHAVIOR || 'healthy';
   const slowDelayMs = nonNegativeInteger(options.slowDelayMs ?? process.env.SLOW_DELAY_MS, 5000);
+  const expectedApiKey = options.expectedApiKey ?? process.env.EXPECTED_API_KEY;
+  const onGenerateRequest = options.onGenerateRequest;
 
   if (!BEHAVIORS.has(defaultBehavior)) {
     throw new Error(`Unsupported DEFAULT_BEHAVIOR: ${defaultBehavior}`);
+  }
+
+  if (onGenerateRequest !== undefined && typeof onGenerateRequest !== 'function') {
+    throw new TypeError('onGenerateRequest must be a function.');
   }
 
   return http.createServer((request, response) => {
@@ -72,11 +82,26 @@ function createFakeAgentServer(options = {}) {
     // keep-alive behavior for callers that send a realistic generation request.
     request.resume();
 
-    const behaviorHeader = request.headers['x-fake-agent-behavior'];
     const behavior =
-      (Array.isArray(behaviorHeader) ? behaviorHeader[0] : behaviorHeader) ||
+      firstHeaderValue(request.headers['x-fake-agent-behavior']) ||
       url.searchParams.get('behavior') ||
       defaultBehavior;
+
+    const suppliedApiKey = firstHeaderValue(request.headers['x-api-key']);
+    const authenticated = !expectedApiKey || suppliedApiKey === expectedApiKey;
+
+    if (onGenerateRequest) {
+      onGenerateRequest({ behavior, authenticated });
+    }
+
+    if (!authenticated) {
+      sendJson(response, 401, {
+        code: 'AGENT_AUTHENTICATION_FAILED',
+        message: 'A valid X-API-Key is required.',
+      });
+      return;
+    }
+
     if (!BEHAVIORS.has(behavior)) {
       sendJson(response, 400, {
         code: 'UNKNOWN_FAKE_AGENT_BEHAVIOR',

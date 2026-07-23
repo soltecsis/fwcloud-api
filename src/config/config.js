@@ -25,6 +25,17 @@ process.env.NODE_ENV !== 'test' ? require('dotenv').config({ quiet: true }) : tr
 const path = require('path');
 var convict = require('convict');
 convict.addFormat(require('convict-format-with-moment').duration);
+convict.addFormat({
+  name: 'positive-integer',
+  validate: function(value) {
+    if (!Number.isSafeInteger(value) || value <= 0 || value > 2147483647) {
+      throw new Error('must be a positive integer no greater than 2147483647');
+    }
+  },
+  coerce: function(value) {
+    return Number(value);
+  }
+});
 
 // Define a schema
 const config = convict({
@@ -506,6 +517,45 @@ const config = convict({
         doc: 'Retention period, in days, for audit log archive files.',
         format: Number,
         default: 720
+      }
+    }
+  },
+
+  // Assisted Profile fwcloud-ai-agent transport. The client performs the
+  // remaining cross-field checks (required URL/key, HTTPS in production and
+  // custom CA validation) when its singleton is initialized.
+  assisted_profile: {
+    agent: {
+      url: {
+        doc: 'Direct base URL of fwcloud-ai-agent. The client calls POST /generate.',
+        format: String,
+        default: '',
+        env: 'ASSISTED_PROFILE_AGENT_URL'
+      },
+      api_key: {
+        doc: 'Service key sent to fwcloud-ai-agent in X-API-Key.',
+        format: String,
+        default: '',
+        env: 'ASSISTED_PROFILE_AGENT_API_KEY',
+        sensitive: true
+      },
+      connect_timeout_ms: {
+        doc: 'TCP/TLS connection-establishment timeout in milliseconds.',
+        format: 'positive-integer',
+        default: 10000,
+        env: 'ASSISTED_PROFILE_AGENT_CONNECT_TIMEOUT_MS'
+      },
+      read_timeout_ms: {
+        doc: 'Agent response timeout in milliseconds. Read timeouts are never retried.',
+        format: 'positive-integer',
+        default: 180000,
+        env: 'ASSISTED_PROFILE_AGENT_READ_TIMEOUT_MS'
+      },
+      ca_file: {
+        doc: 'Optional PEM CA file used to verify the fwcloud-ai-agent certificate.',
+        format: String,
+        default: '',
+        env: 'ASSISTED_PROFILE_AGENT_CA_FILE'
       }
     }
   },
