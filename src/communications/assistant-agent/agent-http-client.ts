@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from '../../fonaments/abstract-application';
+import type { AbstractApplication } from '../../fonaments/abstract-application';
 import { Service } from '../../fonaments/services/service';
 import { AssistantContractCustomsService } from '../../models/assistant-contract/assistant-contract-customs.service';
 import { AssistantContractMismatchException } from '../../models/assistant-contract/assistant-contract-mismatch.exception';
@@ -58,6 +58,12 @@ import {
   AgentRequestContext,
   AssistedProfileAgentRequest,
 } from './agent-http.types';
+import {
+  NOOP_OBSERVER,
+  createObservationLogger,
+  recordObservationSafely,
+  safeAgentIdentifier,
+} from './assistant-agent.utils';
 
 export type AssistedProfileContractGateway = Pick<
   AssistantContractCustomsService,
@@ -74,12 +80,6 @@ export interface AgentHttpClientCreateOptions {
 
 type AgentHttpClientOverrides = Partial<AgentHttpClientCreateOptions>;
 
-const NOOP_OBSERVER: AgentHttpClientObserver = {
-  record: () => undefined,
-};
-
-const MAX_IDENTIFIER_LENGTH = 512;
-const SAFE_IDENTIFIER = /^[^\u0000-\u001f\u007f]+$/;
 const INVALID_REQUEST_ID = 'invalid-request-id';
 
 /**
@@ -119,7 +119,13 @@ export class AgentHttpClient extends Service {
       ));
     this._transport =
       this._overrides.transport ?? new NodeAgentHttpTransport({ ca: this._configuration.ca });
-    this._observer = this._overrides.observer ?? this.applicationObserver();
+    this._observer =
+      this._overrides.observer ??
+      createObservationLogger<AgentHttpClientObservation>(
+        this._app,
+        'assisted-profile.agent',
+        (observation) => observation.outcome !== 'success',
+      );
     this._clock = this._overrides.clock ?? this._clock;
 
     return this;
@@ -135,7 +141,7 @@ export class AgentHttpClient extends Service {
   ): Promise<ValidatedAssistedProfileProposal> {
     const startedAt = this._clock();
     const requestId = this.safeRequestId(context?.requestId);
-    const correlationId = this.safeOptionalIdentifier(context?.correlationId);
+    const correlationId = this.safeIdentifier(context?.correlationId);
     let attempts = 0;
     let httpStatus: number | undefined;
 
@@ -233,23 +239,6 @@ export class AgentHttpClient extends Service {
       // Plain HTTP is limited to development/test fake-agent use. There is no
       // production switch that disables TLS certificate verification.
       allowInsecureHttp: this._app.config.get('env') !== 'prod',
-    };
-  }
-
-  private applicationObserver(): AgentHttpClientObserver {
-    if (!this._app) {
-      return NOOP_OBSERVER;
-    }
-
-    return {
-      record: (observation: AgentHttpClientObservation): void => {
-        const message = `assisted-profile.agent ${JSON.stringify(observation)}`;
-        if (observation.outcome === 'success') {
-          this._app.logger().info(message);
-        } else {
-          this._app.logger().warn(message);
-        }
-      },
     };
   }
 
@@ -427,24 +416,11 @@ export class AgentHttpClient extends Service {
   }
 
   private safeRequestId(value: unknown): string {
-    return this.safeOptionalIdentifier(value) ?? INVALID_REQUEST_ID;
+    return this.safeIdentifier(value) ?? INVALID_REQUEST_ID;
   }
 
-  private safeOptionalIdentifier(value: unknown): string | undefined {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    return this.isSafeIdentifier(value) ? value : undefined;
-  }
-
-  private isSafeIdentifier(value: unknown): value is string {
-    return (
-      typeof value === 'string' &&
-      value.length > 0 &&
-      value.length <= MAX_IDENTIFIER_LENGTH &&
-      SAFE_IDENTIFIER.test(value) &&
-      value !== this._configuration?.apiKey
-    );
+  private safeIdentifier(value: unknown): string | undefined {
+    return safeAgentIdentifier(value, this._configuration?.apiKey);
   }
 
   private elapsedSince(startedAt: number): number {
@@ -452,10 +428,6 @@ export class AgentHttpClient extends Service {
   }
 
   private observe(observation: AgentHttpClientObservation): void {
-    try {
-      this._observer.record(observation);
-    } catch {
-      // Observability must never change request outcome.
-    }
+    recordObservationSafely(this._observer, observation);
   }
 }

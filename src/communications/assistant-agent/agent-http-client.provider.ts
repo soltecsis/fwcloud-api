@@ -20,22 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from '../../fonaments/abstract-application';
-import { ServiceBound, ServiceContainer } from '../../fonaments/services/service-container';
+import type { AbstractApplication } from '../../fonaments/abstract-application';
+import type { ServiceBound, ServiceContainer } from '../../fonaments/services/service-container';
 import { ServiceProvider } from '../../fonaments/services/service-provider';
 import { AgentHttpClient } from './agent-http-client';
 
 /** Registers the single production transport for fwcloud-ai-agent. */
 export class AgentHttpClientProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {
-    // ServiceContainer caches only after construction resolves. Keeping the
-    // in-flight promise here prevents two concurrent first callers from
-    // creating separate transports outside the container lifecycle.
-    let client: Promise<AgentHttpClient> | null = null;
-
-    return serviceContainer.singleton(AgentHttpClient.name, (app: AbstractApplication) => {
-      client ??= AgentHttpClient.make(app);
-      return client;
-    });
+    return serviceContainer.singleton(
+      AgentHttpClient.name,
+      this.singleFlight((app: AbstractApplication) => AgentHttpClient.make(app)),
+    );
   }
 }

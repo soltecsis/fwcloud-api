@@ -32,8 +32,7 @@ import { DatabaseService } from '../database/database.service';
 import { LogServiceProvider } from '../logs/log.provider';
 import { LoggerType, LogService } from '../logs/log.service';
 import winston from 'winston';
-
-let _runningApplication: AbstractApplication = null;
+import { getRunningApplication, setRunningApplication } from './application-context';
 
 export function logger(type: LoggerType = 'default'): winston.Logger {
   if (app()) {
@@ -44,7 +43,7 @@ export function logger(type: LoggerType = 'default'): winston.Logger {
 }
 
 export function app<T extends AbstractApplication>(): T {
-  return <T>_runningApplication;
+  return getRunningApplication<T>();
 }
 
 export abstract class AbstractApplication {
@@ -58,8 +57,7 @@ export abstract class AbstractApplication {
     try {
       this._path = path;
       this._config = require('../config/config');
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      _runningApplication = this;
+      setRunningApplication(this);
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
       process.exit(e);
