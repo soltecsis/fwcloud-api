@@ -66,6 +66,7 @@ import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
 import { DraftController } from '../controllers/draft/draft.controller';
 import { ReplicationProfileController } from '../controllers/replication-profile/replication-profile.controller';
+import { AssistantAvailabilityController } from '../controllers/assistant-availability/assistant-availability.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -277,6 +278,9 @@ export class Routes extends RouteCollection {
             router
               .delete('/drafts/:draft', DraftController, 'discard')
               .name('fwclouds.assistant.drafts.discard');
+            router
+              .get('/availability', AssistantAvailabilityController, 'show')
+              .name('fwclouds.assistant.availability.show');
           });
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
