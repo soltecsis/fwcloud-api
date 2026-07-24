@@ -10,7 +10,7 @@ From the repository root:
 docker compose -f tests/docker-compose.yaml up --build fake-agent
 ```
 
-Other containers in that Compose project reach it directly at `http://fake-agent:8080`. Port 8080 is intentionally only exposed to the internal Compose network, so the URL is not reachable from the host unless a test explicitly publishes a port. The generation endpoint is `POST /generate`; `GET /health` is public and available for readiness checks.
+Other containers in that Compose project reach it directly at `http://fake-agent:8080`. Port 8080 is intentionally only exposed to the internal Compose network, so the URL is not reachable from the host unless a test explicitly publishes a port. The generation endpoint is `POST /generate`; `GET /health` serves the AG-3 health contract consumed by `AssistedProfileHealthService`.
 
 Compose configures the test-only key `fwcloud-fake-agent-test-key` through `EXPECTED_API_KEY`. Every `POST /generate` request must therefore include `X-API-Key`; a missing or different value returns `401`. When the standalone server is created without `expectedApiKey` and `EXPECTED_API_KEY` is unset, authentication is disabled for compatibility with focused tests. Never use this test key outside the test environment.
 
@@ -41,6 +41,15 @@ An unsupported behavior returns `400`. Request bodies are accepted and drained b
 The `down` behavior is a **reset after accept**: the request may already have reached the agent. It is therefore not a safe connection-establishment retry scenario and must not be used to assert the client's one safe retry. Use an unreachable endpoint (for example, a closed port) when testing failure before request establishment.
 
 Tests may pass `onGenerateRequest` to `createFakeAgentServer` to observe attempts. The callback receives only `{ behavior, authenticated }`; it never receives the API key, headers, or body.
+
+## Health endpoint
+
+`GET /health` returns the AG-3 contract: `{ alive, busy, model: { ready }, status }`. Unlike `/generate`'s per-request behavior selection, the health response is controlled by the mutable `health` field the factory attaches to **its own returned server instance** (`fakeAgent.health.alive = false`, `.busy`, `.modelReady`, `.reachable`, `.status`, `.raw`). This does not violate the "no mutable service-wide state" rule below: the object lives in that one server's closure, so concurrent servers created by other tests are unaffected — it exists specifically so a single long-lived server can simulate an agent going down and recovering across polls without a restart.
+
+- `reachable: false` resets the TCP connection (like the `down` generate behavior), for connection-failure and recovery scenarios.
+- `raw` (if set) is sent verbatim instead of the derived `{alive, busy, model}` body, for malformed/invalid-shape tests. Clear it (`undefined`) to go back to the derived body.
+- `status` (HTTP status code, default `200`) can be set to a non-2xx value to test invalid-response handling.
+- Authentication follows the same `X-API-Key` rule as `/generate`. Tests may pass `onHealthRequest` to observe `{ authenticated }` per poll.
 
 ## Fixtures
 

@@ -23,6 +23,8 @@
 const MAX_IDENTIFIER_LENGTH = 512;
 const SAFE_IDENTIFIER = /^[^\u0000-\u001f\u007f]+$/;
 
+const FALLBACK_TIMESTAMP = new Date(0).toISOString();
+
 export const NOOP_OBSERVER = Object.freeze({
   record: (): void => undefined,
 });
@@ -76,5 +78,31 @@ export function recordObservationSafely<T>(
     observer.record(observation);
   } catch {
     // Observability must never change request outcome.
+  }
+}
+
+/** A misbehaving injected clock must never make a duration go negative or NaN. */
+export function safeMonotonicNow(clock: () => number): number {
+  try {
+    const value = clock();
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function safeElapsedMs(start: number, end: number): number {
+  return Math.max(0, Math.round(end - start));
+}
+
+/** A misbehaving injected wall clock falls back to the Unix epoch, never a throw. */
+export function safeTimestamp(now: () => Date): string {
+  try {
+    const value = now();
+    return value instanceof Date && Number.isFinite(value.valueOf())
+      ? value.toISOString()
+      : FALLBACK_TIMESTAMP;
+  } catch {
+    return FALLBACK_TIMESTAMP;
   }
 }

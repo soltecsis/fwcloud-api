@@ -25,6 +25,18 @@ function firstHeaderValue(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function isAuthenticated(request, expectedApiKey) {
+  const suppliedApiKey = firstHeaderValue(request.headers['x-api-key']);
+  return !expectedApiKey || suppliedApiKey === expectedApiKey;
+}
+
+function sendAuthenticationFailure(response) {
+  sendJson(response, 401, {
+    code: 'AGENT_AUTHENTICATION_FAILED',
+    message: 'A valid X-API-Key is required.',
+  });
+}
+
 function readFixture(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -57,6 +69,13 @@ function createFakeAgentServer(options = {}) {
   const expectedApiKey = options.expectedApiKey ?? process.env.EXPECTED_API_KEY;
   const onGenerateRequest = options.onGenerateRequest;
   const onGenerateRequestFinished = options.onGenerateRequestFinished;
+  const onHealthRequest = options.onHealthRequest;
+  // Mutable: tests flip these fields directly (e.g. `fakeAgent.health.reachable = false`)
+  // to move the same running server between behaviors without restarting it.
+  const health = Object.assign(
+    { reachable: true, status: 200, alive: true, busy: false, modelReady: true, raw: undefined },
+    options.health,
+  );
 
   if (!BEHAVIORS.has(defaultBehavior)) {
     throw new Error(`Unsupported DEFAULT_BEHAVIOR: ${defaultBehavior}`);
@@ -65,18 +84,41 @@ function createFakeAgentServer(options = {}) {
   if (onGenerateRequest !== undefined && typeof onGenerateRequest !== 'function') {
     throw new TypeError('onGenerateRequest must be a function.');
   }
-  if (
-    onGenerateRequestFinished !== undefined &&
-    typeof onGenerateRequestFinished !== 'function'
-  ) {
+  if (onGenerateRequestFinished !== undefined && typeof onGenerateRequestFinished !== 'function') {
     throw new TypeError('onGenerateRequestFinished must be a function.');
   }
 
-  return http.createServer((request, response) => {
+  const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fake-agent');
 
     if (request.method === 'GET' && url.pathname === '/health') {
-      sendJson(response, 200, { status: 'ok' });
+      const authenticated = isAuthenticated(request, expectedApiKey);
+
+      if (onHealthRequest) {
+        onHealthRequest({ authenticated });
+      }
+
+      if (!authenticated) {
+        sendAuthenticationFailure(response);
+        return;
+      }
+
+      if (!health.reachable) {
+        request.socket.destroy();
+        return;
+      }
+
+      if (health.raw !== undefined) {
+        sendJson(response, health.status, health.raw);
+        return;
+      }
+
+      sendJson(response, health.status, {
+        alive: health.alive,
+        busy: health.busy,
+        model: { ready: health.modelReady },
+        status: health.alive ? (health.busy ? 'busy' : 'ready') : 'unavailable',
+      });
       return;
     }
 
@@ -94,8 +136,7 @@ function createFakeAgentServer(options = {}) {
       url.searchParams.get('behavior') ||
       defaultBehavior;
 
-    const suppliedApiKey = firstHeaderValue(request.headers['x-api-key']);
-    const authenticated = !expectedApiKey || suppliedApiKey === expectedApiKey;
+    const authenticated = isAuthenticated(request, expectedApiKey);
 
     if (onGenerateRequest) {
       onGenerateRequest({ behavior, authenticated });
@@ -113,10 +154,7 @@ function createFakeAgentServer(options = {}) {
     }
 
     if (!authenticated) {
-      sendJson(response, 401, {
-        code: 'AGENT_AUTHENTICATION_FAILED',
-        message: 'A valid X-API-Key is required.',
-      });
+      sendAuthenticationFailure(response);
       return;
     }
 
@@ -156,6 +194,11 @@ function createFakeAgentServer(options = {}) {
         sendJson(response, 200, healthyFixture, { 'X-Fake-Agent-Behavior': behavior });
     }
   });
+
+  // Exposed so a test can flip `.health.reachable`/`.alive`/etc. on an already
+  // listening server to simulate the agent going down and recovering.
+  server.health = health;
+  return server;
 }
 
 if (require.main === module) {

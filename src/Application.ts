@@ -89,6 +89,8 @@ import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider
 import { AssistantContractCustomsServiceProvider } from './models/assistant-contract/assistant-contract-customs.provider';
 import { AgentHttpClientProvider } from './communications/assistant-agent/agent-http-client.provider';
 import { GenerationQueueProvider } from './communications/assistant-agent/generation-queue.provider';
+import { AssistedProfileHealthServiceProvider } from './communications/assistant-agent/assisted-profile-health.provider';
+import { AssistedProfileHealthService } from './communications/assistant-agent/assisted-profile-health.service';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
@@ -149,6 +151,13 @@ export class Application extends HTTPApplication {
 
       //Starting scheduled task from the openvpn service
       (await this.getService<OpenVPNService>(OpenVPNService.name)).startScheduledTasks();
+
+      // Starting the Assisted Profile agent health poller. Disabled deployments
+      // and unconfigured agents are handled internally: the availability
+      // snapshot simply stays unavailable, it never blocks application startup.
+      (
+        await this.getService<AssistedProfileHealthService>(AssistedProfileHealthService.name)
+      ).start();
     }
 
     return this;
@@ -159,6 +168,7 @@ export class Application extends HTTPApplication {
       AIAssistantProvider,
       AgentHttpClientProvider,
       GenerationQueueProvider,
+      AssistedProfileHealthServiceProvider,
       AssistantContractCustomsServiceProvider,
       AuditEventServiceProvider,
       AuditLogServiceProvider,

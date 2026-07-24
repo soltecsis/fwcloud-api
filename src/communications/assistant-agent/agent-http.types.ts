@@ -46,7 +46,7 @@ export type AgentHttpResponseHeaders = Readonly<
 
 /** Request shape consumed by an injected, direct (non-proxying) transport. */
 export interface AgentHttpTransportRequest {
-  readonly method: 'POST';
+  readonly method: 'GET' | 'POST';
   readonly url: URL;
   readonly headers: AgentHttpRequestHeaders;
   readonly body: string;

@@ -24,7 +24,10 @@ import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { X509Certificate } from 'node:crypto';
 import { createSecureContext } from 'node:tls';
-import { ConfigurationErrorException } from '../../config/exceptions/configuration-error.exception';
+import {
+  configurationError,
+  resolvePositiveIntegerMs,
+} from './assistant-agent-configuration.utils';
 
 export const DEFAULT_AGENT_CONNECT_TIMEOUT_MS = 10_000;
 export const DEFAULT_AGENT_READ_TIMEOUT_MS = 180_000;
@@ -39,20 +42,19 @@ export interface AgentHttpClientConfigurationInput {
   readonly allowInsecureHttp?: boolean;
   /** Base used only to resolve a relative caFile path. Defaults to cwd. */
   readonly baseDirectory?: string;
+  /** Path of the AG-3 health endpoint, relative to the base URL. Defaults to `/health`. */
+  readonly healthPath?: string;
 }
 
 export interface AgentHttpClientConfiguration {
   readonly endpoint: URL;
   /** Credential-free endpoint label suitable for logs and metrics. */
   readonly endpointIdentifier: string;
+  readonly healthEndpoint: URL;
   readonly apiKey: string;
   readonly connectTimeoutMs: number;
   readonly readTimeoutMs: number;
   readonly ca?: Buffer;
-}
-
-function configurationError(message: string): ConfigurationErrorException {
-  return new ConfigurationErrorException(`Configuration Error: ${message}`);
 }
 
 function requiredNonEmptyString(value: unknown, name: string): string {
@@ -73,30 +75,6 @@ function validApiKey(value: unknown): string {
   // Header values must never allow line breaks or other control characters.
   // Do not include the rejected value in the configuration error.
   return apiKey;
-}
-
-function positiveIntegerTimeout(
-  value: number | string | undefined,
-  fallback: number,
-  name: string,
-): number {
-  const candidate = value ?? fallback;
-  const trimmed = typeof candidate === 'string' ? candidate.trim() : candidate;
-  const normalized =
-    typeof trimmed === 'string' && /^\d+$/.test(trimmed) ? Number(trimmed) : candidate;
-
-  if (
-    typeof normalized !== 'number' ||
-    !Number.isInteger(normalized) ||
-    normalized <= 0 ||
-    normalized > MAX_AGENT_TIMEOUT_MS
-  ) {
-    throw configurationError(
-      `${name} must be a positive integer no greater than ${MAX_AGENT_TIMEOUT_MS}`,
-    );
-  }
-
-  return normalized;
 }
 
 function parseAgentUrl(rawUrl: string, allowInsecureHttp: boolean | undefined): URL {
@@ -200,25 +178,42 @@ export function resolveAgentHttpClientConfiguration(
   const rawUrl = requiredNonEmptyString(input.url, 'Assisted Profile agent URL');
   const apiKey = validApiKey(input.apiKey);
   const baseUrl = parseAgentUrl(rawUrl, input.allowInsecureHttp);
-  const connectTimeoutMs = positiveIntegerTimeout(
+  const connectTimeoutMs = resolvePositiveIntegerMs(
     input.connectTimeoutMs,
     DEFAULT_AGENT_CONNECT_TIMEOUT_MS,
+    MAX_AGENT_TIMEOUT_MS,
     'Assisted Profile agent connect timeout',
   );
-  const readTimeoutMs = positiveIntegerTimeout(
+  const readTimeoutMs = resolvePositiveIntegerMs(
     input.readTimeoutMs,
     DEFAULT_AGENT_READ_TIMEOUT_MS,
+    MAX_AGENT_TIMEOUT_MS,
     'Assisted Profile agent read timeout',
   );
   const ca = loadCustomCa(input.caFile, input.baseDirectory, baseUrl.protocol);
   const endpoint = new URL('/generate', baseUrl);
+  const healthEndpoint = new URL(resolveHealthPath(input.healthPath), baseUrl);
 
   return {
     endpoint,
     endpointIdentifier: endpoint.href,
+    healthEndpoint,
     apiKey,
     connectTimeoutMs,
     readTimeoutMs,
     ca,
   };
+}
+
+function resolveHealthPath(healthPath: string | undefined): string {
+  const candidate = healthPath?.trim();
+  if (!candidate) {
+    return '/health';
+  }
+
+  if (!candidate.startsWith('/')) {
+    throw configurationError('Assisted Profile agent health path must start with "/"');
+  }
+
+  return candidate;
 }

@@ -59,6 +59,11 @@ import {
   AssistedProfileAgentRequest,
 } from './agent-http.types';
 import {
+  AgentHealthCheckError,
+  type AgentHealthCheckOptions,
+  type AgentHealthCheckResponse,
+} from './agent-health.types';
+import {
   NOOP_OBSERVER,
   createObservationLogger,
   recordObservationSafely,
@@ -69,6 +74,9 @@ export type AssistedProfileContractGateway = Pick<
   AssistantContractCustomsService,
   'acceptedSchemaVersions' | 'validate'
 >;
+
+/** Dependency shape consumed by AssistedProfileHealthService. */
+export type AssistedProfileAgentHealthGateway = Pick<AgentHttpClient, 'getHealth'>;
 
 export interface AgentHttpClientCreateOptions {
   configuration: AgentHttpClientConfigurationInput;
@@ -223,6 +231,86 @@ export class AgentHttpClient extends Service {
     }
   }
 
+  /**
+   * Polled by AssistedProfileHealthService. Deliberately bypasses the API-1
+   * contract gateway: an AG-3 health payload is never an apg.mvp.v1 proposal,
+   * and a failed health probe is never retried the way generation is.
+   */
+  public async getHealth(options: AgentHealthCheckOptions): Promise<AgentHealthCheckResponse> {
+    let response: AgentHttpTransportResponse;
+
+    try {
+      response = await this._transport.request({
+        url: this._configuration.healthEndpoint,
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-API-Key': this._configuration.apiKey,
+        },
+        body: '',
+        connectTimeoutMs: options.timeoutMs,
+        readTimeoutMs: options.timeoutMs,
+        signal: options.signal,
+      });
+    } catch (error) {
+      throw this.mapHealthTransportFailure(error);
+    }
+
+    return this.parseHealthResponse(response);
+  }
+
+  private mapHealthTransportFailure(error: unknown): AgentHealthCheckError {
+    if (!(error instanceof AgentHttpTransportFailure)) {
+      return new AgentHealthCheckError('connection_error');
+    }
+
+    switch (error.kind) {
+      case 'read_timeout':
+      case 'cancelled':
+        return new AgentHealthCheckError('timeout');
+      case 'invalid_http_response':
+        return new AgentHealthCheckError('invalid_response');
+      case 'connection':
+      case 'tls':
+      case 'unknown':
+      default:
+        return new AgentHealthCheckError('connection_error');
+    }
+  }
+
+  private parseHealthResponse(response: AgentHttpTransportResponse): AgentHealthCheckResponse {
+    if (!Number.isInteger(response.status) || response.status < 200 || response.status >= 300) {
+      throw new AgentHealthCheckError('invalid_response');
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(response.body);
+    } catch {
+      throw new AgentHealthCheckError('invalid_response');
+    }
+
+    const candidate = payload as {
+      alive?: unknown;
+      busy?: unknown;
+      model?: { ready?: unknown } | null;
+    } | null;
+
+    if (
+      !candidate ||
+      typeof candidate !== 'object' ||
+      typeof candidate.alive !== 'boolean' ||
+      typeof candidate.busy !== 'boolean' ||
+      typeof candidate.model !== 'object' ||
+      candidate.model === null ||
+      typeof candidate.model.ready !== 'boolean'
+    ) {
+      throw new AgentHealthCheckError('invalid_response');
+    }
+
+    return { alive: candidate.alive, busy: candidate.busy, modelReady: candidate.model.ready };
+  }
+
   private configurationFromApplication(): AgentHttpClientConfigurationInput {
     if (!this._app) {
       return {};
@@ -236,6 +324,7 @@ export class AgentHttpClient extends Service {
       readTimeoutMs: config.read_timeout_ms,
       caFile: config.ca_file,
       baseDirectory: this._app.path,
+      healthPath: this._app.config.get('assisted_profile.health')?.path,
       // Plain HTTP is limited to development/test fake-agent use. There is no
       // production switch that disables TLS certificate verification.
       allowInsecureHttp: this._app.config.get('env') !== 'prod',
