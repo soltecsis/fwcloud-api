@@ -2,6 +2,7 @@ import * as http from 'node:http';
 import { AddressInfo } from 'node:net';
 import { Repository } from 'typeorm';
 import { AgentHttpClient } from '../../../../src/communications/assistant-agent/agent-http-client';
+import { GenerationQueue } from '../../../../src/communications/assistant-agent/generation-queue';
 import {
   AgentBusyError,
   AgentConnectionError,
@@ -277,5 +278,52 @@ describe(describeName('Assisted Profile AgentHttpClient fake-agent E2E tests'), 
 
     expect(thrown.attempts).to.equal(1);
     expect(fakeAgent.requests).to.deep.equal([{ behavior: 'down', authenticated: true }]);
+  });
+
+  it('sends concurrent API jobs to the slow fake agent strictly one at a time', async () => {
+    let activeRequests = 0;
+    let maximumActiveRequests = 0;
+    const requests: FakeAgentRequestObservation[] = [];
+    const server: http.Server = createFakeAgentServer({
+      defaultBehavior: 'slow',
+      expectedApiKey: EXPECTED_API_KEY,
+      slowDelayMs: 30,
+      onGenerateRequest: (request: FakeAgentRequestObservation) => {
+        requests.push(request);
+        activeRequests += 1;
+        maximumActiveRequests = Math.max(maximumActiveRequests, activeRequests);
+      },
+      onGenerateRequestFinished: () => {
+        activeRequests -= 1;
+      },
+    });
+    const address = await listen(server);
+    activeServers.push(server);
+    const client = await createClient(`http://127.0.0.1:${address.port}`);
+    const queue = await GenerationQueue.create({ configuration: { maxDepth: 3 } });
+
+    const results = await Promise.all(
+      Array.from({ length: 4 }, (_, index) =>
+        queue.enqueue({
+          generationId: `gen-fake-agent-serialization-${index}`,
+          fwcloudId: index + 1,
+          userId: index + 1,
+          requestId: `fake-agent-serialization-${index}`,
+          execute: () =>
+            client.generate(GENERATION_REQUEST, {
+              ...requestContext(`serialization-${index}`),
+              fwCloudId: index + 1,
+              userId: index + 1,
+            }),
+        }),
+      ),
+    );
+
+    expect(results).to.have.length(4);
+    expect(requests).to.have.length(4);
+    expect(maximumActiveRequests).to.equal(1);
+    expect(activeRequests).to.equal(0);
+    expect(queue.stats.completedCount).to.equal(4);
+    expect(queue.stats.failedCount).to.equal(0);
   });
 });
