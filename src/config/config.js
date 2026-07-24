@@ -36,6 +36,20 @@ convict.addFormat({
     return Number(value);
   }
 });
+convict.addFormat({
+  name: 'non-negative-integer',
+  validate: function(value) {
+    if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) {
+      throw new Error('must be a non-negative integer no greater than 2147483647');
+    }
+  },
+  coerce: function(value) {
+    if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+      return Number(value.trim());
+    }
+    return value;
+  }
+});
 
 // Define a schema
 const config = convict({
@@ -556,6 +570,14 @@ const config = convict({
         format: String,
         default: '',
         env: 'ASSISTED_PROFILE_AGENT_CA_FILE'
+      }
+    },
+    generation_queue: {
+      max_depth: {
+        doc: 'Maximum number of waiting Assisted Profile generations; excludes the active generation.',
+        format: 'non-negative-integer',
+        default: 3,
+        env: 'ASSISTED_PROFILE_GENERATION_QUEUE_MAX_DEPTH'
       }
     }
   },

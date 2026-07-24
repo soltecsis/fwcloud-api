@@ -12,13 +12,14 @@ FWCloud's source code is published under the free software license <a href="http
 
 Production deployments must use an `https:` agent URL. Certificate verification is always enabled; `ASSISTED_PROFILE_AGENT_CA_FILE` may point to a PEM CA bundle for deployments using a private CA. In Compose, configure the agent service name as the URL host (for example, `https://fwcloud-ai-agent:8443`) and place both services on a network that permits this direct connection.
 
-| Variable                                    | Default  | Purpose                                   |
-| ------------------------------------------- | -------- | ----------------------------------------- |
-| `ASSISTED_PROFILE_AGENT_URL`                | none     | Required direct agent base URL            |
-| `ASSISTED_PROFILE_AGENT_API_KEY`            | none     | Required service key; never logged        |
-| `ASSISTED_PROFILE_AGENT_CONNECT_TIMEOUT_MS` | `10000`  | TCP/TLS establishment timeout             |
-| `ASSISTED_PROFILE_AGENT_READ_TIMEOUT_MS`    | `180000` | Response/read timeout for local inference |
-| `ASSISTED_PROFILE_AGENT_CA_FILE`            | none     | Optional readable PEM CA bundle           |
+| Variable                                      | Default  | Purpose                                   |
+| --------------------------------------------- | -------- | ----------------------------------------- |
+| `ASSISTED_PROFILE_AGENT_URL`                  | none     | Required direct agent base URL            |
+| `ASSISTED_PROFILE_AGENT_API_KEY`              | none     | Required service key; never logged        |
+| `ASSISTED_PROFILE_AGENT_CONNECT_TIMEOUT_MS`   | `10000`  | TCP/TLS establishment timeout             |
+| `ASSISTED_PROFILE_AGENT_READ_TIMEOUT_MS`      | `180000` | Response/read timeout for local inference |
+| `ASSISTED_PROFILE_AGENT_CA_FILE`              | none     | Optional readable PEM CA bundle           |
+| `ASSISTED_PROFILE_GENERATION_QUEUE_MAX_DEPTH` | `3`      | Maximum waiting generations               |
 
 Initialization rejects a missing URL or API key, an unsupported protocol, non-positive or invalid timeout values, an invalid CA path/bundle, and non-HTTPS URLs in production.
 
@@ -34,3 +35,27 @@ Only a failure proven to occur before request establishment is retried, exactly 
 | Unclassified transport failure after request establishment                  | Never           |
 
 Every successful HTTP response is parsed as untrusted input and validated by the vendored API-1 contract gateway before application code can receive it. Response bodies and credentials are not logged by default.
+
+## Assisted Profile generation queue
+
+`GenerationQueue` is the process-local admission boundary that generation orchestration must use before calling `AgentHttpClient`. It is a FIFO queue with one active slot. `ASSISTED_PROFILE_GENERATION_QUEUE_MAX_DEPTH` limits waiting requests only, so the default permits one active plus three waiting generations. A value of `0` permits one active generation and rejects every request that would need to wait. Negative, fractional, and unsupported values fail configuration validation.
+
+The queue rejects a full waiting list with HTTP `503` and code `ASSISTED_PROFILE_GENERATION_QUEUE_SATURATED`. It also reserves each accepted `user_id + fwcloud_id` pair until the job succeeds or fails. A duplicate receives HTTP `409`, code `ASSISTED_PROFILE_GENERATION_ALREADY_IN_PROGRESS`, and the existing `generation_id`. The guard is released on every terminal path before the next FIFO job starts.
+
+Queue lifecycle updates use the request-scoped `Channel` created after normal FWCloud authorization. They are delivered only on the requesting user's channel:
+
+| Event                                   | Meaning                        |
+| --------------------------------------- | ------------------------------ |
+| `assistant.generation.queued`           | Accepted with initial position |
+| `assistant.generation.position_changed` | Moved forward in the wait list |
+| `assistant.generation.started`          | Entered the sole active slot   |
+| `assistant.generation.completed`        | Generation completed           |
+| `assistant.generation.failed`           | Generation failed              |
+
+Each payload includes its stable `generation_id`, FWCloud and user identifiers, status, number of waiting jobs, and timestamp. Position `0` is the active slot, position `1` is next, and position `2` is the second waiting request. Events never contain prompts or generated proposals. Operational logs expose queue depth, active generation id, and wait/execution durations; the queue's safe `stats` snapshot exposes enqueue, rejection, completion, and failure counters. Neither includes request or proposal bodies.
+
+Client disconnection is not user-facing cancellation. The initial implementation lets an accepted job finish normally: queued work remains queued and an active request is never retried or duplicated. Regardless of how its execution callback settles, the queue releases the user/FWCloud guard. Cancellation can be added later at the orchestration boundary when disconnect propagation is reliable.
+
+> The in-process queue guarantees strict serialization only inside one `fwcloud-api` instance.
+
+It is not a distributed lock. For multi-instance deployment, keep this queue for local backpressure and UX, but move the authoritative limit to a semaphore in `fwcloud-ai-agent`: the agent accepts at most one active inference, returns a deterministic busy response to additional callers, and every API instance continues classifying that response through `AgentHttpClient`. Introduce a shared external coordinator separately only if distributed queueing becomes necessary.
