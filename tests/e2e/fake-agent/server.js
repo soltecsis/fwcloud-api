@@ -56,6 +56,7 @@ function createFakeAgentServer(options = {}) {
   const slowDelayMs = nonNegativeInteger(options.slowDelayMs ?? process.env.SLOW_DELAY_MS, 5000);
   const expectedApiKey = options.expectedApiKey ?? process.env.EXPECTED_API_KEY;
   const onGenerateRequest = options.onGenerateRequest;
+  const onGenerateRequestFinished = options.onGenerateRequestFinished;
 
   if (!BEHAVIORS.has(defaultBehavior)) {
     throw new Error(`Unsupported DEFAULT_BEHAVIOR: ${defaultBehavior}`);
@@ -63,6 +64,12 @@ function createFakeAgentServer(options = {}) {
 
   if (onGenerateRequest !== undefined && typeof onGenerateRequest !== 'function') {
     throw new TypeError('onGenerateRequest must be a function.');
+  }
+  if (
+    onGenerateRequestFinished !== undefined &&
+    typeof onGenerateRequestFinished !== 'function'
+  ) {
+    throw new TypeError('onGenerateRequestFinished must be a function.');
   }
 
   return http.createServer((request, response) => {
@@ -92,6 +99,17 @@ function createFakeAgentServer(options = {}) {
 
     if (onGenerateRequest) {
       onGenerateRequest({ behavior, authenticated });
+    }
+    if (onGenerateRequestFinished) {
+      let notified = false;
+      const notifyFinished = () => {
+        if (!notified) {
+          notified = true;
+          onGenerateRequestFinished({ behavior, authenticated });
+        }
+      };
+      response.once('finish', notifyFinished);
+      response.once('close', notifyFinished);
     }
 
     if (!authenticated) {

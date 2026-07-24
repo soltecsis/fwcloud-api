@@ -88,6 +88,7 @@ import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.prov
 import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
 import { AssistantContractCustomsServiceProvider } from './models/assistant-contract/assistant-contract-customs.provider';
 import { AgentHttpClientProvider } from './communications/assistant-agent/agent-http-client.provider';
+import { GenerationQueueProvider } from './communications/assistant-agent/generation-queue.provider';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
@@ -157,6 +158,7 @@ export class Application extends HTTPApplication {
     return [
       AIAssistantProvider,
       AgentHttpClientProvider,
+      GenerationQueueProvider,
       AssistantContractCustomsServiceProvider,
       AuditEventServiceProvider,
       AuditLogServiceProvider,

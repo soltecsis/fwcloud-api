@@ -20,8 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceContainer, ServiceBound } from './service-container';
-import { AbstractApplication } from '../abstract-application';
+import type { ServiceBound, ServiceContainer } from './service-container';
+import type { AbstractApplication } from '../abstract-application';
+import type { Service } from './service';
 
 export abstract class ServiceProvider {
   protected app: AbstractApplication;
@@ -34,5 +35,16 @@ export abstract class ServiceProvider {
 
   public async bootstrap(app: AbstractApplication): Promise<void> {
     return;
+  }
+
+  /**
+   * Prevents duplicate construction while ServiceContainer is still awaiting
+   * the first singleton instance.
+   */
+  protected singleFlight<T extends Service>(
+    target: (app: AbstractApplication) => Promise<T>,
+  ): (app: AbstractApplication) => Promise<T> {
+    let pending: Promise<T> | null = null;
+    return (app) => (pending ??= target(app));
   }
 }

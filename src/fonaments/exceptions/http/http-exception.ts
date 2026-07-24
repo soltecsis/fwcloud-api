@@ -23,7 +23,7 @@
 import { FwCloudError } from '../error';
 import { ErrorPayload } from '../../http/response-builder';
 import { Responsable } from '../../contracts/responsable';
-import { app } from '../../abstract-application';
+import { getRunningApplication } from '../../application-context';
 
 export class HttpException extends FwCloudError implements Responsable {
   public status: number;
@@ -38,7 +38,8 @@ export class HttpException extends FwCloudError implements Responsable {
       message: this.message,
     };
 
-    if (app().config.get('env') !== 'prod') {
+    const runningApplication = getRunningApplication();
+    if (!runningApplication || runningApplication.config.get('env') !== 'prod') {
       response.stack = this.stackToArray();
     }
 

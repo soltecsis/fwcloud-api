@@ -2,18 +2,15 @@ import * as uuid from 'uuid';
 import { SocketMessage } from '../messages/socket-message';
 import { EventEmitter } from 'events';
 import { Request } from 'express';
-import io from 'socket.io';
 import { app } from '../../fonaments/abstract-application';
 import { WebSocketService } from '../web-socket.service';
 
 export class Channel extends EventEmitter {
-  protected _id: string;
-  protected _listener: EventEmitter;
-
-  constructor(id: string, listener: EventEmitter) {
+  constructor(
+    protected _id: string,
+    protected _listener: EventEmitter,
+  ) {
     super();
-    this._id = id;
-    this._listener = listener;
   }
 
   get id(): string {

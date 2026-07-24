@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from './service';
-import { AbstractApplication } from '../abstract-application';
+import type { Service } from './service';
+import type { AbstractApplication } from '../abstract-application';
 
 export interface ServiceBound {
   singleton: boolean;
@@ -41,9 +41,9 @@ export class ServiceContainer {
   }
 
   public async close(): Promise<void> {
-    for (let i = 0; i < this._services.length; i++) {
-      if (this._services[i].singleton && this._services[i].instance !== null) {
-        await this._services[i].instance.close();
+    for (const service of this._services) {
+      if (service.singleton && service.instance !== null) {
+        await service.instance.close();
       }
     }
   }
@@ -56,40 +56,14 @@ export class ServiceContainer {
     name: string,
     target: (app: AbstractApplication) => Promise<T>,
   ): ServiceBound {
-    if (this.isBound(name)) {
-      throw new Error('Service ' + name + 'has been already bound');
-    }
-
-    const bound: ServiceBound = {
-      singleton: false,
-      name: name,
-      target: target,
-      instance: null,
-    };
-
-    this._services.push(bound);
-
-    return bound;
+    return this.register(name, target, false);
   }
 
   public singleton<T extends Service>(
     name: string,
     target: (app: AbstractApplication) => Promise<T>,
   ): ServiceBound {
-    if (this.isBound(name)) {
-      throw new Error('Service ' + name + 'has been already bound');
-    }
-
-    const bound: ServiceBound = {
-      singleton: true,
-      name: name,
-      target: target,
-      instance: null,
-    };
-
-    this._services.push(bound);
-
-    return bound;
+    return this.register(name, target, true);
   }
 
   public isBound(name: string): boolean {
@@ -97,28 +71,37 @@ export class ServiceContainer {
   }
 
   public async get<T extends Service>(name: string): Promise<T> {
-    if (this.isBound(name)) {
-      const service = this.find(name);
-
-      if (service.singleton && service.instance === null) {
-        service.instance = await service.target(this.app);
-      }
-
-      if (service.singleton && service.instance !== null) {
-        return <T>service.instance;
-      }
-
-      return <Promise<T>>service.target(this.app);
+    const service = this.find(name);
+    if (!service) {
+      return null;
     }
 
-    return null;
+    if (service.singleton && service.instance === null) {
+      service.instance = await service.target(this.app);
+    }
+
+    if (service.singleton && service.instance !== null) {
+      return service.instance as T;
+    }
+
+    return service.target(this.app) as Promise<T>;
   }
 
   private find(name: string): ServiceBound {
-    const results: Array<ServiceBound> = this._services.filter((service: ServiceBound) => {
-      return service.name === name;
-    });
+    return this._services.find((service) => service.name === name) ?? null;
+  }
 
-    return results.length > 0 ? results[0] : null;
+  private register<T extends Service>(
+    name: string,
+    target: (app: AbstractApplication) => Promise<T>,
+    singleton: boolean,
+  ): ServiceBound {
+    if (this.isBound(name)) {
+      throw new Error('Service ' + name + 'has been already bound');
+    }
+
+    const bound: ServiceBound = { singleton, name, target, instance: null };
+    this._services.push(bound);
+    return bound;
   }
 }

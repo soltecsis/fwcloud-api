@@ -1,5 +1,5 @@
-/*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+/*
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -20,21 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { AbstractApplication } from '../abstract-application';
+import type { AbstractApplication } from '../../fonaments/abstract-application';
+import type { ServiceBound, ServiceContainer } from '../../fonaments/services/service-container';
+import { ServiceProvider } from '../../fonaments/services/service-provider';
+import { GenerationQueue } from './generation-queue';
 
-export class Service {
-  protected constructor(protected _app: AbstractApplication) {}
-
-  public async build(): Promise<Service> {
-    return this;
-  }
-
-  public async close(): Promise<void> {
-    return;
-  }
-
-  static async make<T extends Service>(app: AbstractApplication): Promise<T> {
-    const service: T = <T>new this(app);
-    return <T>await service.build();
+/** Registers the one process-local Assisted Profile generation queue. */
+export class GenerationQueueProvider extends ServiceProvider {
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      GenerationQueue.name,
+      this.singleFlight((app: AbstractApplication) => GenerationQueue.make(app)),
+    );
   }
 }
