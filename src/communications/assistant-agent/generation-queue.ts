@@ -53,10 +53,12 @@ import {
   createObservationLogger,
   recordObservationSafely,
   safeAgentIdentifier,
+  safeElapsedMs,
+  safeMonotonicNow,
+  safeTimestamp,
 } from './assistant-agent.utils';
 
 const SAFE_ERROR_CODE = /^[A-Z][A-Z0-9_]{0,127}$/;
-const FALLBACK_TIMESTAMP = new Date(0).toISOString();
 const EVENT_STATUS: Record<GenerationQueueEventName, GenerationQueueStatus> = {
   [GENERATION_QUEUED_EVENT]: 'queued',
   [GENERATION_POSITION_CHANGED_EVENT]: 'queued',
@@ -225,7 +227,7 @@ export class GenerationQueue extends Service {
       requestId,
       channel: request.channel,
       execute: request.execute,
-      enqueuedAt: this.monotonicNow(),
+      enqueuedAt: safeMonotonicNow(this._clock),
       resolve: resolveCompletion,
       reject: rejectCompletion,
     };
@@ -261,8 +263,8 @@ export class GenerationQueue extends Service {
   }
 
   private async execute(job: GenerationJob): Promise<void> {
-    const startedAt = this.monotonicNow();
-    const waitingMs = this.elapsed(job.enqueuedAt, startedAt);
+    const startedAt = safeMonotonicNow(this._clock);
+    const waitingMs = safeElapsedMs(job.enqueuedAt, startedAt);
     this.publish(job, GENERATION_STARTED_EVENT, 0);
     this.observeJob('started', job, { position: 0, waitingMs });
 
@@ -276,7 +278,7 @@ export class GenerationQueue extends Service {
     } catch (error) {
       failure = error;
     } finally {
-      const executionMs = this.elapsed(startedAt, this.monotonicNow());
+      const executionMs = safeElapsedMs(startedAt, safeMonotonicNow(this._clock));
 
       if (succeeded) {
         this._stats.completedCount += 1;
@@ -337,7 +339,7 @@ export class GenerationQueue extends Service {
       status: EVENT_STATUS[event],
       ...(position === undefined ? {} : { position }),
       queue_depth: this.queueDepth,
-      timestamp: this.timestamp(),
+      timestamp: safeTimestamp(this._now),
     };
 
     try {
@@ -419,30 +421,6 @@ export class GenerationQueue extends Service {
 
   private inFlightKey(userId: number, fwcloudId: number): string {
     return `${userId}:${fwcloudId}`;
-  }
-
-  private monotonicNow(): number {
-    try {
-      const value = this._clock();
-      return Number.isFinite(value) ? value : 0;
-    } catch {
-      return 0;
-    }
-  }
-
-  private elapsed(start: number, end: number): number {
-    return Math.max(0, Math.round(end - start));
-  }
-
-  private timestamp(): string {
-    try {
-      const value = this._now();
-      return value instanceof Date && Number.isFinite(value.valueOf())
-        ? value.toISOString()
-        : FALLBACK_TIMESTAMP;
-    } catch {
-      return FALLBACK_TIMESTAMP;
-    }
   }
 }
 

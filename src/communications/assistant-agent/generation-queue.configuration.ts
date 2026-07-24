@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ConfigurationErrorException } from '../../config/exceptions/configuration-error.exception';
+import { configurationError } from './assistant-agent-configuration.utils';
 
 export const DEFAULT_GENERATION_QUEUE_MAX_DEPTH = 3;
 export const MAX_GENERATION_QUEUE_DEPTH = 2_147_483_647;
@@ -35,10 +35,6 @@ export interface GenerationQueueConfiguration {
    * Zero therefore permits one active generation and no waiting generations.
    */
   readonly maxDepth: number;
-}
-
-function configurationError(message: string): ConfigurationErrorException {
-  return new ConfigurationErrorException(`Configuration Error: ${message}`);
 }
 
 /**
