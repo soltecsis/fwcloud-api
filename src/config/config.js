@@ -579,6 +579,32 @@ const config = convict({
         default: 3,
         env: 'ASSISTED_PROFILE_GENERATION_QUEUE_MAX_DEPTH'
       }
+    },
+    health: {
+      poll_enabled: {
+        doc: 'Enable periodic fwcloud-ai-agent health polling and the derived availability flag.',
+        format: Boolean,
+        default: true,
+        env: 'ASSISTED_PROFILE_HEALTH_POLL_ENABLED'
+      },
+      poll_interval_ms: {
+        doc: 'Delay between the end of one health check and the start of the next.',
+        format: 'positive-integer',
+        default: 30000,
+        env: 'ASSISTED_PROFILE_HEALTH_POLL_INTERVAL_MS'
+      },
+      timeout_ms: {
+        doc: 'Timeout in milliseconds for a single agent health request.',
+        format: 'positive-integer',
+        default: 5000,
+        env: 'ASSISTED_PROFILE_HEALTH_TIMEOUT_MS'
+      },
+      path: {
+        doc: 'Path of the agent health endpoint, relative to the agent base URL.',
+        format: String,
+        default: '/health',
+        env: 'ASSISTED_PROFILE_HEALTH_PATH'
+      }
     }
   },
 
