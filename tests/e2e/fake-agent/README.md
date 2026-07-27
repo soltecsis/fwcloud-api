@@ -35,8 +35,11 @@ curl -X POST http://fake-agent:8080/generate \
 | `down`      | Accepts the selected HTTP request and then resets its TCP connection. The container stays healthy, so the result is deterministic and requires no shared state or manual container stop.         |
 | `busy`      | `429 application/json`, `Retry-After: 2`, and an `AGENT_BUSY` body.                                                                                                                              |
 | `malformed` | `200 application/json` with API-1's `invalid-missing-field.json`; transport succeeds and `AgentHttpClient` returns `AgentContractMismatchError`.                                                 |
+| `clarification` | `200 application/json` with API-1's `valid-clarification.json` (`status: "needs_clarification"`), for exercising the one-clarification-round flow.                                          |
 
 An unsupported behavior returns `400`. Request bodies are accepted and drained but are not interpreted.
+
+The per-request `X-Fake-Agent-Behavior`/`behavior` selection above is stateless, but the factory also attaches a mutable `behavior` field to **its own returned server instance** (`fakeAgent.behavior = 'healthy'`), same precedent as the `health` field below. It seeds the default used when neither the header nor the query parameter is present. This lets one long-lived server return `clarification` for a first `/generate` call and then `healthy` for a second one (e.g. via `onGenerateRequestFinished` flipping `fakeAgent.behavior`), which is what the "one clarification round then success" end-to-end test needs without restarting the server.
 
 The `down` behavior is a **reset after accept**: the request may already have reached the agent. It is therefore not a safe connection-establishment retry scenario and must not be used to assert the client's one safe retry. Use an unreachable endpoint (for example, a closed port) when testing failure before request establishment.
 

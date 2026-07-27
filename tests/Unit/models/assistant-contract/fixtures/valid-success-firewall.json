@@ -1,0 +1,58 @@
+{
+  "status": "success",
+  "intent": {
+    "detectedTarget": "firewall",
+    "confidence": 0.92,
+    "summary": "Create a firewall with WAN and LAN, allow LAN to WAN on tcp/443",
+    "language": "en"
+  },
+  "plan": [
+    { "step": 1, "title": "Create target", "description": "Create the firewall resource" },
+    { "step": 2, "title": "Add rule", "description": "Allow LAN -> WAN on tcp/443" }
+  ],
+  "warnings": [],
+  "errors": [],
+  "clarification": null,
+  "fwcloudPayload": null,
+  "generated": {
+    "profile": {
+      "code": "assisted-firewall",
+      "description": "Assisted firewall profile",
+      "name": "Assisted firewall",
+      "requiredRoles": ["wan", "lan"],
+      "targetTypes": ["firewall"],
+      "version": 1
+    },
+    "roleAssignments": {
+      "interfaceRoles": [
+        { "interfaceName": "wan0", "role": "wan", "node": null },
+        { "interfaceName": "lan0", "role": "lan", "node": null }
+      ],
+      "nodeRoles": []
+    },
+    "target": {
+      "type": "firewall",
+      "name": "edge-firewall",
+      "interfaces": [
+        { "name": "wan0", "role": "wan", "address": null, "description": null, "node": null },
+        { "name": "lan0", "role": "lan", "address": null, "description": null, "node": null }
+      ],
+      "nodes": []
+    },
+    "rules": [
+      {
+        "action": "allow",
+        "sourceRole": "lan",
+        "destinationRole": "wan",
+        "service": "tcp/443",
+        "description": "Allow outbound HTTPS"
+      }
+    ]
+  },
+  "requestId": "req-success-firewall-1",
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "modelProvider": "local",
+    "generatedAt": "2026-07-16T10:02:00Z"
+  }
+}

@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 
-const BEHAVIORS = new Set(['healthy', 'slow', 'down', 'busy', 'malformed']);
+const BEHAVIORS = new Set(['healthy', 'slow', 'down', 'busy', 'malformed', 'clarification']);
 const DEFAULT_FIXTURE_DIRECTORY = path.resolve(
   __dirname,
   '../../Unit/models/assistant-contract/fixtures',
@@ -63,6 +63,11 @@ function createFakeAgentServer(options = {}) {
     options.malformedFixturePath ||
       process.env.MALFORMED_FIXTURE_PATH ||
       path.join(fixtureDirectory, 'invalid-missing-field.json'),
+  );
+  const clarificationFixture = readFixture(
+    options.clarificationFixturePath ||
+      process.env.CLARIFICATION_FIXTURE_PATH ||
+      path.join(fixtureDirectory, 'valid-clarification.json'),
   );
   const defaultBehavior = options.defaultBehavior || process.env.DEFAULT_BEHAVIOR || 'healthy';
   const slowDelayMs = nonNegativeInteger(options.slowDelayMs ?? process.env.SLOW_DELAY_MS, 5000);
@@ -134,7 +139,7 @@ function createFakeAgentServer(options = {}) {
     const behavior =
       firstHeaderValue(request.headers['x-fake-agent-behavior']) ||
       url.searchParams.get('behavior') ||
-      defaultBehavior;
+      server.behavior;
 
     const authenticated = isAuthenticated(request, expectedApiKey);
 
@@ -181,6 +186,9 @@ function createFakeAgentServer(options = {}) {
       case 'malformed':
         sendJson(response, 200, malformedFixture, { 'X-Fake-Agent-Behavior': behavior });
         return;
+      case 'clarification':
+        sendJson(response, 200, clarificationFixture, { 'X-Fake-Agent-Behavior': behavior });
+        return;
       case 'slow': {
         const timer = setTimeout(() => {
           if (!response.destroyed) {
@@ -198,6 +206,11 @@ function createFakeAgentServer(options = {}) {
   // Exposed so a test can flip `.health.reachable`/`.alive`/etc. on an already
   // listening server to simulate the agent going down and recovering.
   server.health = health;
+  // Exposed so a test can flip the live default behavior between requests
+  // (e.g. 'clarification' then 'healthy') without restarting the server, same
+  // precedent as `server.health` above. Per-request header/query overrides
+  // still take precedence.
+  server.behavior = defaultBehavior;
   return server;
 }
 

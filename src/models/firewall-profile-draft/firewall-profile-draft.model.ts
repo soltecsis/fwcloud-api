@@ -65,6 +65,9 @@ export class FirewallProfileDraft extends Model {
   @Column({ name: 'request_id', type: 'varchar', length: 255, nullable: true })
   requestId: string | null;
 
+  @Column({ name: 'instruction_original', type: 'text', nullable: true })
+  instructionOriginal: string | null;
+
   @Column({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

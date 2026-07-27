@@ -34,10 +34,16 @@ import {
   type FirewallProfileDraftActor,
 } from '../../models/firewall-profile-draft/firewall-profile-draft.service';
 import { DraftPolicy } from '../../policies/draft.policy';
+import { Channel } from '../../sockets/channels/channel';
+import { AssistedProfileGenerationService } from '../../communications/assistant-agent/assisted-profile-generation.service';
+import { AssistedProfileInstructionTooLargeException } from '../../communications/assistant-agent/assisted-profile-generation.errors';
 import type {
   FirewallProfileDraftDetailDto,
   FirewallProfileDraftSummaryDto,
 } from './dtos/draft-response.dto';
+import { GenerateFirewallProfileDraftDto } from './dtos/generate-draft.dto';
+
+const MAX_INSTRUCTION_BYTES = 2048;
 
 const toIsoString = (value: Date | null): string | null => value?.toISOString() ?? null;
 
@@ -48,6 +54,7 @@ const toSummary = (draft: FirewallProfileDraftSummary): FirewallProfileDraftSumm
   status: draft.status,
   contract_version: draft.contractVersion,
   request_id: draft.requestId,
+  instruction_original: draft.instructionOriginal,
   created_at: draft.createdAt.toISOString(),
   updated_at: draft.updatedAt.toISOString(),
   validated_at: toIsoString(draft.validatedAt),
@@ -110,6 +117,45 @@ export class DraftController extends Controller {
     );
 
     return ResponseBuilder.buildResponse().status(200).body(toDetail(draft));
+  }
+
+  @Validate(GenerateFirewallProfileDraftDto)
+  public async generate(request: Request): Promise<ResponseBuilder> {
+    (await DraftPolicy.generate(request.session.user, this._fwCloud)).authorize();
+
+    const body = request.body as GenerateFirewallProfileDraftDto;
+    if (body.instruction !== undefined) {
+      const instructionBytes = Buffer.byteLength(body.instruction, 'utf8');
+      if (instructionBytes > MAX_INSTRUCTION_BYTES) {
+        throw new AssistedProfileInstructionTooLargeException(MAX_INSTRUCTION_BYTES);
+      }
+    }
+
+    const generationService = await this.generationService();
+    const generationActor = { fwCloudId: this._fwCloud.id, ...this.actor(request) };
+
+    await generationService.checkRateLimit(generationActor);
+
+    const channel = await Channel.fromRequest(request);
+
+    const { generationId } = await generationService.accept({
+      ...generationActor,
+      instruction: body.instruction,
+      language: body.language,
+      targetKind: body.targetKind,
+      clarification: body.clarification
+        ? { generationId: body.clarification.generation_id, answer: body.clarification.answer }
+        : undefined,
+      channel,
+    });
+
+    return ResponseBuilder.buildResponse().status(202).body({ generation_id: generationId });
+  }
+
+  private generationService(): Promise<AssistedProfileGenerationService> {
+    return this._app.getService<AssistedProfileGenerationService>(
+      AssistedProfileGenerationService.name,
+    );
   }
 
   private parseDraftParam(request: Request): number {

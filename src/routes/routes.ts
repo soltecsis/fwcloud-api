@@ -271,6 +271,9 @@ export class Routes extends RouteCollection {
             router
               .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
               .name('fwclouds.assistant.profiles.apply');
+            router
+              .post('/drafts/generate', DraftController, 'generate')
+              .name('fwclouds.assistant.drafts.generate');
             router.get('/drafts', DraftController, 'index').name('fwclouds.assistant.drafts.index');
             router
               .get('/drafts/:draft', DraftController, 'show')

@@ -28,6 +28,7 @@ import { FirewallProfileDraft } from '../../../../src/models/firewall-profile-dr
 import { FIREWALL_PROFILE_DRAFT_TRANSITION_AUDIT_CALL } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft-state.service';
 import { FIREWALL_PROFILE_DRAFT_DISCARD_AUDIT_CALL } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.service';
 import type { FirewallProfileDraftStatus } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.types';
+import { ASSISTED_PROFILE_GENERATION_AUDIT_CALL } from '../../../../src/communications/assistant-agent/assisted-profile-generation.service';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
@@ -355,6 +356,162 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
       const persisted = await repository.findOneOrFail({ where: { id: draft.id } });
       expect(persisted.status).to.equal('validated');
+    });
+  });
+
+  /**
+   * These cover only what the shared test app can prove synchronously:
+   * authorization, DTO validation, the 2KB byte limit, rate limiting, and
+   * the 202 admission response. They deliberately do not assert on the
+   * background pipeline's eventual outcome (draft persistence, Channel
+   * events, agent-failure classification) — this test environment's
+   * AgentHttpClient singleton is permanently unusable (no
+   * ASSISTED_PROFILE_AGENT_URL configured; see assistant-availability.e2e.spec.ts),
+   * and AssistedProfileGenerationService resolves it lazily so that doesn't
+   * block admission. The full pipeline is covered against a real fake agent
+   * in assisted-profile-generation-pipeline.e2e.spec.ts. Because the
+   * background pipeline for an accepted request here still runs (and fails)
+   * asynchronously, it may leave a stray audit row after this suite exits;
+   * that is a cosmetic side effect of this shared test app, not a defect.
+   */
+  describe('POST /fwclouds/:fwcloud/assistant/drafts/generate', () => {
+    const generateUrl = (cloudId: number = fwCloud.id) => `${draftsUrl(cloudId)}/generate`;
+
+    afterEach(async () => {
+      await auditLogRepository.delete({
+        call: ASSISTED_PROFILE_GENERATION_AUDIT_CALL,
+        fwCloudId: fwCloud.id,
+      });
+    });
+
+    it('should reject guest users', async () => {
+      await request(app.express)
+        .post(generateUrl())
+        .send({ instruction: 'Create a firewall with WAN and LAN' })
+        .expect(401);
+    });
+
+    it('should reject users without access to the FWCloud', async () => {
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .send({ instruction: 'Create a firewall with WAN and LAN' })
+        .expect(401);
+    });
+
+    it('should reject an empty instruction with 422', async () => {
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ instruction: '' })
+        .expect(422);
+    });
+
+    it('should reject a whitespace-only instruction with 422', async () => {
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ instruction: '   \n\t  ' })
+        .expect(422);
+    });
+
+    it('should reject a request with neither instruction nor clarification', async () => {
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({})
+        .expect(422);
+    });
+
+    it('should reject an invalid targetKind with 422', async () => {
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ instruction: 'Create a firewall', targetKind: 'not-a-real-kind' })
+        .expect(422);
+    });
+
+    it('should reject an unrecognized structured field (e.g. credentials) with 422', async () => {
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ instruction: 'Create a firewall', credentials: { apiKey: 'leak-me' } })
+        .expect(422);
+    });
+
+    it('should reject an instruction larger than 2KB with a typed 422, and never persist a draft', async () => {
+      // Multi-byte characters prove this is a byte limit, not a character
+      // count: 2049 'é' characters is 2049 UTF-16 code units but 4098 UTF-8
+      // encoded bytes.
+      const oversized = 'é'.repeat(2049);
+
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ instruction: oversized })
+        .expect(422)
+        .then((response) => {
+          expect(response.body.code).to.equal('ASSISTED_PROFILE_INSTRUCTION_TOO_LARGE');
+          expect(response.body.maxBytes).to.equal(2048);
+        });
+
+      expect(await repository.count({ where: { fwCloudId: fwCloud.id } })).to.equal(0);
+    });
+
+    it('should accept a valid instruction and return 202 with a stable generation_id', async () => {
+      const response = await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          instruction: 'Create a firewall with WAN and LAN',
+          language: 'en',
+          targetKind: 'firewall',
+        })
+        .expect(202);
+
+      expect(response.body.data.generation_id).to.be.a('string');
+      expect(response.body.data.generation_id).to.match(/^gen_/);
+    });
+
+    it('should not leak a foreign FWCloud through the generate route either', async () => {
+      const otherFwCloud = await makeOtherFwCloud();
+      const regularUserSessionId = await memberSession(fwCloud);
+
+      await request(app.express)
+        .post(generateUrl(otherFwCloud.id))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .send({ instruction: 'Create a firewall' })
+        .expect(401);
+    });
+
+    it('should return 429 once the per-user rate limit is exceeded, distinct from validation errors', async () => {
+      // A fresh admin (role 1) user is used deliberately: an FWCloud-member
+      // session would hit the legacy per-FWCloud LockValidation middleware
+      // (src/middleware/LockValidation.ts) across repeated mutating
+      // requests, which is unrelated to this endpoint's own rate limiter.
+      // Admin users have no `user__fwcloud` row and bypass that lock.
+      const limitedAdmin = await createUser({ role: 1 });
+      const limitedUserSessionId = generateSession(limitedAdmin);
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await request(app.express)
+          .post(generateUrl())
+          .set('Cookie', [attachSession(limitedUserSessionId)])
+          .send({ instruction: `Create a firewall, attempt ${attempt}` })
+          .expect(202);
+      }
+
+      await request(app.express)
+        .post(generateUrl())
+        .set('Cookie', [attachSession(limitedUserSessionId)])
+        .send({ instruction: 'Create a firewall, attempt 6' })
+        .expect(429)
+        .then((response) => {
+          expect(response.body.code).to.equal('ASSISTED_PROFILE_GENERATION_RATE_LIMITED');
+        });
     });
   });
 

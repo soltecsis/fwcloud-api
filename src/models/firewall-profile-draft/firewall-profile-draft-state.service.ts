@@ -63,6 +63,7 @@ const DRAFT_SUMMARY_SELECT = {
   status: true,
   contractVersion: true,
   requestId: true,
+  instructionOriginal: true,
   createdAt: true,
   updatedAt: true,
   validatedAt: true,
@@ -80,6 +81,18 @@ export type FirewallProfileDraftSummary = Pick<
 >;
 
 class GuardedTransitionLostError extends Error {}
+
+/** Fields required to insert a freshly generated, already-validated draft. */
+export interface CreateFirewallProfileDraftInput {
+  readonly fwCloudId: number;
+  readonly createdBy: number | null;
+  readonly contractVersion: string;
+  /** The API-9 mapped `ReplicationProfileStoreDto`, never the raw agent response. */
+  readonly proposal: unknown;
+  readonly requestId?: string | null;
+  readonly instructionOriginal?: string | null;
+  readonly stepLog?: FirewallProfileDraftStepLogEntry[] | null;
+}
 
 export class FirewallProfileDraftStateService extends Service {
   private dataSource: DataSource;
@@ -132,6 +145,28 @@ export class FirewallProfileDraftStateService extends Service {
       where: { fwCloudId },
       order: { createdAt: 'DESC', id: 'DESC' },
     });
+  }
+
+  /**
+   * Inserts a freshly generated draft directly into `validated`. This is not
+   * a state transition (there is no prior row), so unlike `transition()` it
+   * performs no CAS guard and writes no `firewall-profile-draft.transition`
+   * audit row of its own — the caller (AssistedProfileGenerationService)
+   * owns the single audit record for the whole generation attempt.
+   */
+  public async create(input: CreateFirewallProfileDraftInput): Promise<FirewallProfileDraft> {
+    const repository = this.dataSource.getRepository(FirewallProfileDraft);
+    const draft = repository.create({
+      fwCloudId: input.fwCloudId,
+      createdBy: input.createdBy,
+      updatedBy: input.createdBy,
+      contractVersion: input.contractVersion,
+      proposal: input.proposal,
+      requestId: input.requestId ?? null,
+      instructionOriginal: input.instructionOriginal ?? null,
+      stepLog: input.stepLog ?? null,
+    });
+    return repository.save(draft);
   }
 
   public async transition(
