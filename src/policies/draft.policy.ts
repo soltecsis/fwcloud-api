@@ -39,6 +39,10 @@ export class DraftPolicy extends Policy {
     return this.access(user, fwCloud);
   }
 
+  static generate(user: User, fwCloud: FwCloud): Promise<Authorization> {
+    return this.access(user, fwCloud);
+  }
+
   private static access(user: User, fwCloud: FwCloud): Promise<Authorization> {
     return FwCloudPolicy.userCanAccessFwCloud(user, fwCloud);
   }
