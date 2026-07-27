@@ -580,6 +580,28 @@ const config = convict({
         env: 'ASSISTED_PROFILE_GENERATION_QUEUE_MAX_DEPTH'
       }
     },
+    generation: {
+      rate_limit: {
+        max_requests: {
+          doc: 'Maximum Assisted Profile generation requests a single user may submit within the rate-limit window.',
+          format: 'positive-integer',
+          default: 5,
+          env: 'ASSISTED_PROFILE_GENERATION_RATE_LIMIT_MAX_REQUESTS'
+        },
+        window_ms: {
+          doc: 'Rolling window, in milliseconds, over which max_requests is enforced per user.',
+          format: 'positive-integer',
+          default: 60000,
+          env: 'ASSISTED_PROFILE_GENERATION_RATE_LIMIT_WINDOW_MS'
+        }
+      },
+      clarification_ttl_ms: {
+        doc: 'How long an ephemeral generation stays eligible to receive its one clarification answer before it is treated as expired.',
+        format: 'positive-integer',
+        default: 900000,
+        env: 'ASSISTED_PROFILE_GENERATION_CLARIFICATION_TTL_MS'
+      }
+    },
     health: {
       poll_enabled: {
         doc: 'Enable periodic fwcloud-ai-agent health polling and the derived availability flag.',
