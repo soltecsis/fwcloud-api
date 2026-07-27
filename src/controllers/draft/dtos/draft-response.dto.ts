@@ -12,6 +12,7 @@ export interface FirewallProfileDraftSummaryDto {
   status: FirewallProfileDraftStatus;
   contract_version: string;
   request_id: string | null;
+  instruction_original: string | null;
   created_at: string;
   updated_at: string;
   validated_at: string | null;
