@@ -90,6 +90,7 @@ import { AssistantContractCustomsServiceProvider } from './models/assistant-cont
 import { AgentHttpClientProvider } from './communications/assistant-agent/agent-http-client.provider';
 import { GenerationQueueProvider } from './communications/assistant-agent/generation-queue.provider';
 import { AssistedProfileHealthServiceProvider } from './communications/assistant-agent/assisted-profile-health.provider';
+import { AssistedProfileGenerationServiceProvider } from './communications/assistant-agent/assisted-profile-generation.provider';
 import { AssistedProfileHealthService } from './communications/assistant-agent/assisted-profile-health.service';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
@@ -169,6 +170,7 @@ export class Application extends HTTPApplication {
       AgentHttpClientProvider,
       GenerationQueueProvider,
       AssistedProfileHealthServiceProvider,
+      AssistedProfileGenerationServiceProvider,
       AssistantContractCustomsServiceProvider,
       AuditEventServiceProvider,
       AuditLogServiceProvider,
