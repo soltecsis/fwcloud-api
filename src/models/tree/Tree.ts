@@ -1497,6 +1497,7 @@ export class Tree extends Model {
         await this.newNode(connection, fwcloud, 'Fixed Ips', idDHCP, 'S04', firewall, null);
         await this.newNode(connection, fwcloud, 'Keepalived', idSystem, 'S02', firewall, null);
         await this.newNode(connection, fwcloud, 'HAProxy', idSystem, 'S03', firewall, null);
+        await this.newNode(connection, fwcloud, 'CrowdSec', idSystem, 'S05', firewall, null);
         resolve();
       } catch (error) {
         return reject(error);
