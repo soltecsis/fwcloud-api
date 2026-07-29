@@ -627,6 +627,34 @@ const config = convict({
         default: '/health',
         env: 'ASSISTED_PROFILE_HEALTH_PATH'
       }
+    },
+    draft: {
+      ttl_seconds: {
+        doc: 'Inactivity window (measured from updated_at) after which a non-terminal Assisted Profile draft becomes eligible for expiration.',
+        format: 'positive-integer',
+        default: 604800,
+        env: 'ASSISTED_PROFILE_DRAFT_TTL_SECONDS'
+      },
+      expiration_job: {
+        enabled: {
+          doc: 'Enable the periodic job that expires inactive Assisted Profile drafts.',
+          format: Boolean,
+          default: true,
+          env: 'ASSISTED_PROFILE_DRAFT_EXPIRATION_JOB_ENABLED'
+        },
+        interval_seconds: {
+          doc: 'Delay between the end of one draft-expiration sweep and the start of the next.',
+          format: 'positive-integer',
+          default: 3600,
+          env: 'ASSISTED_PROFILE_DRAFT_EXPIRATION_JOB_INTERVAL_SECONDS'
+        },
+        batch_size: {
+          doc: 'Maximum number of drafts expired per sweep, to bound each run rather than scanning the whole table at once.',
+          format: 'positive-integer',
+          default: 100,
+          env: 'ASSISTED_PROFILE_DRAFT_EXPIRATION_BATCH_SIZE'
+        }
+      }
     }
   },
 
