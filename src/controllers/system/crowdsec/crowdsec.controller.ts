@@ -56,23 +56,19 @@ export class CrowdSecController extends Controller {
   @Validate()
   public async status(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
-
-    if (this._firewall.install_communication !== FirewallInstallCommunication.Agent) {
-      throw new HttpException('CrowdSec requires FWCloud Agent communication', 409);
-    }
-
-    const communication = await this._firewall.getCommunication();
-    if (!(communication instanceof AgentCommunication)) {
-      throw new HttpException('CrowdSec requires FWCloud Agent communication', 409);
-    }
-
-    const status = await communication.getCrowdSecStatus();
+    const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
     return ResponseBuilder.buildResponse().status(200).body(status);
   }
 
   @Validate()
-  public async install(): Promise<ResponseBuilder> {
-    return this.notImplemented();
+  public async install(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const crowdsec = await communication.installCrowdSec();
+    const firewall_bouncer = await communication.installCrowdSecBouncer();
+
+    return ResponseBuilder.buildResponse().status(200).body({ crowdsec, firewall_bouncer });
   }
 
   @Validate(CrowdSecUninstallDto)
@@ -84,5 +80,18 @@ export class CrowdSecController extends Controller {
     return ResponseBuilder.buildResponse().status(501).body({
       message: 'CrowdSec API operation is not implemented yet',
     });
+  }
+
+  private async getAgentCommunication(): Promise<AgentCommunication> {
+    if (this._firewall.install_communication !== FirewallInstallCommunication.Agent) {
+      throw new HttpException('CrowdSec requires FWCloud Agent communication', 409);
+    }
+
+    const communication = await this._firewall.getCommunication();
+    if (!(communication instanceof AgentCommunication)) {
+      throw new HttpException('CrowdSec requires FWCloud Agent communication', 409);
+    }
+
+    return communication;
   }
 }

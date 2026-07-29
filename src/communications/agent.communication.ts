@@ -817,6 +817,44 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async installCrowdSec(): Promise<Record<string, unknown>> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/install';
+      const response: AxiosResponse<Record<string, unknown>> = await axios.post(
+        pathUrl,
+        {},
+        this.config,
+      );
+
+      if (response.status === 200 && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec install response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async installCrowdSecBouncer(): Promise<Record<string, unknown>> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/bouncer/install';
+      const response: AxiosResponse<Record<string, unknown>> = await axios.post(
+        pathUrl,
+        {},
+        this.config,
+      );
+
+      if (response.status === 200 && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec Firewall Bouncer install response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {

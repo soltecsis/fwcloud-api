@@ -40,4 +40,8 @@ export class CrowdSecPolicy extends Policy {
       ? Authorization.grant()
       : Authorization.revoke();
   }
+
+  static async manage(firewall: Firewall, user: User): Promise<Authorization> {
+    return this.view(firewall, user);
+  }
 }
