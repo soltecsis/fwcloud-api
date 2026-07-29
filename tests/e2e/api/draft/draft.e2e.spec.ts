@@ -234,6 +234,20 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
         .set('Cookie', [attachSession(regularUserSessionId)])
         .expect(404);
     });
+
+    it('should remain readable after expiration, reporting status = expired', async () => {
+      const draft = await makeDraft('expired');
+
+      await request(app.express)
+        .get(draftUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.id).to.equal(draft.id);
+          expect(response.body.data.status).to.equal('expired');
+          expect(response.body.data.expired_at).to.not.be.null;
+        });
+    });
   });
 
   describe('DELETE /fwclouds/:fwcloud/assistant/drafts/:draft (discard)', () => {
@@ -324,6 +338,23 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
       const persisted = await repository.findOneOrFail({ where: { id: draft.id } });
       expect(persisted.status).to.equal('applied');
+    });
+
+    it('should reject discarding an expired draft with 409, proving the expiration guard is enforced for free by the state machine', async () => {
+      const draft = await makeDraft('expired');
+
+      await request(app.express)
+        .delete(draftUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(409)
+        .then((response) => {
+          expect(response.body.currentStatus).to.equal('expired');
+          expect(response.body.attemptedStatus).to.equal('discarded');
+          expect(response.body.draftId).to.equal(draft.id);
+        });
+
+      const persisted = await repository.findOneOrFail({ where: { id: draft.id } });
+      expect(persisted.status).to.equal('expired');
     });
 
     it('should not create a discard audit entry for a rejected transition', async () => {

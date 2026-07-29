@@ -98,6 +98,8 @@ import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
 import { FirewallProfileDraftStateServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft-state.provider';
 import { FirewallProfileDraftServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft.provider';
+import { ExpireFirewallProfileDraftsJobProvider } from './models/firewall-profile-draft/firewall-profile-draft-expiration.provider';
+import { ExpireFirewallProfileDraftsJob } from './models/firewall-profile-draft/firewall-profile-draft-expiration.service';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
@@ -159,6 +161,12 @@ export class Application extends HTTPApplication {
       (
         await this.getService<AssistedProfileHealthService>(AssistedProfileHealthService.name)
       ).start();
+
+      // Starting the periodic Assisted Profile draft expiration sweep. Ineligible
+      // deployments (job disabled) are handled internally: start() is a no-op.
+      (
+        await this.getService<ExpireFirewallProfileDraftsJob>(ExpireFirewallProfileDraftsJob.name)
+      ).start();
     }
 
     return this;
@@ -187,6 +195,7 @@ export class Application extends HTTPApplication {
       FirewallServiceProvider,
       FirewallProfileDraftStateServiceProvider,
       FirewallProfileDraftServiceProvider,
+      ExpireFirewallProfileDraftsJobProvider,
       FwCloudExportServiceProvider,
       FwCloudServiceProvider,
       HAProxyGroupServiceProvider,

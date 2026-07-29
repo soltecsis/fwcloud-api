@@ -50,7 +50,33 @@ entries, oldest -> newest); see its constructor for the exact rule.
 The proposal -> `ReplicationProfileStoreDto` mapper (issue API-9) is keyed on
 `contract_version`/`schemaVersion`. **A mapper for a given schema version must
 not be retired while any live `FirewallProfileDraft` still carries that
-version** (persisted drafts have a 7-day inactivity TTL, so the retention
-window is bounded). Concretely: do not drop a manifest entry, and do not
-delete the corresponding mapper branch, until the TTL has had time to expire
-every draft that could have been created against it.
+version** (persisted drafts have an inactivity TTL, so the retention window is
+bounded). Concretely: do not drop a manifest entry, and do not delete the
+corresponding mapper branch, until the TTL has had time to expire every draft
+that could have been created against it.
+
+The TTL is enforced by `ExpireFirewallProfileDraftsJob`
+(`src/models/firewall-profile-draft/firewall-profile-draft-expiration.service.ts`),
+configured via `assisted_profile.draft.ttl_seconds`
+(`ASSISTED_PROFILE_DRAFT_TTL_SECONDS`, default 604800 = 7 days) and swept on
+`assisted_profile.draft.expiration_job.interval_seconds`
+(`ASSISTED_PROFILE_DRAFT_EXPIRATION_JOB_INTERVAL_SECONDS`, default 3600 = 1
+hour). The safe grace period before retiring a mapper is therefore at least
+`ttl_seconds + expiration_job.interval_seconds`, plus margin for:
+
+- drafts sitting in `apply_pending` — the job deliberately never expires
+  those (an apply may still be in progress); they only leave that state via a
+  normal `applied`/`apply_failed` transition, handled by a future stuck-apply
+  reconciliation job, not this one;
+- **do not remove a manifest entry while any non-expired draft still
+  references it, even after its TTL has nominally elapsed.**
+  `FirewallProfileDraftStateService.loadForProcessing()` — which
+  `transition()` calls internally, including from the expiration job itself —
+  rejects any draft whose `contract_version` is not in
+  `getSupportedContractSchemas()` with
+  `UnsupportedFirewallProfileDraftContractVersionError` *before* the CAS
+  update runs. If a mapper is retired first, the expiration job can no longer
+  transition that draft's leftover rows to `expired` at all — it will report
+  them as `failed` on every sweep instead. Retire mappers only after
+  confirming (e.g. via the job's `failed`/`expired` counts, or a direct query)
+  that no non-terminal draft still carries the version being dropped.

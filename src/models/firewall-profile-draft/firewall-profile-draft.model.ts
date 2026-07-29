@@ -20,6 +20,7 @@ export const FIREWALL_PROFILE_DRAFT_TABLE = 'firewall_profile_draft';
 
 @Entity(FIREWALL_PROFILE_DRAFT_TABLE)
 @Index('IDX_firewall_profile_draft_fwcloud_status', ['fwCloudId', 'status'])
+@Index('IDX_firewall_profile_draft_status_updated_at', ['status', 'updatedAt'])
 export class FirewallProfileDraft extends Model {
   private loadedProposalHash?: string;
 
