@@ -124,6 +124,14 @@ export class FirewallProfileDraftStateService extends Service {
     return this;
   }
 
+  /**
+   * Also load-bearing for `transition()`'s CAS update below: the contract
+   * version check runs before any write, including a transition to
+   * `expired`. `ExpireFirewallProfileDraftsJob` depends on that ordering
+   * never leaving a draft permanently stuck — see the assistant-contract
+   * README's "Mapper retention rule" for why a mapper must not be retired
+   * while a non-terminal draft still carries its version.
+   */
   public async loadForProcessing(
     draftId: number,
     fwCloudId?: number,
