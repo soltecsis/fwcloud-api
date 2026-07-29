@@ -404,7 +404,7 @@ export class Routes extends RouteCollection {
               router.prefix('/system', (router: RouterParser) => {
                 router.prefix('/crowdsec', (router: RouterParser) => {
                   router
-                    .get('/', CrowdSecController, 'status')
+                    .get('/status', CrowdSecController, 'status')
                     .name('fwclouds.firewalls.system.crowdsec.status');
                   router
                     .post('/install', CrowdSecController, 'install')

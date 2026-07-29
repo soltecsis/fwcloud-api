@@ -21,11 +21,13 @@
 */
 
 import { Request } from 'express';
+import { AgentCommunication } from '../../../communications/agent.communication';
 import { Validate } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
-import { Firewall } from '../../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
+import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import db from '../../../database/database-manager';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
@@ -52,8 +54,20 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async status(): Promise<ResponseBuilder> {
-    return this.notImplemented();
+  public async status(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    if (this._firewall.install_communication !== FirewallInstallCommunication.Agent) {
+      throw new HttpException('CrowdSec requires FWCloud Agent communication', 409);
+    }
+
+    const communication = await this._firewall.getCommunication();
+    if (!(communication instanceof AgentCommunication)) {
+      throw new HttpException('CrowdSec requires FWCloud Agent communication', 409);
+    }
+
+    const status = await communication.getCrowdSecStatus();
+    return ResponseBuilder.buildResponse().status(200).body(status);
   }
 
   @Validate()
