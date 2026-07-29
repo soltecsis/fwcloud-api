@@ -72,14 +72,11 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecUninstallDto)
-  public async uninstall(): Promise<ResponseBuilder> {
-    return this.notImplemented();
-  }
+  public async uninstall(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-  private notImplemented(): ResponseBuilder {
-    return ResponseBuilder.buildResponse().status(501).body({
-      message: 'CrowdSec API operation is not implemented yet',
-    });
+    const result = await (await this.getAgentCommunication()).uninstallCrowdSec(req.body.confirm);
+    return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
   private async getAgentCommunication(): Promise<AgentCommunication> {

@@ -855,6 +855,25 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async uninstallCrowdSec(confirm: boolean): Promise<Record<string, unknown>> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/uninstall';
+      const response: AxiosResponse<Record<string, unknown>> = await axios.post(
+        pathUrl,
+        { confirm },
+        this.config,
+      );
+
+      if (response.status === 200 && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec uninstall response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
