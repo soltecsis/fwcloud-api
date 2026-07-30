@@ -1,0 +1,146 @@
+# Assisted Profile — PILOT deployment.
+#
+# This is NOT the standard FWCloud installer. It is an opt-in, experimental
+# stack for evaluating the Assisted Profile feature (fwcloud-ai-agent +
+# Ollama). See ../../docs/assisted-profile-pilot-deployment.md before using
+# this in anything beyond a controlled pilot environment.
+#
+# Topology (see the doc above for the full diagram):
+#
+#   fwcloud-api --HTTPS+X-API-Key--> agent-tls-proxy --HTTP--> fwcloud-ai-agent --HTTP--> ollama
+#
+# All inter-service traffic uses Docker Compose service names on the
+# dedicated `assisted-profile-network` (pinned subnet 172.28.0.0/24, needed
+# because fwcloud-ai-agent's inbound allowlist is IP/CIDR-based, not
+# hostname-based). Only `agent-tls-proxy` publishes a host port; ollama and
+# fwcloud-ai-agent are never reachable from outside this network.
+#
+# Requires Docker Compose v2 (the `condition: service_completed_successfully`
+# / `condition: service_healthy` long-form `depends_on` syntax used below is
+# not available in the legacy `docker-compose` v1 CLI).
+
+x-fwcloud-ai-agent-image: &fwcloud-ai-agent-image
+  image: ${FWCLOUD_AI_AGENT_IMAGE:-fwcloud-ai-agent}:${FWCLOUD_AI_AGENT_VERSION:?Set FWCLOUD_AI_AGENT_VERSION to a pinned image tag or digest. Never use "latest" for a pilot deployment.}
+
+# Shared by the provisioner and the agent itself: both need to agree on which
+# ollama service and which pinned model manifest they're talking about.
+x-fwcloud-ai-agent-ollama-env: &fwcloud-ai-agent-ollama-env
+  FWCLOUD_AI_AGENT_OLLAMA_BASE_URL: http://ollama:11434
+  FWCLOUD_AI_AGENT_OLLAMA_MODEL_MANIFEST: /app/config/models/assisted-profile-model.yaml
+
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama}:${OLLAMA_VERSION:-0.30.8}
+    container_name: assisted-profile-ollama
+    # Ollama's server defaults to binding 127.0.0.1 only, which would make it
+    # unreachable from the fwcloud-ai-agent container. Binding 0.0.0.0 here is
+    # safe because this service is never published to the host (no `ports:`
+    # below) — it is only reachable from other containers on the private
+    # assisted-profile-network.
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - assisted-profile-ollama-data:/root/.ollama
+    expose:
+      - '11434'
+    networks:
+      assisted-profile-network:
+        ipv4_address: 172.28.0.10
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  # One-shot: downloads and verifies the pinned model (per AG-6's manifest,
+  # config/models/assisted-profile-model.yaml, baked into the agent image)
+  # against the `ollama` service above, then exits. fwcloud-ai-agent will not
+  # start until this container reports a successful (0) exit code, so the
+  # first real generation request never triggers a model download.
+  assisted-profile-model-provisioner:
+    <<: *fwcloud-ai-agent-image
+    container_name: assisted-profile-model-provisioner
+    entrypoint: ['./scripts/provision-model.sh']
+    command: ['--warm-up']
+    environment:
+      <<: *fwcloud-ai-agent-ollama-env
+    networks:
+      - assisted-profile-network
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: 'no'
+
+  fwcloud-ai-agent:
+    <<: *fwcloud-ai-agent-image
+    container_name: fwcloud-ai-agent
+    environment:
+      <<: *fwcloud-ai-agent-ollama-env
+      FWCLOUD_AI_AGENT_MODEL_PROVIDER: ollama
+      # AG-4 inbound service auth. The API key MUST equal the fwcloud-api
+      # side's ASSISTED_PROFILE_AGENT_API_KEY (see the root .env.example).
+      # The allowlist defaults to loopback (the agent's own baked-in
+      # container HEALTHCHECK calls http://127.0.0.1:8000/api/v1/health from
+      # inside the same container) plus the TLS proxy's pinned address —
+      # nothing else on this network, and nothing outside it, may reach the
+      # agent directly. That address (172.28.0.12) must match
+      # agent-tls-proxy's ipv4_address below and .env.example's default.
+      FWCLOUD_AI_AGENT_ASSISTED_PROFILE_API_KEY: ${ASSISTED_PROFILE_AGENT_API_KEY:?Set ASSISTED_PROFILE_AGENT_API_KEY (shared with fwcloud-api).}
+      FWCLOUD_AI_AGENT_ASSISTED_PROFILE_ALLOWED_IPS: ${ASSISTED_PROFILE_AGENT_ALLOWED_IPS:-127.0.0.1/32,172.28.0.12/32}
+    expose:
+      - '8000'
+    networks:
+      assisted-profile-network:
+        ipv4_address: 172.28.0.11
+    depends_on:
+      ollama:
+        condition: service_healthy
+      assisted-profile-model-provisioner:
+        condition: service_completed_successfully
+    # Container-level HEALTHCHECK is already baked into the agent image
+    # (checks GET /api/v1/health and requires model.ready == true).
+    restart: unless-stopped
+
+  # The only TLS-terminating, host-published service. fwcloud-ai-agent itself
+  # never terminates TLS (by design — see its own README). Certificates come
+  # from ./certificates (see certificates/README.md for how to generate a
+  # pilot self-signed CA + cert).
+  agent-tls-proxy:
+    image: ${AGENT_TLS_PROXY_IMAGE:-nginx}:${AGENT_TLS_PROXY_VERSION:-1.27-alpine}
+    container_name: assisted-profile-agent-tls-proxy
+    volumes:
+      - ./certificates:/etc/nginx/certs:ro
+      - ./nginx/agent-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      # Bound to loopback by default: only processes on this host (e.g. a
+      # host-run fwcloud-api) can reach it. Widen ASSISTED_PROFILE_PROXY_BIND
+      # only for a deliberate multi-host pilot, and prefer a firewalled
+      # interface over 0.0.0.0.
+      - '${ASSISTED_PROFILE_PROXY_BIND:-127.0.0.1}:${ASSISTED_PROFILE_PROXY_PORT:-8443}:8443'
+    networks:
+      # This address is the source of truth for the proxy's identity on the
+      # network. It's also duplicated (by necessity — Compose can't
+      # interpolate a YAML anchor into the middle of another string) as a
+      # literal inside FWCLOUD_AI_AGENT_ASSISTED_PROFILE_ALLOWED_IPS's
+      # default below and in .env.example. Keep all three in sync if this
+      # ever changes.
+      assisted-profile-network:
+        ipv4_address: 172.28.0.12
+    depends_on:
+      fwcloud-ai-agent:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  assisted-profile-network:
+    name: assisted-profile-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  assisted-profile-ollama-data:
+    name: assisted-profile-ollama-data
