@@ -54,6 +54,53 @@ type AgentCommunicationData = {
   apikey: string;
 };
 
+const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: number }> = {
+  CROWDSEC_UNSUPPORTED_SYSTEM: {
+    message: 'CrowdSec is not supported on this system',
+    status: 422,
+  },
+  CROWDSEC_NOT_INSTALLED: {
+    message: 'CrowdSec is not installed',
+    status: 409,
+  },
+  CROWDSEC_LAPI_UNAVAILABLE: {
+    message: 'CrowdSec Local API is unavailable',
+    status: 503,
+  },
+  CROWDSEC_FIREWALL_INTEGRATION_INVALID: {
+    message: 'CrowdSec firewall integration is invalid',
+    status: 409,
+  },
+  CROWDSEC_UNINSTALL_CONFIRMATION_REQUIRED: {
+    message: 'CrowdSec uninstall confirmation is required',
+    status: 422,
+  },
+  CROWDSEC_OPERATION_TIMEOUT: {
+    message: 'CrowdSec operation timed out',
+    status: 504,
+  },
+  CROWDSEC_COMMAND_FAILED: {
+    message: 'CrowdSec agent command failed',
+    status: 502,
+  },
+  CROWDSEC_BOUNCER_CONFLICT: {
+    message: 'CrowdSec Firewall Bouncer configuration conflicts with FWCloud',
+    status: 409,
+  },
+  CROWDSEC_BOUNCER_INVALID: {
+    message: 'CrowdSec Firewall Bouncer configuration is invalid',
+    status: 422,
+  },
+};
+
+export function crowdSecAgentErrorToHttpException(code: unknown): HttpException {
+  const response = typeof code === 'string' ? CROWDSEC_AGENT_ERROR_RESPONSES[code] : undefined;
+
+  return response
+    ? new HttpException(response.message, response.status)
+    : new HttpException('CrowdSec agent request failed', 502);
+}
+
 export class AgentCommunication extends Communication<AgentCommunicationData> {
   protected readonly url: string;
   protected readonly ws_url: string;
@@ -813,7 +860,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected CrowdSec status response');
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleCrowdSecRequestException(error);
     }
   }
 
@@ -832,7 +879,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected CrowdSec install response');
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleCrowdSecRequestException(error);
     }
   }
 
@@ -851,7 +898,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected CrowdSec Firewall Bouncer install response');
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleCrowdSecRequestException(error);
     }
   }
 
@@ -870,8 +917,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected CrowdSec uninstall response');
     } catch (error) {
-      this.handleRequestException(error);
+      this.handleCrowdSecRequestException(error);
     }
+  }
+
+  private handleCrowdSecRequestException(error: Error): never {
+    if (axios.isAxiosError(error)) {
+      const code = error.response?.data?.code;
+      if (code) {
+        throw crowdSecAgentErrorToHttpException(code);
+      }
+
+      if (error.code === 'ECONNABORTED') {
+        throw new HttpException('CrowdSec agent request timed out', 504);
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {
+        throw new HttpException('CrowdSec agent is unavailable', 503);
+      }
+    }
+
+    throw crowdSecAgentErrorToHttpException(null);
   }
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
