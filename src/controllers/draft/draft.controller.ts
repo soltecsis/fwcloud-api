@@ -37,6 +37,7 @@ import { DraftPolicy } from '../../policies/draft.policy';
 import { Channel } from '../../sockets/channels/channel';
 import { AssistedProfileGenerationService } from '../../communications/assistant-agent/assisted-profile-generation.service';
 import { AssistedProfileInstructionTooLargeException } from '../../communications/assistant-agent/assisted-profile-generation.errors';
+import { isAssistedProfileDeploymentEnabled } from '../../communications/assistant-agent/assisted-profile-deployment.config';
 import type {
   FirewallProfileDraftDetailDto,
   FirewallProfileDraftSummaryDto,
@@ -77,6 +78,10 @@ export class DraftController extends Controller {
   protected _fwCloud: FwCloud;
 
   public async make(request: Request): Promise<void> {
+    if (!isAssistedProfileDeploymentEnabled(this._app)) {
+      throw new NotFoundException('Assisted Profile is not enabled');
+    }
+
     this._fwCloud = await FwCloud.findOneOrFail({
       where: { id: parseInt(String(request.params.fwcloud)) },
     });

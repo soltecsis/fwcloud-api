@@ -546,6 +546,63 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
     });
   });
 
+  describe('when the deployment flag is disabled', () => {
+    beforeEach(() => {
+      app.config.set('assisted_profile.enabled', false);
+    });
+
+    afterEach(() => {
+      app.config.set('assisted_profile.enabled', true);
+    });
+
+    it('returns 404 for GET /drafts', async () => {
+      await request(app.express)
+        .get(draftsUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+    });
+
+    it('returns 404 for GET /drafts/:draft', async () => {
+      await request(app.express)
+        .get(draftUrl(1))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+    });
+
+    it('returns 404 for DELETE /drafts/:draft', async () => {
+      await request(app.express)
+        .delete(draftUrl(1))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+    });
+
+    it('returns 404 for POST /drafts/generate and never creates a draft or an audit row', async () => {
+      await request(app.express)
+        .post(`${draftsUrl()}/generate`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ instruction: 'Create a firewall with WAN and LAN' })
+        .expect(404);
+
+      expect(await repository.count({ where: { fwCloudId: fwCloud.id } })).to.equal(0);
+      // Scoped to this test's own (freshly created) fwCloud, not a global
+      // count: an unrelated test's fire-and-forget generation pipeline can
+      // land an async audit row for a *different* fwCloud at any time (see
+      // the doc comment on the parent 'POST .../generate' describe block).
+      expect(
+        await auditLogRepository.count({
+          where: { call: ASSISTED_PROFILE_GENERATION_AUDIT_CALL, fwCloudId: fwCloud.id },
+        }),
+      ).to.equal(0);
+    });
+
+    it('leaves GET /fwclouds/:fwcloud/assistant/profiles unaffected', async () => {
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+    });
+  });
+
   describe('Regression: existing assistant/profiles and ai-assistant namespaces', () => {
     it('keeps GET /fwclouds/:fwcloud/assistant/profiles registered and working', async () => {
       await request(app.express)
