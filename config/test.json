@@ -52,5 +52,8 @@
     "confirmation_token": false,
     "CORS": {
         "enabled": false
+    },
+    "assisted_profile": {
+        "enabled": true
     }
 }

@@ -22,6 +22,11 @@
 
 import type { AgentHealthFailureCode } from './agent-health.types';
 
+// Statuses AssistedProfileHealthService can actually derive from a runtime
+// health check. The deployment-flag-off case ('disabled') is not a runtime
+// health outcome — it's added only at the DTO layer, in
+// AssistantAvailabilityDto, by the controller that composes this type with
+// the global deployment opt-in.
 export type AssistedProfileHealthStatus = 'ready' | 'busy' | 'unavailable';
 
 /** Derived, UI-facing Assisted Profile availability state. */

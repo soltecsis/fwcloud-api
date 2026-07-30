@@ -539,6 +539,12 @@ const config = convict({
   // remaining cross-field checks (required URL/key, HTTPS in production and
   // custom CA validation) when its singleton is initialized.
   assisted_profile: {
+    enabled: {
+      doc: 'Global opt-in for the Assisted Profile feature deployment. When false, assistant/drafts routes are unavailable and the agent health poller does not run, regardless of any other assisted_profile.* setting.',
+      format: Boolean,
+      default: false,
+      env: 'ASSISTED_PROFILE_ENABLED'
+    },
     agent: {
       url: {
         doc: 'Direct base URL of fwcloud-ai-agent. The client calls POST /generate.',

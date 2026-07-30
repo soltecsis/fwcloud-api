@@ -22,6 +22,7 @@
 
 import type { AbstractApplication } from '../../fonaments/abstract-application';
 import { Service } from '../../fonaments/services/service';
+import { isAssistedProfileDeploymentEnabled } from './assisted-profile-deployment.config';
 import { AgentHttpClient, type AssistedProfileAgentHealthGateway } from './agent-http-client';
 import { AgentHealthCheckError, type AgentHealthCheckResponse } from './agent-health.types';
 import {
@@ -320,7 +321,7 @@ export class AssistedProfileHealthService extends Service {
 
     const config = this._app.config.get('assisted_profile.health');
     return {
-      enabled: config.poll_enabled,
+      enabled: config.poll_enabled && isAssistedProfileDeploymentEnabled(this._app),
       pollIntervalMs: config.poll_interval_ms,
       timeoutMs: config.timeout_ms,
       path: config.path,

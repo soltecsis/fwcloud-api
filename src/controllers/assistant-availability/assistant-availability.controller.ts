@@ -27,10 +27,22 @@ import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { AssistantAvailabilityPolicy } from '../../policies/assistant-availability.policy';
 import { AssistedProfileHealthService } from '../../communications/assistant-agent/assisted-profile-health.service';
+import { isAssistedProfileDeploymentEnabled } from '../../communications/assistant-agent/assisted-profile-deployment.config';
 import type { AssistedProfileHealthSnapshot } from '../../communications/assistant-agent/assisted-profile-health.types';
 import type { AssistantAvailabilityDto } from './dto/assistant-availability-response.dto';
 
+const DISABLED_DTO: AssistantAvailabilityDto = {
+  deploymentEnabled: false,
+  available: false,
+  busy: false,
+  alive: false,
+  modelReady: false,
+  status: 'disabled',
+  lastCheckedAt: null,
+};
+
 const toDto = (snapshot: AssistedProfileHealthSnapshot): AssistantAvailabilityDto => ({
+  deploymentEnabled: true,
   available: snapshot.available,
   busy: snapshot.busy,
   alive: snapshot.alive,
@@ -51,6 +63,10 @@ export class AssistantAvailabilityController extends Controller {
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
     (await AssistantAvailabilityPolicy.show(request.session.user, this._fwCloud)).authorize();
+
+    if (!isAssistedProfileDeploymentEnabled(this._app)) {
+      return ResponseBuilder.buildResponse().status(200).body(DISABLED_DTO);
+    }
 
     const healthService = await this._app.getService<AssistedProfileHealthService>(
       AssistedProfileHealthService.name,

@@ -87,6 +87,7 @@ describe(describeName('Assisted Profile availability E2E tests'), () => {
       .then((response) => {
         const body = response.body.data as Record<string, unknown>;
         expect(body).to.have.all.keys([
+          'deploymentEnabled',
           'available',
           'busy',
           'alive',
@@ -94,6 +95,7 @@ describe(describeName('Assisted Profile availability E2E tests'), () => {
           'status',
           'lastCheckedAt',
         ]);
+        expect(body.deploymentEnabled).to.equal(true);
         expect(body.status).to.be.oneOf(['ready', 'busy', 'unavailable']);
         expect(body.available).to.be.a('boolean');
       });
@@ -108,6 +110,7 @@ describe(describeName('Assisted Profile availability E2E tests'), () => {
       .expect(200)
       .then((response) => {
         const body = response.body.data as Record<string, unknown>;
+        expect(body.deploymentEnabled).to.equal(true);
         expect(body.available).to.equal(false);
         expect(body.status).to.equal('unavailable');
       });
@@ -138,5 +141,43 @@ describe(describeName('Assisted Profile availability E2E tests'), () => {
       .expect(200);
 
     expect(await auditLogRepository.count()).to.equal(auditCountBefore);
+  });
+
+  describe('when the deployment flag is disabled', () => {
+    beforeEach(() => {
+      app.config.set('assisted_profile.enabled', false);
+    });
+
+    afterEach(() => {
+      app.config.set('assisted_profile.enabled', true);
+    });
+
+    it('reports a disabled snapshot instead of the runtime health snapshot', async () => {
+      await request(app.express)
+        .get(availabilityUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const body = response.body.data as Record<string, unknown>;
+          expect(body).to.deep.equal({
+            deploymentEnabled: false,
+            available: false,
+            busy: false,
+            alive: false,
+            modelReady: false,
+            status: 'disabled',
+            lastCheckedAt: null,
+          });
+        });
+    });
+
+    it('does not generate an audit log event', async () => {
+      await request(app.express)
+        .get(availabilityUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      expect(await auditLogRepository.count()).to.equal(auditCountBefore);
+    });
   });
 });

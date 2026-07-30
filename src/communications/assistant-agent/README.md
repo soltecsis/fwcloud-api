@@ -50,6 +50,15 @@ same way and documented here.
 
 ### Derived availability
 
+The global deployment opt-in (`assisted_profile.enabled` /
+`ASSISTED_PROFILE_ENABLED`, see `assisted-profile-deployment.config.ts`) is
+composed with the runtime snapshot above at the controller, not inside this
+service: when the flag is off, `AssistantAvailabilityController` returns a
+fixed `deploymentEnabled: false, status: 'disabled'` payload without ever
+resolving `AssistedProfileHealthService`, and `start()` becomes a no-op (see
+"Scheduling and overlap" below). When the flag is on, the rules below apply
+as before, with `deploymentEnabled: true` added to the response.
+
 ```
 alive && model.ready         -> available
 !alive                       -> unavailable (status: unavailable)
@@ -86,6 +95,14 @@ An unconfigured or unreachable agent (for example a deployment without
 failure — including "the agent isn't configured at all" — is caught inside
 one poll and turned into the same `unavailable`/`connection_error` snapshot.
 
+`start()` additionally no-ops when the global deployment flag
+(`assisted_profile.enabled`) is off, in addition to its existing
+`poll_enabled` check — both are read once, at `build()` time, via
+`configurationFromApplication()`. Flipping the flag at runtime (e.g. in a
+test via `app.config.set('assisted_profile.enabled', ...)`) does not
+retroactively start/stop an already-built service; a real deployment picks up
+a flag change on the next process restart, same as `poll_enabled`.
+
 ### Logging vs. metrics
 
 The observer (`AssistedProfileHealthObserver`) receives one observation per
@@ -121,6 +138,7 @@ the internal snapshot:
 
 ```json
 {
+  "deploymentEnabled": true,
   "available": true,
   "busy": false,
   "alive": true,
@@ -130,10 +148,18 @@ the internal snapshot:
 }
 ```
 
+When `deploymentEnabled` is `false`, every other field is fixed
+(`available/busy/alive/modelReady: false`, `status: "disabled"`,
+`lastCheckedAt: null`) regardless of any runtime health state — see
+`assisted-profile-deployment.config.ts` and
+`docs/assisted-profile-pilot-deployment.md` at the repo root for the full
+deployment-flag contract, including route gating for `/assistant/drafts`.
+
 `failureCode` and `lastSuccessfulCheckAt` stay internal; the agent URL, API
 key, TLS configuration, and any raw upstream error never leave
 `AgentHttpClient`/`AssistedProfileHealthService`.
 
-This is separate from the global deployment opt-in flag (API-11 in the
-Assisted Profile backlog) — that flag is a product/deployment switch, this is
-a live process-health signal, and neither should be inferred from the other.
+The global deployment opt-in flag is a product/deployment switch;
+`deploymentEnabled: true` plus a live health snapshot is a runtime signal.
+Neither should be inferred from the other — that's why they're both present
+in every response instead of collapsing to one boolean.
