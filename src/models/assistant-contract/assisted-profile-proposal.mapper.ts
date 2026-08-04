@@ -3,6 +3,7 @@ import {
   ReplicationProfileStoreModelDto,
 } from '../../controllers/replication-profile/dtos/replication-profile-store.dto';
 import { asReplicationProfileNonEmptyString } from '../replication-profile/replication-profile.constants';
+import type { AssistedProfileAssumption } from './assisted-profile-assumptions';
 import { ValidatedAssistedProfileProposal } from './assistant-contract-customs';
 import {
   getSupportedContractSchemas,
@@ -106,10 +107,18 @@ interface MappedNode {
 }
 
 const DEFAULT_SYNC_INTERFACE_NAME = 'sync0';
+const DEFAULT_PROFILE_NAME = 'Assisted Profile';
+const DEFAULT_CONNECTION_TYPE = 'agent';
 const DEFAULT_CLUSTER_NODES: MappedNode[] = [
   { name: 'node1', role: 'primary' },
   { name: 'node2', role: 'secondary' },
 ];
+
+/** The mapped DTO together with every value the mapper supplied itself. */
+export interface AssistedProfileMappingResult {
+  readonly dto: ReplicationProfileStoreDto;
+  readonly assumptions: AssistedProfileAssumption[];
+}
 
 /**
  * The single production bridge from the API-1 proposal contract into the
@@ -140,15 +149,29 @@ export class AssistedProfileProposalMapper {
   }
 
   public map(proposal: ValidatedAssistedProfileProposal): ReplicationProfileStoreDto {
+    return this.mapWithAssumptions(proposal).dto;
+  }
+
+  /**
+   * The mapper fills gaps the agent left open (a missing profile name, the
+   * cluster synchronization interface and rule, cluster nodes). Those values
+   * end up indistinguishable from requested ones inside the stored DTO, so
+   * they are reported here and persisted alongside the draft: the preview flow
+   * has no way to recover them from the mapped output afterwards.
+   */
+  public mapWithAssumptions(
+    proposal: ValidatedAssistedProfileProposal,
+  ): AssistedProfileMappingResult {
     const value = proposal as unknown as ProposalShape;
     const receivedVersion = value.metadata?.schemaVersion ?? '<missing>';
+    const assumptions: AssistedProfileAssumption[] = [];
 
     if (receivedVersion === this.currentVersion) {
-      return this.mapCurrentVersion(value);
+      return { dto: this.mapCurrentVersion(value, assumptions), assumptions };
     }
 
     if (this.previousVersion !== null && receivedVersion === this.previousVersion) {
-      return this.mapPreviousVersion(value);
+      return { dto: this.mapPreviousVersion(value, assumptions), assumptions };
     }
 
     throw new UnsupportedAssistedProfileContractVersionError(
@@ -157,8 +180,11 @@ export class AssistedProfileProposalMapper {
     );
   }
 
-  private mapCurrentVersion(proposal: ProposalShape): ReplicationProfileStoreDto {
-    return this.mapMvpProposal(proposal);
+  private mapCurrentVersion(
+    proposal: ProposalShape,
+    assumptions: AssistedProfileAssumption[],
+  ): ReplicationProfileStoreDto {
+    return this.mapMvpProposal(proposal, assumptions);
   }
 
   /**
@@ -167,11 +193,17 @@ export class AssistedProfileProposalMapper {
    * even though it can share the field mapping. When that shape changes, the
    * migration remains local to this method.
    */
-  private mapPreviousVersion(proposal: ProposalShape): ReplicationProfileStoreDto {
-    return this.mapMvpProposal(proposal);
+  private mapPreviousVersion(
+    proposal: ProposalShape,
+    assumptions: AssistedProfileAssumption[],
+  ): ReplicationProfileStoreDto {
+    return this.mapMvpProposal(proposal, assumptions);
   }
 
-  private mapMvpProposal(proposal: ProposalShape): ReplicationProfileStoreDto {
+  private mapMvpProposal(
+    proposal: ProposalShape,
+    assumptions: AssistedProfileAssumption[],
+  ): ReplicationProfileStoreDto {
     if (proposal.status !== 'success' || !proposal.generated?.target) {
       throw new Error(
         'Only successful Assisted Profile proposals with a generated target can be mapped',
@@ -183,20 +215,30 @@ export class AssistedProfileProposalMapper {
     const profile = generated.profile;
     const nodes =
       target.type === 'cluster'
-        ? this.mapNodes(target.nodes ?? [], generated.roleAssignments?.nodeRoles ?? [])
+        ? this.mapNodes(target.nodes ?? [], generated.roleAssignments?.nodeRoles ?? [], assumptions)
         : [];
     const nodeRoleByName = new Map(nodes.map((node) => [node.name, node.role]));
     const interfaces = this.mapInterfaces(
       target,
       generated.roleAssignments?.interfaceRoles ?? [],
       nodeRoleByName,
+      assumptions,
     );
     const interfaceRoles = [...new Set(interfaces.map((item) => item.role))];
     const nodeRoles = [...new Set(nodes.map((item) => item.role))];
     const rules = (generated.rules ?? []).map((rule) => this.mapRule(rule));
 
     if (target.type === 'cluster') {
-      rules.push(this.makeSynchronizationRule());
+      const synchronizationRule = this.makeSynchronizationRule();
+      assumptions.push({
+        id: 'normalization.cluster.sync-rule',
+        path: `model.provision.rules[${rules.length}]`,
+        value: synchronizationRule,
+        reason:
+          'Cluster profiles need synchronization traffic between nodes, so a rule allowing it was added.',
+        source: 'normalization',
+      });
+      rules.push(synchronizationRule);
     }
 
     const model: ReplicationProfileStoreModelDto = {
@@ -210,7 +252,7 @@ export class AssistedProfileProposalMapper {
       },
       uiDefaults: {
         targetKind: target.type,
-        connectionType: 'agent',
+        connectionType: DEFAULT_CONNECTION_TYPE,
       },
       provision: {
         interfaces,
@@ -238,13 +280,19 @@ export class AssistedProfileProposalMapper {
 
     const code = asReplicationProfileNonEmptyString(profile?.code);
 
+    assumptions.push({
+      id: 'default.ui.connection-type',
+      path: 'model.uiDefaults.connectionType',
+      value: DEFAULT_CONNECTION_TYPE,
+      reason:
+        'No connection type was requested, so the FWCloud agent connection is offered by default.',
+      source: 'default',
+    });
+
     return {
       ...(code ? { code } : {}),
       ...(profile?.version ? { version: profile.version } : {}),
-      name:
-        asReplicationProfileNonEmptyString(profile?.name) ??
-        asReplicationProfileNonEmptyString(target.name) ??
-        'Assisted Profile',
+      name: this.mapProfileName(profile, target, assumptions),
       ...(typeof profile?.description === 'string' ? { description: profile.description } : {}),
       scope: 'generic',
       category: 'Assisted Profile',
@@ -253,10 +301,43 @@ export class AssistedProfileProposalMapper {
     };
   }
 
+  private mapProfileName(
+    profile: ProposalProfile | null | undefined,
+    target: ProposalTarget,
+    assumptions: AssistedProfileAssumption[],
+  ): string {
+    const requested = asReplicationProfileNonEmptyString(profile?.name);
+    if (requested) {
+      return requested;
+    }
+
+    const fromTarget = asReplicationProfileNonEmptyString(target.name);
+    if (fromTarget) {
+      assumptions.push({
+        id: 'normalization.profile.name-from-target',
+        path: 'name',
+        value: fromTarget,
+        reason: `No profile name was provided, so the target name "${fromTarget}" was reused.`,
+        source: 'normalization',
+      });
+      return fromTarget;
+    }
+
+    assumptions.push({
+      id: 'normalization.profile.default-name',
+      path: 'name',
+      value: DEFAULT_PROFILE_NAME,
+      reason: 'Neither a profile name nor a target name was provided, so a generic name was used.',
+      source: 'normalization',
+    });
+    return DEFAULT_PROFILE_NAME;
+  }
+
   private mapInterfaces(
     target: ProposalTarget,
     assignments: ProposalInterfaceAssignment[],
     nodeRoleByName: ReadonlyMap<string, string>,
+    assumptions: AssistedProfileAssumption[],
   ): MappedInterface[] {
     const assignmentByName = new Map(assignments.map((item) => [item.interfaceName, item]));
     const interfaceNames = new Set(target.interfaces.map((item) => item.name));
@@ -273,6 +354,13 @@ export class AssistedProfileProposalMapper {
 
     for (const assignment of assignments) {
       if (!interfaceNames.has(assignment.interfaceName)) {
+        assumptions.push({
+          id: `normalization.interface.from-role-assignment.${assignment.interfaceName}`,
+          path: `model.provision.interfaces[${interfaces.length}]`,
+          value: assignment.interfaceName,
+          reason: `Role "${assignment.role}" was assigned to interface "${assignment.interfaceName}", which the target did not declare, so the interface was added.`,
+          source: 'normalization',
+        });
         interfaces.push({
           name: assignment.interfaceName,
           role: assignment.role,
@@ -285,28 +373,71 @@ export class AssistedProfileProposalMapper {
     }
 
     if (target.type === 'cluster' && !interfaces.some((item) => item.role === 'sync')) {
+      assumptions.push({
+        id: 'normalization.cluster.default-sync-interface',
+        path: `model.provision.interfaces[${interfaces.length}].name`,
+        value: DEFAULT_SYNC_INTERFACE_NAME,
+        reason:
+          'No synchronization interface was provided for the cluster, so a default one was generated.',
+        source: 'normalization',
+      });
       interfaces.push({ name: DEFAULT_SYNC_INTERFACE_NAME, role: 'sync' });
     }
 
     return interfaces;
   }
 
-  private mapNodes(nodes: ProposalNode[], assignments: ProposalNodeAssignment[]): MappedNode[] {
+  private mapNodes(
+    nodes: ProposalNode[],
+    assignments: ProposalNodeAssignment[],
+    assumptions: AssistedProfileAssumption[],
+  ): MappedNode[] {
     const assignmentByName = new Map(assignments.map((item) => [item.nodeName, item.role]));
     const nodeNames = new Set(nodes.map((node) => node.name));
-    const mapped = nodes.map((node, index) => ({
-      name: node.name,
-      role: assignmentByName.get(node.name) ?? node.role ?? `node${index + 1}`,
-    }));
+    const mapped = nodes.map((node, index) => {
+      const role = assignmentByName.get(node.name) ?? node.role;
+      if (role) {
+        return { name: node.name, role };
+      }
+
+      const generated = `node${index + 1}`;
+      assumptions.push({
+        id: `normalization.cluster.node-role.${node.name}`,
+        path: `model.topologyPreset.nodes[${index}].role`,
+        value: generated,
+        reason: `Cluster node "${node.name}" was given no role, so a positional one was generated.`,
+        source: 'normalization',
+      });
+      return { name: node.name, role: generated };
+    });
 
     for (const assignment of assignments) {
       if (!nodeNames.has(assignment.nodeName)) {
+        assumptions.push({
+          id: `normalization.cluster.node-from-role-assignment.${assignment.nodeName}`,
+          path: `model.topologyPreset.nodes[${mapped.length}]`,
+          value: { name: assignment.nodeName, role: assignment.role },
+          reason: `Role "${assignment.role}" was assigned to node "${assignment.nodeName}", which the target did not declare, so the node was added.`,
+          source: 'normalization',
+        });
         mapped.push({ name: assignment.nodeName, role: assignment.role });
         nodeNames.add(assignment.nodeName);
       }
     }
 
-    return mapped.length > 0 ? mapped : DEFAULT_CLUSTER_NODES.map((node) => ({ ...node }));
+    if (mapped.length > 0) {
+      return mapped;
+    }
+
+    const defaults = DEFAULT_CLUSTER_NODES.map((node) => ({ ...node }));
+    assumptions.push({
+      id: 'normalization.cluster.default-nodes',
+      path: 'model.topologyPreset.nodes',
+      value: defaults,
+      reason: 'The cluster declared no nodes, so a default primary/secondary pair was generated.',
+      source: 'normalization',
+    });
+    return defaults;
   }
 
   private mapRule(rule: ProposalRule): Record<string, unknown> {

@@ -104,7 +104,7 @@ async function buildHarness(
         return nextAgentResult;
       },
     },
-    mapper: { map: () => MAPPED_DTO },
+    mapper: { mapWithAssumptions: () => ({ dto: MAPPED_DTO, assumptions: [] }) },
     validationService: { validate: () => [] },
     draftStateService: {
       create: async (input: CreateFirewallProfileDraftInput) => {

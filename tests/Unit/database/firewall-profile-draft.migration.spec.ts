@@ -21,6 +21,7 @@ describe(describeName('Firewall Profile draft migration tests'), () => {
         'proposal',
         'contract_version',
         'proposal_hash',
+        'assumptions',
         'preview_hash',
         'apply_hash',
         'step_log',

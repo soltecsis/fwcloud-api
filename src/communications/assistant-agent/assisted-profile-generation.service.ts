@@ -28,6 +28,10 @@ import {
   extractAssistantContractSchemaVersion,
   type ValidatedAssistedProfileProposal,
 } from '../../models/assistant-contract/assistant-contract-customs';
+import {
+  collectAgentAssumptions,
+  type AssistedProfileAssumption,
+} from '../../models/assistant-contract/assisted-profile-assumptions';
 import { AssistedProfileProposalMapper } from '../../models/assistant-contract/assisted-profile-proposal.mapper';
 import {
   ReplicationProfileValidationService,
@@ -142,7 +146,7 @@ export interface AssistedProfileGenerationRateLimitInput {
 export interface AssistedProfileGenerationCreateOptions {
   readonly queue?: Pick<GenerationQueue, 'enqueue'>;
   readonly agentClient?: Pick<AgentHttpClient, 'generate'>;
-  readonly mapper?: Pick<AssistedProfileProposalMapper, 'map'>;
+  readonly mapper?: Pick<AssistedProfileProposalMapper, 'mapWithAssumptions'>;
   readonly validationService?: Pick<ReplicationProfileValidationService, 'validate'>;
   readonly draftStateService?: Pick<FirewallProfileDraftStateService, 'create'>;
   readonly auditLogService?: Pick<AuditLogService, 'logMutation'>;
@@ -173,7 +177,7 @@ export class AssistedProfileGenerationService extends Service {
   private _queue: Pick<GenerationQueue, 'enqueue'>;
   private _agentClient: Pick<AgentHttpClient, 'generate'> | undefined;
   private _agentClientPromise: Promise<Pick<AgentHttpClient, 'generate'>> | undefined;
-  private _mapper: Pick<AssistedProfileProposalMapper, 'map'>;
+  private _mapper: Pick<AssistedProfileProposalMapper, 'mapWithAssumptions'>;
   private _validationService: Pick<ReplicationProfileValidationService, 'validate'>;
   private _draftStateService: Pick<FirewallProfileDraftStateService, 'create'>;
   private _auditLogService: Pick<AuditLogService, 'logMutation'>;
@@ -427,8 +431,14 @@ export class AssistedProfileGenerationService extends Service {
       });
 
       let mapped: ReturnType<AssistedProfileProposalMapper['map']>;
+      // Whatever the mapper had to invent, plus whatever the agent itself
+      // flagged. Both are unrecoverable from the mapped DTO once persisted, and
+      // the preview flow is required to replay them rather than re-derive them.
+      let assumptions: AssistedProfileAssumption[];
       try {
-        mapped = this._mapper.map(proposal);
+        const result = this._mapper.mapWithAssumptions(proposal);
+        mapped = result.dto;
+        assumptions = [...collectAgentAssumptions(proposal), ...result.assumptions];
       } catch (error) {
         throw new AssistedProfileMappingFailedError(error);
       }
@@ -457,6 +467,7 @@ export class AssistedProfileGenerationService extends Service {
         createdBy: context.userId,
         contractVersion,
         proposal: mapped,
+        assumptions,
         requestId: context.requestId,
         instructionOriginal: context.originalInstruction,
         stepLog: [

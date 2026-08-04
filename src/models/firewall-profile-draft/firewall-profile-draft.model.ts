@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import Model from '../Model';
+import type { AssistedProfileAssumption } from '../assistant-contract/assisted-profile-assumptions';
 import { assertProfileDefinitionHasNoSecrets } from '../replication-profile/replication-profile-secret.guard';
 import { hashFirewallProfileDraftValue } from './firewall-profile-draft.hash';
 import type {
@@ -47,6 +48,16 @@ export class FirewallProfileDraft extends Model {
 
   @Column({ name: 'proposal_hash', type: 'char', length: 64 })
   proposalHash: string;
+
+  /**
+   * Values the mapper or the agent supplied rather than the user. Preview-bound
+   * content: changing them must invalidate any preview hash calculated from
+   * them, which is why only
+   * `FirewallProfileDraftStateService.updatePreviewBoundContent()` writes here
+   * after creation.
+   */
+  @Column({ type: 'simple-json', nullable: true })
+  assumptions: AssistedProfileAssumption[] | null;
 
   @Column({ name: 'preview_hash', type: 'char', length: 64, nullable: true })
   previewHash: string | null;
@@ -101,6 +112,7 @@ export class FirewallProfileDraft extends Model {
   rejectSecrets(): void {
     assertProfileDefinitionHasNoSecrets(this.proposal);
     assertProfileDefinitionHasNoSecrets(this.stepLog);
+    assertProfileDefinitionHasNoSecrets(this.assumptions);
   }
 
   @BeforeInsert()

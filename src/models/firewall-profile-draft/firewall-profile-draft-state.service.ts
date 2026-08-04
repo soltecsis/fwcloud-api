@@ -14,6 +14,7 @@ import {
   FirewallProfileDraftTransitionConflictError,
   UnsupportedFirewallProfileDraftContractVersionError,
 } from './firewall-profile-draft.errors';
+import type { AssistedProfileAssumption } from '../assistant-contract/assisted-profile-assumptions';
 import type {
   DraftTransitionContext,
   FirewallProfileDraftStatus,
@@ -89,6 +90,8 @@ export interface CreateFirewallProfileDraftInput {
   readonly contractVersion: string;
   /** The API-9 mapped `ReplicationProfileStoreDto`, never the raw agent response. */
   readonly proposal: unknown;
+  /** Values the mapper or the agent supplied; unrecoverable from `proposal`. */
+  readonly assumptions?: AssistedProfileAssumption[] | null;
   readonly requestId?: string | null;
   readonly instructionOriginal?: string | null;
   readonly stepLog?: FirewallProfileDraftStepLogEntry[] | null;
@@ -170,6 +173,7 @@ export class FirewallProfileDraftStateService extends Service {
       updatedBy: input.createdBy,
       contractVersion: input.contractVersion,
       proposal: input.proposal,
+      assumptions: input.assumptions ?? null,
       requestId: input.requestId ?? null,
       instructionOriginal: input.instructionOriginal ?? null,
       stepLog: input.stepLog ?? null,

@@ -28,6 +28,7 @@ export class CreateFirewallProfileDraft1784721600000 implements MigrationInterfa
           { name: 'contract_version', type: 'varchar', length: '64' },
           { name: 'proposal', type: 'longtext' },
           { name: 'proposal_hash', type: 'char', length: '64' },
+          { name: 'assumptions', type: 'longtext', isNullable: true, default: null },
           { name: 'preview_hash', type: 'char', length: '64', isNullable: true, default: null },
           { name: 'apply_hash', type: 'char', length: '64', isNullable: true, default: null },
           { name: 'step_log', type: 'longtext', isNullable: true, default: null },
