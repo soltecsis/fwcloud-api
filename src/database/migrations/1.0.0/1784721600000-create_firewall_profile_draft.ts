@@ -1,5 +1,11 @@
 import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } from 'typeorm';
 
+/**
+ * The whole Assisted Profile draft schema. Kept as one migration on purpose:
+ * the table has never shipped, so its columns and indexes are consolidated here
+ * rather than accumulating a trail of add-column migrations for a table nobody
+ * has ever created.
+ */
 export class CreateFirewallProfileDraft1784721600000 implements MigrationInterface {
   private readonly tableName = 'firewall_profile_draft';
 
@@ -40,6 +46,7 @@ export class CreateFirewallProfileDraft1784721600000 implements MigrationInterfa
             isNullable: true,
             default: null,
           },
+          { name: 'instruction_original', type: 'text', isNullable: true, default: null },
           { name: 'created_at', type: 'timestamp', default: 'CURRENT_TIMESTAMP' },
           {
             name: 'updated_at',
@@ -83,13 +90,17 @@ export class CreateFirewallProfileDraft1784721600000 implements MigrationInterfa
       }),
     ]);
 
-    await queryRunner.createIndex(
-      this.tableName,
+    await queryRunner.createIndices(this.tableName, [
       new TableIndex({
         name: 'IDX_firewall_profile_draft_fwcloud_status',
         columnNames: ['fwcloud_id', 'status'],
       }),
-    );
+      // Drives the inactivity-expiration sweep, which scans by status and age.
+      new TableIndex({
+        name: 'IDX_firewall_profile_draft_status_updated_at',
+        columnNames: ['status', 'updated_at'],
+      }),
+    ]);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
