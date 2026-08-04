@@ -33,6 +33,7 @@ import {
   FirewallProfileDraftService,
   type FirewallProfileDraftActor,
 } from '../../models/firewall-profile-draft/firewall-profile-draft.service';
+import { FirewallProfileDraftPreviewService } from '../../models/firewall-profile-draft/firewall-profile-draft-preview.service';
 import { DraftPolicy } from '../../policies/draft.policy';
 import { Channel } from '../../sockets/channels/channel';
 import { AssistedProfileGenerationService } from '../../communications/assistant-agent/assisted-profile-generation.service';
@@ -124,6 +125,26 @@ export class DraftController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(toDetail(draft));
   }
 
+  /**
+   * Synthetic preview: reports what the stored proposal would create, together
+   * with the domain validator's verdict and the assumptions recorded when it
+   * was generated, and binds all of it to a `preview_hash` the later apply flow
+   * can check. Nothing outside the draft's own lifecycle is touched.
+   */
+  @Validate()
+  public async preview(request: Request): Promise<ResponseBuilder> {
+    (await DraftPolicy.preview(request.session.user, this._fwCloud)).authorize();
+
+    const previewService = await this.previewService();
+    const preview = await previewService.preview(
+      this.parseDraftParam(request),
+      this._fwCloud.id,
+      this.actor(request),
+    );
+
+    return ResponseBuilder.buildResponse().status(200).body(preview);
+  }
+
   @Validate(GenerateFirewallProfileDraftDto)
   public async generate(request: Request): Promise<ResponseBuilder> {
     (await DraftPolicy.generate(request.session.user, this._fwCloud)).authorize();
@@ -155,6 +176,12 @@ export class DraftController extends Controller {
     });
 
     return ResponseBuilder.buildResponse().status(202).body({ generation_id: generationId });
+  }
+
+  private previewService(): Promise<FirewallProfileDraftPreviewService> {
+    return this._app.getService<FirewallProfileDraftPreviewService>(
+      FirewallProfileDraftPreviewService.name,
+    );
   }
 
   private generationService(): Promise<AssistedProfileGenerationService> {
