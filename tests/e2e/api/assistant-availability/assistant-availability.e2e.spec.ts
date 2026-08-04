@@ -27,7 +27,12 @@ import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
-import { attachSession, createUser, generateSession } from '../../../utils/utils';
+import {
+  attachSession,
+  createFwCloudMemberSession,
+  createUser,
+  generateSession,
+} from '../../../utils/utils';
 import type { Repository } from 'typeorm';
 import request = require('supertest');
 
@@ -75,10 +80,7 @@ describe(describeName('Assisted Profile availability E2E tests'), () => {
   });
 
   it('allows a member of the FWCloud and returns the process-global availability snapshot', async () => {
-    const memberUser = await createUser({ role: 0 });
-    memberUser.fwClouds = [fwCloud];
-    await db.getSource().manager.getRepository(User).save(memberUser);
-    const memberSessionId = generateSession(memberUser);
+    const memberSessionId = await createFwCloudMemberSession(fwCloud);
 
     await request(app.express)
       .get(availabilityUrl())

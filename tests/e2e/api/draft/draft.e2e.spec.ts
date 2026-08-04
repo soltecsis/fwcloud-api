@@ -32,7 +32,13 @@ import { ASSISTED_PROFILE_GENERATION_AUDIT_CALL } from '../../../../src/communic
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
-import { attachSession, createUser, generateSession } from '../../../utils/utils';
+import {
+  attachSession,
+  createFwCloudMemberSession,
+  createUser,
+  generateSession,
+} from '../../../utils/utils';
+import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
 import { In, type Repository } from 'typeorm';
 import request = require('supertest');
 
@@ -54,31 +60,12 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
     status: FirewallProfileDraftStatus,
     overrides: Partial<FirewallProfileDraft> = {},
   ): Promise<FirewallProfileDraft> => {
-    const now = new Date();
-    const draft = repository.create({
-      fwCloudId: fwCloud.id,
-      createdBy: null,
-      updatedBy: null,
-      status,
-      contractVersion: 'apg.mvp.v1',
-      proposal: { metadata: { schemaVersion: '1.0.0' }, generated: {} },
-      previewHash: null,
-      applyHash: null,
-      stepLog: [],
-      targetIds: null,
-      idempotencyKeyRef: null,
-      requestId: null,
-      createdAt: now,
-      updatedAt: now,
-      validatedAt: now,
-      previewedAt: status === 'preview_ok' ? now : null,
-      applyPendingAt: status === 'apply_pending' ? now : null,
-      appliedAt: status === 'applied' ? now : null,
-      failedAt: status === 'apply_failed' ? now : null,
-      discardedAt: status === 'discarded' ? now : null,
-      expiredAt: status === 'expired' ? now : null,
-      ...overrides,
-    });
+    const draft = repository.create(
+      makeFirewallProfileDraftAttributes(fwCloud.id, status, {
+        proposal: { metadata: { schemaVersion: '1.0.0' }, generated: {} },
+        ...overrides,
+      }),
+    );
 
     const saved = await repository.save(draft);
     draftIds.push(saved.id);
@@ -87,13 +74,6 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
   const makeOtherFwCloud = (): Promise<FwCloud> =>
     fwCloudRepository.save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
-
-  const memberSession = async (cloud: FwCloud): Promise<string> => {
-    const user = await createUser({ role: 0 });
-    user.fwClouds = [cloud];
-    await db.getSource().manager.getRepository(User).save(user);
-    return generateSession(user);
-  };
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -161,7 +141,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
       const creator = await createUser({ role: 0 });
       const draft = await makeDraft('validated', { createdBy: creator.id });
 
-      const regularUserSessionId = await memberSession(fwCloud);
+      const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
 
       await request(app.express)
         .get(draftsUrl())
@@ -202,7 +182,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
         stepLog: [{ step: 'validated', status: 'success', timestamp: new Date().toISOString() }],
       });
 
-      const regularUserSessionId = await memberSession(fwCloud);
+      const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
 
       await request(app.express)
         .get(draftUrl(draft.id))
@@ -225,7 +205,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
     it('should not leak a draft belonging to another FWCloud (404, non-leaking)', async () => {
       const otherFwCloud = await makeOtherFwCloud();
-      const regularUserSessionId = await memberSession(otherFwCloud);
+      const regularUserSessionId = await createFwCloudMemberSession(otherFwCloud);
 
       const draft = await makeDraft('validated');
 
@@ -312,7 +292,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
       const creator = await createUser({ role: 0 });
       const draft = await makeDraft('validated', { createdBy: creator.id });
 
-      const regularUserSessionId = await memberSession(fwCloud);
+      const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
 
       await request(app.express)
         .delete(draftUrl(draft.id))
@@ -376,7 +356,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
     it('should not leak or modify a draft belonging to another FWCloud (404, non-leaking)', async () => {
       const otherFwCloud = await makeOtherFwCloud();
-      const regularUserSessionId = await memberSession(otherFwCloud);
+      const regularUserSessionId = await createFwCloudMemberSession(otherFwCloud);
 
       const draft = await makeDraft('validated');
 
@@ -509,7 +489,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
     it('should not leak a foreign FWCloud through the generate route either', async () => {
       const otherFwCloud = await makeOtherFwCloud();
-      const regularUserSessionId = await memberSession(fwCloud);
+      const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
 
       await request(app.express)
         .post(generateUrl(otherFwCloud.id))

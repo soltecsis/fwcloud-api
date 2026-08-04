@@ -14,16 +14,10 @@ import {
 } from '../../../../src/models/assistant-contract/schemas/manifest';
 import { REPLICATION_PROFILE_INTERFACE_ROLES } from '../../../../src/models/replication-profile/replication-profile.constants';
 import { validateReplicationProfilePayload } from '../../../../src/models/replication-profile/replication-profile-validation.service';
-import { makeAssistedProfileProposalFixture } from '../../../utils/assisted-profile-proposal-fixtures';
-
-function validateAtGateway(payload: Record<string, unknown>): ValidatedAssistedProfileProposal {
-  const result = new AssistantContractCustoms().check(payload);
-  expect(result.ok).to.be.true;
-  if (result.ok === false) {
-    throw new Error(result.message);
-  }
-  return result.payload;
-}
+import {
+  makeAssistedProfileProposalFixture,
+  validateAssistedProfileFixtureAtGateway,
+} from '../../../utils/assisted-profile-proposal-fixtures';
 
 function expectDomainValid(dto: unknown): void {
   expect(validateReplicationProfilePayload(dto)).to.deep.equal([]);
@@ -33,7 +27,9 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
   const mapper = new AssistedProfileProposalMapper();
 
   it('maps a validated standalone firewall proposal into a domain-valid store DTO', () => {
-    const dto = mapper.map(validateAtGateway(makeAssistedProfileProposalFixture()));
+    const dto = mapper.map(
+      validateAssistedProfileFixtureAtGateway(makeAssistedProfileProposalFixture()),
+    );
     const provision = dto.model.provision as Record<string, any>;
 
     expect(dto).to.include({
@@ -58,7 +54,9 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
 
   it('maps cluster nodes, preserves sync0, and generates the synchronization rule', () => {
     const dto = mapper.map(
-      validateAtGateway(makeAssistedProfileProposalFixture({ targetKind: 'cluster' })),
+      validateAssistedProfileFixtureAtGateway(
+        makeAssistedProfileProposalFixture({ targetKind: 'cluster' }),
+      ),
     );
     const provision = dto.model.provision as Record<string, any>;
     const topology = dto.model.topologyPreset as Record<string, any>;
@@ -86,7 +84,7 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
 
   it('generates a default sync0 interface when a cluster proposal omits it', () => {
     const dto = mapper.map(
-      validateAtGateway(
+      validateAssistedProfileFixtureAtGateway(
         makeAssistedProfileProposalFixture({ targetKind: 'cluster', includeSync: false }),
       ),
     );
@@ -98,7 +96,9 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
 
   it('preserves wan, lan, dmz and sync roles and their rule references', () => {
     const dto = mapper.map(
-      validateAtGateway(makeAssistedProfileProposalFixture({ targetKind: 'cluster', dmz: true })),
+      validateAssistedProfileFixtureAtGateway(
+        makeAssistedProfileProposalFixture({ targetKind: 'cluster', dmz: true }),
+      ),
     );
     const provision = dto.model.provision as Record<string, any>;
 

@@ -21,6 +21,7 @@
 */
 
 import { User } from '../../src/models/user/User';
+import type { FwCloud } from '../../src/models/fwcloud/FwCloud';
 import * as path from 'path';
 import * as fs from 'fs';
 import moment from 'moment';
@@ -51,6 +52,21 @@ export async function createUser(user: DeepPartial<User>): Promise<User> {
     });
 
   return await db.getSource().manager.getRepository(User).save(result);
+}
+
+/**
+ * A non-admin user who is a real member of `fwCloud`, plus their session.
+ *
+ * Distinct from a role-1 admin in ways tests depend on: membership is what
+ * FWCloud-scoped policies grant access on, and it is also what makes the
+ * legacy `LockValidation` edit-lock middleware engage for mutating routes.
+ */
+export async function createFwCloudMemberSession(fwCloud: FwCloud): Promise<string> {
+  const user = await createUser({ role: 0 });
+  user.fwClouds = [fwCloud];
+  await db.getSource().manager.getRepository(User).save(user);
+
+  return generateSession(user);
 }
 
 export function generateSession(user: User): string {
