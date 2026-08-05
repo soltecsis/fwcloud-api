@@ -14,17 +14,23 @@ import {
   FirewallProfileDraftTransitionConflictError,
   UnsupportedFirewallProfileDraftContractVersionError,
 } from './firewall-profile-draft.errors';
+import type { AssistedProfileAssumption } from '../assistant-contract/assisted-profile-assumptions';
 import type {
   DraftTransitionContext,
   FirewallProfileDraftStatus,
   FirewallProfileDraftStepLogEntry,
+  PreviewBoundDraftContent,
 } from './firewall-profile-draft.types';
 
 const statuses = (...values: FirewallProfileDraftStatus[]) => Object.freeze(values);
 
 export const FIREWALL_PROFILE_DRAFT_TRANSITIONS = Object.freeze({
   validated: statuses('preview_ok', 'discarded', 'expired'),
-  preview_ok: statuses('apply_pending', 'discarded', 'expired'),
+  // preview_ok -> validated exists solely for preview invalidation: once
+  // preview-bound content changes, the persisted preview hash no longer
+  // describes the draft, so the draft must go back to requiring a preview.
+  // `updatePreviewBoundContent()` is the only supported way to take it.
+  preview_ok: statuses('apply_pending', 'validated', 'discarded', 'expired'),
   apply_pending: statuses('applied', 'apply_failed'),
   applied: statuses(),
   apply_failed: statuses('apply_pending', 'discarded', 'expired'),
@@ -89,6 +95,8 @@ export interface CreateFirewallProfileDraftInput {
   readonly contractVersion: string;
   /** The API-9 mapped `ReplicationProfileStoreDto`, never the raw agent response. */
   readonly proposal: unknown;
+  /** Values the mapper or the agent supplied; unrecoverable from `proposal`. */
+  readonly assumptions?: AssistedProfileAssumption[] | null;
   readonly requestId?: string | null;
   readonly instructionOriginal?: string | null;
   readonly stepLog?: FirewallProfileDraftStepLogEntry[] | null;
@@ -170,11 +178,108 @@ export class FirewallProfileDraftStateService extends Service {
       updatedBy: input.createdBy,
       contractVersion: input.contractVersion,
       proposal: input.proposal,
+      assumptions: input.assumptions ?? null,
       requestId: input.requestId ?? null,
       instructionOriginal: input.instructionOriginal ?? null,
       stepLog: input.stepLog ?? null,
     });
     return repository.save(draft);
+  }
+
+  /**
+   * The single supported way to change preview-bound draft content.
+   *
+   * Content and invalidation share one transaction: a draft can never end up
+   * with new content while still advertising `preview_ok` and the hash of the
+   * content it no longer holds. A draft already in `validated` is only rewritten
+   * (any leftover hash is cleared defensively); one in `preview_ok` is walked
+   * back to `validated` through the state machine's dedicated invalidation
+   * transition, so a new preview is required before it can be applied.
+   *
+   * Only those two states accept a content change. Once a draft has reached
+   * apply or a terminal state its content is the record of what was applied or
+   * abandoned, and rewriting it would falsify that history.
+   */
+  public async updatePreviewBoundContent(
+    draftId: number,
+    content: PreviewBoundDraftContent,
+    context: DraftTransitionContext = {},
+  ): Promise<FirewallProfileDraft> {
+    const draft = await this.loadForProcessing(draftId, context.fwCloudId);
+
+    if (draft.status !== 'validated' && draft.status !== 'preview_ok') {
+      throw new FirewallProfileDraftTransitionConflictError(draft.id, draft.status, 'validated');
+    }
+
+    if (draft.status === 'preview_ok') {
+      return this.transition(draftId, 'preview_ok', 'validated', {
+        ...context,
+        fwCloudId: draft.fwCloudId,
+        step: 'preview_invalidated',
+        message: 'Preview-bound draft content changed.',
+        previewHash: null,
+        previewedAt: null,
+        previewBoundContent: content,
+      });
+    }
+
+    // No preview to invalidate; the content write still clears any leftover
+    // hash so nothing downstream can accept a binding to superseded content.
+    const values: Partial<FirewallProfileDraft> = {
+      previewHash: null,
+      previewedAt: null,
+      updatedAt: new Date(),
+      ...(context.userId !== undefined ? { updatedBy: context.userId } : {}),
+    };
+    this.applyPreviewBoundContent(values, content);
+
+    await this.dataSource
+      .getRepository(FirewallProfileDraft)
+      .createQueryBuilder()
+      .update(FirewallProfileDraft)
+      .set(values)
+      .where('id = :draftId', { draftId })
+      .andWhere('fwcloud_id = :fwCloudId', { fwCloudId: draft.fwCloudId })
+      .execute();
+
+    return this.loadForProcessing(draftId, draft.fwCloudId);
+  }
+
+  private applyPreviewBoundContent(
+    values: Partial<FirewallProfileDraft>,
+    content: PreviewBoundDraftContent,
+  ): void {
+    if (content.contractVersion !== undefined) values.contractVersion = content.contractVersion;
+    if (content.assumptions !== undefined) values.assumptions = content.assumptions;
+  }
+
+  /**
+   * Records a step without moving the draft, for the failure paths that must
+   * leave the status untouched. Guarded by the expected status so a log entry
+   * can never land on a draft another request has meanwhile advanced.
+   */
+  public async appendStepLog(
+    draftId: number,
+    expectedStatus: FirewallProfileDraftStatus,
+    entry: FirewallProfileDraftStepLogEntry,
+    fwCloudId?: number,
+  ): Promise<void> {
+    const where = fwCloudId === undefined ? { id: draftId } : { id: draftId, fwCloudId };
+    const repository = this.dataSource.getRepository(FirewallProfileDraft);
+    const draft = await repository.findOne({ where });
+
+    if (!draft || draft.status !== expectedStatus) {
+      return;
+    }
+
+    await repository
+      .createQueryBuilder()
+      .update(FirewallProfileDraft)
+      .set({ stepLog: [...(draft.stepLog ?? []), entry] })
+      .where('id = :draftId', { draftId })
+      .andWhere('fwcloud_id = :fwCloudId', { fwCloudId: draft.fwCloudId })
+      .andWhere('status = :expectedStatus', { expectedStatus })
+      .execute();
   }
 
   public async transition(
@@ -189,7 +294,11 @@ export class FirewallProfileDraftStateService extends Service {
     try {
       return await this.dataSource.transaction(async (manager) => {
         const now = new Date();
-        const stepLog = [...(draft.stepLog ?? []), this.makeStepLogEntry(nextStatus, now, context)];
+        const stepLog = [
+          ...(draft.stepLog ?? []),
+          ...(context.precedingSteps ?? []),
+          this.makeStepLogEntry(nextStatus, now, context),
+        ];
         const values: Partial<FirewallProfileDraft> = {
           status: nextStatus,
           updatedAt: now,
@@ -198,9 +307,17 @@ export class FirewallProfileDraftStateService extends Service {
           stepLog,
         };
         values[LIFECYCLE_TIMESTAMP_BY_STATUS[nextStatus]] = now;
+        // After the status timestamp, so an invalidation can clear the
+        // `previewed_at` belonging to the status it is leaving.
+        if (context.previewedAt !== undefined) values.previewedAt = context.previewedAt;
         if (context.previewHash !== undefined) values.previewHash = context.previewHash;
         if (context.applyHash !== undefined) values.applyHash = context.applyHash;
         if (context.targetIds !== undefined) values.targetIds = context.targetIds;
+        // Folded into the guarded update so a content change and the preview
+        // invalidation it forces are literally the same statement.
+        if (context.previewBoundContent !== undefined) {
+          this.applyPreviewBoundContent(values, context.previewBoundContent);
+        }
 
         // The expected-status predicate is the database compare-and-set guard.
         // In particular, preview_ok -> apply_pending can affect only one row

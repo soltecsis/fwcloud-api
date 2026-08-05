@@ -1,6 +1,27 @@
+import {
+  AssistantContractCustoms,
+  type ValidatedAssistedProfileProposal,
+} from '../../src/models/assistant-contract/assistant-contract-customs';
 import validSuccess from '../Unit/models/assistant-contract/fixtures/valid-success.json';
 
 type TargetKind = 'firewall' | 'cluster';
+
+/**
+ * Puts a fixture through the real API-1 contract gate, as production does.
+ * Anything downstream of the gate (the mapper, drafts, preview) may only ever
+ * be handed a payload that actually passed it.
+ */
+export function validateAssistedProfileFixtureAtGateway(
+  payload: Record<string, unknown>,
+): ValidatedAssistedProfileProposal {
+  const result = new AssistantContractCustoms().check(payload);
+
+  if (result.ok === false) {
+    throw new Error(`Assisted Profile fixture did not pass the contract gate: ${result.message}`);
+  }
+
+  return result.payload;
+}
 
 interface FixtureOptions {
   targetKind?: TargetKind;

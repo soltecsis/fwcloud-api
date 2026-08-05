@@ -279,6 +279,9 @@ export class Routes extends RouteCollection {
               .get('/drafts/:draft', DraftController, 'show')
               .name('fwclouds.assistant.drafts.show');
             router
+              .post('/drafts/:draft/preview', DraftController, 'preview')
+              .name('fwclouds.assistant.drafts.preview');
+            router
               .delete('/drafts/:draft', DraftController, 'discard')
               .name('fwclouds.assistant.drafts.discard');
             router

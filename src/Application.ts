@@ -98,6 +98,7 @@ import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
 import { FirewallProfileDraftStateServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft-state.provider';
 import { FirewallProfileDraftServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft.provider';
+import { FirewallProfileDraftPreviewServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft-preview.provider';
 import { ExpireFirewallProfileDraftsJobProvider } from './models/firewall-profile-draft/firewall-profile-draft-expiration.provider';
 import { ExpireFirewallProfileDraftsJob } from './models/firewall-profile-draft/firewall-profile-draft-expiration.service';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
@@ -195,6 +196,7 @@ export class Application extends HTTPApplication {
       FirewallServiceProvider,
       FirewallProfileDraftStateServiceProvider,
       FirewallProfileDraftServiceProvider,
+      FirewallProfileDraftPreviewServiceProvider,
       ExpireFirewallProfileDraftsJobProvider,
       FwCloudExportServiceProvider,
       FwCloudServiceProvider,
