@@ -47,7 +47,11 @@ export class CreateIdempotencyKey1785974400000 implements MigrationInterface {
             onUpdate: 'CURRENT_TIMESTAMP',
           },
           { name: 'completed_at', type: 'timestamp', isNullable: true, default: null },
-          { name: 'expires_at', type: 'timestamp' },
+          // Every insert/update always sets this explicitly (see
+          // IdempotencyKeyStore); the default only exists so CREATE TABLE
+          // doesn't fall back to an implicit zero-date default, which some
+          // servers' sql_mode (e.g. NO_ZERO_DATE) rejects outright.
+          { name: 'expires_at', type: 'timestamp', default: 'CURRENT_TIMESTAMP' },
         ],
       }),
       true,
