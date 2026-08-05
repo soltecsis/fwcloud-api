@@ -42,14 +42,14 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
   let manager: EntityManager;
 
   const expectedCmd =
-    '  if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
-    '    systemctl restart fail2ban\n' +
-    '  fi';
+    'if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+    '  systemctl restart fail2ban\n' +
+    'fi';
   const cmd =
     '\n' +
-    '              if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
-    '                systemctl restart fail2ban\n' +
-    '              fi\n';
+    '            if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+    '              systemctl restart fail2ban\n' +
+    '            fi\n';
   const comment = 'Fail2Ban compatibility rule';
 
   const ruleData = {
