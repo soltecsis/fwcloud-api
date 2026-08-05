@@ -661,6 +661,14 @@ const config = convict({
           env: 'ASSISTED_PROFILE_DRAFT_EXPIRATION_BATCH_SIZE'
         }
       }
+    },
+    idempotency: {
+      ttl_seconds: {
+        doc: 'TTL, in seconds, an Assisted Profile Idempotency-Key record stays bound to its payload hash and cached response before it is treated as a new key.',
+        format: 'positive-integer',
+        default: 86400,
+        env: 'ASSISTED_PROFILE_IDEMPOTENCY_TTL_SECONDS'
+      }
     }
   },
 

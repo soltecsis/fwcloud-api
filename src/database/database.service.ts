@@ -107,6 +107,7 @@ import { AI } from '../models/ai-assistant/ai-assistant.model';
 import { AuditLog } from '../models/audit/AuditLog';
 import { ReplicationProfile } from '../models/replication-profile/replication-profile.model';
 import { FirewallProfileDraft } from '../models/firewall-profile-draft/firewall-profile-draft.model';
+import { IdempotencyKey } from '../models/idempotency-key/idempotency-key.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -334,6 +335,7 @@ export class DatabaseService extends Service {
         PolicyType,
         ReplicationProfile,
         FirewallProfileDraft,
+        IdempotencyKey,
         RouteToIPObjGroup,
         RouteToIPObj,
         RouteToOpenVPNPrefix,
