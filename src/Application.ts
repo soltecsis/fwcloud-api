@@ -105,6 +105,7 @@ import { PolicyReplicationServiceProvider } from './models/replication-profile/p
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
 import { ReplicationProfileSnapshotServiceProvider } from './models/replication-profile/replication-profile-snapshot.provider';
+import { IdempotencyKeyStoreProvider } from './models/idempotency-key/idempotency-key-store.provider';
 
 export class Application extends HTTPApplication {
   public static async run(path?: string): Promise<Application> {
@@ -202,6 +203,7 @@ export class Application extends HTTPApplication {
       FwCloudServiceProvider,
       HAProxyGroupServiceProvider,
       HAProxyRuleServiceProvider,
+      IdempotencyKeyStoreProvider,
       IPSecPrefixServiceProvider,
       IPSecServiceProvider,
       IptablesSaveServiceProvider,
