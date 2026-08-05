@@ -1646,9 +1646,9 @@ export class PolicyRule extends Model {
           case SpecialPolicyRules.FAIL2BAN:
             policy_rData.comment = 'Fail2Ban compatibility.';
             policy_rData.run_before =
-              '  if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
-              '    systemctl restart fail2ban\n' +
-              '  fi';
+              'if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+              '  systemctl restart fail2ban\n' +
+              'fi';
             policyType = [PolicyTypesMap.get('IPv4:INPUT')];
             break;
         }
