@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenVPN status sampling management, including persistence, API endpoints, active collector queries, agent state exposure, and server-scoped lifecycle handling.
 - Generic plugin installation parameters are now forwarded to the agent, enabling parameterized plugin activation flows.
 - OpenVPN status sampling now supports configurable sampling interval, request max lines, and cache max size per server, validated and persisted alongside the existing settings.
+- OpenVPN status sampling state is now exposed in the PKI tree info payload.
 
 ### Changed
 - OpenVPN status sampling state is now stored directly on OpenVPN entities, removing legacy sampling table usage, environment import flow, and collector DTO fields.
