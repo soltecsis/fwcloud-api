@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Policy compiler source formatting now handles DNS names and different IP object types more consistently.
 - Suricata plugin parameters are now validated before activation.
 - OpenVPN status sampling column naming was normalized across the model and database layer.
+- OpenVPN status sampling file paths are now normalized consistently when saved, synced to the agent, returned by the API, and read by the status and history workers, keeping sampling in sync when the status file option changes.
 
 
 ## [2.5.1] - 2026-05-20
