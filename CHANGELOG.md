@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenVPN 2FA activation and deactivation progress logs were simplified for client and server flows.
 - Systemctl service validation now supports `openvpn-server` units.
 - Runtime and development dependencies were aligned with the supported Node.js 20 environment.
+- Runtime dependencies (axios, mysql2, openai, typeorm, among others) and development tooling (TypeScript ESLint, eslint, prettier, sinon, `@types/node`) were bumped to their latest compatible versions.
 
 ### Fixed
 - OpenVPN server installation now manages the client configuration directory correctly.
