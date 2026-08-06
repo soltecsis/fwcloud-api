@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Systemctl service validation now supports `openvpn-server` units.
 - Runtime and development dependencies were aligned with the supported Node.js 20 environment.
 - Runtime dependencies (axios, mysql2, openai, typeorm, among others) and development tooling (TypeScript ESLint, eslint, prettier, sinon, `@types/node`) were bumped to their latest compatible versions.
+- The policy load script now determines the system boot state once and reuses it to skip routing reapplication and defer the Fail2Ban restart while the system is still starting up.
 
 ### Fixed
 - OpenVPN server installation now manages the client configuration directory correctly.
