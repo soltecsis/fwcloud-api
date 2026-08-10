@@ -1,5 +1,5 @@
 /*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -64,6 +64,7 @@ import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.
 import { AuditLogController } from '../controllers/audit/audit-log.controller';
 import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
+import { CrowdSecController } from '../controllers/system/crowdsec/crowdsec.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -401,6 +402,18 @@ export class Routes extends RouteCollection {
               });
 
               router.prefix('/system', (router: RouterParser) => {
+                router.prefix('/crowdsec', (router: RouterParser) => {
+                  router
+                    .get('/status', CrowdSecController, 'status')
+                    .name('fwclouds.firewalls.system.crowdsec.status');
+                  router
+                    .post('/install', CrowdSecController, 'install')
+                    .name('fwclouds.firewalls.system.crowdsec.install');
+                  router
+                    .post('/uninstall', CrowdSecController, 'uninstall')
+                    .name('fwclouds.firewalls.system.crowdsec.uninstall');
+                });
+
                 router.prefix('/dhcpGroups', (router: RouterParser) => {
                   router
                     .get('/', DhcpGroupController, 'index')

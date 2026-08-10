@@ -113,6 +113,7 @@ const HUMANIZE_TOKEN_OVERRIDES: Record<string, string> = {
   auditlog: 'Audit log',
   auditlogs: 'Audit logs',
   ca: 'CA',
+  crowdsec: 'CrowdSec',
   crt: 'CRT',
   dhcp: 'DHCP',
   firewall: 'Firewall',

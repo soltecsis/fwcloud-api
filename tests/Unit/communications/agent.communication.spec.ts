@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -20,7 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AgentCommunication } from '../../../src/communications/agent.communication';
+import {
+  AgentCommunication,
+  crowdSecAgentErrorToHttpException,
+} from '../../../src/communications/agent.communication';
 import axios from 'axios';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
@@ -201,6 +204,22 @@ describe(AgentCommunication.name, () => {
           },
         ],
       });
+    });
+  });
+
+  describe('CrowdSec error mapping', () => {
+    it('should map known agent errors to safe HTTP responses', () => {
+      const error = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNAVAILABLE');
+
+      expect(error.status).to.equal(503);
+      expect(error.message).to.equal('CrowdSec Local API is unavailable');
+    });
+
+    it('should not expose unknown agent error messages', () => {
+      const error = crowdSecAgentErrorToHttpException('CROWDSEC_UNEXPECTED_ERROR');
+
+      expect(error.status).to.equal(502);
+      expect(error.message).to.equal('CrowdSec agent request failed');
     });
   });
 });
