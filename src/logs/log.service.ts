@@ -14,8 +14,7 @@ export type LogServiceConfig = {
 export type LoggerType = 'default' | 'query' | 'http';
 
 export type Transport =
-  | winston.transports.ConsoleTransportInstance
-  | winston.transports.FileTransportInstance;
+  winston.transports.ConsoleTransportInstance | winston.transports.FileTransportInstance;
 export type TransportCollection = { [name: string]: Transport };
 export type TransportName = 'file' | 'console';
 

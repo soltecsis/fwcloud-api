@@ -21,6 +21,7 @@ NFT=`which nft 2>/dev/null`
 IP=`which ip 2>/dev/null`
 SYSTEMCTL=`which systemctl 2>/dev/null`
 SYSCTL=`which sysctl 2>/dev/null`
+BOOT_STATE=$(systemctl is-system-running 2>/dev/null || true)
 
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
 SYSTEMD_FILE_ROUTING="/etc/systemd/system/fwcloud-routing.service"

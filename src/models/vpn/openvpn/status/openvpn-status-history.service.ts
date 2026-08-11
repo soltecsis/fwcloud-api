@@ -35,12 +35,7 @@ export type GraphOpenVPNStatusHistoryOptions = {
 } & Omit<FindOpenVPNStatusHistoryOptions, 'page' | 'sort' | 'order'>;
 
 export type OpenVPNHistorySortField =
-  | 'cn'
-  | 'address'
-  | 'connected_at'
-  | 'disconnected_at'
-  | 'bytesReceived'
-  | 'bytesSent';
+  'cn' | 'address' | 'connected_at' | 'disconnected_at' | 'bytesReceived' | 'bytesSent';
 
 export type OpenVPNHistorySortOrder = 'ASC' | 'DESC';
 
