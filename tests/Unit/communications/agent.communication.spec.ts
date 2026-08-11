@@ -30,7 +30,7 @@ import { CCDHash } from '../../../src/communications/communication';
 import { expect } from '../../mocha/global-setup';
 import * as https from 'https';
 
-describe(AgentCommunication.name, () => {
+describe.only(AgentCommunication.name, () => {
   let agent: AgentCommunication;
 
   beforeEach(async () => {
@@ -220,6 +220,124 @@ describe(AgentCommunication.name, () => {
 
       expect(error.status).to.equal(502);
       expect(error.message).to.equal('CrowdSec agent request failed');
+    });
+
+    it('should map collection and Console agent errors to safe HTTP responses', () => {
+      const collectionError = crowdSecAgentErrorToHttpException('CROWDSEC_COLLECTION_TAINTED');
+      const consoleError = crowdSecAgentErrorToHttpException('CROWDSEC_CONSOLE_INVALID_ENROLLMENT');
+
+      expect(collectionError.status).to.equal(409);
+      expect(collectionError.message).to.equal('CrowdSec collection is tainted');
+      expect(consoleError.status).to.equal(422);
+      expect(consoleError.message).to.equal('CrowdSec Console enrollment request is invalid');
+    });
+  });
+
+  describe('CrowdSec collections', () => {
+    it('should request installed collections from the agent', async () => {
+      const stub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: { collections: [] },
+      });
+
+      const response = await agent.getCrowdSecCollections(true);
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections');
+      expect(stub.firstCall.args[1].params).to.deep.equal({ installed: true });
+      expect(response).to.deep.equal({ collections: [] });
+    });
+
+    it('should send one collection name for installation', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({
+        status: 200,
+        data: {
+          operation: 'install',
+          collection: 'crowdsecurity/nginx',
+          processed_collections: ['crowdsecurity/nginx'],
+          skipped_collections: [],
+          message: 'Collection installed',
+        },
+      });
+
+      await agent.installCrowdSecCollection('crowdsecurity/nginx');
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections/install');
+      expect(stub.firstCall.args[1]).to.deep.equal({ name: 'crowdsecurity/nginx' });
+    });
+
+    it('should send one collection name for removal', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({
+        status: 200,
+        data: {
+          operation: 'remove',
+          collection: 'crowdsecurity/nginx',
+          processed_collections: ['crowdsecurity/nginx'],
+          skipped_collections: [],
+          message: 'Collection removed',
+        },
+      });
+
+      await agent.removeCrowdSecCollection('crowdsecurity/nginx');
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections/remove');
+      expect(stub.firstCall.args[1]).to.deep.equal({ name: 'crowdsecurity/nginx' });
+    });
+
+    it('should send an empty update request to the agent', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({
+        status: 200,
+        data: {
+          operation: 'update',
+          processed_collections: [],
+          skipped_collections: [],
+          message: 'Collections updated',
+        },
+      });
+
+      await agent.updateCrowdSecCollections();
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections/update');
+      expect(stub.firstCall.args[1]).to.deep.equal({});
+    });
+  });
+
+  describe('CrowdSec Console', () => {
+    it('should request Console status from the agent', async () => {
+      const stub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: { state: 'connected', message: 'Connected' },
+      });
+
+      const response = await agent.getCrowdSecConsoleStatus();
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/console/status');
+      expect(response).to.deep.equal({ state: 'connected', message: 'Connected' });
+    });
+
+    it('should forward Console enrollment data using the agent contract', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({
+        status: 200,
+        data: { status: { state: 'pending_approval', message: 'Approve in Console' } },
+      });
+
+      await agent.enrollCrowdSecConsole({
+        enrollmentKey: 'secret-enrollment-key',
+        name: 'fwcloud',
+        tags: ['fwcloud'],
+      });
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/console/enroll');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        enrollment_key: 'secret-enrollment-key',
+        name: 'fwcloud',
+        tags: ['fwcloud'],
+      });
     });
   });
 });

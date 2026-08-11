@@ -31,6 +31,11 @@ import sshTools from '../utils/ssh';
 import {
   CCDHash,
   Communication,
+  CrowdSecCollectionOperationAgentResponse,
+  CrowdSecCollectionsAgentResponse,
+  CrowdSecConsoleEnrollAgentRequest,
+  CrowdSecConsoleEnrollAgentResponse,
+  CrowdSecConsoleStatusAgentResponse,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
@@ -131,6 +136,48 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   }
 
   getOpenVPNStatusSamplingState(): Promise<OpenVPNStatusSamplingAgentState> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecStatus(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSec(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSecBouncer(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  uninstallCrowdSec(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecCollections(): Promise<CrowdSecCollectionsAgentResponse> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSecCollection(): Promise<CrowdSecCollectionOperationAgentResponse> {
+    throw new Error('Method not implemented.');
+  }
+
+  removeCrowdSecCollection(): Promise<CrowdSecCollectionOperationAgentResponse> {
+    throw new Error('Method not implemented.');
+  }
+
+  updateCrowdSecCollections(): Promise<CrowdSecCollectionOperationAgentResponse> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecConsoleStatus(): Promise<CrowdSecConsoleStatusAgentResponse> {
+    throw new Error('Method not implemented.');
+  }
+
+  enrollCrowdSecConsole(
+    _request: CrowdSecConsoleEnrollAgentRequest,
+  ): Promise<CrowdSecConsoleEnrollAgentResponse> {
     throw new Error('Method not implemented.');
   }
 
