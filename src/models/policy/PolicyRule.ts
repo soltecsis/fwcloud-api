@@ -1653,15 +1653,9 @@ export class PolicyRule extends Model {
           case SpecialPolicyRules.FAIL2BAN:
             policy_rData.comment = 'Fail2Ban compatibility.';
             policy_rData.run_before =
-              'state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
-              'case "$state" in\n' +
-              '  running|degraded)\n' +
-              '    systemctl restart fail2ban\n' +
-              '    ;;\n' +
-              '  *)\n' +
-              '    : ### boot still in progress (or system is in trouble like maintenance)\n' +
-              '    ;;\n' +
-              'esac';
+              'if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+              '  systemctl restart fail2ban\n' +
+              'fi';
             policyType = [PolicyTypesMap.get('IPv4:INPUT')];
             break;
         }

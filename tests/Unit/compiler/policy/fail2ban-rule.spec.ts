@@ -42,26 +42,14 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
   let manager: EntityManager;
 
   const expectedCmd =
-    'state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
-    'case "$state" in\n' +
-    '  running|degraded)\n' +
-    '    systemctl restart fail2ban\n' +
-    '    ;;\n' +
-    '  *)\n' +
-    '    : ### boot still in progress (or system is in trouble like maintenance)\n' +
-    '    ;;\n' +
-    'esac';
+    'if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+    '  systemctl restart fail2ban\n' +
+    'fi';
   const cmd =
     '\n' +
-    '            state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
-    '            case "$state" in\n' +
-    '              running|degraded)\n' +
-    '                systemctl restart fail2ban\n' +
-    '                ;;\n' +
-    '              *)\n' +
-    '                : ### boot still in progress (or system is in trouble like maintenance)\n' +
-    '                ;;\n' +
-    '            esac\n';
+    '            if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+    '              systemctl restart fail2ban\n' +
+    '            fi\n';
   const comment = 'Fail2Ban compatibility rule';
 
   const ruleData = {
