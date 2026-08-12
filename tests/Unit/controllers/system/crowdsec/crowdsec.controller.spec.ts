@@ -134,6 +134,27 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(collectionsStub.called).to.be.false;
   });
 
+  it('should forward CrowdSec Console status to the agent', async () => {
+    const status = { state: 'connected' as const, message: 'CrowdSec Central API is reachable' };
+    const statusStub = sinon.stub(communication, 'getCrowdSecConsoleStatus').resolves(status);
+
+    const response = await controller.consoleStatus({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(statusStub.calledOnce).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: status });
+  });
+
+  it('should reject Console status without access before contacting the agent', async () => {
+    viewPolicyStub.resolves(Authorization.revoke());
+    const statusStub = sinon.stub(communication, 'getCrowdSecConsoleStatus');
+
+    await expect(controller.consoleStatus({ session: { user: null } } as unknown as Request)).to.be
+      .rejected;
+    expect(statusStub.called).to.be.false;
+  });
+
   it('should install a collection and return the refreshed collection list', async () => {
     const result = {
       operation: 'install' as const,

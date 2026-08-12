@@ -76,6 +76,14 @@ export class CrowdSecController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(collections);
   }
 
+  @Validate()
+  public async consoleStatus(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const status = await (await this.getAgentCommunication()).getCrowdSecConsoleStatus();
+    return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
   @Validate(CrowdSecCollectionDto)
   public async installCollection(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();

@@ -410,6 +410,9 @@ export class Routes extends RouteCollection {
                     .get('/collections', CrowdSecController, 'collections')
                     .name('fwclouds.firewalls.system.crowdsec.collections.index');
                   router
+                    .get('/console/status', CrowdSecController, 'consoleStatus')
+                    .name('fwclouds.firewalls.system.crowdsec.console.status');
+                  router
                     .post('/collections/install', CrowdSecController, 'installCollection')
                     .name('fwclouds.firewalls.system.crowdsec.collections.install');
                   router
