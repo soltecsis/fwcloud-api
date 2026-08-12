@@ -30,7 +30,7 @@ import { CCDHash } from '../../../src/communications/communication';
 import { expect } from '../../mocha/global-setup';
 import * as https from 'https';
 
-describe.only(AgentCommunication.name, () => {
+describe(AgentCommunication.name, () => {
   let agent: AgentCommunication;
 
   beforeEach(async () => {

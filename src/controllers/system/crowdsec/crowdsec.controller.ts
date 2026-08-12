@@ -22,13 +22,14 @@
 
 import { Request } from 'express';
 import { AgentCommunication } from '../../../communications/agent.communication';
-import { Validate } from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import db from '../../../database/database-manager';
+import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
 export class CrowdSecController extends Controller {
@@ -58,6 +59,20 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
     const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
     return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecCollectionsQueryDto)
+  public async collections(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const installed =
+      req.query.installed === undefined ? undefined : req.query.installed === 'true';
+    const collections = await (
+      await this.getAgentCommunication()
+    ).getCrowdSecCollections(installed);
+
+    return ResponseBuilder.buildResponse().status(200).body(collections);
   }
 
   @Validate()

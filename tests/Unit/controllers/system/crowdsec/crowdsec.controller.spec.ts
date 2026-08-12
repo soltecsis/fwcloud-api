@@ -37,6 +37,7 @@ import { describeName, expect, testSuite } from '../../../../mocha/global-setup'
 import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crowdsec/dto/uninstall.dto';
+import { CrowdSecCollectionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/collections-query.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
@@ -85,6 +86,50 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(statusStub.calledOnce).to.be.true;
     expect(response.toJSON()).to.include({ status: 200, data: status });
+  });
+
+  it('should forward the installed collection filter to the agent', async () => {
+    const collections = { collections: [] };
+    const collectionsStub = sinon
+      .stub(communication, 'getCrowdSecCollections')
+      .resolves(collections);
+
+    const response: ResponseBuilder = await controller.collections({
+      query: { installed: 'true' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(collectionsStub.calledOnceWithExactly(true)).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: collections });
+  });
+
+  it('should request all collections when the installed filter is omitted', async () => {
+    const collectionsStub = sinon.stub(communication, 'getCrowdSecCollections').resolves({
+      collections: [],
+    });
+
+    await controller.collections({
+      query: {},
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(collectionsStub.calledOnceWithExactly(undefined)).to.be.true;
+  });
+
+  it('should reject an invalid installed collection filter', async () => {
+    await expect(
+      new Validator({ installed: 'yes' }, CrowdSecCollectionsQueryDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should reject collection listing without access before contacting the agent', async () => {
+    viewPolicyStub.resolves(Authorization.revoke());
+    const collectionsStub = sinon.stub(communication, 'getCrowdSecCollections');
+
+    await expect(
+      controller.collections({ query: {}, session: { user: null } } as unknown as Request),
+    ).to.be.rejected;
+    expect(collectionsStub.called).to.be.false;
   });
 
   it('should install CrowdSec before the Firewall Bouncer', async () => {
