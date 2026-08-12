@@ -30,6 +30,7 @@ import { Firewall, FirewallInstallCommunication } from '../../../models/firewall
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
+import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
 export class CrowdSecController extends Controller {
@@ -73,6 +74,39 @@ export class CrowdSecController extends Controller {
     ).getCrowdSecCollections(installed);
 
     return ResponseBuilder.buildResponse().status(200).body(collections);
+  }
+
+  @Validate(CrowdSecCollectionDto)
+  public async installCollection(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const result = await communication.installCrowdSecCollection(req.body.name);
+    const collections = await communication.getCrowdSecCollections();
+
+    return ResponseBuilder.buildResponse().status(200).body({ result, collections });
+  }
+
+  @Validate(CrowdSecCollectionDto)
+  public async removeCollection(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const result = await communication.removeCrowdSecCollection(req.body.name);
+    const collections = await communication.getCrowdSecCollections();
+
+    return ResponseBuilder.buildResponse().status(200).body({ result, collections });
+  }
+
+  @Validate()
+  public async updateCollections(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const result = await communication.updateCrowdSecCollections();
+    const collections = await communication.getCrowdSecCollections();
+
+    return ResponseBuilder.buildResponse().status(200).body({ result, collections });
   }
 
   @Validate()

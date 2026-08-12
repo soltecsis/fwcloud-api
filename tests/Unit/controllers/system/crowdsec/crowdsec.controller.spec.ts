@@ -38,6 +38,7 @@ import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factor
 import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crowdsec/dto/uninstall.dto';
 import { CrowdSecCollectionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/collections-query.dto';
+import { CrowdSecCollectionDto } from '../../../../../src/controllers/system/crowdsec/dto/collection.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
@@ -46,6 +47,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let fwcProduct: FwCloudProduct;
   let communication: AgentCommunication;
   let viewPolicyStub: sinon.SinonStub;
+  let managePolicyStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -69,7 +71,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     sinon.stub(Firewall.prototype, 'getCommunication').resolves(communication);
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
-    sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
+    managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
   });
 
   afterEach(() => {
@@ -130,6 +132,100 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       controller.collections({ query: {}, session: { user: null } } as unknown as Request),
     ).to.be.rejected;
     expect(collectionsStub.called).to.be.false;
+  });
+
+  it('should install a collection and return the refreshed collection list', async () => {
+    const result = {
+      operation: 'install' as const,
+      processed_collections: [],
+      skipped_collections: [],
+      message: 'Installed',
+    };
+    const collections = { collections: [] };
+    const installStub = sinon.stub(communication, 'installCrowdSecCollection').resolves(result);
+    const collectionsStub = sinon
+      .stub(communication, 'getCrowdSecCollections')
+      .resolves(collections);
+
+    const response = await controller.installCollection({
+      body: { name: 'crowdsecurity/nginx' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(installStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(installStub.calledBefore(collectionsStub)).to.be.true;
+    const body = response.toJSON();
+    expect(body.status).to.equal(200);
+    expect(body.data).to.deep.equal({ result, collections });
+  });
+
+  it('should remove a collection and return the refreshed collection list', async () => {
+    const result = {
+      operation: 'remove' as const,
+      processed_collections: [],
+      skipped_collections: [],
+      message: 'Removed',
+    };
+    const collections = { collections: [] };
+    const removeStub = sinon.stub(communication, 'removeCrowdSecCollection').resolves(result);
+    const collectionsStub = sinon
+      .stub(communication, 'getCrowdSecCollections')
+      .resolves(collections);
+
+    const response = await controller.removeCollection({
+      body: { name: 'crowdsecurity/nginx' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(removeStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(removeStub.calledBefore(collectionsStub)).to.be.true;
+    const body = response.toJSON();
+    expect(body.status).to.equal(200);
+    expect(body.data).to.deep.equal({ result, collections });
+  });
+
+  it('should update collections and return the refreshed collection list', async () => {
+    const result = {
+      operation: 'update' as const,
+      processed_collections: [],
+      skipped_collections: [],
+      message: 'Updated',
+    };
+    const collections = { collections: [] };
+    const updateStub = sinon.stub(communication, 'updateCrowdSecCollections').resolves(result);
+    const collectionsStub = sinon
+      .stub(communication, 'getCrowdSecCollections')
+      .resolves(collections);
+
+    const response = await controller.updateCollections({
+      body: {},
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(updateStub.calledOnce).to.be.true;
+    expect(updateStub.calledBefore(collectionsStub)).to.be.true;
+    const body = response.toJSON();
+    expect(body.status).to.equal(200);
+    expect(body.data).to.deep.equal({ result, collections });
+  });
+
+  it('should reject an invalid collection name', async () => {
+    await expect(
+      new Validator({ name: 'crowdsecurity/nginx;rm' }, CrowdSecCollectionDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should reject collection mutations without access before contacting the agent', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+    const installStub = sinon.stub(communication, 'installCrowdSecCollection');
+
+    await expect(
+      controller.installCollection({
+        body: { name: 'crowdsecurity/nginx' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+    expect(installStub.called).to.be.false;
   });
 
   it('should install CrowdSec before the Firewall Bouncer', async () => {
