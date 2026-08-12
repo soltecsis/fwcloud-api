@@ -164,6 +164,8 @@ const SENSITIVE_KEY_PATTERNS = [
   'access_key',
   'auth',
   'credential',
+  'enrollmentkey',
+  'enrollment_key',
   'otp',
 ];
 

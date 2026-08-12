@@ -31,6 +31,7 @@ import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
+import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
 export class CrowdSecController extends Controller {
@@ -82,6 +83,14 @@ export class CrowdSecController extends Controller {
 
     const status = await (await this.getAgentCommunication()).getCrowdSecConsoleStatus();
     return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
+  @Validate(CrowdSecConsoleEnrollDto)
+  public async enrollConsole(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const response = await (await this.getAgentCommunication()).enrollCrowdSecConsole(req.body);
+    return ResponseBuilder.buildResponse().status(200).body(response);
   }
 
   @Validate(CrowdSecCollectionDto)

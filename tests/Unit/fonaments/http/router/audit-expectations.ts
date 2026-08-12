@@ -102,6 +102,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/copy': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/install': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/uninstall': { audited: true },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/console/enroll': {
+    audited: true,
+  },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/install': {
     audited: true,
   },

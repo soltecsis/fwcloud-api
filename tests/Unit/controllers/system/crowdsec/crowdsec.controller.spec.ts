@@ -39,6 +39,7 @@ import { ValidationException } from '../../../../../src/fonaments/exceptions/val
 import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crowdsec/dto/uninstall.dto';
 import { CrowdSecCollectionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/collections-query.dto';
 import { CrowdSecCollectionDto } from '../../../../../src/controllers/system/crowdsec/dto/collection.dto';
+import { CrowdSecConsoleEnrollDto } from '../../../../../src/controllers/system/crowdsec/dto/console-enroll.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
@@ -153,6 +154,49 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     await expect(controller.consoleStatus({ session: { user: null } } as unknown as Request)).to.be
       .rejected;
     expect(statusStub.called).to.be.false;
+  });
+
+  it('should enroll CrowdSec Console without returning the enrollment key', async () => {
+    const enrollmentKey = 'crowdsec-enrollment-key';
+    const response = {
+      status: {
+        state: 'pending_approval' as const,
+        message: 'Accept the Security Engine in CrowdSec Console',
+      },
+    };
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves(response);
+
+    const result = await controller.enrollConsole({
+      body: { enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(enrollStub.calledOnceWithExactly({ enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] }))
+      .to.be.true;
+    expect(result.toJSON().data).to.deep.equal(response);
+    expect(JSON.stringify(result.toJSON())).to.not.contain(enrollmentKey);
+  });
+
+  it('should reject invalid CrowdSec Console enrollment data', async () => {
+    await expect(
+      new Validator(
+        { enrollmentKey: 'invalid\nkey', name: 'invalid name', tags: ['invalid tag'] },
+        CrowdSecConsoleEnrollDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should reject Console enrollment without access before contacting the agent', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole');
+
+    await expect(
+      controller.enrollConsole({
+        body: { enrollmentKey: 'crowdsec-enrollment-key' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+    expect(enrollStub.called).to.be.false;
   });
 
   it('should install a collection and return the refreshed collection list', async () => {
