@@ -21,6 +21,7 @@
 */
 
 import { Request } from 'express';
+import { EventEmitter } from 'events';
 import sinon from 'sinon';
 import { AgentCommunication } from '../../../../../src/communications/agent.communication';
 import { Application } from '../../../../../src/Application';
@@ -38,6 +39,8 @@ import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factor
 import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crowdsec/dto/uninstall.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
+import { Channel } from '../../../../../src/sockets/channels/channel';
+import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -90,16 +93,31 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   it('should install CrowdSec before the Firewall Bouncer', async () => {
     const crowdsec = { steps: [{ step: 'crowdsec_packages' }] };
     const firewallBouncer = { steps: [{ step: 'blacklist_ipsets' }] };
+    const listener = new EventEmitter();
+    const channel = new Channel('crowdsec-install', listener);
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
     const bouncerStub = sinon
       .stub(communication, 'installCrowdSecBouncer')
       .resolves(firewallBouncer);
+    const channelStub = sinon.stub(Channel, 'fromRequest').resolves(channel);
+    const messages: ProgressPayload[] = [];
+    listener.on(channel.id, (message: SocketMessage) =>
+      messages.push(message.payload as ProgressPayload),
+    );
 
     const response: ResponseBuilder = await controller.install({
       session: { user: null },
     } as unknown as Request);
 
+    expect(channelStub.calledOnce).to.be.true;
+    expect(crowdsecStub.calledOnceWithExactly(channel)).to.be.true;
     expect(crowdsecStub.calledBefore(bouncerStub)).to.be.true;
+    expect(bouncerStub.calledOnceWithExactly(channel)).to.be.true;
+    expect(messages).to.deep.equal([
+      new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Installing CrowdSec Firewall Bouncer'),
+      new ProgressPayload('end', false, 'CrowdSec installation finished'),
+    ]);
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ crowdsec, firewall_bouncer: firewallBouncer });
