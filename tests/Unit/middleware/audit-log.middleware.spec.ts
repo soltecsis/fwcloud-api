@@ -427,6 +427,7 @@ describe('AuditLogMiddleware', () => {
       .query({ token: 'query-token' })
       .send({
         password: 'plain-text',
+        enrollmentKey: 'crowdsec-enrollment-key',
         tokens: ['one', 'two'],
         nested: {
           apiKey: 'nested-key',
@@ -442,6 +443,7 @@ describe('AuditLogMiddleware', () => {
     expect(payload.headers['x-api-key']).to.equal('[REDACTED]');
     expect(payload.query.token).to.equal('[REDACTED]');
     expect(payload.body.password).to.equal('[REDACTED]');
+    expect(payload.body.enrollmentKey).to.equal('[REDACTED]');
     expect(payload.body.tokens).to.equal('[REDACTED]');
     expect(payload.body.nested.apiKey).to.equal('[REDACTED]');
     expect(payload.body.nested.details.secretValue).to.equal('[REDACTED]');

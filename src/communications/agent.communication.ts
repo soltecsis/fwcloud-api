@@ -24,6 +24,11 @@ import { EventEmitter } from 'events';
 import {
   CCDHash,
   Communication,
+  CrowdSecCollectionOperationAgentResponse,
+  CrowdSecCollectionsAgentResponse,
+  CrowdSecConsoleEnrollAgentRequest,
+  CrowdSecConsoleEnrollAgentResponse,
+  CrowdSecConsoleStatusAgentResponse,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentConfig,
@@ -59,11 +64,19 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec is not supported on this system',
     status: 422,
   },
+  CROWDSEC_UNSUPPORTED_OS: {
+    message: 'CrowdSec is not supported on this system',
+    status: 422,
+  },
   CROWDSEC_NOT_INSTALLED: {
     message: 'CrowdSec is not installed',
     status: 409,
   },
   CROWDSEC_LAPI_UNAVAILABLE: {
+    message: 'CrowdSec Local API is unavailable',
+    status: 503,
+  },
+  CROWDSEC_LAPI_UNREACHABLE: {
     message: 'CrowdSec Local API is unavailable',
     status: 503,
   },
@@ -89,6 +102,22 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   },
   CROWDSEC_BOUNCER_INVALID: {
     message: 'CrowdSec Firewall Bouncer configuration is invalid',
+    status: 422,
+  },
+  CROWDSEC_COLLECTION_CONFLICT: {
+    message: 'CrowdSec collection conflicts with the current configuration',
+    status: 409,
+  },
+  CROWDSEC_COLLECTION_INVALID: {
+    message: 'CrowdSec collection is invalid',
+    status: 422,
+  },
+  CROWDSEC_COLLECTION_TAINTED: {
+    message: 'CrowdSec collection is tainted',
+    status: 409,
+  },
+  CROWDSEC_CONSOLE_INVALID_ENROLLMENT: {
+    message: 'CrowdSec Console enrollment request is invalid',
     status: 422,
   },
 };
@@ -916,6 +945,119 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
 
       throw new Error('Unexpected CrowdSec uninstall response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecCollections(installed?: boolean): Promise<CrowdSecCollectionsAgentResponse> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/collections';
+      const config: AxiosRequestConfig = Object.assign({}, this.config, {
+        params: installed === undefined ? undefined : { installed },
+      });
+      const response: AxiosResponse<CrowdSecCollectionsAgentResponse> = await axios.get(
+        pathUrl,
+        config,
+      );
+
+      if (response.status === 200 && Array.isArray(response.data?.collections)) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec collections response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async installCrowdSecCollection(name: string): Promise<CrowdSecCollectionOperationAgentResponse> {
+    return this.updateCrowdSecCollection('install', name);
+  }
+
+  async removeCrowdSecCollection(name: string): Promise<CrowdSecCollectionOperationAgentResponse> {
+    return this.updateCrowdSecCollection('remove', name);
+  }
+
+  async updateCrowdSecCollections(): Promise<CrowdSecCollectionOperationAgentResponse> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/collections/update';
+      const response: AxiosResponse<CrowdSecCollectionOperationAgentResponse> = await axios.post(
+        pathUrl,
+        {},
+        this.config,
+      );
+
+      if (response.status === 200 && response.data?.operation === 'update') {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec collection update response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecConsoleStatus(): Promise<CrowdSecConsoleStatusAgentResponse> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/console/status';
+      const response: AxiosResponse<CrowdSecConsoleStatusAgentResponse> = await axios.get(
+        pathUrl,
+        this.config,
+      );
+
+      if (response.status === 200 && typeof response.data?.state === 'string') {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec Console status response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async enrollCrowdSecConsole(
+    request: CrowdSecConsoleEnrollAgentRequest,
+  ): Promise<CrowdSecConsoleEnrollAgentResponse> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/crowdsec/console/enroll';
+      const response: AxiosResponse<CrowdSecConsoleEnrollAgentResponse> = await axios.post(
+        pathUrl,
+        {
+          enrollment_key: request.enrollmentKey,
+          name: request.name,
+          tags: request.tags,
+        },
+        this.config,
+      );
+
+      if (response.status === 200 && typeof response.data?.status?.state === 'string') {
+        return response.data;
+      }
+
+      throw new Error('Unexpected CrowdSec Console enrollment response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  private async updateCrowdSecCollection(
+    operation: 'install' | 'remove',
+    name: string,
+  ): Promise<CrowdSecCollectionOperationAgentResponse> {
+    try {
+      const pathUrl: string = this.url + `/api/v1/crowdsec/collections/${operation}`;
+      const response: AxiosResponse<CrowdSecCollectionOperationAgentResponse> = await axios.post(
+        pathUrl,
+        { name },
+        this.config,
+      );
+
+      if (response.status === 200 && response.data?.operation === operation) {
+        return response.data;
+      }
+
+      throw new Error(`Unexpected CrowdSec collection ${operation} response`);
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }

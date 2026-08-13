@@ -90,6 +90,43 @@ export type PluginInstallOptions = {
   pluginParams?: string[];
 };
 
+export type CrowdSecCollectionAgent = {
+  name: string;
+  version: string | null;
+  state: 'available' | 'installed' | 'tainted' | 'disabled' | 'unknown';
+  available: boolean;
+  path: string | null;
+};
+
+export type CrowdSecCollectionsAgentResponse = {
+  collections: CrowdSecCollectionAgent[];
+};
+
+export type CrowdSecCollectionOperationAgentResponse = {
+  operation: 'install' | 'remove' | 'update';
+  collection?: string;
+  processed_collections: string[];
+  skipped_collections: string[];
+  message: string;
+};
+
+export type CrowdSecConsoleState = 'not_configured' | 'pending_approval' | 'connected' | 'error';
+
+export type CrowdSecConsoleStatusAgentResponse = {
+  state: CrowdSecConsoleState;
+  message: string;
+};
+
+export type CrowdSecConsoleEnrollAgentRequest = {
+  enrollmentKey: string;
+  name?: string;
+  tags?: string[];
+};
+
+export type CrowdSecConsoleEnrollAgentResponse = {
+  status: CrowdSecConsoleStatusAgentResponse;
+};
+
 type ErrorWithCode = {
   code: string;
 } & Error;
@@ -175,6 +212,22 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
     options?: PluginInstallOptions,
   ): Promise<string>;
+  abstract getCrowdSecStatus(): Promise<Record<string, unknown>>;
+  abstract installCrowdSec(): Promise<Record<string, unknown>>;
+  abstract installCrowdSecBouncer(): Promise<Record<string, unknown>>;
+  abstract uninstallCrowdSec(confirm: boolean): Promise<Record<string, unknown>>;
+  abstract getCrowdSecCollections(installed?: boolean): Promise<CrowdSecCollectionsAgentResponse>;
+  abstract installCrowdSecCollection(
+    name: string,
+  ): Promise<CrowdSecCollectionOperationAgentResponse>;
+  abstract removeCrowdSecCollection(
+    name: string,
+  ): Promise<CrowdSecCollectionOperationAgentResponse>;
+  abstract updateCrowdSecCollections(): Promise<CrowdSecCollectionOperationAgentResponse>;
+  abstract getCrowdSecConsoleStatus(): Promise<CrowdSecConsoleStatusAgentResponse>;
+  abstract enrollCrowdSecConsole(
+    request: CrowdSecConsoleEnrollAgentRequest,
+  ): Promise<CrowdSecConsoleEnrollAgentResponse>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (errorHasCode(error)) {
