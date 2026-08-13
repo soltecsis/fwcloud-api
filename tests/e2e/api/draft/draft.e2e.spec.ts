@@ -200,6 +200,50 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
           expect(body).to.not.have.property('proposal_hash');
           expect(body).to.not.have.property('preview_hash');
           expect(body).to.not.have.property('apply_hash');
+          expect(body.reconciliation).to.equal(null);
+        });
+    });
+
+    it('should expose unambiguous reconciliation data for an apply_failed draft with partial target-orchestration progress', async () => {
+      const draft = await makeDraft('apply_failed', {
+        targetIds: { firewallId: 120, interfaceIds: [301, 302] },
+        stepLog: [
+          {
+            step: 'target_created',
+            status: 'success',
+            timestamp: new Date().toISOString(),
+            targetKind: 'firewall',
+            resourceIds: { firewallId: 120 },
+          },
+          {
+            step: 'interfaces_created',
+            status: 'failed',
+            timestamp: new Date().toISOString(),
+            targetKind: 'firewall',
+            resourceIds: { interfaceIds: [301, 302] },
+            errorCode: 'INTERFACE_CREATION_FAILED',
+          },
+        ],
+      });
+
+      const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
+
+      await request(app.express)
+        .get(draftUrl(draft.id))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const body = response.body.data;
+          expect(body.status).to.equal('apply_failed');
+          expect(body.target_ids).to.deep.equal({ firewallId: 120, interfaceIds: [301, 302] });
+          expect(body.step_log).to.have.length(2);
+          expect(body.reconciliation).to.deep.equal({
+            target: { kind: 'firewall', id: 120 },
+            interfaceIds: [301, 302],
+            completedSteps: ['target_created'],
+            failedStep: 'interfaces_created',
+            errorCode: 'INTERFACE_CREATION_FAILED',
+          });
         });
     });
 

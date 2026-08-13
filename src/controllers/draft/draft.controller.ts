@@ -43,6 +43,7 @@ import type {
   FirewallProfileDraftDetailDto,
   FirewallProfileDraftSummaryDto,
 } from './dtos/draft-response.dto';
+import { deriveAssistedProfileReconciliationData } from '../../models/firewall-profile-draft/firewall-profile-draft-reconciliation';
 import { GenerateFirewallProfileDraftDto } from './dtos/generate-draft.dto';
 
 const MAX_INSTRUCTION_BYTES = 2048;
@@ -73,6 +74,7 @@ const toDetail = (draft: FirewallProfileDraft): FirewallProfileDraftDetailDto =>
   proposal: draft.proposal,
   target_ids: draft.targetIds,
   step_log: draft.stepLog,
+  reconciliation: deriveAssistedProfileReconciliationData(draft),
 });
 
 export class DraftController extends Controller {
