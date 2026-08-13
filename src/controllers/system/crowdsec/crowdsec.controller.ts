@@ -22,7 +22,7 @@
 
 import { Request } from 'express';
 import { AgentCommunication } from '../../../communications/agent.communication';
-import { Validate } from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
@@ -31,6 +31,9 @@ import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import db from '../../../database/database-manager';
+import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
+import { CrowdSecCollectionDto } from './dto/collection.dto';
+import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
 export class CrowdSecController extends Controller {
@@ -60,6 +63,69 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
     const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
     return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecCollectionsQueryDto)
+  public async collections(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const installed =
+      req.query.installed === undefined ? undefined : req.query.installed === 'true';
+    const collections = await (
+      await this.getAgentCommunication()
+    ).getCrowdSecCollections(installed);
+
+    return ResponseBuilder.buildResponse().status(200).body(collections);
+  }
+
+  @Validate()
+  public async consoleStatus(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const status = await (await this.getAgentCommunication()).getCrowdSecConsoleStatus();
+    return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
+  @Validate(CrowdSecConsoleEnrollDto)
+  public async enrollConsole(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const response = await (await this.getAgentCommunication()).enrollCrowdSecConsole(req.body);
+    return ResponseBuilder.buildResponse().status(200).body(response);
+  }
+
+  @Validate(CrowdSecCollectionDto)
+  public async installCollection(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const result = await communication.installCrowdSecCollection(req.body.name);
+    const collections = await communication.getCrowdSecCollections();
+
+    return ResponseBuilder.buildResponse().status(200).body({ result, collections });
+  }
+
+  @Validate(CrowdSecCollectionDto)
+  public async removeCollection(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const result = await communication.removeCrowdSecCollection(req.body.name);
+    const collections = await communication.getCrowdSecCollections();
+
+    return ResponseBuilder.buildResponse().status(200).body({ result, collections });
+  }
+
+  @Validate()
+  public async updateCollections(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const result = await communication.updateCrowdSecCollections();
+    const collections = await communication.getCrowdSecCollections();
+
+    return ResponseBuilder.buildResponse().status(200).body({ result, collections });
   }
 
   @Validate()
