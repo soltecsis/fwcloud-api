@@ -134,14 +134,25 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should forward the uninstall confirmation to the agent', async () => {
+    const listener = new EventEmitter();
+    const channel = new Channel('crowdsec-uninstall', listener);
     const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec').resolves({ steps: [] });
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+    const messages: ProgressPayload[] = [];
+    listener.on(channel.id, (message: SocketMessage) =>
+      messages.push(message.payload as ProgressPayload),
+    );
 
     const response: ResponseBuilder = await controller.uninstall({
       body: { confirm: true },
       session: { user: null },
     } as unknown as Request);
 
-    expect(uninstallStub.calledOnceWithExactly(true)).to.be.true;
+    expect(uninstallStub.calledOnceWithExactly(true, channel)).to.be.true;
+    expect(messages).to.deep.equal([
+      new ProgressPayload('start', false, 'Uninstalling CrowdSec'),
+      new ProgressPayload('end', false, 'CrowdSec uninstallation finished'),
+    ]);
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ steps: [] });

@@ -87,7 +87,15 @@ export class CrowdSecController extends Controller {
   public async uninstall(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    const result = await (await this.getAgentCommunication()).uninstallCrowdSec(req.body.confirm);
+    const channel = await Channel.fromRequest(req);
+    channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
+
+    const result = await (
+      await this.getAgentCommunication()
+    ).uninstallCrowdSec(req.body.confirm, channel);
+
+    channel.emit('message', new ProgressPayload('end', false, 'CrowdSec uninstallation finished'));
+
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
