@@ -242,6 +242,16 @@ describe(AgentCommunication.name, () => {
       expect(post.args[2].timeout).to.equal(0);
     });
 
+    it('should keep CrowdSec installation requests working without a progress channel', async () => {
+      await agent.installCrowdSec();
+
+      const post = postStub.firstCall;
+      expect((agent as any).createCrowdSecWebSocket.called).to.be.false;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
+      expect(post.args[1]).to.deep.equal({});
+      expect(post.args[2].timeout).to.equal((agent as any).config.timeout);
+    });
+
     it('should request Firewall Bouncer installation with a dedicated progress websocket', async () => {
       await agent.installCrowdSecBouncer(new EventEmitter());
 
