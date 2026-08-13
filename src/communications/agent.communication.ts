@@ -94,6 +94,14 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec Firewall Bouncer configuration is invalid',
     status: 422,
   },
+  CROWDSEC_COLLECTION_TAINTED: {
+    message: 'CrowdSec collection is tainted',
+    status: 409,
+  },
+  CROWDSEC_CONSOLE_INVALID_ENROLLMENT: {
+    message: 'CrowdSec Console enrollment request is invalid',
+    status: 422,
+  },
 };
 
 export function crowdSecAgentErrorToHttpException(code: unknown): HttpException {
