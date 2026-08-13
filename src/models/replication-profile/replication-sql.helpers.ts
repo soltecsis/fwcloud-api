@@ -31,3 +31,10 @@ export function sqlPlaceholders(count: number): string {
 export function dbQuery<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   return db.getSource().query(sql, params);
 }
+
+/** Legacy callback-style connection used by the static model helpers (Tree, etc.). */
+export function legacyConnection(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    db.get((error, connection) => (error ? reject(error) : resolve(connection)));
+  });
+}
