@@ -19,6 +19,7 @@ import type {
   DraftTransitionContext,
   FirewallProfileDraftStatus,
   FirewallProfileDraftStepLogEntry,
+  FirewallProfileDraftTargetIds,
   PreviewBoundDraftContent,
 } from './firewall-profile-draft.types';
 
@@ -39,6 +40,13 @@ export const FIREWALL_PROFILE_DRAFT_TRANSITIONS = Object.freeze({
 }) satisfies Readonly<Record<FirewallProfileDraftStatus, readonly FirewallProfileDraftStatus[]>>;
 
 export const FIREWALL_PROFILE_DRAFT_TRANSITION_AUDIT_CALL = 'firewall-profile-draft.transition';
+
+/** Audit call names for each `TargetOrchestrationService` step, keyed by step name. */
+export const FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS = Object.freeze({
+  target_created: 'assistant.drafts.target_created',
+  interfaces_created: 'assistant.drafts.interfaces_created',
+  profile_applied: 'assistant.drafts.profile_applied',
+}) satisfies Readonly<Record<string, string>>;
 
 type DraftLifecycleTimestamp =
   | 'validatedAt'
@@ -282,6 +290,117 @@ export class FirewallProfileDraftStateService extends Service {
       .execute();
   }
 
+  /**
+   * Records a completed `TargetOrchestrationService` step (`target_created` /
+   * `interfaces_created`) without moving the draft out of `apply_pending`,
+   * merging the resources it created into `target_ids` and writing a
+   * step-specific audit row in the same transaction as the step-log append.
+   *
+   * Unlike `appendStepLog()` this throws instead of silently no-oping when the
+   * draft has left `apply_pending`: a lost orchestration checkpoint must never
+   * be mistaken for "nothing happened" by whoever reconciles the draft later.
+   */
+  public async recordOrchestrationStep(
+    draftId: number,
+    entry: FirewallProfileDraftStepLogEntry,
+    context: {
+      fwCloudId: number;
+      userId?: number | null;
+      targetIds?: FirewallProfileDraftTargetIds | null;
+    },
+  ): Promise<FirewallProfileDraft> {
+    const draft = await this.loadForProcessing(draftId, context.fwCloudId);
+
+    if (draft.status !== 'apply_pending') {
+      throw new FirewallProfileDraftTransitionConflictError(
+        draft.id,
+        draft.status,
+        'apply_pending',
+      );
+    }
+
+    const auditCall = (
+      FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS as Record<string, string | undefined>
+    )[entry.step];
+    if (!auditCall) {
+      throw new Error(`Unknown target orchestration step: ${entry.step}`);
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const now = new Date();
+        const repository = manager.getRepository(FirewallProfileDraft);
+        const values: Partial<FirewallProfileDraft> = {
+          stepLog: [...(draft.stepLog ?? []), entry],
+          updatedAt: now,
+          updatedBy: context.userId ?? draft.updatedBy,
+        };
+        if (context.targetIds !== undefined) {
+          values.targetIds = context.targetIds;
+        }
+
+        const result = await repository
+          .createQueryBuilder()
+          .update(FirewallProfileDraft)
+          .set(values)
+          .where('id = :draftId', { draftId })
+          .andWhere('fwcloud_id = :fwCloudId', { fwCloudId: draft.fwCloudId })
+          .andWhere('status = :expectedStatus', { expectedStatus: 'apply_pending' })
+          .execute();
+
+        if (result.affected !== 1) {
+          throw new GuardedTransitionLostError();
+        }
+
+        const targetIds = values.targetIds ?? draft.targetIds;
+        await manager.getRepository(AuditLog).insert({
+          startedAt: now,
+          userId: context.userId ?? null,
+          userName: null,
+          sessionId: null,
+          sourceIp: null,
+          fwCloudId: draft.fwCloudId,
+          fwCloudName: null,
+          firewallId: targetIds?.firewallId ?? null,
+          firewallName: null,
+          clusterId: targetIds?.clusterId ?? null,
+          clusterName: null,
+          call: auditCall,
+          status: 200,
+          durationMs: 0,
+          data: JSON.stringify({
+            draftId: draft.id,
+            fwCloudId: draft.fwCloudId,
+            userId: context.userId ?? null,
+            step: entry.step,
+            targetKind: entry.targetKind ?? null,
+            resourceIds: entry.resourceIds ?? null,
+            requestId: entry.requestId ?? null,
+            timestamp: entry.timestamp,
+          }),
+          description: `Firewall Profile draft ${draft.id}: orchestration step ${entry.step} ${entry.status}`,
+        });
+
+        const updated = await repository.findOneBy({ id: draftId, fwCloudId: draft.fwCloudId });
+        if (!updated) {
+          throw new Error(`Firewall Profile draft ${draftId} disappeared after orchestration step`);
+        }
+        return updated;
+      });
+    } catch (error) {
+      if (!(error instanceof GuardedTransitionLostError)) {
+        throw error;
+      }
+
+      const current = await this.loadForProcessing(draftId, context.fwCloudId);
+      throw new FirewallProfileDraftTransitionConflictError(
+        draftId,
+        current.status,
+        current.status,
+      );
+    }
+  }
+
   public async transition(
     draftId: number,
     expectedStatus: FirewallProfileDraftStatus,
@@ -393,6 +512,8 @@ export class FirewallProfileDraftStateService extends Service {
       ...(context.message ? { message: context.message } : {}),
       ...(context.requestId ? { requestId: context.requestId } : {}),
       ...(context.errorCode ? { errorCode: context.errorCode } : {}),
+      ...(context.targetKind ? { targetKind: context.targetKind } : {}),
+      ...(context.resourceIds ? { resourceIds: context.resourceIds } : {}),
     };
   }
 

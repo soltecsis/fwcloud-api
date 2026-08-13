@@ -12,6 +12,23 @@ export const FIREWALL_PROFILE_DRAFT_STATUSES = [
 
 export type FirewallProfileDraftStatus = (typeof FIREWALL_PROFILE_DRAFT_STATUSES)[number];
 
+/** Kind of real infrastructure a `TargetOrchestrationService` run may create. */
+export type FirewallProfileDraftTargetKind = 'firewall' | 'cluster';
+
+/**
+ * Resource identifiers a single orchestration step created, attached to that
+ * step's log entry so a partial failure still exposes exactly what exists.
+ */
+export interface FirewallProfileDraftStepResourceIds {
+  firewallId?: number;
+  clusterId?: number;
+  nodeIds?: number[];
+  masterFirewallId?: number;
+  interfaceIds?: number[];
+  profileId?: number;
+  profileVersion?: number;
+}
+
 export interface FirewallProfileDraftStepLogEntry {
   step: string;
   status: 'started' | 'success' | 'failed';
@@ -19,12 +36,18 @@ export interface FirewallProfileDraftStepLogEntry {
   message?: string;
   requestId?: string;
   errorCode?: string;
+  /** Set on `TargetOrchestrationService` steps; absent on plain state transitions. */
+  targetKind?: FirewallProfileDraftTargetKind;
+  /** Resources this step itself created (or partially created before failing). */
+  resourceIds?: FirewallProfileDraftStepResourceIds;
 }
 
 export interface FirewallProfileDraftTargetIds {
   firewallId?: number;
   clusterId?: number;
   nodeIds?: number[];
+  masterFirewallId?: number;
+  interfaceIds?: number[];
   profileId?: number;
   profileVersion?: number;
   operationId?: number | string;
@@ -50,6 +73,10 @@ export interface DraftTransitionContext {
   previewHash?: string | null;
   applyHash?: string | null;
   targetIds?: FirewallProfileDraftTargetIds | null;
+  /** Carried onto the transition's own step-log entry, for orchestration failures. */
+  targetKind?: FirewallProfileDraftTargetKind;
+  /** Carried onto the transition's own step-log entry, for orchestration failures. */
+  resourceIds?: FirewallProfileDraftStepResourceIds;
   /**
    * Explicit `previewed_at` write. The transition normally only sets the
    * timestamp matching its target status; preview invalidation additionally
