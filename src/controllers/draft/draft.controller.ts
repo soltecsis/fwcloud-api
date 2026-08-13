@@ -34,6 +34,10 @@ import {
   type FirewallProfileDraftActor,
 } from '../../models/firewall-profile-draft/firewall-profile-draft.service';
 import { FirewallProfileDraftPreviewService } from '../../models/firewall-profile-draft/firewall-profile-draft-preview.service';
+import { FirewallProfileDraftApplyService } from '../../models/firewall-profile-draft/firewall-profile-draft-apply.service';
+import { FirewallProfileDraftApplyIdempotencyKeyMissingError } from '../../models/firewall-profile-draft/firewall-profile-draft-apply.errors';
+import type { ReplicationProfileTargetKind } from '../../models/replication-profile/replication-profile.constants';
+import { IdempotencyKeyStore } from '../../models/idempotency-key/idempotency-key-store.service';
 import { DraftPolicy } from '../../policies/draft.policy';
 import { Channel } from '../../sockets/channels/channel';
 import { AssistedProfileGenerationService } from '../../communications/assistant-agent/assisted-profile-generation.service';
@@ -45,6 +49,10 @@ import type {
 } from './dtos/draft-response.dto';
 import { deriveAssistedProfileReconciliationData } from '../../models/firewall-profile-draft/firewall-profile-draft-reconciliation';
 import { GenerateFirewallProfileDraftDto } from './dtos/generate-draft.dto';
+import { ApplyFirewallProfileDraftDto } from './dtos/apply-draft.dto';
+
+const IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
+const DRAFT_APPLY_OPERATION = 'assistant.drafts.apply';
 
 const MAX_INSTRUCTION_BYTES = 2048;
 
@@ -147,6 +155,60 @@ export class DraftController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(preview);
   }
 
+  /**
+   * Confirmed apply onto an EXISTING firewall/cluster (API-14). Requires the
+   * global confirm-token guard (`ConfirmationToken` middleware, already
+   * applied to every mutating route) plus an `Idempotency-Key` header; the
+   * body's `preview_hash` must match what API-12 issued, or the confirmation
+   * is rejected without touching the draft's state. Never creates
+   * infrastructure -- that is `TargetOrchestrationService` (API-15).
+   */
+  @Validate(ApplyFirewallProfileDraftDto)
+  public async apply(request: Request): Promise<ResponseBuilder> {
+    (await DraftPolicy.apply(request.session.user, this._fwCloud)).authorize();
+
+    const draftId = this.parseDraftParam(request);
+    const idempotencyKey = request.headers[IDEMPOTENCY_KEY_HEADER];
+    if (typeof idempotencyKey !== 'string' || idempotencyKey.trim() === '') {
+      throw new FirewallProfileDraftApplyIdempotencyKeyMissingError(draftId);
+    }
+
+    const body = request.body as ApplyFirewallProfileDraftDto;
+    const actor = this.actor(request);
+    const [applyService, idempotencyKeyStore] = await Promise.all([
+      this.applyService(),
+      this.idempotencyKeyStore(),
+    ]);
+
+    const snapshot = await idempotencyKeyStore.executeOnce(
+      {
+        operation: DRAFT_APPLY_OPERATION,
+        fwCloudId: this._fwCloud.id,
+        userId: actor.userId!,
+        idempotencyKey,
+        payload: { draftId, previewHash: body.preview_hash, target: body.target },
+        requestId: actor.sessionId ? String(actor.sessionId) : null,
+      },
+      async () => {
+        const draft = await applyService.apply(
+          draftId,
+          this._fwCloud.id,
+          {
+            previewHash: body.preview_hash,
+            target: {
+              kind: body.target.kind as ReplicationProfileTargetKind,
+              id: body.target.id,
+            },
+          },
+          actor,
+        );
+        return { statusCode: 200, body: toDetail(draft) };
+      },
+    );
+
+    return ResponseBuilder.buildResponse().status(snapshot.statusCode).body(snapshot.body);
+  }
+
   @Validate(GenerateFirewallProfileDraftDto)
   public async generate(request: Request): Promise<ResponseBuilder> {
     (await DraftPolicy.generate(request.session.user, this._fwCloud)).authorize();
@@ -190,6 +252,16 @@ export class DraftController extends Controller {
     return this._app.getService<AssistedProfileGenerationService>(
       AssistedProfileGenerationService.name,
     );
+  }
+
+  private applyService(): Promise<FirewallProfileDraftApplyService> {
+    return this._app.getService<FirewallProfileDraftApplyService>(
+      FirewallProfileDraftApplyService.name,
+    );
+  }
+
+  private idempotencyKeyStore(): Promise<IdempotencyKeyStore> {
+    return this._app.getService<IdempotencyKeyStore>(IdempotencyKeyStore.name);
   }
 
   private parseDraftParam(request: Request): number {
