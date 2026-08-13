@@ -90,6 +90,33 @@ export type PluginInstallOptions = {
   pluginParams?: string[];
 };
 
+export type CrowdSecConsoleEnrollment = {
+  enrollmentKey: string;
+  name?: string;
+  tags?: string[];
+};
+
+export type CrowdSecDecisionsQuery = {
+  limit?: number;
+  scope?: string;
+  value?: string;
+  decisionType?: string;
+  origin?: string;
+  scenario?: string;
+};
+
+export type CrowdSecAlertsQuery = {
+  limit?: number;
+  since?: string;
+  until?: string;
+  scenario?: string;
+  decisionType?: string;
+  scope?: string;
+  value?: string;
+  ip?: string;
+  range?: string;
+};
+
 type ErrorWithCode = {
   code: string;
 } & Error;
@@ -175,6 +202,32 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
     options?: PluginInstallOptions,
   ): Promise<string>;
+  abstract getCrowdSecStatus(): Promise<Record<string, unknown>>;
+  abstract installCrowdSec(eventEmitter?: EventEmitter): Promise<Record<string, unknown>>;
+  abstract installCrowdSecBouncer(eventEmitter?: EventEmitter): Promise<Record<string, unknown>>;
+  abstract uninstallCrowdSec(
+    confirm: boolean,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract getCrowdSecCollections(installed?: boolean): Promise<Record<string, unknown>>;
+  abstract installCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
+  abstract removeCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
+  abstract updateCrowdSecCollections(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecConsoleStatus(): Promise<Record<string, unknown>>;
+  abstract enrollCrowdSecConsole(
+    enrollment: CrowdSecConsoleEnrollment,
+  ): Promise<Record<string, unknown>>;
+  abstract getCrowdSecDecisions(query?: CrowdSecDecisionsQuery): Promise<Record<string, unknown>>;
+  abstract deleteCrowdSecDecision(id: string): Promise<Record<string, unknown>>;
+  abstract flushCrowdSecDecisions(confirm: boolean): Promise<Record<string, unknown>>;
+  abstract getCrowdSecAlerts(query?: CrowdSecAlertsQuery): Promise<Record<string, unknown>>;
+  abstract getCrowdSecBouncers(): Promise<Record<string, unknown>>;
+  abstract registerCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
+  abstract removeCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
+  abstract uninstallCrowdSecBouncer(
+    confirm: boolean,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (errorHasCode(error)) {

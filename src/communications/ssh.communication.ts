@@ -31,6 +31,9 @@ import sshTools from '../utils/ssh';
 import {
   CCDHash,
   Communication,
+  CrowdSecAlertsQuery,
+  CrowdSecConsoleEnrollment,
+  CrowdSecDecisionsQuery,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
@@ -727,6 +730,84 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
+  }
+
+  getCrowdSecStatus(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSec(_eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSecBouncer(_eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  uninstallCrowdSec(
+    _confirm: boolean,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecCollections(_installed?: boolean): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSecCollection(_name: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  removeCrowdSecCollection(_name: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  updateCrowdSecCollections(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecConsoleStatus(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  enrollCrowdSecConsole(_enrollment: CrowdSecConsoleEnrollment): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecDecisions(_query?: CrowdSecDecisionsQuery): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  deleteCrowdSecDecision(_id: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  flushCrowdSecDecisions(_confirm: boolean): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecAlerts(_query?: CrowdSecAlertsQuery): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecBouncers(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  registerCrowdSecBouncer(_name: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  removeCrowdSecBouncer(_name: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  uninstallCrowdSecBouncer(
+    _confirm: boolean,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
   }
 
   installDHCPConfigs(
