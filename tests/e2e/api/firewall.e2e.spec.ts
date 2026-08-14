@@ -571,6 +571,7 @@ describe(describeName('Firewall E2E Tests'), () => {
     let tree: TreeNode;
     beforeEach(async () => {
       sinon.restore();
+      app.config.set('limits.firewalls', 0);
       const response = await request(app.express)
         .post(_URL().getURL('fwclouds.store'))
         .send({
