@@ -28,6 +28,8 @@ import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
+import { Channel } from '../../../sockets/channels/channel';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
@@ -130,9 +132,19 @@ export class CrowdSecController extends Controller {
   public async install(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const channel = await Channel.fromRequest(req);
     const communication = await this.getAgentCommunication();
-    const crowdsec = await communication.installCrowdSec();
-    const firewall_bouncer = await communication.installCrowdSecBouncer();
+    channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec'));
+
+    const crowdsec = await communication.installCrowdSec(channel);
+
+    channel.emit(
+      'message',
+      new ProgressPayload('info', false, 'Installing CrowdSec Firewall Bouncer'),
+    );
+    const firewall_bouncer = await communication.installCrowdSecBouncer(channel);
+
+    channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
     return ResponseBuilder.buildResponse().status(200).body({ crowdsec, firewall_bouncer });
   }
@@ -141,7 +153,15 @@ export class CrowdSecController extends Controller {
   public async uninstall(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    const result = await (await this.getAgentCommunication()).uninstallCrowdSec(req.body.confirm);
+    const channel = await Channel.fromRequest(req);
+    channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
+
+    const result = await (
+      await this.getAgentCommunication()
+    ).uninstallCrowdSec(req.body.confirm, channel);
+
+    channel.emit('message', new ProgressPayload('end', false, 'CrowdSec uninstallation finished'));
+
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 

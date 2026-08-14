@@ -22,9 +22,13 @@
 
 import {
   AgentCommunication,
+  crowdSecProgressPayload,
   crowdSecAgentErrorToHttpException,
+  parseCrowdSecProgressMessage,
+  sanitizeCrowdSecProgressMessage,
 } from '../../../src/communications/agent.communication';
 import axios from 'axios';
+import { EventEmitter } from 'events';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect } from '../../mocha/global-setup';
@@ -338,6 +342,184 @@ describe(AgentCommunication.name, () => {
         name: 'fwcloud',
         tags: ['fwcloud'],
       });
+    });
+  });
+
+  describe('CrowdSec progress communication', () => {
+    let postStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: { steps: [] } });
+      sinon.stub(agent as any, 'createCrowdSecWebSocket').resolves('crowdsec-ws-id');
+    });
+
+    it('should request CrowdSec installation with a dedicated progress websocket', async () => {
+      await agent.installCrowdSec(new EventEmitter());
+
+      const post = postStub.firstCall;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
+      expect(post.args[1]).to.deep.equal({ ws_id: 'crowdsec-ws-id' });
+      expect(post.args[2].timeout).to.equal(0);
+    });
+
+    it('should keep CrowdSec installation requests working without a progress channel', async () => {
+      await agent.installCrowdSec();
+
+      const post = postStub.firstCall;
+      expect((agent as any).createCrowdSecWebSocket.called).to.be.false;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
+      expect(post.args[1]).to.deep.equal({});
+      expect(post.args[2].timeout).to.equal((agent as any).config.timeout);
+    });
+
+    it('should request Firewall Bouncer installation with a dedicated progress websocket', async () => {
+      await agent.installCrowdSecBouncer(new EventEmitter());
+
+      const post = postStub.firstCall;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/bouncer/install');
+      expect(post.args[1]).to.deep.equal({ ws_id: 'crowdsec-ws-id' });
+    });
+
+    it('should preserve uninstall confirmation when requesting progress', async () => {
+      await agent.uninstallCrowdSec(true, new EventEmitter());
+
+      const post = postStub.firstCall;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/uninstall');
+      expect(post.args[1]).to.deep.equal({ confirm: true, ws_id: 'crowdsec-ws-id' });
+    });
+
+    it('should request Firewall Bouncer removal with dedicated progress', async () => {
+      await agent.uninstallCrowdSecBouncer(true, new EventEmitter());
+
+      const post = postStub.firstCall;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/bouncer/uninstall');
+      expect(post.args[1]).to.deep.equal({ confirm: true, ws_id: 'crowdsec-ws-id' });
+    });
+
+    it('should redact API and enrollment keys from CrowdSec progress output', () => {
+      const message = 'api_key: secret-key\nenrollment_key="enrollment-secret"';
+
+      expect(sanitizeCrowdSecProgressMessage(message)).to.equal(
+        'api_key: [REDACTED]\nenrollment_key=[REDACTED]',
+      );
+    });
+
+    it('should parse and redact typed CrowdSec progress messages', () => {
+      expect(
+        parseCrowdSecProgressMessage('{"message_type":"success","message":"api_key: secret-key"}'),
+      ).to.deep.equal({
+        message_type: 'success',
+        message: 'api_key: [REDACTED]',
+      });
+    });
+
+    it('should preserve package output and malformed progress messages as legacy lines', () => {
+      expect(parseCrowdSecProgressMessage('Reading package lists...')).to.equal(undefined);
+      expect(parseCrowdSecProgressMessage('{"message_type":"unknown","message":"test"}')).to.equal(
+        undefined,
+      );
+    });
+
+    it('should map each typed CrowdSec progress message to its Socket.IO type', () => {
+      for (const type of ['info', 'success', 'warning', 'error']) {
+        const payload = crowdSecProgressPayload(
+          `{"message_type":"${type}","message":"CrowdSec progress"}`,
+        );
+
+        expect(payload.type).to.equal(type);
+        expect(payload.message).to.equal('CrowdSec progress');
+      }
+    });
+
+    it('should keep legacy package output and malformed messages as safe command output', () => {
+      const packageOutput = crowdSecProgressPayload('Reading package lists...');
+      const malformedMessage = crowdSecProgressPayload('api_key: legacy-secret {');
+
+      expect(packageOutput.type).to.equal('ssh_cmd_output');
+      expect(malformedMessage.type).to.equal('ssh_cmd_output');
+      expect(malformedMessage.message).to.equal('api_key: [REDACTED] {');
+    });
+  });
+
+  describe('CrowdSec operations', () => {
+    it('should forward collection list filters and mutations to the agent', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({ status: 200, data: { collections: [] } });
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
+
+      await agent.getCrowdSecCollections(true);
+      await agent.installCrowdSecCollection('crowdsecurity/sshd');
+      await agent.removeCrowdSecCollection('crowdsecurity/sshd');
+      await agent.updateCrowdSecCollections();
+
+      expect(getStub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections');
+      expect(getStub.firstCall.args[1].params).to.deep.equal({ installed: true });
+      expect(postStub.firstCall.args).to.include(
+        'http://host:0/api/v1/crowdsec/collections/install',
+      );
+      expect(postStub.firstCall.args[1]).to.deep.equal({ name: 'crowdsecurity/sshd' });
+      expect(postStub.secondCall.args).to.include(
+        'http://host:0/api/v1/crowdsec/collections/remove',
+      );
+      expect(postStub.thirdCall.args).to.include(
+        'http://host:0/api/v1/crowdsec/collections/update',
+      );
+    });
+
+    it('should map Console enrollment data without exposing it in request paths', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
+
+      await agent.enrollCrowdSecConsole({
+        enrollmentKey: 'enrollment-key',
+        name: 'fwcloud',
+        tags: ['fwcloud'],
+      });
+
+      expect(postStub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/console/enroll');
+      expect(postStub.firstCall.args[1]).to.deep.equal({
+        enrollment_key: 'enrollment-key',
+        name: 'fwcloud',
+        tags: ['fwcloud'],
+      });
+    });
+
+    it('should map decision and alert filters to the agent query format', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({ status: 200, data: {} });
+
+      await agent.getCrowdSecDecisions({
+        limit: 10,
+        decisionType: 'ban',
+        origin: 'CAPI',
+      });
+      await agent.getCrowdSecAlerts({ decisionType: 'ban', scenario: 'http:scan' });
+
+      expect(getStub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/decisions');
+      expect(getStub.firstCall.args[1].params).to.include({
+        limit: 10,
+        decision_type: 'ban',
+        origin: 'CAPI',
+      });
+      expect(getStub.secondCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/alerts');
+      expect(getStub.secondCall.args[1].params).to.include({ type: 'ban', scenario: 'http:scan' });
+    });
+
+    it('should forward decision and bouncer mutations to their agent routes', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
+      const deleteStub = sinon.stub(axios, 'delete').resolves({ status: 200, data: {} });
+
+      await agent.flushCrowdSecDecisions(true);
+      await agent.deleteCrowdSecDecision('123');
+      await agent.registerCrowdSecBouncer('remote-bouncer');
+      await agent.removeCrowdSecBouncer('remote-bouncer');
+
+      expect(postStub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/decisions/flush');
+      expect(postStub.firstCall.args[1]).to.deep.equal({ confirm: true });
+      expect(deleteStub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/decisions/123');
+      expect(postStub.secondCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncers/register',
+      );
+      expect(deleteStub.secondCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncers/remote-bouncer',
+      );
     });
   });
 });
