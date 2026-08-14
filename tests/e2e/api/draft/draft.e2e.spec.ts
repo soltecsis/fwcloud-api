@@ -29,6 +29,8 @@ import { FIREWALL_PROFILE_DRAFT_TRANSITION_AUDIT_CALL } from '../../../../src/mo
 import { FIREWALL_PROFILE_DRAFT_DISCARD_AUDIT_CALL } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.service';
 import type { FirewallProfileDraftStatus } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.types';
 import { ASSISTED_PROFILE_GENERATION_AUDIT_CALL } from '../../../../src/communications/assistant-agent/assisted-profile-generation.service';
+import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
+import { Interface } from '../../../../src/models/interface/Interface';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
@@ -39,6 +41,7 @@ import {
   generateSession,
 } from '../../../utils/utils';
 import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { In, type Repository } from 'typeorm';
 import request = require('supertest');
 
@@ -200,6 +203,50 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
           expect(body).to.not.have.property('proposal_hash');
           expect(body).to.not.have.property('preview_hash');
           expect(body).to.not.have.property('apply_hash');
+          expect(body.reconciliation).to.equal(null);
+        });
+    });
+
+    it('should expose unambiguous reconciliation data for an apply_failed draft with partial target-orchestration progress', async () => {
+      const draft = await makeDraft('apply_failed', {
+        targetIds: { firewallId: 120, interfaceIds: [301, 302] },
+        stepLog: [
+          {
+            step: 'target_created',
+            status: 'success',
+            timestamp: new Date().toISOString(),
+            targetKind: 'firewall',
+            resourceIds: { firewallId: 120 },
+          },
+          {
+            step: 'interfaces_created',
+            status: 'failed',
+            timestamp: new Date().toISOString(),
+            targetKind: 'firewall',
+            resourceIds: { interfaceIds: [301, 302] },
+            errorCode: 'INTERFACE_CREATION_FAILED',
+          },
+        ],
+      });
+
+      const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
+
+      await request(app.express)
+        .get(draftUrl(draft.id))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const body = response.body.data;
+          expect(body.status).to.equal('apply_failed');
+          expect(body.target_ids).to.deep.equal({ firewallId: 120, interfaceIds: [301, 302] });
+          expect(body.step_log).to.have.length(2);
+          expect(body.reconciliation).to.deep.equal({
+            target: { kind: 'firewall', id: 120 },
+            interfaceIds: [301, 302],
+            completedSteps: ['target_created'],
+            failedStep: 'interfaces_created',
+            errorCode: 'INTERFACE_CREATION_FAILED',
+          });
         });
     });
 
@@ -226,6 +273,250 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
           expect(response.body.data.id).to.equal(draft.id);
           expect(response.body.data.status).to.equal('expired');
           expect(response.body.data.expired_at).to.not.be.null;
+        });
+    });
+  });
+
+  describe('POST /fwclouds/:fwcloud/assistant/drafts/:draft/apply', () => {
+    const applyUrl = (draftId: number, cloudId: number = fwCloud.id) =>
+      `${draftUrl(draftId, cloudId)}/apply`;
+    const PREVIEW_HASH = 'e2e-preview-hash';
+    let target: FwCloudProduct;
+    let interfaceRepository: Repository<Interface>;
+    const provisioningProposal = () => ({
+      name: `Assisted Profile ${StringHelper.randomize(8)}`,
+      description: null,
+      scope: 'generic',
+      targetKind: 'firewall',
+      category: 'Assisted Profile',
+      model: {
+        compatibility: { targetKinds: ['firewall'] },
+        provision: {
+          interfaces: [
+            { name: 'WAN', role: 'wan' },
+            { name: 'LAN', role: 'lan' },
+          ],
+          rules: [{ chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' }],
+        },
+      },
+    });
+    const makePreviewOkDraft = (overrides: Partial<FirewallProfileDraft> = {}) =>
+      makeDraft('preview_ok', {
+        proposal: provisioningProposal(),
+        previewHash: PREVIEW_HASH,
+        ...overrides,
+      });
+    const applyBody = (firewallId: number = target.firewall.id) => ({
+      preview_hash: PREVIEW_HASH,
+      target: { kind: 'firewall', id: firewallId },
+    });
+
+    beforeEach(async () => {
+      // The target firewall must live in the SAME FWCloud the draft belongs
+      // to (ProfileApplicationService rejects cross-FWCloud targets), so this
+      // describe block points the shared `fwCloud` fixture at a freshly
+      // built FwCloudFactory product instead of reusing the bare row the
+      // outer beforeEach created.
+      target = await new FwCloudFactory().make();
+      fwCloud = target.fwcloud;
+      interfaceRepository = db.getSource().manager.getRepository(Interface);
+    });
+
+    afterEach(async () => {
+      await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .delete({ call: In([PROFILE_APPLICATION_AUDIT_CALL]) });
+    });
+
+    it('should reject guest users', async () => {
+      const draft = await makePreviewOkDraft();
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyBody())
+        .expect(401);
+    });
+
+    it('should reject users without access to the FWCloud', async () => {
+      const draft = await makePreviewOkDraft();
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyBody())
+        .expect(401);
+    });
+
+    it('should reject a request with no Idempotency-Key header with 400', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(applyBody())
+        .expect(400);
+    });
+
+    it('should reject a preview_hash that does not match with 422, leaving the draft untouched', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send({ preview_hash: 'stale-hash', target: applyBody().target })
+        .expect(422);
+
+      const reloaded = await repository.findOneByOrFail({ id: draft.id });
+      expect(reloaded.status).to.equal('preview_ok');
+    });
+
+    it('should reject an apply attempt from any status other than preview_ok with 409', async () => {
+      const draft = await makeDraft('validated');
+
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyBody())
+        .expect(409)
+        .then((response) => {
+          expect(response.body.currentStatus).to.equal('validated');
+          expect(response.body.attemptedStatus).to.equal('apply_pending');
+        });
+    });
+
+    it('should honour the confirmation-token handshake used by production deployments', async () => {
+      const previousConfirmationTokenSetting = app.config.get('confirmation_token');
+      app.config.set('confirmation_token', true);
+
+      try {
+        const draft = await makePreviewOkDraft();
+
+        const tokenResponse = await request(app.express)
+          .post(applyUrl(draft.id))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .set('Idempotency-Key', StringHelper.randomize(16))
+          .send(applyBody())
+          .expect(403);
+
+        const confirmationToken = tokenResponse.body.fwc_confirm_token;
+        expect(confirmationToken).to.be.a('string');
+
+        await request(app.express)
+          .post(applyUrl(draft.id))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .set('x-fwc-confirm-token', confirmationToken)
+          .set('Idempotency-Key', StringHelper.randomize(16))
+          .send(applyBody())
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.status).to.equal('applied');
+          });
+      } finally {
+        app.config.set('confirmation_token', previousConfirmationTokenSetting);
+      }
+    });
+
+    it('should apply the previewed profile onto the chosen existing firewall and reach applied', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyBody())
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.status).to.equal('applied');
+          expect(response.body.data.target_ids.firewallId).to.equal(target.firewall.id);
+          expect(
+            response.body.data.step_log.map((entry: { step: string }) => entry.step),
+          ).to.deep.equal(['apply_pending', 'applied']);
+        });
+
+      const interfaces = await interfaceRepository.find({
+        where: { firewallId: target.firewall.id },
+      });
+      expect(interfaces.map((iface) => iface.name)).to.include.members(['WAN', 'LAN']);
+
+      const profileAuditEntries = await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .find({ where: { call: PROFILE_APPLICATION_AUDIT_CALL, fwCloudId: fwCloud.id } });
+      expect(profileAuditEntries).to.have.length(1);
+    });
+
+    it('should return the exact cached response for a repeated same-key submission, without re-applying', async () => {
+      const draft = await makePreviewOkDraft();
+      const idempotencyKey = StringHelper.randomize(16);
+      const send = () =>
+        request(app.express)
+          .post(applyUrl(draft.id))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .set('Idempotency-Key', idempotencyKey)
+          .send(applyBody());
+
+      const first = await send().expect(200);
+      expect(first.body.data.status).to.equal('applied');
+
+      const second = await send().expect(200);
+      expect(second.body.data).to.deep.equal(first.body.data);
+
+      const profileAuditEntries = await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .find({ where: { call: PROFILE_APPLICATION_AUDIT_CALL, fwCloudId: fwCloud.id } });
+      expect(profileAuditEntries).to.have.length(1);
+    });
+
+    it('should perform exactly one real apply when two identical requests race on the same Idempotency-Key', async () => {
+      const draft = await makePreviewOkDraft();
+      const idempotencyKey = StringHelper.randomize(16);
+      const send = () =>
+        request(app.express)
+          .post(applyUrl(draft.id))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .set('Idempotency-Key', idempotencyKey)
+          .send(applyBody());
+
+      // True concurrency has two valid outcomes for the loser: it either
+      // observes the winner's completed, cached response (200) or, if it is
+      // still in progress, a 409 "in progress" -- never a second real apply.
+      const results = await Promise.all([send(), send()]);
+      for (const response of results) {
+        expect([200, 409]).to.include(response.status);
+      }
+      expect(results.some((response) => response.status === 200)).to.equal(true);
+
+      const profileAuditEntries = await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .find({ where: { call: PROFILE_APPLICATION_AUDIT_CALL, fwCloudId: fwCloud.id } });
+      expect(profileAuditEntries).to.have.length(1);
+    });
+
+    it('should transition to apply_failed with a readable error when the target does not belong to the FWCloud', async () => {
+      const otherTarget = await new FwCloudFactory().make();
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyBody(otherTarget.firewall.id))
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.status).to.equal('apply_failed');
+          const failedStep = response.body.data.step_log.find(
+            (entry: { step: string }) => entry.step === 'apply_failed',
+          );
+          expect(failedStep.status).to.equal('failed');
+          expect(failedStep.message).to.be.a('string');
         });
     });
   });

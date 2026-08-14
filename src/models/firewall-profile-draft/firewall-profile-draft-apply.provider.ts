@@ -20,21 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from '../../database/database-manager';
+import { ServiceProvider } from '../../fonaments/services/service-provider';
+import { ServiceContainer, ServiceBound } from '../../fonaments/services/service-container';
+import { AbstractApplication } from '../../fonaments/abstract-application';
+import { FirewallProfileDraftApplyService } from './firewall-profile-draft-apply.service';
 
-/** Comma-separated `?` placeholders for a SQL `IN (...)` clause. */
-export function sqlPlaceholders(count: number): string {
-  return new Array(count).fill('?').join(', ');
-}
-
-/** Raw parameterized query against the default TypeORM data source. */
-export function dbQuery<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-  return db.getSource().query(sql, params);
-}
-
-/** Legacy callback-style connection used by the static model helpers (Tree, etc.). */
-export function legacyConnection(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    db.get((error, connection) => (error ? reject(error) : resolve(connection)));
-  });
+export class FirewallProfileDraftApplyServiceProvider extends ServiceProvider {
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      FirewallProfileDraftApplyService.name,
+      (app: AbstractApplication) => {
+        return FirewallProfileDraftApplyService.make(app);
+      },
+    );
+  }
 }

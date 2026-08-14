@@ -28,9 +28,7 @@ import {
 } from './schemas/manifest';
 
 export type ContractCustomsRejectionReason =
-  | 'malformed_payload'
-  | 'unknown_schema_version'
-  | 'schema_violation';
+  'malformed_payload' | 'unknown_schema_version' | 'schema_violation';
 
 export interface ContractCustomsErrorDetail {
   instancePath: string;

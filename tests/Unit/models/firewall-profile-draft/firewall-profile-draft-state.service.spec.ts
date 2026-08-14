@@ -3,6 +3,7 @@ import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { DatabaseService } from '../../../../src/database/database.service';
 import { FirewallProfileDraft } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.model';
 import {
+  FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS,
   FIREWALL_PROFILE_DRAFT_TRANSITION_AUDIT_CALL,
   FIREWALL_PROFILE_DRAFT_TRANSITIONS,
   FirewallProfileDraftStateService,
@@ -46,6 +47,11 @@ describe(describeName('FirewallProfileDraftStateService Unit Tests'), () => {
     }
   });
 
+  const allAuditCalls = [
+    FIREWALL_PROFILE_DRAFT_TRANSITION_AUDIT_CALL,
+    ...Object.values(FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS),
+  ];
+
   afterEach(async () => {
     if (draftIds.length === 0) return;
     for (const id of draftIds.splice(0)) {
@@ -53,7 +59,7 @@ describe(describeName('FirewallProfileDraftStateService Unit Tests'), () => {
         .getRepository(AuditLog)
         .createQueryBuilder()
         .delete()
-        .where('`call` = :call', { call: FIREWALL_PROFILE_DRAFT_TRANSITION_AUDIT_CALL })
+        .where('`call` IN (:...calls)', { calls: allAuditCalls })
         .andWhere('data LIKE :draft', { draft: `%"draftId":${id}%` })
         .execute();
       await dataSource.getRepository(FirewallProfileDraft).delete(id);
@@ -201,5 +207,104 @@ describe(describeName('FirewallProfileDraftStateService Unit Tests'), () => {
       'targetIds',
       'idempotencyKeyRef',
     );
+  });
+
+  describe('recordOrchestrationStep', () => {
+    it('appends the step, merges target_ids and writes a step-specific audit row while staying apply_pending', async () => {
+      const draft = await createDraft('apply_pending');
+
+      const updated = await service.recordOrchestrationStep(
+        draft.id,
+        {
+          step: 'target_created',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+          targetKind: 'firewall',
+          resourceIds: { firewallId: 42 },
+        },
+        { fwCloudId, targetIds: { firewallId: 42 } },
+      );
+
+      expect(updated.status).to.equal('apply_pending');
+      expect(updated.stepLog).to.have.length(1);
+      expect(updated.stepLog![0]).to.include({ step: 'target_created', status: 'success' });
+      expect(updated.targetIds).to.deep.equal({ firewallId: 42 });
+
+      const reloaded = await service.loadForProcessing(draft.id, fwCloudId);
+      expect(reloaded.stepLog).to.have.length(1);
+      expect(reloaded.targetIds).to.deep.equal({ firewallId: 42 });
+
+      const auditEntries = await dataSource
+        .getRepository(AuditLog)
+        .find({ where: { call: FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS.target_created } });
+      const forThisDraft = auditEntries.filter((entry) =>
+        entry.data.includes(`"draftId":${draft.id}`),
+      );
+      expect(forThisDraft).to.have.length(1);
+      expect(forThisDraft[0].firewallId).to.equal(42);
+      const data = JSON.parse(forThisDraft[0].data) as Record<string, unknown>;
+      expect(data.step).to.equal('target_created');
+      expect(data.resourceIds).to.deep.equal({ firewallId: 42 });
+    });
+
+    it('accumulates successive steps in order without overwriting previous entries', async () => {
+      const draft = await createDraft('apply_pending');
+
+      await service.recordOrchestrationStep(
+        draft.id,
+        {
+          step: 'target_created',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+          targetKind: 'firewall',
+          resourceIds: { firewallId: 1 },
+        },
+        { fwCloudId, targetIds: { firewallId: 1 } },
+      );
+      const afterSecond = await service.recordOrchestrationStep(
+        draft.id,
+        {
+          step: 'interfaces_created',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+          targetKind: 'firewall',
+          resourceIds: { interfaceIds: [10, 11] },
+        },
+        { fwCloudId, targetIds: { firewallId: 1, interfaceIds: [10, 11] } },
+      );
+
+      expect(afterSecond.stepLog!.map((entry) => entry.step)).to.deep.equal([
+        'target_created',
+        'interfaces_created',
+      ]);
+      expect(afterSecond.targetIds).to.deep.equal({ firewallId: 1, interfaceIds: [10, 11] });
+    });
+
+    it('throws instead of silently no-oping when the draft has left apply_pending', async () => {
+      const draft = await createDraft('applied');
+
+      await expect(
+        service.recordOrchestrationStep(
+          draft.id,
+          { step: 'target_created', status: 'success', timestamp: new Date().toISOString() },
+          { fwCloudId },
+        ),
+      ).to.be.rejectedWith(FirewallProfileDraftTransitionConflictError);
+
+      const reloaded = await service.loadForProcessing(draft.id, fwCloudId);
+      expect(reloaded.stepLog ?? []).to.have.length(0);
+    });
+
+    it('rejects an unknown orchestration step name', async () => {
+      const draft = await createDraft('apply_pending');
+
+      await expect(
+        service.recordOrchestrationStep(
+          draft.id,
+          { step: 'not_a_real_step', status: 'success', timestamp: new Date().toISOString() },
+          { fwCloudId },
+        ),
+      ).to.be.rejectedWith('Unknown target orchestration step');
+    });
   });
 });

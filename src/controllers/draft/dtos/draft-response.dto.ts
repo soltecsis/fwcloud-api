@@ -3,6 +3,7 @@ import type {
   FirewallProfileDraftStepLogEntry,
   FirewallProfileDraftTargetIds,
 } from '../../../models/firewall-profile-draft/firewall-profile-draft.types';
+import type { AssistedProfileReconciliationData } from '../../../models/firewall-profile-draft/firewall-profile-draft-reconciliation';
 
 /** Draft history view without internal or detail-only payloads. */
 export interface FirewallProfileDraftSummaryDto {
@@ -29,4 +30,6 @@ export interface FirewallProfileDraftDetailDto extends FirewallProfileDraftSumma
   proposal: unknown;
   target_ids: FirewallProfileDraftTargetIds | null;
   step_log: FirewallProfileDraftStepLogEntry[] | null;
+  /** Null unless a `TargetOrchestrationService` run has left progress to reconcile. */
+  reconciliation: AssistedProfileReconciliationData | null;
 }

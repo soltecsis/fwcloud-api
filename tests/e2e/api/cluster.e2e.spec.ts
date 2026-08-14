@@ -47,6 +47,7 @@ describe(describeName('Cluster E2E test'), () => {
       }),
     );
     app.config.set('limits.clusters', 0);
+    app.config.set('limits.nodes', 0);
 
     tree = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
   });

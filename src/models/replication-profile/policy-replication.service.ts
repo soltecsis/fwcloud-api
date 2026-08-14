@@ -23,7 +23,7 @@
 import { QueryRunner } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
-import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
+import { dbQuery, legacyConnection, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import { RulePositionsMap } from '../policy/PolicyPosition';
 import { FireWallOptMask } from '../firewall/Firewall';
@@ -324,7 +324,7 @@ export class PolicyReplicationService extends Service {
     }
 
     const manager = db.getSource().manager;
-    const dbCon = await this.legacyConnection();
+    const dbCon = await legacyConnection();
 
     // 1. Create the declared interfaces and their tree nodes; remember role -> id.
     const fdiNode = (
@@ -460,13 +460,6 @@ export class PolicyReplicationService extends Service {
       });
 
     return created.id;
-  }
-
-  /** Legacy callback-style connection used by the static model helpers (Tree, etc.). */
-  private legacyConnection(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      db.get((error, connection) => (error ? reject(error) : resolve(connection)));
-    });
   }
 
   /** Builds an empty replication/provisioning result for the given mode. */
