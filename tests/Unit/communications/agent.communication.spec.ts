@@ -420,18 +420,24 @@ describe(AgentCommunication.name, () => {
       );
     });
 
-    it('should map typed CrowdSec progress messages to their Socket.IO type', () => {
-      const success = crowdSecProgressPayload(
-        '{"message_type":"success","message":"CrowdSec service is running"}',
-      );
-      const warning = crowdSecProgressPayload(
-        '{"message_type":"warning","message":"Collection is already installed"}',
-      );
-      const packageOutput = crowdSecProgressPayload('Reading package lists...');
+    it('should map each typed CrowdSec progress message to its Socket.IO type', () => {
+      for (const type of ['info', 'success', 'warning', 'error']) {
+        const payload = crowdSecProgressPayload(
+          `{"message_type":"${type}","message":"CrowdSec progress"}`,
+        );
 
-      expect(success.type).to.equal('success');
-      expect(warning.type).to.equal('warning');
+        expect(payload.type).to.equal(type);
+        expect(payload.message).to.equal('CrowdSec progress');
+      }
+    });
+
+    it('should keep legacy package output and malformed messages as safe command output', () => {
+      const packageOutput = crowdSecProgressPayload('Reading package lists...');
+      const malformedMessage = crowdSecProgressPayload('api_key: legacy-secret {');
+
       expect(packageOutput.type).to.equal('ssh_cmd_output');
+      expect(malformedMessage.type).to.equal('ssh_cmd_output');
+      expect(malformedMessage.message).to.equal('api_key: [REDACTED] {');
     });
   });
 
