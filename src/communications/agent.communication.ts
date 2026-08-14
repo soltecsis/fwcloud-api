@@ -119,6 +119,54 @@ export function sanitizeCrowdSecProgressMessage(message: string): string {
   );
 }
 
+export type CrowdSecProgressMessageType = 'info' | 'success' | 'warning' | 'error';
+
+export type CrowdSecProgressMessage = {
+  message_type: CrowdSecProgressMessageType;
+  message: string;
+};
+
+const CROWDSEC_PROGRESS_MESSAGE_TYPES: ReadonlySet<CrowdSecProgressMessageType> = new Set([
+  'info',
+  'success',
+  'warning',
+  'error',
+]);
+
+export function parseCrowdSecProgressMessage(message: string): CrowdSecProgressMessage | undefined {
+  try {
+    const value: unknown = JSON.parse(message);
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const progress = value as Record<string, unknown>;
+    if (
+      typeof progress.message_type !== 'string' ||
+      !CROWDSEC_PROGRESS_MESSAGE_TYPES.has(progress.message_type as CrowdSecProgressMessageType) ||
+      typeof progress.message !== 'string' ||
+      progress.message.length === 0
+    ) {
+      return undefined;
+    }
+
+    return {
+      message_type: progress.message_type as CrowdSecProgressMessageType,
+      message: sanitizeCrowdSecProgressMessage(progress.message),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+export function crowdSecProgressPayload(message: string): ProgressPayload {
+  const progressMessage = parseCrowdSecProgressMessage(message);
+
+  return progressMessage
+    ? new ProgressPayload(progressMessage.message_type, false, progressMessage.message)
+    : new ProgressSSHCmdPayload(sanitizeCrowdSecProgressMessage(message));
+}
+
 export class AgentCommunication extends Communication<AgentCommunicationData> {
   protected readonly url: string;
   protected readonly ws_url: string;
@@ -761,10 +809,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           waitingForWebsocketId = false;
           resolve(message);
         } else {
-          eventEmitter.emit(
-            'message',
-            new ProgressSSHCmdPayload(sanitizeCrowdSecProgressMessage(message)),
-          );
+          eventEmitter.emit('message', crowdSecProgressPayload(message));
         }
       });
 

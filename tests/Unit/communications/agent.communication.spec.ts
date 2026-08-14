@@ -22,7 +22,9 @@
 
 import {
   AgentCommunication,
+  crowdSecProgressPayload,
   crowdSecAgentErrorToHttpException,
+  parseCrowdSecProgressMessage,
   sanitizeCrowdSecProgressMessage,
 } from '../../../src/communications/agent.communication';
 import axios from 'axios';
@@ -400,6 +402,36 @@ describe(AgentCommunication.name, () => {
       expect(sanitizeCrowdSecProgressMessage(message)).to.equal(
         'api_key: [REDACTED]\nenrollment_key=[REDACTED]',
       );
+    });
+
+    it('should parse and redact typed CrowdSec progress messages', () => {
+      expect(
+        parseCrowdSecProgressMessage('{"message_type":"success","message":"api_key: secret-key"}'),
+      ).to.deep.equal({
+        message_type: 'success',
+        message: 'api_key: [REDACTED]',
+      });
+    });
+
+    it('should preserve package output and malformed progress messages as legacy lines', () => {
+      expect(parseCrowdSecProgressMessage('Reading package lists...')).to.equal(undefined);
+      expect(parseCrowdSecProgressMessage('{"message_type":"unknown","message":"test"}')).to.equal(
+        undefined,
+      );
+    });
+
+    it('should map typed CrowdSec progress messages to their Socket.IO type', () => {
+      const success = crowdSecProgressPayload(
+        '{"message_type":"success","message":"CrowdSec service is running"}',
+      );
+      const warning = crowdSecProgressPayload(
+        '{"message_type":"warning","message":"Collection is already installed"}',
+      );
+      const packageOutput = crowdSecProgressPayload('Reading package lists...');
+
+      expect(success.type).to.equal('success');
+      expect(warning.type).to.equal('warning');
+      expect(packageOutput.type).to.equal('ssh_cmd_output');
     });
   });
 
