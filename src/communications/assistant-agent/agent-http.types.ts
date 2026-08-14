@@ -73,12 +73,7 @@ export interface AgentHttpTransport {
  * which prevents the client from retrying potentially duplicated inference.
  */
 export type AgentHttpTransportFailureKind =
-  | 'connection'
-  | 'read_timeout'
-  | 'tls'
-  | 'cancelled'
-  | 'invalid_http_response'
-  | 'unknown';
+  'connection' | 'read_timeout' | 'tls' | 'cancelled' | 'invalid_http_response' | 'unknown';
 
 const TRANSPORT_FAILURE_MESSAGES: Record<AgentHttpTransportFailureKind, string> = {
   connection: 'Agent connection establishment failed',
