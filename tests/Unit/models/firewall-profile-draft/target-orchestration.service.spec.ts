@@ -39,6 +39,12 @@ describe(describeName('TargetOrchestrationService Unit Tests'), () => {
 
   beforeEach(async () => {
     await testSuite.resetDatabaseData();
+    // Other e2e suites (cluster/firewall limit tests) mutate these on the
+    // shared `app` singleton and don't always restore them, so this suite
+    // must not trust whatever value is ambient when it runs.
+    app.config.set('limits.firewalls', 0);
+    app.config.set('limits.clusters', 0);
+    app.config.set('limits.nodes', 0);
     fwc = await new FwCloudFactory().make();
     await Tree.createAllTreeCloud(fwc.fwcloud);
 
