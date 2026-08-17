@@ -115,6 +115,90 @@ describe(describeName('AssistantContractCustomsService Unit Tests'), () => {
     expect(data).to.not.have.property('X-API-Key');
   });
 
+  describe('rejected-proposal capture hook', () => {
+    interface RecordedCapture {
+      proposal: unknown;
+      rejectionCategory: string;
+      rejectionCode?: string | null;
+      contractVersion?: string | null;
+      requestId?: string | null;
+    }
+
+    async function serviceWithCapture(
+      captures: RecordedCapture[],
+      capture?: () => Promise<never>,
+    ): Promise<AssistantContractCustomsService> {
+      return AssistantContractCustomsService.create({
+        auditLogService: { logMutation: async () => null },
+        rejectedProposalCapture: {
+          capture: async (input) => {
+            captures.push(input as RecordedCapture);
+            if (capture) {
+              return capture();
+            }
+            return { captured: false as const, reason: 'disabled' as const };
+          },
+        },
+      });
+    }
+
+    it('offers the rejected payload to capture, tagged with the contract taxonomy', async () => {
+      const captures: RecordedCapture[] = [];
+      const service = await serviceWithCapture(captures);
+
+      await expectRejectedAs(
+        service.validate(invalidMissingField, { requestId: 'request-123' }),
+        AssistantContractMismatchException,
+      );
+
+      expect(captures).to.have.length(1);
+      expect(captures[0]).to.include({
+        rejectionCategory: 'contract_mismatch',
+        rejectionCode: 'schema_violation',
+        contractVersion: 'apg.mvp.v1',
+        requestId: 'request-123',
+      });
+      expect(captures[0].proposal).to.deep.equal(invalidMissingField);
+    });
+
+    it('offers an unparsable payload to capture as a malformed payload', async () => {
+      const captures: RecordedCapture[] = [];
+      const service = await serviceWithCapture(captures);
+
+      await expectRejectedAs(
+        service.validate('not json at all'),
+        AssistantContractMismatchException,
+      );
+
+      expect(captures).to.have.length(1);
+      expect(captures[0].rejectionCode).to.equal('malformed_payload');
+    });
+
+    it('never offers an accepted payload to capture', async () => {
+      const captures: RecordedCapture[] = [];
+      const service = await serviceWithCapture(captures);
+
+      await service.validate(validSuccess);
+
+      expect(captures).to.have.length(0);
+    });
+
+    it('still rejects normally when capture itself fails', async () => {
+      const captures: RecordedCapture[] = [];
+      const service = await serviceWithCapture(captures, () => {
+        throw new Error('capture exploded');
+      });
+
+      const thrown = await expectRejectedAs(
+        service.validate(invalidMissingField),
+        AssistantContractMismatchException,
+      );
+
+      expect(thrown.reason).to.equal('schema_violation');
+      expect(thrown.status).to.equal(502);
+    });
+  });
+
   it('should redact a sensitive value echoed as the untrusted schema version', async () => {
     const apiKey = 'secret-agent-api-key';
     const rejectedPayload = structuredClone(invalidUnknownVersion);
