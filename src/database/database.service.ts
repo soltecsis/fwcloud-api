@@ -108,6 +108,7 @@ import { AuditLog } from '../models/audit/AuditLog';
 import { ReplicationProfile } from '../models/replication-profile/replication-profile.model';
 import { FirewallProfileDraft } from '../models/firewall-profile-draft/firewall-profile-draft.model';
 import { IdempotencyKey } from '../models/idempotency-key/idempotency-key.model';
+import { AssistedProfileRejectedProposal } from '../models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -336,6 +337,7 @@ export class DatabaseService extends Service {
         ReplicationProfile,
         FirewallProfileDraft,
         IdempotencyKey,
+        AssistedProfileRejectedProposal,
         RouteToIPObjGroup,
         RouteToIPObj,
         RouteToOpenVPNPrefix,
