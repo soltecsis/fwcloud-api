@@ -669,6 +669,40 @@ const config = convict({
         default: 86400,
         env: 'ASSISTED_PROFILE_IDEMPOTENCY_TTL_SECONDS'
       }
+    },
+    rejected_proposal_capture: {
+      enabled: {
+        doc: 'Opt-in, pilot-only capture of ANONYMIZED proposals rejected by Assisted Profile validation, for later evaluation of rejection patterns. Disabled by default; an absent setting behaves exactly as false. The raw rejected proposal is never persisted, and accepted proposals are never captured. See docs/assisted-profile-rejected-proposal-capture.md before enabling it.',
+        format: Boolean,
+        default: false,
+        env: 'ASSISTED_PROFILE_CAPTURE_REJECTED_PROPOSALS'
+      },
+      retention_days: {
+        doc: 'Retention window, in days, applied to every captured anonymized rejected proposal. Written into each record as expires_at at capture time. Never unlimited.',
+        format: 'positive-integer',
+        default: 14,
+        env: 'ASSISTED_PROFILE_REJECTED_PROPOSAL_RETENTION_DAYS'
+      },
+      purge_job: {
+        enabled: {
+          doc: 'Enable the periodic job that physically deletes expired anonymized rejected proposals. Runs regardless of the capture flag so samples still age out after capture is switched off.',
+          format: Boolean,
+          default: true,
+          env: 'ASSISTED_PROFILE_REJECTED_PROPOSAL_PURGE_JOB_ENABLED'
+        },
+        interval_seconds: {
+          doc: 'Delay between the end of one rejected-proposal purge sweep and the start of the next.',
+          format: 'positive-integer',
+          default: 3600,
+          env: 'ASSISTED_PROFILE_REJECTED_PROPOSAL_PURGE_INTERVAL_SECONDS'
+        },
+        batch_size: {
+          doc: 'Maximum number of expired samples deleted per batch, to bound each purge sweep rather than deleting the whole backlog at once.',
+          format: 'positive-integer',
+          default: 500,
+          env: 'ASSISTED_PROFILE_REJECTED_PROPOSAL_PURGE_BATCH_SIZE'
+        }
+      }
     }
   },
 
