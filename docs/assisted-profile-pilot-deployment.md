@@ -105,6 +105,12 @@ Two separate `.env` files are involved — do not confuse them:
 it is the shared secret fwcloud-api and the agent both need for the AG-4
 channel (§7). Nothing else needs to match between the two files.
 
+The root `.env` also carries the optional, default-off rejected-proposal
+capture settings (`ASSISTED_PROFILE_CAPTURE_REJECTED_PROPOSALS`,
+`ASSISTED_PROFILE_REJECTED_PROPOSAL_RETENTION_DAYS` and the purge job's
+settings). They are **not** part of a normal pilot bring-up — see §18 before
+touching them.
+
 ## 7. API key and IP allowlist (AG-4)
 
 The agent requires both, with no insecure fallback — it refuses to start
@@ -360,6 +366,28 @@ pull/verify the new digest before the agent is allowed to start.
 | `403` from the agent for a request you expected to succeed | Source IP not in `ASSISTED_PROFILE_AGENT_ALLOWED_IPS` — check which network hop is actually connecting | §7, §12 |
 | `smoke-test.sh` fails at the service-name check | Something is using `localhost`/`127.0.0.1` for cross-container traffic instead of a Compose service name | §9 |
 | Draft routes 404 even though the stack is healthy | `ASSISTED_PROFILE_ENABLED` is still `false`, or `fwcloud-api` wasn't restarted after flipping it | §14 |
+| `assisted_profile_rejected_proposal` is filling up | Rejected-proposal capture was enabled for this deployment | §18 |
+
+## 18. Optional: anonymized rejected-proposal capture
+
+Off by default, and **not** needed to run a pilot. When explicitly enabled, an
+Assisted Profile proposal rejected by contract, mapping or domain validation is
+stored in anonymized form for a bounded retention window, so the rejection can
+be evaluated later. The raw proposal, the user's instruction and any
+actor/FWCloud identity are never stored, and accepted proposals are never
+captured.
+
+```env
+ASSISTED_PROFILE_CAPTURE_REJECTED_PROPOSALS=false   # default; absent behaves the same
+```
+
+Enabling it is a deliberate decision with privacy consequences. Read
+[`assisted-profile-rejected-proposal-capture.md`](assisted-profile-rejected-proposal-capture.md)
+first: it documents exactly which rejections qualify, every field that is and is
+not stored, the anonymization rules and their version, the retention window and
+purge job, and how to verify both. Like `ASSISTED_PROFILE_ENABLED`, this flag is
+read once at startup, so changing it requires an API restart; the startup log
+reports which state is in force.
 
 ---
 
