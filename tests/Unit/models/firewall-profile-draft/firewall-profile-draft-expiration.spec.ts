@@ -8,11 +8,9 @@ import {
   UnsupportedFirewallProfileDraftContractVersionError,
 } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.errors';
 import type { FirewallProfileDraftStatus } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.types';
-import {
-  AuditLogService,
-  type AuditLogMutationInput,
-} from '../../../../src/models/audit/AuditLog.service';
+import { AuditLogService } from '../../../../src/models/audit/AuditLog.service';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
+import { RecordingAuditLogService } from '../../../utils/recording-audit-log.service';
 import {
   DEFAULT_DRAFT_TTL_SECONDS,
   DEFAULT_EXPIRATION_BATCH_SIZE,
@@ -31,15 +29,6 @@ import {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-class RecordingAuditLogService {
-  public readonly calls: AuditLogMutationInput[] = [];
-
-  public async logMutation(input: AuditLogMutationInput): Promise<null> {
-    this.calls.push(input);
-    return null;
-  }
 }
 
 describe(describeName('resolveFirewallProfileDraftExpirationConfiguration unit tests'), () => {
