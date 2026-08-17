@@ -175,7 +175,12 @@ export class DatabaseService extends Service {
       const tables: Array<string> = await this.getTables(dataSource);
 
       let query = 'SET FOREIGN_KEY_CHECKS=0;';
-      for (let i = 0; i < tables.length; i++) query += `DROP TABLE ${tables[i]};`;
+      // IF EXISTS because the listing and the drop are not atomic: a table can
+      // already be gone by the time its DROP runs (a backup restore, an
+      // interrupted run, or a second process working on the same database).
+      // The goal here is "no tables left", so a table that is already absent is
+      // the desired outcome, not an error that aborts the whole reset.
+      for (let i = 0; i < tables.length; i++) query += `DROP TABLE IF EXISTS ${tables[i]};`;
       query += 'SET FOREIGN_KEY_CHECKS=1;';
 
       await queryRunner.query(query);
