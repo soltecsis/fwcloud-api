@@ -25,6 +25,7 @@ import { DataSource, In, LessThanOrEqual, type FindOptionsSelect } from 'typeorm
 import type { AbstractApplication } from '../../fonaments/abstract-application';
 import { logger } from '../../fonaments/abstract-application';
 import { Service } from '../../fonaments/services/service';
+import { PeriodicSweep } from '../../fonaments/services/periodic-sweep';
 import { DatabaseService } from '../../database/database.service';
 import { AuditLogService } from '../audit/AuditLog.service';
 import { FirewallProfileDraft } from './firewall-profile-draft.model';
@@ -101,8 +102,7 @@ export class ExpireFirewallProfileDraftsJob extends Service {
   private _auditLogService: AuditLogService;
   private _now: () => Date = () => new Date();
 
-  private _timer: NodeJS.Timeout | null = null;
-  private _started = false;
+  private _sweep: PeriodicSweep;
 
   public constructor(
     app: AbstractApplication | null,
@@ -136,6 +136,12 @@ export class ExpireFirewallProfileDraftsJob extends Service {
       this._overrides.auditLogService ??
       (await this._app.getService<AuditLogService>(AuditLogService.name));
 
+    this._sweep = new PeriodicSweep({
+      enabled: this._configuration.enabled,
+      intervalSeconds: this._configuration.intervalSeconds,
+      run: () => this.run(),
+    });
+
     return this;
   }
 
@@ -148,42 +154,18 @@ export class ExpireFirewallProfileDraftsJob extends Service {
   }
 
   /**
-   * Idempotent. First sweep runs after one interval, not immediately at boot.
-   *
-   * Uses a self-rescheduling timer (like `AssistedProfileHealthService`)
-   * rather than `CronService`/`cron` (like `BackupService`'s retention job):
-   * `expiration_job.interval_seconds` is a delay-since-completion, not a
-   * fixed clock-time schedule, and a plain positive-integer-seconds config
-   * value has no clean 1:1 mapping to a cron expression.
+   * Idempotent, and a no-op when the expiration job is disabled. The first
+   * sweep runs after one interval, not immediately at boot — see
+   * `PeriodicSweep` for why this is a self-rescheduling timer rather than a
+   * `CronService` schedule.
    */
   public start(): void {
-    if (this._started || !this._configuration.enabled) {
-      return;
-    }
-
-    this._started = true;
-    this.scheduleNext();
+    this._sweep.start();
   }
 
   /** Idempotent. Safe to call during application shutdown and between tests. */
   public stop(): void {
-    this._started = false;
-    if (this._timer) {
-      clearTimeout(this._timer);
-      this._timer = null;
-    }
-  }
-
-  private scheduleNext(): void {
-    this._timer = setTimeout(() => {
-      void this.run().finally(() => {
-        if (!this._started) {
-          return;
-        }
-        this.scheduleNext();
-      });
-    }, this._configuration.intervalSeconds * 1000);
-    this._timer.unref?.();
+    this._sweep.stop();
   }
 
   /**
