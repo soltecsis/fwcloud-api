@@ -22,6 +22,7 @@
 
 import {
   configurationError,
+  resolveBooleanSetting,
   resolvePositiveIntegerMs,
 } from '../../communications/assistant-agent/assistant-agent-configuration.utils';
 
@@ -52,30 +53,6 @@ export interface FirewallProfileDraftExpirationConfiguration {
   readonly batchSize: number;
 }
 
-function resolveBoolean(
-  value: boolean | string | undefined,
-  fallback: boolean,
-  name: string,
-): boolean {
-  const candidate = value ?? fallback;
-
-  if (typeof candidate === 'boolean') {
-    return candidate;
-  }
-
-  if (typeof candidate === 'string') {
-    const normalized = candidate.trim().toLowerCase();
-    if (normalized === 'true') {
-      return true;
-    }
-    if (normalized === 'false') {
-      return false;
-    }
-  }
-
-  throw configurationError(`${name} must be a boolean`);
-}
-
 /**
  * Resolves already-loaded application configuration. Convict remains the
  * authority for environment access, while this function also protects direct
@@ -89,7 +66,7 @@ export function resolveFirewallProfileDraftExpirationConfiguration(
   }
 
   return {
-    enabled: resolveBoolean(
+    enabled: resolveBooleanSetting(
       input.enabled,
       DEFAULT_EXPIRATION_JOB_ENABLED,
       'Assisted Profile draft expiration job enabled flag',
