@@ -19,6 +19,7 @@ import {
   type AssistedProfileGenerationCreateOptions,
 } from '../../../../src/communications/assistant-agent/assisted-profile-generation.service';
 import { AssistedProfileGenerationRateLimitedError } from '../../../../src/communications/assistant-agent/assisted-profile-generation.errors';
+import type { AssistedProfileRejectedProposalCaptureInput } from '../../../../src/models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
 import type { AssistedProfileGenerationProgressPayload } from '../../../../src/communications/assistant-agent/assisted-profile-generation-progress.types';
 import { waitFor } from '../../../utils/wait-for';
 
@@ -63,6 +64,7 @@ interface Harness {
   auditCalls: Array<Record<string, unknown>>;
   events: AssistedProfileGenerationProgressPayload[];
   draftCreateCalls: CreateFirewallProfileDraftInput[];
+  captureCalls: AssistedProfileRejectedProposalCaptureInput[];
   channel: { emit: (event: 'message', payload: object) => boolean };
   agentGenerate: (proposalToReturn: ValidatedAssistedProfileProposal | Error) => void;
   waitForAuditCount: (expected: number) => Promise<void>;
@@ -74,6 +76,10 @@ async function buildHarness(
   const auditCalls: Array<Record<string, unknown>> = [];
   const events: AssistedProfileGenerationProgressPayload[] = [];
   const draftCreateCalls: CreateFirewallProfileDraftInput[] = [];
+  // Stands in for the real capture service, which is off by default. Recording
+  // the calls is what proves *whether* capture is even reached, independently
+  // of what an enabled capture service would then do with the proposal.
+  const captureCalls: AssistedProfileRejectedProposalCaptureInput[] = [];
 
   const channel = {
     emit: (_event: 'message', payload: object): boolean => {
@@ -118,6 +124,12 @@ async function buildHarness(
         return null;
       },
     },
+    rejectedProposalCapture: {
+      capture: async (input: AssistedProfileRejectedProposalCaptureInput) => {
+        captureCalls.push(input);
+        return { captured: false as const, reason: 'disabled' as const };
+      },
+    },
     generationIdFactory: () => `gen_test_${++generationCounter}`,
     requestIdFactory: () => `req_test_${generationCounter}`,
     rateLimit: { maxRequests: 2, windowMs: 60_000 },
@@ -130,6 +142,7 @@ async function buildHarness(
     auditCalls,
     events,
     draftCreateCalls,
+    captureCalls,
     channel,
     agentGenerate,
     waitForAuditCount: (expected: number) => waitFor(() => auditCalls.length >= expected),
@@ -430,5 +443,144 @@ describe('AssistedProfileGenerationService unit tests', () => {
 
     expect(harness.events).to.have.length(0);
     expect(harness.draftCreateCalls).to.have.length(1);
+  });
+
+  describe('rejected-proposal capture boundary', () => {
+    const domainErrors: ReplicationProfileValidationError[] = [
+      {
+        code: 'invalid_rule_role',
+        message: "Role 'wan' is not defined.",
+        path: 'model.provision.rules[0].outRole',
+        severity: 'error',
+      },
+    ];
+
+    async function runGeneration(harness: Harness, auditCount = 1): Promise<void> {
+      await harness.service.accept({
+        fwCloudId: 10,
+        userId: 1,
+        instruction: 'Create a firewall',
+        channel: harness.channel,
+      });
+      await harness.waitForAuditCount(auditCount);
+    }
+
+    it('offers a domain-validation rejection to capture, after the rejection is decided', async () => {
+      const harness = await buildHarness({ validationService: { validate: () => domainErrors } });
+
+      await runGeneration(harness);
+
+      expect(harness.captureCalls).to.have.length(1);
+      expect(harness.captureCalls[0]).to.include({
+        rejectionCategory: 'domain_validation_failed',
+        rejectionCode: 'ASSISTED_PROFILE_DOMAIN_VALIDATION_FAILED',
+        contractVersion: '1.0.0',
+        requestId: 'req_test_1',
+      });
+      expect(harness.captureCalls[0].proposal).to.equal(SUCCESS_PROPOSAL);
+      // The client-visible outcome is unchanged by capture being reached.
+      expect(harness.draftCreateCalls).to.have.length(0);
+      expect(harness.auditCalls[0].data).to.include({ result: 'domain_validation_failed' });
+    });
+
+    it('offers a mapping failure to capture', async () => {
+      const harness = await buildHarness({
+        mapper: {
+          mapWithAssumptions: () => {
+            throw new Error('unmappable proposal');
+          },
+        },
+      });
+
+      await runGeneration(harness);
+
+      expect(harness.captureCalls).to.have.length(1);
+      expect(harness.captureCalls[0]).to.include({
+        rejectionCategory: 'mapping_failed',
+        rejectionCode: 'ASSISTED_PROFILE_MAPPING_FAILED',
+      });
+    });
+
+    it('never offers an accepted proposal to capture', async () => {
+      const harness = await buildHarness();
+
+      await runGeneration(harness);
+
+      expect(harness.draftCreateCalls).to.have.length(1);
+      expect(harness.captureCalls).to.have.length(0);
+    });
+
+    it('never offers a clarification round to capture', async () => {
+      const harness = await buildHarness();
+      harness.agentGenerate(CLARIFICATION_PROPOSAL);
+
+      const first = await harness.service.accept({
+        fwCloudId: 10,
+        userId: 1,
+        instruction: 'Open some ports',
+        channel: harness.channel,
+      });
+      await harness.waitForAuditCount(1);
+      expect(harness.captureCalls).to.have.length(0);
+
+      // Not even the terminal clarification-limit outcome is a rejection of
+      // the proposal's content.
+      await harness.service.accept({
+        fwCloudId: 10,
+        userId: 1,
+        clarification: { generationId: first.generationId, answer: 'still unclear' },
+        channel: harness.channel,
+      });
+      await harness.waitForAuditCount(2);
+      expect(harness.captureCalls).to.have.length(0);
+    });
+
+    for (const testCase of [
+      { name: 'connection failure', error: new AgentConnectionError({ requestId: 'r1' }) },
+      { name: 'read timeout', error: new AgentReadTimeoutError({ requestId: 'r1' }) },
+      { name: 'busy agent', error: new AgentBusyError({ requestId: 'r1' }) },
+    ]) {
+      it(`never offers an agent ${testCase.name} to capture`, async () => {
+        const harness = await buildHarness();
+        harness.agentGenerate(testCase.error);
+
+        await runGeneration(harness);
+
+        expect(harness.captureCalls).to.have.length(0);
+      });
+    }
+
+    it('never offers a queue-saturated request to capture', async () => {
+      const harness = await buildHarness({
+        queue: {
+          enqueue: async () => {
+            throw new GenerationQueueSaturatedError(3);
+          },
+        },
+      });
+
+      await runGeneration(harness);
+
+      expect(harness.captureCalls).to.have.length(0);
+    });
+
+    it('keeps the validator rejection intact when capture itself fails', async () => {
+      const harness = await buildHarness({
+        validationService: { validate: () => domainErrors },
+        rejectedProposalCapture: {
+          capture: async () => {
+            throw new Error('capture exploded');
+          },
+        },
+      });
+
+      await runGeneration(harness);
+
+      const failedEvent = harness.events.find((event) => event.stage === 'failed');
+      expect(failedEvent!.error!.code).to.equal('ASSISTED_PROFILE_DOMAIN_VALIDATION_FAILED');
+      expect(harness.auditCalls).to.have.length(1);
+      expect(harness.auditCalls[0].data).to.include({ result: 'domain_validation_failed' });
+      expect(harness.draftCreateCalls).to.have.length(0);
+    });
   });
 });
