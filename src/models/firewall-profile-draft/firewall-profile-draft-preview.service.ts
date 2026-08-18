@@ -23,6 +23,12 @@
 import { Service } from '../../fonaments/services/service';
 import { AuditLogService } from '../audit/AuditLog.service';
 import {
+  NOOP_ASSISTED_PROFILE_METRICS,
+  resolveAssistedProfileMetricsRecorder,
+  type AssistedProfileMetricsRecorder,
+} from '../assisted-profile-metrics/assisted-profile-metrics.service';
+import type { AssistedProfilePreviewFailureReason } from '../assisted-profile-metrics/assisted-profile-metrics.types';
+import {
   asReplicationProfileNonEmptyString,
   asReplicationProfileRecord,
 } from '../replication-profile/replication-profile.constants';
@@ -62,15 +68,20 @@ export class FirewallProfileDraftPreviewService extends Service {
   protected _validationService: ReplicationProfileValidationService;
   protected _auditLogService: AuditLogService;
   protected _hasher = new FirewallProfileDraftPreviewHasher();
+  protected _metrics: AssistedProfileMetricsRecorder = NOOP_ASSISTED_PROFILE_METRICS;
 
   public async build(): Promise<FirewallProfileDraftPreviewService> {
-    [this._stateService, this._validationService, this._auditLogService] = await Promise.all([
-      this._app.getService<FirewallProfileDraftStateService>(FirewallProfileDraftStateService.name),
-      this._app.getService<ReplicationProfileValidationService>(
-        ReplicationProfileValidationService.name,
-      ),
-      this._app.getService<AuditLogService>(AuditLogService.name),
-    ]);
+    [this._stateService, this._validationService, this._auditLogService, this._metrics] =
+      await Promise.all([
+        this._app.getService<FirewallProfileDraftStateService>(
+          FirewallProfileDraftStateService.name,
+        ),
+        this._app.getService<ReplicationProfileValidationService>(
+          ReplicationProfileValidationService.name,
+        ),
+        this._app.getService<AuditLogService>(AuditLogService.name),
+        resolveAssistedProfileMetricsRecorder(this._app),
+      ]);
 
     return this;
   }
@@ -270,9 +281,15 @@ export class FirewallProfileDraftPreviewService extends Service {
   private async auditFailure(
     draft: FirewallProfileDraft,
     actor: FirewallProfileDraftActor,
-    failureReason: string,
+    failureReason: AssistedProfilePreviewFailureReason,
     status: number,
   ): Promise<void> {
+    // Kept out of `assisted_profile_preview_total`, which counts adoption:
+    // a rejected attempt is a separate, separately-labelled series. The
+    // successful counterpart is recorded by the committed `validated ->
+    // preview_ok` transition itself, not here.
+    this._metrics.recordPreviewFailed(failureReason);
+
     await this._auditLogService.logMutation({
       ...actor,
       call: FIREWALL_PROFILE_DRAFT_PREVIEW_AUDIT_CALL,
