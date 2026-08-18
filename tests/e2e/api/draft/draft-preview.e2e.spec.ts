@@ -25,7 +25,6 @@ import db from '../../../../src/database/database-manager';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../src/models/user/User';
-import { AssistedProfileProposalMapper } from '../../../../src/models/assistant-contract/assisted-profile-proposal.mapper';
 import type { AssistedProfileAssumption } from '../../../../src/models/assistant-contract/assisted-profile-assumptions';
 import { FirewallProfileDraft } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.model';
 import {
@@ -46,25 +45,12 @@ import {
   generateSession,
 } from '../../../utils/utils';
 import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
-import {
-  makeAssistedProfileProposalFixture,
-  validateAssistedProfileFixtureAtGateway,
-} from '../../../utils/assisted-profile-proposal-fixtures';
+import { makeMappedAssistedProfileProposal as mapFixture } from '../../../utils/assisted-profile-proposal-fixtures';
 import { In, type Repository } from 'typeorm';
 import request = require('supertest');
 
 /** Tables a preview must never touch, however the proposal is shaped. */
 const TARGET_TABLES = ['firewall', 'cluster', 'interface', 'policy_r'] as const;
-
-function mapFixture(options: Parameters<typeof makeAssistedProfileProposalFixture>[0] = {}): {
-  proposal: unknown;
-  assumptions: AssistedProfileAssumption[];
-} {
-  const mapped = new AssistedProfileProposalMapper().mapWithAssumptions(
-    validateAssistedProfileFixtureAtGateway(makeAssistedProfileProposalFixture(options)),
-  );
-  return { proposal: mapped.dto, assumptions: mapped.assumptions };
-}
 
 describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
   let app: Application;
