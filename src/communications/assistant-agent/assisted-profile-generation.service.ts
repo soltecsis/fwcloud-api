@@ -42,6 +42,16 @@ import {
   type CreateFirewallProfileDraftInput,
 } from '../../models/firewall-profile-draft/firewall-profile-draft-state.service';
 import { AssistedProfileRejectedProposalCaptureService } from '../../models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
+import {
+  NOOP_ASSISTED_PROFILE_METRICS,
+  resolveAssistedProfileMetricsRecorder,
+  type AssistedProfileMetricsRecorder,
+} from '../../models/assisted-profile-metrics/assisted-profile-metrics.service';
+import {
+  ASSISTED_PROFILE_GENERATION_REJECTION_REASONS,
+  type AssistedProfileGenerationFailureReason,
+  type AssistedProfileGenerationRejectionReason,
+} from '../../models/assisted-profile-metrics/assisted-profile-metrics.types';
 import type { AssistedProfileRejectionCategory } from '../../models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal.types';
 import { GenerationQueue } from './generation-queue';
 import type { GenerationQueueRequest } from './generation-queue.types';
@@ -138,7 +148,21 @@ interface FailureClassification {
   readonly code: string;
   readonly message: string;
   readonly auditOutcome: string;
+  /**
+   * The bounded adoption-metric class for this failure (API-17). Decided in
+   * `classifyFailure()` alongside the audit outcome so the two taxonomies are
+   * derived from one `instanceof` chain and cannot drift apart, and so no
+   * caller is ever tempted to build a label out of an error message.
+   */
+  readonly metricReason:
+    AssistedProfileGenerationRejectionReason | AssistedProfileGenerationFailureReason;
 }
+
+/** Whether a classified failure is a rejection of the proposal or an infrastructure failure. */
+const isRejectionReason = (
+  reason: FailureClassification['metricReason'],
+): reason is AssistedProfileGenerationRejectionReason =>
+  (ASSISTED_PROFILE_GENERATION_REJECTION_REASONS as readonly string[]).includes(reason);
 
 export interface AssistedProfileGenerationRateLimitInput {
   readonly maxRequests?: number;
@@ -153,6 +177,7 @@ export interface AssistedProfileGenerationCreateOptions {
   readonly draftStateService?: Pick<FirewallProfileDraftStateService, 'create'>;
   readonly auditLogService?: Pick<AuditLogService, 'logMutation'>;
   readonly rejectedProposalCapture?: Pick<AssistedProfileRejectedProposalCaptureService, 'capture'>;
+  readonly metrics?: AssistedProfileMetricsRecorder;
   readonly rateLimit?: AssistedProfileGenerationRateLimitInput;
   readonly clarificationTtlMs?: number;
   readonly generationIdFactory?: () => string;
@@ -185,6 +210,7 @@ export class AssistedProfileGenerationService extends Service {
   private _draftStateService: Pick<FirewallProfileDraftStateService, 'create'>;
   private _auditLogService: Pick<AuditLogService, 'logMutation'>;
   private _rejectedProposalCapture: Pick<AssistedProfileRejectedProposalCaptureService, 'capture'>;
+  private _metrics: AssistedProfileMetricsRecorder = NOOP_ASSISTED_PROFILE_METRICS;
 
   private _rateLimitMaxRequests = DEFAULT_RATE_LIMIT_MAX_REQUESTS;
   private _rateLimitWindowMs = DEFAULT_RATE_LIMIT_WINDOW_MS;
@@ -243,6 +269,8 @@ export class AssistedProfileGenerationService extends Service {
       (await this._app.getService<AssistedProfileRejectedProposalCaptureService>(
         AssistedProfileRejectedProposalCaptureService.name,
       ));
+    this._metrics =
+      this._overrides.metrics ?? (await resolveAssistedProfileMetricsRecorder(this._app));
 
     const rateLimit = this._overrides.rateLimit ?? this.rateLimitConfigFromApplication();
     this._rateLimitMaxRequests = rateLimit.maxRequests ?? this._rateLimitMaxRequests;
@@ -338,6 +366,16 @@ export class AssistedProfileGenerationService extends Service {
       channel: request.channel,
     };
 
+    // Counted here, after every synchronous admission decision has passed
+    // (rate limit in the controller, clarification-reference lookup above):
+    // a request rejected before this line never entered the pipeline and must
+    // not appear in the funnel. A clarification answer is a second accepted
+    // request for the same `generation_id`, so it is counted under its own
+    // `attempt` value rather than as a new generation.
+    this._metrics.recordGenerationStarted(
+      request.clarification ? 'clarification_answer' : 'initial',
+    );
+
     void this.run(context);
 
     return { generationId };
@@ -427,6 +465,10 @@ export class AssistedProfileGenerationService extends Service {
             status: 200,
           }),
         );
+        // The clarification was actually emitted; the answer's own run records
+        // its outcome separately, so a clarified-then-successful generation is
+        // visible as both a clarification and a success.
+        this._metrics.recordClarification();
         return;
       }
 
@@ -506,6 +548,9 @@ export class AssistedProfileGenerationService extends Service {
           contractVersion,
         }),
       );
+      // The validated-draft counter is not incremented here: it belongs to the
+      // persistence event inside FirewallProfileDraftStateService.create().
+      this._metrics.recordGenerationSuccess();
     } catch (error) {
       const classification = this.classifyFailure(error);
       this.emitProgress(context, {
@@ -520,6 +565,11 @@ export class AssistedProfileGenerationService extends Service {
           errorCode: classification.code,
         }),
       );
+      if (isRejectionReason(classification.metricReason)) {
+        this._metrics.recordGenerationRejected(classification.metricReason);
+      } else {
+        this._metrics.recordGenerationFailed(classification.metricReason);
+      }
       // Optional evaluation capture, strictly after the client-visible outcome
       // and its audit record have been decided. Never changes either one.
       await this.captureRejectedProposal(context, error, proposal);
@@ -588,28 +638,43 @@ export class AssistedProfileGenerationService extends Service {
     };
   }
 
+  /**
+   * The single classification point for every post-202 failure. It decides
+   * three things at once — the Channel error code, the audit outcome and the
+   * bounded adoption-metric class — so an error type can never be described one
+   * way in the audit trail and another way in the metrics. Nothing derived from
+   * the error's own message ever reaches the metric class.
+   */
   private classifyFailure(error: unknown): FailureClassification {
     const classify = (
       code: string,
       message: string,
       auditOutcome: string,
+      metricReason: FailureClassification['metricReason'],
     ): FailureClassification => ({
       code,
       message,
       auditOutcome,
+      metricReason,
     });
 
     if (error instanceof GenerationAlreadyInProgressError) {
-      return classify(error.code, error.message, 'duplicate_generation_in_progress');
+      return classify(
+        error.code,
+        error.message,
+        'duplicate_generation_in_progress',
+        'duplicate_in_progress',
+      );
     }
     if (error instanceof GenerationQueueSaturatedError) {
-      return classify(error.code, error.message, 'queue_saturated');
+      return classify(error.code, error.message, 'queue_saturated', 'saturated');
     }
     if (error instanceof AgentConnectionError || error instanceof AgentTlsError) {
       return classify(
         error.code,
         'The Assisted Profile agent could not be reached.',
         'agent_connection_failed',
+        'unavailable',
       );
     }
     if (error instanceof AgentReadTimeoutError) {
@@ -617,16 +682,23 @@ export class AssistedProfileGenerationService extends Service {
         error.code,
         'The Assisted Profile agent did not respond in time.',
         'agent_timeout',
+        'timeout',
       );
     }
     if (error instanceof AgentBusyError) {
-      return classify(error.code, 'The Assisted Profile agent is currently busy.', 'agent_busy');
+      return classify(
+        error.code,
+        'The Assisted Profile agent is currently busy.',
+        'agent_busy',
+        'saturated',
+      );
     }
     if (error instanceof AgentAuthenticationError || error instanceof AgentAuthorizationError) {
       return classify(
         error.code,
         'The Assisted Profile agent rejected the request credentials.',
         'agent_authentication_failed',
+        'authentication_failed',
       );
     }
     if (error instanceof AgentContractMismatchError) {
@@ -634,22 +706,29 @@ export class AssistedProfileGenerationService extends Service {
         error.code,
         'The agent response did not match the expected contract.',
         'contract_mismatch',
+        'contract_mismatch',
       );
     }
     if (error instanceof AssistedProfileMappingFailedError) {
-      return classify(error.code, error.message, 'mapping_failed');
+      return classify(error.code, error.message, 'mapping_failed', 'mapping_failed');
     }
     if (error instanceof AssistedProfileClarificationLimitReachedError) {
-      return classify(error.code, error.message, 'clarification_limit_reached');
+      return classify(
+        error.code,
+        error.message,
+        'clarification_limit_reached',
+        'clarification_limit',
+      );
     }
     if (error instanceof AssistedProfileDomainValidationFailedError) {
-      return classify(error.code, error.message, 'domain_validation_failed');
+      return classify(error.code, error.message, 'domain_validation_failed', 'domain_validation');
     }
     if (error instanceof AgentHttpClientError) {
       return classify(
         error.code,
         'The Assisted Profile agent request failed.',
         'agent_connection_failed',
+        'transport_error',
       );
     }
 
@@ -657,6 +736,7 @@ export class AssistedProfileGenerationService extends Service {
       'ASSISTED_PROFILE_GENERATION_UNEXPECTED_ERROR',
       'Assisted Profile generation failed unexpectedly.',
       'unexpected_error',
+      'internal_error',
     );
   }
 
