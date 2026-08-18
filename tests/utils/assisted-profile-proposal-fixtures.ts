@@ -2,6 +2,8 @@ import {
   AssistantContractCustoms,
   type ValidatedAssistedProfileProposal,
 } from '../../src/models/assistant-contract/assistant-contract-customs';
+import { AssistedProfileProposalMapper } from '../../src/models/assistant-contract/assisted-profile-proposal.mapper';
+import type { AssistedProfileAssumption } from '../../src/models/assistant-contract/assisted-profile-assumptions';
 import validSuccess from '../Unit/models/assistant-contract/fixtures/valid-success.json';
 
 type TargetKind = 'firewall' | 'cluster';
@@ -23,7 +25,7 @@ export function validateAssistedProfileFixtureAtGateway(
   return result.payload;
 }
 
-interface FixtureOptions {
+export interface FixtureOptions {
   targetKind?: TargetKind;
   dmz?: boolean;
   includeSync?: boolean;
@@ -118,4 +120,21 @@ export function makeAssistedProfileProposalFixture({
   };
 
   return fixture;
+}
+
+/**
+ * A fixture taken all the way through the production chain a persisted draft
+ * went through: the API-1 gate, then the API-9 mapper. Drafts store mapped
+ * output, never the raw agent response, so any test that parks a realistic
+ * draft row needs exactly this pair rather than the fixture itself.
+ */
+export function makeMappedAssistedProfileProposal(options: FixtureOptions = {}): {
+  proposal: unknown;
+  assumptions: AssistedProfileAssumption[];
+} {
+  const mapped = new AssistedProfileProposalMapper().mapWithAssumptions(
+    validateAssistedProfileFixtureAtGateway(makeAssistedProfileProposalFixture(options)),
+  );
+
+  return { proposal: mapped.dto, assumptions: mapped.assumptions };
 }

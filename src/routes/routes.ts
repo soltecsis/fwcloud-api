@@ -67,6 +67,7 @@ import { AuditLogArchiveController } from '../controllers/audit/audit-log-archiv
 import { DraftController } from '../controllers/draft/draft.controller';
 import { ReplicationProfileController } from '../controllers/replication-profile/replication-profile.controller';
 import { AssistantAvailabilityController } from '../controllers/assistant-availability/assistant-availability.controller';
+import { AssistedProfileMetricsController } from '../controllers/assisted-profile-metrics/assisted-profile-metrics.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -116,6 +117,16 @@ export class Routes extends RouteCollection {
           router.put('/ui', UpdateController, 'proxy').name('updates.fwcloud-updater');
           router.put('/api', UpdateController, 'proxy').name('updates.fwcloud-api');
           router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
+        });
+
+        // Installation-wide Assisted Profile adoption counters (API-17).
+        // Administrator-only and not FWCloud-scoped: the pilot funnel is a
+        // property of the deployment, and no counter carries a per-FWCloud or
+        // per-user dimension.
+        router.prefix('/assisted-profile', (router: RouterParser) => {
+          router
+            .get('/metrics', AssistedProfileMetricsController, 'show')
+            .name('assisted-profile.metrics.show');
         });
       });
 

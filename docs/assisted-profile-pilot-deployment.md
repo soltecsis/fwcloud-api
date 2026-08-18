@@ -367,6 +367,7 @@ pull/verify the new digest before the agent is allowed to start.
 | `smoke-test.sh` fails at the service-name check | Something is using `localhost`/`127.0.0.1` for cross-container traffic instead of a Compose service name | §9 |
 | Draft routes 404 even though the stack is healthy | `ASSISTED_PROFILE_ENABLED` is still `false`, or `fwcloud-api` wasn't restarted after flipping it | §14 |
 | `assisted_profile_rejected_proposal` is filling up | Rejected-proposal capture was enabled for this deployment | §18 |
+| Adoption counters all read `0` on a deployment that has been in use | The API process restarted; counters are per-process and in-memory | §19 |
 
 ## 18. Optional: anonymized rejected-proposal capture
 
@@ -388,6 +389,27 @@ not stored, the anonymization rules and their version, the retention window and
 purge job, and how to verify both. Like `ASSISTED_PROFILE_ENABLED`, this flag is
 read once at startup, so changing it requires an API restart; the startup log
 reports which state is in force.
+
+## 19. Measuring pilot adoption
+
+`fwcloud-api` keeps privacy-safe counters for the whole Assisted Profile funnel
+— generation, clarification, rejection classes, validated drafts, previews,
+applies, discards and expirations — and exposes them to an administrator at:
+
+```http
+GET /assisted-profile/metrics
+```
+
+Nothing needs enabling: the counters are always collected, they carry no
+instruction, proposal, name, address or identifier of any kind, and no external
+telemetry system is involved. They are held in the API process's memory and
+reset on restart, so read them within one observation window (the response
+reports when that window started).
+
+[`assisted-profile-adoption-metrics.md`](assisted-profile-adoption-metrics.md)
+documents every counter, when it increments, its allowed label values, the
+rejection and failure classification, the privacy and cardinality guarantees,
+and the ratios a pilot review typically wants.
 
 ---
 

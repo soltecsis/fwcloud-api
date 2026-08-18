@@ -103,6 +103,7 @@ import { FirewallProfileDraftApplyServiceProvider } from './models/firewall-prof
 import { ExpireFirewallProfileDraftsJobProvider } from './models/firewall-profile-draft/firewall-profile-draft-expiration.provider';
 import { ExpireFirewallProfileDraftsJob } from './models/firewall-profile-draft/firewall-profile-draft-expiration.service';
 import { TargetOrchestrationServiceProvider } from './models/firewall-profile-draft/target-orchestration.provider';
+import { AssistedProfileMetricsServiceProvider } from './models/assisted-profile-metrics/assisted-profile-metrics.provider';
 import { AssistedProfileRejectedProposalCaptureServiceProvider } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.provider';
 import { AssistedProfileRejectedProposalCaptureService } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
 import { PurgeAssistedProfileRejectedProposalsJobProvider } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-retention.provider';
@@ -205,6 +206,7 @@ export class Application extends HTTPApplication {
       GenerationQueueProvider,
       AssistedProfileHealthServiceProvider,
       AssistedProfileGenerationServiceProvider,
+      AssistedProfileMetricsServiceProvider,
       AssistedProfileRejectedProposalCaptureServiceProvider,
       PurgeAssistedProfileRejectedProposalsJobProvider,
       AssistantContractCustomsServiceProvider,
