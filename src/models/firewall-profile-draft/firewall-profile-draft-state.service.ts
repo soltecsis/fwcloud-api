@@ -5,6 +5,11 @@ import { Service } from '../../fonaments/services/service';
 import { DatabaseService } from '../../database/database.service';
 import { AuditLog } from '../audit/AuditLog';
 import {
+  NOOP_ASSISTED_PROFILE_METRICS,
+  resolveAssistedProfileMetricsRecorder,
+  type AssistedProfileMetricsRecorder,
+} from '../assisted-profile-metrics/assisted-profile-metrics.service';
+import {
   getSupportedContractSchemas,
   VENDORED_CONTRACT_SCHEMAS,
 } from '../assistant-contract/schemas/manifest';
@@ -70,6 +75,30 @@ const LIFECYCLE_TIMESTAMP_BY_STATUS = Object.freeze({
 const transitionResult = (status: FirewallProfileDraftStatus): 'success' | 'failed' =>
   status === 'apply_failed' ? 'failed' : 'success';
 
+/**
+ * The adoption events (API-17) a committed transition represents, keyed by the
+ * status it arrives at. Recording here rather than in each caller is what makes
+ * the counters authoritative: a transition only reaches this point once the
+ * compare-and-set guard affected its single row and the transaction committed,
+ * so conflicts, retries and API-13 idempotency replays are structurally unable
+ * to increment anything.
+ *
+ * Statuses absent from this map are deliberately not adoption events:
+ * `apply_pending` is an intermediate step whose outcome is counted instead, and
+ * `validated` is only ever *re-entered* by preview invalidation — the creation
+ * of a validated draft is counted by `create()`, which is the actual
+ * persistence event.
+ */
+const ADOPTION_EVENT_BY_STATUS: Readonly<
+  Partial<Record<FirewallProfileDraftStatus, (metrics: AssistedProfileMetricsRecorder) => void>>
+> = Object.freeze({
+  preview_ok: (metrics) => metrics.recordPreviewCompleted(),
+  applied: (metrics) => metrics.recordApply('applied'),
+  apply_failed: (metrics) => metrics.recordApply('apply_failed'),
+  discarded: (metrics) => metrics.recordDraftDiscarded(),
+  expired: (metrics) => metrics.recordDraftExpired(),
+});
+
 const DRAFT_SUMMARY_SELECT = {
   id: true,
   fwCloudId: true,
@@ -113,6 +142,7 @@ export interface CreateFirewallProfileDraftInput {
 export class FirewallProfileDraftStateService extends Service {
   private dataSource: DataSource;
   private readonly supportedVersions: readonly string[];
+  private metrics: AssistedProfileMetricsRecorder = NOOP_ASSISTED_PROFILE_METRICS;
 
   public constructor(
     app: AbstractApplication,
@@ -137,6 +167,7 @@ export class FirewallProfileDraftStateService extends Service {
       const database = await this._app.getService<DatabaseService>(DatabaseService.name);
       this.dataSource = database.dataSource;
     }
+    this.metrics = await resolveAssistedProfileMetricsRecorder(this._app);
     return this;
   }
 
@@ -191,7 +222,15 @@ export class FirewallProfileDraftStateService extends Service {
       instructionOriginal: input.instructionOriginal ?? null,
       stepLog: input.stepLog ?? null,
     });
-    return repository.save(draft);
+    const created = await repository.save(draft);
+
+    // After the insert, never before: the validated-draft counter must describe
+    // rows that exist, not generations that merely reached the persistence
+    // stage. Reads of the draft afterwards go through other methods entirely,
+    // so they cannot move it again.
+    this.metrics.recordDraftValidated();
+
+    return created;
   }
 
   /**
@@ -411,7 +450,7 @@ export class FirewallProfileDraftStateService extends Service {
     this.assertTransition(draft, expectedStatus, nextStatus);
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const committed = await this.dataSource.transaction(async (manager) => {
         const now = new Date();
         const stepLog = [
           ...(draft.stepLog ?? []),
@@ -465,6 +504,10 @@ export class FirewallProfileDraftStateService extends Service {
         }
         return transitioned;
       });
+
+      this.recordAdoptionEvent(nextStatus);
+
+      return committed;
     } catch (error) {
       if (!(error instanceof GuardedTransitionLostError)) {
         throw error;
@@ -475,6 +518,15 @@ export class FirewallProfileDraftStateService extends Service {
       const current = await this.loadForProcessing(draftId, context.fwCloudId);
       throw new FirewallProfileDraftTransitionConflictError(draftId, current.status, nextStatus);
     }
+  }
+
+  /**
+   * Emits the adoption counter a just-committed transition stands for. Called
+   * only after the transaction resolved, so it describes durable state; a
+   * transition that lost the compare-and-set throws before reaching it.
+   */
+  private recordAdoptionEvent(nextStatus: FirewallProfileDraftStatus): void {
+    ADOPTION_EVENT_BY_STATUS[nextStatus]?.(this.metrics);
   }
 
   private assertSupportedContractVersion(draft: FirewallProfileDraft): void {
