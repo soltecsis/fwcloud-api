@@ -103,6 +103,10 @@ import { FirewallProfileDraftApplyServiceProvider } from './models/firewall-prof
 import { ExpireFirewallProfileDraftsJobProvider } from './models/firewall-profile-draft/firewall-profile-draft-expiration.provider';
 import { ExpireFirewallProfileDraftsJob } from './models/firewall-profile-draft/firewall-profile-draft-expiration.service';
 import { TargetOrchestrationServiceProvider } from './models/firewall-profile-draft/target-orchestration.provider';
+import { AssistedProfileRejectedProposalCaptureServiceProvider } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.provider';
+import { AssistedProfileRejectedProposalCaptureService } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
+import { PurgeAssistedProfileRejectedProposalsJobProvider } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-retention.provider';
+import { PurgeAssistedProfileRejectedProposalsJob } from './models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-retention.service';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
@@ -171,6 +175,24 @@ export class Application extends HTTPApplication {
       (
         await this.getService<ExpireFirewallProfileDraftsJob>(ExpireFirewallProfileDraftsJob.name)
       ).start();
+
+      // Rejected-proposal capture is deployment-time configuration with no
+      // runtime admin path, so its state is recorded as an operational log line
+      // at startup rather than as a user-attributed audit event.
+      (
+        await this.getService<AssistedProfileRejectedProposalCaptureService>(
+          AssistedProfileRejectedProposalCaptureService.name,
+        )
+      ).logStartupState();
+
+      // Starting the rejected-proposal retention sweep. It runs even when
+      // capture is disabled, so samples captured during a past pilot still age
+      // out; a disabled purge job is handled internally by start().
+      (
+        await this.getService<PurgeAssistedProfileRejectedProposalsJob>(
+          PurgeAssistedProfileRejectedProposalsJob.name,
+        )
+      ).start();
     }
 
     return this;
@@ -183,6 +205,8 @@ export class Application extends HTTPApplication {
       GenerationQueueProvider,
       AssistedProfileHealthServiceProvider,
       AssistedProfileGenerationServiceProvider,
+      AssistedProfileRejectedProposalCaptureServiceProvider,
+      PurgeAssistedProfileRejectedProposalsJobProvider,
       AssistantContractCustomsServiceProvider,
       AuditEventServiceProvider,
       AuditLogServiceProvider,

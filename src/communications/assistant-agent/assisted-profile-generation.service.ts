@@ -41,6 +41,8 @@ import {
   FirewallProfileDraftStateService,
   type CreateFirewallProfileDraftInput,
 } from '../../models/firewall-profile-draft/firewall-profile-draft-state.service';
+import { AssistedProfileRejectedProposalCaptureService } from '../../models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
+import type { AssistedProfileRejectionCategory } from '../../models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal.types';
 import { GenerationQueue } from './generation-queue';
 import type { GenerationQueueRequest } from './generation-queue.types';
 import {
@@ -150,6 +152,7 @@ export interface AssistedProfileGenerationCreateOptions {
   readonly validationService?: Pick<ReplicationProfileValidationService, 'validate'>;
   readonly draftStateService?: Pick<FirewallProfileDraftStateService, 'create'>;
   readonly auditLogService?: Pick<AuditLogService, 'logMutation'>;
+  readonly rejectedProposalCapture?: Pick<AssistedProfileRejectedProposalCaptureService, 'capture'>;
   readonly rateLimit?: AssistedProfileGenerationRateLimitInput;
   readonly clarificationTtlMs?: number;
   readonly generationIdFactory?: () => string;
@@ -181,6 +184,7 @@ export class AssistedProfileGenerationService extends Service {
   private _validationService: Pick<ReplicationProfileValidationService, 'validate'>;
   private _draftStateService: Pick<FirewallProfileDraftStateService, 'create'>;
   private _auditLogService: Pick<AuditLogService, 'logMutation'>;
+  private _rejectedProposalCapture: Pick<AssistedProfileRejectedProposalCaptureService, 'capture'>;
 
   private _rateLimitMaxRequests = DEFAULT_RATE_LIMIT_MAX_REQUESTS;
   private _rateLimitWindowMs = DEFAULT_RATE_LIMIT_WINDOW_MS;
@@ -234,6 +238,11 @@ export class AssistedProfileGenerationService extends Service {
     this._auditLogService =
       this._overrides.auditLogService ??
       (await this._app.getService<AuditLogService>(AuditLogService.name));
+    this._rejectedProposalCapture =
+      this._overrides.rejectedProposalCapture ??
+      (await this._app.getService<AssistedProfileRejectedProposalCaptureService>(
+        AssistedProfileRejectedProposalCaptureService.name,
+      ));
 
     const rateLimit = this._overrides.rateLimit ?? this.rateLimitConfigFromApplication();
     this._rateLimitMaxRequests = rateLimit.maxRequests ?? this._rateLimitMaxRequests;
@@ -373,6 +382,9 @@ export class AssistedProfileGenerationService extends Service {
 
   private async run(context: GenerationRunContext): Promise<void> {
     let keepEphemeral = false;
+    // Hoisted so the rejection path can still reach the proposal that was
+    // rejected. It stays in request memory only for the duration of this run.
+    let proposal: ValidatedAssistedProfileProposal | undefined;
     try {
       this.emitProgress(context, {
         stage: 'generating',
@@ -387,7 +399,7 @@ export class AssistedProfileGenerationService extends Service {
         channel: context.channel,
         execute: () => this.callAgent(context),
       };
-      const { proposal } = await this._queue.enqueue(request);
+      proposal = (await this._queue.enqueue(request)).proposal;
 
       this.emitProgress(context, {
         stage: 'validating_contract',
@@ -508,6 +520,9 @@ export class AssistedProfileGenerationService extends Service {
           errorCode: classification.code,
         }),
       );
+      // Optional evaluation capture, strictly after the client-visible outcome
+      // and its audit record have been decided. Never changes either one.
+      await this.captureRejectedProposal(context, error, proposal);
     } finally {
       if (!keepEphemeral) {
         this._ephemeral.delete(context.generationId);
@@ -643,6 +658,52 @@ export class AssistedProfileGenerationService extends Service {
       'Assisted Profile generation failed unexpectedly.',
       'unexpected_error',
     );
+  }
+
+  /**
+   * Maps a post-contract-gate failure to a capture-eligible rejection
+   * category, or `undefined` when the failure is not a rejection *of the
+   * proposal's content*: agent transport failures, timeouts, queue saturation,
+   * duplicate generations, an outstanding clarification and unexpected errors
+   * are all excluded, and most of them never produce a proposal at all.
+   */
+  private rejectionCategoryFor(error: unknown): AssistedProfileRejectionCategory | undefined {
+    if (error instanceof AssistedProfileDomainValidationFailedError) {
+      return 'domain_validation_failed';
+    }
+    if (error instanceof AssistedProfileMappingFailedError) {
+      return 'mapping_failed';
+    }
+    return undefined;
+  }
+
+  /**
+   * Hands an eligible rejected proposal to the optional capture service. The
+   * service is off by default, anonymizes before persisting and never throws;
+   * the extra guard here documents that not even a misbehaving capture
+   * implementation may alter the rejection this run already reported.
+   */
+  private async captureRejectedProposal(
+    context: GenerationRunContext,
+    error: unknown,
+    proposal: ValidatedAssistedProfileProposal | undefined,
+  ): Promise<void> {
+    const rejectionCategory = this.rejectionCategoryFor(error);
+    if (!rejectionCategory || proposal === undefined) {
+      return;
+    }
+
+    try {
+      await this._rejectedProposalCapture.capture({
+        proposal,
+        rejectionCategory,
+        rejectionCode: (error as { code?: string })?.code ?? null,
+        contractVersion: extractAssistantContractSchemaVersion(proposal) ?? null,
+        requestId: context.requestId,
+      });
+    } catch {
+      // Evaluation capture must never affect the generation outcome.
+    }
   }
 
   private errorPayload(

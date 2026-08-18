@@ -74,6 +74,8 @@ import { waitFor } from '../../../utils/wait-for';
 // dist/ — a plain string path is not enough for tsc to know to emit them.
 import validSuccessFirewallFixture from '../../../Unit/models/assistant-contract/fixtures/valid-success-firewall.json';
 import validDomainInvalidFixture from '../../../Unit/models/assistant-contract/fixtures/valid-domain-invalid.json';
+import { AssistedProfileRejectedProposalCaptureService } from '../../../../src/models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
+import { AssistedProfileRejectedProposal } from '../../../../src/models/assisted-profile-rejected-proposal/assisted-profile-rejected-proposal.model';
 
 const { createFakeAgentServer } = require('../../fake-agent/server');
 
@@ -120,7 +122,9 @@ describe(describeName('Assisted Profile generation pipeline E2E tests'), () => {
   let validationService: ReplicationProfileValidationService;
   let draftStateService: FirewallProfileDraftStateService;
   let auditLogService: AuditLogService;
+  let rejectedProposalCaptureService: AssistedProfileRejectedProposalCaptureService;
   let draftRepository: Repository<FirewallProfileDraft>;
+  let rejectedProposalRepository: Repository<AssistedProfileRejectedProposal>;
   let auditRepository: Repository<AuditLog>;
   let fwCloudRepository: Repository<FwCloud>;
   let fwCloud: FwCloud;
@@ -142,7 +146,14 @@ describe(describeName('Assisted Profile generation pipeline E2E tests'), () => {
       FirewallProfileDraftStateService.name,
     );
     auditLogService = await testSuite.app.getService<AuditLogService>(AuditLogService.name);
+    rejectedProposalCaptureService =
+      await testSuite.app.getService<AssistedProfileRejectedProposalCaptureService>(
+        AssistedProfileRejectedProposalCaptureService.name,
+      );
     draftRepository = db.getSource().manager.getRepository(FirewallProfileDraft);
+    rejectedProposalRepository = db
+      .getSource()
+      .manager.getRepository(AssistedProfileRejectedProposal);
     auditRepository = db.getSource().manager.getRepository(AuditLog);
     fwCloudRepository = db.getSource().manager.getRepository(FwCloud);
   });
@@ -227,11 +238,19 @@ describe(describeName('Assisted Profile generation pipeline E2E tests'), () => {
       validationService,
       draftStateService,
       auditLogService,
+      // The real, application-wired capture service — not a stub. In the test
+      // environment the capture flag keeps its production default (off), which
+      // is exactly what the rejection tests below assert end-to-end.
+      rejectedProposalCapture: rejectedProposalCaptureService,
       rateLimit: { maxRequests: 1000, windowMs: 60_000 },
       clarificationTtlMs: 60_000,
       generationIdFactory: () => `gen_pipeline_${++generationCounter}`,
       requestIdFactory: () => `req_pipeline_${generationCounter}`,
     });
+  }
+
+  function countRejectedProposals(): Promise<number> {
+    return rejectedProposalRepository.count();
   }
 
   async function auditsFor(generationId: string): Promise<Array<Record<string, unknown>>> {
@@ -442,6 +461,82 @@ describe(describeName('Assisted Profile generation pipeline E2E tests'), () => {
     expect(audits[0].result).to.equal('domain_validation_failed');
   });
 
+  describe('rejected-proposal capture, default configuration', () => {
+    it('has capture disabled unless a deployment opts in', () => {
+      expect(rejectedProposalCaptureService.enabled).to.equal(false);
+      expect(rejectedProposalCaptureService.configuration.captureEnabled).to.equal(false);
+    });
+
+    it('writes no rejected-proposal record for a domain-validation rejection', async () => {
+      const before = await countRejectedProposals();
+      const fakeAgent = await startFakeAgent({
+        defaultBehavior: 'healthy',
+        healthyFixturePath: require.resolve(`${FIXTURE_DIR}/valid-domain-invalid.json`),
+      });
+      const service = await buildService(fakeAgent.baseUrl);
+      const channel = fakeChannel();
+
+      const { generationId } = await service.accept({
+        fwCloudId: fwCloud.id,
+        userId: userA.id,
+        instruction: 'Create a firewall and publish HTTPS to a role that was never defined',
+        channel,
+      });
+      await waitForTerminalEvent(channel);
+      await waitForAuditCount(generationId, 1);
+
+      // The client-visible rejection is unchanged, and nothing was captured.
+      const failedEvent = channel.events[channel.events.length - 1];
+      expect(failedEvent.error!.code).to.equal('ASSISTED_PROFILE_DOMAIN_VALIDATION_FAILED');
+      expect(await countRejectedProposals()).to.equal(before);
+      expect(await draftRepository.count({ where: { fwCloudId: fwCloud.id } })).to.equal(0);
+    });
+
+    it('writes no rejected-proposal record for a contract mismatch', async () => {
+      const before = await countRejectedProposals();
+      const fakeAgent = await startFakeAgent({ defaultBehavior: 'malformed' });
+      const service = await buildService(fakeAgent.baseUrl);
+      const channel = fakeChannel();
+
+      const { generationId } = await service.accept({
+        fwCloudId: fwCloud.id,
+        userId: userA.id,
+        instruction: 'Create a firewall',
+        channel,
+      });
+      await waitForTerminalEvent(channel);
+      await waitForAuditCount(generationId, 1);
+
+      const failedEvent = channel.events[channel.events.length - 1];
+      expect(failedEvent.error!.code).to.equal('ASSISTED_PROFILE_CONTRACT_MISMATCH');
+      expect(await countRejectedProposals()).to.equal(before);
+    });
+
+    it('writes no rejected-proposal record for an accepted proposal', async () => {
+      const before = await countRejectedProposals();
+      const fakeAgent = await startFakeAgent({
+        defaultBehavior: 'healthy',
+        healthyFixturePath: require.resolve(`${FIXTURE_DIR}/valid-success-firewall.json`),
+      });
+      const service = await buildService(fakeAgent.baseUrl);
+      const channel = fakeChannel();
+
+      const { generationId } = await service.accept({
+        fwCloudId: fwCloud.id,
+        userId: userA.id,
+        instruction: 'Create a firewall with WAN and LAN, allow LAN to WAN on https',
+        channel,
+      });
+      await waitForTerminalEvent(channel);
+      await waitForAuditCount(generationId, 1);
+
+      const drafts = await draftRepository.find({ where: { fwCloudId: fwCloud.id } });
+      expect(drafts).to.have.length(1);
+      draftIds.push(drafts[0].id);
+      expect(await countRejectedProposals()).to.equal(before);
+    });
+  });
+
   const fakeAgentFailureCases: Array<{
     behavior: string;
     expectedCode: string;
@@ -532,6 +627,7 @@ describe(describeName('Assisted Profile generation pipeline E2E tests'), () => {
       validationService,
       draftStateService,
       auditLogService,
+      rejectedProposalCapture: rejectedProposalCaptureService,
       rateLimit: { maxRequests: 1000, windowMs: 60_000 },
       generationIdFactory: () => `gen_pipeline_${++generationCounter}`,
       requestIdFactory: () => `req_pipeline_${generationCounter}`,

@@ -20,8 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import type { AbstractApplication } from '../../fonaments/abstract-application';
 import { Service } from '../../fonaments/services/service';
 import { AuditLogService } from '../audit/AuditLog.service';
+import { AssistedProfileRejectedProposalCaptureService } from '../assisted-profile-rejected-proposal/assisted-profile-rejected-proposal-capture.service';
 import {
   AssistantContractCustoms,
   ContractCustomsRejected,
@@ -48,6 +50,12 @@ export const REDACTED_ASSISTANT_CONTRACT_VALUE = '<redacted>' as const;
 
 const SAFE_SCHEMA_VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$/;
 
+export interface AssistantContractCustomsServiceCreateOptions {
+  readonly customs?: AssistantContractCustoms;
+  readonly auditLogService?: Pick<AuditLogService, 'logMutation'>;
+  readonly rejectedProposalCapture?: Pick<AssistedProfileRejectedProposalCaptureService, 'capture'>;
+}
+
 /**
  * Secured entry point of the schema customs gate [D8]: validates a payload
  * received from the untrusted assistant agent against the vendored
@@ -58,14 +66,44 @@ const SAFE_SCHEMA_VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$/;
  * The raw agent payload is never written to the audit log: only the
  * rejection reason, versions involved and schema error paths/messages are
  * persisted, to avoid recording arbitrary/untrusted agent content verbatim.
+ *
+ * This is also the only place where a contract-rejected payload still exists,
+ * so it is where the optional (default-off) anonymized rejected-proposal
+ * capture hooks in. Capture receives the payload, anonymizes it and persists
+ * only the result; nothing about the rejection itself changes.
  */
 export class AssistantContractCustomsService extends Service {
   protected _customs: AssistantContractCustoms;
-  protected _auditLogService: AuditLogService;
+  protected _auditLogService: Pick<AuditLogService, 'logMutation'>;
+  protected _rejectedProposalCapture: Pick<
+    AssistedProfileRejectedProposalCaptureService,
+    'capture'
+  >;
+
+  public constructor(
+    app: AbstractApplication | null,
+    private readonly _overrides: AssistantContractCustomsServiceCreateOptions = {},
+  ) {
+    super(app);
+  }
+
+  /** Creates an initialized service with explicit dependencies (tests/tools). */
+  public static async create(
+    options: AssistantContractCustomsServiceCreateOptions = {},
+  ): Promise<AssistantContractCustomsService> {
+    return new AssistantContractCustomsService(null, options).build();
+  }
 
   public async build(): Promise<AssistantContractCustomsService> {
-    this._customs = new AssistantContractCustoms();
-    this._auditLogService = await this._app.getService<AuditLogService>(AuditLogService.name);
+    this._customs = this._overrides.customs ?? new AssistantContractCustoms();
+    this._auditLogService =
+      this._overrides.auditLogService ??
+      (await this._app.getService<AuditLogService>(AuditLogService.name));
+    this._rejectedProposalCapture =
+      this._overrides.rejectedProposalCapture ??
+      (await this._app.getService<AssistedProfileRejectedProposalCaptureService>(
+        AssistedProfileRejectedProposalCaptureService.name,
+      ));
 
     return this;
   }
@@ -112,6 +150,8 @@ export class AssistantContractCustomsService extends Service {
       fwCloudId: context.fwCloudId,
     });
 
+    await this.captureRejectedPayload(payload, result, context);
+
     throw new AssistantContractMismatchException(
       message,
       result.reason,
@@ -119,6 +159,32 @@ export class AssistantContractCustomsService extends Service {
       schemaVersion,
       result.errors,
     );
+  }
+
+  /**
+   * Optional, opt-in evaluation capture of the *anonymized* form of the payload
+   * that was just rejected. Disabled by default, and the capture service
+   * resolves rather than throws for every failure it knows about; the guard
+   * here makes sure that not even an unexpected one can turn this contract
+   * rejection into an unrelated server failure. The raw payload never leaves
+   * this method.
+   */
+  private async captureRejectedPayload(
+    payload: unknown,
+    result: ContractCustomsRejected,
+    context: AssistantContractValidationContext,
+  ): Promise<void> {
+    try {
+      await this._rejectedProposalCapture.capture({
+        proposal: payload,
+        rejectionCategory: 'contract_mismatch',
+        rejectionCode: result.reason,
+        contractVersion: result.contractVersion,
+        requestId: context.requestId ?? null,
+      });
+    } catch {
+      // Evaluation capture must never affect the contract rejection.
+    }
   }
 
   private safeSchemaVersion(

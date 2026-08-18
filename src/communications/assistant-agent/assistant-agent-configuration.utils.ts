@@ -28,6 +28,40 @@ export function configurationError(message: string): ConfigurationErrorException
 }
 
 /**
+ * Resolves a boolean setting from already-loaded configuration. Accepts a real
+ * boolean or the strings `'true'`/`'false'` (as Convict/env vars and direct
+ * test construction both may supply); rejects everything else rather than
+ * guessing what `'yes'` or `1` were meant to mean.
+ *
+ * `emptyAsFalse` opts a setting into treating an empty string as `false`, for
+ * flags whose contract is "absence behaves exactly as false".
+ */
+export function resolveBooleanSetting(
+  value: boolean | string | undefined,
+  fallback: boolean,
+  name: string,
+  { emptyAsFalse = false }: { emptyAsFalse?: boolean } = {},
+): boolean {
+  const candidate = value ?? fallback;
+
+  if (typeof candidate === 'boolean') {
+    return candidate;
+  }
+
+  if (typeof candidate === 'string') {
+    const normalized = candidate.trim().toLowerCase();
+    if (normalized === 'true') {
+      return true;
+    }
+    if (normalized === 'false' || (emptyAsFalse && normalized === '')) {
+      return false;
+    }
+  }
+
+  throw configurationError(`${name} must be a boolean`);
+}
+
+/**
  * Resolves a positive-integer-millisecond setting from already-loaded
  * configuration. Accepts a number or a digit-only string (as Convict/env vars
  * and direct test construction both may supply); rejects everything else,

@@ -15,7 +15,11 @@ See each file's own docstring for behavior detail; in short:
   `VendoredContractSchema`).
 - `assistant-contract-customs.ts` — the pure validator (`AssistantContractCustoms`).
 - `assistant-contract-customs.service.ts` — the DI wrapper
-  (`AssistantContractCustomsService`) that adds audit-on-rejection.
+  (`AssistantContractCustomsService`) that adds audit-on-rejection, and — since
+  it is the only place a contract-rejected payload still exists — the hook for
+  the opt-in, default-off anonymized rejected-proposal capture (see
+  `../assisted-profile-rejected-proposal/README.md`). Neither the audit nor the
+  capture ever records the raw payload.
 
 ## N / N-1 compatibility window [D16b]
 
