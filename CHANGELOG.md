@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime and development dependencies were aligned with the supported Node.js 20 environment.
 - Runtime dependencies (axios, mysql2, openai, typeorm, among others) and development tooling (TypeScript ESLint, eslint, prettier, sinon, `@types/node`) were bumped to their latest compatible versions.
 - The policy load script now determines the system boot state once and reuses it to skip routing reapplication and defer the Fail2Ban restart while the system is still starting up.
+- Expose OpenVPN status sampling state in tree info.
 
 ### Fixed
 - OpenVPN server installation now manages the client configuration directory correctly.
@@ -33,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenVPN status sampling column naming was normalized across the model and database layer.
 - OpenVPN status sampling file paths are now normalized consistently when saved, synced to the agent, returned by the API, and read by the status and history workers, keeping sampling in sync when the status file option changes.
 - Fail2Ban special rule compilation indentation was corrected.
+- Fail2Ban compilation code is now generated during policy compilation instead of being stored in policy rules, and existing stored code is removed by a data migration.
+- OpenVPN `status-version` values are now restricted to supported versions 1 through 3.
 
 
 ## [2.5.1] - 2026-05-20
