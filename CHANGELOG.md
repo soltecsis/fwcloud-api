@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+### Added
+- OpenVPN status sampling now supports configurable sampling interval, request max lines, and cache max size per server, validated and persisted alongside the existing settings.
+
+### Changed
+- Runtime dependencies (axios, mysql2, openai, typeorm, among others) and development tooling (TypeScript ESLint, eslint, prettier, sinon, `@types/node`) were bumped to their latest compatible versions.
+- The policy load script now determines the system boot state once and reuses it to skip routing reapplication and defer the Fail2Ban restart while the system is still starting up.
+
+### Fixed
+- OpenVPN status sampling file paths are now normalized consistently when saved, synced to the agent, returned by the API, and read by the status and history workers, keeping sampling in sync when the status file option changes.
+- Fail2Ban special rule compilation indentation was corrected.
+- Fail2Ban compilation code is now generated during policy compilation instead of being stored in policy rules, and existing stored code is removed by a data migration.
+- OpenVPN `status-version` values are now restricted to supported versions 1 through 3.
+
+
 ## [2.5.5] - 2026-07-08
 ### Added
 - Optimized NFTables policy compilation support.
