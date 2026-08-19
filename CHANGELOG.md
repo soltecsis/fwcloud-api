@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generic plugin installation parameters are now forwarded to the agent, enabling parameterized plugin activation flows.
 - OpenVPN status sampling now supports configurable sampling interval, request max lines, and cache max size per server, validated and persisted alongside the existing settings.
 - OpenVPN status sampling state is now exposed in the PKI tree info payload.
+- OpenVPN 2FA state is now exposed in the PKI tree info payload.
 
 ### Changed
 - OpenVPN status sampling state is now stored directly on OpenVPN entities, removing legacy sampling table usage, environment import flow, and collector DTO fields.
@@ -33,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenVPN status sampling column naming was normalized across the model and database layer.
 - OpenVPN status sampling file paths are now normalized consistently when saved, synced to the agent, returned by the API, and read by the status and history workers, keeping sampling in sync when the status file option changes.
 - Fail2Ban special rule compilation indentation was corrected.
+- Fail2Ban compilation code is now generated at compile time instead of being stored in policy rules, and existing stored code is cleared through a database migration.
+- User creation now accepts and decrypts PGP-encrypted passwords consistently with user updates.
+- OpenVPN `status-version` values are now validated and limited to versions 1 through 3.
 
 
 ## [2.5.1] - 2026-05-20
