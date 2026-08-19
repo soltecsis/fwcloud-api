@@ -161,6 +161,7 @@ schema.validate = req => {
 				.conditional('name', { is: 'proto-force', then: Joi.valid('udp','tcp-client','tcp-server') })
 				.conditional('name', { is: 'verb', then: Joi.valid('0','1','2','3','4','5','6','7','8','9','10','11') })
 				.conditional('name', { is: 'script-security', then: Joi.valid('0','1','2','3') })
+				.conditional('name', { is: 'status-version', then: Joi.valid('1','2','3') })
 				.conditional('name', { is: 'comp-lzo', then: Joi.string().valid('yes','no','adaptive') })
 				.conditional('name', { is: 'compress', then: Joi.string().valid('lzo','lz4', 'lz4-v2', '') })
 				.conditional('name', { is: 'route-gateway', then: Joi.string().valid('gw','dhcp') })
