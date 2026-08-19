@@ -1068,7 +1068,7 @@ export class Interface extends Model {
 
         // First see how many interfaces we have in the raw data received and fill
         // the ifsRawData array with the raw data for each interface.
-        for (; (matchNext = rawData.match(/\n[0-9]{1,4}: /)); ) {
+        for (; (matchNext = rawData.match(/\n[0-9]{1,4}: /));) {
           match = rawData.match(/^[0-9]{1,4}: /);
           ifsRawData.push(rawData.substring(match[0].length, matchNext.index));
           rawData = rawData.substring(matchNext.index + 1);

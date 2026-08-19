@@ -730,8 +730,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const response: AxiosResponse<{ accepted: boolean }> = await axios.put(
         pathUrl,
         {
-          enabled: configData.enabled,
-          status_files: configData.statusFiles,
+          status_files: configData.statusFiles.map((statusFile) => ({
+            path: statusFile.path,
+            sampling_interval: statusFile.samplingInterval,
+            request_max_lines: statusFile.requestMaxLines,
+            cache_max_size: statusFile.cacheMaxSize,
+          })),
         },
         config,
       );
@@ -751,15 +755,23 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const pathUrl: string = this.url + '/api/v1/openvpn/status/sampling';
       const response: AxiosResponse<{
         accepted: boolean;
-        enabled: boolean;
-        status_files: string[];
+        status_files: {
+          path: string;
+          sampling_interval: number;
+          request_max_lines: number;
+          cache_max_size: number;
+        }[];
       }> = await axios.get(pathUrl, this.config);
 
       if (response.status === 200 && response.data.accepted) {
         return {
           accepted: response.data.accepted,
-          enabled: response.data.enabled,
-          statusFiles: response.data.status_files,
+          statusFiles: response.data.status_files.map((statusFile) => ({
+            path: statusFile.path,
+            samplingInterval: statusFile.sampling_interval,
+            requestMaxLines: statusFile.request_max_lines,
+            cacheMaxSize: statusFile.cache_max_size,
+          })),
         };
       }
 

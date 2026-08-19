@@ -42,26 +42,9 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
   let manager: EntityManager;
 
   const expectedCmd =
-    'state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
-    'case "$state" in\n' +
-    '  running|degraded)\n' +
-    '    systemctl restart fail2ban\n' +
-    '    ;;\n' +
-    '  *)\n' +
-    '    : ### boot still in progress (or system is in trouble like maintenance)\n' +
-    '    ;;\n' +
-    'esac';
-  const cmd =
-    '\n' +
-    '            state="$(systemctl is-system-running 2>/dev/null || true)"\n' +
-    '            case "$state" in\n' +
-    '              running|degraded)\n' +
-    '                systemctl restart fail2ban\n' +
-    '                ;;\n' +
-    '              *)\n' +
-    '                : ### boot still in progress (or system is in trouble like maintenance)\n' +
-    '                ;;\n' +
-    '            esac\n';
+    'if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+    '  systemctl restart fail2ban\n' +
+    'fi';
   const comment = 'Fail2Ban compatibility rule';
 
   const ruleData = {
@@ -72,7 +55,7 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     active: 1,
     special: SpecialPolicyRules.FAIL2BAN,
     options: 1,
-    run_before: cmd,
+    run_before: '',
     run_after: null,
     fw_apply_to: null,
     comment: comment,
@@ -126,6 +109,19 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     manager = db.getSource().manager;
     fwcProduct = await new FwCloudFactory().make();
     ruleData.firewall = fwcProduct.firewall.id;
+  });
+
+  it('should create the special rule without persisting compilation code', async () => {
+    await PolicyRule.createSpecialRule(dbCon, fwcProduct.firewall.id, SpecialPolicyRules.FAIL2BAN);
+
+    const repository = manager.getRepository(PolicyRule);
+    const fail2banRule = await repository.findOneByOrFail({
+      firewallId: fwcProduct.firewall.id,
+      special: SpecialPolicyRules.FAIL2BAN,
+    });
+
+    expect(fail2banRule.run_before).to.eq('');
+    await repository.delete(fail2banRule.id);
   });
 
   describe('IPv4', () => {
