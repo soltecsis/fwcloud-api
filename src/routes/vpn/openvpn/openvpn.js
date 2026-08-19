@@ -59,7 +59,10 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
-import { OpenVPNStatusSamplingService } from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
+import {
+	extractOpenVPNStatusFilePath,
+	OpenVPNStatusSamplingService,
+} from '../../../models/vpn/openvpn/status/openvpn-status-sampling.service';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
@@ -146,6 +149,30 @@ const disableOpenVPNStatusSamplingIfEnabled = async (openvpnId) => {
 	});
 
 	await samplingService.syncAgent(disabledSampling);
+};
+
+const getOpenVPNStatusFilePath = (options = []) => {
+	const statusOption = options.find((option) => option.name === 'status');
+	return extractOpenVPNStatusFilePath(statusOption?.arg ?? statusOption?.value);
+};
+
+const syncOpenVPNStatusSamplingIfStatusFileChanged = async (
+	openvpnId,
+	currentOptions,
+	nextOptions,
+) => {
+	if (getOpenVPNStatusFilePath(currentOptions) === getOpenVPNStatusFilePath(nextOptions)) {
+		return;
+	}
+
+	const samplingService = await new OpenVPNStatusSamplingService(undefined).build();
+	const sampling = await samplingService.findOneByOpenVPN(openvpnId);
+
+	if (!sampling || !sampling.statusSamplingEnabled) {
+		return;
+	}
+
+	await samplingService.syncAgent(sampling);
 };
 
 const getCommunicationForFirewall = async (firewall, req) => {
@@ -690,6 +717,12 @@ router.put('/', async (req, res) => {
 			opt.order = order++;
 			await OpenVPN.addCfgOpt(req, opt);
 		}
+
+		await syncOpenVPNStatusSamplingIfStatusFileChanged(
+			req.body.openvpn,
+			currentOptions,
+			req.body.options,
+		);
 
 		// Update the status flag if any option changed (any scope).
 		const formatOptions = (options = []) => options
@@ -1254,7 +1287,8 @@ router.put('/status/get', async (req, res, next) => {
 		// Obtain the status log file option of the OpenVPN server configuration.
 		const openvpn_opt = await OpenVPN.getOptData(req.dbCon, req.body.openvpn, 'status');
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_STATUS;
-		const status_file_path = openvpn_opt.arg;
+		const status_file_path = extractOpenVPNStatusFilePath(openvpn_opt.arg);
+		if (!status_file_path) throw fwcError.VPN_NOT_FOUND_STATUS;
 
 		const data = await communication.getRealtimeStatus(status_file_path);
 
