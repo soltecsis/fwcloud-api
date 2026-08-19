@@ -190,7 +190,9 @@ export abstract class PolicyCompilerTools {
       case SpecialPolicyRules.HOOKSCRIPT: {
         const ruleCode =
           this._ruleData.special == SpecialPolicyRules.FAIL2BAN
-            ? this.removeCommonIndentation(this._ruleData.run_before)
+            ? 'if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then\n' +
+              '  systemctl restart fail2ban\n' +
+              'fi'
             : this._ruleData.run_before;
 
         this._cs =
@@ -206,25 +208,6 @@ export abstract class PolicyCompilerTools {
         break;
       }
     }
-  }
-
-  private removeCommonIndentation(code: string): string {
-    if (!code) return code;
-
-    const lines = code.replace(/\r\n/g, '\n').split('\n');
-    while (lines.length > 0 && lines[0].trim().length === 0) lines.shift();
-    while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) lines.pop();
-
-    const indentation = lines
-      .filter((line) => line.trim().length > 0)
-      .reduce((minimum: number, line: string) => {
-        const current = line.match(/^[ \t]*/)?.[0].length ?? 0;
-        return Math.min(minimum, current);
-      }, Number.MAX_SAFE_INTEGER);
-
-    if (!Number.isFinite(indentation) || indentation === 0) return lines.join('\n');
-
-    return lines.map((line) => line.slice(indentation)).join('\n');
   }
 
   protected beforeCompilation(): void {
