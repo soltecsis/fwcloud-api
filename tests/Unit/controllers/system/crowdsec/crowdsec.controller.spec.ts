@@ -347,6 +347,18 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(crowdsecStub.calledOnceWithExactly(channel, undefined)).to.be.true;
   });
 
+  it('should reject CrowdSec installation before reading the backend or contacting the agent', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+    const backendStub = sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend');
+    const installStub = sinon.stub(communication, 'installCrowdSec');
+
+    await expect(controller.install({ session: { user: null } } as unknown as Request)).to.be
+      .rejected;
+
+    expect(backendStub.called).to.be.false;
+    expect(installStub.called).to.be.false;
+  });
+
   it('should forward the uninstall confirmation to the agent', async () => {
     const listener = new EventEmitter();
     const channel = new Channel('crowdsec-uninstall', listener);

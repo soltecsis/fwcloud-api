@@ -236,6 +236,13 @@ describe(AgentCommunication.name, () => {
       expect(consoleError.status).to.equal(422);
       expect(consoleError.message).to.equal('CrowdSec Console enrollment request is invalid');
     });
+
+    it('should map firewall integration errors without exposing agent details', () => {
+      const error = crowdSecAgentErrorToHttpException('CROWDSEC_FIREWALL_INTEGRATION_INVALID');
+
+      expect(error.status).to.equal(409);
+      expect(error.message).to.equal('CrowdSec firewall integration is invalid');
+    });
   });
 
   describe('CrowdSec collections', () => {
