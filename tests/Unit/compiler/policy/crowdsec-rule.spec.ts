@@ -1,5 +1,5 @@
 /*!
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -21,6 +21,7 @@
 */
 
 import { describeName, expect } from '../../../mocha/global-setup';
+import sinon from 'sinon';
 import { PolicyRule, SpecialPolicyRules } from '../../../../src/models/policy/PolicyRule';
 import db from '../../../../src/database/database-manager';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
@@ -28,10 +29,13 @@ import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
 import { populateRule } from './utils';
 import {
   AvailablePolicyCompilers,
+  getCrowdSecFirewallBouncerBackend,
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { EntityManager } from 'typeorm';
+import { PolicyScript } from '../../../../src/compiler/policy/PolicyScript';
+import { FireWallOptMask, Firewall } from '../../../../src/models/firewall/Firewall';
 
 describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () => {
   let fwcProduct: FwCloudProduct;
@@ -56,6 +60,57 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
     fw_apply_to: null,
     comment: comment,
   };
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  describe('CrowdSec Firewall Bouncer backend selection', () => {
+    it('should map IPTables and NFTables compilers to their CrowdSec backends', () => {
+      expect(getCrowdSecFirewallBouncerBackend('IPTables')).to.equal('iptables');
+      expect(getCrowdSecFirewallBouncerBackend('NFTables')).to.equal('nftables');
+    });
+
+    it('should not select a CrowdSec backend for VyOS', () => {
+      expect(getCrowdSecFirewallBouncerBackend('VyOS')).to.equal(null);
+    });
+  });
+
+  describe('CrowdSec NFTables compatibility', () => {
+    it('should create timeout-enabled IPv4 and IPv6 blacklist sets', async () => {
+      const writes: string[] = [];
+      const script = new PolicyScript({}, 1, 1);
+      (script as any).stream = {
+        write: (content: string) => writes.push(content),
+      };
+
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(FireWallOptMask.CROWDSEC_COMPAT);
+
+      await (script as any).dumpNFTablesStd();
+
+      const output = writes.join('');
+      expect(output).to.contain(
+        '$NFT add set ip filter crowdsec-blacklists { type ipv4_addr\\; flags timeout\\; }',
+      );
+      expect(output).to.contain(
+        '$NFT add set ip6 filter crowdsec6-blacklists { type ipv6_addr\\; flags timeout\\; }',
+      );
+    });
+
+    it('should not create blacklist sets without CrowdSec compatibility', async () => {
+      const writes: string[] = [];
+      const script = new PolicyScript({}, 1, 1);
+      (script as any).stream = {
+        write: (content: string) => writes.push(content),
+      };
+
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(0);
+
+      await (script as any).dumpNFTablesStd();
+
+      expect(writes.join('')).not.to.contain('crowdsec-blacklists');
+    });
+  });
 
   async function runTest(): Promise<void> {
     let rule: number;
@@ -84,7 +139,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
     const cs =
       compiler === 'IPTables'
         ? `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
-        : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip saddr . ip daddr vmap @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
+        : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip${IPv === 'IPv4' ? '' : '6'} saddr @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
 
     if (
       ruleData.type != PolicyTypesMap.get('IPv4:INPUT') &&

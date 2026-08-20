@@ -1,5 +1,5 @@
 /*
-    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -32,6 +32,16 @@ import db from '../../database/database-manager';
 
 export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler | VyOSCompiler;
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables' | 'VyOS';
+export type CrowdSecFirewallBouncerBackend = 'iptables' | 'nftables';
+
+export function getCrowdSecFirewallBouncerBackend(
+  compiler: AvailablePolicyCompilers,
+): CrowdSecFirewallBouncerBackend | null {
+  if (compiler === 'IPTables') return 'iptables';
+  if (compiler === 'NFTables') return 'nftables';
+
+  return null;
+}
 
 export class PolicyCompiler {
   private static checkRuleSafety(
