@@ -134,19 +134,17 @@ export class CrowdSecController extends Controller {
 
     const channel = await Channel.fromRequest(req);
     const communication = await this.getAgentCommunication();
+    const backend = await Firewall.getCrowdSecFirewallBouncerBackend(
+      this._firewall.fwCloudId,
+      this._firewall.id,
+    );
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec'));
 
-    const crowdsec = await communication.installCrowdSec(channel);
-
-    channel.emit(
-      'message',
-      new ProgressPayload('info', false, 'Installing CrowdSec Firewall Bouncer'),
-    );
-    const firewall_bouncer = await communication.installCrowdSecBouncer(channel);
+    const crowdsec = await communication.installCrowdSec(channel, backend ?? undefined);
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
-    return ResponseBuilder.buildResponse().status(200).body({ crowdsec, firewall_bouncer });
+    return ResponseBuilder.buildResponse().status(200).body({ crowdsec });
   }
 
   @Validate(CrowdSecUninstallDto)
