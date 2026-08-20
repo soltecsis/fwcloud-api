@@ -29,6 +29,7 @@ import {
 } from '../../../src/communications/agent.communication';
 import axios from 'axios';
 import { EventEmitter } from 'events';
+import FormData from 'form-data';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect } from '../../mocha/global-setup';
@@ -362,6 +363,14 @@ describe(AgentCommunication.name, () => {
       expect(post.args[2].timeout).to.equal(0);
     });
 
+    it('should forward the selected CrowdSec Firewall Bouncer backend', async () => {
+      await agent.installCrowdSec(new EventEmitter(), 'nftables');
+
+      const post = postStub.firstCall;
+      expect(post.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
+      expect(post.args[1]).to.deep.equal({ backend: 'nftables', ws_id: 'crowdsec-ws-id' });
+    });
+
     it('should keep CrowdSec installation requests working without a progress channel', async () => {
       await agent.installCrowdSec();
 
@@ -438,6 +447,22 @@ describe(AgentCommunication.name, () => {
       expect(packageOutput.type).to.equal('ssh_cmd_output');
       expect(malformedMessage.type).to.equal('ssh_cmd_output');
       expect(malformedMessage.message).to.equal('api_key: [REDACTED] {');
+    });
+  });
+
+  describe('Firewall policy installation', () => {
+    it('should forward the CrowdSec backend in the agent upload form', async () => {
+      const append = sinon.spy(FormData.prototype, 'append');
+      sinon.stub(axios, 'post').resolves({ status: 200, data: '' });
+      sinon.stub(agent as any, 'createWebSocket').resolves('policy-ws-id');
+
+      await agent.installFirewallPolicy(
+        'src/communications/communication.ts',
+        undefined,
+        'nftables',
+      );
+
+      expect(append.calledWith('crowdsec_backend', 'nftables')).to.be.true;
     });
   });
 

@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -34,6 +34,7 @@ import {
   CrowdSecAlertsQuery,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
+  CrowdSecFirewallBackend,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
@@ -140,6 +141,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   async installFirewallPolicy(
     scriptPath: string,
     eventEmitter: EventEmitter = new EventEmitter(),
+    _crowdSecBackend?: CrowdSecFirewallBackend,
   ): Promise<string> {
     try {
       if (!app().config.get('firewall_communication.ssh_enable')) {
@@ -736,7 +738,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
-  installCrowdSec(_eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+  installCrowdSec(
+    _eventEmitter?: EventEmitter,
+    _backend?: CrowdSecFirewallBackend,
+  ): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
 
