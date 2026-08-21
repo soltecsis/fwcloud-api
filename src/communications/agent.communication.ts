@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -27,6 +27,7 @@ import {
   CrowdSecAlertsQuery,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
+  CrowdSecFirewallBackend,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentConfig,
@@ -205,6 +206,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   async installFirewallPolicy(
     scriptPath: string,
     eventEmitter: EventEmitter = new EventEmitter(),
+    crowdSecBackend?: CrowdSecFirewallBackend,
   ): Promise<string> {
     try {
       const pathUrl: string = this.url + '/api/v1/fwcloud_script/upload';
@@ -214,6 +216,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       form.append('perms', 700);
       form.append('upload', fs.createReadStream(scriptPath));
       form.append('ws_id', await this.createWebSocket(eventEmitter));
+      if (crowdSecBackend !== undefined) {
+        form.append('crowdsec_backend', crowdSecBackend);
+      }
 
       eventEmitter.emit(
         'message',
@@ -1141,10 +1146,17 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async installCrowdSec(eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+  async installCrowdSec(
+    eventEmitter?: EventEmitter,
+    backend?: CrowdSecFirewallBackend,
+  ): Promise<Record<string, unknown>> {
     try {
       const pathUrl: string = this.url + '/api/v1/crowdsec/install';
-      const response = await this.runCrowdSecOperation(pathUrl, {}, eventEmitter);
+      const response = await this.runCrowdSecOperation(
+        pathUrl,
+        backend === undefined ? {} : { backend },
+        eventEmitter,
+      );
 
       return response;
     } catch (error) {

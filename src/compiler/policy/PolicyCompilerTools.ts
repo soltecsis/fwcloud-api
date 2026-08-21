@@ -1,5 +1,5 @@
 /*
-    Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -180,7 +180,8 @@ export abstract class PolicyCompilerTools {
           throw fwcError.other('Invalid chain for CrowdSec special rule');
 
         const setName = `crowdsec${this._family === 'ip6' ? '6' : ''}-blacklists`;
-        this._csEnd = `${this._compiler == 'IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
+        const sourceAddress = this._family === 'ip6' ? 'ip6 saddr' : 'ip saddr';
+        this._csEnd = `${this._compiler == 'IPTables' ? `-m set --match-set ${setName} src -j` : `${sourceAddress} @${setName}`} ${this._action}\n`;
         break;
       }
       case SpecialPolicyRules.FAIL2BAN:

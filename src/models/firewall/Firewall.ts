@@ -1,5 +1,5 @@
 /*
-	Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
 	https://soltecsis.com
 	info@soltecsis.com
 
@@ -57,7 +57,11 @@ const fwcError = require('../../utils/error_table');
 import { RoutingTable } from '../routing/routing-table/routing-table.model';
 import { RoutingGroup } from '../routing/routing-group/routing-group.model';
 import { RouteGroup } from '../routing/route-group/route-group.model';
-import { AvailablePolicyCompilers } from '../../compiler/policy/PolicyCompiler';
+import {
+  AvailablePolicyCompilers,
+  CrowdSecFirewallBouncerBackend,
+  getCrowdSecFirewallBouncerBackend,
+} from '../../compiler/policy/PolicyCompiler';
 import { IPObj } from '../ipobj/IPObj';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Communication } from '../../communications/communication';
@@ -1556,6 +1560,13 @@ export class Firewall extends Model {
         reject(error);
       }
     });
+  }
+
+  public static async getCrowdSecFirewallBouncerBackend(
+    fwcloud: number,
+    firewall: number,
+  ): Promise<CrowdSecFirewallBouncerBackend | null> {
+    return getCrowdSecFirewallBouncerBackend(await this.getFirewallCompiler(fwcloud, firewall));
   }
 
   public static getPolicyCompilationMode(

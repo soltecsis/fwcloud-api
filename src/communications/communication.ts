@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -96,6 +96,8 @@ export type CrowdSecConsoleEnrollment = {
   tags?: string[];
 };
 
+export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
+
 export type CrowdSecDecisionsQuery = {
   limit?: number;
   scope?: string;
@@ -190,7 +192,11 @@ export abstract class Communication<ConnectionData> {
     channel?: EventEmitter,
   ): Promise<void>;
   abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
-  abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
+  abstract installFirewallPolicy(
+    sourcePath: string,
+    eventEmitter?: EventEmitter,
+    crowdSecBackend?: CrowdSecFirewallBackend,
+  ): Promise<string>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;
@@ -203,7 +209,10 @@ export abstract class Communication<ConnectionData> {
     options?: PluginInstallOptions,
   ): Promise<string>;
   abstract getCrowdSecStatus(): Promise<Record<string, unknown>>;
-  abstract installCrowdSec(eventEmitter?: EventEmitter): Promise<Record<string, unknown>>;
+  abstract installCrowdSec(
+    eventEmitter?: EventEmitter,
+    backend?: CrowdSecFirewallBackend,
+  ): Promise<Record<string, unknown>>;
   abstract installCrowdSecBouncer(eventEmitter?: EventEmitter): Promise<Record<string, unknown>>;
   abstract uninstallCrowdSec(
     confirm: boolean,

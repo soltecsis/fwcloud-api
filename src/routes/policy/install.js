@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -54,6 +54,7 @@ var router = express.Router();
  * @type ../../models/compile/
  */
 import { Firewall } from '../../models/firewall/Firewall';
+import { AgentCommunication } from '../../communications/agent.communication';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
@@ -79,7 +80,18 @@ router.post('/', async (req, res, next) => {
     
     let communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 
-    await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), nodeId.toString(), config.get('policy').script_name), channel);
+    const policyPath = path.join(
+      config.get('policy').data_dir,
+      req.body.fwcloud.toString(),
+      nodeId.toString(),
+      config.get('policy').script_name,
+    );
+    if (communication instanceof AgentCommunication) {
+      const backend = await Firewall.getCrowdSecFirewallBouncerBackend(req.body.fwcloud, nodeId);
+      await communication.installFirewallPolicy(policyPath, channel, backend ?? undefined);
+    } else {
+      await communication.installFirewallPolicy(policyPath, channel);
+    }
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     

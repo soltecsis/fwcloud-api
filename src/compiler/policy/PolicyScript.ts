@@ -1,5 +1,5 @@
 /*
-  Copyright 2025 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+  Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
   https://soltecsis.com
   info@soltecsis.com
 
@@ -929,13 +929,15 @@ export class PolicyScript {
     });
   }
 
-  private dumpNFTablesStd(): Promise<void> {
+  private async dumpNFTablesStd(): Promise<void> {
     // Code for create the standard nftables tables and chain.
     this.stream.write('\n\necho\n');
     this.stream.write('echo "******************************"\n');
     this.stream.write('echo "* NFTABLES TABLES AND CHAINS *"\n');
     this.stream.write('echo "******************************"\n');
     const families = ['ip', 'ip6'];
+    const firewallOptions = await Firewall.getFirewallOptions(this.fwcloud, this.firewall);
+    const crowdSecCompatibility = firewallOptions & FireWallOptMask.CROWDSEC_COMPAT;
     const nftablesStdCommands: string[] = [];
     for (const family of families) {
       nftablesStdCommands.push(`add table ${family} filter`);
@@ -948,6 +950,13 @@ export class PolicyScript {
       nftablesStdCommands.push(
         `add chain ${family} filter OUTPUT { type filter hook output priority 0; policy drop; }`,
       );
+      if (crowdSecCompatibility) {
+        const setName = `crowdsec${family === 'ip6' ? '6' : ''}-blacklists`;
+        const addressType = family === 'ip6' ? 'ipv6_addr' : 'ipv4_addr';
+        nftablesStdCommands.push(
+          `add set ${family} filter ${setName} { type ${addressType}; flags timeout; }`,
+        );
+      }
       nftablesStdCommands.push(`add table ${family} nat`);
       nftablesStdCommands.push(
         `add chain ${family} nat PREROUTING { type nat hook prerouting priority - 100; policy accept; }`,

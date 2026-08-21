@@ -296,15 +296,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(installStub.called).to.be.false;
   });
 
-  it('should install CrowdSec before the Firewall Bouncer', async () => {
+  it('should install CrowdSec with the configured Firewall Bouncer backend', async () => {
     const crowdsec = { steps: [{ step: 'crowdsec_packages' }] };
-    const firewallBouncer = { steps: [{ step: 'blacklist_ipsets' }] };
     const listener = new EventEmitter();
     const channel = new Channel('crowdsec-install', listener);
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
-    const bouncerStub = sinon
-      .stub(communication, 'installCrowdSecBouncer')
-      .resolves(firewallBouncer);
+    const bouncerStub = sinon.stub(communication, 'installCrowdSecBouncer');
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('nftables');
     const channelStub = sinon.stub(Channel, 'fromRequest').resolves(channel);
     const messages: ProgressPayload[] = [];
     listener.on(channel.id, (message: SocketMessage) =>
@@ -316,27 +314,49 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(channelStub.calledOnce).to.be.true;
-    expect(crowdsecStub.calledOnceWithExactly(channel)).to.be.true;
-    expect(crowdsecStub.calledBefore(bouncerStub)).to.be.true;
-    expect(bouncerStub.calledOnceWithExactly(channel)).to.be.true;
+    expect(crowdsecStub.calledOnceWithExactly(channel, 'nftables')).to.be.true;
+    expect(bouncerStub.called).to.be.false;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
-      new ProgressPayload('info', false, 'Installing CrowdSec Firewall Bouncer'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);
     const body = response.toJSON();
     expect(body.status).to.equal(200);
-    expect(body.data).to.deep.equal({ crowdsec, firewall_bouncer: firewallBouncer });
+    expect(body.data).to.deep.equal({ crowdsec });
   });
 
-  it('should not install the Firewall Bouncer when CrowdSec installation fails', async () => {
+  it('should not invoke a separate Firewall Bouncer operation when CrowdSec installation fails', async () => {
     sinon.stub(communication, 'installCrowdSec').rejects(new Error('CrowdSec install failed'));
     const bouncerStub = sinon.stub(communication, 'installCrowdSecBouncer');
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
 
     await expect(
       controller.install({ session: { user: null } } as unknown as Request),
     ).to.be.rejectedWith('CrowdSec install failed');
     expect(bouncerStub.called).to.be.false;
+  });
+
+  it('should preserve the agent default backend when the compiler has no CrowdSec backend', async () => {
+    const channel = new Channel('crowdsec-install', new EventEmitter());
+    const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves({ steps: [] });
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves(null);
+
+    await controller.install({ session: { user: null } } as unknown as Request);
+
+    expect(crowdsecStub.calledOnceWithExactly(channel, undefined)).to.be.true;
+  });
+
+  it('should reject CrowdSec installation before reading the backend or contacting the agent', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+    const backendStub = sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend');
+    const installStub = sinon.stub(communication, 'installCrowdSec');
+
+    await expect(controller.install({ session: { user: null } } as unknown as Request)).to.be
+      .rejected;
+
+    expect(backendStub.called).to.be.false;
+    expect(installStub.called).to.be.false;
   });
 
   it('should forward the uninstall confirmation to the agent', async () => {
