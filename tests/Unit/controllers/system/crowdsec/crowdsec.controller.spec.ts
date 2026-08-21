@@ -180,6 +180,94 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(alertsStub.called).to.be.false;
   });
 
+  it('should list CrowdSec bouncers through the agent', async () => {
+    const bouncers = { bouncers: [] };
+    const bouncersStub = sinon.stub(communication, 'getCrowdSecBouncers').resolves(bouncers);
+
+    const response = await controller.bouncers({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(bouncersStub.calledOnce).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: bouncers });
+  });
+
+  it('should reject CrowdSec bouncer listing without access before contacting the agent', async () => {
+    viewPolicyStub.resolves(Authorization.revoke());
+    const bouncersStub = sinon.stub(communication, 'getCrowdSecBouncers');
+
+    await expect(controller.bouncers({ session: { user: null } } as unknown as Request)).to.be
+      .rejected;
+    expect(bouncersStub.called).to.be.false;
+  });
+
+  it('should return the newly generated CrowdSec bouncer key once', async () => {
+    const bouncer = { name: 'remote-bouncer', api_key: 'generated-api-key' };
+    const registerStub = sinon.stub(communication, 'registerCrowdSecBouncer').resolves(bouncer);
+
+    const response = await controller.registerBouncer({
+      body: { name: 'remote-bouncer' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(registerStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: bouncer });
+  });
+
+  it('should remove a CrowdSec bouncer through the agent', async () => {
+    const bouncer = { name: 'remote-bouncer', message: 'Removed' };
+    const removeStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves(bouncer);
+
+    const response = await controller.removeBouncer({
+      params: { bouncer: 'remote-bouncer' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(removeStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: bouncer });
+  });
+
+  it('should reject the reserved FWCloud bouncer name before contacting the agent', async () => {
+    const registerStub = sinon.stub(communication, 'registerCrowdSecBouncer');
+    const removeStub = sinon.stub(communication, 'removeCrowdSecBouncer');
+
+    await expect(
+      controller.registerBouncer({
+        body: { name: 'fwcloud' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'The FWCloud bouncer name is reserved');
+    await expect(
+      controller.removeBouncer({
+        params: { bouncer: 'fwcloud' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'The FWCloud bouncer name is reserved');
+    expect(registerStub.called).to.be.false;
+    expect(removeStub.called).to.be.false;
+  });
+
+  it('should reject CrowdSec bouncer mutations without access before contacting the agent', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+    const registerStub = sinon.stub(communication, 'registerCrowdSecBouncer');
+    const removeStub = sinon.stub(communication, 'removeCrowdSecBouncer');
+
+    await expect(
+      controller.registerBouncer({
+        body: { name: 'remote-bouncer' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+    await expect(
+      controller.removeBouncer({
+        params: { bouncer: 'remote-bouncer' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+    expect(registerStub.called).to.be.false;
+    expect(removeStub.called).to.be.false;
+  });
+
   it('should delete one CrowdSec decision through the agent', async () => {
     const decision = { operation: 'delete', decision_id: '123', deleted_count: 1 };
     const deleteStub = sinon.stub(communication, 'deleteCrowdSecDecision').resolves(decision);

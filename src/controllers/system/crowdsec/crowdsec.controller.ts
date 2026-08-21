@@ -33,6 +33,7 @@ import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecAlertsQueryDto } from './dto/alerts-query.dto';
+import { CrowdSecBouncerDto } from './dto/bouncer.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
@@ -129,6 +130,34 @@ export class CrowdSecController extends Controller {
     });
 
     return ResponseBuilder.buildResponse().status(200).body(alerts);
+  }
+
+  @Validate()
+  public async bouncers(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const bouncers = await (await this.getAgentCommunication()).getCrowdSecBouncers();
+    return ResponseBuilder.buildResponse().status(200).body(bouncers);
+  }
+
+  @Validate(CrowdSecBouncerDto)
+  public async registerBouncer(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const bouncer = await (
+      await this.getAgentCommunication()
+    ).registerCrowdSecBouncer(this.bouncerName(req.body.name));
+    return ResponseBuilder.buildResponse().status(200).body(bouncer);
+  }
+
+  @Validate()
+  public async removeBouncer(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const bouncer = await (
+      await this.getAgentCommunication()
+    ).removeCrowdSecBouncer(this.bouncerName(req.params.bouncer));
+    return ResponseBuilder.buildResponse().status(200).body(bouncer);
   }
 
   @Validate()
@@ -247,5 +276,16 @@ export class CrowdSecController extends Controller {
     }
 
     return id;
+  }
+
+  private bouncerName(value: unknown): string {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_.-]{1,128}$/.test(value)) {
+      throw new HttpException('Invalid CrowdSec bouncer name', 400);
+    }
+    if (value === 'fwcloud') {
+      throw new HttpException('The FWCloud bouncer name is reserved', 409);
+    }
+
+    return value;
   }
 }
