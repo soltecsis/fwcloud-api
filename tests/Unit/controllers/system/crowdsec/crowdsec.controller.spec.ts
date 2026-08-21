@@ -41,6 +41,10 @@ import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crow
 import { CrowdSecCollectionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/collections-query.dto';
 import { CrowdSecCollectionDto } from '../../../../../src/controllers/system/crowdsec/dto/collection.dto';
 import { CrowdSecConsoleEnrollDto } from '../../../../../src/controllers/system/crowdsec/dto/console-enroll.dto';
+import { CrowdSecDecisionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-query.dto';
+import { CrowdSecAlertsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/alerts-query.dto';
+import { CrowdSecDecisionsFlushDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-flush.dto';
+import { CrowdSecBouncerDto } from '../../../../../src/controllers/system/crowdsec/dto/bouncer.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
@@ -186,6 +190,40 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         { enrollmentKey: 'invalid\nkey', name: 'invalid name', tags: ['invalid tag'] },
         CrowdSecConsoleEnrollDto,
       ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should validate CrowdSec decisions, alerts and bouncer DTOs', async () => {
+    await expect(
+      new Validator(
+        {
+          limit: 100,
+          scope: 'Ip',
+          value: '192.0.2.10',
+          decision_type: 'ban',
+          origin: 'CAPI',
+          scenario: 'http:scan',
+        },
+        CrowdSecDecisionsQueryDto,
+      ).validate(),
+    ).to.be.fulfilled;
+    await expect(
+      new Validator({ limit: 101, origin: 'invalid' }, CrowdSecDecisionsQueryDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        { limit: 50, since: '24h', type: 'ban', scenario: 'http:scan' },
+        CrowdSecAlertsQueryDto,
+      ).validate(),
+    ).to.be.fulfilled;
+    await expect(
+      new Validator({ until: '24h!' }, CrowdSecAlertsQueryDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator({ confirm: false }, CrowdSecDecisionsFlushDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator({ name: 'invalid/name' }, CrowdSecBouncerDto).validate(),
     ).to.be.rejectedWith(ValidationException);
   });
 
