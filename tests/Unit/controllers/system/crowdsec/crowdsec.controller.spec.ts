@@ -136,6 +136,65 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(decisionsStub.called).to.be.false;
   });
 
+  it('should delete one CrowdSec decision through the agent', async () => {
+    const decision = { operation: 'delete', decision_id: '123', deleted_count: 1 };
+    const deleteStub = sinon.stub(communication, 'deleteCrowdSecDecision').resolves(decision);
+
+    const response = await controller.deleteDecision({
+      params: { decision: '123' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(deleteStub.calledOnceWithExactly('123')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: decision });
+  });
+
+  it('should reject an invalid CrowdSec decision ID before contacting the agent', async () => {
+    const deleteStub = sinon.stub(communication, 'deleteCrowdSecDecision');
+
+    await expect(
+      controller.deleteDecision({
+        params: { decision: 'invalid' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'Invalid CrowdSec decision ID');
+    expect(deleteStub.called).to.be.false;
+  });
+
+  it('should forward confirmed CrowdSec decision flushes to the agent', async () => {
+    const decisions = { operation: 'flush', deleted_count: 4 };
+    const flushStub = sinon.stub(communication, 'flushCrowdSecDecisions').resolves(decisions);
+
+    const response = await controller.flushDecisions({
+      body: { confirm: true },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(flushStub.calledOnceWithExactly(true)).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: decisions });
+  });
+
+  it('should reject CrowdSec decision mutations without access before contacting the agent', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+    const deleteStub = sinon.stub(communication, 'deleteCrowdSecDecision');
+    const flushStub = sinon.stub(communication, 'flushCrowdSecDecisions');
+
+    await expect(
+      controller.deleteDecision({
+        params: { decision: '123' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+    await expect(
+      controller.flushDecisions({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+    expect(deleteStub.called).to.be.false;
+    expect(flushStub.called).to.be.false;
+  });
+
   it('should forward the installed collection filter to the agent', async () => {
     const collections = { collections: [] };
     const collectionsStub = sinon

@@ -48,6 +48,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpGroups/:dhcpgroup': { audited: true },
+  'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/decisions/:decision': {
+    audited: true,
+  },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/:dhcp': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/bulkRemove': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/haproxyGroups/:haproxygroup': {
@@ -112,6 +115,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/update': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/decisions/flush': {
     audited: true,
   },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/haproxyGroups': { audited: true },

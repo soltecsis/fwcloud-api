@@ -34,6 +34,7 @@ import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
+import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
 import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
@@ -104,6 +105,26 @@ export class CrowdSecController extends Controller {
       scenario: req.query.scenario as string | undefined,
     });
 
+    return ResponseBuilder.buildResponse().status(200).body(decisions);
+  }
+
+  @Validate()
+  public async deleteDecision(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const decision = await (
+      await this.getAgentCommunication()
+    ).deleteCrowdSecDecision(this.decisionId(req));
+    return ResponseBuilder.buildResponse().status(200).body(decision);
+  }
+
+  @Validate(CrowdSecDecisionsFlushDto)
+  public async flushDecisions(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const decisions = await (
+      await this.getAgentCommunication()
+    ).flushCrowdSecDecisions(req.body.confirm);
     return ResponseBuilder.buildResponse().status(200).body(decisions);
   }
 
@@ -194,5 +215,14 @@ export class CrowdSecController extends Controller {
     }
 
     return communication;
+  }
+
+  private decisionId(req: Request): string {
+    const id = String(req.params.decision);
+    if (!/^[1-9]\d{0,18}$/.test(id)) {
+      throw new HttpException('Invalid CrowdSec decision ID', 400);
+    }
+
+    return id;
   }
 }
