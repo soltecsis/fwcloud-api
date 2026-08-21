@@ -34,6 +34,7 @@ import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
+import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
 export class CrowdSecController extends Controller {
@@ -85,6 +86,25 @@ export class CrowdSecController extends Controller {
 
     const status = await (await this.getAgentCommunication()).getCrowdSecConsoleStatus();
     return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecDecisionsQueryDto)
+  public async decisions(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const decisions = await (
+      await this.getAgentCommunication()
+    ).getCrowdSecDecisions({
+      limit: req.query.limit === undefined ? undefined : Number(req.query.limit),
+      scope: req.query.scope as string | undefined,
+      value: req.query.value as string | undefined,
+      decisionType: req.query.decision_type as string | undefined,
+      origin: req.query.origin as string | undefined,
+      scenario: req.query.scenario as string | undefined,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(decisions);
   }
 
   @Validate(CrowdSecConsoleEnrollDto)

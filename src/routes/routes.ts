@@ -407,6 +407,9 @@ export class Routes extends RouteCollection {
                     .get('/status', CrowdSecController, 'status')
                     .name('fwclouds.firewalls.system.crowdsec.status');
                   router
+                    .get('/decisions', CrowdSecController, 'decisions')
+                    .name('fwclouds.firewalls.system.crowdsec.decisions.index');
+                  router
                     .get('/collections', CrowdSecController, 'collections')
                     .name('fwclouds.firewalls.system.crowdsec.collections.index');
                   router

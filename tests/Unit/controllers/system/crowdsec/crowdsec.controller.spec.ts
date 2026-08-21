@@ -98,6 +98,44 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200, data: status });
   });
 
+  it('should forward CrowdSec decision filters to the agent', async () => {
+    const decisions = { decisions: [] };
+    const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions').resolves(decisions);
+
+    const response: ResponseBuilder = await controller.decisions({
+      query: {
+        limit: '10',
+        scope: 'Ip',
+        value: '192.0.2.10',
+        decision_type: 'ban',
+        origin: 'CAPI',
+        scenario: 'http:scan',
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      decisionsStub.calledOnceWithExactly({
+        limit: 10,
+        scope: 'Ip',
+        value: '192.0.2.10',
+        decisionType: 'ban',
+        origin: 'CAPI',
+        scenario: 'http:scan',
+      }),
+    ).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: decisions });
+  });
+
+  it('should reject CrowdSec decision listing without access before contacting the agent', async () => {
+    viewPolicyStub.resolves(Authorization.revoke());
+    const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions');
+
+    await expect(controller.decisions({ query: {}, session: { user: null } } as unknown as Request))
+      .to.be.rejected;
+    expect(decisionsStub.called).to.be.false;
+  });
+
   it('should forward the installed collection filter to the agent', async () => {
     const collections = { collections: [] };
     const collectionsStub = sinon
