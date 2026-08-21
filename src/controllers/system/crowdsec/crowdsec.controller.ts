@@ -32,6 +32,7 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
+import { CrowdSecAlertsQueryDto } from './dto/alerts-query.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
@@ -106,6 +107,28 @@ export class CrowdSecController extends Controller {
     });
 
     return ResponseBuilder.buildResponse().status(200).body(decisions);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecAlertsQueryDto)
+  public async alerts(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const alerts = await (
+      await this.getAgentCommunication()
+    ).getCrowdSecAlerts({
+      limit: req.query.limit === undefined ? undefined : Number(req.query.limit),
+      since: req.query.since as string | undefined,
+      until: req.query.until as string | undefined,
+      scenario: req.query.scenario as string | undefined,
+      decisionType: req.query.type as string | undefined,
+      scope: req.query.scope as string | undefined,
+      value: req.query.value as string | undefined,
+      ip: req.query.ip as string | undefined,
+      range: req.query.range as string | undefined,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(alerts);
   }
 
   @Validate()

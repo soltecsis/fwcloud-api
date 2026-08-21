@@ -410,6 +410,9 @@ export class Routes extends RouteCollection {
                     .get('/decisions', CrowdSecController, 'decisions')
                     .name('fwclouds.firewalls.system.crowdsec.decisions.index');
                   router
+                    .get('/alerts', CrowdSecController, 'alerts')
+                    .name('fwclouds.firewalls.system.crowdsec.alerts.index');
+                  router
                     .delete('/decisions/:decision', CrowdSecController, 'deleteDecision')
                     .name('fwclouds.firewalls.system.crowdsec.decisions.delete');
                   router

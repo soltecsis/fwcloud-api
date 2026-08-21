@@ -136,6 +136,50 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(decisionsStub.called).to.be.false;
   });
 
+  it('should forward CrowdSec alert filters to the agent', async () => {
+    const alerts = { alerts: [] };
+    const alertsStub = sinon.stub(communication, 'getCrowdSecAlerts').resolves(alerts);
+
+    const response: ResponseBuilder = await controller.alerts({
+      query: {
+        limit: '10',
+        since: '24h',
+        until: '1h',
+        scenario: 'http:scan',
+        type: 'ban',
+        scope: 'Ip',
+        value: '192.0.2.10',
+        ip: '192.0.2.10',
+        range: '192.0.2.0/24',
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      alertsStub.calledOnceWithExactly({
+        limit: 10,
+        since: '24h',
+        until: '1h',
+        scenario: 'http:scan',
+        decisionType: 'ban',
+        scope: 'Ip',
+        value: '192.0.2.10',
+        ip: '192.0.2.10',
+        range: '192.0.2.0/24',
+      }),
+    ).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: alerts });
+  });
+
+  it('should reject CrowdSec alert listing without access before contacting the agent', async () => {
+    viewPolicyStub.resolves(Authorization.revoke());
+    const alertsStub = sinon.stub(communication, 'getCrowdSecAlerts');
+
+    await expect(controller.alerts({ query: {}, session: { user: null } } as unknown as Request)).to
+      .be.rejected;
+    expect(alertsStub.called).to.be.false;
+  });
+
   it('should delete one CrowdSec decision through the agent', async () => {
     const decision = { operation: 'delete', decision_id: '123', deleted_count: 1 };
     const deleteStub = sinon.stub(communication, 'deleteCrowdSecDecision').resolves(decision);
