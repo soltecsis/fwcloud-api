@@ -680,8 +680,19 @@ export class FirewallController extends Controller {
       .getSource()
       .manager.getRepository(Interface)
       .createQueryBuilder('interface')
-      .where('interface.firewallId = :firewallId', { firewallId: input.firewallId })
-      .andWhere('interface.name = :name', { name: interfaceName })
+      .leftJoin('interface.firewall', 'interfaceFirewall')
+      .leftJoin(Firewall, 'targetFirewall', 'targetFirewall.id = :firewallId', {
+        firewallId: input.firewallId,
+      })
+      .where('interface.name = :name', { name: interfaceName })
+      .andWhere(
+        '(interface.firewallId = :firewallId OR (' +
+          'targetFirewall.cluster IS NOT NULL AND ' +
+          'interfaceFirewall.cluster = targetFirewall.cluster AND ' +
+          'interfaceFirewall.fwmaster = 1' +
+          '))',
+        { firewallId: input.firewallId },
+      )
       .getCount();
 
     if (interfaceCount === 0) {
