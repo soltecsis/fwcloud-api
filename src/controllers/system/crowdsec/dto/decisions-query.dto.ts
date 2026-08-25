@@ -51,7 +51,7 @@ export class CrowdSecDecisionsQueryDto {
   decision_type?: string;
 
   @IsOptional()
-  @IsIn(['local', 'CAPI', 'all'])
+  @IsIn(['local', 'CAPI', 'lists', 'all'])
   origin?: string;
 
   @IsOptional()
