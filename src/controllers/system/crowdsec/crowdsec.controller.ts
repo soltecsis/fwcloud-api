@@ -32,8 +32,12 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import db from '../../../database/database-manager';
 import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
+import { CrowdSecAlertsQueryDto } from './dto/alerts-query.dto';
+import { CrowdSecBouncerDto } from './dto/bouncer.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
+import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
+import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 
 export class CrowdSecController extends Controller {
@@ -85,6 +89,95 @@ export class CrowdSecController extends Controller {
 
     const status = await (await this.getAgentCommunication()).getCrowdSecConsoleStatus();
     return ResponseBuilder.buildResponse().status(200).body(status);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecDecisionsQueryDto)
+  public async decisions(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const decisions = await (
+      await this.getAgentCommunication()
+    ).getCrowdSecDecisions({
+      limit: req.query.limit === undefined ? undefined : Number(req.query.limit),
+      scope: req.query.scope as string | undefined,
+      value: req.query.value as string | undefined,
+      decisionType: req.query.decision_type as string | undefined,
+      origin: req.query.origin as string | undefined,
+      scenario: req.query.scenario as string | undefined,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(decisions);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecAlertsQueryDto)
+  public async alerts(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const alerts = await (
+      await this.getAgentCommunication()
+    ).getCrowdSecAlerts({
+      limit: req.query.limit === undefined ? undefined : Number(req.query.limit),
+      since: req.query.since as string | undefined,
+      until: req.query.until as string | undefined,
+      scenario: req.query.scenario as string | undefined,
+      decisionType: req.query.type as string | undefined,
+      scope: req.query.scope as string | undefined,
+      value: req.query.value as string | undefined,
+      ip: req.query.ip as string | undefined,
+      range: req.query.range as string | undefined,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(alerts);
+  }
+
+  @Validate()
+  public async bouncers(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const bouncers = await (await this.getAgentCommunication()).getCrowdSecBouncers();
+    return ResponseBuilder.buildResponse().status(200).body(bouncers);
+  }
+
+  @Validate(CrowdSecBouncerDto)
+  public async registerBouncer(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const bouncer = await (
+      await this.getAgentCommunication()
+    ).registerCrowdSecBouncer(this.bouncerName(req.body.name));
+    return ResponseBuilder.buildResponse().status(200).body(bouncer);
+  }
+
+  @Validate()
+  public async removeBouncer(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const bouncer = await (
+      await this.getAgentCommunication()
+    ).removeCrowdSecBouncer(this.bouncerName(req.params.bouncer));
+    return ResponseBuilder.buildResponse().status(200).body(bouncer);
+  }
+
+  @Validate()
+  public async deleteDecision(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const decision = await (
+      await this.getAgentCommunication()
+    ).deleteCrowdSecDecision(this.decisionId(req));
+    return ResponseBuilder.buildResponse().status(200).body(decision);
+  }
+
+  @Validate(CrowdSecDecisionsFlushDto)
+  public async flushDecisions(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const decisions = await (
+      await this.getAgentCommunication()
+    ).flushCrowdSecDecisions(req.body.confirm);
+    return ResponseBuilder.buildResponse().status(200).body(decisions);
   }
 
   @Validate(CrowdSecConsoleEnrollDto)
@@ -174,5 +267,25 @@ export class CrowdSecController extends Controller {
     }
 
     return communication;
+  }
+
+  private decisionId(req: Request): string {
+    const id = String(req.params.decision);
+    if (!/^[1-9]\d{0,18}$/.test(id)) {
+      throw new HttpException('Invalid CrowdSec decision ID', 400);
+    }
+
+    return id;
+  }
+
+  private bouncerName(value: unknown): string {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_.-]{1,128}$/.test(value)) {
+      throw new HttpException('Invalid CrowdSec bouncer name', 400);
+    }
+    if (value === 'fwcloud') {
+      throw new HttpException('The FWCloud bouncer name is reserved', 409);
+    }
+
+    return value;
   }
 }
