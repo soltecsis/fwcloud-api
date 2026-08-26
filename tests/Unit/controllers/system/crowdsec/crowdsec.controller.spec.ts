@@ -127,6 +127,28 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200, data: decisions });
   });
 
+  it('should forward the CrowdSec subscribed-list decision filter to the agent', async () => {
+    const decisions = { decisions: [] };
+    const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions').resolves(decisions);
+
+    const response: ResponseBuilder = await controller.decisions({
+      query: { origin: 'lists' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      decisionsStub.calledOnceWithExactly({
+        limit: undefined,
+        scope: undefined,
+        value: undefined,
+        decisionType: undefined,
+        origin: 'lists',
+        scenario: undefined,
+      }),
+    ).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: decisions });
+  });
+
   it('should reject CrowdSec decision listing without access before contacting the agent', async () => {
     viewPolicyStub.resolves(Authorization.revoke());
     const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions');
@@ -436,6 +458,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         CrowdSecDecisionsQueryDto,
       ).validate(),
     ).to.be.fulfilled;
+    await expect(new Validator({ origin: 'lists' }, CrowdSecDecisionsQueryDto).validate()).to.be
+      .fulfilled;
     await expect(
       new Validator({ limit: 101, origin: 'invalid' }, CrowdSecDecisionsQueryDto).validate(),
     ).to.be.rejectedWith(ValidationException);
