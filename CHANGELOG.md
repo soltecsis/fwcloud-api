@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.5.7] - 2026-08-26
+### Fixed
+- Allow Suricata activation on cluster nodes when the selected network interface is defined on the cluster master.
+
+
 ## [2.5.6] - 2026-08-19
 ### Added
 - OpenVPN status sampling now supports configurable sampling interval, request max lines, and cache max size per server, validated and persisted alongside the existing settings.
