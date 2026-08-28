@@ -50,6 +50,7 @@ import { Channel } from '../../../../../src/sockets/channels/channel';
 import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
 import db from '../../../../../src/database/database-manager';
 import { FireWallOptMask } from '../../../../../src/models/firewall/Firewall';
+import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -633,12 +634,14 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   it('should not invoke a separate Firewall Bouncer operation when CrowdSec installation fails', async () => {
     sinon.stub(communication, 'installCrowdSec').rejects(new Error('CrowdSec install failed'));
     const bouncerStub = sinon.stub(communication, 'installCrowdSecBouncer');
+    const compatibilityStub = sinon.stub(FirewallRepository.prototype, 'setCrowdSecCompatibility');
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
 
     await expect(
       controller.install({ session: { user: null } } as unknown as Request),
     ).to.be.rejectedWith('CrowdSec install failed');
     expect(bouncerStub.called).to.be.false;
+    expect(compatibilityStub.called).to.be.false;
   });
 
   it('should preserve the agent default backend when the compiler has no CrowdSec backend', async () => {
@@ -707,10 +710,36 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
   it('should reject CrowdSec operations when the firewall uses SSH', async () => {
     (controller as any)._firewall.install_communication = FirewallInstallCommunication.SSH;
+    const installStub = sinon.stub(communication, 'installCrowdSec');
+    const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec');
 
     await expect(
       controller.status({ session: { user: null } } as unknown as Request),
     ).to.be.rejectedWith(HttpException, 'CrowdSec requires FWCloud Agent communication');
+    await expect(
+      controller.install({ session: { user: null } } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'CrowdSec requires FWCloud Agent communication');
+    await expect(
+      controller.uninstall({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'CrowdSec requires FWCloud Agent communication');
+    expect(installStub.called).to.be.false;
+    expect(uninstallStub.called).to.be.false;
+  });
+
+  it('should preserve CrowdSec compatibility when uninstallation fails', async () => {
+    sinon.stub(communication, 'uninstallCrowdSec').rejects(new Error('CrowdSec uninstall failed'));
+    const compatibilityStub = sinon.stub(FirewallRepository.prototype, 'setCrowdSecCompatibility');
+
+    await expect(
+      controller.uninstall({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith('CrowdSec uninstall failed');
+    expect(compatibilityStub.called).to.be.false;
   });
 
   it('should reject a user without access before contacting the agent', async () => {
