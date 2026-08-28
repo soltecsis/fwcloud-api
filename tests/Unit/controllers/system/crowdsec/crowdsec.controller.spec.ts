@@ -48,6 +48,8 @@ import { CrowdSecBouncerDto } from '../../../../../src/controllers/system/crowds
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
+import db from '../../../../../src/database/database-manager';
+import { FireWallOptMask } from '../../../../../src/models/firewall/Firewall';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -611,6 +613,18 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       new ProgressPayload('start', false, 'Installing CrowdSec'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);
+    const firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+      });
+    expect(firewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(
+      FireWallOptMask.CROWDSEC_COMPAT,
+    );
+    expect(firewall.status).to.equal(3);
+    expect(firewall.compiled_at).to.be.null;
+    expect(firewall.installed_at).to.be.null;
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ crowdsec });
