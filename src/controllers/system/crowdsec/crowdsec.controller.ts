@@ -252,6 +252,10 @@ export class CrowdSecController extends Controller {
     const result = await (
       await this.getAgentCommunication()
     ).uninstallCrowdSec(req.body.confirm, channel);
+    this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+      this._firewall,
+      false,
+    );
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec uninstallation finished'));
 

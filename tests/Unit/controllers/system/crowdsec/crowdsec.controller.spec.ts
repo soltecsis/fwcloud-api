@@ -669,6 +669,15 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const channel = new Channel('crowdsec-uninstall', listener);
     const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec').resolves({ steps: [] });
     sinon.stub(Channel, 'fromRequest').resolves(channel);
+    const firewallRepository = db.getSource().manager.getRepository(Firewall);
+    const installedFirewall = await firewallRepository.findOneOrFail({
+      where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+    });
+    installedFirewall.options |= FireWallOptMask.CROWDSEC_COMPAT;
+    installedFirewall.status = 2;
+    installedFirewall.compiled_at = new Date();
+    installedFirewall.installed_at = new Date();
+    await firewallRepository.save(installedFirewall);
     const messages: ProgressPayload[] = [];
     listener.on(channel.id, (message: SocketMessage) =>
       messages.push(message.payload as ProgressPayload),
@@ -684,6 +693,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       new ProgressPayload('start', false, 'Uninstalling CrowdSec'),
       new ProgressPayload('end', false, 'CrowdSec uninstallation finished'),
     ]);
+    const firewall = await firewallRepository.findOneOrFail({
+      where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+    });
+    expect(firewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(0);
+    expect(firewall.status).to.equal(3);
+    expect(firewall.compiled_at).to.be.null;
+    expect(firewall.installed_at).to.be.null;
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ steps: [] });
