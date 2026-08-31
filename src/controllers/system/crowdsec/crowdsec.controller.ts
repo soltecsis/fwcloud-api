@@ -22,11 +22,13 @@
 
 import { Request } from 'express';
 import { AgentCommunication } from '../../../communications/agent.communication';
+import { CrowdSecFirewallBackend } from '../../../communications/communication';
 import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
+import { FirewallRepository } from '../../../models/firewall/firewall.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
@@ -226,14 +228,14 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const channel = await Channel.fromRequest(req);
-    const communication = await this.getAgentCommunication();
-    const backend = await Firewall.getCrowdSecFirewallBouncerBackend(
-      this._firewall.fwCloudId,
-      this._firewall.id,
-    );
+    const { communication, backend } = await this.getCrowdSecInstallContext();
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec'));
 
-    const crowdsec = await communication.installCrowdSec(channel, backend ?? undefined);
+    const crowdsec = await communication.installCrowdSec(channel, backend);
+    this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+      this._firewall,
+      true,
+    );
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
@@ -250,6 +252,10 @@ export class CrowdSecController extends Controller {
     const result = await (
       await this.getAgentCommunication()
     ).uninstallCrowdSec(req.body.confirm, channel);
+    this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+      this._firewall,
+      false,
+    );
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec uninstallation finished'));
 
@@ -267,6 +273,23 @@ export class CrowdSecController extends Controller {
     }
 
     return communication;
+  }
+
+  private async getCrowdSecInstallContext(): Promise<{
+    communication: AgentCommunication;
+    backend: CrowdSecFirewallBackend | undefined;
+  }> {
+    const communication = await this.getAgentCommunication();
+    const backend = await Firewall.getCrowdSecFirewallBouncerBackend(
+      this._firewall.fwCloudId,
+      this._firewall.id,
+    );
+
+    return { communication, backend: backend ?? undefined };
+  }
+
+  private getFirewallRepository(): FirewallRepository {
+    return new FirewallRepository(db.getSource().manager);
   }
 
   private decisionId(req: Request): string {

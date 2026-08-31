@@ -21,7 +21,7 @@
 */
 
 import { Repository } from '../../database/repository';
-import { Firewall } from './Firewall';
+import { Firewall, FireWallOptMask } from './Firewall';
 import { EntityManager, In } from 'typeorm';
 
 export class FirewallRepository extends Repository<Firewall> {
@@ -59,5 +59,28 @@ export class FirewallRepository extends Repository<Firewall> {
         compiled_at: null,
       })
       .execute();
+  }
+
+  public async setCrowdSecCompatibility(firewall: Firewall, enabled: boolean): Promise<Firewall> {
+    await this.createQueryBuilder()
+      .update(Firewall)
+      .where('id = :id AND fwcloud = :fwcloudId', {
+        id: firewall.id,
+        fwcloudId: firewall.fwCloudId,
+      })
+      .set({
+        options: () =>
+          enabled
+            ? `options | ${FireWallOptMask.CROWDSEC_COMPAT}`
+            : `options & ~${FireWallOptMask.CROWDSEC_COMPAT}`,
+        status: 3,
+        installed_at: null,
+        compiled_at: null,
+      })
+      .execute();
+
+    return await this.findOneOrFail({
+      where: { id: firewall.id, fwCloudId: firewall.fwCloudId },
+    });
   }
 }

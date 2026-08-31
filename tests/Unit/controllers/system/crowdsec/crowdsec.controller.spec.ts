@@ -48,6 +48,9 @@ import { CrowdSecBouncerDto } from '../../../../../src/controllers/system/crowds
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
+import db from '../../../../../src/database/database-manager';
+import { FireWallOptMask } from '../../../../../src/models/firewall/Firewall';
+import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -611,6 +614,18 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       new ProgressPayload('start', false, 'Installing CrowdSec'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);
+    const firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+      });
+    expect(firewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(
+      FireWallOptMask.CROWDSEC_COMPAT,
+    );
+    expect(firewall.status).to.equal(3);
+    expect(firewall.compiled_at).to.be.null;
+    expect(firewall.installed_at).to.be.null;
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ crowdsec });
@@ -619,12 +634,14 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   it('should not invoke a separate Firewall Bouncer operation when CrowdSec installation fails', async () => {
     sinon.stub(communication, 'installCrowdSec').rejects(new Error('CrowdSec install failed'));
     const bouncerStub = sinon.stub(communication, 'installCrowdSecBouncer');
+    const compatibilityStub = sinon.stub(FirewallRepository.prototype, 'setCrowdSecCompatibility');
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
 
     await expect(
       controller.install({ session: { user: null } } as unknown as Request),
     ).to.be.rejectedWith('CrowdSec install failed');
     expect(bouncerStub.called).to.be.false;
+    expect(compatibilityStub.called).to.be.false;
   });
 
   it('should preserve the agent default backend when the compiler has no CrowdSec backend', async () => {
@@ -655,6 +672,15 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const channel = new Channel('crowdsec-uninstall', listener);
     const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec').resolves({ steps: [] });
     sinon.stub(Channel, 'fromRequest').resolves(channel);
+    const firewallRepository = db.getSource().manager.getRepository(Firewall);
+    const installedFirewall = await firewallRepository.findOneOrFail({
+      where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+    });
+    installedFirewall.options |= FireWallOptMask.CROWDSEC_COMPAT;
+    installedFirewall.status = 2;
+    installedFirewall.compiled_at = new Date();
+    installedFirewall.installed_at = new Date();
+    await firewallRepository.save(installedFirewall);
     const messages: ProgressPayload[] = [];
     listener.on(channel.id, (message: SocketMessage) =>
       messages.push(message.payload as ProgressPayload),
@@ -670,6 +696,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       new ProgressPayload('start', false, 'Uninstalling CrowdSec'),
       new ProgressPayload('end', false, 'CrowdSec uninstallation finished'),
     ]);
+    const firewall = await firewallRepository.findOneOrFail({
+      where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+    });
+    expect(firewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(0);
+    expect(firewall.status).to.equal(3);
+    expect(firewall.compiled_at).to.be.null;
+    expect(firewall.installed_at).to.be.null;
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ steps: [] });
@@ -677,10 +710,36 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
   it('should reject CrowdSec operations when the firewall uses SSH', async () => {
     (controller as any)._firewall.install_communication = FirewallInstallCommunication.SSH;
+    const installStub = sinon.stub(communication, 'installCrowdSec');
+    const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec');
 
     await expect(
       controller.status({ session: { user: null } } as unknown as Request),
     ).to.be.rejectedWith(HttpException, 'CrowdSec requires FWCloud Agent communication');
+    await expect(
+      controller.install({ session: { user: null } } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'CrowdSec requires FWCloud Agent communication');
+    await expect(
+      controller.uninstall({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'CrowdSec requires FWCloud Agent communication');
+    expect(installStub.called).to.be.false;
+    expect(uninstallStub.called).to.be.false;
+  });
+
+  it('should preserve CrowdSec compatibility when uninstallation fails', async () => {
+    sinon.stub(communication, 'uninstallCrowdSec').rejects(new Error('CrowdSec uninstall failed'));
+    const compatibilityStub = sinon.stub(FirewallRepository.prototype, 'setCrowdSecCompatibility');
+
+    await expect(
+      controller.uninstall({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith('CrowdSec uninstall failed');
+    expect(compatibilityStub.called).to.be.false;
   });
 
   it('should reject a user without access before contacting the agent', async () => {
