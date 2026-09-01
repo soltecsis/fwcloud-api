@@ -46,6 +46,36 @@ export class CrowdSecSystemNode1785235073000 implements MigrationInterface {
         [node.id, node.id_obj, node.fwcloud],
       );
     }
+
+    const crowdSecChildren = [
+      ['S06', 'Status'],
+      ['S07', 'Collections'],
+      ['S08', 'Decisions'],
+      ['S09', 'Alerts'],
+      ['S10', 'Bouncers'],
+    ];
+
+    for (const [nodeType, name] of crowdSecChildren) {
+      await queryRunner.query(
+        'INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) ' +
+          'SELECT ?, NULL, ? ' +
+          'WHERE NOT EXISTS (SELECT 1 FROM `fwc_tree_node_types` WHERE `node_type` = ?)',
+        [nodeType, name, nodeType],
+      );
+
+      await queryRunner.query(
+        'INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`, `node_order`, `id_obj`, `fwcloud`) ' +
+          'SELECT `id`, ?, ?, 0, `id_obj`, `fwcloud` ' +
+          'FROM `fwc_tree` parent ' +
+          "WHERE parent.`node_type` = 'S05' " +
+          'AND NOT EXISTS ( ' +
+          '  SELECT 1 FROM `fwc_tree` child ' +
+          '  WHERE child.`id_parent` = parent.`id` ' +
+          '  AND child.`node_type` = ? ' +
+          ')',
+        [name, nodeType, nodeType],
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
