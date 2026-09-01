@@ -51,6 +51,7 @@ import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messa
 import db from '../../../../../src/database/database-manager';
 import { FireWallOptMask } from '../../../../../src/models/firewall/Firewall';
 import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
+import { PgpHelper } from '../../../../../src/utils/pgp';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -226,17 +227,22 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(bouncersStub.called).to.be.false;
   });
 
-  it('should return the newly generated CrowdSec bouncer key once', async () => {
+  it('should return the newly generated CrowdSec bouncer key encrypted for the UI session', async () => {
     const bouncer = { name: 'remote-bouncer', api_key: 'generated-api-key' };
     const registerStub = sinon.stub(communication, 'registerCrowdSecBouncer').resolves(bouncer);
+    const encryptStub = sinon.stub(PgpHelper.prototype, 'encrypt').resolves('encrypted-api-key');
 
     const response = await controller.registerBouncer({
       body: { name: 'remote-bouncer' },
-      session: { user: null },
+      session: { user: null, uiPublicKey: 'ui-public-key' },
     } as unknown as Request);
 
     expect(registerStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
-    expect(response.toJSON()).to.include({ status: 200, data: bouncer });
+    expect(encryptStub.calledOnceWithExactly('generated-api-key')).to.be.true;
+    expect(response.toJSON()).to.include({
+      status: 200,
+      data: { name: 'remote-bouncer', api_key: 'encrypted-api-key' },
+    });
   });
 
   it('should remove a CrowdSec bouncer through the agent', async () => {
