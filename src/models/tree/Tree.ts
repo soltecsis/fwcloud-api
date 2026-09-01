@@ -398,7 +398,7 @@ export class Tree extends Model {
 
       let item: [number, TreeNode[]];
       let ids = '';
-      for (let mapIter = childrenArrayMap.entries(); (item = mapIter.next().value); ) {
+      for (let mapIter = childrenArrayMap.entries(); (item = mapIter.next().value);) {
         const nodesArray = item[1];
         for (let i = 0; i < nodesArray.length; i++) {
           if (nodeTypes.indexOf(nodesArray[i].node_type) !== -1 && nodesArray[i].id_obj) {
@@ -1497,7 +1497,20 @@ export class Tree extends Model {
         await this.newNode(connection, fwcloud, 'Fixed Ips', idDHCP, 'S04', firewall, null);
         await this.newNode(connection, fwcloud, 'Keepalived', idSystem, 'S02', firewall, null);
         await this.newNode(connection, fwcloud, 'HAProxy', idSystem, 'S03', firewall, null);
-        await this.newNode(connection, fwcloud, 'CrowdSec', idSystem, 'S05', firewall, null);
+        const idCrowdSec = await this.newNode(
+          connection,
+          fwcloud,
+          'CrowdSec',
+          idSystem,
+          'S05',
+          firewall,
+          null,
+        );
+        await this.newNode(connection, fwcloud, 'Status', idCrowdSec, 'S06', firewall, null);
+        await this.newNode(connection, fwcloud, 'Collections', idCrowdSec, 'S07', firewall, null);
+        await this.newNode(connection, fwcloud, 'Decisions', idCrowdSec, 'S08', firewall, null);
+        await this.newNode(connection, fwcloud, 'Alerts', idCrowdSec, 'S09', firewall, null);
+        await this.newNode(connection, fwcloud, 'Bouncers', idCrowdSec, 'S10', firewall, null);
         resolve();
       } catch (error) {
         return reject(error);

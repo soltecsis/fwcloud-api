@@ -79,7 +79,13 @@ export class CrowdSecSystemNode1785235073000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      "DELETE FROM `fwc_tree` WHERE `node_type` IN ('S06', 'S07', 'S08', 'S09', 'S10')",
+    );
     await queryRunner.query("DELETE FROM `fwc_tree` WHERE `node_type` = 'S05'");
+    await queryRunner.query(
+      "DELETE FROM `fwc_tree_node_types` WHERE `node_type` IN ('S06', 'S07', 'S08', 'S09', 'S10')",
+    );
     await queryRunner.query("DELETE FROM `fwc_tree_node_types` WHERE `node_type` = 'S05'");
   }
 }
