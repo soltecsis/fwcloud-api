@@ -41,6 +41,7 @@ import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
 import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
+import { PgpHelper } from '../../../utils/pgp';
 
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
@@ -149,7 +150,17 @@ export class CrowdSecController extends Controller {
     const bouncer = await (
       await this.getAgentCommunication()
     ).registerCrowdSecBouncer(this.bouncerName(req.body.name));
-    return ResponseBuilder.buildResponse().status(200).body(bouncer);
+    const apiKey = bouncer.api_key;
+    const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
+    const protectedBouncer =
+      typeof apiKey === 'string'
+        ? {
+            ...bouncer,
+            api_key: await pgp.encrypt(apiKey),
+          }
+        : bouncer;
+
+    return ResponseBuilder.buildResponse().status(200).body(protectedBouncer);
   }
 
   @Validate()
