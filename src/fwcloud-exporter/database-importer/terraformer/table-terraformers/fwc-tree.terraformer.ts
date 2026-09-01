@@ -114,6 +114,11 @@ export class FwcTreeTerraformer extends TableTerraformer {
     S03: Firewall,
     S04: Firewall,
     S05: Firewall,
+    S06: Firewall,
+    S07: Firewall,
+    S08: Firewall,
+    S09: Firewall,
+    S10: Firewall,
   };
 
   public static async make(

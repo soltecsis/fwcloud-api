@@ -8,6 +8,27 @@ import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Repair } from '../../../../src/models/tree/Repair';
 
+const crowdSecChildNodes = [
+  ['S06', 'Status'],
+  ['S07', 'Collections'],
+  ['S08', 'Decisions'],
+  ['S09', 'Alerts'],
+  ['S10', 'Bouncers'],
+];
+
+function expectCrowdSecChildren(firewallNode): void {
+  const systemNode = firewallNode.children.find((node) => node.node_type === 'SYS');
+  const crowdSecNode = systemNode.children.find((node) => node.node_type === 'S05');
+
+  expect(crowdSecNode).to.exist;
+
+  for (const [nodeType, name] of crowdSecChildNodes) {
+    const node = crowdSecNode.children.find((child) => child.node_type === nodeType);
+    expect(node).to.exist;
+    expect(node.text).to.equal(name);
+  }
+}
+
 describe('Tree Model Unit Tests', function () {
   let fwCloud: FwCloud;
   let manager: EntityManager;
@@ -75,6 +96,17 @@ describe('Tree Model Unit Tests', function () {
       const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
       expect(ipSecNode).to.exist;
       expect(ipSecNode.text).to.equal('IPSec');
+    });
+
+    it('should generate CrowdSec child nodes under the system node', async () => {
+      const nodeId = 1;
+
+      await Tree.createAllTreeCloud(fwCloud);
+      await Tree.insertFwc_Tree_New_firewall(fwCloud.id, nodeId, firewall.id);
+      const treeDump = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
+      const firewallNode = treeDump.children.find((node) => node.id_obj === firewall.id);
+
+      expectCrowdSecChildren(firewallNode);
     });
 
     it('should insert a firewall tree when ipsec.name does not exist', async () => {
@@ -167,6 +199,14 @@ describe('Tree Model Unit Tests', function () {
       const ipSecNode = vpnNode.children.find((node) => node.node_type === 'IS');
       expect(ipSecNode).to.exist;
       expect(ipSecNode.text).to.equal('IPSec');
+    });
+
+    it('should generate CrowdSec child nodes under the system node', async () => {
+      await Tree.insertFwc_Tree_New_cluster(fwCloud.id, nodeId, clusterId);
+      const treeDump = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
+      const clusterNode = treeDump.children.find((node) => node.id_obj === clusterId);
+
+      expectCrowdSecChildren(clusterNode);
     });
   });
 
