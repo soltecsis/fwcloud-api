@@ -143,6 +143,34 @@ export class CrowdSecController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(bouncers);
   }
 
+  @Validate()
+  public async machines(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const machines = await (await this.getAgentCommunication()).getCrowdSecLapiMachines();
+    return ResponseBuilder.buildResponse().status(200).body(machines);
+  }
+
+  @Validate()
+  public async validateMachine(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const machine = await (
+      await this.getAgentCommunication()
+    ).validateCrowdSecLapiMachine(this.machineName(req.params.machine));
+    return ResponseBuilder.buildResponse().status(200).body(machine);
+  }
+
+  @Validate()
+  public async removeMachine(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const machine = await (
+      await this.getAgentCommunication()
+    ).removeCrowdSecLapiMachine(this.machineName(req.params.machine));
+    return ResponseBuilder.buildResponse().status(200).body(machine);
+  }
+
   @Validate(CrowdSecBouncerDto)
   public async registerBouncer(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
@@ -318,6 +346,14 @@ export class CrowdSecController extends Controller {
     }
     if (value === 'fwcloud') {
       throw new HttpException('The FWCloud bouncer name is reserved', 409);
+    }
+
+    return value;
+  }
+
+  private machineName(value: unknown): string {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_.-]{1,128}$/.test(value)) {
+      throw new HttpException('Invalid CrowdSec machine name', 400);
     }
 
     return value;

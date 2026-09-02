@@ -227,6 +227,68 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(bouncersStub.called).to.be.false;
   });
 
+  it('should list CrowdSec LAPI machines through the agent', async () => {
+    const machines = { machines: [] };
+    const machinesStub = sinon.stub(communication, 'getCrowdSecLapiMachines').resolves(machines);
+
+    const response = await controller.machines({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(machinesStub.calledOnce).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: machines });
+  });
+
+  it('should validate and remove CrowdSec LAPI machines through the agent', async () => {
+    const validation = { name: 'fwcloud-machine-01', state: 'validated' };
+    const removal = { name: 'fwcloud-machine-01', message: 'Removed' };
+    const validateStub = sinon
+      .stub(communication, 'validateCrowdSecLapiMachine')
+      .resolves(validation);
+    const removeStub = sinon.stub(communication, 'removeCrowdSecLapiMachine').resolves(removal);
+
+    const validationResponse = await controller.validateMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+    const removalResponse = await controller.removeMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(removeStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(validationResponse.toJSON()).to.include({ status: 200, data: validation });
+    expect(removalResponse.toJSON()).to.include({ status: 200, data: removal });
+  });
+
+  it('should reject invalid or unauthorized CrowdSec LAPI machine operations', async () => {
+    const machinesStub = sinon.stub(communication, 'getCrowdSecLapiMachines');
+    const validateStub = sinon.stub(communication, 'validateCrowdSecLapiMachine');
+    const removeStub = sinon.stub(communication, 'removeCrowdSecLapiMachine');
+
+    await expect(
+      controller.validateMachine({
+        params: { machine: 'invalid machine' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'Invalid CrowdSec machine name');
+
+    managePolicyStub.resolves(Authorization.revoke());
+    await expect(controller.machines({ session: { user: null } } as unknown as Request)).to.be
+      .rejected;
+    await expect(
+      controller.removeMachine({
+        params: { machine: 'fwcloud-machine-01' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejected;
+
+    expect(machinesStub.called).to.be.false;
+    expect(validateStub.called).to.be.false;
+    expect(removeStub.called).to.be.false;
+  });
+
   it('should return the newly generated CrowdSec bouncer key encrypted for the UI session', async () => {
     const bouncer = { name: 'remote-bouncer', api_key: 'generated-api-key' };
     const registerStub = sinon.stub(communication, 'registerCrowdSecBouncer').resolves(bouncer);
@@ -239,9 +301,10 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(registerStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
     expect(encryptStub.calledOnceWithExactly('generated-api-key')).to.be.true;
-    expect(response.toJSON()).to.include({
-      status: 200,
-      data: { name: 'remote-bouncer', api_key: 'encrypted-api-key' },
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({
+      name: 'remote-bouncer',
+      api_key: 'encrypted-api-key',
     });
   });
 
