@@ -35,6 +35,8 @@ import {
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
+  CrowdSecMachineActivation,
+  CrowdSecMachineInstall,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
@@ -810,6 +812,40 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
   uninstallCrowdSecBouncer(
     _confirm: boolean,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  configureCrowdSecCentralLapi(_listenUri: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  validateCrowdSecLapiMachine(_name: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  removeCrowdSecLapiMachine(_name: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  createCrowdSecLapiPreflightToken(_machineName: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  installCrowdSecMachine(
+    _installation: CrowdSecMachineInstall,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  activateCrowdSecMachine(
+    _activation: CrowdSecMachineActivation,
     _eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
