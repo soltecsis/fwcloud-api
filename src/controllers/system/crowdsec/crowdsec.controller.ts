@@ -205,13 +205,55 @@ export class CrowdSecController extends Controller {
       },
       channel,
     );
+    const validation = await centralCommunication.validateCrowdSecLapiMachine(req.body.machineName);
+    let bouncerName: string | undefined;
 
-    channel.emit(
-      'message',
-      new ProgressPayload('end', false, 'CrowdSec machine registration finished'),
-    );
+    try {
+      const bouncerApiKey = req.body.localRemediation
+        ? this.bouncerApiKey(
+            await centralCommunication.registerCrowdSecBouncer(
+              (bouncerName = this.machineName(req.body.machineName)),
+            ),
+          )
+        : undefined;
+      const backend = req.body.localRemediation
+        ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
+            this._firewall.fwCloudId,
+            this._firewall.id,
+          )) ?? 'iptables')
+        : 'iptables';
+      const activation = await remoteCommunication.activateCrowdSecMachine(
+        {
+          machineName: req.body.machineName,
+          localRemediation: req.body.localRemediation,
+          backend,
+          bouncerApiKey,
+        },
+        channel,
+      );
 
-    return ResponseBuilder.buildResponse().status(200).body(machine);
+      this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+        this._firewall,
+        true,
+      );
+
+      channel.emit(
+        'message',
+        new ProgressPayload('end', false, 'CrowdSec machine installation finished'),
+      );
+
+      return ResponseBuilder.buildResponse().status(200).body({ machine, validation, activation });
+    } catch (error) {
+      if (bouncerName !== undefined) {
+        try {
+          await centralCommunication.removeCrowdSecBouncer(bouncerName);
+        } catch {
+          // The primary installation error is more useful than a failed Bouncer cleanup.
+        }
+      }
+
+      throw error;
+    }
   }
 
   @Validate(CrowdSecBouncerDto)
@@ -480,5 +522,13 @@ export class CrowdSecController extends Controller {
     }
 
     return response.token;
+  }
+
+  private bouncerApiKey(response: Record<string, unknown>): string {
+    if (typeof response.api_key !== 'string' || response.api_key.length === 0) {
+      throw new HttpException('Unable to create CrowdSec Firewall Bouncer API key', 502);
+    }
+
+    return response.api_key;
   }
 }

@@ -290,7 +290,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(removeStub.called).to.be.false;
   });
 
-  it('should register a CrowdSec machine through the selected central LAPI firewall', async () => {
+  it('should install and activate a CrowdSec machine through the selected central LAPI firewall', async () => {
     const listener = new EventEmitter();
     const channel = new Channel('crowdsec-machine-install', listener);
     const centralCommunication = new AgentCommunication({
@@ -320,6 +320,18 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       machine_name: 'fwcloud-machine-01',
       state: 'pending',
     });
+    const validateStub = sinon
+      .stub(centralCommunication, 'validateCrowdSecLapiMachine')
+      .resolves({ name: 'fwcloud-machine-01', state: 'validated' });
+    const registerBouncerStub = sinon
+      .stub(centralCommunication, 'registerCrowdSecBouncer')
+      .resolves({ name: 'fwcloud-machine-01', api_key: 'central-bouncer-key' });
+    const activateStub = sinon.stub(communication, 'activateCrowdSecMachine').resolves({
+      machine_name: 'fwcloud-machine-01',
+      state: 'validated',
+      local_remediation: true,
+    });
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('nftables');
     sinon.stub(Channel, 'fromRequest').resolves(channel);
 
     const response = await controller.installMachine({
@@ -327,7 +339,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         centralFirewallId: centralFirewall.id,
         machineName: 'fwcloud-machine-01',
         lapiUrl: 'http://192.0.2.20:8080',
-        localRemediation: false,
+        localRemediation: true,
       },
       session: { user: null },
     } as unknown as Request);
@@ -352,10 +364,28 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         channel,
       ),
     ).to.be.true;
+    expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(registerBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(
+      activateStub.calledOnceWithExactly(
+        {
+          machineName: 'fwcloud-machine-01',
+          localRemediation: true,
+          backend: 'nftables',
+          bouncerApiKey: 'central-bouncer-key',
+        },
+        channel,
+      ),
+    ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
-      machine_name: 'fwcloud-machine-01',
-      state: 'pending',
+      machine: { machine_name: 'fwcloud-machine-01', state: 'pending' },
+      validation: { name: 'fwcloud-machine-01', state: 'validated' },
+      activation: {
+        machine_name: 'fwcloud-machine-01',
+        state: 'validated',
+        local_remediation: true,
+      },
     });
   });
 
