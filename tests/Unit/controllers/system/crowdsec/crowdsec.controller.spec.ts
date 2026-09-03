@@ -32,6 +32,7 @@ import { ResponseBuilder } from '../../../../../src/fonaments/http/response-buil
 import {
   Firewall,
   FirewallInstallCommunication,
+  FirewallInstallProtocol,
 } from '../../../../../src/models/firewall/Firewall';
 import { CrowdSecPolicy } from '../../../../../src/policies/crowdsec.policy';
 import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
@@ -109,7 +110,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .resolves();
     findInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'findByFirewallId')
-      .resolves(null);
+      .callsFake(async (firewallId: number) =>
+        firewallId === fwcProduct.firewall.id
+          ? null
+          : Object.assign(new CrowdSecInstallation(), {
+              mode: CrowdSecInstallationMode.Standalone,
+            }),
+      );
     findCentralCandidatesStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'findCentralCandidates')
       .resolves([]);
@@ -509,6 +516,38 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(installedFirewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(
       FireWallOptMask.CROWDSEC_COMPAT,
     );
+  });
+
+  it('should reject CrowdSec machine installation when the selected firewall is not standalone', async () => {
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    findInstallationStub
+      .withArgs(centralFirewall.id)
+      .resolves(
+        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Machine }),
+      );
+    const configureStub = sinon.stub(communication, 'configureCrowdSecCentralLapi');
+
+    await expect(
+      controller.installMachine({
+        body: {
+          centralFirewallId: centralFirewall.id,
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: false,
+        },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(
+      HttpException,
+      'Central CrowdSec firewall requires a standalone CrowdSec installation',
+    );
+
+    expect(configureStub.called).to.be.false;
   });
 
   it('should activate a CrowdSec machine without registering a Bouncer when remediation is disabled', async () => {

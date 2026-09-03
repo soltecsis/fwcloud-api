@@ -502,6 +502,16 @@ export class CrowdSecController extends Controller {
       throw new HttpException('Central CrowdSec firewall was not found', 404);
     }
 
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      firewall.id,
+    );
+    if (installation?.mode !== CrowdSecInstallationMode.Standalone) {
+      throw new HttpException(
+        'Central CrowdSec firewall requires a standalone CrowdSec installation',
+        409,
+      );
+    }
+
     return firewall;
   }
 

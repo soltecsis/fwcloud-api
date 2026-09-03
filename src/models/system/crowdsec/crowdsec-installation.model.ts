@@ -42,6 +42,7 @@ export enum CrowdSecInstallationMode {
 @Entity({ name: tableName })
 @Index(['firewallId'], { unique: true })
 @Index(['centralFirewallId'])
+@Index(['centralFirewallId', 'machineName'], { unique: true })
 export class CrowdSecInstallation extends Model {
   @PrimaryGeneratedColumn()
   id: number;

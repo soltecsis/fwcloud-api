@@ -36,6 +36,7 @@ export class CreateCrowdSecInstallation1788424879000 implements MigrationInterfa
         '`updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, ' +
         'PRIMARY KEY (`id`), ' +
         'UNIQUE KEY `UQ_crowdsec_installation_firewall` (`firewall`), ' +
+        'UNIQUE KEY `UQ_crowdsec_installation_central_machine` (`central_firewall`, `machine_name`), ' +
         'KEY `IDX_crowdsec_installation_central_firewall` (`central_firewall`), ' +
         'CONSTRAINT `FK_crowdsec_installation_firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`) ON DELETE CASCADE, ' +
         'CONSTRAINT `FK_crowdsec_installation_central_firewall` FOREIGN KEY (`central_firewall`) REFERENCES `firewall` (`id`) ON DELETE RESTRICT' +
