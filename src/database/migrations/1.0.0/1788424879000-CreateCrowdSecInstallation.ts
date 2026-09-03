@@ -21,7 +21,7 @@
 
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateCrowdSecInstallation1788424879 implements MigrationInterface {
+export class CreateCrowdSecInstallation1788424879000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       'CREATE TABLE `crowdsec_installation` (' +

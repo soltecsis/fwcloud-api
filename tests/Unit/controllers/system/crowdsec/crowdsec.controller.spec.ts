@@ -52,6 +52,8 @@ import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messa
 import db from '../../../../../src/database/database-manager';
 import { FireWallOptMask } from '../../../../../src/models/firewall/Firewall';
 import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
+import { CrowdSecInstallationRepository } from '../../../../../src/models/system/crowdsec/crowdsec.repository';
+import { CrowdSecInstallation } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 import { PgpHelper } from '../../../../../src/utils/pgp';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
@@ -61,6 +63,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let communication: AgentCommunication;
   let viewPolicyStub: sinon.SinonStub;
   let managePolicyStub: sinon.SinonStub;
+  let saveStandaloneInstallationStub: sinon.SinonStub;
+  let saveMachineInstallationStub: sinon.SinonStub;
+  let removeInstallationStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -85,6 +90,15 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     sinon.stub(Firewall.prototype, 'getCommunication').resolves(communication);
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
+    saveStandaloneInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveStandaloneInstallation')
+      .resolves(new CrowdSecInstallation());
+    saveMachineInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveMachineInstallation')
+      .resolves(new CrowdSecInstallation());
+    removeInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'removeByFirewallId')
+      .resolves();
   });
 
   afterEach(() => {
@@ -389,6 +403,15 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
     expect(JSON.stringify(response.toJSON())).to.not.contain('preflight-token');
     expect(JSON.stringify(response.toJSON())).to.not.contain('central-bouncer-key');
+    expect(
+      saveMachineInstallationStub.calledOnceWithExactly({
+        firewallId: fwcProduct.firewall.id,
+        centralFirewallId: centralFirewall.id,
+        lapiUrl: 'http://192.0.2.20:8080',
+        machineName: 'fwcloud-machine-01',
+        localRemediation: true,
+      }),
+    ).to.be.true;
     const installedFirewall = await db
       .getSource()
       .manager.getRepository(Firewall)
@@ -503,6 +526,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(removeBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(compatibilityStub.called).to.be.false;
+    expect(saveMachineInstallationStub.called).to.be.false;
   });
 
   it('should reject CrowdSec machine installation without access before contacting the agents', async () => {
@@ -941,6 +965,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(channelStub.calledOnce).to.be.true;
     expect(crowdsecStub.calledOnceWithExactly(channel, 'nftables')).to.be.true;
     expect(bouncerStub.called).to.be.false;
+    expect(saveStandaloneInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
@@ -973,6 +998,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith('CrowdSec install failed');
     expect(bouncerStub.called).to.be.false;
     expect(compatibilityStub.called).to.be.false;
+    expect(saveStandaloneInstallationStub.called).to.be.false;
   });
 
   it('should preserve the agent default backend when the compiler has no CrowdSec backend', async () => {
@@ -1034,6 +1060,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(firewall.status).to.equal(3);
     expect(firewall.compiled_at).to.be.null;
     expect(firewall.installed_at).to.be.null;
+    expect(removeInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ steps: [] });
@@ -1071,6 +1098,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith('CrowdSec uninstall failed');
     expect(compatibilityStub.called).to.be.false;
+    expect(removeInstallationStub.called).to.be.false;
   });
 
   it('should reject a user without access before contacting the agent', async () => {

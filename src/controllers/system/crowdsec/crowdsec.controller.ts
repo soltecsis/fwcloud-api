@@ -34,6 +34,7 @@ import {
   FirewallInstallProtocol,
 } from '../../../models/firewall/Firewall';
 import { FirewallRepository } from '../../../models/firewall/firewall.repository';
+import { CrowdSecInstallationRepository } from '../../../models/system/crowdsec/crowdsec.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
@@ -238,6 +239,13 @@ export class CrowdSecController extends Controller {
         this._firewall,
         true,
       );
+      await this.getCrowdSecInstallationRepository().saveMachineInstallation({
+        firewallId: this._firewall.id,
+        centralFirewallId: centralFirewall.id,
+        lapiUrl,
+        machineName: req.body.machineName,
+        localRemediation: req.body.localRemediation,
+      });
 
       channel.emit(
         'message',
@@ -368,6 +376,7 @@ export class CrowdSecController extends Controller {
       this._firewall,
       true,
     );
+    await this.getCrowdSecInstallationRepository().saveStandaloneInstallation(this._firewall.id);
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
@@ -388,6 +397,7 @@ export class CrowdSecController extends Controller {
       this._firewall,
       false,
     );
+    await this.getCrowdSecInstallationRepository().removeByFirewallId(this._firewall.id);
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec uninstallation finished'));
 
@@ -462,6 +472,10 @@ export class CrowdSecController extends Controller {
 
   private getFirewallRepository(): FirewallRepository {
     return new FirewallRepository(db.getSource().manager);
+  }
+
+  private getCrowdSecInstallationRepository(): CrowdSecInstallationRepository {
+    return new CrowdSecInstallationRepository(db.getSource().manager);
   }
 
   private decisionId(req: Request): string {
