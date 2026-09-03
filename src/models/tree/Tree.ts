@@ -398,7 +398,7 @@ export class Tree extends Model {
 
       let item: [number, TreeNode[]];
       let ids = '';
-      for (let mapIter = childrenArrayMap.entries(); (item = mapIter.next().value);) {
+      for (let mapIter = childrenArrayMap.entries(); (item = mapIter.next().value); ) {
         const nodesArray = item[1];
         for (let i = 0; i < nodesArray.length; i++) {
           if (nodeTypes.indexOf(nodesArray[i].node_type) !== -1 && nodesArray[i].id_obj) {
