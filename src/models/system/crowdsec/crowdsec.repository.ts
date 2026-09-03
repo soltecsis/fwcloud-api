@@ -48,7 +48,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       centralFirewallId: null,
       lapiUrl: null,
       machineName: null,
-      localRemediation: false,
+      localRemediation: true,
     });
   }
 
