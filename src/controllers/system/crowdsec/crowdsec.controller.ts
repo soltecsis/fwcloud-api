@@ -205,10 +205,12 @@ export class CrowdSecController extends Controller {
       },
       channel,
     );
-    const validation = await centralCommunication.validateCrowdSecLapiMachine(req.body.machineName);
     let bouncerName: string | undefined;
 
     try {
+      const validation = await centralCommunication.validateCrowdSecLapiMachine(
+        req.body.machineName,
+      );
       const bouncerApiKey = req.body.localRemediation
         ? this.bouncerApiKey(
             await centralCommunication.registerCrowdSecBouncer(
@@ -250,6 +252,12 @@ export class CrowdSecController extends Controller {
         } catch {
           // The primary installation error is more useful than a failed Bouncer cleanup.
         }
+      }
+
+      try {
+        await centralCommunication.removeCrowdSecLapiMachine(req.body.machineName);
+      } catch {
+        // The primary installation error is more useful than a failed Machine cleanup.
       }
 
       throw error;
