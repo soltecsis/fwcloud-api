@@ -425,6 +425,19 @@ export class CrowdSecController extends Controller {
   public async uninstall(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    if (
+      installation?.mode === CrowdSecInstallationMode.Standalone &&
+      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
+    ) {
+      throw new HttpException(
+        'CrowdSec standalone Local API has dependent machines and cannot be uninstalled',
+        409,
+      );
+    }
+
     const channel = await Channel.fromRequest(req);
     channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
 

@@ -72,6 +72,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let removeInstallationStub: sinon.SinonStub;
   let findInstallationStub: sinon.SinonStub;
   let findCentralCandidatesStub: sinon.SinonStub;
+  let hasMachineDependentsStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -111,6 +112,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     findCentralCandidatesStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'findCentralCandidates')
       .resolves([]);
+    hasMachineDependentsStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents')
+      .resolves(false);
   });
 
   afterEach(() => {
@@ -1172,6 +1176,28 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith('CrowdSec uninstall failed');
     expect(compatibilityStub.called).to.be.false;
+    expect(removeInstallationStub.called).to.be.false;
+  });
+
+  it('should reject standalone CrowdSec uninstallation with dependent machines before contacting the agent', async () => {
+    findInstallationStub.resolves(
+      Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
+    );
+    hasMachineDependentsStub.resolves(true);
+    const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec');
+
+    await expect(
+      controller.uninstall({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(
+      HttpException,
+      'CrowdSec standalone Local API has dependent machines and cannot be uninstalled',
+    );
+
+    expect(hasMachineDependentsStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(uninstallStub.called).to.be.false;
     expect(removeInstallationStub.called).to.be.false;
   });
 
