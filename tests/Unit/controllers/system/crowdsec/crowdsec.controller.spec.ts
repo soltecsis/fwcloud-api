@@ -45,6 +45,7 @@ import { CrowdSecDecisionsQueryDto } from '../../../../../src/controllers/system
 import { CrowdSecAlertsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/alerts-query.dto';
 import { CrowdSecDecisionsFlushDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-flush.dto';
 import { CrowdSecBouncerDto } from '../../../../../src/controllers/system/crowdsec/dto/bouncer.dto';
+import { CrowdSecMachineInstallDto } from '../../../../../src/controllers/system/crowdsec/dto/machine-install.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
@@ -287,6 +288,75 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(machinesStub.called).to.be.false;
     expect(validateStub.called).to.be.false;
     expect(removeStub.called).to.be.false;
+  });
+
+  it('should register a CrowdSec machine through the selected central LAPI firewall', async () => {
+    const listener = new EventEmitter();
+    const channel = new Channel('crowdsec-machine-install', listener);
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: 'https',
+      getCommunication: async () => centralCommunication,
+    });
+    const centralRepository = db.getSource().manager.getRepository(Firewall);
+    const centralFirewallStub = sinon.stub(centralRepository, 'findOne').resolves(centralFirewall);
+    const configureStub = sinon
+      .stub(centralCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+    const tokenStub = sinon
+      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
+      .resolves({ token: 'preflight-token' });
+    const fingerprintStub = sinon
+      .stub(centralCommunication, 'getTlsCertificateFingerprint')
+      .resolves('a'.repeat(64));
+    const installStub = sinon.stub(communication, 'installCrowdSecMachine').resolves({
+      machine_name: 'fwcloud-machine-01',
+      state: 'pending',
+    });
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+
+    const response = await controller.installMachine({
+      body: {
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: false,
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      centralFirewallStub.calledOnceWithExactly({
+        where: { id: centralFirewall.id, fwCloudId: fwcProduct.firewall.fwCloudId },
+      }),
+    ).to.be.true;
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(tokenStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(fingerprintStub.calledOnce).to.be.true;
+    expect(
+      installStub.calledOnceWithExactly(
+        {
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          centralAgentUrl: 'https://192.0.2.20:33033',
+          centralAgentTlsFingerprint: 'a'.repeat(64),
+          preflightToken: 'preflight-token',
+        },
+        channel,
+      ),
+    ).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({
+      machine_name: 'fwcloud-machine-01',
+      state: 'pending',
+    });
   });
 
   it('should return the newly generated CrowdSec bouncer key encrypted for the UI session', async () => {
@@ -549,6 +619,28 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith(ValidationException);
     await expect(
       new Validator({ name: 'invalid/name' }, CrowdSecBouncerDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        {
+          centralFirewallId: 1,
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: false,
+        },
+        CrowdSecMachineInstallDto,
+      ).validate(),
+    ).to.be.fulfilled;
+    await expect(
+      new Validator(
+        {
+          centralFirewallId: 0,
+          machineName: 'invalid machine',
+          lapiUrl: 'https://lapi.example.test:8080/path',
+          localRemediation: 'false',
+        },
+        CrowdSecMachineInstallDto,
+      ).validate(),
     ).to.be.rejectedWith(ValidationException);
   });
 

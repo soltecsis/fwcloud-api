@@ -21,6 +21,7 @@
 */
 
 import { EventEmitter } from 'events';
+import { createHash } from 'crypto';
 import {
   CCDHash,
   Communication,
@@ -49,6 +50,7 @@ import * as fs from 'fs';
 import FormData from 'form-data';
 import * as path from 'path';
 import * as https from 'https';
+import * as tls from 'tls';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
@@ -234,6 +236,51 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       this.config.httpsAgent = new https.Agent({
         rejectUnauthorized: false,
       });
+    }
+  }
+
+  public getUrl(): string {
+    return this.url;
+  }
+
+  public async getTlsCertificateFingerprint(): Promise<string> {
+    if (this.connectionData.protocol !== 'https') {
+      throw new HttpException('CrowdSec central Agent requires HTTPS communication', 422);
+    }
+
+    try {
+      const certificate = await new Promise<Buffer>((resolve, reject) => {
+        const socket = tls.connect({
+          host: this.connectionData.host,
+          port: this.connectionData.port,
+          rejectUnauthorized: false,
+        });
+        const timeout = setTimeout(() => {
+          socket.destroy();
+          reject(new Error('CrowdSec central Agent TLS certificate request timed out'));
+        }, 5000);
+
+        socket.once('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+        socket.once('secureConnect', () => {
+          clearTimeout(timeout);
+          const certificate = socket.getPeerCertificate();
+          socket.end();
+
+          if (!certificate.raw) {
+            reject(new Error('CrowdSec central Agent did not provide a TLS certificate'));
+            return;
+          }
+
+          resolve(certificate.raw);
+        });
+      });
+
+      return createHash('sha256').update(certificate).digest('hex');
+    } catch {
+      throw new HttpException('Unable to read CrowdSec central Agent TLS certificate', 502);
     }
   }
 

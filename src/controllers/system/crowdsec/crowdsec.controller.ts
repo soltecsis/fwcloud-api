@@ -21,13 +21,18 @@
 */
 
 import { Request } from 'express';
+import { isIP } from 'net';
 import { AgentCommunication } from '../../../communications/agent.communication';
 import { CrowdSecFirewallBackend } from '../../../communications/communication';
 import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
-import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
+import {
+  Firewall,
+  FirewallInstallCommunication,
+  FirewallInstallProtocol,
+} from '../../../models/firewall/Firewall';
 import { FirewallRepository } from '../../../models/firewall/firewall.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import { Channel } from '../../../sockets/channels/channel';
@@ -41,6 +46,7 @@ import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
 import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
+import { CrowdSecMachineInstallDto } from './dto/machine-install.dto';
 import { PgpHelper } from '../../../utils/pgp';
 
 export class CrowdSecController extends Controller {
@@ -168,6 +174,43 @@ export class CrowdSecController extends Controller {
     const machine = await (
       await this.getAgentCommunication()
     ).removeCrowdSecLapiMachine(this.machineName(req.params.machine));
+    return ResponseBuilder.buildResponse().status(200).body(machine);
+  }
+
+  @Validate(CrowdSecMachineInstallDto)
+  public async installMachine(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
+    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const remoteCommunication = await this.getAgentCommunication();
+    const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+    const channel = await Channel.fromRequest(req);
+
+    channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
+
+    await centralCommunication.configureCrowdSecCentralLapi(this.lapiListenUri(lapiUrl));
+    const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
+    const preflight = await centralCommunication.createCrowdSecLapiPreflightToken(
+      req.body.machineName,
+    );
+    const preflightToken = this.preflightToken(preflight);
+    const machine = await remoteCommunication.installCrowdSecMachine(
+      {
+        machineName: req.body.machineName,
+        lapiUrl,
+        centralAgentUrl: centralCommunication.getUrl(),
+        centralAgentTlsFingerprint,
+        preflightToken,
+      },
+      channel,
+    );
+
+    channel.emit(
+      'message',
+      new ProgressPayload('end', false, 'CrowdSec machine registration finished'),
+    );
+
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
@@ -327,6 +370,46 @@ export class CrowdSecController extends Controller {
     return { communication, backend: backend ?? undefined };
   }
 
+  private async getCentralFirewall(id: number): Promise<Firewall> {
+    if (id === this._firewall.id) {
+      throw new HttpException('CrowdSec machine must use a different central LAPI firewall', 422);
+    }
+
+    const firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({
+        where: { id, fwCloudId: this._firewall.fwCloudId },
+      });
+    if (!firewall) {
+      throw new HttpException('Central CrowdSec firewall was not found', 404);
+    }
+
+    return firewall;
+  }
+
+  private async getCentralAgentCommunication(firewall: Firewall): Promise<AgentCommunication> {
+    if (
+      firewall.install_communication !== FirewallInstallCommunication.Agent ||
+      firewall.install_protocol !== FirewallInstallProtocol.HTTPS
+    ) {
+      throw new HttpException(
+        'Central CrowdSec LAPI requires HTTPS FWCloud Agent communication',
+        409,
+      );
+    }
+
+    const communication = await firewall.getCommunication();
+    if (!(communication instanceof AgentCommunication)) {
+      throw new HttpException(
+        'Central CrowdSec LAPI requires HTTPS FWCloud Agent communication',
+        409,
+      );
+    }
+
+    return communication;
+  }
+
   private getFirewallRepository(): FirewallRepository {
     return new FirewallRepository(db.getSource().manager);
   }
@@ -357,5 +440,45 @@ export class CrowdSecController extends Controller {
     }
 
     return value;
+  }
+
+  private lapiUrl(value: unknown): string {
+    if (typeof value !== 'string') {
+      throw new HttpException('Invalid CrowdSec Local API URL', 400);
+    }
+
+    try {
+      const url = new URL(value);
+      if (
+        !['http:', 'https:'].includes(url.protocol) ||
+        isIP(url.hostname.replace(/^\[|\]$/g, '')) === 0 ||
+        url.port.length === 0 ||
+        url.username.length > 0 ||
+        url.password.length > 0 ||
+        (url.pathname !== '' && url.pathname !== '/') ||
+        url.search.length > 0 ||
+        url.hash.length > 0
+      ) {
+        throw new Error('Invalid CrowdSec Local API URL');
+      }
+
+      return url.toString().replace(/\/$/, '');
+    } catch {
+      throw new HttpException('Invalid CrowdSec Local API URL', 400);
+    }
+  }
+
+  private lapiListenUri(lapiUrl: string): string {
+    const url = new URL(lapiUrl);
+    const host = isIP(url.hostname.replace(/^\[|\]$/g, '')) === 6 ? '[::]' : '0.0.0.0';
+    return `${host}:${url.port}`;
+  }
+
+  private preflightToken(response: Record<string, unknown>): string {
+    if (typeof response.token !== 'string' || response.token.length === 0) {
+      throw new HttpException('Unable to create CrowdSec Local API preflight token', 502);
+    }
+
+    return response.token;
   }
 }
