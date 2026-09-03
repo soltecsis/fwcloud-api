@@ -102,6 +102,17 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     await this.delete({ firewallId });
   }
 
+  public async removeMachineInstallation(
+    centralFirewallId: number,
+    machineName: string,
+  ): Promise<void> {
+    await this.delete({
+      centralFirewallId,
+      machineName,
+      mode: CrowdSecInstallationMode.Machine,
+    });
+  }
+
   private async saveInstallation(
     installation: Partial<CrowdSecInstallation> & { firewallId: number },
   ): Promise<CrowdSecInstallation> {

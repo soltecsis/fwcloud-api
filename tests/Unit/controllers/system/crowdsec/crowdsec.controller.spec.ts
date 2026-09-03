@@ -73,6 +73,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let findInstallationStub: sinon.SinonStub;
   let findCentralCandidatesStub: sinon.SinonStub;
   let hasMachineDependentsStub: sinon.SinonStub;
+  let removeMachineInstallationStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -115,6 +116,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     hasMachineDependentsStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents')
       .resolves(false);
+    removeMachineInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'removeMachineInstallation')
+      .resolves();
   });
 
   afterEach(() => {
@@ -351,6 +355,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(removeStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(
+      removeMachineInstallationStub.calledOnceWithExactly(
+        fwcProduct.firewall.id,
+        'fwcloud-machine-01',
+      ),
+    ).to.be.true;
     expect(validationResponse.toJSON()).to.include({ status: 200, data: validation });
     expect(removalResponse.toJSON()).to.include({ status: 200, data: removal });
   });

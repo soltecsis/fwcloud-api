@@ -210,9 +210,15 @@ export class CrowdSecController extends Controller {
   public async removeMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const machineName = this.machineName(req.params.machine);
     const machine = await (
       await this.getAgentCommunication()
-    ).removeCrowdSecLapiMachine(this.machineName(req.params.machine));
+    ).removeCrowdSecLapiMachine(machineName);
+    await this.getCrowdSecInstallationRepository().removeMachineInstallation(
+      this._firewall.id,
+      machineName,
+    );
+
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
