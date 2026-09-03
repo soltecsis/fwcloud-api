@@ -48,7 +48,9 @@ import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
 import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 import { CrowdSecMachineInstallDto } from './dto/machine-install.dto';
+import { CrowdSecCentralLapiConfigureDto } from './dto/central-lapi-configure.dto';
 import { PgpHelper } from '../../../utils/pgp';
+import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
 
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
@@ -159,6 +161,42 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
+  public async centralLapiCandidates(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const candidates = await this.getCrowdSecInstallationRepository().findCentralCandidates(
+      this._firewall.fwCloudId,
+      this._firewall.id,
+    );
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        candidates: candidates.map(({ firewall }) => ({ id: firewall.id, name: firewall.name })),
+      });
+  }
+
+  @Validate(CrowdSecCentralLapiConfigureDto)
+  public async configureCentralLapi(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    if (installation?.mode !== CrowdSecInstallationMode.Standalone) {
+      throw new HttpException(
+        'CrowdSec Local API requires a standalone CrowdSec installation',
+        409,
+      );
+    }
+
+    const result = await (
+      await this.getAgentCommunication()
+    ).configureCrowdSecCentralLapi(req.body.listenUri);
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
+
+  @Validate()
   public async validateMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
@@ -190,7 +228,7 @@ export class CrowdSecController extends Controller {
 
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
 
-    await centralCommunication.configureCrowdSecCentralLapi(this.lapiListenUri(lapiUrl));
+    await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
     const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
     const preflight = await centralCommunication.createCrowdSecLapiPreflightToken(
       req.body.machineName,
@@ -532,7 +570,7 @@ export class CrowdSecController extends Controller {
     }
   }
 
-  private lapiListenUri(lapiUrl: string): string {
+  private listenerUriForLapiUrl(lapiUrl: string): string {
     const url = new URL(lapiUrl);
     const host = isIP(url.hostname.replace(/^\[|\]$/g, '')) === 6 ? '[::]' : '0.0.0.0';
     return `${host}:${url.port}`;

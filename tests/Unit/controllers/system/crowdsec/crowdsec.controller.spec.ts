@@ -46,6 +46,7 @@ import { CrowdSecAlertsQueryDto } from '../../../../../src/controllers/system/cr
 import { CrowdSecDecisionsFlushDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-flush.dto';
 import { CrowdSecBouncerDto } from '../../../../../src/controllers/system/crowdsec/dto/bouncer.dto';
 import { CrowdSecMachineInstallDto } from '../../../../../src/controllers/system/crowdsec/dto/machine-install.dto';
+import { CrowdSecCentralLapiConfigureDto } from '../../../../../src/controllers/system/crowdsec/dto/central-lapi-configure.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { ProgressPayload, SocketMessage } from '../../../../../src/sockets/messages/socket-message';
@@ -53,7 +54,10 @@ import db from '../../../../../src/database/database-manager';
 import { FireWallOptMask } from '../../../../../src/models/firewall/Firewall';
 import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
 import { CrowdSecInstallationRepository } from '../../../../../src/models/system/crowdsec/crowdsec.repository';
-import { CrowdSecInstallation } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
+import {
+  CrowdSecInstallation,
+  CrowdSecInstallationMode,
+} from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 import { PgpHelper } from '../../../../../src/utils/pgp';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
@@ -66,6 +70,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let saveStandaloneInstallationStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
   let removeInstallationStub: sinon.SinonStub;
+  let findInstallationStub: sinon.SinonStub;
+  let findCentralCandidatesStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -99,6 +105,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     removeInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'removeByFirewallId')
       .resolves();
+    findInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'findByFirewallId')
+      .resolves(null);
+    findCentralCandidatesStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'findCentralCandidates')
+      .resolves([]);
   });
 
   afterEach(() => {
@@ -252,6 +264,68 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(machinesStub.calledOnce).to.be.true;
     expect(response.toJSON()).to.include({ status: 200, data: machines });
+  });
+
+  it('should list eligible standalone CrowdSec central LAPI firewalls', async () => {
+    const centralFirewall = Object.assign(new Firewall(), {
+      id: fwcProduct.firewall.id + 1,
+      name: 'CrowdSec central',
+    });
+    const installation = Object.assign(new CrowdSecInstallation(), {
+      firewall: centralFirewall,
+      mode: CrowdSecInstallationMode.Standalone,
+    });
+    findCentralCandidatesStub.resolves([installation]);
+
+    const response = await controller.centralLapiCandidates({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      findCentralCandidatesStub.calledOnceWithExactly(
+        fwcProduct.firewall.fwCloudId,
+        fwcProduct.firewall.id,
+      ),
+    ).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({
+      candidates: [{ id: centralFirewall.id, name: centralFirewall.name }],
+    });
+  });
+
+  it('should configure a standalone CrowdSec central LAPI', async () => {
+    findInstallationStub.resolves(
+      Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
+    );
+    const configureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+
+    const response = await controller.configureCentralLapi({
+      body: { listenUri: '0.0.0.0:8080' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(findInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({ listen_uri: '0.0.0.0:8080' });
+  });
+
+  it('should reject central LAPI configuration without a standalone CrowdSec installation', async () => {
+    const configureStub = sinon.stub(communication, 'configureCrowdSecCentralLapi');
+
+    await expect(
+      controller.configureCentralLapi({
+        body: { listenUri: '0.0.0.0:8080' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(
+      HttpException,
+      'CrowdSec Local API requires a standalone CrowdSec installation',
+    );
+
+    expect(configureStub.called).to.be.false;
   });
 
   it('should validate and remove CrowdSec LAPI machines through the agent', async () => {
@@ -1113,6 +1187,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   it('should require explicit uninstall confirmation', async () => {
     await expect(
       new Validator({ confirm: false }, CrowdSecUninstallDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should reject an invalid CrowdSec Local API listener', async () => {
+    await expect(
+      new Validator({ listenUri: '192.0.2.20:8080' }, CrowdSecCentralLapiConfigureDto).validate(),
     ).to.be.rejectedWith(ValidationException);
   });
 });

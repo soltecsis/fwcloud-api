@@ -419,6 +419,12 @@ export class Routes extends RouteCollection {
                     .get('/machines', CrowdSecController, 'machines')
                     .name('fwclouds.firewalls.system.crowdsec.machines.index');
                   router
+                    .get('/lapi/central/candidates', CrowdSecController, 'centralLapiCandidates')
+                    .name('fwclouds.firewalls.system.crowdsec.lapi.central.candidates');
+                  router
+                    .post('/lapi/central/configure', CrowdSecController, 'configureCentralLapi')
+                    .name('fwclouds.firewalls.system.crowdsec.lapi.central.configure');
+                  router
                     .post('/machines/:machine/validate', CrowdSecController, 'validateMachine')
                     .name('fwclouds.firewalls.system.crowdsec.machines.validate');
                   router
