@@ -57,17 +57,17 @@ export class CrowdSecInstallation extends Model {
   mode: CrowdSecInstallationMode;
 
   @Column({ name: 'central_firewall', nullable: true })
-  centralFirewallId?: number;
+  centralFirewallId: number | null;
 
   @ManyToOne(() => Firewall, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'central_firewall' })
   centralFirewall?: Firewall;
 
   @Column({ name: 'lapi_url', type: 'varchar', length: 256, nullable: true })
-  lapiUrl?: string;
+  lapiUrl: string | null;
 
   @Column({ name: 'machine_name', type: 'varchar', length: 128, nullable: true })
-  machineName?: string;
+  machineName: string | null;
 
   @Column({ name: 'local_remediation', type: 'boolean', default: false })
   localRemediation: boolean;
