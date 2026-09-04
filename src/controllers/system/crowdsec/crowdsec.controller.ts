@@ -444,6 +444,18 @@ export class CrowdSecController extends Controller {
       );
     }
 
+    if (
+      installation?.mode === CrowdSecInstallationMode.Machine &&
+      installation.localRemediation &&
+      installation.centralFirewallId !== null &&
+      installation.machineName !== null
+    ) {
+      const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
+      await (
+        await this.getCentralAgentCommunication(centralFirewall)
+      ).removeCrowdSecBouncer(installation.machineName);
+    }
+
     const channel = await Channel.fromRequest(req);
     channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
 

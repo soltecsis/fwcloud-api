@@ -1193,6 +1193,45 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(body.data).to.deep.equal({ steps: [] });
   });
 
+  it('should remove a machine local-remediation Bouncer from its central LAPI before uninstalling', async () => {
+    const channel = new Channel('crowdsec-uninstall', new EventEmitter());
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => centralCommunication,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        localRemediation: true,
+      }),
+    );
+    const removeBouncerStub = sinon
+      .stub(centralCommunication, 'removeCrowdSecBouncer')
+      .resolves({});
+    const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec').resolves({ steps: [] });
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+
+    await controller.uninstall({
+      body: { confirm: true },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(removeBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(uninstallStub.calledOnceWithExactly(true, channel)).to.be.true;
+    expect(removeBouncerStub.calledBefore(uninstallStub)).to.be.true;
+  });
+
   it('should reject CrowdSec operations when the firewall uses SSH', async () => {
     (controller as any)._firewall.install_communication = FirewallInstallCommunication.SSH;
     const installStub = sinon.stub(communication, 'installCrowdSec');
