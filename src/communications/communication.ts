@@ -113,6 +113,8 @@ export type CrowdSecMachineActivation = {
   bouncerApiKey?: string;
 };
 
+export type CrowdSecMachineReauthentication = CrowdSecMachineInstall;
+
 export type CrowdSecDecisionsQuery = {
   limit?: number;
   scope?: string;
@@ -263,6 +265,15 @@ export abstract class Communication<ConnectionData> {
   ): Promise<Record<string, unknown>>;
   abstract activateCrowdSecMachine(
     activation: CrowdSecMachineActivation,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract reauthenticateCrowdSecMachine(
+    reauthentication: CrowdSecMachineReauthentication,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract resumeCrowdSecMachine(
+    machineName: string,
+    localRemediation: boolean,
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
 

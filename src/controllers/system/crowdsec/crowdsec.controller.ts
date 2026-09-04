@@ -85,12 +85,17 @@ export class CrowdSecController extends Controller {
     const centralLapiHasMachines =
       centralLapiEnabled &&
       (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id));
+    const lapiState = (status.lapi as Record<string, unknown> | undefined)?.state;
+    const machineReauthenticationRequired =
+      installation?.mode === CrowdSecInstallationMode.Machine &&
+      lapiState === 'reauthentication_required';
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
         ...status,
         central_lapi_enabled: centralLapiEnabled,
         central_lapi_has_machines: centralLapiHasMachines,
+        machine_reauthentication_required: machineReauthenticationRequired,
       });
   }
 
@@ -244,12 +249,49 @@ export class CrowdSecController extends Controller {
     const machine = await (
       await this.getAgentCommunication()
     ).removeCrowdSecLapiMachine(machineName);
-    await this.getCrowdSecInstallationRepository().removeMachineInstallation(
-      this._firewall.id,
-      machineName,
-    );
 
     return ResponseBuilder.buildResponse().status(200).body(machine);
+  }
+
+  @Validate()
+  public async reauthenticateMachine(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    if (
+      installation?.mode !== CrowdSecInstallationMode.Machine ||
+      installation.centralFirewallId === null ||
+      installation.machineName === null ||
+      installation.lapiUrl === null
+    ) {
+      throw new HttpException('CrowdSec Machine installation was not found', 409);
+    }
+
+    const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
+    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const remoteCommunication = await this.getAgentCommunication();
+    const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
+    const preflight = await centralCommunication.createCrowdSecLapiPreflightToken(
+      installation.machineName,
+    );
+    const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
+      machineName: installation.machineName,
+      lapiUrl: installation.lapiUrl,
+      centralAgentUrl: centralCommunication.getUrl(),
+      centralAgentTlsFingerprint,
+      preflightToken: this.preflightToken(preflight),
+    });
+    const validation = await centralCommunication.validateCrowdSecLapiMachine(
+      installation.machineName,
+    );
+    const activation = await remoteCommunication.resumeCrowdSecMachine(
+      installation.machineName,
+      installation.localRemediation,
+    );
+
+    return ResponseBuilder.buildResponse().status(200).body({ machine, validation, activation });
   }
 
   @Validate(CrowdSecMachineInstallDto)

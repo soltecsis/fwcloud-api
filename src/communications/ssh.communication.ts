@@ -37,6 +37,7 @@ import {
   CrowdSecFirewallBackend,
   CrowdSecMachineActivation,
   CrowdSecMachineInstall,
+  CrowdSecMachineReauthentication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
@@ -846,6 +847,21 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
   activateCrowdSecMachine(
     _activation: CrowdSecMachineActivation,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  reauthenticateCrowdSecMachine(
+    _reauthentication: CrowdSecMachineReauthentication,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  resumeCrowdSecMachine(
+    _machineName: string,
+    _localRemediation: boolean,
     _eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');

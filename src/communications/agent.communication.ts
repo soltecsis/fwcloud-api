@@ -31,6 +31,7 @@ import {
   CrowdSecFirewallBackend,
   CrowdSecMachineActivation,
   CrowdSecMachineInstall,
+  CrowdSecMachineReauthentication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentConfig,
@@ -1367,6 +1368,46 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           ...(activation.bouncerApiKey === undefined
             ? {}
             : { bouncer_api_key: activation.bouncerApiKey }),
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async reauthenticateCrowdSecMachine(
+    reauthentication: CrowdSecMachineReauthentication,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/reauthenticate',
+        {
+          machine_name: reauthentication.machineName,
+          lapi_url: reauthentication.lapiUrl,
+          central_agent_url: reauthentication.centralAgentUrl,
+          central_agent_tls_fingerprint: reauthentication.centralAgentTlsFingerprint,
+          preflight_token: reauthentication.preflightToken,
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async resumeCrowdSecMachine(
+    machineName: string,
+    localRemediation: boolean,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/resume',
+        {
+          machine_name: machineName,
+          local_remediation: localRemediation,
         },
         eventEmitter,
       );

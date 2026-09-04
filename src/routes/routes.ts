@@ -428,6 +428,9 @@ export class Routes extends RouteCollection {
                     .post('/machines/:machine/validate', CrowdSecController, 'validateMachine')
                     .name('fwclouds.firewalls.system.crowdsec.machines.validate');
                   router
+                    .post('/machines/reauthenticate', CrowdSecController, 'reauthenticateMachine')
+                    .name('fwclouds.firewalls.system.crowdsec.machines.reauthenticate');
+                  router
                     .delete('/machines/:machine', CrowdSecController, 'removeMachine')
                     .name('fwclouds.firewalls.system.crowdsec.machines.delete');
                   router

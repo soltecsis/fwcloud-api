@@ -150,6 +150,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       ...status,
       central_lapi_enabled: false,
       central_lapi_has_machines: false,
+      machine_reauthentication_required: false,
     });
   });
 
@@ -376,12 +377,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(removeStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
-    expect(
-      removeMachineInstallationStub.calledOnceWithExactly(
-        fwcProduct.firewall.id,
-        'fwcloud-machine-01',
-      ),
-    ).to.be.true;
+    expect(removeMachineInstallationStub.called).to.be.false;
     expect(validationResponse.toJSON()).to.include({ status: 200, data: validation });
     expect(removalResponse.toJSON()).to.include({ status: 200, data: removal });
   });
