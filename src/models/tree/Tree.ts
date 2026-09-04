@@ -1511,6 +1511,7 @@ export class Tree extends Model {
         await this.newNode(connection, fwcloud, 'Decisions', idCrowdSec, 'S08', firewall, null);
         await this.newNode(connection, fwcloud, 'Alerts', idCrowdSec, 'S09', firewall, null);
         await this.newNode(connection, fwcloud, 'Bouncers', idCrowdSec, 'S10', firewall, null);
+        await this.newNode(connection, fwcloud, 'Machines', idCrowdSec, 'S11', firewall, null);
         resolve();
       } catch (error) {
         return reject(error);
