@@ -54,6 +54,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/bouncers/:bouncer': {
     audited: true,
   },
+  'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/:machine': {
+    audited: true,
+  },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/:dhcp': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpRules/bulkRemove': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/system/haproxyGroups/:haproxygroup': {
@@ -121,6 +124,15 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/bouncers/register': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/install': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/lapi/central/configure': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/:machine/validate': {
     audited: true,
   },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/decisions/flush': {

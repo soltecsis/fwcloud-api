@@ -21,6 +21,7 @@
 */
 
 import { EventEmitter } from 'events';
+import { createHash } from 'crypto';
 import {
   CCDHash,
   Communication,
@@ -28,6 +29,9 @@ import {
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
+  CrowdSecMachineActivation,
+  CrowdSecMachineInstall,
+  CrowdSecMachineReauthentication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentConfig,
@@ -47,6 +51,7 @@ import * as fs from 'fs';
 import FormData from 'form-data';
 import * as path from 'path';
 import * as https from 'https';
+import * as tls from 'tls';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
@@ -70,6 +75,38 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   CROWDSEC_LAPI_UNAVAILABLE: {
     message: 'CrowdSec Local API is unavailable',
     status: 503,
+  },
+  CROWDSEC_LAPI_UNREACHABLE: {
+    message: 'CrowdSec Local API is unreachable',
+    status: 503,
+  },
+  CROWDSEC_LAPI_INVALID: {
+    message: 'CrowdSec Local API configuration is invalid',
+    status: 422,
+  },
+  CROWDSEC_LAPI_PREFLIGHT_TOKEN_INVALID: {
+    message: 'CrowdSec Local API preflight token is invalid or expired',
+    status: 422,
+  },
+  CROWDSEC_LAPI_PREFLIGHT_FAILED: {
+    message: 'CrowdSec Local API agent preflight failed',
+    status: 503,
+  },
+  CROWDSEC_MACHINE_CONFLICT: {
+    message: 'CrowdSec machine already exists',
+    status: 409,
+  },
+  CROWDSEC_MACHINE_INVALID: {
+    message: 'CrowdSec machine configuration is invalid',
+    status: 422,
+  },
+  CROWDSEC_MACHINE_NOT_FOUND: {
+    message: 'CrowdSec machine was not found',
+    status: 404,
+  },
+  CROWDSEC_MACHINE_REAUTHENTICATION_REQUIRED: {
+    message: 'CrowdSec machine must be registered and validated again',
+    status: 409,
   },
   CROWDSEC_FIREWALL_INTEGRATION_INVALID: {
     message: 'CrowdSec firewall integration is invalid',
@@ -115,7 +152,7 @@ export function crowdSecAgentErrorToHttpException(code: unknown): HttpException 
 
 export function sanitizeCrowdSecProgressMessage(message: string): string {
   return message.replace(
-    /((?:"?(?:api|enrollment)[ _-]?key"?\s*[:=]\s*))(?:(?:"[^"]*")|(?:'[^']*')|[^\s,}\]]+)/gi,
+    /((?:"?(?:(?:api|enrollment)[ _-]?key|preflight[ _-]?token)"?\s*[:=]\s*))(?:(?:"[^"]*")|(?:'[^']*')|[^\s,}\]]+)/gi,
     '$1[REDACTED]',
   );
 }
@@ -200,6 +237,51 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       this.config.httpsAgent = new https.Agent({
         rejectUnauthorized: false,
       });
+    }
+  }
+
+  public getUrl(): string {
+    return this.url;
+  }
+
+  public async getTlsCertificateFingerprint(): Promise<string> {
+    if (this.connectionData.protocol !== 'https') {
+      throw new HttpException('CrowdSec central Agent requires HTTPS communication', 422);
+    }
+
+    try {
+      const certificate = await new Promise<Buffer>((resolve, reject) => {
+        const socket = tls.connect({
+          host: this.connectionData.host,
+          port: this.connectionData.port,
+          rejectUnauthorized: false,
+        });
+        const timeout = setTimeout(() => {
+          socket.destroy();
+          reject(new Error('CrowdSec central Agent TLS certificate request timed out'));
+        }, 5000);
+
+        socket.once('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+        socket.once('secureConnect', () => {
+          clearTimeout(timeout);
+          const certificate = socket.getPeerCertificate();
+          socket.end();
+
+          if (!certificate.raw) {
+            reject(new Error('CrowdSec central Agent did not provide a TLS certificate'));
+            return;
+          }
+
+          resolve(certificate.raw);
+        });
+      });
+
+      return createHash('sha256').update(certificate).digest('hex');
+    } catch {
+      throw new HttpException('Unable to read CrowdSec central Agent TLS certificate', 502);
     }
   }
 
@@ -1196,6 +1278,139 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const pathUrl: string = this.url + '/api/v1/crowdsec/bouncer/uninstall';
       return await this.runCrowdSecOperation(pathUrl, { confirm }, eventEmitter);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async configureCrowdSecCentralLapi(listenUri: string): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/central/configure', {
+        listen_uri: listenUri,
+      });
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/machines');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + `/api/v1/crowdsec/lapi/machines/${encodeURIComponent(name)}/validate`,
+        {},
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecDeleteOperation(
+        `/api/v1/crowdsec/lapi/machines/${encodeURIComponent(name)}`,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async createCrowdSecLapiPreflightToken(machineName: string): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/preflight-tokens', {
+        machine_name: machineName,
+      });
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async installCrowdSecMachine(
+    installation: CrowdSecMachineInstall,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/install',
+        {
+          mode: 'machine',
+          machine_name: installation.machineName,
+          lapi_url: installation.lapiUrl,
+          central_agent_url: installation.centralAgentUrl,
+          central_agent_tls_fingerprint: installation.centralAgentTlsFingerprint,
+          preflight_token: installation.preflightToken,
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async activateCrowdSecMachine(
+    activation: CrowdSecMachineActivation,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/activate',
+        {
+          machine_name: activation.machineName,
+          local_remediation: activation.localRemediation,
+          backend: activation.backend,
+          ...(activation.bouncerApiKey === undefined
+            ? {}
+            : { bouncer_api_key: activation.bouncerApiKey }),
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async reauthenticateCrowdSecMachine(
+    reauthentication: CrowdSecMachineReauthentication,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/reauthenticate',
+        {
+          machine_name: reauthentication.machineName,
+          lapi_url: reauthentication.lapiUrl,
+          central_agent_url: reauthentication.centralAgentUrl,
+          central_agent_tls_fingerprint: reauthentication.centralAgentTlsFingerprint,
+          preflight_token: reauthentication.preflightToken,
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async resumeCrowdSecMachine(
+    machineName: string,
+    localRemediation: boolean,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/resume',
+        {
+          machine_name: machineName,
+          local_remediation: localRemediation,
+        },
+        eventEmitter,
+      );
     } catch (error) {
       this.handleCrowdSecRequestException(error, eventEmitter);
     }

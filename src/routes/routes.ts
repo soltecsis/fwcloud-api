@@ -416,6 +416,27 @@ export class Routes extends RouteCollection {
                     .get('/bouncers', CrowdSecController, 'bouncers')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.index');
                   router
+                    .get('/machines', CrowdSecController, 'machines')
+                    .name('fwclouds.firewalls.system.crowdsec.machines.index');
+                  router
+                    .get('/lapi/central/candidates', CrowdSecController, 'centralLapiCandidates')
+                    .name('fwclouds.firewalls.system.crowdsec.lapi.central.candidates');
+                  router
+                    .post('/lapi/central/configure', CrowdSecController, 'configureCentralLapi')
+                    .name('fwclouds.firewalls.system.crowdsec.lapi.central.configure');
+                  router
+                    .post('/machines/:machine/validate', CrowdSecController, 'validateMachine')
+                    .name('fwclouds.firewalls.system.crowdsec.machines.validate');
+                  router
+                    .post('/machines/reauthenticate', CrowdSecController, 'reauthenticateMachine')
+                    .name('fwclouds.firewalls.system.crowdsec.machines.reauthenticate');
+                  router
+                    .delete('/machines/:machine', CrowdSecController, 'removeMachine')
+                    .name('fwclouds.firewalls.system.crowdsec.machines.delete');
+                  router
+                    .post('/machines/install', CrowdSecController, 'installMachine')
+                    .name('fwclouds.firewalls.system.crowdsec.machines.install');
+                  router
                     .post('/bouncers/register', CrowdSecController, 'registerBouncer')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.register');
                   router
