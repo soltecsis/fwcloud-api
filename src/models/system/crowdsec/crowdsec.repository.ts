@@ -98,6 +98,16 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     );
   }
 
+  public async setCentralLapiEnabled(
+    firewallId: number,
+    enabled: boolean,
+  ): Promise<CrowdSecInstallation> {
+    return this.saveInstallation({
+      firewallId,
+      centralLapiEnabled: enabled,
+    });
+  }
+
   public async removeByFirewallId(firewallId: number): Promise<void> {
     await this.delete({ firewallId });
   }

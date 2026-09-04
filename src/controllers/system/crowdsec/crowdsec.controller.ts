@@ -78,7 +78,20 @@ export class CrowdSecController extends Controller {
   public async status(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
     const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
-    return ResponseBuilder.buildResponse().status(200).body(status);
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    const centralLapiEnabled = installation?.centralLapiEnabled === true;
+    const centralLapiHasMachines =
+      centralLapiEnabled &&
+      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id));
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        ...status,
+        central_lapi_enabled: centralLapiEnabled,
+        central_lapi_has_machines: centralLapiHasMachines,
+      });
   }
 
   @Validate()
@@ -190,10 +203,27 @@ export class CrowdSecController extends Controller {
       );
     }
 
+    const centralLapiEnabled = this.isCentralLapiListener(req.body.listenUri);
+    if (
+      !centralLapiEnabled &&
+      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
+    ) {
+      throw new HttpException(
+        'CrowdSec central Local API has dependent machines and cannot be disabled',
+        409,
+      );
+    }
+
     const result = await (
       await this.getAgentCommunication()
     ).configureCrowdSecCentralLapi(req.body.listenUri);
-    return ResponseBuilder.buildResponse().status(200).body(result);
+    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
+      this._firewall.id,
+      centralLapiEnabled,
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({ ...result, central_lapi_enabled: centralLapiEnabled });
   }
 
   @Validate()
@@ -235,6 +265,7 @@ export class CrowdSecController extends Controller {
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
 
     await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(centralFirewall.id, true);
     const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
     const preflight = await centralCommunication.createCrowdSecLapiPreflightToken(
       req.body.machineName,
@@ -547,6 +578,10 @@ export class CrowdSecController extends Controller {
     }
 
     return communication;
+  }
+
+  private isCentralLapiListener(listenUri: string): boolean {
+    return !listenUri.startsWith('127.0.0.1:') && !listenUri.startsWith('[::1]:');
   }
 
   private getFirewallRepository(): FirewallRepository {

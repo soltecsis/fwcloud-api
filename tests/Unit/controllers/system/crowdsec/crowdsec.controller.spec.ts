@@ -74,6 +74,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let findInstallationStub: sinon.SinonStub;
   let findCentralCandidatesStub: sinon.SinonStub;
   let hasMachineDependentsStub: sinon.SinonStub;
+  let setCentralLapiEnabledStub: sinon.SinonStub;
   let removeMachineInstallationStub: sinon.SinonStub;
 
   beforeEach(async () => {
@@ -123,6 +124,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     hasMachineDependentsStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents')
       .resolves(false);
+    setCentralLapiEnabledStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
+      .resolves(new CrowdSecInstallation());
     removeMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'removeMachineInstallation')
       .resolves();
@@ -141,7 +145,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(statusStub.calledOnce).to.be.true;
-    expect(response.toJSON()).to.include({ status: 200, data: status });
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({
+      ...status,
+      central_lapi_enabled: false,
+      central_lapi_has_machines: false,
+    });
   });
 
   it('should forward CrowdSec decision filters to the agent', async () => {
@@ -323,8 +332,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(findInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(setCentralLapiEnabledStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to.be
+      .true;
     expect(response.toJSON()).to.include({ status: 200 });
-    expect(response.toJSON().data).to.deep.equal({ listen_uri: '0.0.0.0:8080' });
+    expect(response.toJSON().data).to.deep.equal({
+      listen_uri: '0.0.0.0:8080',
+      central_lapi_enabled: true,
+    });
   });
 
   it('should reject central LAPI configuration without a standalone CrowdSec installation', async () => {

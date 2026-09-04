@@ -20,12 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Matches } from 'class-validator';
+import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-const CROWDSEC_LAPI_LISTEN_URI =
-  /^(?:0\.0\.0\.0|127\.0\.0\.1|\[::\]|\[::1\]):(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
+export class AddCrowdSecCentralLapiState1788424880000 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.addColumn(
+      'crowdsec_installation',
+      new TableColumn({
+        name: 'central_lapi_enabled',
+        type: 'tinyint',
+        length: '1',
+        isNullable: false,
+        default: 0,
+      }),
+    );
+  }
 
-export class CrowdSecCentralLapiConfigureDto {
-  @Matches(CROWDSEC_LAPI_LISTEN_URI, { message: 'Invalid CrowdSec Local API listener' })
-  listenUri: string;
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropColumn('crowdsec_installation', 'central_lapi_enabled');
+  }
 }

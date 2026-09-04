@@ -73,6 +73,9 @@ export class CrowdSecInstallation extends Model {
   @Column({ name: 'local_remediation', type: 'boolean', default: false })
   localRemediation: boolean;
 
+  @Column({ name: 'central_lapi_enabled', type: 'boolean', default: false })
+  centralLapiEnabled: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
