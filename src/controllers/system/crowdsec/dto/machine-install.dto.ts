@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsInt, IsString, Length, Matches, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
 
 const CROWDSEC_MACHINE_NAME = /^[A-Za-z0-9_.-]{1,128}$/;
 
@@ -42,4 +42,9 @@ export class CrowdSecMachineInstallDto {
 
   @IsBoolean()
   localRemediation: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 512)
+  bouncerApiKey?: string;
 }

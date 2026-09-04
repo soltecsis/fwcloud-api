@@ -917,6 +917,58 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith(ValidationException);
   });
 
+  it('should use the supplied central CrowdSec bouncer key for Machine local remediation', async () => {
+    const channel = new Channel('crowdsec-machine-install', new EventEmitter());
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: 'https',
+      getCommunication: async () => centralCommunication,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
+    sinon.stub(centralCommunication, 'createCrowdSecLapiPreflightToken').resolves({
+      token: 'preflight-token',
+    });
+    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
+    sinon.stub(communication, 'installCrowdSecMachine').resolves({});
+    sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
+    const registerBouncerStub = sinon.stub(centralCommunication, 'registerCrowdSecBouncer');
+    const activateStub = sinon.stub(communication, 'activateCrowdSecMachine').resolves({});
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+
+    await controller.installMachine({
+      body: {
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: true,
+        bouncerApiKey: 'manually-created-bouncer-key',
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(registerBouncerStub.notCalled).to.be.true;
+    expect(
+      activateStub.calledOnceWithExactly(
+        {
+          machineName: 'fwcloud-machine-01',
+          localRemediation: true,
+          backend: 'iptables',
+          bouncerApiKey: 'manually-created-bouncer-key',
+        },
+        channel,
+      ),
+    ).to.be.true;
+  });
+
   it('should validate CrowdSec decisions, alerts and bouncer DTOs', async () => {
     await expect(
       new Validator(

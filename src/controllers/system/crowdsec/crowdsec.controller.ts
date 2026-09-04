@@ -331,12 +331,14 @@ export class CrowdSecController extends Controller {
       const validation = await centralCommunication.validateCrowdSecLapiMachine(
         req.body.machineName,
       );
+      const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
       const bouncerApiKey = req.body.localRemediation
-        ? this.bouncerApiKey(
+        ? (providedBouncerApiKey ??
+          this.bouncerApiKey(
             await centralCommunication.registerCrowdSecBouncer(
               (bouncerName = this.machineName(req.body.machineName)),
             ),
-          )
+          ))
         : undefined;
       const backend = req.body.localRemediation
         ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
@@ -711,5 +713,15 @@ export class CrowdSecController extends Controller {
     }
 
     return response.api_key;
+  }
+
+  private optionalBouncerApiKey(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const apiKey = value.trim();
+
+    return apiKey.length > 0 ? apiKey : undefined;
   }
 }
