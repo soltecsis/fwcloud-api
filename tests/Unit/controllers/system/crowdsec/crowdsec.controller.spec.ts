@@ -1233,6 +1233,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const removeBouncerStub = sinon
       .stub(centralCommunication, 'removeCrowdSecBouncer')
       .resolves({});
+    const removeMachineStub = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
     const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec').resolves({ steps: [] });
     sinon.stub(Channel, 'fromRequest').resolves(channel);
 
@@ -1242,8 +1245,10 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(removeBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(uninstallStub.calledOnceWithExactly(true, channel)).to.be.true;
     expect(removeBouncerStub.calledBefore(uninstallStub)).to.be.true;
+    expect(removeMachineStub.calledBefore(uninstallStub)).to.be.true;
   });
 
   it('should reject CrowdSec operations when the firewall uses SSH', async () => {

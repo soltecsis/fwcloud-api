@@ -477,14 +477,15 @@ export class CrowdSecController extends Controller {
 
     if (
       installation?.mode === CrowdSecInstallationMode.Machine &&
-      installation.localRemediation &&
       installation.centralFirewallId !== null &&
       installation.machineName !== null
     ) {
       const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-      await (
-        await this.getCentralAgentCommunication(centralFirewall)
-      ).removeCrowdSecBouncer(installation.machineName);
+      const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+      if (installation.localRemediation) {
+        await centralCommunication.removeCrowdSecBouncer(installation.machineName);
+      }
+      await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
     }
 
     const channel = await Channel.fromRequest(req);
