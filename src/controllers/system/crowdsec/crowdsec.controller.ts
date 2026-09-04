@@ -96,6 +96,8 @@ export class CrowdSecController extends Controller {
         central_lapi_enabled: centralLapiEnabled,
         central_lapi_has_machines: centralLapiHasMachines,
         machine_reauthentication_required: machineReauthenticationRequired,
+        installation_mode: installation?.mode ?? null,
+        local_remediation: installation?.localRemediation ?? false,
       });
   }
 
