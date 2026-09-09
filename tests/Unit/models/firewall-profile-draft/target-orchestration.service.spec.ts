@@ -14,10 +14,7 @@ import { Interface } from '../../../../src/models/interface/Interface';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { Tree } from '../../../../src/models/tree/Tree';
 import { FirewallProfileDraft } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft.model';
-import {
-  FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS,
-  FirewallProfileDraftStateService,
-} from '../../../../src/models/firewall-profile-draft/firewall-profile-draft-state.service';
+import { FIREWALL_PROFILE_DRAFT_ORCHESTRATION_AUDIT_CALLS } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft-state.service';
 import { TargetOrchestrationService } from '../../../../src/models/firewall-profile-draft/target-orchestration.service';
 import {
   TargetOrchestrationAlreadyStartedError,
