@@ -6,8 +6,8 @@
 #
 # This does not reimplement provisioning logic: it just runs the same
 # one-shot `assisted-profile-model-provisioner` service defined in
-# docker-compose.yml (which wraps the agent image's own
-# scripts/provision-model.sh / `python -m app.model_ops provision`).
+# docker-compose.yml (which invokes the agent image's own
+# `python -m app.model_ops provision`).
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"

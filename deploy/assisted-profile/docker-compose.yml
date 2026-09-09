@@ -62,7 +62,11 @@ services:
   assisted-profile-model-provisioner:
     <<: *fwcloud-ai-agent-image
     container_name: assisted-profile-model-provisioner
-    entrypoint: ['./scripts/provision-model.sh']
+    # Invoke the provisioning module directly. The agent image deliberately
+    # ships only `python -m app.model_ops` (its scripts/provision-model.sh is
+    # a source-checkout convenience and is NOT copied into the image — see
+    # the agent's docs/model-ops.md, "Provisioning").
+    entrypoint: ['python', '-m', 'app.model_ops', 'provision']
     command: ['--warm-up']
     environment:
       <<: *fwcloud-ai-agent-ollama-env
@@ -78,7 +82,11 @@ services:
     container_name: fwcloud-ai-agent
     environment:
       <<: *fwcloud-ai-agent-ollama-env
-      FWCLOUD_AI_AGENT_MODEL_PROVIDER: ollama
+      # Canonical public provider selector. `ollama` was the pre-release
+      # spelling and is rejected by the agent's settings validation
+      # (it accepts only `local` or `selfhosted`); Ollama remains the
+      # pinned backend of the `selfhosted` provider.
+      FWCLOUD_AI_AGENT_MODEL_PROVIDER: selfhosted
       # AG-4 inbound service auth. The API key MUST equal the fwcloud-api
       # side's ASSISTED_PROFILE_AGENT_API_KEY (see the root .env.example).
       # The allowlist defaults to loopback (the agent's own baked-in

@@ -58,8 +58,10 @@ and is not configurable from this repo — the provisioner (§4) fails loudly
 ## 4. Model provisioning
 
 `assisted-profile-model-provisioner` is a one-shot Compose service that runs
-the agent image's own `scripts/provision-model.sh` (→ `python -m
-app.model_ops provision`) against the `ollama` service, and exits only once:
+the agent image's own `python -m app.model_ops provision` (the in-image
+provisioning entrypoint; the agent's `scripts/provision-model.sh` wrapper is
+a source-checkout convenience and is not shipped in the image) against the
+`ollama` service, and exits only once:
 
 1. Ollama is reachable and its server version matches the manifest.
 2. The pinned model is present (pulling it if not).
