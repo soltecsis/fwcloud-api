@@ -36,11 +36,14 @@ export interface FixtureOptions {
  * Builds mapping fixtures from API-1's canonical success envelope so tests do
  * not duplicate the large contract payload.
  */
+/** Contract versions whose rules carry `{ protocol, port }` instead of free text. */
+const STRUCTURED_SERVICE_SCHEMA_VERSIONS = new Set(['1.1.0', '1.2.0']);
+
 export function makeAssistedProfileProposalFixture({
   targetKind = 'firewall',
   dmz = false,
   includeSync = targetKind === 'cluster',
-  schemaVersion = '1.0.0',
+  schemaVersion = '1.1.0',
 }: FixtureOptions = {}): Record<string, unknown> {
   const fixture = structuredClone(validSuccess) as Record<string, any>;
   const cluster = targetKind === 'cluster';
@@ -118,6 +121,21 @@ export function makeAssistedProfileProposalFixture({
         : []),
     ],
   };
+
+  // `service` is free text up to 1.0.0 and `{ protocol, port }` from 1.1.0 on.
+  // The fixture follows the version it claims, or the gateway would reject it
+  // against that version's own vendored schema. Listed explicitly rather than
+  // compared as "newer than 1.0.0" because suites also synthesize versions
+  // (a 0.9.0 N-1) by cloning the 1.0.0 schema, which still expects free text.
+  if (STRUCTURED_SERVICE_SCHEMA_VERSIONS.has(schemaVersion)) {
+    for (const rule of fixture.generated.rules as Array<Record<string, unknown>>) {
+      const shorthand =
+        typeof rule.service === 'string' ? rule.service.match(/^(tcp|udp)\/(\d+)$/i) : null;
+      rule.service = shorthand
+        ? { protocol: shorthand[1].toLowerCase(), port: Number(shorthand[2]) }
+        : null;
+    }
+  }
 
   return fixture;
 }

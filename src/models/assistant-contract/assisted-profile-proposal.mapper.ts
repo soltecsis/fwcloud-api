@@ -2,7 +2,13 @@ import {
   ReplicationProfileStoreDto,
   ReplicationProfileStoreModelDto,
 } from '../../controllers/replication-profile/dtos/replication-profile-store.dto';
-import { asReplicationProfileNonEmptyString } from '../replication-profile/replication-profile.constants';
+import {
+  REPLICATION_PROFILE_RULE_PROTOCOLS,
+  asReplicationProfileNonEmptyString,
+  asReplicationProfileRecord,
+  isReplicationProfilePort,
+  isReplicationProfileStringValue,
+} from '../replication-profile/replication-profile.constants';
 import type { AssistedProfileAssumption } from './assisted-profile-assumptions';
 import { ValidatedAssistedProfileProposal } from './assistant-contract-customs';
 import {
@@ -62,11 +68,17 @@ interface ProposalTarget {
   type: 'firewall' | 'cluster';
 }
 
+/** Contract 1.1.0 sends `{ protocol, port }`; 1.0.0 sent free text. */
+interface ProposalRuleService {
+  protocol?: unknown;
+  port?: unknown;
+}
+
 interface ProposalRule {
   action: 'allow' | 'deny';
   description?: string | null;
   destinationRole: string;
-  service?: string | null;
+  service?: string | ProposalRuleService | null;
   sourceRole: string;
 }
 
@@ -188,10 +200,15 @@ export class AssistedProfileProposalMapper {
   }
 
   /**
-   * API-1 retains only structurally validated N-1 payloads. The current MVP
-   * revision has the same generated-content shape, so the adapter is explicit
-   * even though it can share the field mapping. When that shape changes, the
-   * migration remains local to this method.
+   * API-1 retains only structurally validated N-1 payloads. Both revisions in
+   * the current window share the generated-content shape closely enough to
+   * share the field mapping, so the adapter is explicit but thin.
+   *
+   * Where they differ -- 1.0.0 carries a rule's service as free text, 1.1.0 as
+   * `{ protocol, port }` -- the difference is absorbed by the value being
+   * self-describing (`normalizeRuleService` reads the shape it was given)
+   * rather than by threading the version down. Reserve these two override
+   * points for a migration that cannot be told apart from the payload itself.
    */
   private mapPreviousVersion(
     proposal: ProposalShape,
@@ -441,14 +458,64 @@ export class AssistedProfileProposalMapper {
   }
 
   private mapRule(rule: ProposalRule): Record<string, unknown> {
+    const service = this.normalizeRuleService(rule.service);
+
     return {
       chain: 'forward',
       action: rule.action === 'allow' ? 'accept' : 'deny',
       inRole: rule.sourceRole,
       outRole: rule.destinationRole,
-      ...(rule.service ? { service: rule.service } : {}),
+      ...(service ? { service } : {}),
       ...(typeof rule.description === 'string' ? { comment: rule.description } : {}),
     };
+  }
+
+  /**
+   * Puts a free-text service into the one spelling the domain parser accepts.
+   *
+   * `parseProvisionService` only reads `<protocol>/<port>` (or `:`), so a model
+   * that answers "800/tcp", "tcp 800" or "TCP/800" used to have its port
+   * dropped in silence -- the rule still applied, to every port. Recognized
+   * spellings are rewritten; anything else is passed through untouched so an
+   * already-valid value, or a genuinely unsupported one, behaves exactly as
+   * before.
+   */
+  private normalizeRuleService(service: unknown): string | undefined {
+    // Contract 1.1.0 onwards: protocol and port arrive as separate typed
+    // fields. Rendered into the same canonical spelling the free-text era
+    // produced, so a provisioned rule looks identical whichever contract
+    // version the proposal came from.
+    const structured = asReplicationProfileRecord(service);
+    if (structured) {
+      const protocol = asReplicationProfileNonEmptyString(structured.protocol)?.toLowerCase();
+      const port = Number(structured.port);
+
+      return protocol &&
+        isReplicationProfileStringValue(protocol, REPLICATION_PROFILE_RULE_PROTOCOLS) &&
+        isReplicationProfilePort(port)
+        ? `${protocol}/${port}`
+        : undefined;
+    }
+
+    const raw = asReplicationProfileNonEmptyString(service);
+    if (!raw) {
+      return undefined;
+    }
+
+    const protocolFirst = raw.match(/^\s*(tcp|udp)\s*[/:\s]\s*(\d{1,5})\s*$/i);
+    const portFirst = raw.match(/^\s*(\d{1,5})\s*[/:\s]\s*(tcp|udp)\s*$/i);
+    const parsed = protocolFirst
+      ? { protocol: protocolFirst[1], port: protocolFirst[2] }
+      : portFirst
+        ? { protocol: portFirst[2], port: portFirst[1] }
+        : null;
+
+    if (!parsed) {
+      return raw;
+    }
+
+    const port = Number(parsed.port);
+    return isReplicationProfilePort(port) ? `${parsed.protocol.toLowerCase()}/${port}` : raw;
   }
 
   private makeSynchronizationRule(): Record<string, unknown> {

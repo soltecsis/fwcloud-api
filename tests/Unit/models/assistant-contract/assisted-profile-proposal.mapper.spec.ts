@@ -52,6 +52,58 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
     expectDomainValid(dto);
   });
 
+  it('maps the structured service of contract 1.1.0 into the same provisioned rule', () => {
+    const fixture = makeAssistedProfileProposalFixture({ schemaVersion: '1.1.0' }) as Record<
+      string,
+      any
+    >;
+
+    // The 1.1.0 contract forces protocol and port apart precisely so the port
+    // cannot be lost; the provisioned rule must still read the same as the one
+    // a 1.0.0 'tcp/443' produced.
+    expect(fixture.generated.rules[0].service).to.deep.equal({ protocol: 'tcp', port: 443 });
+
+    const dto = mapper.map(validateAssistedProfileFixtureAtGateway(fixture));
+    const provision = dto.model.provision as Record<string, any>;
+
+    expect(provision.rules[0].service).to.equal('tcp/443');
+    expectDomainValid(dto);
+  });
+
+  it('recovers a port the model spelled the other way round', () => {
+    const cases: Array<[string, string]> = [
+      ['800/tcp', 'tcp/800'],
+      ['443/TCP', 'tcp/443'],
+      ['tcp 8080', 'tcp/8080'],
+      ['UDP/53', 'udp/53'],
+      ['tcp/443', 'tcp/443'],
+    ];
+
+    for (const [emitted, expected] of cases) {
+      const fixture = makeAssistedProfileProposalFixture() as Record<string, any>;
+      fixture.generated.rules[0].service = emitted;
+      // Deliberately NOT gated: free-text services are a pre-1.1.0 shape the
+      // gateway no longer admits, yet drafts persisted under that contract
+      // still carry them, and the mapper is what has to make sense of those.
+      const dto = mapper.map(fixture as unknown as ValidatedAssistedProfileProposal);
+      const provision = dto.model.provision as Record<string, any>;
+
+      // Left un-normalized, the domain parser reads no port at all and the
+      // rule silently widens to every port.
+      expect(provision.rules[0].service, `service ${emitted}`).to.equal(expected);
+      expectDomainValid(dto);
+    }
+  });
+
+  it('passes an unrecognized service through untouched instead of guessing', () => {
+    const fixture = makeAssistedProfileProposalFixture() as Record<string, any>;
+    fixture.generated.rules[0].service = 'https';
+    const provision = mapper.map(fixture as unknown as ValidatedAssistedProfileProposal).model
+      .provision as Record<string, any>;
+
+    expect(provision.rules[0].service).to.equal('https');
+  });
+
   it('maps cluster nodes, preserves sync0, and generates the synchronization rule', () => {
     const dto = mapper.map(
       validateAssistedProfileFixtureAtGateway(
@@ -138,7 +190,7 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
     const manifest = [previousEntry, VENDORED_CONTRACT_SCHEMAS[0]];
     const customs = new AssistantContractCustoms(manifest);
     const versionedMapper = new AssistedProfileProposalMapper(manifest);
-    const current = customs.check(makeAssistedProfileProposalFixture());
+    const current = customs.check(makeAssistedProfileProposalFixture({ schemaVersion: '1.0.0' }));
     const previous = customs.check(makeAssistedProfileProposalFixture({ schemaVersion: '0.9.0' }));
 
     expect(current.ok).to.be.true;
@@ -170,7 +222,7 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
     expect(typed.details).to.deep.equal({
       code: 'UNSUPPORTED_ASSISTED_PROFILE_CONTRACT_VERSION',
       receivedVersion: '9.9.9',
-      supportedVersions: ['1.0.0'],
+      supportedVersions: ['1.1.0', '1.2.0'],
     });
     expect(typed.message).to.contain("contract version '9.9.9' is not supported");
   });
