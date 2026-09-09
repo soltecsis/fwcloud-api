@@ -3,7 +3,10 @@ import { AbstractApplication } from '../../../../src/fonaments/abstract-applicat
 import db from '../../../../src/database/database-manager';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { createUser } from '../../../utils/utils';
-import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
+import {
+  makeFirewallProfileDraftAttributes,
+  makeProvisioningProposal,
+} from '../../../utils/firewall-profile-draft-factory';
 import StringHelper from '../../../../src/utils/string.helper';
 import { User } from '../../../../src/models/user/User';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
@@ -52,27 +55,6 @@ describe(describeName('FirewallProfileDraftApplyService Unit Tests'), () => {
 
   const PREVIEW_HASH = 'test-preview-hash';
 
-  function provisioningProposal(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-    return {
-      name: `Assisted Profile ${StringHelper.randomize(8)}`,
-      description: null,
-      scope: 'generic',
-      targetKind: 'firewall',
-      category: 'Assisted Profile',
-      model: {
-        compatibility: { targetKinds: ['firewall'] },
-        provision: {
-          interfaces: [
-            { name: 'WAN', role: 'wan' },
-            { name: 'LAN', role: 'lan' },
-          ],
-          rules: [{ chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' }],
-        },
-      },
-      ...overrides,
-    };
-  }
-
   async function makeDraft(
     status: 'validated' | 'preview_ok' | 'apply_pending',
     overrides: Partial<FirewallProfileDraft> = {},
@@ -80,7 +62,7 @@ describe(describeName('FirewallProfileDraftApplyService Unit Tests'), () => {
     const repository = db.getSource().manager.getRepository(FirewallProfileDraft);
     const draft = repository.create(
       makeFirewallProfileDraftAttributes(fwc.fwcloud.id, status, {
-        proposal: provisioningProposal(),
+        proposal: makeProvisioningProposal(),
         previewHash: status === 'preview_ok' ? PREVIEW_HASH : null,
         createdBy: user.id,
         updatedBy: user.id,
@@ -336,7 +318,7 @@ describe(describeName('FirewallProfileDraftApplyService Unit Tests'), () => {
     it('rejects an unorchestratable proposal while the draft is still preview_ok, so it is never stranded in apply_pending', async () => {
       const draft = await makeDraft('preview_ok', {
         // No `provision` block: nothing for the orchestrator to create.
-        proposal: provisioningProposal({
+        proposal: makeProvisioningProposal({
           model: { compatibility: { targetKinds: ['firewall'] } },
         }),
       });

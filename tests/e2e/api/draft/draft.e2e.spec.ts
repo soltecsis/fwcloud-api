@@ -42,7 +42,10 @@ import {
   createUser,
   generateSession,
 } from '../../../utils/utils';
-import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
+import {
+  makeFirewallProfileDraftAttributes,
+  makeProvisioningProposal,
+} from '../../../utils/firewall-profile-draft-factory';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import {
   makeAssistedProfileProposalFixture,
@@ -85,24 +88,6 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
   // Shared by both apply destinations: the /apply block applies it onto an
   // existing firewall, the /apply-new block has it create one. Identical in
   // both cases, so it lives beside `makeDraft` rather than being copied.
-  const provisioningProposal = () => ({
-    name: `Assisted Profile ${StringHelper.randomize(8)}`,
-    description: null,
-    scope: 'generic',
-    targetKind: 'firewall',
-    category: 'Assisted Profile',
-    model: {
-      compatibility: { targetKinds: ['firewall'] },
-      provision: {
-        interfaces: [
-          { name: 'WAN', role: 'wan' },
-          { name: 'LAN', role: 'lan' },
-        ],
-        rules: [{ chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' }],
-      },
-    },
-  });
-
   const makeOtherFwCloud = (): Promise<FwCloud> =>
     fwCloudRepository.save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
 
@@ -309,10 +294,10 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
     it('describes the target by the name the proposal gave the infrastructure', async () => {
       const draft = await makeDraft('validated', {
         proposal: {
-          ...provisioningProposal(),
+          ...makeProvisioningProposal(),
           name: 'Small office basic internet',
           model: {
-            ...provisioningProposal().model,
+            ...makeProvisioningProposal().model,
             uiDefaults: { targetKind: 'firewall', targetName: 'FW-Oficina' },
           },
         },
@@ -333,7 +318,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
     it('falls back to the profile name for drafts mapped before the target name was kept', async () => {
       const draft = await makeDraft('validated', {
-        proposal: { ...provisioningProposal(), name: 'Small office basic internet' },
+        proposal: { ...makeProvisioningProposal(), name: 'Small office basic internet' },
       });
 
       await request(app.express)
@@ -355,7 +340,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
     let interfaceRepository: Repository<Interface>;
     const makePreviewOkDraft = (overrides: Partial<FirewallProfileDraft> = {}) =>
       makeDraft('preview_ok', {
-        proposal: provisioningProposal(),
+        proposal: makeProvisioningProposal(),
         previewHash: PREVIEW_HASH,
         ...overrides,
       });
@@ -608,7 +593,7 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
 
     const makePreviewOkDraft = (overrides: Partial<FirewallProfileDraft> = {}) =>
       makeDraft('preview_ok', {
-        proposal: provisioningProposal(),
+        proposal: makeProvisioningProposal(),
         previewHash: PREVIEW_HASH,
         ...overrides,
       });

@@ -46,7 +46,10 @@ import {
   generateSession,
 } from '../../../utils/utils';
 import { metricSeriesKeys, metricValue } from '../../../utils/assisted-profile-metrics.reader';
-import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
+import {
+  makeFirewallProfileDraftAttributes,
+  makeProvisioningProposal,
+} from '../../../utils/firewall-profile-draft-factory';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { makeMappedAssistedProfileProposal } from '../../../utils/assisted-profile-proposal-fixtures';
 import { In, type Repository } from 'typeorm';
@@ -269,27 +272,9 @@ describe(describeName('Assisted Profile adoption metrics E2E tests'), () => {
     const PREVIEW_HASH = 'metrics-e2e-preview-hash';
     let target: FwCloudProduct;
 
-    const provisioningProposal = () => ({
-      name: `Assisted Profile ${StringHelper.randomize(8)}`,
-      description: null,
-      scope: 'generic',
-      targetKind: 'firewall',
-      category: 'Assisted Profile',
-      model: {
-        compatibility: { targetKinds: ['firewall'] },
-        provision: {
-          interfaces: [
-            { name: 'WAN', role: 'wan' },
-            { name: 'LAN', role: 'lan' },
-          ],
-          rules: [{ chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' }],
-        },
-      },
-    });
-
     const makePreviewOkDraft = (overrides: Partial<FirewallProfileDraft> = {}) =>
       makeDraft('preview_ok', {
-        proposal: provisioningProposal(),
+        proposal: makeProvisioningProposal(),
         previewHash: PREVIEW_HASH,
         ...overrides,
       });
