@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import {
   ReplicationProfileService,
   type CreateCustomReplicationProfileOptions,
@@ -65,8 +66,49 @@ export async function materializeCustomProfileFromDraftProposal(
     model: record.model,
   };
 
-  const profile = await replicationProfileService.createCustomProfile(payload, options);
+  const profile = await createProfileOrNextVersion(replicationProfileService, payload, options);
   return { id: profile.id, code: profile.code, version: profile.version };
+}
+
+/**
+ * Materializes the proposal's profile, adding a version when its code is
+ * already taken in this FWCloud.
+ *
+ * Generators derive the profile code from the request, so asking twice for the
+ * same thing yields the same code -- and the second apply used to fail with
+ * "already exists" only AFTER the firewall had been created, leaving the
+ * operator with orphaned infrastructure and a draft that cannot be retried.
+ * Versioning is the catalog's own answer to "this code exists and is in use",
+ * so the second apply now lands as v2 instead of half-finishing.
+ */
+async function createProfileOrNextVersion(
+  replicationProfileService: ReplicationProfileService,
+  payload: CreateCustomReplicationProfilePayload,
+  options: CreateCustomReplicationProfileOptions,
+): Promise<{ id: number; code: string; version: number }> {
+  try {
+    return await replicationProfileService.createCustomProfile(payload, options);
+  } catch (error) {
+    const code = payload.code;
+
+    // Only the taken-identity case falls through to versioning: anything else
+    // (an invalid definition, a persistence failure) must surface unchanged.
+    if (!code || !isProfileIdentityTakenError(error)) {
+      throw error;
+    }
+
+    const { code: _code, version: _version, ...versionPayload } = payload;
+    return replicationProfileService.createCustomProfileVersion(code, versionPayload, options);
+  }
+}
+
+function isProfileIdentityTakenError(error: unknown): boolean {
+  return (
+    error instanceof HttpException &&
+    error.status === 409 &&
+    typeof error.message === 'string' &&
+    error.message.includes('already exists in this FWCloud')
+  );
 }
 
 /**
