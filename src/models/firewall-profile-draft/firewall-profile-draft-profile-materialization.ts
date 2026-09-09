@@ -75,6 +75,22 @@ export async function materializeCustomProfileFromDraftProposal(
  * always an `Error`, so this is the one place that normalizes it to a string.
  */
 export function describeApplyError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // Legacy FWCloud models reject with a plain `{ fwcErr, msg }` object
+  // (src/utils/error_table.js) rather than an Error. `String()` renders that
+  // as '[object Object]', and this message is the only diagnostic the step
+  // log -- and therefore the UI -- ever gets for a failed step, so the shape
+  // is unpacked instead of stringified.
+  const legacy = error as { fwcErr?: unknown; msg?: unknown } | null;
+  if (legacy !== null && typeof legacy === 'object' && typeof legacy.msg === 'string') {
+    return typeof legacy.fwcErr === 'number'
+      ? `${legacy.msg} (fwcErr ${legacy.fwcErr})`
+      : legacy.msg;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-base-to-string -- best-effort fallback for non-Error throws
-  return error instanceof Error ? error.message : String(error);
+  return String(error);
 }
