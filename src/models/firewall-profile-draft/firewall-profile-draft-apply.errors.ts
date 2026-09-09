@@ -47,23 +47,41 @@ interface DraftApplyErrorPayload extends ErrorPayload {
 }
 
 /**
+ * Shared shape of every confirmed-apply failure: the machine-readable `code`
+ * and the draft it refers to, echoed on top of the standard payload.
+ * Subclasses carrying extra fields override `toResponse` and spread this one.
+ */
+abstract class FirewallProfileDraftApplyError extends HttpException {
+  public abstract readonly code: string;
+
+  constructor(
+    public readonly draftId: number,
+    message: string,
+    status: number,
+  ) {
+    super(message, status);
+  }
+
+  public toResponse(): DraftApplyErrorPayload {
+    return { ...super.toResponse(), code: this.code, draftId: this.draftId };
+  }
+}
+
+/**
  * The confirmed apply must be bound to exactly the content the user
  * reviewed. Never exposes either hash value: a mismatch is either a stale
  * client (re-preview and confirm again) or tampering, and neither case
  * benefits from leaking the expected value.
  */
-export class FirewallProfileDraftApplyPreviewHashMismatchError extends HttpException {
+export class FirewallProfileDraftApplyPreviewHashMismatchError extends FirewallProfileDraftApplyError {
   public readonly code = FIREWALL_PROFILE_DRAFT_APPLY_PREVIEW_HASH_MISMATCH;
 
-  constructor(public readonly draftId: number) {
+  constructor(draftId: number) {
     super(
+      draftId,
       `Draft ${draftId} apply was not confirmed against its current preview_hash. Preview it again before confirming.`,
       422,
     );
-  }
-
-  public toResponse(): DraftApplyErrorPayload {
-    return { ...super.toResponse(), code: this.code, draftId: this.draftId };
   }
 }
 
@@ -77,15 +95,16 @@ export class FirewallProfileDraftApplyPreviewHashMismatchError extends HttpExcep
  * Both kinds are echoed on purpose -- unlike the preview hash, neither is a
  * secret, and the client needs them to correct the request.
  */
-export class FirewallProfileDraftApplyTargetKindMismatchError extends HttpException {
+export class FirewallProfileDraftApplyTargetKindMismatchError extends FirewallProfileDraftApplyError {
   public readonly code = FIREWALL_PROFILE_DRAFT_APPLY_TARGET_KIND_MISMATCH;
 
   constructor(
-    public readonly draftId: number,
+    draftId: number,
     public readonly confirmedKind: string,
     public readonly proposalKind: string,
   ) {
     super(
+      draftId,
       `Draft ${draftId} apply was confirmed for a '${confirmedKind}' target, but its proposal declares a '${proposalKind}'.`,
       422,
     );
@@ -94,8 +113,6 @@ export class FirewallProfileDraftApplyTargetKindMismatchError extends HttpExcept
   public toResponse(): DraftApplyErrorPayload {
     return {
       ...super.toResponse(),
-      code: this.code,
-      draftId: this.draftId,
       confirmedKind: this.confirmedKind,
       proposalKind: this.proposalKind,
     };
@@ -103,14 +120,10 @@ export class FirewallProfileDraftApplyTargetKindMismatchError extends HttpExcept
 }
 
 /** API-13 requires every confirmed apply to carry an `Idempotency-Key` header. */
-export class FirewallProfileDraftApplyIdempotencyKeyMissingError extends HttpException {
+export class FirewallProfileDraftApplyIdempotencyKeyMissingError extends FirewallProfileDraftApplyError {
   public readonly code = FIREWALL_PROFILE_DRAFT_APPLY_IDEMPOTENCY_KEY_MISSING;
 
-  constructor(public readonly draftId: number) {
-    super(`Draft ${draftId} apply requires an Idempotency-Key header.`, 400);
-  }
-
-  public toResponse(): DraftApplyErrorPayload {
-    return { ...super.toResponse(), code: this.code, draftId: this.draftId };
+  constructor(draftId: number) {
+    super(draftId, `Draft ${draftId} apply requires an Idempotency-Key header.`, 400);
   }
 }
