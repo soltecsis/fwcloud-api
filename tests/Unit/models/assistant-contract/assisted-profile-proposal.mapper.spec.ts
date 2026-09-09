@@ -104,6 +104,20 @@ describe(describeName('AssistedProfileProposalMapper Unit Tests'), () => {
     expect(provision.rules[0].service).to.equal('https');
   });
 
+  it('keeps the proposed target name distinct from the profile name', () => {
+    const dto = mapper.map(
+      validateAssistedProfileFixtureAtGateway(makeAssistedProfileProposalFixture()),
+    );
+
+    // The fixture names the profile 'Assisted firewall' and the target
+    // 'edge-firewall'. Both must survive: the profile keeps its own name, and
+    // the name meant for the infrastructure travels in the model so target
+    // orchestration can use it instead of naming the firewall after the profile.
+    expect(dto.name).to.equal('Assisted firewall');
+    expect((dto.model.uiDefaults as Record<string, unknown>).targetName).to.equal('edge-firewall');
+    expectDomainValid(dto);
+  });
+
   it('maps cluster nodes, preserves sync0, and generates the synchronization rule', () => {
     const dto = mapper.map(
       validateAssistedProfileFixtureAtGateway(

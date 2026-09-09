@@ -258,6 +258,8 @@ export class AssistedProfileProposalMapper {
       rules.push(synchronizationRule);
     }
 
+    const proposedTargetName = asReplicationProfileNonEmptyString(target.name);
+
     const model: ReplicationProfileStoreModelDto = {
       compatibility: {
         targetKinds: [target.type],
@@ -270,6 +272,12 @@ export class AssistedProfileProposalMapper {
       uiDefaults: {
         targetKind: target.type,
         connectionType: DEFAULT_CONNECTION_TYPE,
+        // The name the model proposed for the infrastructure itself. Kept
+        // separate from the profile's `name`: the two coincide only when no
+        // profile name was given (see mapProfileName), and dropping it here
+        // is what used to make "a firewall called FW-Madrid" come out named
+        // after the profile instead.
+        ...(proposedTargetName ? { targetName: proposedTargetName } : {}),
       },
       provision: {
         interfaces,

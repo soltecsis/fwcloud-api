@@ -30,6 +30,7 @@ import {
 import type { AssistedProfilePreviewFailureReason } from '../assisted-profile-metrics/assisted-profile-metrics.types';
 import {
   asReplicationProfileNonEmptyString,
+  getReplicationProfileProposedTargetName,
   asReplicationProfileRecord,
 } from '../replication-profile/replication-profile.constants';
 import { ReplicationProfileValidationService } from '../replication-profile/replication-profile-validation.service';
@@ -233,7 +234,14 @@ export class FirewallProfileDraftPreviewService extends Service {
     const provision = asReplicationProfileRecord(model.provision) ?? {};
     const topology = asReplicationProfileRecord(model.topologyPreset) ?? {};
     const kind = proposal.targetKind === 'cluster' ? 'cluster' : 'firewall';
-    const name = asReplicationProfileNonEmptyString(proposal.name);
+    // The name of the INFRASTRUCTURE this would create, which is what every
+    // other field of this block describes. `proposal.name` is the profile's own
+    // name and only stands in for drafts mapped before the target name was
+    // preserved; reporting it as the target's is what made the reviewer see
+    // the profile name where the firewall's belongs.
+    const name =
+      getReplicationProfileProposedTargetName(model) ??
+      asReplicationProfileNonEmptyString(proposal.name);
     const nodes = topology.nodes;
 
     return {

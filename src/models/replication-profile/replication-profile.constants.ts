@@ -98,6 +98,21 @@ export function isReplicationProfilePort(value: unknown): value is number {
   );
 }
 
+/**
+ * The name the proposal asked the created INFRASTRUCTURE to carry, as the
+ * mapper recorded it under `model.uiDefaults.targetName`.
+ *
+ * Distinct from the profile's own `name`, which the two coincide with only
+ * when the proposal named no profile. Null for any model that does not carry
+ * one -- including drafts mapped before it was preserved -- leaving each
+ * caller to apply its own fallback.
+ */
+export function getReplicationProfileProposedTargetName(model: unknown): string | null {
+  const uiDefaults = asReplicationProfileRecord(asReplicationProfileRecord(model)?.uiDefaults);
+
+  return asReplicationProfileNonEmptyString(uiDefaults?.targetName);
+}
+
 export function getReplicationProfileModelTargetKinds(
   model: unknown,
 ): ReplicationProfileTargetKind[] {
