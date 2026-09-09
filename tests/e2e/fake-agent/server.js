@@ -11,6 +11,13 @@ const http = require('node:http');
 const path = require('node:path');
 
 const BEHAVIORS = new Set(['healthy', 'slow', 'down', 'busy', 'malformed', 'clarification']);
+// Must stay identical to the real agent route (AGENT_GENERATION_PATH in
+// src/communications/assistant-agent/agent-http-client.configuration.ts).
+// The agent publishes no '/generate' alias, so accepting one here would
+// make every e2e run green against a route production does not have.
+const GENERATION_PATH = '/api/v1/proposals';
+// The real agent mounts health both at the root and under the v1 prefix.
+const HEALTH_PATHS = new Set(['/health', '/api/v1/health']);
 const DEFAULT_FIXTURE_DIRECTORY = path.resolve(
   __dirname,
   '../../Unit/models/assistant-contract/fixtures',
@@ -96,7 +103,7 @@ function createFakeAgentServer(options = {}) {
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fake-agent');
 
-    if (request.method === 'GET' && url.pathname === '/health') {
+    if (request.method === 'GET' && HEALTH_PATHS.has(url.pathname)) {
       const authenticated = isAuthenticated(request, expectedApiKey);
 
       if (onHealthRequest) {
@@ -127,8 +134,11 @@ function createFakeAgentServer(options = {}) {
       return;
     }
 
-    if (request.method !== 'POST' || url.pathname !== '/generate') {
-      sendJson(response, 404, { code: 'NOT_FOUND', message: 'Use POST /generate.' });
+    if (request.method !== 'POST' || url.pathname !== GENERATION_PATH) {
+      sendJson(response, 404, {
+        code: 'NOT_FOUND',
+        message: `Use POST ${GENERATION_PATH}.`,
+      });
       return;
     }
 

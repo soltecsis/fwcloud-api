@@ -38,6 +38,11 @@ import {
   type ReplicationProfileValidationError,
 } from '../../models/replication-profile/replication-profile-validation.service';
 import {
+  REPLICATION_PROFILE_INTERFACE_ROLES,
+  REPLICATION_PROFILE_TARGET_KINDS,
+  isReplicationProfileStringValue,
+} from '../../models/replication-profile/replication-profile.constants';
+import {
   FirewallProfileDraftStateService,
   type CreateFirewallProfileDraftInput,
 } from '../../models/firewall-profile-draft/firewall-profile-draft-state.service';
@@ -60,7 +65,12 @@ import {
   GenerationQueueSaturatedError,
 } from './generation-queue.errors';
 import { AgentHttpClient } from './agent-http-client';
-import type { AssistedProfileAgentRequest, AgentRequestContext } from './agent-http.types';
+import type {
+  AssistedProfileAgentConstraints,
+  AssistedProfileAgentRequest,
+  AssistedProfileAgentTargetType,
+  AgentRequestContext,
+} from './agent-http.types';
 import {
   AgentAuthenticationError,
   AgentAuthorizationError,
@@ -584,10 +594,20 @@ export class AssistedProfileGenerationService extends Service {
   private async callAgent(
     context: GenerationRunContext,
   ): Promise<ValidatedAssistedProfileProposal> {
+    // The agent contract is `extra="forbid"`: `targetKind` is FWCloud's own
+    // domain name for the target, which the agent rejects, so it is translated
+    // into its `target` object here and never forwarded verbatim. This is the
+    // only place that translation belongs — the wire boundary — which is why
+    // the rest of the pipeline keeps carrying `targetKind`. `mode` has no agent-side
+    // default; `preview` is the only mode this pipeline may request, because
+    // every proposal it receives is persisted as a reviewable draft and is
+    // never applied by the agent.
     const agentRequest: AssistedProfileAgentRequest = {
       text: context.agentText,
       ...(context.language ? { language: context.language } : {}),
-      ...(context.targetKind ? { targetKind: context.targetKind } : {}),
+      mode: 'preview',
+      target: { type: this.agentTargetType(context.targetKind) },
+      constraints: this.agentConstraints(),
     };
     const agentContext: AgentRequestContext = {
       requestId: context.requestId,
@@ -600,6 +620,58 @@ export class AssistedProfileGenerationService extends Service {
 
     const client = await this.resolveAgentClient();
     return client.generate(agentRequest, agentContext);
+  }
+
+  /**
+   * The limits sent with every generation. Each one is a fact about this
+   * pipeline rather than a preference, so the model is steered away from
+   * proposing what would only be rejected downstream:
+   *
+   * - `allowedInterfaceRoles` is the domain's own role vocabulary, the only
+   *   set the mapper can turn into provisioned interfaces.
+   * - the four `allow*` flags are false because the MVP provisioning model has
+   *   no vocabulary for VPN, advanced NAT/routing or composite objects.
+   * - `requireReviewBeforeApply` is true because every proposal is persisted
+   *   as a draft that a human previews and confirms; nothing auto-applies.
+   * - `maxNodes` mirrors the deployment's own cluster-node limit, the same one
+   *   `TargetOrchestrationService.createCluster()` enforces. Omitted when the
+   *   deployment sets no limit (0), so an unlimited install stays unlimited.
+   */
+  private agentConstraints(): AssistedProfileAgentConstraints {
+    // `clusterNodeLimit()` already reports "no limit" as 0, so its own result
+    // is the whole condition -- and it is read once, not once per branch.
+    const maxNodes = this.clusterNodeLimit();
+
+    return {
+      allowedInterfaceRoles: REPLICATION_PROFILE_INTERFACE_ROLES,
+      allowVpn: false,
+      allowAdvancedNat: false,
+      allowAdvancedRouting: false,
+      allowComplexObjects: false,
+      requireReviewBeforeApply: true,
+      ...(maxNodes ? { maxNodes } : {}),
+    };
+  }
+
+  private clusterNodeLimit(): number {
+    if (!this._app) {
+      return 0;
+    }
+
+    const limit = Number(this._app.config.get('limits')?.nodes);
+    return Number.isSafeInteger(limit) && limit > 0 ? limit : 0;
+  }
+
+  /**
+   * `auto` lets the agent infer the target when the caller did not pin one.
+   * Membership is decided by the domain's own target-kind vocabulary rather
+   * than by a literal list repeated here, so the two can never drift apart;
+   * anything outside it is mapped to `auto` rather than forwarded.
+   */
+  private agentTargetType(targetKind: string | undefined): AssistedProfileAgentTargetType {
+    return isReplicationProfileStringValue(targetKind, REPLICATION_PROFILE_TARGET_KINDS)
+      ? targetKind
+      : 'auto';
   }
 
   private resolveAgentClient(): Promise<Pick<AgentHttpClient, 'generate'>> {

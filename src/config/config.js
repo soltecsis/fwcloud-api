@@ -547,7 +547,7 @@ const config = convict({
     },
     agent: {
       url: {
-        doc: 'Direct base URL of fwcloud-ai-agent. The client calls POST /generate.',
+        doc: 'Direct base URL of fwcloud-ai-agent. The client calls POST /api/v1/proposals.',
         format: String,
         default: '',
         env: 'ASSISTED_PROFILE_AGENT_URL'

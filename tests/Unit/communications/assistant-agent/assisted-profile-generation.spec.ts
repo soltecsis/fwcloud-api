@@ -5,6 +5,7 @@ import type { FirewallProfileDraft } from '../../../../src/models/firewall-profi
 import type { CreateFirewallProfileDraftInput } from '../../../../src/models/firewall-profile-draft/firewall-profile-draft-state.service';
 import type { AssistedProfileProposalMapper } from '../../../../src/models/assistant-contract/assisted-profile-proposal.mapper';
 import type { GenerationQueueRequest } from '../../../../src/communications/assistant-agent/generation-queue.types';
+import type { AssistedProfileAgentRequest } from '../../../../src/communications/assistant-agent/agent-http.types';
 import {
   GenerationAlreadyInProgressError,
   GenerationQueueSaturatedError,
@@ -66,6 +67,7 @@ interface Harness {
   draftCreateCalls: CreateFirewallProfileDraftInput[];
   captureCalls: AssistedProfileRejectedProposalCaptureInput[];
   channel: { emit: (event: 'message', payload: object) => boolean };
+  agentRequests: AssistedProfileAgentRequest[];
   agentGenerate: (proposalToReturn: ValidatedAssistedProfileProposal | Error) => void;
   waitForAuditCount: (expected: number) => Promise<void>;
 }
@@ -88,6 +90,11 @@ async function buildHarness(
     },
   };
 
+  // Recorded because the agent rejects any body it did not declare: the exact
+  // request shape is part of this service's contract, not an implementation
+  // detail of the transport.
+  const agentRequests: AssistedProfileAgentRequest[] = [];
+
   let nextAgentResult: ValidatedAssistedProfileProposal | Error = SUCCESS_PROPOSAL;
   const agentGenerate = (value: ValidatedAssistedProfileProposal | Error): void => {
     nextAgentResult = value;
@@ -103,7 +110,8 @@ async function buildHarness(
       }),
     },
     agentClient: {
-      generate: async () => {
+      generate: async (request: AssistedProfileAgentRequest) => {
+        agentRequests.push(request);
         if (nextAgentResult instanceof Error) {
           throw nextAgentResult;
         }
@@ -144,6 +152,7 @@ async function buildHarness(
     draftCreateCalls,
     captureCalls,
     channel,
+    agentRequests,
     agentGenerate,
     waitForAuditCount: (expected: number) => waitFor(() => auditCalls.length >= expected),
   };
@@ -160,6 +169,54 @@ describe('AssistedProfileGenerationService unit tests', () => {
     });
 
     expect(result.generationId).to.equal('gen_test_1');
+  });
+
+  it('sends the agent contract body: preview mode and a target object, never targetKind', async () => {
+    const harness = await buildHarness();
+    await harness.service.accept({
+      fwCloudId: 10,
+      userId: 1,
+      instruction: 'Create a cluster with WAN and LAN',
+      language: 'es',
+      targetKind: 'cluster',
+      channel: harness.channel,
+    });
+    await harness.waitForAuditCount(1);
+
+    expect(harness.agentRequests).to.deep.equal([
+      {
+        text: 'Create a cluster with WAN and LAN',
+        language: 'es',
+        mode: 'preview',
+        target: { type: 'cluster' },
+        // Every constraint states a real limit of this pipeline. `maxNodes` is
+        // absent because it mirrors the deployment's cluster-node limit, and
+        // this harness has no application config to read one from.
+        constraints: {
+          allowedInterfaceRoles: ['wan', 'lan', 'dmz', 'sync'],
+          allowVpn: false,
+          allowAdvancedNat: false,
+          allowAdvancedRouting: false,
+          allowComplexObjects: false,
+          requireReviewBeforeApply: true,
+        },
+      },
+    ]);
+  });
+
+  it('asks the agent to infer the target when the request pinned no target kind', async () => {
+    const harness = await buildHarness();
+    await harness.service.accept({
+      fwCloudId: 10,
+      userId: 1,
+      instruction: 'Create a firewall with WAN and LAN',
+      channel: harness.channel,
+    });
+    await harness.waitForAuditCount(1);
+
+    expect(harness.agentRequests).to.have.length(1);
+    expect(harness.agentRequests[0].target).to.deep.equal({ type: 'auto' });
+    expect(harness.agentRequests[0]).to.not.have.property('language');
   });
 
   it('persists a validated draft on a successful healthy proposal and audits draft_created', async () => {

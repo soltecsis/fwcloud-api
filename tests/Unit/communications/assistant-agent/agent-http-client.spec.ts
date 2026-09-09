@@ -11,6 +11,7 @@ import {
   AssistedProfileContractGateway,
 } from '../../../../src/communications/assistant-agent/agent-http-client';
 import {
+  AGENT_GENERATION_PATH,
   DEFAULT_AGENT_CONNECT_TIMEOUT_MS,
   DEFAULT_AGENT_READ_TIMEOUT_MS,
   MAX_AGENT_TIMEOUT_MS,
@@ -66,10 +67,11 @@ import { ErrorConstructor, expectRejectedAs } from '../../../utils/assertions';
 
 const API_KEY = 'unit-test-agent-key-never-log';
 const AGENT_URL = 'http://fake-agent.test:8080';
-const AGENT_ENDPOINT = `${AGENT_URL}/generate`;
+const AGENT_ENDPOINT = `${AGENT_URL}${AGENT_GENERATION_PATH}`;
 const REQUEST: AssistedProfileAgentRequest = {
   text: 'Create a guarded edge profile',
-  target: 'firewall',
+  mode: 'preview',
+  target: { type: 'firewall' },
 };
 const CONTEXT: AgentRequestContext = {
   fwCloudId: 17,
@@ -611,7 +613,7 @@ describe('AgentHttpClient unit tests', () => {
         attempts: 1,
         outcome: 'success',
         httpStatus: 200,
-        contractVersion: '1.0.0',
+        contractVersion: '1.2.0',
       },
     ]);
   });
@@ -619,7 +621,7 @@ describe('AgentHttpClient unit tests', () => {
   it('records only safe error metadata and never exposes the API key or either body', async () => {
     const requestSecret = 'request-body-secret-marker';
     const responseSecret = 'response-body-secret-marker';
-    const request: AssistedProfileAgentRequest = { text: requestSecret };
+    const request: AssistedProfileAgentRequest = { text: requestSecret, mode: 'preview' };
     const { client, observations, transport } = await makeClient({
       outcomes: [response(500, responseSecret)],
     });
@@ -661,8 +663,8 @@ describe('AgentHttpClient unit tests', () => {
   });
 
   it('classifies request serialization failure before invoking the transport or gateway', async () => {
-    const cyclic: AssistedProfileAgentRequest = { text: 'cyclic request' };
-    cyclic.self = cyclic;
+    const cyclic: AssistedProfileAgentRequest = { text: 'cyclic request', mode: 'preview' };
+    (cyclic as unknown as Record<string, unknown>).self = cyclic;
     const { client, gateway, observations, transport } = await makeClient({ outcomes: [] });
 
     const error = await expectRejectedAs(client.generate(cyclic, CONTEXT), AgentClientRequestError);

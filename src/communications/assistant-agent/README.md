@@ -7,6 +7,50 @@ fwcloud-ai-agent service. Generation traffic (`AgentHttpClient.generate` /
 probe never goes through the API-1 contract gateway, and generation never
 goes through the health poller.
 
+## Generation (`AgentHttpClient.generate`)
+
+### Agent contract
+
+```
+POST <agent base URL>/api/v1/proposals
+```
+
+The path is fixed in `AGENT_GENERATION_PATH`
+(`agent-http-client.configuration.ts`) and is not configurable: it is the
+agent's only inference route (`api_v1_prefix` + its `/proposals` router).
+There is no `/generate` alias — a request sent there is answered with 404.
+`ASSISTED_PROFILE_AGENT_URL` therefore configures the *base* URL only; any
+path in it is replaced. The asymmetry with the configurable health path is
+deliberate — see the constant's own comment before adding a knob for it.
+
+The request body mirrors the agent's own request model, which is declared
+`extra="forbid"`:
+
+```json
+{
+  "text": "Create a cluster with WAN and LAN",
+  "language": "es",
+  "mode": "preview",
+  "target": { "type": "cluster" }
+}
+```
+
+Two consequences are load-bearing, and `AssistedProfileAgentRequest`
+(`agent-http.types.ts`) encodes both so a drifting body fails to compile
+rather than at runtime with a 422:
+
+- `mode` is **required** — the agent declares no default. This pipeline only
+  ever sends `preview`: every proposal it receives is persisted as a
+  reviewable draft, and `apply` is rejected by the agent's MVP anyway.
+- The Channel-side `targetKind` (`firewall` | `cluster`) is **translated**
+  into `target.type`, never forwarded verbatim; an absent target kind becomes
+  `{ "type": "auto" }` and lets the agent infer it. Any key the agent does
+  not declare is a 422, not an ignored field.
+
+`AssistedProfileGenerationService.callAgent()` is the only place allowed to
+build this body, and `tests/e2e/fake-agent/server.js` answers on the same
+path so an e2e run cannot pass against a route production does not have.
+
 ## Health polling (`AssistedProfileHealthService`)
 
 fwcloud-api periodically polls the agent's AG-3 health endpoint and keeps a

@@ -22,10 +22,47 @@
 
 import type { AssistantContractValidationContext } from '../../models/assistant-contract/assistant-contract-customs.service';
 
-/** Untrusted generation input sent to the Assisted Profile agent. */
+/** Generation modes accepted by the agent. `apply` is rejected by the MVP. */
+export type AssistedProfileAgentMode = 'draft' | 'preview' | 'apply';
+
+export type AssistedProfileAgentTargetType = 'firewall' | 'cluster' | 'auto';
+
+export interface AssistedProfileAgentTarget {
+  type: AssistedProfileAgentTargetType;
+  /** Optional target name; omitted when the instruction has not named one. */
+  name?: string;
+}
+
+/**
+ * Limits the agent is asked to respect. Every field mirrors a real capability
+ * of this pipeline -- what the mapper can express and what target
+ * orchestration can create -- so the model is steered away from proposing
+ * something that would only be rejected later.
+ */
+export interface AssistedProfileAgentConstraints {
+  maxNodes?: number;
+  allowedInterfaceRoles?: readonly string[];
+  allowVpn?: boolean;
+  allowAdvancedNat?: boolean;
+  allowAdvancedRouting?: boolean;
+  allowComplexObjects?: boolean;
+  requireReviewBeforeApply?: boolean;
+}
+
+/**
+ * Untrusted generation input sent to the Assisted Profile agent.
+ *
+ * The shape mirrors the agent's request contract exactly, and deliberately
+ * carries no index signature: the agent model is declared `extra="forbid"`,
+ * so any additional key is answered with 422 rather than ignored. `mode` is
+ * required for the same reason — the agent declares no default for it.
+ */
 export interface AssistedProfileAgentRequest {
   text: string;
-  [key: string]: unknown;
+  language?: string;
+  mode: AssistedProfileAgentMode;
+  target?: AssistedProfileAgentTarget;
+  constraints?: AssistedProfileAgentConstraints;
 }
 
 /**

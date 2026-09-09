@@ -29,6 +29,21 @@ import {
   resolvePositiveIntegerMs,
 } from './assistant-agent-configuration.utils';
 
+/**
+ * Generation path published by fwcloud-ai-agent (`api_v1_prefix` + the
+ * `/proposals` router). It is the agent's only inference route: there is no
+ * `/generate` alias, and a request sent there is answered with 404.
+ *
+ * Deliberately fixed, unlike the health path: health is configurable because
+ * the agent mounts it at two independent points (the root and the versioned
+ * prefix), which is a real choice an operator has to make. Generation has a
+ * single mount, so the only thing that could ever move it is the agent's own
+ * `api_v1_prefix`. If that ever needs to be configurable here, derive both
+ * paths from one prefix setting rather than adding a second free-text path
+ * knob an operator would have to keep in sync by hand.
+ */
+export const AGENT_GENERATION_PATH = '/api/v1/proposals';
+
 export const DEFAULT_AGENT_CONNECT_TIMEOUT_MS = 10_000;
 export const DEFAULT_AGENT_READ_TIMEOUT_MS = 180_000;
 export const MAX_AGENT_TIMEOUT_MS = 2_147_483_647;
@@ -47,6 +62,7 @@ export interface AgentHttpClientConfigurationInput {
 }
 
 export interface AgentHttpClientConfiguration {
+  /** Absolute URL of the agent generation endpoint (`AGENT_GENERATION_PATH`). */
   readonly endpoint: URL;
   /** Credential-free endpoint label suitable for logs and metrics. */
   readonly endpointIdentifier: string;
@@ -191,7 +207,7 @@ export function resolveAgentHttpClientConfiguration(
     'Assisted Profile agent read timeout',
   );
   const ca = loadCustomCa(input.caFile, input.baseDirectory, baseUrl.protocol);
-  const endpoint = new URL('/generate', baseUrl);
+  const endpoint = new URL(AGENT_GENERATION_PATH, baseUrl);
   const healthEndpoint = new URL(resolveHealthPath(input.healthPath), baseUrl);
 
   return {

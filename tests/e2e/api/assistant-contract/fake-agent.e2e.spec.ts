@@ -2,6 +2,8 @@ import * as http from 'node:http';
 import { AddressInfo } from 'node:net';
 import { Repository } from 'typeorm';
 import { AgentHttpClient } from '../../../../src/communications/assistant-agent/agent-http-client';
+import type { AssistedProfileAgentRequest } from '../../../../src/communications/assistant-agent/agent-http.types';
+import { AGENT_GENERATION_PATH } from '../../../../src/communications/assistant-agent/agent-http-client.configuration';
 import { GenerationQueue } from '../../../../src/communications/assistant-agent/generation-queue';
 import {
   AgentBusyError,
@@ -36,7 +38,7 @@ interface RunningFakeAgent {
 }
 
 const EXPECTED_API_KEY = 'fake-agent-e2e-service-key';
-const GENERATION_REQUEST = {
+const GENERATION_REQUEST: AssistedProfileAgentRequest = {
   text: 'Create a firewall with WAN and LAN',
   mode: 'preview',
   target: { type: 'firewall' },
@@ -117,7 +119,7 @@ describe(describeName('Assisted Profile AgentHttpClient fake-agent E2E tests'), 
     const baseUrl = `http://127.0.0.1:${address.port}`;
     return {
       baseUrl,
-      endpoint: `${baseUrl}/generate`,
+      endpoint: `${baseUrl}${AGENT_GENERATION_PATH}`,
       requests,
     };
   }
