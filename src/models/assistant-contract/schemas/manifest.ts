@@ -21,6 +21,8 @@
 */
 
 import apgMvpV1Schema from './apg.mvp.v1.schema.json';
+import apgMvpV1Schema110 from './apg.mvp.v1-1.1.0.schema.json';
+import apgMvpV1Schema120 from './apg.mvp.v1-1.2.0.schema.json';
 
 /**
  * Provenance record for a vendored contract schema artifact. See ../README.md
@@ -70,5 +72,31 @@ export const VENDORED_CONTRACT_SCHEMAS: VendoredContractSchema[] = [
     sourceCommit: '1ca124d462ba9f242c0b0b703cb446472180e457',
     sha256: 'dbfb8c4bde65d9eb90ea69ae51b9dcbd2f6b156d0190ae0a00b1a3b805dad60a',
     vendoredAt: '2026-07-16',
+  },
+  {
+    contractVersion: 'apg.mvp.v1',
+    schemaVersion: '1.1.0',
+    schema: apgMvpV1Schema110,
+    sourceRepo: 'fwcloud-ai-agent',
+    sourcePath: 'contracts/apg.mvp.v1.schema.json',
+    // PENDING: the agent-side change this artifact was generated from is not
+    // committed yet, so there is no SHA to record. Replace this with the real
+    // fwcloud-ai-agent commit before merging -- provenance is the whole point
+    // of this field, and a placeholder must never reach a release.
+    sourceCommit: 'PENDING-UNCOMMITTED-fwcloud-ai-agent',
+    sha256: '1bb109e1106e8b0629773b4eb1d10f51852faaf89cc43d00d9d30ff5ea2e2adf',
+    vendoredAt: '2026-09-08',
+  },
+  {
+    contractVersion: 'apg.mvp.v1',
+    schemaVersion: '1.2.0',
+    schema: apgMvpV1Schema120,
+    sourceRepo: 'fwcloud-ai-agent',
+    sourcePath: 'contracts/apg.mvp.v1.schema.json',
+    // PENDING, same as the entry above: the agent-side change is not committed
+    // yet. Replace both with real commits before merging.
+    sourceCommit: 'PENDING-UNCOMMITTED-fwcloud-ai-agent',
+    sha256: '4d7eddf8f11ead26b4dfb6b73df188db6fec0d240f6d7e1358b608b1f3c494f8',
+    vendoredAt: '2026-09-09',
   },
 ];

@@ -94,7 +94,7 @@ describe(describeName('AssistantContractCustomsService Unit Tests'), () => {
     expect(entries).to.have.length(1);
     const data = JSON.parse(entries[0].data);
     expect(data.reason).to.equal('unknown_schema_version');
-    expect(data.acceptedSchemaVersions).to.deep.equal(['1.0.0']);
+    expect(data.acceptedSchemaVersions).to.deep.equal(['1.1.0', '1.2.0']);
   });
 
   it('should never persist the raw rejected payload in the audit log data', async () => {

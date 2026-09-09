@@ -86,7 +86,7 @@ describe(describeName('AssistantContractCustoms Unit Tests'), () => {
     });
 
     it('should expose the accepted schema version(s)', () => {
-      expect(customs.acceptedSchemaVersions).to.deep.equal(['1.0.0']);
+      expect(customs.acceptedSchemaVersions).to.deep.equal(['1.1.0', '1.2.0']);
     });
   });
 

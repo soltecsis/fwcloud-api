@@ -15,7 +15,7 @@
   "requestId": "req-additional-property",
   "unexpectedField": "should not be here",
   "metadata": {
-    "schemaVersion": "1.0.0",
+    "schemaVersion": "1.2.0",
     "modelProvider": "local",
     "generatedAt": "2026-07-16T10:30:00Z"
   }

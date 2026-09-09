@@ -16,7 +16,11 @@
         "question": "Which service should be allowed?",
         "required": true,
         "expectedAnswerType": "choice",
-        "options": ["http", "https", "ssh"]
+        "options": [
+          "http",
+          "https",
+          "ssh"
+        ]
       }
     ]
   },
@@ -24,7 +28,7 @@
   "generated": null,
   "requestId": "req-clarification-1",
   "metadata": {
-    "schemaVersion": "1.0.0",
+    "schemaVersion": "1.2.0",
     "modelProvider": "local",
     "generatedAt": "2026-07-16T10:05:00Z"
   }

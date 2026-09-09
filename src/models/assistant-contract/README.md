@@ -35,8 +35,13 @@ entries, oldest -> newest); see its constructor for the exact rule.
    scripts.generate_contract_schema`) and confirm CI published the versioned
    artifact for the target commit.
 2. Copy the generated file verbatim into
-   `src/models/assistant-contract/schemas/<contractVersion>.schema.json`
-   here. Do not reformat or hand-edit it.
+   `src/models/assistant-contract/schemas/` here. Do not reformat or
+   hand-edit it. Name it `<contractVersion>-<schemaVersion>.schema.json` when
+   the family already has a vendored artifact (two payload versions of one
+   family coexist while both are inside the N/N-1 window, so one file per
+   family is not enough). The generator gives each artifact a `$id` that
+   includes its payload version; two documents sharing an `$id` are rejected
+   when the gate compiles them.
 3. Append (do not replace) a new entry to `VENDORED_CONTRACT_SCHEMAS` in
    `schemas/manifest.ts`, with the new file's `sha256` (`sha256sum <file>`),
    the `sourceCommit` of fwcloud-ai-agent HEAD at copy time, and today's date.

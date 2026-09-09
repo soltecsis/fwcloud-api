@@ -8,17 +8,26 @@
   },
   "plan": [],
   "warnings": [
-    { "code": "assumption_default_zone", "message": "Assumed LAN zone for unspecified interface", "severity": "info" }
+    {
+      "code": "assumption_default_zone",
+      "message": "Assumed LAN zone for unspecified interface",
+      "severity": "info"
+    }
   ],
   "errors": [
-    { "code": "unsupported_ipv6", "message": "IPv6 rules are not supported yet", "severity": "error", "field": "rules[0].service" }
+    {
+      "code": "unsupported_ipv6",
+      "message": "IPv6 rules are not supported yet",
+      "severity": "error",
+      "field": "rules[0].service"
+    }
   ],
   "clarification": null,
   "fwcloudPayload": null,
   "generated": null,
   "requestId": "req-validation-failed-1",
   "metadata": {
-    "schemaVersion": "1.0.0",
+    "schemaVersion": "1.2.0",
     "modelProvider": "local",
     "generatedAt": "2026-07-16T10:10:00Z"
   }

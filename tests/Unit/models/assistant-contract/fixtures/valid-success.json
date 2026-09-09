@@ -7,24 +7,73 @@
     "language": "en"
   },
   "plan": [
-    { "step": 1, "title": "Create target", "description": "Create the firewall resource" },
-    { "step": 2, "title": "Add rule", "description": "Allow WAN -> LAN on http" }
+    {
+      "step": 1,
+      "title": "Create target",
+      "description": "Create the firewall resource"
+    },
+    {
+      "step": 2,
+      "title": "Add rule",
+      "description": "Allow WAN -> LAN on http"
+    }
   ],
   "warnings": [],
   "errors": [],
   "clarification": null,
   "fwcloudPayload": null,
   "generated": {
-    "profile": null,
-    "roleAssignments": null,
-    "target": null,
+    "profile": {
+      "code": "assisted-firewall",
+      "version": 1,
+      "name": "Assisted firewall",
+      "description": "Assisted firewall profile.",
+      "targetTypes": [
+        "firewall"
+      ],
+      "requiredRoles": [
+        "wan",
+        "lan"
+      ]
+    },
+    "roleAssignments": {
+      "interfaceRoles": [],
+      "nodeRoles": []
+    },
+    "target": {
+      "type": "firewall",
+      "name": "assisted-firewall",
+      "nodes": [],
+      "interfaces": [
+        {
+          "name": "wan0",
+          "role": "wan",
+          "address": null,
+          "description": null,
+          "node": null
+        },
+        {
+          "name": "lan0",
+          "role": "lan",
+          "address": null,
+          "description": null,
+          "node": null
+        }
+      ]
+    },
     "rules": [
-      { "action": "allow", "sourceRole": "wan", "destinationRole": "lan", "service": "http", "description": null }
+      {
+        "action": "allow",
+        "sourceRole": "wan",
+        "destinationRole": "lan",
+        "service": null,
+        "description": null
+      }
     ]
   },
   "requestId": "req-success-1",
   "metadata": {
-    "schemaVersion": "1.0.0",
+    "schemaVersion": "1.2.0",
     "modelProvider": "local",
     "generatedAt": "2026-07-16T10:00:00Z"
   }

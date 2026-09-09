@@ -14,7 +14,7 @@
   "generated": null,
   "requestId": "req-wrong-type",
   "metadata": {
-    "schemaVersion": "1.0.0",
+    "schemaVersion": "1.2.0",
     "modelProvider": "local",
     "generatedAt": "2026-07-16T10:20:00Z"
   }
