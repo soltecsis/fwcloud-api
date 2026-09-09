@@ -322,7 +322,7 @@ describe(describeName('Assisted Profile generation pipeline E2E tests'), () => {
     expect(draft.status).to.equal('validated');
     expect(draft.fwCloudId).to.equal(fwCloud.id);
     expect(draft.createdBy).to.equal(userA.id);
-    expect(draft.contractVersion).to.equal('1.0.0');
+    expect(draft.contractVersion).to.equal(validSuccessFirewallFixture.metadata.schemaVersion);
     expect(draft.proposalHash).to.match(/^[0-9a-f]{64}$/);
     expect(draft.instructionOriginal).to.equal(
       'Create a firewall with WAN and LAN, allow LAN to WAN on https',

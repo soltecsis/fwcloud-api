@@ -185,7 +185,7 @@ describe(describeName('FirewallProfileDraftStateService Unit Tests'), () => {
     expect(unsupported.draftId).to.equal(draft.id);
     expect(unsupported.receivedVersion).to.equal('retired.v0');
     expect(unsupported.supportedVersions).to.include('apg.mvp.v1');
-    expect(unsupported.supportedVersions).to.include('1.0.0');
+    expect(unsupported.supportedVersions).to.include.members(['1.1.0', '1.2.0']);
   });
 
   it('lists unsupported draft versions without loading detail or integrity columns', async () => {

@@ -415,9 +415,12 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const draft = await makeDraft('validated');
 
       const before = await previewHashOf(draft.id);
+      // Any version other than the draft's own ('apg.mvp.v1'), but one the
+      // state service still accepts: a retired version is rejected on load and
+      // would fail the preview instead of rehashing it.
       await stateService.updatePreviewBoundContent(
         draft.id,
-        { contractVersion: '1.0.0' },
+        { contractVersion: '1.2.0' },
         { fwCloudId: fwCloud.id },
       );
       const after = await previewHashOf(draft.id);
