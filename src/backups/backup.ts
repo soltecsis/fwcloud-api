@@ -448,7 +448,10 @@ export class Backup implements Responsable {
           return reject(new RestoreBackupException('Database can not be wiped'));
 
         //console.time("db import");
-        child_process.execSync(this.buildCmd('mysql', databaseService));
+        // `stdio: 'pipe'` keeps the client's stderr off the parent's: a
+        // passwordless test database makes it warn about --ssl-verify-server-cert
+        // on every restore. On failure execSync still throws with `stderr` set.
+        child_process.execSync(this.buildCmd('mysql', databaseService), { stdio: 'pipe' });
         //console.timeEnd("db import");
         if (!this._firewallRepository || !this._openvpnRepository) {
           await this.init();
