@@ -34,8 +34,12 @@ import {
 import type { FirewallProfileDraft } from './firewall-profile-draft.model';
 import { FirewallProfileDraftStateService } from './firewall-profile-draft-state.service';
 import type { FirewallProfileDraftActor } from './firewall-profile-draft.service';
-import { FirewallProfileDraftApplyPreviewHashMismatchError } from './firewall-profile-draft-apply.errors';
+import {
+  FirewallProfileDraftApplyPreviewHashMismatchError,
+  FirewallProfileDraftApplyTargetKindMismatchError,
+} from './firewall-profile-draft-apply.errors';
 import { FirewallProfileDraftTransitionConflictError } from './firewall-profile-draft.errors';
+import { TargetOrchestrationService } from './target-orchestration.service';
 
 export const FIREWALL_PROFILE_DRAFT_APPLY_ERROR_CODE = 'APPLY_FAILED';
 
@@ -50,9 +54,33 @@ export interface FirewallProfileDraftApplyRequest {
 }
 
 /**
- * Confirmed apply of a `preview_ok` draft onto an EXISTING firewall/cluster
- * chosen by the user (API-14 / F2a). Never creates infrastructure -- that is
- * `TargetOrchestrationService`'s job for a different scenario (API-15).
+ * The new-target counterpart: there is no id yet, because the confirmed apply
+ * is what creates the firewall/cluster. `kind` is the caller's statement of
+ * what it expects to be created, checked against the proposal; `name` is an
+ * optional override for the created infrastructure's name.
+ */
+export interface FirewallProfileDraftApplyNewTargetRequest {
+  readonly previewHash: string;
+  readonly target: {
+    readonly kind: ReplicationProfileTargetKind;
+    readonly name?: string;
+  };
+}
+
+/**
+ * Confirmed apply of a `preview_ok` draft, in its two destinations:
+ * `apply()` applies onto an EXISTING firewall/cluster chosen by the user
+ * (API-14 / F2a), and `applyToNewTarget()` creates the infrastructure the
+ * proposal describes (API-15 / F2b). Neither creates infrastructure here:
+ * the second one delegates every real mutation to
+ * `TargetOrchestrationService`, which owns its own step log and terminal
+ * transitions.
+ *
+ * Both share exactly one thing, `loadConfirmedForApply()`: a confirmed apply
+ * is only legal from `preview_ok` and only for the precise content the user
+ * reviewed. What follows the guard is deliberately not shared -- the two
+ * destinations differ in what they know up front (an existing target id vs.
+ * nothing yet) and in who owns the terminal transition.
  *
  * Confirm-token and `Idempotency-Key` handling live outside this service (the
  * former is a global request middleware that already guards every mutating
@@ -68,6 +96,7 @@ export class FirewallProfileDraftApplyService extends Service {
   private stateService: FirewallProfileDraftStateService;
   private replicationProfileService: ReplicationProfileService;
   private profileApplicationService: ProfileApplicationService;
+  private targetOrchestrationService: TargetOrchestrationService;
 
   public async build(): Promise<FirewallProfileDraftApplyService> {
     const database = await this._app.getService<DatabaseService>(DatabaseService.name);
@@ -81,14 +110,22 @@ export class FirewallProfileDraftApplyService extends Service {
     this.profileApplicationService = await this._app.getService<ProfileApplicationService>(
       ProfileApplicationService.name,
     );
+    this.targetOrchestrationService = await this._app.getService<TargetOrchestrationService>(
+      TargetOrchestrationService.name,
+    );
     return this;
   }
 
-  public async apply(
+  /**
+   * The half of a confirmed apply both destinations share: the draft must
+   * still be `preview_ok`, and the confirmation must name the exact content
+   * the user reviewed. Runs before any state mutation, so a stale or tampered
+   * confirmation never reaches the atomic `preview_ok -> apply_pending` guard.
+   */
+  private async loadConfirmedForApply(
     draftId: number,
     fwCloudId: number,
-    request: FirewallProfileDraftApplyRequest,
-    actor: FirewallProfileDraftActor,
+    previewHash: string,
   ): Promise<FirewallProfileDraft> {
     const draft = await this.stateService.loadForProcessing(draftId, fwCloudId);
 
@@ -104,11 +141,75 @@ export class FirewallProfileDraftApplyService extends Service {
       );
     }
 
-    // Checked before any state mutation: a stale or tampered confirmation
-    // must never even reach the atomic preview_ok -> apply_pending guard.
-    if (!draft.previewHash || draft.previewHash !== request.previewHash) {
+    if (!draft.previewHash || draft.previewHash !== previewHash) {
       throw new FirewallProfileDraftApplyPreviewHashMismatchError(draftId);
     }
+
+    return draft;
+  }
+
+  /**
+   * Confirmed apply that CREATES the firewall/cluster the proposal describes
+   * (API-15 / F2b), for a draft whose proposal has no existing target to
+   * apply onto.
+   *
+   * This method owns only the confirmed-apply guard chain and the
+   * `preview_ok -> apply_pending` transition; everything after it belongs to
+   * `TargetOrchestrationService.execute()`, which records its own per-step
+   * log and performs the terminal `applied` / `apply_failed` transition. That
+   * is why there is no try/catch here: a failed step is already a durable
+   * terminal state, not an exception to translate, and wrapping it would
+   * either duplicate or contradict the orchestrator's own accounting.
+   */
+  public async applyToNewTarget(
+    draftId: number,
+    fwCloudId: number,
+    request: FirewallProfileDraftApplyNewTargetRequest,
+    actor: FirewallProfileDraftActor,
+  ): Promise<FirewallProfileDraft> {
+    const draft = await this.loadConfirmedForApply(draftId, fwCloudId, request.previewHash);
+
+    // Both checks deliberately precede the transition. `execute()` would
+    // reject an unorchestratable proposal with the same error, but only after
+    // the draft has left `preview_ok`, and `apply_pending` is excluded from
+    // TTL expiration on purpose -- the draft would be stuck with no
+    // transition able to move it and nothing created to reconcile.
+    const proposalKind = this.targetOrchestrationService.orchestrationTargetKind(draft);
+    if (proposalKind !== request.target.kind) {
+      throw new FirewallProfileDraftApplyTargetKindMismatchError(
+        draftId,
+        request.target.kind,
+        proposalKind,
+      );
+    }
+
+    // No `targetIds` delta: unlike an apply onto an existing target, the ids
+    // do not exist yet -- the orchestrator records each one as it creates it.
+    const pending = await this.stateService.transition(draftId, 'preview_ok', 'apply_pending', {
+      fwCloudId,
+      userId: actor.userId,
+      requestId: draft.requestId,
+      step: 'apply_pending',
+      applyHash: draft.previewHash,
+    });
+
+    const result = await this.targetOrchestrationService.execute(pending, {
+      fwCloudId,
+      userId: actor.userId,
+      requestId: draft.requestId,
+      targetName: request.target.name,
+    });
+
+    return result.draft;
+  }
+
+  public async apply(
+    draftId: number,
+    fwCloudId: number,
+    request: FirewallProfileDraftApplyRequest,
+    actor: FirewallProfileDraftActor,
+  ): Promise<FirewallProfileDraft> {
+    const draft = await this.loadConfirmedForApply(draftId, fwCloudId, request.previewHash);
 
     const targetIdsDelta =
       request.target.kind === 'cluster'

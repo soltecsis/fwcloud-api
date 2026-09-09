@@ -74,6 +74,7 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /backups/import': { audited: true },
   'POST /fwclouds': { audited: true },
   'POST /fwclouds/:fwcloud/assistant/drafts/:draft/apply': { audited: true },
+  'POST /fwclouds/:fwcloud/assistant/drafts/:draft/apply-new': { audited: true },
   'POST /fwclouds/:fwcloud/assistant/drafts/:draft/preview': { audited: true },
   'POST /fwclouds/:fwcloud/assistant/drafts/generate': { audited: true },
   'POST /fwclouds/:fwcloud/assistant/profiles': { audited: true },

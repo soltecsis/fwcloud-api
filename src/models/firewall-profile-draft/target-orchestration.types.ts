@@ -32,14 +32,22 @@ export const TARGET_ORCHESTRATION_STEPS = [
 export type TargetOrchestrationStepName = (typeof TARGET_ORCHESTRATION_STEPS)[number];
 
 /**
- * Identity of the confirmed API-14 apply operation this run belongs to.
- * `TargetOrchestrationService` trusts none of this beyond scoping/auditing:
- * it always reloads the draft itself before acting on it.
+ * Identity of the confirmed apply operation this run belongs to. With the sole
+ * exception of `targetName`, `TargetOrchestrationService` trusts none of this
+ * beyond scoping/auditing: it always reloads the draft itself before acting on
+ * it. `targetName` is the one field that is real input -- it names created
+ * infrastructure -- so it is validated by the caller's DTO, not here.
  */
 export interface TargetOrchestrationContext {
   readonly fwCloudId: number;
   readonly userId: number | null;
   readonly requestId?: string | null;
+  /**
+   * Name for the firewall/cluster this run creates. Absent means the stored
+   * proposal's own name is used. It never renames the materialized profile,
+   * which always keeps the proposal's name.
+   */
+  readonly targetName?: string;
 }
 
 export interface TargetOrchestrationResult {

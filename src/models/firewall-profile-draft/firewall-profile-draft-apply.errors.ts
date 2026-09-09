@@ -38,6 +38,8 @@ export const FIREWALL_PROFILE_DRAFT_APPLY_PREVIEW_HASH_MISMATCH =
   'FIREWALL_PROFILE_DRAFT_APPLY_PREVIEW_HASH_MISMATCH' as const;
 export const FIREWALL_PROFILE_DRAFT_APPLY_IDEMPOTENCY_KEY_MISSING =
   'FIREWALL_PROFILE_DRAFT_APPLY_IDEMPOTENCY_KEY_MISSING' as const;
+export const FIREWALL_PROFILE_DRAFT_APPLY_TARGET_KIND_MISMATCH =
+  'FIREWALL_PROFILE_DRAFT_APPLY_TARGET_KIND_MISMATCH' as const;
 
 interface DraftApplyErrorPayload extends ErrorPayload {
   code: string;
@@ -62,6 +64,41 @@ export class FirewallProfileDraftApplyPreviewHashMismatchError extends HttpExcep
 
   public toResponse(): DraftApplyErrorPayload {
     return { ...super.toResponse(), code: this.code, draftId: this.draftId };
+  }
+}
+
+/**
+ * The new-target apply was confirmed for a different kind of infrastructure
+ * than the draft's proposal declares. Reported before the draft leaves
+ * `preview_ok`, so the caller can re-confirm without the draft being stuck:
+ * creating a firewall when the user confirmed a cluster (or the reverse) is
+ * not something to resolve by guessing which side is right.
+ *
+ * Both kinds are echoed on purpose -- unlike the preview hash, neither is a
+ * secret, and the client needs them to correct the request.
+ */
+export class FirewallProfileDraftApplyTargetKindMismatchError extends HttpException {
+  public readonly code = FIREWALL_PROFILE_DRAFT_APPLY_TARGET_KIND_MISMATCH;
+
+  constructor(
+    public readonly draftId: number,
+    public readonly confirmedKind: string,
+    public readonly proposalKind: string,
+  ) {
+    super(
+      `Draft ${draftId} apply was confirmed for a '${confirmedKind}' target, but its proposal declares a '${proposalKind}'.`,
+      422,
+    );
+  }
+
+  public toResponse(): DraftApplyErrorPayload {
+    return {
+      ...super.toResponse(),
+      code: this.code,
+      draftId: this.draftId,
+      confirmedKind: this.confirmedKind,
+      proposalKind: this.proposalKind,
+    };
   }
 }
 

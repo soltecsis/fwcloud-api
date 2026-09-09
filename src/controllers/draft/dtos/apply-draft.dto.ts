@@ -31,10 +31,11 @@
  */
 
 import { Type } from 'class-transformer';
+import { AcknowledgedAssumptionsDto } from './acknowledged-assumptions.dto';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { ReplicationProfileApplyTargetDto } from '../../replication-profile/dtos/replication-profile-apply.dto';
 
-export class ApplyFirewallProfileDraftDto {
+export class ApplyFirewallProfileDraftDto extends AcknowledgedAssumptionsDto {
   @IsString()
   @IsNotEmpty()
   preview_hash: string;

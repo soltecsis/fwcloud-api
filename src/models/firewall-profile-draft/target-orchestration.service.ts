@@ -37,6 +37,8 @@ import { PolicyRule } from '../policy/PolicyRule';
 import { Tree } from '../tree/Tree';
 import { User } from '../user/User';
 import {
+  asReplicationProfileNonEmptyString,
+  getReplicationProfileProposedTargetName,
   normalizeReplicationProfileTargetKind,
   type ReplicationProfileTargetKind,
 } from '../replication-profile/replication-profile.constants';
@@ -73,9 +75,14 @@ import {
 
 const utilsModel = require('../../utils/utils.js');
 
+/** Written on created infrastructure when the proposal described none. */
+const DEFAULT_TARGET_COMMENT = 'Created by Assisted Profile.';
+
 interface OrchestrationPlan {
   targetKind: FirewallProfileDraftTargetKind;
   targetName: string;
+  /** Comment written on the created firewall/cluster. */
+  targetComment: string;
   nodeNames: string[];
   expectedInterfaceNames: string[];
   profilePayload: CreateCustomReplicationProfilePayload;
@@ -154,7 +161,7 @@ export class TargetOrchestrationService extends Service {
       throw new TargetOrchestrationAlreadyStartedError(current.id);
     }
 
-    const plan = this.buildPlan(current);
+    const plan = this.buildPlan(current, context.targetName);
     const targetIds: FirewallProfileDraftTargetIds = { ...(current.targetIds ?? {}) };
 
     // --- Step 1: create the target (firewall or cluster) -----------------
@@ -165,6 +172,7 @@ export class TargetOrchestrationService extends Service {
           context.fwCloudId,
           plan.targetName,
           context.userId,
+          plan.targetComment,
         );
         targetIds.firewallId = firewallId;
         targetResourceIds = { firewallId };
@@ -174,6 +182,7 @@ export class TargetOrchestrationService extends Service {
           plan.targetName,
           plan.nodeNames,
           context.userId,
+          plan.targetComment,
         );
         targetIds.clusterId = clusterId;
         targetIds.nodeIds = nodeIds;
@@ -321,7 +330,23 @@ export class TargetOrchestrationService extends Service {
 
   // --- Proposal parsing ----------------------------------------------------
 
-  private buildPlan(draft: FirewallProfileDraft): OrchestrationPlan {
+  /**
+   * Reports the target kind a draft's proposal would create, and throws
+   * `TargetOrchestrationProposalError` when that proposal cannot be
+   * orchestrated at all.
+   *
+   * Exists so a caller can check both *before* moving a draft into
+   * `apply_pending`: `execute()` derives the same plan and raises the same
+   * error, but only once the draft has already left `preview_ok`, and
+   * `apply_pending` is deliberately excluded from TTL expiration — a draft
+   * rejected there would be stuck with no transition able to move it.
+   * Side-effect free: it neither loads nor writes anything.
+   */
+  public orchestrationTargetKind(draft: FirewallProfileDraft): FirewallProfileDraftTargetKind {
+    return this.buildPlan(draft).targetKind;
+  }
+
+  private buildPlan(draft: FirewallProfileDraft, targetName?: string): OrchestrationPlan {
     const proposal = draft.proposal as
       (CreateCustomReplicationProfilePayload & { targetKind?: string }) | null | undefined;
 
@@ -350,7 +375,18 @@ export class TargetOrchestrationService extends Service {
 
     return {
       targetKind,
-      targetName: proposal.name,
+      // Three sources, most specific first: the name the operator typed for
+      // this apply, then the one the model proposed for the infrastructure
+      // (`model.uiDefaults.targetName`), and only then the profile's own name
+      // as a last resort. Only the created infrastructure honours any of them;
+      // the profile materialized below always keeps the proposal's name.
+      targetName:
+        targetName ?? getReplicationProfileProposedTargetName(proposal.model) ?? proposal.name,
+      // What the operator described, so opening the firewall in FWCloud shows
+      // their own words instead of a fixed "created by" note. That note is the
+      // fallback for a proposal that described nothing.
+      targetComment:
+        asReplicationProfileNonEmptyString(proposal.description) ?? DEFAULT_TARGET_COMMENT,
       nodeNames,
       expectedInterfaceNames: provision.interfaces.map((iface) => iface.name),
       profilePayload: {
@@ -400,6 +436,7 @@ export class TargetOrchestrationService extends Service {
     fwCloudId: number,
     name: string,
     userId: number | null,
+    comment: string,
   ): Promise<{ firewallId: number }> {
     const maxFirewalls = app().config.get('limits').firewalls;
     if (
@@ -410,7 +447,7 @@ export class TargetOrchestrationService extends Service {
     }
 
     const dbCon = await legacyConnection();
-    let firewallData = this.baseFirewallData(fwCloudId, name, null, 0, userId);
+    let firewallData = this.baseFirewallData(fwCloudId, name, null, 0, userId, comment);
     firewallData = (await Firewall.checkBodyFirewall(firewallData, true)) as Record<
       string,
       unknown
@@ -433,6 +470,7 @@ export class TargetOrchestrationService extends Service {
     name: string,
     nodeNames: string[],
     userId: number | null,
+    comment: string,
   ): Promise<{ clusterId: number; nodeIds: number[]; masterFirewallId: number }> {
     const limits = app().config.get('limits');
     if (limits.clusters > 0 && (await this.countClusters(fwCloudId)) >= limits.clusters) {
@@ -447,7 +485,7 @@ export class TargetOrchestrationService extends Service {
     const dbCon = await legacyConnection();
     const clusterId = (await Cluster.insertCluster({
       name,
-      comment: 'Created by Assisted Profile.',
+      comment,
       fwcloud: fwCloudId,
       plugins: 0,
     })) as number;
@@ -463,6 +501,7 @@ export class TargetOrchestrationService extends Service {
         clusterId,
         isMaster ? 1 : 0,
         userId,
+        comment,
       );
       firewallData = (await Firewall.checkBodyFirewall(firewallData, true)) as Record<
         string,
@@ -511,13 +550,14 @@ export class TargetOrchestrationService extends Service {
     clusterId: number | null,
     fwmaster: 0 | 1,
     userId: number | null,
+    comment: string,
   ): Record<string, unknown> {
     return {
       id: null,
       cluster: clusterId,
       name,
       status: 3,
-      comment: 'Created by Assisted Profile.',
+      comment,
       fwcloud: fwCloudId,
       install_communication: FirewallInstallCommunication.Agent,
       install_user: '',

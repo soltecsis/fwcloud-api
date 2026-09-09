@@ -31,6 +31,8 @@ import type { FirewallProfileDraftStatus } from '../../../../src/models/firewall
 import { ASSISTED_PROFILE_GENERATION_AUDIT_CALL } from '../../../../src/communications/assistant-agent/assisted-profile-generation.service';
 import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
 import { Interface } from '../../../../src/models/interface/Interface';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Tree } from '../../../../src/models/tree/Tree';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
@@ -42,6 +44,11 @@ import {
 } from '../../../utils/utils';
 import { makeFirewallProfileDraftAttributes } from '../../../utils/firewall-profile-draft-factory';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import {
+  makeAssistedProfileProposalFixture,
+  validateAssistedProfileFixtureAtGateway,
+} from '../../../utils/assisted-profile-proposal-fixtures';
+import { AssistedProfileProposalMapper } from '../../../../src/models/assistant-contract/assisted-profile-proposal.mapper';
 import { In, type Repository } from 'typeorm';
 import request = require('supertest');
 
@@ -74,6 +81,27 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
     draftIds.push(saved.id);
     return saved;
   };
+
+  // Shared by both apply destinations: the /apply block applies it onto an
+  // existing firewall, the /apply-new block has it create one. Identical in
+  // both cases, so it lives beside `makeDraft` rather than being copied.
+  const provisioningProposal = () => ({
+    name: `Assisted Profile ${StringHelper.randomize(8)}`,
+    description: null,
+    scope: 'generic',
+    targetKind: 'firewall',
+    category: 'Assisted Profile',
+    model: {
+      compatibility: { targetKinds: ['firewall'] },
+      provision: {
+        interfaces: [
+          { name: 'WAN', role: 'wan' },
+          { name: 'LAN', role: 'lan' },
+        ],
+        rules: [{ chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' }],
+      },
+    },
+  });
 
   const makeOtherFwCloud = (): Promise<FwCloud> =>
     fwCloudRepository.save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
@@ -277,29 +305,54 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
     });
   });
 
+  describe('POST /fwclouds/:fwcloud/assistant/drafts/:draft/preview', () => {
+    it('describes the target by the name the proposal gave the infrastructure', async () => {
+      const draft = await makeDraft('validated', {
+        proposal: {
+          ...provisioningProposal(),
+          name: 'Small office basic internet',
+          model: {
+            ...provisioningProposal().model,
+            uiDefaults: { targetKind: 'firewall', targetName: 'FW-Oficina' },
+          },
+        },
+      });
+
+      await request(app.express)
+        .post(`${draftUrl(draft.id)}/preview`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({})
+        .expect(200)
+        .then((response) => {
+          // Every other field of this block describes the infrastructure, so
+          // its name must too -- reporting the profile's name here is what made
+          // the reviewer see the wrong one in the destination field.
+          expect(response.body.data.target.name).to.equal('FW-Oficina');
+        });
+    });
+
+    it('falls back to the profile name for drafts mapped before the target name was kept', async () => {
+      const draft = await makeDraft('validated', {
+        proposal: { ...provisioningProposal(), name: 'Small office basic internet' },
+      });
+
+      await request(app.express)
+        .post(`${draftUrl(draft.id)}/preview`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({})
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.target.name).to.equal('Small office basic internet');
+        });
+    });
+  });
+
   describe('POST /fwclouds/:fwcloud/assistant/drafts/:draft/apply', () => {
     const applyUrl = (draftId: number, cloudId: number = fwCloud.id) =>
       `${draftUrl(draftId, cloudId)}/apply`;
     const PREVIEW_HASH = 'e2e-preview-hash';
     let target: FwCloudProduct;
     let interfaceRepository: Repository<Interface>;
-    const provisioningProposal = () => ({
-      name: `Assisted Profile ${StringHelper.randomize(8)}`,
-      description: null,
-      scope: 'generic',
-      targetKind: 'firewall',
-      category: 'Assisted Profile',
-      model: {
-        compatibility: { targetKinds: ['firewall'] },
-        provision: {
-          interfaces: [
-            { name: 'WAN', role: 'wan' },
-            { name: 'LAN', role: 'lan' },
-          ],
-          rules: [{ chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' }],
-        },
-      },
-    });
     const makePreviewOkDraft = (overrides: Partial<FirewallProfileDraft> = {}) =>
       makeDraft('preview_ok', {
         proposal: provisioningProposal(),
@@ -451,6 +504,24 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
       expect(profileAuditEntries).to.have.length(1);
     });
 
+    it('should accept the body the UI actually sends, including acknowledged_assumption_ids', async () => {
+      const draft = await makePreviewOkDraft();
+
+      // Regression: the UI has always sent this field (see the fwcloud-ui
+      // AssistedProfileApplyRequest model) while the DTO did not declare it,
+      // and the global pipeline runs `forbidNonWhitelisted` -- so every real
+      // apply from the UI was a 422 before the field was declared.
+      await request(app.express)
+        .post(applyUrl(draft.id))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send({ ...applyBody(), acknowledged_assumption_ids: ['assumption-1', 'assumption-2'] })
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.status).to.equal('applied');
+        });
+    });
+
     it('should return the exact cached response for a repeated same-key submission, without re-applying', async () => {
       const draft = await makePreviewOkDraft();
       const idempotencyKey = StringHelper.randomize(16);
@@ -518,6 +589,311 @@ describe(describeName('Firewall Profile Draft E2E Tests'), () => {
           expect(failedStep.status).to.equal('failed');
           expect(failedStep.message).to.be.a('string');
         });
+    });
+  });
+
+  describe('POST /fwclouds/:fwcloud/assistant/drafts/:draft/apply-new', () => {
+    const applyNewUrl = (draftId: number, cloudId: number = fwCloud.id) =>
+      `${draftUrl(draftId, cloudId)}/apply-new`;
+    const PREVIEW_HASH = 'e2e-apply-new-preview-hash';
+    let product: FwCloudProduct;
+    let firewallRepository: Repository<Firewall>;
+    let previousFirewallLimit: number;
+    // Deliberately a member session rather than the suite's admin one: creating
+    // a firewall goes through the legacy `Firewall.updateFWMaster`, which joins
+    // on `user__fwcloud` and so requires the acting user to be a member of the
+    // FWCloud -- something `FwCloudPolicy.userCanAccessFwCloud` does not
+    // require of a role-1 admin.
+    let memberSessionId: string;
+
+    const makePreviewOkDraft = (overrides: Partial<FirewallProfileDraft> = {}) =>
+      makeDraft('preview_ok', {
+        proposal: provisioningProposal(),
+        previewHash: PREVIEW_HASH,
+        ...overrides,
+      });
+    const applyNewBody = (target: Record<string, unknown> = { kind: 'firewall' }) => ({
+      preview_hash: PREVIEW_HASH,
+      target,
+    });
+    const countFirewalls = () => firewallRepository.count({ where: { fwCloudId: fwCloud.id } });
+
+    beforeEach(async () => {
+      // Unlike /apply, this endpoint creates the firewall itself, so the
+      // FWCloud needs its object tree (the new firewall is inserted under the
+      // FIREWALLS root node) and no firewall-count limit in the way.
+      product = await new FwCloudFactory().make();
+      fwCloud = product.fwcloud;
+      await Tree.createAllTreeCloud(fwCloud);
+      previousFirewallLimit = app.config.get('limits').firewalls;
+      app.config.set('limits.firewalls', 0);
+      firewallRepository = db.getSource().manager.getRepository(Firewall);
+      memberSessionId = await createFwCloudMemberSession(fwCloud);
+    });
+
+    afterEach(async () => {
+      app.config.set('limits.firewalls', previousFirewallLimit);
+      await db
+        .getSource()
+        .manager.getRepository(AuditLog)
+        .delete({ call: In([PROFILE_APPLICATION_AUDIT_CALL]) });
+    });
+
+    it('should reject guest users', async () => {
+      const draft = await makePreviewOkDraft();
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody())
+        .expect(401);
+    });
+
+    it('should reject users without access to the FWCloud', async () => {
+      const draft = await makePreviewOkDraft();
+      const regularUser = await createUser({ role: 0 });
+      const regularUserSessionId = generateSession(regularUser);
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(regularUserSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody())
+        .expect(401);
+    });
+
+    it('should reject a request with no Idempotency-Key header with 400', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .send(applyNewBody())
+        .expect(400);
+    });
+
+    it('should reject the sibling /apply body shape instead of silently ignoring the id', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody({ kind: 'firewall', id: product.firewall.id }))
+        .expect(422);
+
+      const reloaded = await repository.findOneByOrFail({ id: draft.id });
+      expect(reloaded.status).to.equal('preview_ok');
+    });
+
+    it('should reject a preview_hash that does not match with 422, leaving the draft untouched', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send({ preview_hash: 'stale-hash', target: { kind: 'firewall' } })
+        .expect(422);
+
+      const reloaded = await repository.findOneByOrFail({ id: draft.id });
+      expect(reloaded.status).to.equal('preview_ok');
+    });
+
+    it('should reject an attempt from any status other than preview_ok with 409', async () => {
+      const draft = await makeDraft('validated');
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody())
+        .expect(409);
+    });
+
+    it('should reject a confirmation for a different target kind than the proposal, creating nothing', async () => {
+      const draft = await makePreviewOkDraft();
+      const before = await countFirewalls();
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody({ kind: 'cluster' }))
+        .expect(422)
+        .then((response) => {
+          expect(response.body.confirmedKind).to.equal('cluster');
+          expect(response.body.proposalKind).to.equal('firewall');
+        });
+
+      const reloaded = await repository.findOneByOrFail({ id: draft.id });
+      expect(reloaded.status).to.equal('preview_ok');
+      expect(await countFirewalls()).to.equal(before);
+    });
+
+    it('should create the firewall the proposal describes and reach applied', async () => {
+      const draft = await makePreviewOkDraft();
+      const before = await countFirewalls();
+      let createdFirewallId: number;
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody())
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.status).to.equal('applied');
+          createdFirewallId = response.body.data.target_ids.firewallId;
+          expect(createdFirewallId).to.be.a('number');
+          // Created, not the FWCloud's pre-existing firewall.
+          expect(createdFirewallId).to.not.equal(product.firewall.id);
+          expect(
+            response.body.data.step_log.map((entry: { step: string }) => entry.step),
+          ).to.deep.equal([
+            'apply_pending',
+            'target_created',
+            'interfaces_created',
+            'profile_applied',
+            'applied',
+          ]);
+        });
+
+      expect(await countFirewalls()).to.equal(before + 1);
+
+      const interfaces = await db
+        .getSource()
+        .manager.getRepository(Interface)
+        .find({ where: { firewallId: createdFirewallId! } });
+      expect(interfaces.map((iface) => iface.name)).to.include.members(['WAN', 'LAN']);
+    });
+
+    it('should accept the body the UI actually sends, including acknowledged_assumption_ids', async () => {
+      const draft = await makePreviewOkDraft();
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send({ ...applyNewBody(), acknowledged_assumption_ids: ['assumption-1'] })
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.status).to.equal('applied');
+        });
+    });
+
+    it('should name the created firewall from the request when a name is given', async () => {
+      const draft = await makePreviewOkDraft();
+      const chosenName = `edge-${StringHelper.randomize(8)}`;
+
+      const response = await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody({ kind: 'firewall', name: chosenName }))
+        .expect(200);
+
+      const firewall = await firewallRepository.findOneByOrFail({
+        id: response.body.data.target_ids.firewallId,
+      });
+      expect(firewall.name).to.equal(chosenName);
+    });
+
+    // Generation now refuses to produce such a proposal, but orchestration must
+    // still apply one: drafts persisted before that rule exist, and an
+    // explicitly empty provisioning block stays valid for every other route
+    // that creates a profile. The two rules are separate on purpose -- this one
+    // is about not exploding on a stored draft, not about what a description
+    // may produce.
+    it('should apply a stored draft that declares no interfaces or rules', async () => {
+      const fixture = makeAssistedProfileProposalFixture({ schemaVersion: '1.2.0' }) as Record<
+        string,
+        any
+      >;
+      fixture.generated.target.name = 'FW-Test';
+      fixture.generated.target.interfaces = [];
+      fixture.generated.profile.requiredRoles = [];
+      fixture.generated.roleAssignments.interfaceRoles = [];
+      fixture.generated.rules = [];
+      const proposal = new AssistedProfileProposalMapper().map(
+        validateAssistedProfileFixtureAtGateway(fixture),
+      );
+      expect(proposal.model.provision).to.deep.equal({ interfaces: [], rules: [] });
+      const draft = await makePreviewOkDraft({
+        proposal: proposal as unknown as Record<string, unknown>,
+      });
+      const before = await countFirewalls();
+
+      const response = await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody())
+        .expect(200);
+
+      expect(response.body.data.status).to.equal('applied');
+      expect(response.body.data.target_ids.interfaceIds).to.deep.equal([]);
+      expect(response.body.data.target_ids.profileId).to.be.a('number');
+      expect(await countFirewalls()).to.equal(before + 1);
+      const firewallId = response.body.data.target_ids.firewallId;
+      const firewall = await firewallRepository.findOneByOrFail({ id: firewallId });
+      expect(firewall.name).to.equal('FW-Test');
+      const interfaces = await db
+        .getSource()
+        .manager.getRepository(Interface)
+        .find({ where: { firewallId } });
+      // Base FWCloud creation supplies its internal loopback independently
+      // of the profile. The empty proposal must add no network interfaces.
+      expect(interfaces.map((iface) => iface.name)).to.deep.equal(['lo']);
+      const reloaded = await repository.findOneByOrFail({ id: draft.id });
+      expect(reloaded.status).to.equal('applied');
+      expect(reloaded.stepLog!.every((entry) => entry.status !== 'failed')).to.equal(true);
+    });
+
+    it('should reject a whitespace-only name with 422 before creating anything', async () => {
+      const draft = await makePreviewOkDraft();
+      const before = await countFirewalls();
+
+      await request(app.express)
+        .post(applyNewUrl(draft.id))
+        .set('Cookie', [attachSession(memberSessionId)])
+        .set('Idempotency-Key', StringHelper.randomize(16))
+        .send(applyNewBody({ kind: 'firewall', name: '   ' }))
+        .expect(422);
+
+      expect(await countFirewalls()).to.equal(before);
+    });
+
+    it('should return the exact cached response for a repeated same-key submission, creating one firewall', async () => {
+      const draft = await makePreviewOkDraft();
+      const before = await countFirewalls();
+      const idempotencyKey = StringHelper.randomize(16);
+      const send = () =>
+        request(app.express)
+          .post(applyNewUrl(draft.id))
+          .set('Cookie', [attachSession(memberSessionId)])
+          .set('Idempotency-Key', idempotencyKey)
+          .send(applyNewBody());
+
+      const first = await send().expect(200);
+      expect(first.body.data.status).to.equal('applied');
+
+      // The first mutating request took the FWCloud lock, which `LockValidation`
+      // keys on express's own `req.sessionID` (FwCloud.getFwcloudAccess ->
+      // `mylock`). A real browser keeps one express session across both
+      // submissions and therefore owns the lock on the retry; this harness
+      // fakes sessions per request, so the lock is released here instead of
+      // asserting a 403 that production would never return. The rest of the
+      // suite never hits this because its admin session has no `user__fwcloud`
+      // row, and `LockValidation` no-ops when access is false.
+      await db
+        .getSource()
+        .query('UPDATE fwcloud SET locked = 0, locked_by = NULL WHERE id = ?', [fwCloud.id]);
+
+      const second = await send().expect(200);
+      expect(second.body.data).to.deep.equal(first.body.data);
+
+      // The cached replay must not have created a second firewall.
+      expect(await countFirewalls()).to.equal(before + 1);
     });
   });
 

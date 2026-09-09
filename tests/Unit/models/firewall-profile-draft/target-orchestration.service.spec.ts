@@ -193,6 +193,104 @@ describe(describeName('TargetOrchestrationService Unit Tests'), () => {
       }
     });
 
+    it('lands as a new profile version when the same request is applied twice', async () => {
+      // Generators derive the code from the request, so asking twice for the
+      // same firewall collides. It used to fail after creating the firewall.
+      const firstDraft = await makeDraft('apply_pending', firewallProposal({ code: 'madrid-fw' }));
+      const first = await service.execute(firstDraft, {
+        fwCloudId: fwc.fwcloud.id,
+        userId: user.id,
+      });
+      expect(first.succeeded).to.equal(true);
+      expect(first.draft.targetIds!.profileVersion).to.equal(1);
+
+      const secondDraft = await makeDraft('apply_pending', firewallProposal({ code: 'madrid-fw' }));
+      const second = await service.execute(secondDraft, {
+        fwCloudId: fwc.fwcloud.id,
+        userId: user.id,
+      });
+
+      expect(second.succeeded).to.equal(true);
+      expect(second.draft.targetIds!.profileVersion).to.equal(2);
+    });
+
+    it('writes the proposal description as the created firewall comment', async () => {
+      const proposal = firewallProposal();
+      proposal.description = 'Firewall principal de Madrid';
+      const draft = await makeDraft('apply_pending', proposal);
+
+      const result = await service.execute(draft, { fwCloudId: fwc.fwcloud.id, userId: user.id });
+
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ id: result.draft.targetIds!.firewallId });
+      // Opening the firewall in FWCloud must show what the operator described,
+      // not a fixed "created by" note.
+      expect(firewall.comment).to.equal('Firewall principal de Madrid');
+    });
+
+    it('falls back to the default comment when the proposal described nothing', async () => {
+      const proposal = firewallProposal();
+      delete (proposal as Record<string, unknown>).description;
+      const draft = await makeDraft('apply_pending', proposal);
+
+      const result = await service.execute(draft, { fwCloudId: fwc.fwcloud.id, userId: user.id });
+
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ id: result.draft.targetIds!.firewallId });
+      expect(firewall.comment).to.equal('Created by Assisted Profile.');
+    });
+
+    it('names the firewall after the proposed target name, not the profile name', async () => {
+      const proposal = firewallProposal();
+      (proposal.model as Record<string, unknown>).uiDefaults = { targetName: 'FW-Madrid' };
+      const draft = await makeDraft('apply_pending', proposal);
+
+      const result = await service.execute(draft, { fwCloudId: fwc.fwcloud.id, userId: user.id });
+
+      expect(result.succeeded).to.equal(true);
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ id: result.draft.targetIds!.firewallId });
+      expect(firewall.name).to.equal('FW-Madrid');
+      expect(firewall.name).to.not.equal(proposal.name);
+    });
+
+    it('lets an explicit per-apply name win over the proposed one', async () => {
+      const proposal = firewallProposal();
+      (proposal.model as Record<string, unknown>).uiDefaults = { targetName: 'FW-Madrid' };
+      const draft = await makeDraft('apply_pending', proposal);
+
+      const result = await service.execute(draft, {
+        fwCloudId: fwc.fwcloud.id,
+        userId: user.id,
+        targetName: 'FW-Barcelona',
+      });
+
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ id: result.draft.targetIds!.firewallId });
+      expect(firewall.name).to.equal('FW-Barcelona');
+    });
+
+    it('falls back to the profile name when the proposal carries no target name', async () => {
+      const proposal = firewallProposal();
+      const draft = await makeDraft('apply_pending', proposal);
+
+      const result = await service.execute(draft, { fwCloudId: fwc.fwcloud.id, userId: user.id });
+
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ id: result.draft.targetIds!.firewallId });
+      expect(firewall.name).to.equal(proposal.name);
+    });
+
     it('creates the cluster, its master/node ids and the master interfaces, then applies the profile', async () => {
       const draft = await makeDraft('apply_pending', clusterProposal());
 

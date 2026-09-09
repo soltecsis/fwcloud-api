@@ -50,9 +50,24 @@ import type {
 import { deriveAssistedProfileReconciliationData } from '../../models/firewall-profile-draft/firewall-profile-draft-reconciliation';
 import { GenerateFirewallProfileDraftDto } from './dtos/generate-draft.dto';
 import { ApplyFirewallProfileDraftDto } from './dtos/apply-draft.dto';
+import { CreateTargetFromDraftDto } from './dtos/create-target-from-draft.dto';
 
 const IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
 const DRAFT_APPLY_OPERATION = 'assistant.drafts.apply';
+// A separate idempotency namespace on purpose: the same key sent to both
+// endpoints describes two different operations, and must not replay one as
+// the other.
+const DRAFT_APPLY_NEW_TARGET_OPERATION = 'assistant.drafts.applyNew';
+
+/**
+ * The part of a confirmed-apply body the replay fingerprint is built from.
+ * Both apply DTOs satisfy it structurally, so the two endpoints cannot drift
+ * into fingerprinting the same confirmation differently.
+ */
+interface ConfirmedApplyBody {
+  readonly preview_hash: string;
+  readonly target: unknown;
+}
 
 const MAX_INSTRUCTION_BYTES = 2048;
 
@@ -168,29 +183,15 @@ export class DraftController extends Controller {
     (await DraftPolicy.apply(request.session.user, this._fwCloud)).authorize();
 
     const draftId = this.parseDraftParam(request);
-    const idempotencyKey = request.headers[IDEMPOTENCY_KEY_HEADER];
-    if (typeof idempotencyKey !== 'string' || idempotencyKey.trim() === '') {
-      throw new FirewallProfileDraftApplyIdempotencyKeyMissingError(draftId);
-    }
-
     const body = request.body as ApplyFirewallProfileDraftDto;
-    const actor = this.actor(request);
-    const [applyService, idempotencyKeyStore] = await Promise.all([
-      this.applyService(),
-      this.idempotencyKeyStore(),
-    ]);
 
-    const snapshot = await idempotencyKeyStore.executeOnce(
-      {
-        operation: DRAFT_APPLY_OPERATION,
-        fwCloudId: this._fwCloud.id,
-        userId: actor.userId!,
-        idempotencyKey,
-        payload: { draftId, previewHash: body.preview_hash, target: body.target },
-        requestId: actor.sessionId ? String(actor.sessionId) : null,
-      },
-      async () => {
-        const draft = await applyService.apply(
+    return this.confirmedApply(
+      request,
+      draftId,
+      DRAFT_APPLY_OPERATION,
+      body,
+      (applyService, actor) =>
+        applyService.apply(
           draftId,
           this._fwCloud.id,
           {
@@ -201,9 +202,89 @@ export class DraftController extends Controller {
             },
           },
           actor,
-        );
-        return { statusCode: 200, body: toDetail(draft) };
+        ),
+    );
+  }
+
+  /**
+   * Confirmed apply that CREATES the firewall/cluster the proposal describes
+   * (API-15), for a draft with no existing target to apply onto. Same guard
+   * chain as `apply()` -- the global `ConfirmationToken` middleware, a
+   * mandatory `Idempotency-Key`, and a `preview_hash` bound to what API-12
+   * issued -- and the same response shape: a draft that reached `applied` and
+   * one whose orchestration failed are both a 200 carrying the draft's own
+   * terminal state, so the idempotency key caches the real outcome instead of
+   * being left in progress.
+   */
+  @Validate(CreateTargetFromDraftDto)
+  public async applyToNewTarget(request: Request): Promise<ResponseBuilder> {
+    (await DraftPolicy.applyNew(request.session.user, this._fwCloud)).authorize();
+
+    const draftId = this.parseDraftParam(request);
+    const body = request.body as CreateTargetFromDraftDto;
+
+    return this.confirmedApply(
+      request,
+      draftId,
+      DRAFT_APPLY_NEW_TARGET_OPERATION,
+      body,
+      (applyService, actor) =>
+        applyService.applyToNewTarget(
+          draftId,
+          this._fwCloud.id,
+          {
+            previewHash: body.preview_hash,
+            target: {
+              kind: body.target.kind as ReplicationProfileTargetKind,
+              name: body.target.name,
+            },
+          },
+          actor,
+        ),
+    );
+  }
+
+  /**
+   * The confirmation scaffolding both apply destinations share: the mandatory
+   * `Idempotency-Key` header, the replay namespace keyed by `operation`, the
+   * replay fingerprint derived from `body`, and the cached-response
+   * passthrough. The caller authorizes the request and owns `run`, which
+   * performs its own apply and returns the draft to report;
+   * a draft that reached `applied` and one whose apply failed are both a 200
+   * carrying the draft's terminal state, so the key caches the real outcome
+   * instead of being left in progress.
+   */
+  private async confirmedApply(
+    request: Request,
+    draftId: number,
+    operation: string,
+    body: ConfirmedApplyBody,
+    run: (
+      applyService: FirewallProfileDraftApplyService,
+      actor: FirewallProfileDraftActor,
+    ) => Promise<FirewallProfileDraft>,
+  ): Promise<ResponseBuilder> {
+    const idempotencyKey = request.headers[IDEMPOTENCY_KEY_HEADER];
+    if (typeof idempotencyKey !== 'string' || idempotencyKey.trim() === '') {
+      throw new FirewallProfileDraftApplyIdempotencyKeyMissingError(draftId);
+    }
+
+    const actor = this.actor(request);
+    const [applyService, idempotencyKeyStore] = await Promise.all([
+      this.applyService(),
+      this.idempotencyKeyStore(),
+    ]);
+
+    const snapshot = await idempotencyKeyStore.executeOnce(
+      {
+        operation,
+        fwCloudId: this._fwCloud.id,
+        userId: actor.userId!,
+        idempotencyKey,
+        payload: { draftId, previewHash: body.preview_hash, target: body.target },
+        requestId: actor.sessionId ? String(actor.sessionId) : null,
       },
+      async () => ({ statusCode: 200, body: toDetail(await run(applyService, actor)) }),
     );
 
     return ResponseBuilder.buildResponse().status(snapshot.statusCode).body(snapshot.body);
