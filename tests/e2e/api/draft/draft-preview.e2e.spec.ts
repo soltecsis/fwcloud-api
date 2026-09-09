@@ -227,7 +227,9 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       expect(body.validation).to.deep.equal({ valid: true, errors: [], warnings: [] });
       expect(body.target).to.deep.include({
         kind: 'firewall',
-        name: 'Assisted firewall',
+        // The name of the infrastructure the proposal asked for
+        // (`generated.target.name`), not the profile's own name.
+        name: 'edge-firewall',
         interface_count: 2,
         rule_count: 1,
       });
