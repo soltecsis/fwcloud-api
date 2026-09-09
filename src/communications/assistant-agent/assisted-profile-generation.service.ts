@@ -33,6 +33,7 @@ import {
   type AssistedProfileAssumption,
 } from '../../models/assistant-contract/assisted-profile-assumptions';
 import { AssistedProfileProposalMapper } from '../../models/assistant-contract/assisted-profile-proposal.mapper';
+import { getProfileProvisioning } from '../../models/replication-profile/policy-replication.types';
 import {
   ReplicationProfileValidationService,
   type ReplicationProfileValidationError,
@@ -84,6 +85,7 @@ import {
 import {
   AssistedProfileClarificationLimitReachedError,
   AssistedProfileDomainValidationFailedError,
+  AssistedProfileEmptyProvisioningError,
   AssistedProfileGenerationNotFoundError,
   AssistedProfileGenerationRateLimitedError,
   AssistedProfileMappingFailedError,
@@ -520,6 +522,13 @@ export class AssistedProfileGenerationService extends Service {
         throw new AssistedProfileDomainValidationFailedError(domainErrors);
       }
 
+      // The domain validator accepts a profile that provisions nothing, because
+      // an explicitly empty provisioning block is valid on its own terms. As the
+      // outcome of a description it is not: it would create a target with no
+      // interfaces and no rules. Rejected here, while the instruction can still
+      // be edited and no draft exists, rather than at apply time.
+      this.rejectEmptyProvisioning(mapped);
+
       this.emitProgress(context, {
         stage: 'persisting_draft',
         message: 'Persisting the validated draft.',
@@ -711,6 +720,29 @@ export class AssistedProfileGenerationService extends Service {
   }
 
   /**
+   * Rejects a mapped proposal that provisions nothing.
+   *
+   * `getProfileProvisioning` returning null and returning an empty block are
+   * both this same outcome, and both are treated alike: the first means the
+   * model produced no provisioning at all, the second means it produced an
+   * explicitly empty one. Only the created infrastructure distinguishes them,
+   * and in neither case is there any infrastructure to create.
+   */
+  private rejectEmptyProvisioning(mapped: {
+    readonly targetKind?: string;
+    readonly model: unknown;
+  }): void {
+    const provision = getProfileProvisioning(mapped.model);
+
+    if (!provision || (provision.interfaces.length === 0 && provision.rules.length === 0)) {
+      // The kind only names the target in the message; a proposal that reached
+      // here without one has already passed the validator, so it is not the
+      // problem being reported and must not mask it.
+      throw new AssistedProfileEmptyProvisioningError(mapped.targetKind ?? 'target');
+    }
+  }
+
+  /**
    * The single classification point for every post-202 failure. It decides
    * three things at once — the Channel error code, the audit outcome and the
    * bounded adoption-metric class — so an error type can never be described one
@@ -795,6 +827,9 @@ export class AssistedProfileGenerationService extends Service {
     if (error instanceof AssistedProfileDomainValidationFailedError) {
       return classify(error.code, error.message, 'domain_validation_failed', 'domain_validation');
     }
+    if (error instanceof AssistedProfileEmptyProvisioningError) {
+      return classify(error.code, error.message, 'empty_provisioning', 'empty_provisioning');
+    }
     if (error instanceof AgentHttpClientError) {
       return classify(
         error.code,
@@ -825,6 +860,12 @@ export class AssistedProfileGenerationService extends Service {
     }
     if (error instanceof AssistedProfileMappingFailedError) {
       return 'mapping_failed';
+    }
+    // Captured under the validation category rather than one of its own: the
+    // capture taxonomy is persisted, and this is a rejection of the proposal's
+    // content for evaluation purposes exactly like the validator's own.
+    if (error instanceof AssistedProfileEmptyProvisioningError) {
+      return 'domain_validation_failed';
     }
     return undefined;
   }

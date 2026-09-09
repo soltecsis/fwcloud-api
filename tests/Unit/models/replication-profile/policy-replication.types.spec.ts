@@ -2,6 +2,34 @@ import { describeName, expect } from '../../../mocha/global-setup';
 import { getProfileProvisioning } from '../../../../src/models/replication-profile/policy-replication.types';
 
 describe(describeName('Policy Replication Types Unit Tests'), () => {
+  for (const provision of [{ interfaces: [], rules: [] }, { interfaces: [] }, { rules: [] }]) {
+    it(`should keep explicitly empty provisioning: ${JSON.stringify(provision)}`, () => {
+      expect(getProfileProvisioning({ provision })).to.deep.equal({ interfaces: [], rules: [] });
+    });
+  }
+
+  for (const model of [null, {}, { provision: null }, { provision: {} }]) {
+    it(`should not infer provisioning from an absent declaration: ${JSON.stringify(model)}`, () => {
+      expect(getProfileProvisioning(model)).to.equal(null);
+    });
+  }
+
+  it('should not treat discarded invalid entries as an explicit empty declaration', () => {
+    expect(getProfileProvisioning({ provision: { interfaces: [null], rules: [] } })).to.equal(null);
+    expect(getProfileProvisioning({ provision: { interfaces: 'invalid', rules: [] } })).to.equal(
+      null,
+    );
+  });
+
+  it('should honor explicit empty provisioning ahead of a populated legacy structure', () => {
+    expect(
+      getProfileProvisioning({
+        provision: { interfaces: [], rules: [] },
+        policyStructure: { interfaces: [{ name: 'WAN' }], rules: [] },
+      }),
+    ).to.deep.equal({ interfaces: [], rules: [] });
+  });
+
   it('should normalize policyStructure interface objects into declarative provisioning', () => {
     const provision = getProfileProvisioning({
       policyStructure: {

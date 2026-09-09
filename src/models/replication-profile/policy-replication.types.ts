@@ -122,9 +122,8 @@ export function getProfileProvisioning(model: unknown): PolicyReplicationProvisi
   const record = asReplicationProfileRecord(model);
   const provisionRaw = asReplicationProfileRecord(record?.provision);
   const structureRaw = getProfileStructureRecord(record);
-  const provisionSource = hasProvisionCollections(provisionRaw)
-    ? provisionRaw
-    : (structureRaw ?? provisionRaw);
+  const hasProvisionBlock = hasProvisionCollections(provisionRaw);
+  const provisionSource = hasProvisionBlock ? provisionRaw : (structureRaw ?? provisionRaw);
 
   if (!provisionSource) {
     return null;
@@ -132,7 +131,20 @@ export function getProfileProvisioning(model: unknown): PolicyReplicationProvisi
 
   const provision = parseProvision(provisionSource);
 
-  if (provision.interfaces.length === 0 && provision.rules.length === 0 && !structureRaw) {
+  // An explicit empty declaration still provisions a new, empty firewall.
+  // Keep it distinct from a missing block or entries the parser discarded.
+  const explicitlyEmpty =
+    hasProvisionBlock &&
+    [provisionRaw.interfaces, provisionRaw.rules].every(
+      (value) => value === undefined || (Array.isArray(value) && value.length === 0),
+    );
+
+  if (
+    provision.interfaces.length === 0 &&
+    provision.rules.length === 0 &&
+    !structureRaw &&
+    !explicitlyEmpty
+  ) {
     return null;
   }
 

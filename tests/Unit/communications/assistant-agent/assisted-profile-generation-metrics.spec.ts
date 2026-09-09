@@ -46,7 +46,12 @@ const CLARIFICATION_PROPOSAL = proposal({
 
 const MAPPED_DTO = {
   targetKind: 'firewall',
-  model: { provision: { interfaces: [], rules: [] } },
+  model: {
+    provision: {
+      interfaces: [{ name: 'wan0', role: 'wan' }],
+      rules: [{ chain: 'forward', action: 'accept', inRole: 'wan', outRole: 'wan' }],
+    },
+  },
 } as unknown as ReturnType<AssistedProfileProposalMapper['map']>;
 
 interface Harness {

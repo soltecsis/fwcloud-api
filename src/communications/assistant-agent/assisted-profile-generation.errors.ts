@@ -35,6 +35,7 @@ export const ASSISTED_PROFILE_CLARIFICATION_LIMIT_REACHED =
 export const ASSISTED_PROFILE_DOMAIN_VALIDATION_FAILED =
   'ASSISTED_PROFILE_DOMAIN_VALIDATION_FAILED' as const;
 export const ASSISTED_PROFILE_MAPPING_FAILED = 'ASSISTED_PROFILE_MAPPING_FAILED' as const;
+export const ASSISTED_PROFILE_EMPTY_PROVISIONING = 'ASSISTED_PROFILE_EMPTY_PROVISIONING' as const;
 
 interface GenerationErrorPayload extends ErrorPayload {
   code: string;
@@ -131,5 +132,31 @@ export class AssistedProfileMappingFailedError extends Error {
     super('The agent proposal could not be mapped into the FWCloud domain model.');
     this.name = AssistedProfileMappingFailedError.name;
     this.cause = cause;
+  }
+}
+
+/**
+ * A proposal that declares no interfaces and no rules. It is well-formed and
+ * passes the domain validator -- an empty provisioning block is a legitimate
+ * profile, and FWCloud itself creates every firewall without interfaces -- but
+ * as the outcome of a description it provisions nothing, so it is rejected here
+ * rather than silently creating an empty target.
+ *
+ * Rejecting at generation is the point of this error: the condition is knowable
+ * the moment the proposal is mapped, and the alternative is discovering it
+ * during apply, after the operator has reviewed and confirmed a preview and the
+ * draft has already left `preview_ok`.
+ */
+export class AssistedProfileEmptyProvisioningError extends Error {
+  public readonly code = ASSISTED_PROFILE_EMPTY_PROVISIONING;
+
+  constructor(public readonly targetKind: string) {
+    super(
+      `The description does not provision anything: the proposal declares no network ` +
+        `interfaces and no rules, so it would create an empty ${targetKind}. Describe at ` +
+        `least the interfaces it needs, for example WAN and LAN, and generate again; the ` +
+        `rules it must apply are optional and can be added later.`,
+    );
+    this.name = AssistedProfileEmptyProvisioningError.name;
   }
 }

@@ -90,6 +90,8 @@ export const ASSISTED_PROFILE_GENERATION_REJECTION_REASONS = [
   'domain_validation',
   /** Still incomplete after the single allowed clarification round. */
   'clarification_limit',
+  /** Valid, but it declared no interfaces and no rules, so it provisions nothing. */
+  'empty_provisioning',
 ] as const;
 export type AssistedProfileGenerationRejectionReason =
   (typeof ASSISTED_PROFILE_GENERATION_REJECTION_REASONS)[number];

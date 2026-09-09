@@ -57,7 +57,12 @@ const CLARIFICATION_PROPOSAL = proposal({
 
 const MAPPED_DTO = {
   targetKind: 'firewall',
-  model: { provision: { interfaces: [], rules: [] } },
+  model: {
+    provision: {
+      interfaces: [{ name: 'wan0', role: 'wan' }],
+      rules: [{ chain: 'forward', action: 'accept', inRole: 'wan', outRole: 'wan' }],
+    },
+  },
 } as unknown as ReturnType<AssistedProfileProposalMapper['map']>;
 
 interface Harness {
@@ -391,6 +396,71 @@ describe('AssistedProfileGenerationService unit tests', () => {
     ]);
     expect(harness.auditCalls[0].data).to.include({ result: 'domain_validation_failed' });
   });
+
+  it('accepts a proposal that declares interfaces but no rules', async () => {
+    // A firewall with interfaces and no policy is a real outcome -- the
+    // interfaces are the thing being provisioned, and rules can be written
+    // afterwards. The rejection below is deliberately an AND of both being
+    // empty, so this case must reach a draft; testing it here is what stops a
+    // later reading of that condition from turning it into an OR.
+    const dto = {
+      targetKind: 'firewall',
+      model: { provision: { interfaces: [{ name: 'wan0', role: 'wan' }], rules: [] } },
+    } as unknown as ReturnType<AssistedProfileProposalMapper['map']>;
+    const harness = await buildHarness({
+      mapper: { mapWithAssumptions: () => ({ dto, assumptions: [] }) },
+    });
+
+    await harness.service.accept({
+      fwCloudId: 10,
+      userId: 1,
+      instruction: 'Create a firewall with a WAN interface',
+      channel: harness.channel,
+    });
+    await harness.waitForAuditCount(1);
+
+    expect(harness.draftCreateCalls).to.have.length(1);
+    expect(harness.events.find((event) => event.stage === 'failed')).to.equal(undefined);
+  });
+
+  const emptyProvisioningCases: Array<{ name: string; provision: unknown }> = [
+    {
+      name: 'declares an explicitly empty provisioning block',
+      provision: { interfaces: [], rules: [] },
+    },
+    { name: 'declares no provisioning block at all', provision: undefined },
+  ];
+
+  for (const { name, provision } of emptyProvisioningCases) {
+    it(`rejects at generation a proposal that ${name}`, async () => {
+      // Both shapes provision nothing, and the domain validator accepts both.
+      // The rejection has to happen here, while the instruction can still be
+      // edited: reaching a draft means the operator only finds out at apply,
+      // after reviewing and confirming a preview that promised a target.
+      const dto = { targetKind: 'firewall', model: { provision } } as unknown as ReturnType<
+        AssistedProfileProposalMapper['map']
+      >;
+      const harness = await buildHarness({
+        mapper: { mapWithAssumptions: () => ({ dto, assumptions: [] }) },
+      });
+
+      await harness.service.accept({
+        fwCloudId: 10,
+        userId: 1,
+        instruction: 'Create a firewall with no interfaces',
+        channel: harness.channel,
+      });
+      await harness.waitForAuditCount(1);
+
+      expect(harness.draftCreateCalls).to.have.length(0);
+      const failedEvent = harness.events.find((event) => event.stage === 'failed');
+      expect(failedEvent!.error!.code).to.equal('ASSISTED_PROFILE_EMPTY_PROVISIONING');
+      // The operator has to be told what to add, not that a block is missing.
+      expect(failedEvent!.error!.message).to.contain('no network interfaces and no rules');
+      expect(failedEvent!.error!.message).to.contain('empty firewall');
+      expect(harness.auditCalls[0].data).to.include({ result: 'empty_provisioning' });
+    });
+  }
 
   const agentFailureCases: Array<{
     name: string;
