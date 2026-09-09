@@ -94,10 +94,22 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
     return counts;
   };
 
-  const previewHashOf = (draftId: number): Promise<string> =>
+  /**
+   * POST the preview endpoint as `sessionId`. Returns the pending request so
+   * each test chains its own expectations; the guest case builds its own
+   * request because it must send no cookie at all.
+   */
+  const previewRequest = (
+    draftId: number,
+    sessionId: string = adminUserSessionId,
+    cloudId: number = fwCloud.id,
+  ) =>
     request(app.express)
-      .post(previewUrl(draftId))
-      .set('Cookie', [attachSession(adminUserSessionId)])
+      .post(previewUrl(draftId, cloudId))
+      .set('Cookie', [attachSession(sessionId)]);
+
+  const previewHashOf = (draftId: number): Promise<string> =>
+    previewRequest(draftId)
       .expect(200)
       .then((response) => response.body.data.preview_hash);
 
@@ -155,10 +167,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const draft = await makeDraft('validated');
       const regularUserSessionId = generateSession(await createUser({ role: 0 }));
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(regularUserSessionId)])
-        .expect(401);
+      await previewRequest(draft.id, regularUserSessionId).expect(401);
 
       const persisted = await repository.findOneOrFail({ where: { id: draft.id } });
       expect(persisted.status).to.equal('validated');
@@ -169,9 +178,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const draft = await makeDraft('validated', { createdBy: creator.id });
       const regularUserSessionId = await createFwCloudMemberSession(fwCloud);
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(regularUserSessionId)])
+      await previewRequest(draft.id, regularUserSessionId)
         .expect(200)
         .then((response) => {
           // The creator stays informational; ownership is not required.
@@ -188,10 +195,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const otherSessionId = await createFwCloudMemberSession(otherFwCloud);
       const draft = await makeDraft('validated');
 
-      await request(app.express)
-        .post(previewUrl(draft.id, otherFwCloud.id))
-        .set('Cookie', [attachSession(otherSessionId)])
-        .expect(404);
+      await previewRequest(draft.id, otherSessionId, otherFwCloud.id).expect(404);
 
       const persisted = await repository.findOneOrFail({ where: { id: draft.id } });
       expect(persisted.status).to.equal('validated');
@@ -204,9 +208,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const creator = await createUser({ role: 0 });
       const draft = await makeDraft('validated', { createdBy: creator.id });
 
-      const body = await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      const body = await previewRequest(draft.id)
         .expect(200)
         .then((response) => response.body.data);
 
@@ -250,9 +252,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const creator = await createUser({ role: 0 });
       const draft = await makeDraft('validated', { createdBy: creator.id });
 
-      const previewHash = await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      const previewHash = await previewRequest(draft.id)
         .expect(200)
         .then((response) => response.body.data.preview_hash);
 
@@ -286,9 +286,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
         assumptions: cluster.assumptions,
       });
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      await previewRequest(draft.id)
         .expect(200)
         .then((response) => {
           expect(response.body.data.target).to.deep.include({
@@ -317,9 +315,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
         assumptions: stored,
       });
 
-      const assumptions = await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      const assumptions = await previewRequest(draft.id)
         .expect(200)
         .then((response) => response.body.data.assumptions);
 
@@ -372,9 +368,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
         assumptions: [{ id: '', reason: 'no id', source: 'normalization', path: null }] as never,
       });
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      await previewRequest(draft.id)
         .expect(422)
         .then((response) => {
           expect(response.body.code).to.equal('FIREWALL_PROFILE_DRAFT_PREVIEW_ASSUMPTIONS_INVALID');
@@ -388,9 +382,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
     it('should preview a draft that recorded no assumptions without inventing any', async () => {
       const draft = await makeDraft('validated', { assumptions: null });
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      await previewRequest(draft.id)
         .expect(200)
         .then((response) => {
           expect(response.body.data.assumptions).to.deep.equal([]);
@@ -435,9 +427,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
     it('should invalidate the hash when preview-bound content changes and require a new preview', async () => {
       const draft = await makeDraft('validated');
 
-      const originalHash = await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      const originalHash = await previewRequest(draft.id)
         .expect(200)
         .then((response) => response.body.data.preview_hash);
 
@@ -469,9 +459,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       expect(invalidated.stepLog?.map((entry) => entry.step)).to.include('preview_invalidated');
 
       // A new preview is possible, and its hash does not match the old one.
-      const newHash = await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      const newHash = await previewRequest(draft.id)
         .expect(200)
         .then((response) => response.body.data.preview_hash);
 
@@ -522,9 +510,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       it(`should reject a preview from '${status}' with 409 and report the current state`, async () => {
         const draft = await makeDraft(status);
 
-        await request(app.express)
-          .post(previewUrl(draft.id))
-          .set('Cookie', [attachSession(adminUserSessionId)])
+        await previewRequest(draft.id)
           .expect(409)
           .then((response) => {
             expect(response.body.code).to.equal('FIREWALL_PROFILE_DRAFT_TRANSITION_CONFLICT');
@@ -552,10 +538,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       }) as typeof validationService.validate;
 
       try {
-        await request(app.express)
-          .post(previewUrl(draft.id))
-          .set('Cookie', [attachSession(adminUserSessionId)])
-          .expect(409);
+        await previewRequest(draft.id).expect(409);
       } finally {
         validationService.validate = original;
       }
@@ -566,10 +549,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
     it('should audit the rejected attempt without a successful preview event', async () => {
       const draft = await makeDraft('expired');
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
-        .expect(409);
+      await previewRequest(draft.id).expect(409);
 
       const audits = await previewAudits();
       expect(audits).to.have.lengthOf(1);
@@ -598,9 +578,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       }) as typeof validationService.validate;
 
       try {
-        await request(app.express)
-          .post(previewUrl(draft.id))
-          .set('Cookie', [attachSession(adminUserSessionId)])
+        await previewRequest(draft.id)
           .expect(409)
           .then((response) => {
             expect(response.body.code).to.equal(
@@ -630,9 +608,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       proposal.model.provision.rules[0].outRole = 'dmz';
       const draft = await makeDraft('validated', { proposal });
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      await previewRequest(draft.id)
         .expect(422)
         .then((response) => {
           expect(response.body.code).to.equal('FIREWALL_PROFILE_DRAFT_PREVIEW_VALIDATION_FAILED');
@@ -657,14 +633,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
     it('should transition exactly once, 409 the loser and persist one authoritative hash', async () => {
       const draft = await makeDraft('validated');
 
-      const responses = await Promise.all([
-        request(app.express)
-          .post(previewUrl(draft.id))
-          .set('Cookie', [attachSession(adminUserSessionId)]),
-        request(app.express)
-          .post(previewUrl(draft.id))
-          .set('Cookie', [attachSession(adminUserSessionId)]),
-      ]);
+      const responses = await Promise.all([previewRequest(draft.id), previewRequest(draft.id)]);
 
       const statuses = responses.map((response) => response.status).sort();
       expect(statuses).to.deep.equal([200, 409]);
@@ -691,9 +660,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
 
       const before = await countTargetRows();
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
+      await previewRequest(draft.id)
         .expect(200)
         .then((response) => {
           // A target is described, never allocated.
@@ -712,10 +679,7 @@ describe(describeName('Firewall Profile Draft preview E2E Tests'), () => {
       const draft = await makeDraft('applied');
       const before = await countTargetRows();
 
-      await request(app.express)
-        .post(previewUrl(draft.id))
-        .set('Cookie', [attachSession(adminUserSessionId)])
-        .expect(409);
+      await previewRequest(draft.id).expect(409);
 
       expect(await countTargetRows()).to.deep.equal(before);
     });
