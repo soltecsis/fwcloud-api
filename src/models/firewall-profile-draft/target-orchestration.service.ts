@@ -447,14 +447,7 @@ export class TargetOrchestrationService extends Service {
     }
 
     const dbCon = await legacyConnection();
-    let firewallData = this.baseFirewallData(fwCloudId, name, null, 0, userId, comment);
-    firewallData = (await Firewall.checkBodyFirewall(firewallData, true)) as Record<
-      string,
-      unknown
-    >;
-
-    const firewallId = (await Firewall.insertFirewall(firewallData)) as number;
-    await Firewall.updateFWMaster(userId, fwCloudId, null, firewallId, 0);
+    const firewallId = await this.createFirewallRecord(fwCloudId, name, null, 0, userId, comment);
     await this.provisionMasterFirewallEssentials(dbCon, fwCloudId, firewallId);
 
     const rootNodeId = await this.findFirewallsRootNodeId(fwCloudId);
@@ -495,7 +488,7 @@ export class TargetOrchestrationService extends Service {
 
     for (let i = 0; i < nodeNames.length; i++) {
       const isMaster = i === 0;
-      let firewallData = this.baseFirewallData(
+      const firewallId = await this.createFirewallRecord(
         fwCloudId,
         nodeNames[i],
         clusterId,
@@ -503,13 +496,6 @@ export class TargetOrchestrationService extends Service {
         userId,
         comment,
       );
-      firewallData = (await Firewall.checkBodyFirewall(firewallData, true)) as Record<
-        string,
-        unknown
-      >;
-
-      const firewallId = (await Firewall.insertFirewall(firewallData)) as number;
-      await Firewall.updateFWMaster(userId, fwCloudId, clusterId, firewallId, isMaster ? 1 : 0);
       nodeIds.push(firewallId);
 
       if (isMaster) {
@@ -542,6 +528,31 @@ export class TargetOrchestrationService extends Service {
     await PolicyRule.insertDefaultPolicy(firewallId, loData.ifId, FireWallOptMask.STATEFUL);
     await PolicyRule.checkSpecialRules(dbCon, firewallId, FireWallOptMask.STATEFUL);
     await utilsModel.createFirewallDataDir(fwCloudId, firewallId);
+  }
+
+  /**
+   * Inserts one firewall row and records its master flag. Shared by the
+   * standalone and per-node paths, which differ only in the cluster id and
+   * that flag; the legacy `checkBodyFirewall` normalization has to run on the
+   * built record before insert in both.
+   */
+  private async createFirewallRecord(
+    fwCloudId: number,
+    name: string,
+    clusterId: number | null,
+    fwmaster: 0 | 1,
+    userId: number | null,
+    comment: string,
+  ): Promise<number> {
+    const firewallData = (await Firewall.checkBodyFirewall(
+      this.baseFirewallData(fwCloudId, name, clusterId, fwmaster, userId, comment),
+      true,
+    )) as Record<string, unknown>;
+
+    const firewallId = (await Firewall.insertFirewall(firewallData)) as number;
+    await Firewall.updateFWMaster(userId, fwCloudId, clusterId, firewallId, fwmaster);
+
+    return firewallId;
   }
 
   private baseFirewallData(
