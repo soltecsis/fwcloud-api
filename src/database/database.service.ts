@@ -105,6 +105,7 @@ import { AIModel } from '../models/ai-assistant/ai-assistant-models.model';
 import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.model';
 import { AI } from '../models/ai-assistant/ai-assistant.model';
 import { AuditLog } from '../models/audit/AuditLog';
+import { CrowdSecInstallation } from '../models/system/crowdsec/crowdsec-installation.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -383,6 +384,7 @@ export class DatabaseService extends Service {
         AICredentials,
         AIModel,
         AI,
+        CrowdSecInstallation,
       ],
     };
   }

@@ -353,6 +353,90 @@ describe(AgentCommunication.name, () => {
     });
   });
 
+  describe('CrowdSec LAPI machines', () => {
+    it('should request the central LAPI machine inventory', async () => {
+      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: { machines: [] } });
+
+      const response = await agent.getCrowdSecLapiMachines();
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/lapi/machines');
+      expect(response).to.deep.equal({ machines: [] });
+    });
+
+    it('should forward central LAPI machine operations using the agent contract', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
+      const deleteStub = sinon.stub(axios, 'delete').resolves({ status: 200, data: {} });
+
+      await agent.configureCrowdSecCentralLapi('0.0.0.0:8080');
+      await agent.validateCrowdSecLapiMachine('fwcloud-machine-01');
+      await agent.createCrowdSecLapiPreflightToken('fwcloud-machine-01');
+      await agent.removeCrowdSecLapiMachine('fwcloud-machine-01');
+
+      expect(postStub.callCount).to.equal(3);
+      expect(postStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/lapi/central/configure',
+      );
+      expect(postStub.firstCall.args[1]).to.deep.equal({ listen_uri: '0.0.0.0:8080' });
+      expect(postStub.secondCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/lapi/machines/fwcloud-machine-01/validate',
+      );
+      expect(postStub.thirdCall.args[1]).to.deep.equal({ machine_name: 'fwcloud-machine-01' });
+      expect(deleteStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/lapi/machines/fwcloud-machine-01',
+      );
+    });
+
+    it('should install a remote CrowdSec machine with the private preflight contract', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
+
+      await agent.installCrowdSecMachine({
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.10:8080',
+        centralAgentUrl: 'https://192.0.2.10:33033',
+        centralAgentTlsFingerprint: 'AA:BB',
+        preflightToken: 'preflight-secret',
+      });
+
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        mode: 'machine',
+        machine_name: 'fwcloud-machine-01',
+        lapi_url: 'http://192.0.2.10:8080',
+        central_agent_url: 'https://192.0.2.10:33033',
+        central_agent_tls_fingerprint: 'AA:BB',
+        preflight_token: 'preflight-secret',
+      });
+    });
+
+    it('should activate a remote Machine with a dedicated progress websocket', async () => {
+      const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
+      sinon.stub(agent as any, 'createCrowdSecWebSocket').resolves('crowdsec-ws-id');
+
+      await agent.activateCrowdSecMachine(
+        {
+          machineName: 'fwcloud-machine-01',
+          localRemediation: true,
+          backend: 'nftables',
+          bouncerApiKey: 'bouncer-secret',
+        },
+        new EventEmitter(),
+      );
+
+      expect(postStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/lapi/machines/activate',
+      );
+      expect(postStub.firstCall.args[1]).to.deep.equal({
+        machine_name: 'fwcloud-machine-01',
+        local_remediation: true,
+        backend: 'nftables',
+        bouncer_api_key: 'bouncer-secret',
+        ws_id: 'crowdsec-ws-id',
+      });
+      expect(postStub.firstCall.args[2].timeout).to.equal(0);
+    });
+  });
+
   describe('CrowdSec progress communication', () => {
     let postStub: sinon.SinonStub;
 
@@ -413,10 +497,11 @@ describe(AgentCommunication.name, () => {
     });
 
     it('should redact API and enrollment keys from CrowdSec progress output', () => {
-      const message = 'api_key: secret-key\nenrollment_key="enrollment-secret"';
+      const message =
+        'api_key: secret-key\nenrollment_key="enrollment-secret"\npreflight_token=token-secret';
 
       expect(sanitizeCrowdSecProgressMessage(message)).to.equal(
-        'api_key: [REDACTED]\nenrollment_key=[REDACTED]',
+        'api_key: [REDACTED]\nenrollment_key=[REDACTED]\npreflight_token=[REDACTED]',
       );
     });
 

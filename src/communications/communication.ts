@@ -98,6 +98,23 @@ export type CrowdSecConsoleEnrollment = {
 
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
+export type CrowdSecMachineInstall = {
+  machineName: string;
+  lapiUrl: string;
+  centralAgentUrl: string;
+  centralAgentTlsFingerprint: string;
+  preflightToken: string;
+};
+
+export type CrowdSecMachineActivation = {
+  machineName: string;
+  localRemediation: boolean;
+  backend: CrowdSecFirewallBackend;
+  bouncerApiKey?: string;
+};
+
+export type CrowdSecMachineReauthentication = CrowdSecMachineInstall;
+
 export type CrowdSecDecisionsQuery = {
   limit?: number;
   scope?: string;
@@ -235,6 +252,28 @@ export abstract class Communication<ConnectionData> {
   abstract removeCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract uninstallCrowdSecBouncer(
     confirm: boolean,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract configureCrowdSecCentralLapi(listenUri: string): Promise<Record<string, unknown>>;
+  abstract getCrowdSecLapiMachines(): Promise<Record<string, unknown>>;
+  abstract validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
+  abstract removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
+  abstract createCrowdSecLapiPreflightToken(machineName: string): Promise<Record<string, unknown>>;
+  abstract installCrowdSecMachine(
+    installation: CrowdSecMachineInstall,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract activateCrowdSecMachine(
+    activation: CrowdSecMachineActivation,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract reauthenticateCrowdSecMachine(
+    reauthentication: CrowdSecMachineReauthentication,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract resumeCrowdSecMachine(
+    machineName: string,
+    localRemediation: boolean,
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
 
