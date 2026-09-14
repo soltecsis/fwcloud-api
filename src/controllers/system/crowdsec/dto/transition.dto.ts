@@ -20,29 +20,51 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  Min,
+  ValidateIf,
+} from 'class-validator';
+import { CrowdSecInstallationMode } from '../../../../models/system/crowdsec/crowdsec-installation.model';
+import { CROWDSEC_LAPI_URL, CROWDSEC_MACHINE_NAME } from './machine-install.dto';
 
-export const CROWDSEC_MACHINE_NAME = /^[A-Za-z0-9_.-]{1,128}$/;
-export const CROWDSEC_LAPI_URL = /^https?:\/\/[^\s/]+(?::\d{1,5})?\/?$/;
+export class CrowdSecTransitionDto {
+  @IsBoolean()
+  confirm: boolean;
 
-export class CrowdSecMachineInstallDto {
-  @IsInt()
-  @Min(1)
-  centralFirewallId: number;
-
-  @IsString()
-  @Matches(CROWDSEC_MACHINE_NAME, { message: 'Invalid CrowdSec machine name' })
-  machineName: string;
-
-  @IsString()
-  @Length(1, 256)
-  @Matches(CROWDSEC_LAPI_URL, {
-    message: 'Invalid CrowdSec Local API URL',
-  })
-  lapiUrl: string;
+  @IsEnum(CrowdSecInstallationMode)
+  mode: CrowdSecInstallationMode;
 
   @IsBoolean()
   localRemediation: boolean;
+
+  @ValidateIf(
+    (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
+  )
+  @IsInt()
+  @Min(1)
+  centralFirewallId?: number;
+
+  @ValidateIf(
+    (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
+  )
+  @IsString()
+  @Matches(CROWDSEC_MACHINE_NAME, { message: 'Invalid CrowdSec machine name' })
+  machineName?: string;
+
+  @ValidateIf(
+    (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
+  )
+  @IsString()
+  @Length(1, 256)
+  @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
+  lapiUrl?: string;
 
   @IsOptional()
   @IsString()

@@ -47,6 +47,7 @@ import { CrowdSecAlertsQueryDto } from '../../../../../src/controllers/system/cr
 import { CrowdSecDecisionsFlushDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-flush.dto';
 import { CrowdSecBouncerDto } from '../../../../../src/controllers/system/crowdsec/dto/bouncer.dto';
 import { CrowdSecMachineInstallDto } from '../../../../../src/controllers/system/crowdsec/dto/machine-install.dto';
+import { CrowdSecTransitionDto } from '../../../../../src/controllers/system/crowdsec/dto/transition.dto';
 import { CrowdSecCentralLapiConfigureDto } from '../../../../../src/controllers/system/crowdsec/dto/central-lapi-configure.dto';
 import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
@@ -1027,6 +1028,42 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         CrowdSecMachineInstallDto,
       ).validate(),
     ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          centralFirewallId: 1,
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: false,
+        },
+        CrowdSecTransitionDto,
+      ).validate(),
+    ).to.be.fulfilled;
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          centralFirewallId: 0,
+          machineName: 'invalid machine',
+          lapiUrl: 'https://lapi.example.test:8080/path',
+          localRemediation: false,
+        },
+        CrowdSecTransitionDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Standalone,
+          localRemediation: true,
+        },
+        CrowdSecTransitionDto,
+      ).validate(),
+    ).to.be.fulfilled;
   });
 
   it('should reject Console enrollment without access before contacting the agent', async () => {
