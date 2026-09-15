@@ -129,6 +129,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/install': {
     audited: true,
   },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/transitions/address': {
+    audited: true,
+  },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/reauthenticate': {
     audited: true,
   },

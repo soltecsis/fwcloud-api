@@ -38,6 +38,8 @@ import {
   CrowdSecMachineActivation,
   CrowdSecMachineInstall,
   CrowdSecMachineReauthentication,
+  CrowdSecTransitionActivation,
+  CrowdSecTransitionPrepare,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
@@ -864,6 +866,31 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     _localRemediation: boolean,
     _eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  preflightCrowdSecTransition(
+    _transition: CrowdSecTransitionPrepare,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  prepareCrowdSecTransition(
+    _transition: CrowdSecTransitionPrepare,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  activateCrowdSecTransition(
+    _transition: CrowdSecTransitionActivation,
+    _eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  finalizeCrowdSecTransition(_transitionId: string): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
 

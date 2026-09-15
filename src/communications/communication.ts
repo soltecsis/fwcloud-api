@@ -115,6 +115,34 @@ export type CrowdSecMachineActivation = {
 
 export type CrowdSecMachineReauthentication = CrowdSecMachineInstall;
 
+export type CrowdSecTransitionTarget = {
+  mode: 'standalone' | 'machine';
+  localRemediation: boolean;
+  machineName?: string;
+  lapiUrl?: string;
+};
+
+export type CrowdSecTransitionPreflight = {
+  centralAgentUrl: string;
+  centralAgentTlsFingerprint: string;
+  preflightToken: string;
+};
+
+export type CrowdSecTransitionPrepare = {
+  transitionId: string;
+  confirm: boolean;
+  expected: CrowdSecTransitionTarget;
+  target: CrowdSecTransitionTarget;
+  authorityChanged: boolean;
+  backend?: CrowdSecFirewallBackend;
+  preflight?: CrowdSecTransitionPreflight;
+};
+
+export type CrowdSecTransitionActivation = {
+  transitionId: string;
+  bouncerApiKey?: string;
+};
+
 export type CrowdSecDecisionsQuery = {
   limit?: number;
   scope?: string;
@@ -276,6 +304,19 @@ export abstract class Communication<ConnectionData> {
     localRemediation: boolean,
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
+  abstract preflightCrowdSecTransition(
+    transition: CrowdSecTransitionPrepare,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract prepareCrowdSecTransition(
+    transition: CrowdSecTransitionPrepare,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract activateCrowdSecTransition(
+    transition: CrowdSecTransitionActivation,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>>;
+  abstract finalizeCrowdSecTransition(transitionId: string): Promise<Record<string, unknown>>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (errorHasCode(error)) {

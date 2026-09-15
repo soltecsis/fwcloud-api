@@ -437,6 +437,9 @@ export class Routes extends RouteCollection {
                     .post('/machines/install', CrowdSecController, 'installMachine')
                     .name('fwclouds.firewalls.system.crowdsec.machines.install');
                   router
+                    .post('/transitions/address', CrowdSecController, 'transitionMachineAddress')
+                    .name('fwclouds.firewalls.system.crowdsec.transitions.address');
+                  router
                     .post('/bouncers/register', CrowdSecController, 'registerBouncer')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.register');
                   router

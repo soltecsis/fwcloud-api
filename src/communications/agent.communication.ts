@@ -32,6 +32,9 @@ import {
   CrowdSecMachineActivation,
   CrowdSecMachineInstall,
   CrowdSecMachineReauthentication,
+  CrowdSecTransitionActivation,
+  CrowdSecTransitionPrepare,
+  CrowdSecTransitionTarget,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentConfig,
@@ -107,6 +110,26 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   CROWDSEC_MACHINE_REAUTHENTICATION_REQUIRED: {
     message: 'CrowdSec machine must be registered and validated again',
     status: 409,
+  },
+  CROWDSEC_TRANSITION_INVALID: {
+    message: 'CrowdSec transition is invalid',
+    status: 422,
+  },
+  CROWDSEC_TRANSITION_CONFLICT: {
+    message: 'CrowdSec transition conflicts with the current configuration',
+    status: 409,
+  },
+  CROWDSEC_TRANSITION_FAILED: {
+    message: 'CrowdSec transition failed',
+    status: 502,
+  },
+  CROWDSEC_TRANSITION_RECOVERY_REQUIRED: {
+    message: 'CrowdSec transition requires recovery before retrying',
+    status: 409,
+  },
+  CROWDSEC_TRANSITION_UNSUPPORTED: {
+    message: 'CrowdSec transition is not supported by the agent',
+    status: 422,
   },
   CROWDSEC_FIREWALL_INTEGRATION_INVALID: {
     message: 'CrowdSec firewall integration is invalid',
@@ -1414,6 +1437,100 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     } catch (error) {
       this.handleCrowdSecRequestException(error, eventEmitter);
     }
+  }
+
+  async preflightCrowdSecTransition(
+    transition: CrowdSecTransitionPrepare,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    return this.runCrowdSecTransitionOperation(
+      '/api/v1/crowdsec/transitions/preflight',
+      transition,
+      eventEmitter,
+    );
+  }
+
+  async prepareCrowdSecTransition(
+    transition: CrowdSecTransitionPrepare,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    return this.runCrowdSecTransitionOperation(
+      '/api/v1/crowdsec/transitions/prepare',
+      transition,
+      eventEmitter,
+    );
+  }
+
+  async activateCrowdSecTransition(
+    transition: CrowdSecTransitionActivation,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/transitions/activate',
+        {
+          transition_id: transition.transitionId,
+          ...(transition.bouncerApiKey === undefined
+            ? {}
+            : { bouncer_api_key: transition.bouncerApiKey }),
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  async finalizeCrowdSecTransition(transitionId: string): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/transitions/finalize', {
+        transition_id: transitionId,
+        confirm: true,
+      });
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  private async runCrowdSecTransitionOperation(
+    path: string,
+    transition: CrowdSecTransitionPrepare,
+    eventEmitter?: EventEmitter,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + path,
+        {
+          transition_id: transition.transitionId,
+          confirm: transition.confirm,
+          expected: this.crowdSecTransitionTarget(transition.expected),
+          target: this.crowdSecTransitionTarget(transition.target),
+          authority_changed: transition.authorityChanged,
+          ...(transition.backend === undefined ? {} : { backend: transition.backend }),
+          ...(transition.preflight === undefined
+            ? {}
+            : {
+                preflight: {
+                  central_agent_url: transition.preflight.centralAgentUrl,
+                  central_agent_tls_fingerprint: transition.preflight.centralAgentTlsFingerprint,
+                  preflight_token: transition.preflight.preflightToken,
+                },
+              }),
+        },
+        eventEmitter,
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error, eventEmitter);
+    }
+  }
+
+  private crowdSecTransitionTarget(target: CrowdSecTransitionTarget) {
+    return {
+      mode: target.mode,
+      local_remediation: target.localRemediation,
+      ...(target.machineName === undefined ? {} : { machine_name: target.machineName }),
+      ...(target.lapiUrl === undefined ? {} : { lapi_url: target.lapiUrl }),
+    };
   }
 
   private async runCrowdSecGetOperation(
