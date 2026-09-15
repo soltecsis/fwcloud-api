@@ -35,6 +35,7 @@ import type {
   PolicyReplicationRequest,
 } from '../../models/replication-profile/policy-replication.types';
 import { ReplicationProfilePolicy } from '../../policies/replication-profile.policy';
+import { loadReplicationProfileStandardCatalog } from '../../models/replication-profile/replication-profile-standard-objects';
 import type { Authorization } from '../../fonaments/authorization/policy';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
@@ -77,6 +78,16 @@ export class ReplicationProfileController extends Controller {
     return ResponseBuilder.buildResponse()
       .status(200)
       .body(profiles.map((profile) => this.toResponse(profile)));
+  }
+
+  /** Predefined FWCloud objects and services a profile can reference by id. */
+  @Validate()
+  public async standardObjects(request: Request): Promise<ResponseBuilder> {
+    (await ReplicationProfilePolicy.index(request.session.user, this._fwCloud)).authorize();
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(await loadReplicationProfileStandardCatalog());
   }
 
   @Validate()

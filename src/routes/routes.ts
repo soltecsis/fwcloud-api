@@ -248,6 +248,9 @@ export class Routes extends RouteCollection {
             .post('/profiles', ReplicationProfileController, 'store')
             .name('fwclouds.profiles.store');
           router
+            .get('/profiles/standard-objects', ReplicationProfileController, 'standardObjects')
+            .name('fwclouds.profiles.standardObjects');
+          router
             .post('/profiles/validate', ReplicationProfileController, 'validateDefinition')
             .name('fwclouds.profiles.validate');
           router
