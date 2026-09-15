@@ -52,6 +52,7 @@ import { typeMap } from '../../config/policy/dangerousRules';
 
 const config = require('../../config/config');
 const fwcError = require('../../utils/error_table');
+const shellescape = require('shell-escape');
 
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
@@ -59,6 +60,7 @@ export class PolicyScript {
   private policyCompilationMode: PolicyCompilationMode;
   private restoreExecutions: Map<string, number> = new Map();
   private restoreFilterPolicies: Set<string> = new Set();
+  private dnsChecks: string[] = [];
   private path: string;
   private stream: any;
 
@@ -213,7 +215,38 @@ export class PolicyScript {
       null,
     );
 
+    if (this.policyCompiler === 'IPTables') this.collectDnsChecks(type, rulesData);
+
     return PolicyCompiler.compile(this.policyCompiler, rulesData, this.channel);
+  }
+
+  // DNS objects are compiled as hostnames that iptables resolves on the firewall while loading the
+  // policy (IPv4 rules need an A record, IPv6 rules an AAAA record). Collect one check per DNS object
+  // used in the source or destination of an active rule, so the script install action can reject a
+  // policy with unresolvable hostnames instead of loading it partially.
+  private collectDnsChecks(type: number, rulesData: any): void {
+    const ipv = type >= PolicyTypesMap.get('IPv6:INPUT') ? 6 : 4;
+
+    for (const rule of rulesData ?? []) {
+      if (!rule.active) continue;
+
+      for (const position of rule.positions) {
+        if (position.name !== 'Source' && position.name !== 'Destination') continue;
+
+        for (const ipobj of position.ipobjs) {
+          if (ipobj.type !== 9) continue; // DNS
+
+          const context = `DNS object '${ipobj.name}' (ID: ${ipobj.id}) in ${position.name.toLowerCase()} of rule ${rule.id} (IPv${ipv})`;
+          let check = `policy_check_dns "$${ipv === 4 ? 'IPTABLES' : 'IP6TABLES'}" ${shellescape([ipobj.name, context])} || return 1\n`;
+          // Rules applied to a single cluster node are only loaded on that node.
+          check =
+            rule.fw_apply_to && rule.firewall_name
+              ? `  if [ "$HOSTNAME" = ${shellescape([rule.firewall_name])} ]; then\n    ${check}  fi\n`
+              : `  ${check}`;
+          this.dnsChecks.push(check);
+        }
+      }
+    }
   }
 
   private async dumpVyOSPolicy(): Promise<RuleCompilationResult[]> {
@@ -511,7 +544,9 @@ export class PolicyScript {
       `${chainPolicies.length > 0 ? `${chainPolicies.join('\n')}\n\n` : ''}` +
       `${restoreBuffer.lines.join('\n')}\n\n` +
       'COMMIT\n' +
-      'FWC_IPTABLES_RESTORE\n'
+      'FWC_IPTABLES_RESTORE\n' +
+      // The first restore flushes the table, including the temporary DNS resolution rules.
+      `${executions > 0 ? '' : `policy_dns_resolution allow "${restoreBuffer.restoreCommand === '$IPTABLES_RESTORE' ? '$IPTABLES' : '$IP6TABLES'}"\n`}`
     );
   }
 
@@ -732,6 +767,7 @@ export class PolicyScript {
 
   public dump(): Promise<Array<RuleCompilationResult>> {
     return new Promise(async (resolve, reject) => {
+      this.dnsChecks = [];
       this.stream = fs.createWriteStream(this.path);
       this.stream
         .on('open', async () => {
@@ -891,6 +927,12 @@ export class PolicyScript {
               );
 
               this.stream.write('\n}\n\n');
+
+              // Used by policy_dns_resolution (header file) and the install action of the footer file.
+              this.stream.write(
+                `POLICY_DNS_OBJECTS="${this.dnsChecks.length > 0 ? 1 : 0}"\n\n` +
+                  `policy_dns_check() {\n${this.dnsChecks.join('')}  return 0\n}\n\n`,
+              );
 
               await this.dumpRouting();
             } else {
