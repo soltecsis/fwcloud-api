@@ -804,7 +804,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           waiting_for_websocket_id = false;
           resolve(message);
         } else {
-          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
+          eventEmitter.emit('message', crowdSecProgressPayload(message));
         }
       });
 
