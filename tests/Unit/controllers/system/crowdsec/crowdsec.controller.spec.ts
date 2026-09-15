@@ -75,6 +75,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let findInstallationStub: sinon.SinonStub;
   let findCentralCandidatesStub: sinon.SinonStub;
   let hasMachineDependentsStub: sinon.SinonStub;
+  let hasOtherMachineDependentsStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
   let removeMachineInstallationStub: sinon.SinonStub;
 
@@ -124,6 +125,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .resolves([]);
     hasMachineDependentsStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents')
+      .resolves(false);
+    hasOtherMachineDependentsStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'hasOtherMachineDependents')
       .resolves(false);
     setCentralLapiEnabledStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
@@ -648,7 +652,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.true;
   });
 
-  it('should change a CrowdSec Machine address in the current central LAPI', async () => {
+  it('should change a CrowdSec Machine port in the current central LAPI', async () => {
     const channel = new Channel('crowdsec-machine-transition', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -672,6 +676,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(installation);
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
+    const configureCentralLapiStub = sinon
+      .stub(centralCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({});
     const preflightTokenStub = sinon
       .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
       .resolves({ token: 'preflight-token' });
@@ -695,7 +702,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         mode: CrowdSecInstallationMode.Machine,
         centralFirewallId: centralFirewall.id,
         machineName: 'fwcloud-machine-01',
-        lapiUrl: 'http://192.0.2.21:8080',
+        lapiUrl: 'http://192.0.2.21:8081',
         localRemediation: false,
       },
       session: { user: null },
@@ -708,10 +715,17 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(preflightTokenStub.callCount).to.equal(2);
     expect(preflightTokenStub.alwaysCalledWithExactly('fwcloud-machine-01')).to.be.true;
     expect(
+      hasOtherMachineDependentsStub.calledOnceWithExactly(
+        centralFirewall.id,
+        fwcProduct.firewall.id,
+      ),
+    ).to.be.true;
+    expect(configureCentralLapiStub.calledOnceWithExactly('0.0.0.0:8081')).to.be.true;
+    expect(
       saveMachineInstallationStub.calledOnceWithExactly({
         firewallId: fwcProduct.firewall.id,
         centralFirewallId: centralFirewall.id,
-        lapiUrl: 'http://192.0.2.21:8080',
+        lapiUrl: 'http://192.0.2.21:8081',
         machineName: 'fwcloud-machine-01',
         localRemediation: false,
       }),

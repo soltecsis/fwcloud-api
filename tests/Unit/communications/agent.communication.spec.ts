@@ -213,11 +213,14 @@ describe(AgentCommunication.name, () => {
   });
 
   describe('CrowdSec error mapping', () => {
-    it('should map known agent errors to safe HTTP responses', () => {
+    it('should map Local API reachability errors to safe HTTP responses', () => {
       const error = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNAVAILABLE');
+      const unreachableError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNREACHABLE');
 
-      expect(error.status).to.equal(503);
+      expect(error.status).to.equal(422);
       expect(error.message).to.equal('CrowdSec Local API is unavailable');
+      expect(unreachableError.status).to.equal(422);
+      expect(unreachableError.message).to.equal('CrowdSec Local API is unreachable');
     });
 
     it('should not expose unknown agent error messages', () => {

@@ -77,11 +77,11 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   },
   CROWDSEC_LAPI_UNAVAILABLE: {
     message: 'CrowdSec Local API is unavailable',
-    status: 503,
+    status: 422,
   },
   CROWDSEC_LAPI_UNREACHABLE: {
     message: 'CrowdSec Local API is unreachable',
-    status: 503,
+    status: 422,
   },
   CROWDSEC_LAPI_INVALID: {
     message: 'CrowdSec Local API configuration is invalid',
@@ -93,7 +93,7 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   },
   CROWDSEC_LAPI_PREFLIGHT_FAILED: {
     message: 'CrowdSec Local API agent preflight failed',
-    status: 503,
+    status: 422,
   },
   CROWDSEC_MACHINE_CONFLICT: {
     message: 'CrowdSec machine already exists',

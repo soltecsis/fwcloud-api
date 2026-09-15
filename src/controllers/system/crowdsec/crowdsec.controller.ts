@@ -433,6 +433,21 @@ export class CrowdSecController extends Controller {
     const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
     const remoteCommunication = await this.getAgentCommunication();
     const channel = await Channel.fromRequest(req);
+    const previousListenerUri = this.listenerUriForLapiUrl(installation.lapiUrl);
+    const targetListenerUri = this.listenerUriForLapiUrl(lapiUrl);
+    const listenerChangeRequired = previousListenerUri !== targetListenerUri;
+    if (
+      listenerChangeRequired &&
+      (await this.getCrowdSecInstallationRepository().hasOtherMachineDependents(
+        installation.centralFirewallId,
+        this._firewall.id,
+      ))
+    ) {
+      throw new HttpException(
+        'CrowdSec central Local API port cannot be changed while other Machines are connected',
+        409,
+      );
+    }
     const backend = installation.localRemediation
       ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
           this._firewall.fwCloudId,
@@ -466,47 +481,71 @@ export class CrowdSecController extends Controller {
       },
     };
 
-    channel.emit(
-      'message',
-      new ProgressPayload('start', false, 'Changing CrowdSec Local API address'),
-    );
-    const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
-    const preparation = await remoteCommunication.prepareCrowdSecTransition(
-      {
-        ...transition,
-        preflight: {
-          ...transition.preflight,
-          preflightToken: this.preflightToken(
-            await centralCommunication.createCrowdSecLapiPreflightToken(installation.machineName),
-          ),
+    let listenerChanged = false;
+    try {
+      channel.emit(
+        'message',
+        new ProgressPayload('start', false, 'Changing CrowdSec Local API address'),
+      );
+      if (listenerChangeRequired) {
+        channel.emit(
+          'message',
+          new ProgressPayload('info', false, 'Reconfiguring CrowdSec central Local API listener'),
+        );
+        await centralCommunication.configureCrowdSecCentralLapi(targetListenerUri);
+        listenerChanged = true;
+        await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
+          centralFirewall.id,
+          true,
+        );
+      }
+      const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
+      const preparation = await remoteCommunication.prepareCrowdSecTransition(
+        {
+          ...transition,
+          preflight: {
+            ...transition.preflight,
+            preflightToken: this.preflightToken(
+              await centralCommunication.createCrowdSecLapiPreflightToken(installation.machineName),
+            ),
+          },
         },
-      },
-      channel,
-    );
-    const activation = await remoteCommunication.activateCrowdSecTransition(
-      { transitionId },
-      channel,
-    );
-    await this.getCrowdSecInstallationRepository().saveMachineInstallation({
-      firewallId: this._firewall.id,
-      centralFirewallId: installation.centralFirewallId,
-      lapiUrl,
-      machineName: installation.machineName,
-      localRemediation: installation.localRemediation,
-    });
-    const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
-    channel.emit(
-      'message',
-      new ProgressPayload('end', false, 'CrowdSec Local API address changed'),
-    );
+        channel,
+      );
+      const activation = await remoteCommunication.activateCrowdSecTransition(
+        { transitionId },
+        channel,
+      );
+      await this.getCrowdSecInstallationRepository().saveMachineInstallation({
+        firewallId: this._firewall.id,
+        centralFirewallId: installation.centralFirewallId,
+        lapiUrl,
+        machineName: installation.machineName,
+        localRemediation: installation.localRemediation,
+      });
+      const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
+      channel.emit(
+        'message',
+        new ProgressPayload('end', false, 'CrowdSec Local API address changed'),
+      );
 
-    return ResponseBuilder.buildResponse().status(200).body({
-      changed: true,
-      preflight,
-      preparation,
-      activation,
-      finalization,
-    });
+      return ResponseBuilder.buildResponse().status(200).body({
+        changed: true,
+        preflight,
+        preparation,
+        activation,
+        finalization,
+      });
+    } catch (error) {
+      if (listenerChanged) {
+        try {
+          await centralCommunication.configureCrowdSecCentralLapi(previousListenerUri);
+        } catch {
+          // The original failure is more useful than a failed listener rollback.
+        }
+      }
+      throw error;
+    }
   }
 
   @Validate(CrowdSecTransitionDto)
