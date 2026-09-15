@@ -300,6 +300,8 @@ export class CrowdSecController extends Controller {
   public async installMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    await this.assertCanTransitionStandaloneToMachine();
+
     const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
     const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
     const remoteCommunication = await this.getAgentCommunication();
@@ -603,6 +605,21 @@ export class CrowdSecController extends Controller {
     }
 
     return firewall;
+  }
+
+  private async assertCanTransitionStandaloneToMachine(): Promise<void> {
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    if (
+      installation?.mode === CrowdSecInstallationMode.Standalone &&
+      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
+    ) {
+      throw new HttpException(
+        'CrowdSec standalone Local API has dependent machines and cannot be converted to a Machine',
+        409,
+      );
+    }
   }
 
   private async getCentralAgentCommunication(firewall: Firewall): Promise<AgentCommunication> {

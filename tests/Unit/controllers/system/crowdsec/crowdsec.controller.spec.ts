@@ -563,6 +563,36 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(configureStub.called).to.be.false;
   });
 
+  it('should reject CrowdSec Machine installation from a standalone central LAPI with dependents', async () => {
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(
+        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
+      );
+    hasMachineDependentsStub.withArgs(fwcProduct.firewall.id).resolves(true);
+    const centralFirewallStub = sinon.stub(
+      db.getSource().manager.getRepository(Firewall),
+      'findOne',
+    );
+
+    await expect(
+      controller.installMachine({
+        body: {
+          centralFirewallId: fwcProduct.firewall.id + 1,
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: false,
+        },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(
+      HttpException,
+      'CrowdSec standalone Local API has dependent machines and cannot be converted to a Machine',
+    );
+
+    expect(centralFirewallStub.called).to.be.false;
+  });
+
   it('should activate a CrowdSec machine without registering a Bouncer when remediation is disabled', async () => {
     const channel = new Channel('crowdsec-machine-install', new EventEmitter());
     const centralCommunication = new AgentCommunication({
