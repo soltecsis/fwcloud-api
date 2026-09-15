@@ -447,6 +447,13 @@ export class Routes extends RouteCollection {
                     )
                     .name('fwclouds.firewalls.system.crowdsec.transitions.central');
                   router
+                    .post(
+                      '/transitions/remediation',
+                      CrowdSecController,
+                      'transitionMachineRemediation',
+                    )
+                    .name('fwclouds.firewalls.system.crowdsec.transitions.remediation');
+                  router
                     .post('/bouncers/register', CrowdSecController, 'registerBouncer')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.register');
                   router

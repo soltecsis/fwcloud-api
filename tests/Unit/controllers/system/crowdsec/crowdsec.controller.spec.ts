@@ -859,7 +859,73 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(JSON.stringify(response.toJSON())).to.not.contain('preflight-token');
   });
 
-  it('should remove the central Bouncer key when CrowdSec machine activation fails', async () => {
+  it('should enable managed local remediation for a CrowdSec Machine', async () => {
+    const channel = new Channel('crowdsec-machine-transition', new EventEmitter());
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => centralCommunication,
+    });
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: false,
+      }),
+    );
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
+    sinon
+      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
+      .resolves({ token: 'preflight-token' });
+    sinon.stub(communication, 'preflightCrowdSecTransition').resolves({ phase: 'checking' });
+    sinon.stub(communication, 'prepareCrowdSecTransition').resolves({ phase: 'prepared' });
+    const registerBouncerStub = sinon
+      .stub(centralCommunication, 'registerCrowdSecBouncer')
+      .resolves({ api_key: 'central-bouncer-key' });
+    sinon.stub(communication, 'activateCrowdSecTransition').resolves({
+      phase: 'active_pending_finalize',
+    });
+    sinon.stub(communication, 'finalizeCrowdSecTransition').resolves({ phase: 'completed' });
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('nftables');
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+
+    const response = await controller.transitionMachineRemediation({
+      body: {
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: true,
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(registerBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnceWithExactly({
+        firewallId: fwcProduct.firewall.id,
+        centralFirewallId: centralFirewall.id,
+        lapiUrl: 'http://192.0.2.20:8080',
+        machineName: 'fwcloud-machine-01',
+        localRemediation: true,
+      }),
+    ).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(JSON.stringify(response.toJSON())).to.not.contain('central-bouncer-key');
+  });
+
+  it('should preserve the central Bouncer when CrowdSec machine activation fails', async () => {
     const channel = new Channel('crowdsec-machine-install', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -907,7 +973,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith('Activation failed');
 
-    expect(removeBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(removeBouncerStub.called).to.be.false;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(compatibilityStub.called).to.be.false;
     expect(saveMachineInstallationStub.called).to.be.false;
@@ -1538,7 +1604,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(body.data).to.deep.equal({ steps: [] });
   });
 
-  it('should remove a machine local-remediation Bouncer from its central LAPI before uninstalling', async () => {
+  it('should preserve a machine Bouncer in its central LAPI before uninstalling', async () => {
     const channel = new Channel('crowdsec-uninstall', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1575,10 +1641,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(removeBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(removeBouncerStub.called).to.be.false;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(uninstallStub.calledOnceWithExactly(true, channel)).to.be.true;
-    expect(removeBouncerStub.calledBefore(uninstallStub)).to.be.true;
     expect(removeMachineStub.calledBefore(uninstallStub)).to.be.true;
   });
 
