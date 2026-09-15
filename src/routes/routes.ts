@@ -440,6 +440,13 @@ export class Routes extends RouteCollection {
                     .post('/transitions/address', CrowdSecController, 'transitionMachineAddress')
                     .name('fwclouds.firewalls.system.crowdsec.transitions.address');
                   router
+                    .post(
+                      '/transitions/central',
+                      CrowdSecController,
+                      'transitionMachineCentralLapi',
+                    )
+                    .name('fwclouds.firewalls.system.crowdsec.transitions.central');
+                  router
                     .post('/bouncers/register', CrowdSecController, 'registerBouncer')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.register');
                   router

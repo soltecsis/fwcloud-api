@@ -1492,6 +1492,17 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async recoverCrowdSecTransition(transitionId: string): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/transitions/recover', {
+        transition_id: transitionId,
+        confirm: true,
+      });
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   private async runCrowdSecTransitionOperation(
     path: string,
     transition: CrowdSecTransitionPrepare,

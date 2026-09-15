@@ -316,6 +316,7 @@ export abstract class Communication<ConnectionData> {
     transition: CrowdSecTransitionActivation,
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
+  abstract recoverCrowdSecTransition(transitionId: string): Promise<Record<string, unknown>>;
   abstract finalizeCrowdSecTransition(transitionId: string): Promise<Record<string, unknown>>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {

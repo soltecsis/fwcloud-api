@@ -516,6 +516,184 @@ export class CrowdSecController extends Controller {
     });
   }
 
+  @Validate(CrowdSecTransitionDto)
+  public async transitionMachineCentralLapi(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    if (!req.body.confirm) {
+      throw new HttpException('CrowdSec transition confirmation is required', 422);
+    }
+
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    if (
+      installation?.mode !== CrowdSecInstallationMode.Machine ||
+      installation.centralFirewallId === null ||
+      installation.machineName === null ||
+      installation.lapiUrl === null
+    ) {
+      throw new HttpException('CrowdSec Machine installation was not found', 409);
+    }
+    if (
+      req.body.mode !== CrowdSecInstallationMode.Machine ||
+      req.body.centralFirewallId === installation.centralFirewallId ||
+      req.body.machineName !== installation.machineName ||
+      req.body.localRemediation !== installation.localRemediation
+    ) {
+      throw new HttpException(
+        'This endpoint only supports moving a CrowdSec Machine to a different central Local API',
+        422,
+      );
+    }
+
+    const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+    const targetCentralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
+    const targetCentralCommunication =
+      await this.getCentralAgentCommunication(targetCentralFirewall);
+    const remoteCommunication = await this.getAgentCommunication();
+    const channel = await Channel.fromRequest(req);
+    const backend = installation.localRemediation
+      ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
+          this._firewall.fwCloudId,
+          this._firewall.id,
+        )) ?? 'iptables')
+      : undefined;
+    const transitionId = uuid.v4();
+
+    await targetCentralCommunication.configureCrowdSecCentralLapi(
+      this.listenerUriForLapiUrl(lapiUrl),
+    );
+    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
+      targetCentralFirewall.id,
+      true,
+    );
+
+    const transition = {
+      transitionId,
+      confirm: true,
+      expected: {
+        mode: 'machine' as const,
+        localRemediation: installation.localRemediation,
+        machineName: installation.machineName,
+        lapiUrl: installation.lapiUrl,
+      },
+      target: {
+        mode: 'machine' as const,
+        localRemediation: installation.localRemediation,
+        machineName: installation.machineName,
+        lapiUrl,
+      },
+      authorityChanged: true,
+      backend,
+      preflight: {
+        centralAgentUrl: targetCentralCommunication.getUrl(),
+        centralAgentTlsFingerprint: await targetCentralCommunication.getTlsCertificateFingerprint(),
+        preflightToken: this.preflightToken(
+          await targetCentralCommunication.createCrowdSecLapiPreflightToken(
+            installation.machineName,
+          ),
+        ),
+      },
+    };
+    let prepared = false;
+    let activated = false;
+    let bouncerName: string | undefined;
+
+    try {
+      channel.emit(
+        'message',
+        new ProgressPayload('start', false, 'Moving CrowdSec Machine to a new Local API'),
+      );
+      const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
+      const preparation = await remoteCommunication.prepareCrowdSecTransition(
+        {
+          ...transition,
+          preflight: {
+            ...transition.preflight,
+            preflightToken: this.preflightToken(
+              await targetCentralCommunication.createCrowdSecLapiPreflightToken(
+                installation.machineName,
+              ),
+            ),
+          },
+        },
+        channel,
+      );
+      prepared = true;
+      const validation = await targetCentralCommunication.validateCrowdSecLapiMachine(
+        installation.machineName,
+      );
+      const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
+      const bouncerApiKey = installation.localRemediation
+        ? (providedBouncerApiKey ??
+          this.bouncerApiKey(
+            await targetCentralCommunication.registerCrowdSecBouncer(
+              (bouncerName = installation.machineName),
+            ),
+          ))
+        : undefined;
+      const activation = await remoteCommunication.activateCrowdSecTransition(
+        { transitionId, bouncerApiKey },
+        channel,
+      );
+      activated = true;
+      await this.getCrowdSecInstallationRepository().saveMachineInstallation({
+        firewallId: this._firewall.id,
+        centralFirewallId: targetCentralFirewall.id,
+        lapiUrl,
+        machineName: installation.machineName,
+        localRemediation: installation.localRemediation,
+      });
+      const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
+      let sourceMachineRemoved = true;
+      try {
+        const sourceCentralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
+        const sourceCentralCommunication =
+          await this.getCentralAgentCommunication(sourceCentralFirewall);
+        await sourceCentralCommunication.removeCrowdSecLapiMachine(installation.machineName);
+      } catch {
+        sourceMachineRemoved = false;
+      }
+      channel.emit(
+        'message',
+        new ProgressPayload('end', false, 'CrowdSec Machine moved to the new Local API'),
+      );
+
+      return ResponseBuilder.buildResponse().status(200).body({
+        changed: true,
+        preflight,
+        preparation,
+        validation,
+        activation,
+        finalization,
+        source_machine_removed: sourceMachineRemoved,
+      });
+    } catch (error) {
+      if (!activated && prepared) {
+        try {
+          await remoteCommunication.recoverCrowdSecTransition(transitionId);
+        } catch {
+          // The agent preserves recovery state when restoring the previous Machine configuration fails.
+        }
+        if (bouncerName !== undefined) {
+          try {
+            await targetCentralCommunication.removeCrowdSecBouncer(bouncerName);
+          } catch {
+            // The primary transition error is more useful than a failed Bouncer cleanup.
+          }
+        }
+        try {
+          await targetCentralCommunication.removeCrowdSecLapiMachine(installation.machineName);
+        } catch {
+          // The primary transition error is more useful than a failed Machine cleanup.
+        }
+      }
+
+      throw error;
+    }
+  }
+
   @Validate(CrowdSecBouncerDto)
   public async registerBouncer(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();

@@ -890,6 +890,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
+  recoverCrowdSecTransition(_transitionId: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
   finalizeCrowdSecTransition(_transitionId: string): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
