@@ -26,7 +26,7 @@ import type { FwCloud } from '../models/fwcloud/FwCloud';
 import { FwCloudPolicy } from './fwcloud.policy';
 
 /**
- * Authorization rules for the assistant replication profiles: listing the
+ * Authorization rules for the replication profiles: listing the
  * catalog, reading a profile detail and applying a profile to a firewall or
  * cluster of a FWCloud. Every operation requires access to the FWCloud the
  * profile is being used in.

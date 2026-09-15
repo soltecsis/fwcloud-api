@@ -18,10 +18,10 @@ import {
 } from './replication-profile-validation.service';
 import { AuditLogService } from '../audit/AuditLog.service';
 
-export const PROFILE_CREATE_AUDIT_CALL = 'assistant.profiles.create';
-export const PROFILE_CLONE_AUDIT_CALL = 'assistant.profiles.clone';
-export const PROFILE_VERSION_AUDIT_CALL = 'assistant.profiles.version';
-export const PROFILE_REMOVE_AUDIT_CALL = 'assistant.profiles.remove';
+export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
+export const PROFILE_CLONE_AUDIT_CALL = 'profiles.clone';
+export const PROFILE_VERSION_AUDIT_CALL = 'profiles.version';
+export const PROFILE_REMOVE_AUDIT_CALL = 'profiles.remove';
 export const DEFAULT_CUSTOM_PROFILE_TARGET_KIND: ReplicationProfileTargetKind = 'firewall';
 
 export type ReplicationProfileManagementOperation = 'create' | 'clone' | 'update' | 'remove';
@@ -685,23 +685,23 @@ export class ReplicationProfileService extends Service {
 
   private successAuditDescription(input: ReplicationProfileManagementSuccessAuditInput): string {
     if (input.operation === 'create') {
-      return `Custom assistant profile ${input.profile.code} v${input.profile.version} created.`;
+      return `Custom replication profile ${input.profile.code} v${input.profile.version} created.`;
     }
 
     if (input.operation === 'clone') {
       const source = input.sourceProfile;
       const sourceLabel = source
         ? `${source.code} v${source.version}`
-        : 'selected assistant profile';
+        : 'selected replication profile';
 
-      return `Assistant profile ${sourceLabel} cloned as custom profile ${input.profile.code} v${input.profile.version}.`;
+      return `Replication profile ${sourceLabel} cloned as custom profile ${input.profile.code} v${input.profile.version}.`;
     }
 
     if (input.operation === 'remove') {
-      return `Custom assistant profile ${input.profile.code} v${input.profile.version} removed.`;
+      return `Custom replication profile ${input.profile.code} v${input.profile.version} removed.`;
     }
 
-    return `Custom assistant profile ${input.profile.code} updated by creating version ${input.profile.version}.`;
+    return `Custom replication profile ${input.profile.code} updated by creating version ${input.profile.version}.`;
   }
 
   private failureAuditData(
@@ -773,13 +773,13 @@ export class ReplicationProfileService extends Service {
 
     switch (input.operation) {
       case 'create':
-        return `Failed to create custom assistant profile ${profileLabel}: ${reason}.`;
+        return `Failed to create custom replication profile ${profileLabel}: ${reason}.`;
       case 'clone':
-        return `Failed to clone assistant profile ${sourceLabel}: ${reason}.`;
+        return `Failed to clone replication profile ${sourceLabel}: ${reason}.`;
       case 'update':
-        return `Failed to update custom assistant profile ${profileLabel}: ${reason}.`;
+        return `Failed to update custom replication profile ${profileLabel}: ${reason}.`;
       case 'remove':
-        return `Failed to remove custom assistant profile ${profileLabel}: ${reason}.`;
+        return `Failed to remove custom replication profile ${profileLabel}: ${reason}.`;
     }
   }
 

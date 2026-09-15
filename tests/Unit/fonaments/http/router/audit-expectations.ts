@@ -36,7 +36,7 @@ export const INTERNAL_MUTATING_ROUTE_EXCEPTIONS = new Set<string>(['PUT /ping'])
 export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'DELETE /aiassistant': { audited: true },
   'DELETE /backups/:backup': { audited: true },
-  'DELETE /fwclouds/:fwcloud/assistant/profiles/:code/:version': { audited: true },
+  'DELETE /fwclouds/:fwcloud/profiles/:code/:version': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/routeGroups/:routeGroup': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/routingGroups/:routingGroup': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/routingRules/:routingRule': { audited: true },
@@ -72,15 +72,15 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /backups/:backup/restore': { audited: true },
   'POST /backups/import': { audited: true },
   'POST /fwclouds': { audited: true },
-  'POST /fwclouds/:fwcloud/assistant/profiles': { audited: true },
-  'POST /fwclouds/:fwcloud/assistant/profiles/from-source': { audited: true },
-  'POST /fwclouds/:fwcloud/assistant/profiles/validate': {
+  'POST /fwclouds/:fwcloud/profiles': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/from-source': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/validate': {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',
   },
-  'POST /fwclouds/:fwcloud/assistant/profiles/:code/versions': { audited: true },
-  'POST /fwclouds/:fwcloud/assistant/profiles/:code/:version/clone': { audited: true },
-  'POST /fwclouds/:fwcloud/assistant/profiles/:code/:version/apply': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/versions': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/:version/clone': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/:version/apply': { audited: true },
   'POST /fwclouds/:fwcloud/export': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/AIassistant': {
     audited: false,

@@ -241,35 +241,33 @@ export class Routes extends RouteCollection {
           router
             .get('/auditlogs/:auditlog', AuditLogController, 'show')
             .name('fwclouds.auditlogs.show');
-          router.prefix('/assistant', (router: RouterParser) => {
-            router
-              .get('/profiles', ReplicationProfileController, 'index')
-              .name('fwclouds.assistant.profiles.index');
-            router
-              .post('/profiles', ReplicationProfileController, 'store')
-              .name('fwclouds.assistant.profiles.store');
-            router
-              .post('/profiles/validate', ReplicationProfileController, 'validateDefinition')
-              .name('fwclouds.assistant.profiles.validate');
-            router
-              .post('/profiles/from-source', ReplicationProfileController, 'storeFromSource')
-              .name('fwclouds.assistant.profiles.fromSource');
-            router
-              .post('/profiles/:code/versions', ReplicationProfileController, 'storeVersion')
-              .name('fwclouds.assistant.profiles.versions.store');
-            router
-              .post('/profiles/:code/:version/clone', ReplicationProfileController, 'clone')
-              .name('fwclouds.assistant.profiles.clone');
-            router
-              .get('/profiles/:code/:version', ReplicationProfileController, 'show')
-              .name('fwclouds.assistant.profiles.show');
-            router
-              .delete('/profiles/:code/:version', ReplicationProfileController, 'destroy')
-              .name('fwclouds.assistant.profiles.destroy');
-            router
-              .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
-              .name('fwclouds.assistant.profiles.apply');
-          });
+          router
+            .get('/profiles', ReplicationProfileController, 'index')
+            .name('fwclouds.profiles.index');
+          router
+            .post('/profiles', ReplicationProfileController, 'store')
+            .name('fwclouds.profiles.store');
+          router
+            .post('/profiles/validate', ReplicationProfileController, 'validateDefinition')
+            .name('fwclouds.profiles.validate');
+          router
+            .post('/profiles/from-source', ReplicationProfileController, 'storeFromSource')
+            .name('fwclouds.profiles.fromSource');
+          router
+            .post('/profiles/:code/versions', ReplicationProfileController, 'storeVersion')
+            .name('fwclouds.profiles.versions.store');
+          router
+            .post('/profiles/:code/:version/clone', ReplicationProfileController, 'clone')
+            .name('fwclouds.profiles.clone');
+          router
+            .get('/profiles/:code/:version', ReplicationProfileController, 'show')
+            .name('fwclouds.profiles.show');
+          router
+            .delete('/profiles/:code/:version', ReplicationProfileController, 'destroy')
+            .name('fwclouds.profiles.destroy');
+          router
+            .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
+            .name('fwclouds.profiles.apply');
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
               router.put('/', CaController, 'update').name('fwclouds.cas.update');

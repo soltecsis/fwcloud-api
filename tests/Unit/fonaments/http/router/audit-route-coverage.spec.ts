@@ -122,6 +122,18 @@ const collectControllerRoutes = async (): Promise<ControllerRouteIndexEntry[]> =
 };
 
 describe('Controller route audit expectations coverage', () => {
+  it('exposes profile management without assisted-profile endpoints', async () => {
+    const routes = await collectControllerRoutes();
+    const paths = routes.map((route) => route.path);
+
+    // The assisted-profile (fwcloud-ai-agent) surface is gone. The pre-existing
+    // OpenAI assistant under /aiassistant is unrelated and stays.
+    expect(paths.some((path) => /\/assistant\//.test(path))).to.equal(false);
+    expect(paths.some((path) => /drafts/.test(path))).to.equal(false);
+    expect(paths).to.include('/fwclouds/:fwcloud/profiles');
+    expect(paths).to.include('/fwclouds/:fwcloud/profiles/:code/:version/apply');
+  });
+
   it('builds a deterministic controller route index', async () => {
     const routes = await collectControllerRoutes();
     const routeKeys = routes.map((route) => route.key);

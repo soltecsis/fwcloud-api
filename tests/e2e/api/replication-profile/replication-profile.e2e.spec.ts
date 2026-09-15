@@ -69,14 +69,14 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     await repository.delete({ code: Like(`${codePrefix}%`) });
   });
 
-  describe('POST /fwclouds/:fwcloud/assistant/profiles/validate', () => {
+  describe('POST /fwclouds/:fwcloud/profiles/validate', () => {
     it('should validate profile definitions without requiring a confirmation token', async () => {
       const previousConfirmationTokenSetting = app.config.get('confirmation_token');
       app.config.set('confirmation_token', true);
 
       try {
         await request(app.express)
-          .post(`/fwclouds/${fwCloud.id}/assistant/profiles/validate`)
+          .post(`/fwclouds/${fwCloud.id}/profiles/validate`)
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             targetKind: 'firewall',
@@ -120,12 +120,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   });
 
-  describe('POST /fwclouds/:fwcloud/assistant/profiles', () => {
+  describe('POST /fwclouds/:fwcloud/profiles', () => {
     it('should create a FWCloud-scoped custom profile with generated code and version defaults', async () => {
       const expectedCode = `${codePrefix}basic-lan-wan-profile`;
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(makeCreatePayload())
         .expect(201)
@@ -156,7 +156,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -172,7 +172,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
     it('should preserve explicit code and version from a valid payload', async () => {
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(makeCreatePayload({ code: `${codePrefix}explicit`, version: 3 }))
         .expect(201)
@@ -194,7 +194,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const code = `${codePrefix}forbidden`;
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(regularUserSessionId)])
         .send(makeCreatePayload({ code }))
         .expect(403);
@@ -219,7 +219,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
     it('should reject invalid profile definitions through the centralized validator', async () => {
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(
           makeCreatePayload({
@@ -239,8 +239,8 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   });
 
-  describe('POST /fwclouds/:fwcloud/assistant/profiles/from-source', () => {
-    const fromSourceUrl = () => `/fwclouds/${fwCloud.id}/assistant/profiles/from-source`;
+  describe('POST /fwclouds/:fwcloud/profiles/from-source', () => {
+    const fromSourceUrl = () => `/fwclouds/${fwCloud.id}/profiles/from-source`;
 
     async function makeSourceFirewall(): Promise<Firewall> {
       const manager = db.getSource().manager;
@@ -407,9 +407,9 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   });
 
-  describe('POST /fwclouds/:fwcloud/assistant/profiles/:code/:version/clone', () => {
+  describe('POST /fwclouds/:fwcloud/profiles/:code/:version/clone', () => {
     const cloneUrl = (code: string, version: number) =>
-      `/fwclouds/${fwCloud.id}/assistant/profiles/${code}/${version}/clone`;
+      `/fwclouds/${fwCloud.id}/profiles/${code}/${version}/clone`;
 
     it('should clone a built-in profile into a custom FWCloud profile and audit the operation', async () => {
       const auditRepository = db.getSource().manager.getRepository(AuditLog);
@@ -526,7 +526,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   });
 
-  describe('POST /fwclouds/:fwcloud/assistant/profiles/:code/versions', () => {
+  describe('POST /fwclouds/:fwcloud/profiles/:code/versions', () => {
     it('should create the next custom profile version without mutating the previous version', async () => {
       const original = await repository.save(
         makeProfile({
@@ -538,7 +538,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${original.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${original.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(
           makeCreatePayload({
@@ -571,7 +571,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${original.code}/1`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${original.code}/1`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -594,7 +594,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${builtIn.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${builtIn.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(makeCreatePayload())
         .expect(403)
@@ -611,7 +611,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(makeCreatePayload({ code: `${codePrefix}other-code`, version: 99 }))
         .expect(422);
@@ -626,7 +626,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${invalidProfile.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${invalidProfile.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(
           makeCreatePayload({
@@ -638,7 +638,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .expect(422);
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${secretProfile.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${secretProfile.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(
           makeCreatePayload({
@@ -666,20 +666,20 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const regularUserSessionId = generateSession(regularUser);
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${owned.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${owned.code}/versions`)
         .set('Cookie', [attachSession(regularUserSessionId)])
         .send(makeCreatePayload())
         .expect(403);
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${foreign.code}/versions`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${foreign.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(makeCreatePayload())
         .expect(404);
     });
   });
 
-  describe('GET /fwclouds/:fwcloud/assistant/profiles', () => {
+  describe('GET /fwclouds/:fwcloud/profiles', () => {
     it('should return active profile summaries with detail data for the wizard', async () => {
       const profile = await repository.save(
         makeProfile({
@@ -691,7 +691,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -742,7 +742,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ targetKind: 'cluster' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
@@ -768,7 +768,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -787,7 +787,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ origin: 'builtin' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
@@ -800,7 +800,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ origin: 'custom' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
@@ -813,7 +813,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ origin: 'all' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
@@ -834,7 +834,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -846,7 +846,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ includeDeprecated: 'true' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
@@ -869,7 +869,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ search: 'lan' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
@@ -900,7 +900,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -917,7 +917,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
     it('should reject invalid catalog filters', async () => {
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ targetKind: 'gateway' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(400)
@@ -926,7 +926,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ origin: 'external' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(400)
@@ -935,7 +935,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .query({ includeDeprecated: 'maybe' })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(400)
@@ -945,12 +945,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   });
 
-  describe('GET /fwclouds/:fwcloud/assistant/profiles/:code/:version', () => {
+  describe('GET /fwclouds/:fwcloud/profiles/:code/:version', () => {
     it('should return a selected profile detail', async () => {
       const profile = await repository.save(makeProfile({ code: `${codePrefix}detail` }));
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -970,7 +970,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const regularUserSessionId = generateSession(regularUser);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(regularUserSessionId)])
         .expect(401);
     });
@@ -985,15 +985,15 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
     });
   });
 
-  describe('DELETE /fwclouds/:fwcloud/assistant/profiles/:code/:version', () => {
+  describe('DELETE /fwclouds/:fwcloud/profiles/:code/:version', () => {
     const deleteUrl = (code: string, version: number) =>
-      `/fwclouds/${fwCloud.id}/assistant/profiles/${code}/${version}`;
+      `/fwclouds/${fwCloud.id}/profiles/${code}/${version}`;
 
     it('should delete a custom profile, remove it from the catalog, and allow recreation', async () => {
       const profile = await repository.save(
@@ -1018,7 +1018,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(persisted).to.be.null;
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -1027,12 +1027,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles`)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(makeCreatePayload({ code: profile.code, version: profile.version }))
         .expect(201)
@@ -1157,7 +1157,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .expect(200);
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/assistant/profiles/${profile.code}/${profile.version}/apply`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}/apply`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send({
           sourceProfile: { firewallId: sourceFirewall.id, interfaceRoles: {} },
@@ -1169,7 +1169,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
   });
 
-  describe('POST /fwclouds/:fwcloud/assistant/profiles/:code/:version/apply', () => {
+  describe('POST /fwclouds/:fwcloud/profiles/:code/:version/apply', () => {
     let sourceFirewall: Firewall;
     let targetFirewall: Firewall;
     let profile: ReplicationProfile;
@@ -1185,7 +1185,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
 
     const applyUrl = (code: string = profile.code, version: number = profile.version) =>
-      `/fwclouds/${fwCloud.id}/assistant/profiles/${code}/${version}/apply`;
+      `/fwclouds/${fwCloud.id}/profiles/${code}/${version}/apply`;
 
     beforeEach(async () => {
       profile = await repository.save(makeProfile({ code: `${codePrefix}apply` }));

@@ -39,7 +39,7 @@ import {
 import { ReplicationProfile } from './replication-profile.model';
 import { ReplicationProfileService } from './replication-profile.service';
 
-export const PROFILE_APPLICATION_AUDIT_CALL = 'assistant.profiles.apply';
+export const PROFILE_APPLICATION_AUDIT_CALL = 'profiles.apply';
 
 /** Scope/compatibility violations detected before any database write. */
 export class ProfileApplicationScopeException extends HttpException {
@@ -77,7 +77,7 @@ interface TargetInfo {
 }
 
 /**
- * Secured entry point of the assistant profile application workflow. Wraps
+ * Secured entry point of the profile application workflow. Wraps
  * the policy replication engine with the explicit authorization, scope
  * validation and audit trail required to expose it to users:
  *

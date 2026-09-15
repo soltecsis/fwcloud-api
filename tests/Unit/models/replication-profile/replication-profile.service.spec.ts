@@ -514,7 +514,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(entries[0].userId).to.be.eq(17);
       expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
       expect(entries[0].description).to.contain(
-        `Custom assistant profile ${saved.code} v1 created`,
+        `Custom replication profile ${saved.code} v1 created`,
       );
       expect(entries[0].data).not.to.contain(marker);
 
