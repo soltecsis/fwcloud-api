@@ -100,6 +100,9 @@ export class CrowdSecController extends Controller {
         machine_reauthentication_required: machineReauthenticationRequired,
         installation_mode: installation?.mode ?? null,
         local_remediation: installation?.localRemediation ?? false,
+        central_lapi_firewall_id: installation?.centralFirewallId ?? null,
+        central_lapi_url: installation?.lapiUrl ?? null,
+        machine_name: installation?.machineName ?? null,
       });
   }
 

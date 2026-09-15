@@ -154,6 +154,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       machine_reauthentication_required: false,
       installation_mode: null,
       local_remediation: false,
+      central_lapi_firewall_id: null,
+      central_lapi_url: null,
+      machine_name: null,
     });
   });
 
