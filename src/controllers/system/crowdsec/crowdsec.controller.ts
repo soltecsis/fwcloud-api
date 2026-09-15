@@ -1002,6 +1002,7 @@ export class CrowdSecController extends Controller {
       backend,
     };
     let prepared = false;
+    let activated = false;
     try {
       channel.emit(
         'message',
@@ -1010,13 +1011,19 @@ export class CrowdSecController extends Controller {
       const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
-      await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
       const activation = await remoteCommunication.activateCrowdSecTransition(
         { transitionId },
         channel,
       );
+      activated = true;
       await this.getCrowdSecInstallationRepository().saveStandaloneInstallation(this._firewall.id);
       const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
+      let sourceMachineRemoved = true;
+      try {
+        await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
+      } catch {
+        sourceMachineRemoved = false;
+      }
       channel.emit(
         'message',
         new ProgressPayload('end', false, 'CrowdSec standalone transition finished'),
@@ -1028,15 +1035,15 @@ export class CrowdSecController extends Controller {
         preparation,
         activation,
         finalization,
-        source_machine_removed: true,
+        source_machine_removed: sourceMachineRemoved,
         source_bouncer_cleanup_required: installation.localRemediation,
       });
     } catch (error) {
-      if (prepared) {
+      if (prepared && !activated) {
         try {
           await remoteCommunication.recoverCrowdSecTransition(transitionId);
         } catch {
-          // Once the central registration is removed the agent keeps manual recovery explicit.
+          // The agent preserves a recovery state when restoring the former Machine role fails.
         }
       }
       throw error;
