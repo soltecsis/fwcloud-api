@@ -36,6 +36,10 @@ import {
   PolicyReplicationRequest,
   PolicyReplicationResult,
 } from './policy-replication.types';
+import {
+  getProfileParameters,
+  ReplicationProfileParameterValues,
+} from './replication-profile-parameters';
 import { ReplicationProfile } from './replication-profile.model';
 import { ReplicationProfileService } from './replication-profile.service';
 
@@ -63,6 +67,10 @@ export interface ProfileApplicationRequest {
   /** Expected catalog scope; when set, the profile scope must match it. */
   expectedScope?: string;
   replication: PolicyReplicationRequest;
+  /** Values for the profile's declared parameters, keyed by parameter name. */
+  parameters?: ReplicationProfileParameterValues;
+  /** Provisioning only: role → name of an existing target interface to bind to it. */
+  interfaceNameMapping?: Record<string, string>;
   /**
    * Transient runtime credentials of the wizard execution flow. They are
    * discarded after the operation: never persisted nor written to audit logs.
@@ -143,6 +151,14 @@ export class ProfileApplicationService extends Service {
           provision,
           request.fwCloudId,
           request.replication.mode,
+          {
+            parameters: getProfileParameters(profile.model),
+            parameterValues: request.parameters,
+            profileCode: profile.code,
+            profileVersion: profile.version,
+            interfaceNameMapping: request.interfaceNameMapping,
+            nodeRoleMapping: request.replication.nodeRoleMapping,
+          },
         );
       } else {
         await this.validateSourceFirewall(request);

@@ -1,6 +1,7 @@
+import 'reflect-metadata';
 import { ClassConstructor, plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
-import { expect } from '../../../mocha/global-setup';
+import { expect } from 'chai';
 import {
   ReplicationProfileStoreDto,
   ReplicationProfileVersionStoreDto,
@@ -94,6 +95,53 @@ describe(ReplicationProfileStoreDto.name, () => {
 
   it('should accept a fully populated payload', async () => {
     expect(await validatePayload(fullPayload())).to.be.empty;
+  });
+
+  it('should accept named skeleton parameters and service port references for creation and new versions', async () => {
+    const payload = fullPayload();
+    const model = payload.model as Record<string, unknown>;
+    model.parameters = [
+      {
+        name: 'origin_network',
+        type: 'network',
+        label: 'Origin network',
+        required: true,
+        ipVersion: 4,
+      },
+      { name: 'web_port', type: 'port', label: 'Web service', required: true },
+    ];
+    model.provision = {
+      interfaces: [
+        { role: 'lan', name: 'LAN' },
+        { role: 'wan', name: 'WAN' },
+      ],
+      rules: [
+        {
+          chain: 'input',
+          ipVersion: 4,
+          action: 'accept',
+          source: [{ kind: 'network', value: { param: 'origin_network' } }],
+          service: [{ protocol: 'tcp', port: { param: 'web_port' } }],
+        },
+      ],
+    };
+    expect(await validatePayload(payload)).to.be.empty;
+    delete payload.code;
+    delete payload.version;
+    expect(await validatePayload(payload, ReplicationProfileVersionStoreDto)).to.be.empty;
+  });
+
+  it('should reject malformed parameter collections and invalid service ports', async () => {
+    for (const parameters of [{}, ['network'], [null]]) {
+      const payload = fullPayload();
+      (payload.model as Record<string, unknown>).parameters = parameters;
+      expect(await validatePayload(payload)).to.include('model.parameters');
+    }
+    const payload = fullPayload();
+    (payload.model as Record<string, unknown>).provision = {
+      rules: [{ action: 'accept', service: [{ protocol: 'tcp', port: { wrong: 'web_port' } }] }],
+    };
+    expect(await validatePayload(payload)).to.include('model.provision');
   });
 
   describe('required fields', () => {

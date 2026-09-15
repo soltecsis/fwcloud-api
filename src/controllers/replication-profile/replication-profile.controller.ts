@@ -298,6 +298,8 @@ export class ReplicationProfileController extends Controller {
         profileVersion: version,
         expectedScope: body.scope,
         replication,
+        parameters: body.parameters,
+        interfaceNameMapping: body.interfaceNameMapping,
         credentials: body.credentials,
       },
     );

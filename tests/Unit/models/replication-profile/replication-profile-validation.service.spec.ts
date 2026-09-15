@@ -192,6 +192,133 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
     expect(codesFor(payload)).to.include.members(['invalid_rule_action', 'invalid_protocol']);
   });
 
+  it('should accept a fully parameterized profile', () => {
+    const payload = firewallProfile();
+    const model = payload.model as Record<string, unknown>;
+
+    model.parameters = [
+      { name: 'WAN_IP', type: 'address', label: 'WAN address' },
+      { name: 'LAN_NET', type: 'network', default: '192.168.1.0/24' },
+      { name: 'APP_PORT', type: 'port', default: 800 },
+    ];
+    model.provision = {
+      interfaces: [
+        { name: 'eth0', role: 'wan', addresses: [{ param: 'WAN_IP' }] },
+        { name: 'eth1', role: 'lan', addresses: ['192.168.1.1/24'] },
+      ],
+      rules: [
+        {
+          chain: 'forward',
+          ipVersion: 4,
+          action: 'accept',
+          inRole: 'lan',
+          outRole: 'wan',
+          source: [{ kind: 'network', value: { param: 'LAN_NET' } }],
+          services: [{ protocol: 'tcp', port: { param: 'APP_PORT' } }],
+        },
+      ],
+    };
+
+    expect(validateReplicationProfilePayload(payload)).to.be.empty;
+  });
+
+  it('should reject malformed parameter declarations', () => {
+    const payload = firewallProfile();
+    (payload.model as Record<string, unknown>).parameters = [
+      { name: '1BAD', type: 'port' },
+      { name: 'DUP', type: 'port' },
+      { name: 'DUP', type: 'port' },
+      { name: 'WRONG', type: 'nope' },
+      { name: 'BAD_DEFAULT', type: 'network', default: 'not-a-network' },
+    ];
+
+    const codes = validateReplicationProfilePayload(payload).map((error) => error.code);
+
+    expect(codes).to.include('invalid_parameter_name');
+    expect(codes).to.include('duplicate_parameter');
+    expect(codes).to.include('invalid_parameter_type');
+    expect(codes).to.include('invalid_parameter_default');
+  });
+
+  it('should reject references to undeclared parameters', () => {
+    const payload = firewallProfile();
+    const model = payload.model as Record<string, unknown>;
+
+    model.parameters = [{ name: 'KNOWN', type: 'port', default: 80 }];
+    model.provision = {
+      interfaces: [{ name: 'eth0', role: 'wan', addresses: [{ param: 'MISSING_IP' }] }],
+      rules: [
+        {
+          action: 'accept',
+          inRole: 'wan',
+          services: [{ protocol: 'tcp', port: { param: 'MISSING_PORT' } }],
+        },
+      ],
+    };
+
+    const errors = validateReplicationProfilePayload(payload);
+    const codes = errors.map((error) => error.code);
+
+    expect(codes.filter((code) => code === 'unknown_parameter_reference')).to.have.length(2);
+    expect(errors.map((error) => error.message).join(' ')).to.contain('MISSING_IP');
+  });
+
+  it('should reject invalid interface addressing and rule objects', () => {
+    const payload = firewallProfile();
+    (payload.model as Record<string, unknown>).provision = {
+      interfaces: [{ name: 'eth0', role: 'wan', addresses: ['999.1.1.1'] }],
+      rules: [
+        {
+          action: 'accept',
+          inRole: 'wan',
+          source: [{ kind: 'network', value: 'nonsense' }],
+        },
+      ],
+    };
+
+    const codes = validateReplicationProfilePayload(payload).map((error) => error.code);
+
+    expect(codes).to.include('invalid_interface_address');
+    expect(codes).to.include('invalid_rule_object');
+  });
+
+  it('should reject rule objects of the other IP family', () => {
+    const payload = firewallProfile();
+    (payload.model as Record<string, unknown>).provision = {
+      interfaces: [{ name: 'eth0', role: 'wan' }],
+      rules: [
+        {
+          action: 'accept',
+          ipVersion: 4,
+          destination: [{ kind: 'address', value: '2001:db8::1' }],
+        },
+        {
+          action: 'accept',
+          ipVersion: 6,
+          destination: [{ kind: 'address', value: '2001:db8::1' }],
+        },
+      ],
+    };
+
+    const codes = validateReplicationProfilePayload(payload).map((error) => error.code);
+
+    expect(codes.filter((code) => code === 'invalid_rule_object_family')).to.have.length(1);
+    expect(codes).to.not.include('invalid_rule_object');
+  });
+
+  it('should reject unsupported chains and IP versions', () => {
+    const payload = firewallProfile();
+    (payload.model as Record<string, unknown>).provision = {
+      interfaces: [{ name: 'eth0', role: 'wan' }],
+      rules: [{ chain: 'mangle', ipVersion: 5, action: 'accept', inRole: 'wan' }],
+    };
+
+    const codes = validateReplicationProfilePayload(payload).map((error) => error.code);
+
+    expect(codes).to.include('invalid_rule_chain');
+    expect(codes).to.include('invalid_rule_ip_version');
+  });
+
   it('should reject credential-like keys anywhere in the payload', () => {
     const payload = firewallProfile();
     model(payload).options = {

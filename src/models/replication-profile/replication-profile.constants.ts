@@ -11,6 +11,74 @@ export const REPLICATION_PROFILE_INTERFACE_ROLES = ['wan', 'lan', 'dmz', 'sync']
 export const REPLICATION_PROFILE_RULE_ACTIONS = ['accept', 'deny'] as const;
 
 export const REPLICATION_PROFILE_RULE_PROTOCOLS = ['tcp', 'udp'] as const;
+export type ReplicationProfileRuleProtocol = (typeof REPLICATION_PROFILE_RULE_PROTOCOLS)[number];
+
+/** Netfilter chains the profile vocabulary can express. */
+export const REPLICATION_PROFILE_RULE_CHAINS = [
+  'input',
+  'output',
+  'forward',
+  'snat',
+  'dnat',
+] as const;
+export type ReplicationProfileRuleChain = (typeof REPLICATION_PROFILE_RULE_CHAINS)[number];
+
+export const REPLICATION_PROFILE_IP_VERSIONS = [4, 6] as const;
+export type ReplicationProfileIpVersion = (typeof REPLICATION_PROFILE_IP_VERSIONS)[number];
+
+/** Value kinds a profile parameter can hold. */
+export const REPLICATION_PROFILE_PARAMETER_TYPES = [
+  'address',
+  'network',
+  'range',
+  'host',
+  'port',
+  'service',
+  'text',
+] as const;
+export type ReplicationProfileParameterType = (typeof REPLICATION_PROFILE_PARAMETER_TYPES)[number];
+
+/** Object kinds a rule side can reference. */
+export const REPLICATION_PROFILE_OBJECT_KINDS = ['address', 'network', 'range', 'host'] as const;
+export type ReplicationProfileObjectKind = (typeof REPLICATION_PROFILE_OBJECT_KINDS)[number];
+
+/**
+ * References to FWCloud's predefined (standard) objects. They exist with the
+ * same fixed id in every installation (`ipobj` / `ipobj_g` rows with a NULL
+ * fwcloud), so a profile can point at them portably instead of creating copies.
+ */
+export const REPLICATION_PROFILE_STANDARD_OBJECT_KIND = 'std';
+export const REPLICATION_PROFILE_STANDARD_GROUP_KIND = 'stdGroup';
+
+/** ipobj.type ids the profile vocabulary creates or references. */
+export const REPLICATION_PROFILE_IPOBJ_TYPE_IP = 1;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_TCP = 2;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_ICMP = 3;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_UDP = 4;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS = 5;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_RANGE = 6;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK = 7;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_HOST = 8;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_INTERFACE = 10;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_GROUP = 20;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP = 21;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT = 23;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY = 24;
+
+/** ipobj.type of each object kind a rule side can create. */
+export const REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND: Record<ReplicationProfileObjectKind, number> =
+  {
+    address: REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
+    network: REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
+    range: REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
+    host: REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
+  };
+
+export function isReplicationProfileIpVersion(
+  value: unknown,
+): value is ReplicationProfileIpVersion {
+  return value === 4 || value === 6;
+}
 
 export const REPLICATION_PROFILE_MIN_PORT = 1;
 export const REPLICATION_PROFILE_MAX_PORT = 65535;

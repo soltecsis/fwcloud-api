@@ -1,6 +1,13 @@
 import { describeName, expect } from '../../../mocha/global-setup';
 import { getProfileProvisioning } from '../../../../src/models/replication-profile/policy-replication.types';
 
+/** Blocks every parsed provision carries even when the profile does not declare them. */
+const EMPTY_BLOCKS = {
+  routing: { tables: [], rules: [] },
+  system: { dhcp: [], keepalived: [], haproxy: [] },
+};
+const NO_TRANSLATION = { translatedSource: [], translatedDestination: [], translatedServices: [] };
+
 describe(describeName('Policy Replication Types Unit Tests'), () => {
   it('should normalize policyStructure interface objects into declarative provisioning', () => {
     const provision = getProfileProvisioning({
@@ -20,19 +27,24 @@ describe(describeName('Policy Replication Types Unit Tests'), () => {
 
     expect(provision).to.deep.equal({
       interfaces: [
-        { name: 'WAN', role: 'WAN' },
-        { name: 'LAN', role: 'LAN' },
+        { name: 'WAN', role: 'WAN', addresses: [] },
+        { name: 'LAN', role: 'LAN', addresses: [] },
       ],
       rules: [
         {
           chain: 'forward',
+          ipVersion: 4,
           action: 'accept',
-          inRole: 'LAN',
-          outRole: 'WAN',
-          service: { protocol: 'tcp', port: 443 },
+          inRoles: ['LAN'],
+          outRoles: ['WAN'],
+          source: [],
+          destination: [],
+          services: [{ protocol: 'tcp', port: 443 }],
+          ...NO_TRANSLATION,
           comment: 'Allow LAN to WAN HTTPS',
         },
       ],
+      ...EMPTY_BLOCKS,
     });
   });
 
@@ -45,17 +57,22 @@ describe(describeName('Policy Replication Types Unit Tests'), () => {
     });
 
     expect(provision).to.deep.equal({
-      interfaces: [{ name: 'Office LAN', role: 'office-lan' }],
+      interfaces: [{ name: 'Office LAN', role: 'office-lan', addresses: [] }],
       rules: [
         {
           chain: 'forward',
+          ipVersion: 4,
           action: 'deny',
-          inRole: 'office-lan',
-          outRole: undefined,
-          service: { protocol: 'udp', port: 53 },
+          inRoles: ['office-lan'],
+          outRoles: [],
+          source: [],
+          destination: [],
+          services: [{ protocol: 'udp', port: 53 }],
+          ...NO_TRANSLATION,
           comment: undefined,
         },
       ],
+      ...EMPTY_BLOCKS,
     });
   });
 
@@ -67,6 +84,6 @@ describe(describeName('Policy Replication Types Unit Tests'), () => {
           value: { policies: { ipv4: { forward: [] } } },
         },
       }),
-    ).to.deep.equal({ interfaces: [], rules: [] });
+    ).to.deep.equal({ interfaces: [], rules: [], ...EMPTY_BLOCKS });
   });
 });

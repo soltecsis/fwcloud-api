@@ -35,6 +35,7 @@
 
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -62,6 +63,7 @@ import {
   REPLICATION_PROFILE_TARGET_KINDS,
 } from '../../../models/replication-profile/replication-profile.constants';
 import { findSecretLikePaths } from '../../../models/replication-profile/replication-profile-secret.guard';
+import { isReplicationProfileParameterRef } from '../../../models/replication-profile/replication-profile-parameters';
 
 const TARGET_KINDS: readonly string[] = REPLICATION_PROFILE_TARGET_KINDS;
 const RULE_ACTIONS: readonly string[] = REPLICATION_PROFILE_RULE_ACTIONS;
@@ -91,6 +93,9 @@ function isNonEmptyArrayOfNonEmptyStrings(value: unknown): boolean {
 }
 
 function isProvisionService(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.every(isProvisionService);
+  }
   if (asReplicationProfileNonEmptyString(value)) {
     return true;
   }
@@ -100,9 +105,18 @@ function isProvisionService(value: unknown): boolean {
     return false;
   }
 
+  if (record.type === 'service' && asReplicationProfileNonEmptyString(record.value)) {
+    return true;
+  }
+
+  // Predefined FWCloud service or service group, referenced by its fixed id.
+  if ((record.kind === 'std' || record.kind === 'stdGroup') && Number.isInteger(record.id)) {
+    return true;
+  }
+
   return (
     isReplicationProfileStringValue(record.protocol, RULE_PROTOCOLS) &&
-    isReplicationProfilePort(record.port)
+    (isReplicationProfilePort(record.port) || isReplicationProfileParameterRef(record.port))
   );
 }
 
@@ -216,10 +230,13 @@ class IsMvpProvisionModelConstraint implements ValidatorConstraintInterface {
         !!record &&
         (record.action === undefined ||
           isReplicationProfileStringValue(record.action, RULE_ACTIONS)) &&
+        // In/Out positions accept several interfaces, so a role field may hold a list.
         REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS.every(
           (roleField) =>
             record[roleField] === undefined ||
-            asReplicationProfileNonEmptyString(record[roleField]) !== null,
+            [record[roleField]]
+              .flat()
+              .every((role) => asReplicationProfileNonEmptyString(role) !== null),
         ) &&
         (record.service === undefined || isProvisionService(record.service))
       );
@@ -279,6 +296,12 @@ const IsSecretFree = profileValidator('isSecretFree', IsSecretFreeConstraint);
 export class ReplicationProfileStoreModelDto {
   @IsProfileCompatibility()
   compatibility: Record<string, unknown>;
+
+  /** Names and values are checked by ReplicationProfileValidationService. */
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  parameters?: Record<string, unknown>[];
 
   @IsOptional()
   @IsProfileRoleAssignments()

@@ -26,17 +26,47 @@ import { Service } from '../../fonaments/services/service';
 import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import { RulePositionsMap } from '../policy/PolicyPosition';
-import { FireWallOptMask } from '../firewall/Firewall';
+import { PolicyTypesMap } from '../policy/PolicyType';
 import { Interface } from '../interface/Interface';
-import { IPObj } from '../ipobj/IPObj';
 import { Tree } from '../tree/Tree';
+import { ObjectBindingResolver } from './object-binding.resolver';
+import {
+  dereferenceParameter,
+  describeReplicationProfileValue,
+  parseReplicationProfileAddress,
+  parseReplicationProfileNetwork,
+  parseReplicationProfilePort,
+  parseReplicationProfileRange,
+  ReplicationProfileParameter,
+  ReplicationProfileParameterValues,
+  resolveParameterValues,
+} from './replication-profile-parameters';
+import {
+  REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
+  REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
+  REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
+  REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
+  REPLICATION_PROFILE_IPOBJ_TYPE_INTERFACE,
+  REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
+  REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
+  REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
+  REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
+  ReplicationProfileIpVersion,
+  ReplicationProfileObjectKind,
+  ReplicationProfileRuleChain,
+} from './replication-profile.constants';
 import {
   isPolicyReplicationMode,
   PolicyReplicationConflict,
   PolicyReplicationGroupPreview,
   PolicyReplicationMode,
   PolicyReplicationProvision,
+  PolicyReplicationProvisionInterface,
+  PolicyReplicationProvisionObject,
+  PolicyReplicationProvisionRule,
   PolicyReplicationProvisionService,
+  countProvisionExtras,
+  isStandardProvisionService,
   PolicyReplicationRequest,
   PolicyReplicationResolvedReference,
   PolicyReplicationResult,
@@ -51,6 +81,114 @@ const DEFAULT_RULE_COMMENTS: string[] = Object.values(DefaultPolicyRuleComments)
 // Plain-number views of the special rule codes, comparable against DB rows.
 const SPECIAL_STATEFUL: number = SpecialPolicyRules.STATEFUL;
 const SPECIAL_CATCHALL: number = SpecialPolicyRules.CATCHALL;
+const RULE_ACTION_ACCEPT = 1;
+const RULE_ACTION_DENY = 2;
+
+/** Extra context a profile application passes down to provisioning. */
+export interface ProvisionOptions {
+  parameters?: ReplicationProfileParameter[];
+  parameterValues?: ReplicationProfileParameterValues;
+  /** Identify the profile so its object bindings can be recorded and reused. */
+  profileCode?: string;
+  profileVersion?: number;
+  /** Cluster node role → created node firewall id, used by Keepalived's master node. */
+  nodeRoleMapping?: Record<string, number>;
+  /**
+   * Existing target interfaces (by name) the operator assigned to profile roles,
+   * e.g. { lan: 'eth1' }. They are bound instead of creating the profile interface.
+   */
+  interfaceNameMapping?: Record<string, string>;
+}
+
+export interface ProvisionRulePositions {
+  in?: number;
+  out?: number;
+  source?: number;
+  destination?: number;
+  service?: number;
+  translatedSource?: number;
+  translatedDestination?: number;
+  translatedService?: number;
+}
+
+/** A predefined object or group row, as a profile reference resolves it. */
+interface StandardReferenceRow {
+  id: number;
+  name: string;
+  type: number;
+  ip_version: number | string | null;
+}
+
+/** One resolved rule-side entry: an interface, an ip object or an object group. */
+interface ProvisionSideRef {
+  interfaceId?: number;
+  ipobjId?: number;
+  ipobjGroupId?: number;
+}
+
+interface ProvisionRuleInterfaces {
+  inIds: number[];
+  outIds: number[];
+}
+
+interface ProvisionRuleSides {
+  source: ProvisionSideRef[];
+  destination: ProvisionSideRef[];
+  services: ProvisionSideRef[];
+  translatedSource: ProvisionSideRef[];
+  translatedDestination: ProvisionSideRef[];
+  translatedServices: ProvisionSideRef[];
+}
+
+/** Where a set of profile objects is being placed, to report and check them. */
+interface ProvisionObjectTarget {
+  /** Human prefix for error messages, e.g. `Rule 2 (source)`. */
+  label: string;
+  /** IP family the objects must belong to, when the destination has one. */
+  ipVersion?: ReplicationProfileIpVersion;
+  /** policy_position id: the object types it accepts are read from ipobj_type__policy_position. */
+  position?: number;
+  /** Explicit ipobj types accepted, for grids without a policy_position (routing, system). */
+  allowedTypes?: number[];
+}
+
+const ADDRESS_TYPES = [REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS];
+const PORT_SERVICE_TYPES = [REPLICATION_PROFILE_IPOBJ_TYPE_TCP, REPLICATION_PROFILE_IPOBJ_TYPE_UDP];
+/** Route destinations and routing rule sources: addresses, ranges, networks, hosts and object groups. */
+const ROUTING_OBJECT_TYPES = [
+  REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
+  REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
+  REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
+  REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
+  REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
+];
+const NAT_CHAINS: ReadonlyArray<string> = ['snat', 'dnat'];
+
+/** Position ids of one policy (family + chain), undefined for the positions it does not have. */
+export function getProvisionRulePositions(
+  ipVersion: ReplicationProfileIpVersion,
+  chain: ReplicationProfileRuleChain,
+): ProvisionRulePositions {
+  const prefix = `IPv${ipVersion}:${chain.toUpperCase()}`;
+
+  return {
+    in: RulePositionsMap.get(`${prefix}:In`),
+    out: RulePositionsMap.get(`${prefix}:Out`),
+    source: RulePositionsMap.get(`${prefix}:Source`),
+    destination: RulePositionsMap.get(`${prefix}:Destination`),
+    service: RulePositionsMap.get(`${prefix}:Service`),
+    translatedSource: RulePositionsMap.get(`${prefix}:Translated Source`),
+    translatedDestination: RulePositionsMap.get(`${prefix}:Translated Destination`),
+    translatedService: RulePositionsMap.get(`${prefix}:Translated Service`),
+  };
+}
+
+interface ProvisionBinding {
+  kind: 'interface' | 'ipobj' | 'rule';
+  key: string;
+  objectId: number;
+  created: boolean;
+}
 
 /**
  * VPN relation tables of a policy_r rule. Besides the table/column shape used
@@ -211,6 +349,8 @@ interface ReplicationContext {
   roleBySourceInterface: Map<number, string>;
   roleBySourceNode: Map<number, string>;
   sourceIpObjs: Map<number, IPObjRow>;
+  /** Every address of each SOURCE interface, ordered by id. */
+  sourceAddressesByInterface: Map<number, IPObjRow[]>;
   targetAddressesByInterface: Map<number, IPObjRow[]>;
   vpnOwnerFirewall: Map<string, number>;
   resolvedReferences: Map<string, PolicyReplicationResolvedReference>;
@@ -304,122 +444,1634 @@ export class PolicyReplicationService extends Service {
     provision: PolicyReplicationProvision,
     fwCloudId: number,
     mode: PolicyReplicationMode = 'replace_defaults',
+    options: ProvisionOptions = {},
   ): Promise<PolicyReplicationResult> {
     const result = this.createEmptyResult(mode);
-
     const firewallId = await this.resolveProvisionTargetFirewallId(target);
+    const isDryRun = mode === 'dry_run';
 
-    if (mode === 'dry_run') {
-      result.createdRules = provision.rules.map((rule, index) => ({
-        sourceRuleId: 0,
-        targetRuleId: null,
-        policyTypeId: 3,
-        ruleOrder: 2 + index,
-        comment: rule.comment ?? null,
-      }));
-      result.warnings.push(
-        `Dry run would provision ${provision.interfaces.length} interface(s) on firewall ${firewallId}.`,
-      );
+    let parameterValues: Map<string, unknown>;
+
+    try {
+      parameterValues = resolveParameterValues(options.parameters ?? [], options.parameterValues);
+    } catch (error) {
+      result.errors.push((error as Error).message);
       return result;
     }
 
-    const manager = db.getSource().manager;
-    const dbCon = await this.legacyConnection();
+    const existingInterfaces = await this.loadFirewallInterfaces(firewallId);
+    const mappedInterfaceIds = this.resolveMappedInterfaces(
+      provision,
+      existingInterfaces,
+      options.interfaceNameMapping,
+      result,
+    );
 
-    // 1. Create the declared interfaces and their tree nodes; remember role -> id.
-    const fdiNode = (
-      await dbQuery<{ id: number }>(
-        "SELECT id FROM fwc_tree WHERE id_obj = ? AND node_type = 'FDI' AND fwcloud = ?",
-        [firewallId, fwCloudId],
-      )
-    )[0];
-    const interfaceIdByRole = new Map<string, number>();
-    for (const iface of provision.interfaces) {
-      const created = await manager.getRepository(Interface).save({
-        name: iface.name,
-        type: '10',
-        interface_type: '10',
-        firewallId,
-      });
-      if (fdiNode) {
-        await Tree.newNode(dbCon, fwCloudId, iface.name, fdiNode.id, 'IFF', created.id, 10);
+    if (result.errors.length > 0) {
+      return result;
+    }
+
+    // Bindings recorded by a previous application of this same profile version.
+    // Reusing them is what makes a re-apply idempotent instead of additive.
+    const previousBindings = options.profileCode
+      ? await this.loadProfileBindings(
+          fwCloudId,
+          options.profileCode,
+          options.profileVersion ?? 0,
+          firewallId,
+        )
+      : new Map<string, number>();
+
+    const resolver = new ObjectBindingResolver(fwCloudId, !isDryRun);
+    const bindings: ProvisionBinding[] = [];
+
+    const interfaceIdByRole = await this.provisionInterfaces(
+      provision,
+      firewallId,
+      existingInterfaces,
+      fwCloudId,
+      parameterValues,
+      resolver,
+      previousBindings,
+      mappedInterfaceIds,
+      bindings,
+      result,
+      isDryRun,
+    );
+
+    await this.provisionRules(
+      provision,
+      firewallId,
+      interfaceIdByRole,
+      parameterValues,
+      resolver,
+      result,
+      mode,
+      isDryRun,
+    );
+
+    if (countProvisionExtras(provision) > 0) {
+      result.provisioned = {
+        routingTables: 0,
+        routes: 0,
+        routingRules: 0,
+        dhcp: 0,
+        keepalived: 0,
+        haproxy: 0,
+      };
+
+      // Routing and system entries are only written once the policy went in cleanly.
+      if (result.errors.length === 0 || isDryRun) {
+        await this.provisionRouting(
+          provision,
+          firewallId,
+          interfaceIdByRole,
+          parameterValues,
+          resolver,
+          result,
+          isDryRun,
+        );
       }
-      interfaceIdByRole.set(iface.role, created.id);
+
+      if (result.errors.length === 0 || isDryRun) {
+        await this.provisionSystem(
+          provision,
+          firewallId,
+          interfaceIdByRole,
+          parameterValues,
+          resolver,
+          result,
+          isDryRun,
+          options,
+        );
+      }
+    }
+
+    if (isDryRun) {
+      result.warnings.push(
+        `Dry run: ${provision.interfaces.length} interface(s), ${provision.rules.length} rule(s) and ${countProvisionExtras(provision)} routing/system entr${countProvisionExtras(provision) === 1 ? 'y' : 'ies'} would be provisioned on firewall ${firewallId}.`,
+      );
+
+      return result;
+    }
+
+    if (result.errors.length > 0) {
+      return result;
+    }
+
+    if (options.profileCode) {
+      await this.persistProfileBindings(
+        fwCloudId,
+        options.profileCode,
+        options.profileVersion ?? 0,
+        firewallId,
+        bindings,
+      );
+    }
+
+    result.applied = true;
+
+    return result;
+  }
+
+  /**
+   * Creates (or reuses) the declared interfaces and their addresses. Addressing
+   * is what lets a rule refer to "the LAN network" and still mean the right
+   * thing on every firewall the profile is applied to.
+   */
+  private async provisionInterfaces(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    existingInterfaces: Map<number, InterfaceRow>,
+    fwCloudId: number,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    previousBindings: Map<string, number>,
+    mappedInterfaceIds: Map<string, number>,
+    bindings: ProvisionBinding[],
+    result: PolicyReplicationResult,
+    isDryRun: boolean,
+  ): Promise<Map<string, number>> {
+    const interfaceIdByRole = new Map<string, number>();
+    const existingByName = new Map<string, number>();
+
+    for (const [id, row] of existingInterfaces) {
+      existingByName.set(row.name.toLowerCase(), id);
+    }
+
+    const manager = db.getSource().manager;
+    const dbCon = isDryRun ? null : db.getQuery();
+    const fdiNode = isDryRun
+      ? null
+      : (
+          await dbQuery<{ id: number }>(
+            "SELECT id FROM fwc_tree WHERE id_obj = ? AND node_type = 'FDI' AND fwcloud = ?",
+            [firewallId, fwCloudId],
+          )
+        )[0];
+
+    for (const iface of provision.interfaces) {
+      const bindingKey = `interface:${iface.role}`;
+      const mapped = mappedInterfaceIds.get(iface.role);
+      const reused =
+        mapped ?? previousBindings.get(bindingKey) ?? existingByName.get(iface.name.toLowerCase());
+      let interfaceId: number;
+
+      if (reused !== undefined && existingInterfaces.has(reused)) {
+        interfaceId = reused;
+
+        // An explicit assignment is what the operator asked for, not something to warn about.
+        if (mapped === undefined) {
+          result.warnings.push(
+            `Interface "${iface.name}" already exists on the target; reusing it for role "${iface.role}".`,
+          );
+        }
+      } else if (isDryRun) {
+        interfaceId = 0;
+      } else {
+        const created = await manager.getRepository(Interface).save({
+          name: iface.name,
+          type: '10',
+          interface_type: '10',
+          firewallId,
+        });
+
+        interfaceId = created.id;
+
+        if (fdiNode && dbCon) {
+          await Tree.newNode(dbCon, fwCloudId, iface.name, fdiNode.id, 'IFF', created.id, 10);
+        }
+      }
+
+      interfaceIdByRole.set(iface.role, interfaceId);
+      bindings.push({
+        kind: 'interface',
+        key: iface.role,
+        objectId: interfaceId,
+        created: reused === undefined,
+      });
       result.resolvedReferences.push({
         kind: 'interface',
         role: iface.role,
         sourceId: 0,
-        targetId: created.id,
+        targetId: interfaceId,
       });
-    }
 
-    // 2. Ensure a default policy exists so the catch-all denies everything else.
-    const catchAll = await dbQuery<{ id: number }>(
-      'SELECT id FROM policy_r WHERE firewall = ? AND type = 3 AND special = ? LIMIT 1',
-      [firewallId, SPECIAL_CATCHALL],
-    );
-    if (catchAll.length === 0) {
-      await PolicyRule.insertDefaultPolicy(firewallId, null, FireWallOptMask.STATEFUL);
-    }
-
-    // 3. Insert the declared rules just above the FORWARD catch-all.
-    const ruleCount = provision.rules.length;
-    if (ruleCount > 0) {
-      await dbQuery(
-        'UPDATE policy_r SET rule_order = rule_order + ? WHERE firewall = ? AND type = 3 AND special = ?',
-        [ruleCount, firewallId, SPECIAL_CATCHALL],
+      await this.provisionInterfaceAddresses(
+        iface,
+        interfaceId,
+        parameterValues,
+        resolver,
+        bindings,
+        result,
+        isDryRun,
       );
     }
 
-    for (let i = 0; i < ruleCount; i++) {
-      const rule = provision.rules[i];
-      const ruleOrder = 2 + i;
-      const serviceId = rule.service
-        ? await this.createProvisionService(rule.service, fwCloudId)
-        : null;
-      const ruleId = await PolicyRule.insertPolicy_r({
-        firewall: firewallId,
-        type: 3, // IPv4 FORWARD
-        rule_order: ruleOrder,
-        action: rule.action === 'deny' ? 2 : 1,
-        active: 1,
-        options: 0,
-        special: 0,
-        comment: rule.comment ?? 'Provisioned by replication profile.',
+    return interfaceIdByRole;
+  }
+
+  /**
+   * Resolves the target interfaces the operator assigned (by name) to profile
+   * roles. Unknown roles, missing interfaces or an interface assigned twice are
+   * reported as errors before anything is written.
+   */
+  private resolveMappedInterfaces(
+    provision: PolicyReplicationProvision,
+    existingInterfaces: Map<number, InterfaceRow>,
+    mapping: Record<string, string> | undefined,
+    result: PolicyReplicationResult,
+  ): Map<string, number> {
+    const mappedIds = new Map<string, number>();
+    const entries = Object.entries(mapping ?? {});
+
+    if (entries.length === 0) {
+      return mappedIds;
+    }
+
+    const roles = new Set(provision.interfaces.map((iface) => iface.role));
+    const idByName = new Map<string, number>();
+
+    for (const [id, row] of existingInterfaces) {
+      idByName.set(row.name.toLowerCase(), id);
+    }
+
+    for (const [role, name] of entries) {
+      const interfaceId = idByName.get(name.toLowerCase());
+
+      if (!roles.has(role)) {
+        result.errors.push(`Role "${role}" is not declared by the profile interfaces.`);
+      } else if (interfaceId === undefined) {
+        result.errors.push(
+          `Interface "${name}" assigned to role "${role}" does not exist on the target.`,
+        );
+      } else if ([...mappedIds.values()].includes(interfaceId)) {
+        result.errors.push(`Interface "${name}" is assigned to more than one role.`);
+      } else {
+        mappedIds.set(role, interfaceId);
+      }
+    }
+
+    return mappedIds;
+  }
+
+  private async provisionInterfaceAddresses(
+    iface: PolicyReplicationProvisionInterface,
+    interfaceId: number,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    bindings: ProvisionBinding[],
+    result: PolicyReplicationResult,
+    isDryRun: boolean,
+  ): Promise<void> {
+    for (const [index, declared] of iface.addresses.entries()) {
+      const raw = dereferenceParameter(declared.value, parameterValues);
+
+      if (raw === undefined) {
+        continue;
+      }
+
+      const parsed = parseReplicationProfileAddress(raw);
+
+      if (!parsed) {
+        result.errors.push(
+          `Interface "${iface.name}": "${describeReplicationProfileValue(raw)}" is not a valid IP address.`,
+        );
+        continue;
+      }
+
+      const binding = await resolver.resolve({
+        kind: 'address',
+        ipVersion: parsed.ipVersion,
+        address: parsed.address,
+        netmask: parsed.netmask,
+        name: declared.name ?? `${iface.name}-${index === 0 ? 'ip' : `ip${index + 1}`}`,
+        interfaceId: isDryRun ? undefined : interfaceId,
       });
 
-      const inId = rule.inRole ? interfaceIdByRole.get(rule.inRole) : undefined;
-      const outId = rule.outRole ? interfaceIdByRole.get(rule.outRole) : undefined;
-      if (inId) {
-        await dbQuery(
-          'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
-          [ruleId, inId, RulePositionsMap.get('IPv4:FORWARD:In')],
+      bindings.push({
+        kind: 'ipobj',
+        key: `${iface.role}:address:${index}`,
+        objectId: binding.id,
+        created: binding.created,
+      });
+      result.resolvedReferences.push({
+        kind: 'ipobj',
+        role: iface.role,
+        sourceId: 0,
+        targetId: binding.id,
+      });
+    }
+  }
+
+  private async provisionRules(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    interfaceIdByRole: Map<string, number>,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+    mode: PolicyReplicationMode,
+    isDryRun: boolean,
+  ): Promise<void> {
+    // In merge mode an equivalent rule already on the target is left alone;
+    // replace_defaults appends the profile rules above the catch-all.
+    const existingSignatures =
+      mode === 'merge' || isDryRun
+        ? await this.loadProvisionRuleSignatures(firewallId)
+        : new Set<string>();
+
+    const plannedByType = new Map<number, number>();
+
+    for (const [index, rule] of provision.rules.entries()) {
+      const policyTypeId = PolicyTypesMap.get(`IPv${rule.ipVersion}:${rule.chain.toUpperCase()}`);
+
+      if (!policyTypeId) {
+        result.errors.push(
+          `Rule ${index + 1}: unsupported chain "${rule.chain}" for IPv${rule.ipVersion}.`,
         );
+        continue;
       }
-      if (outId) {
-        await dbQuery(
-          'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
-          [ruleId, outId, RulePositionsMap.get('IPv4:FORWARD:Out')],
-        );
+
+      const positions = getProvisionRulePositions(rule.ipVersion, rule.chain);
+      const resolvedInterfaces = this.resolveProvisionRuleInterfaces(
+        rule,
+        index,
+        interfaceIdByRole,
+        positions,
+        result,
+      );
+
+      if (resolvedInterfaces === null) {
+        continue;
       }
-      if (serviceId) {
-        await dbQuery(
-          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, -1, -1, ?, 1)',
-          [ruleId, serviceId, RulePositionsMap.get('IPv4:FORWARD:Service')],
-        );
+
+      const sides = await this.resolveProvisionRuleObjects(
+        rule,
+        index,
+        positions,
+        interfaceIdByRole,
+        parameterValues,
+        resolver,
+        result,
+      );
+
+      if (sides === null) {
+        continue;
       }
+
+      const signature = this.buildProvisionRuleSignature(
+        rule,
+        policyTypeId,
+        resolvedInterfaces,
+        sides,
+      );
+
+      if (existingSignatures.has(signature)) {
+        if (mode === 'merge') {
+          result.conflicts.push({
+            type: 'duplicated_rule',
+            message: `Rule ${index + 1}: an equivalent rule already exists on the target; skipped in merge mode.`,
+          });
+          continue;
+        }
+
+        result.warnings.push(`Rule ${index + 1}: an equivalent rule already exists on the target.`);
+      }
+
+      const planned = (plannedByType.get(policyTypeId) ?? 0) + 1;
+      plannedByType.set(policyTypeId, planned);
+      const ruleOrder = 1 + planned;
+
+      const targetRuleId = isDryRun
+        ? null
+        : await this.insertProvisionRule(
+            rule,
+            firewallId,
+            policyTypeId,
+            ruleOrder,
+            positions,
+            resolvedInterfaces,
+            sides,
+          );
 
       result.createdRules.push({
         sourceRuleId: 0,
-        targetRuleId: ruleId,
-        policyTypeId: 3,
+        targetRuleId,
+        policyTypeId,
         ruleOrder,
         comment: rule.comment ?? null,
       });
     }
 
-    result.applied = true;
-    return result;
+    // Wherever the profile puts rules it is the whole policy, so FWCloud's default
+    // rules there are dropped (merge mode keeps everything). Skipped on errors so a
+    // failed apply never leaves a policy without its defaults.
+    if (mode !== 'merge' && result.errors.length === 0) {
+      result.removedDefaultRules = await this.removeProvisionDefaultRules(
+        provision,
+        firewallId,
+        isDryRun,
+      );
+    }
+
+    if (!isDryRun) {
+      await this.pushProvisionCatchAllRules(firewallId, plannedByType);
+    }
+  }
+
+  private resolveProvisionRuleInterfaces(
+    rule: PolicyReplicationProvisionRule,
+    index: number,
+    interfaceIdByRole: Map<string, number>,
+    positions: ProvisionRulePositions,
+    result: PolicyReplicationResult,
+  ): ProvisionRuleInterfaces | null {
+    const resolve = (
+      roles: string[],
+      position: number | undefined,
+      direction: string,
+    ): number[] | null => {
+      if (roles.length > 0 && position === undefined) {
+        result.errors.push(
+          `Rule ${index + 1}: chain "${rule.chain}" has no ${direction} interface position.`,
+        );
+        return null;
+      }
+
+      const ids: number[] = [];
+
+      for (const role of roles) {
+        const id = interfaceIdByRole.get(role);
+
+        if (id === undefined) {
+          result.errors.push(`Rule ${index + 1}: unknown interface role "${role}".`);
+          return null;
+        }
+
+        if (!ids.includes(id)) {
+          ids.push(id);
+        }
+      }
+
+      return ids;
+    };
+
+    const inIds = resolve(rule.inRoles, positions.in, 'inbound');
+    const outIds = inIds === null ? null : resolve(rule.outRoles, positions.out, 'outbound');
+
+    return inIds === null || outIds === null ? null : { inIds, outIds };
+  }
+
+  /**
+   * Turns the declarative source/destination/service references of one rule
+   * (and, for NAT, its translated ones) into concrete ids, creating what does
+   * not exist yet. Every object is checked against the position it lands in.
+   */
+  private async resolveProvisionRuleObjects(
+    rule: PolicyReplicationProvisionRule,
+    index: number,
+    positions: ProvisionRulePositions,
+    interfaceIdByRole: Map<string, number>,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+  ): Promise<ProvisionRuleSides | null> {
+    const label = (side: string) => `Rule ${index + 1} (${side})`;
+    const isNat = NAT_CHAINS.includes(rule.chain);
+    const translated: [string, unknown[], number | undefined][] = [
+      ['translated source', rule.translatedSource, positions.translatedSource],
+      ['translated destination', rule.translatedDestination, positions.translatedDestination],
+      ['translated service', rule.translatedServices, positions.translatedService],
+    ];
+
+    for (const [side, items, position] of translated) {
+      if (items.length > 0 && (!isNat || position === undefined)) {
+        result.errors.push(`${label(side)}: chain "${rule.chain}" has no ${side} position.`);
+        return null;
+      }
+    }
+
+    const objects = (items: PolicyReplicationProvisionObject[], side: string, position?: number) =>
+      this.resolveProvisionObjects(
+        items,
+        { label: label(side), ipVersion: rule.ipVersion, position },
+        interfaceIdByRole,
+        parameterValues,
+        resolver,
+        result,
+      );
+    const services = (
+      items: PolicyReplicationProvisionService[],
+      side: string,
+      position?: number,
+    ) =>
+      this.resolveProvisionServices(
+        items,
+        { label: label(side), position },
+        parameterValues,
+        resolver,
+        result,
+      );
+
+    const sides: ProvisionRuleSides = {
+      source: await objects(rule.source, 'source', positions.source),
+      destination: await objects(rule.destination, 'destination', positions.destination),
+      services: await services(rule.services, 'service', positions.service),
+      translatedSource: await objects(
+        rule.translatedSource,
+        'translated source',
+        positions.translatedSource,
+      ),
+      translatedDestination: await objects(
+        rule.translatedDestination,
+        'translated destination',
+        positions.translatedDestination,
+      ),
+      translatedServices: await services(
+        rule.translatedServices,
+        'translated service',
+        positions.translatedService,
+      ),
+    };
+
+    return Object.values(sides).some((refs) => refs === null) ? null : sides;
+  }
+
+  /**
+   * Resolves profile object references (literals, parameters, interface roles
+   * and predefined FWCloud objects) into ids. Returns null after reporting an
+   * error; references to optional parameters without a value are skipped.
+   */
+  private async resolveProvisionObjects(
+    objects: PolicyReplicationProvisionObject[],
+    target: ProvisionObjectTarget,
+    interfaceIdByRole: Map<string, number>,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+  ): Promise<ProvisionSideRef[] | null> {
+    const refs: ProvisionSideRef[] = [];
+
+    for (const object of objects) {
+      let ref: ProvisionSideRef;
+      let type: number;
+
+      if (object.kind === 'interfaceRole') {
+        const interfaceId = interfaceIdByRole.get(object.role!);
+
+        if (interfaceId === undefined) {
+          result.errors.push(`${target.label}: unknown interface role "${object.role}".`);
+          return null;
+        }
+
+        ref = { interfaceId };
+        type = REPLICATION_PROFILE_IPOBJ_TYPE_INTERFACE;
+      } else if (object.kind === 'std' || object.kind === 'stdGroup') {
+        const standard = await this.resolveStandardReference(
+          object.kind,
+          object.id!,
+          target,
+          result,
+        );
+
+        if (!standard) {
+          return null;
+        }
+
+        ref = standard.ref;
+        type = standard.type;
+      } else {
+        const raw = dereferenceParameter(object.value, parameterValues);
+
+        if (raw === undefined) {
+          continue;
+        }
+
+        const resolved = await this.resolveLiteralObject(object, raw, target, resolver, result);
+
+        // A dry run resolves to id 0, so only null means failure.
+        if (resolved === null) {
+          return null;
+        }
+
+        ref = { ipobjId: resolved };
+        type = REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[object.kind as ReplicationProfileObjectKind];
+      }
+
+      if (!(await this.acceptsObjectType(target, type, result))) {
+        return null;
+      }
+
+      refs.push(ref);
+    }
+
+    return refs;
+  }
+
+  private async resolveLiteralObject(
+    object: PolicyReplicationProvisionObject,
+    raw: unknown,
+    target: ProvisionObjectTarget,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+  ): Promise<number | null> {
+    const family = target.ipVersion ? `IPv${target.ipVersion} ` : '';
+
+    if (object.kind === 'range') {
+      const range = parseReplicationProfileRange(raw, target.ipVersion);
+
+      if (!range) {
+        result.errors.push(
+          `${target.label}: "${describeReplicationProfileValue(raw)}" is not a valid ${family}address range.`,
+        );
+        return null;
+      }
+
+      return (await resolver.resolve({ kind: 'range', ...range, name: object.name })).id;
+    }
+
+    const parsed =
+      object.kind === 'network'
+        ? parseReplicationProfileNetwork(raw, target.ipVersion)
+        : parseReplicationProfileAddress(raw, target.ipVersion);
+
+    if (!parsed) {
+      result.errors.push(
+        `${target.label}: "${describeReplicationProfileValue(raw)}" is not a valid ${family}${object.kind}.`,
+      );
+      return null;
+    }
+
+    const binding = await resolver.resolve({
+      kind: object.kind as 'address' | 'network' | 'host',
+      ipVersion: parsed.ipVersion,
+      address: parsed.address,
+      netmask: parsed.netmask,
+      name: object.name,
+    });
+
+    return binding.id;
+  }
+
+  private async resolveProvisionServices(
+    services: PolicyReplicationProvisionService[],
+    target: ProvisionObjectTarget,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+  ): Promise<ProvisionSideRef[] | null> {
+    const refs: ProvisionSideRef[] = [];
+
+    for (const service of services) {
+      if (isStandardProvisionService(service)) {
+        const standard = await this.resolveStandardReference(
+          service.kind,
+          service.id,
+          target,
+          result,
+        );
+
+        if (!standard || !(await this.acceptsObjectType(target, standard.type, result))) {
+          return null;
+        }
+
+        refs.push(standard.ref);
+        continue;
+      }
+
+      const rawPort = dereferenceParameter(service.port, parameterValues);
+
+      if (rawPort === undefined) {
+        continue;
+      }
+
+      const port = parseReplicationProfilePort(rawPort);
+
+      if (port === null) {
+        result.errors.push(
+          `${target.label}: "${describeReplicationProfileValue(rawPort)}" is not a valid ${service.protocol.toUpperCase()} port.`,
+        );
+        return null;
+      }
+
+      const type =
+        service.protocol === 'tcp'
+          ? REPLICATION_PROFILE_IPOBJ_TYPE_TCP
+          : REPLICATION_PROFILE_IPOBJ_TYPE_UDP;
+
+      if (!(await this.acceptsObjectType(target, type, result))) {
+        return null;
+      }
+
+      const binding = await resolver.resolve({ kind: 'service', protocol: service.protocol, port });
+      refs.push({ ipobjId: binding.id });
+    }
+
+    return refs;
+  }
+
+  /**
+   * Predefined objects and groups have a NULL fwcloud and the same id in every
+   * installation, which is what makes a reference to them portable.
+   */
+  private async resolveStandardReference(
+    kind: 'std' | 'stdGroup',
+    id: number,
+    target: ProvisionObjectTarget,
+    result: PolicyReplicationResult,
+  ): Promise<{ ref: ProvisionSideRef; type: number } | null> {
+    const cacheKey = `${kind}:${id}`;
+    let rows = this.standardRowsCache.get(cacheKey);
+
+    if (!rows) {
+      rows =
+        kind === 'std'
+          ? await dbQuery<StandardReferenceRow>(
+              'SELECT id, name, type, ip_version FROM ipobj WHERE id = ? AND fwcloud IS NULL',
+              [id],
+            )
+          : await dbQuery<StandardReferenceRow>(
+              'SELECT id, name, type, NULL AS ip_version FROM ipobj_g WHERE id = ? AND fwcloud IS NULL',
+              [id],
+            );
+      this.standardRowsCache.set(cacheKey, rows);
+    }
+
+    if (rows.length === 0) {
+      result.errors.push(
+        `${target.label}: predefined ${kind === 'std' ? 'object' : 'group'} ${id} does not exist in this FWCloud.`,
+      );
+      return null;
+    }
+
+    const row = rows[0];
+
+    if (
+      target.ipVersion &&
+      row.ip_version !== null &&
+      Number(row.ip_version) !== target.ipVersion
+    ) {
+      result.errors.push(
+        `${target.label}: predefined object "${row.name}" is IPv${row.ip_version} and cannot be used in an IPv${target.ipVersion} rule.`,
+      );
+      return null;
+    }
+
+    return {
+      ref: kind === 'std' ? { ipobjId: row.id } : { ipobjGroupId: row.id },
+      type: Number(row.type),
+    };
+  }
+
+  private positionTypesCache: Map<number, Set<number>> | null = null;
+  /** Predefined objects and groups are seeded rows that never change, like the position types. */
+  private standardRowsCache = new Map<string, StandardReferenceRow[]>();
+
+  /** Checks an object type against the position (or explicit type list) it is placed in. */
+  private async acceptsObjectType(
+    target: ProvisionObjectTarget,
+    type: number,
+    result: PolicyReplicationResult,
+  ): Promise<boolean> {
+    let allowed: Set<number> | undefined;
+
+    if (target.allowedTypes) {
+      allowed = new Set(target.allowedTypes);
+    } else if (target.position !== undefined) {
+      if (!this.positionTypesCache) {
+        const rows = await dbQuery<{ type: number; position: number }>(
+          'SELECT type, position FROM ipobj_type__policy_position',
+        );
+        this.positionTypesCache = new Map();
+
+        for (const row of rows) {
+          const types = this.positionTypesCache.get(row.position) ?? new Set<number>();
+          types.add(Number(row.type));
+          this.positionTypesCache.set(Number(row.position), types);
+        }
+      }
+
+      allowed = this.positionTypesCache.get(target.position);
+    }
+
+    if (!allowed || allowed.has(type)) {
+      return true;
+    }
+
+    result.errors.push(
+      `${target.label}: objects of type ${type} are not allowed in this position.`,
+    );
+    return false;
+  }
+
+  /**
+   * Signature of a rule as it will exist in the database, so it can be compared
+   * against the rules already on the target. It mirrors exactly what
+   * loadProvisionRuleSignatures() reads back.
+   */
+  private buildProvisionRuleSignature(
+    rule: PolicyReplicationProvisionRule,
+    policyTypeId: number,
+    interfaces: ProvisionRuleInterfaces,
+    sides: ProvisionRuleSides,
+  ): string {
+    const interfaceIds = [...interfaces.inIds, ...interfaces.outIds];
+    const ipobjIds = [
+      ...sides.source,
+      ...sides.destination,
+      ...sides.services,
+      ...sides.translatedSource,
+      ...sides.translatedDestination,
+      ...sides.translatedServices,
+    ].map((ref) => (ref.ipobjGroupId ? `g${ref.ipobjGroupId}` : String(ref.ipobjId ?? -1)));
+
+    return [
+      policyTypeId,
+      rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
+      this.concatKey('i', interfaceIds),
+      this.concatKey('o', ipobjIds),
+    ].join('|');
+  }
+
+  /** Mirrors MySQL's GROUP_CONCAT(DISTINCT ... ORDER BY ...) output. */
+  private concatKey(prefix: string, ids: (number | string)[]): string {
+    return Array.from(new Set(ids.map((id) => `${prefix}${id}`)))
+      .sort()
+      .join(',');
+  }
+
+  /** Signatures of the rules already on the target, in the same shape. */
+  private async loadProvisionRuleSignatures(firewallId: number): Promise<Set<string>> {
+    const rows = await dbQuery<{
+      id: number;
+      type: number;
+      action: number;
+      interfaces: string | null;
+      ipobjs: string | null;
+    }>(
+      `SELECT R.id, R.type, R.action,
+              GROUP_CONCAT(DISTINCT CONCAT('i', RI.interface) ORDER BY CONCAT('i', RI.interface)) AS interfaces,
+              GROUP_CONCAT(DISTINCT CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj)) ORDER BY CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj))) AS ipobjs
+       FROM policy_r R
+       LEFT JOIN policy_r__interface RI ON RI.rule = R.id
+       LEFT JOIN policy_r__ipobj RO ON RO.rule = R.id
+       WHERE R.firewall = ? AND R.special = 0
+       GROUP BY R.id, R.type, R.action`,
+      [firewallId],
+    );
+
+    // Coarse signature: enough to spot an already-provisioned equivalent rule
+    // without re-deriving the full positional layout.
+    return new Set(
+      rows.map((row) => `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}`),
+    );
+  }
+
+  private async insertProvisionRule(
+    rule: PolicyReplicationProvisionRule,
+    firewallId: number,
+    policyTypeId: number,
+    ruleOrder: number,
+    positions: ProvisionRulePositions,
+    interfaces: ProvisionRuleInterfaces,
+    sides: ProvisionRuleSides,
+  ): Promise<number> {
+    const ruleId = await PolicyRule.insertPolicy_r({
+      firewall: firewallId,
+      type: policyTypeId,
+      rule_order: ruleOrder,
+      action: rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
+      active: 1,
+      options: 0,
+      special: 0,
+      comment: rule.comment ?? 'Provisioned by replication profile.',
+    });
+
+    for (const [order, interfaceId] of interfaces.inIds.entries()) {
+      await this.insertRuleInterface(ruleId, interfaceId, positions.in!, order + 1);
+    }
+
+    for (const [order, interfaceId] of interfaces.outIds.entries()) {
+      await this.insertRuleInterface(ruleId, interfaceId, positions.out!, order + 1);
+    }
+
+    await this.insertRuleSide(ruleId, sides.source, positions.source);
+    await this.insertRuleSide(ruleId, sides.destination, positions.destination);
+    await this.insertRuleSide(ruleId, sides.services, positions.service);
+    await this.insertRuleSide(ruleId, sides.translatedSource, positions.translatedSource);
+    await this.insertRuleSide(ruleId, sides.translatedDestination, positions.translatedDestination);
+    await this.insertRuleSide(ruleId, sides.translatedServices, positions.translatedService);
+
+    return ruleId;
+  }
+
+  private async insertRuleInterface(
+    ruleId: number,
+    interfaceId: number,
+    position: number,
+    order: number,
+  ): Promise<void> {
+    await dbQuery(
+      'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, ?)',
+      [ruleId, interfaceId, position, order],
+    );
+  }
+
+  private async insertRuleSide(
+    ruleId: number,
+    refs: ProvisionSideRef[],
+    position: number | undefined,
+  ): Promise<void> {
+    if (position === undefined) {
+      return;
+    }
+
+    for (const [index, ref] of refs.entries()) {
+      await dbQuery(
+        'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          ruleId,
+          ref.ipobjId ?? -1,
+          ref.ipobjGroupId ?? -1,
+          ref.interfaceId ?? -1,
+          position,
+          index + 1,
+        ],
+      );
+    }
+  }
+
+  /**
+   * Drops FWCloud's default rules (catch-all plus the commented self-host and
+   * ICMP ones) from every policy the profile puts rules in. The stateful rule is
+   * kept: without it the replies of the allowed connections would be discarded.
+   * Returns the ids of the rules removed (or that would be, in dry-run mode).
+   */
+  private async removeProvisionDefaultRules(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    isDryRun: boolean,
+  ): Promise<number[]> {
+    const policyTypeIds = new Set<number>();
+
+    for (const rule of provision.rules) {
+      const policyTypeId = PolicyTypesMap.get(`IPv${rule.ipVersion}:${rule.chain.toUpperCase()}`);
+
+      if (policyTypeId !== undefined) {
+        policyTypeIds.add(policyTypeId);
+      }
+    }
+
+    if (policyTypeIds.size === 0) {
+      return [];
+    }
+
+    const types = [...policyTypeIds];
+    const rules = await dbQuery<{ id: number; special: number; comment: string | null }>(
+      `SELECT id, special, comment FROM policy_r WHERE firewall = ? AND type IN (${sqlPlaceholders(types.length)})`,
+      [firewallId, ...types],
+    );
+    const ruleIds = rules
+      .filter(
+        (rule) =>
+          rule.special === SPECIAL_CATCHALL || DEFAULT_RULE_COMMENTS.includes(rule.comment ?? ''),
+      )
+      .map((rule) => rule.id);
+
+    if (isDryRun || ruleIds.length === 0) {
+      return ruleIds;
+    }
+
+    const queryRunner: QueryRunner = db.getSource().createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await this.removeRules(queryRunner, ruleIds);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+
+    return ruleIds;
+  }
+
+  /** Moves each chain's catch-all below the rules just provisioned for it. */
+  private async pushProvisionCatchAllRules(
+    firewallId: number,
+    plannedByType: Map<number, number>,
+  ): Promise<void> {
+    for (const [policyTypeId, count] of plannedByType) {
+      await dbQuery(
+        'UPDATE policy_r SET rule_order = rule_order + ? WHERE firewall = ? AND type = ? AND special = ?',
+        [count, firewallId, policyTypeId, SPECIAL_CATCHALL],
+      );
+    }
+  }
+
+  private async loadProfileBindings(
+    fwCloudId: number,
+    profileCode: string,
+    profileVersion: number,
+    firewallId: number,
+  ): Promise<Map<string, number>> {
+    const rows = await dbQuery<{ binding_kind: string; binding_key: string; object_id: number }>(
+      `SELECT binding_kind, binding_key, object_id FROM profile_object_binding
+       WHERE fwcloud = ? AND profile_code = ? AND profile_version = ? AND target_firewall = ?`,
+      [fwCloudId, profileCode, profileVersion, firewallId],
+    );
+
+    return new Map(rows.map((row) => [`${row.binding_kind}:${row.binding_key}`, row.object_id]));
+  }
+
+  private async persistProfileBindings(
+    fwCloudId: number,
+    profileCode: string,
+    profileVersion: number,
+    firewallId: number,
+    bindings: ProvisionBinding[],
+  ): Promise<void> {
+    for (const binding of bindings) {
+      if (!binding.objectId) {
+        continue;
+      }
+
+      await dbQuery(
+        `INSERT INTO profile_object_binding
+           (fwcloud, profile_code, profile_version, target_firewall, binding_kind, binding_key, object_id, created_by_profile)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE object_id = VALUES(object_id)`,
+        [
+          fwCloudId,
+          profileCode,
+          profileVersion,
+          firewallId,
+          binding.kind,
+          binding.key,
+          binding.objectId,
+          binding.created ? 1 : 0,
+        ],
+      );
+    }
+  }
+
+  /**
+   * Routing tables with their routes, then policy routing rules pointing at
+   * them. The FWCloud routing services do the writing so their own checks
+   * (object types, table numbers, tree nodes, compile status) still apply.
+   */
+  private async provisionRouting(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    interfaceIdByRole: Map<string, number>,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+    isDryRun: boolean,
+  ): Promise<void> {
+    const summary = result.provisioned!;
+    const tableIdByKey = new Map<string, number>();
+    const existingTables = await dbQuery<{ id: number; number: number; name: string }>(
+      'SELECT id, number, name FROM routing_table WHERE firewall = ?',
+      [firewallId],
+    );
+    const tableService = isDryRun ? null : await this._app.getService<any>('RoutingTableService');
+    const routeService = isDryRun ? null : await this._app.getService<any>('RouteService');
+    const ruleService = isDryRun ? null : await this._app.getService<any>('RoutingRuleService');
+
+    for (const table of provision.routing.tables) {
+      const label = `Routing table "${table.name}"`;
+      const existing = existingTables.find((row) => Number(row.number) === table.number);
+      let tableId = existing?.id ?? 0;
+
+      if (existing) {
+        result.warnings.push(
+          `${label}: table number ${table.number} already exists on the target; reusing it.`,
+        );
+      } else if (!isDryRun) {
+        tableId = await this.runFwcService(
+          label,
+          result,
+          async () =>
+            (
+              await tableService.create({
+                firewallId,
+                number: table.number,
+                name: table.name,
+                comment: table.comment,
+              })
+            ).id,
+        );
+
+        if (!tableId) {
+          return;
+        }
+      }
+
+      if (!existing) {
+        summary.routingTables++;
+      }
+
+      tableIdByKey.set(table.key, tableId);
+
+      for (const [routeIndex, route] of table.routes.entries()) {
+        const routeLabel = `${label}, route ${routeIndex + 1}`;
+        const destination = await this.resolveProvisionObjects(
+          route.destination,
+          { label: `${routeLabel} (destination)`, allowedTypes: ROUTING_OBJECT_TYPES },
+          interfaceIdByRole,
+          parameterValues,
+          resolver,
+          result,
+        );
+        const gateway = route.gateway
+          ? await this.resolveProvisionObjects(
+              [route.gateway],
+              { label: `${routeLabel} (gateway)`, allowedTypes: ADDRESS_TYPES },
+              interfaceIdByRole,
+              parameterValues,
+              resolver,
+              result,
+            )
+          : [];
+        const interfaceId = this.resolveOptionalRole(
+          route.interfaceRole,
+          `${routeLabel} (interface)`,
+          interfaceIdByRole,
+          result,
+        );
+
+        if (destination === null || gateway === null || interfaceId === null) {
+          return;
+        }
+
+        if (gateway.length === 0 && (interfaceId === undefined || destination.length === 0)) {
+          result.errors.push(
+            `${routeLabel}: a route needs a gateway, or a destination and an interface.`,
+          );
+          return;
+        }
+
+        summary.routes++;
+
+        if (isDryRun) {
+          continue;
+        }
+
+        const created = await this.runFwcService(
+          routeLabel,
+          result,
+          async () =>
+            (
+              await routeService.create({
+                routingTableId: tableId,
+                gatewayId: gateway[0]?.ipobjId,
+                interfaceId,
+                active: true,
+                comment: route.comment,
+                ...this.orderedObjectIds(destination),
+              })
+            ).id,
+        );
+
+        if (!created) {
+          return;
+        }
+      }
+    }
+
+    for (const [index, rule] of provision.routing.rules.entries()) {
+      const label = `Routing rule ${index + 1}`;
+      const tableId = tableIdByKey.get(rule.table);
+
+      if (tableId === undefined) {
+        result.errors.push(
+          `${label}: routing table "${rule.table}" is not declared by the profile.`,
+        );
+        return;
+      }
+
+      const from = await this.resolveProvisionObjects(
+        rule.from,
+        { label: `${label} (from)`, allowedTypes: ROUTING_OBJECT_TYPES },
+        interfaceIdByRole,
+        parameterValues,
+        resolver,
+        result,
+      );
+
+      if (from === null) {
+        return;
+      }
+
+      if (from.length === 0) {
+        result.errors.push(`${label}: a routing rule needs at least one source object.`);
+        return;
+      }
+
+      summary.routingRules++;
+
+      if (!isDryRun) {
+        const created = await this.runFwcService(
+          label,
+          result,
+          async () =>
+            (
+              await ruleService.create({
+                routingTableId: tableId,
+                active: true,
+                comment: rule.comment,
+                ...this.orderedObjectIds(from),
+              })
+            ).id,
+        );
+
+        if (!created) {
+          return;
+        }
+      }
+    }
+  }
+
+  /** DHCP servers, Keepalived VIPs and HAProxy balancers, written through their FWCloud services. */
+  private async provisionSystem(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    interfaceIdByRole: Map<string, number>,
+    parameterValues: Map<string, unknown>,
+    resolver: ObjectBindingResolver,
+    result: PolicyReplicationResult,
+    isDryRun: boolean,
+    options: ProvisionOptions,
+  ): Promise<void> {
+    const summary = result.provisioned!;
+    const { dhcp, keepalived, haproxy } = provision.system;
+    const single = async (
+      object: PolicyReplicationProvisionObject | null,
+      label: string,
+      allowedTypes: number[],
+    ): Promise<number | null> => {
+      if (!object) {
+        result.errors.push(`${label} is required.`);
+        return null;
+      }
+
+      const refs = await this.resolveProvisionObjects(
+        [object],
+        { label, allowedTypes },
+        interfaceIdByRole,
+        parameterValues,
+        resolver,
+        result,
+      );
+
+      if (refs === null) {
+        return null;
+      }
+
+      if (refs.length === 0 || refs[0].ipobjId === undefined) {
+        result.errors.push(`${label} has no value.`);
+        return null;
+      }
+
+      return refs[0].ipobjId;
+    };
+
+    for (const [index, entry] of dhcp.entries()) {
+      const label = `DHCP ${index + 1}`;
+      const networkId = await single(entry.network, `${label} network`, [
+        REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
+      ]);
+      const rangeId =
+        networkId === null
+          ? null
+          : await single(entry.range, `${label} range`, [REPLICATION_PROFILE_IPOBJ_TYPE_RANGE]);
+      const routerId =
+        rangeId === null ? null : await single(entry.router, `${label} router`, ADDRESS_TYPES);
+      const dns =
+        routerId === null
+          ? null
+          : await this.resolveProvisionObjects(
+              entry.dns,
+              { label: `${label} DNS`, allowedTypes: ADDRESS_TYPES },
+              interfaceIdByRole,
+              parameterValues,
+              resolver,
+              result,
+            );
+
+      if (dns === null) {
+        return;
+      }
+
+      summary.dhcp++;
+
+      if (isDryRun) {
+        continue;
+      }
+
+      const service = await this._app.getService<any>('DHCPRuleService');
+      const created = await this.runFwcService(label, result, async () => {
+        const rule = await service.store({
+          firewallId,
+          rule_type: 1,
+          active: true,
+          networkId,
+          rangeId,
+          routerId,
+          max_lease: entry.maxLease,
+          comment: entry.comment ?? '',
+        });
+
+        if (dns.length > 0) {
+          await service.update(rule.id, { ipObjIds: this.orderedIds(dns) });
+        }
+
+        return rule.id;
+      });
+
+      if (!created) {
+        return;
+      }
+    }
+
+    // Node ids of the target cluster (null for a firewall), read once for every Keepalived entry.
+    let clusterNodeIds: number[] | null | undefined;
+
+    for (const [index, entry] of keepalived.entries()) {
+      const label = `Keepalived ${index + 1}`;
+      const interfaceId = this.resolveOptionalRole(
+        entry.interfaceRole,
+        `${label} interface`,
+        interfaceIdByRole,
+        result,
+      );
+      const virtualIps = await this.resolveProvisionObjects(
+        entry.virtualIps,
+        { label: `${label} virtual IPs`, allowedTypes: ADDRESS_TYPES },
+        interfaceIdByRole,
+        parameterValues,
+        resolver,
+        result,
+      );
+      clusterNodeIds ??= await this.loadClusterNodeIds(firewallId);
+      const masterNodeId = this.resolveClusterNode(
+        firewallId,
+        clusterNodeIds,
+        entry.masterNode,
+        options.nodeRoleMapping,
+        `${label} master node`,
+        result,
+      );
+
+      if (interfaceId === null || virtualIps === null || masterNodeId === null) {
+        return;
+      }
+
+      if (interfaceId === undefined || virtualIps.length === 0) {
+        result.errors.push(`${label}: an interface and at least one virtual IP are required.`);
+        return;
+      }
+
+      // Keepalived binds to a real NIC: FWCloud refuses interfaces without a MAC address,
+      // which a freshly provisioned interface only has once it has been discovered.
+      const mac = isDryRun
+        ? 'dry-run'
+        : (
+            await dbQuery<{ mac: string | null }>('SELECT mac FROM interface WHERE id = ?', [
+              interfaceId,
+            ])
+          )[0]?.mac;
+
+      if (!mac) {
+        result.warnings.push(
+          `${label}: skipped because interface "${entry.interfaceRole}" has no MAC address yet. Discover the interfaces and add it from System > Keepalived.`,
+        );
+        continue;
+      }
+
+      summary.keepalived++;
+
+      if (isDryRun) {
+        continue;
+      }
+
+      const service = await this._app.getService<any>('KeepalivedRuleService');
+      const created = await this.runFwcService(
+        label,
+        result,
+        async () =>
+          (
+            await service.store({
+              firewallId,
+              rule_type: 1,
+              active: true,
+              interfaceId,
+              masterNodeId,
+              virtualIpsIds: this.orderedIds(virtualIps),
+              comment: entry.comment ?? '',
+            })
+          ).id,
+      );
+
+      if (!created) {
+        return;
+      }
+    }
+
+    for (const [index, entry] of haproxy.entries()) {
+      const label = `HAProxy ${index + 1}`;
+      const frontendIpId = await single(entry.frontendIp, `${label} frontend IP`, ADDRESS_TYPES);
+      const services =
+        frontendIpId === null
+          ? null
+          : await this.resolveProvisionServices(
+              [entry.frontendService, entry.backendService].filter((service) => !!service),
+              { label: `${label} ports`, allowedTypes: PORT_SERVICE_TYPES },
+              parameterValues,
+              resolver,
+              result,
+            );
+      const backendIps =
+        services === null
+          ? null
+          : await this.resolveProvisionObjects(
+              entry.backendIps,
+              { label: `${label} backend IPs`, allowedTypes: ADDRESS_TYPES },
+              interfaceIdByRole,
+              parameterValues,
+              resolver,
+              result,
+            );
+
+      if (backendIps === null) {
+        return;
+      }
+
+      if (services.length !== 2 || backendIps.length === 0) {
+        result.errors.push(
+          `${label}: the frontend and backend ports and at least one backend IP are required.`,
+        );
+        return;
+      }
+
+      summary.haproxy++;
+
+      if (isDryRun) {
+        continue;
+      }
+
+      const service = await this._app.getService<any>('HAProxyRuleService');
+      const created = await this.runFwcService(
+        label,
+        result,
+        async () =>
+          (
+            await service.store({
+              firewallId,
+              rule_type: 1,
+              active: true,
+              frontendIpId,
+              frontendPortId: services[0].ipobjId,
+              backendPortId: services[1].ipobjId,
+              backendIpsIds: this.orderedIds(backendIps),
+              comment: entry.comment ?? '',
+            })
+          ).id,
+      );
+
+      if (!created) {
+        return;
+      }
+    }
+  }
+
+  /** undefined when no role was given, null after reporting an unknown role. */
+  private resolveOptionalRole(
+    role: string | undefined,
+    label: string,
+    interfaceIdByRole: Map<string, number>,
+    result: PolicyReplicationResult,
+  ): number | undefined | null {
+    if (role === undefined) {
+      return undefined;
+    }
+
+    const id = interfaceIdByRole.get(role);
+
+    if (id === undefined) {
+      result.errors.push(`${label}: unknown interface role "${role}".`);
+      return null;
+    }
+
+    return id;
+  }
+
+  /**
+   * The node of the target cluster acting as master: the one mapped to a profile node role,
+   * or (older profiles) the n-th node, 1 being the master. A firewall is its own node.
+   */
+  private resolveClusterNode(
+    firewallId: number,
+    nodes: number[] | null,
+    node: string | number,
+    nodeRoleMapping: Record<string, number> | undefined,
+    label: string,
+    result: PolicyReplicationResult,
+  ): number | null {
+    if (!nodes) {
+      return firewallId;
+    }
+
+    if (typeof node === 'string') {
+      const mapped = nodeRoleMapping?.[node];
+
+      if (mapped === undefined || !nodes.includes(Number(mapped))) {
+        result.errors.push(
+          `${label}: cluster node role "${node}" is not assigned to a node of the target cluster.`,
+        );
+        return null;
+      }
+
+      return Number(mapped);
+    }
+
+    const nodeId = nodes[node - 1];
+
+    if (nodeId === undefined) {
+      result.errors.push(
+        `${label}: the target has ${nodes.length} node(s), node ${node} does not exist.`,
+      );
+      return null;
+    }
+
+    return nodeId;
+  }
+
+  /** Node ids of the firewall's cluster, the master first; null when the firewall is not a cluster node. */
+  private async loadClusterNodeIds(firewallId: number): Promise<number[] | null> {
+    const firewall = (
+      await dbQuery<{ cluster: number | null }>('SELECT cluster FROM firewall WHERE id = ?', [
+        firewallId,
+      ])
+    )[0];
+
+    if (!firewall?.cluster) {
+      return null;
+    }
+
+    const rows = await dbQuery<{ id: number }>(
+      'SELECT id FROM firewall WHERE cluster = ? ORDER BY fwmaster DESC, id ASC',
+      [firewall.cluster],
+    );
+
+    return rows.map((row) => row.id);
+  }
+
+  /** Object ids with their 1-based order, as the system rule services expect them. */
+  private orderedIds(refs: ProvisionSideRef[]): { id: number; order: number }[] {
+    return refs.map((ref, order) => ({ id: ref.ipobjId, order: order + 1 }));
+  }
+
+  /** Splits resolved references into the ordered id lists the routing services expect. */
+  private orderedObjectIds(refs: ProvisionSideRef[]): {
+    ipObjIds: { id: number; order: number }[];
+    ipObjGroupIds: { id: number; order: number }[];
+  } {
+    return {
+      ipObjIds: refs
+        .map((ref, index) => ({ id: ref.ipobjId, order: index + 1 }))
+        .filter((item) => !!item.id),
+      ipObjGroupIds: refs
+        .map((ref, index) => ({ id: ref.ipobjGroupId, order: index + 1 }))
+        .filter((item) => !!item.id),
+    };
+  }
+
+  /** Runs a FWCloud service call, turning its exceptions into a provisioning error. */
+  private async runFwcService<T>(
+    label: string,
+    result: PolicyReplicationResult,
+    call: () => Promise<T>,
+  ): Promise<T | null> {
+    try {
+      return await call();
+    } catch (error) {
+      const details = (error as { errors?: Record<string, string[]> }).errors;
+      const message = details
+        ? Object.entries(details)
+            .map(([field, messages]) => `${field}: ${[].concat(messages).join(', ')}`)
+            .join('; ')
+        : (error as Error).message;
+
+      result.errors.push(`${label}: ${message}`);
+      return null;
+    }
   }
 
   /** Resolves the firewall to provision: the firewall itself, or a cluster master. */
@@ -437,36 +2089,6 @@ export class PolicyReplicationService extends Service {
     }
 
     return master[0].id;
-  }
-
-  /** Creates a TCP/UDP service object in the FWCloud and returns its id. */
-  private async createProvisionService(
-    service: PolicyReplicationProvisionService,
-    fwCloudId: number,
-  ): Promise<number> {
-    const isTcp = service.protocol === 'tcp';
-    const created = await db
-      .getSource()
-      .manager.getRepository(IPObj)
-      .save({
-        name: `${service.protocol.toUpperCase()}/${service.port}`,
-        ipObjTypeId: isTcp ? 2 : 4,
-        protocol: isTcp ? 6 : 17,
-        source_port_start: 0,
-        source_port_end: 0,
-        destination_port_start: service.port,
-        destination_port_end: service.port,
-        fwCloudId,
-      });
-
-    return created.id;
-  }
-
-  /** Legacy callback-style connection used by the static model helpers (Tree, etc.). */
-  private legacyConnection(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      db.get((error, connection) => (error ? reject(error) : resolve(connection)));
-    });
   }
 
   /** Builds an empty replication/provisioning result for the given mode. */
@@ -549,6 +2171,7 @@ export class PolicyReplicationService extends Service {
       roleBySourceInterface: new Map(),
       roleBySourceNode: new Map(),
       sourceIpObjs: new Map(),
+      sourceAddressesByInterface: new Map(),
       targetAddressesByInterface: new Map(),
       vpnOwnerFirewall: new Map(),
       resolvedReferences: new Map(),
@@ -762,10 +2385,24 @@ export class PolicyReplicationService extends Service {
       }
     }
 
+    const sourceInterfaceIds = Array.from(context.sourceInterfaces.keys());
+    if (sourceInterfaceIds.length > 0) {
+      const rows = await dbQuery<IPObjRow>(
+        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE interface IN (${sqlPlaceholders(sourceInterfaceIds.length)}) ORDER BY id`,
+        sourceInterfaceIds,
+      );
+      for (const row of rows) {
+        if (!context.sourceAddressesByInterface.has(row.interface)) {
+          context.sourceAddressesByInterface.set(row.interface, []);
+        }
+        context.sourceAddressesByInterface.get(row.interface).push(row);
+      }
+    }
+
     const targetInterfaceIds = Array.from(context.targetInterfaces.keys());
     if (targetInterfaceIds.length > 0) {
       const rows = await dbQuery<IPObjRow>(
-        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE interface IN (${sqlPlaceholders(targetInterfaceIds.length)})`,
+        `SELECT id, name, type, ip_version, address, interface FROM ipobj WHERE interface IN (${sqlPlaceholders(targetInterfaceIds.length)}) ORDER BY id`,
         targetInterfaceIds,
       );
       for (const row of rows) {
@@ -1033,12 +2670,26 @@ export class PolicyReplicationService extends Service {
       return null;
     }
 
+    // Resolution is by function, not by literal value. The source object's
+    // ordinal among the addresses of its own interface ("the 2nd IPv4 address
+    // of the WAN") is what carries over to the target, so a rule keeps meaning
+    // the same thing on a firewall whose addressing is completely different.
+    // A literal match still wins when the target genuinely holds that address,
+    // which keeps same-network replication byte-identical.
     let resolved = candidates.find((candidate) => candidate.address === ipobj.address);
+
     if (!resolved) {
-      resolved = candidates[0];
-      if (candidates.length > 1) {
+      const ordinal = this.sourceAddressOrdinal(context, ipobj);
+
+      resolved = candidates[Math.min(ordinal, candidates.length - 1)];
+
+      if (ordinal > candidates.length - 1) {
         context.result.warnings.push(
-          `Rule ${ruleId}: several target addresses are compatible with source object "${ipobj.name}" (id ${ipobjId}); using "${resolved.name}" (id ${resolved.id})`,
+          `Rule ${ruleId}: source object "${ipobj.name}" (id ${ipobjId}) is address #${ordinal + 1} of its interface, but the target interface only has ${candidates.length}; using "${resolved.name}" (id ${resolved.id})`,
+        );
+      } else if (candidates.length > 1) {
+        context.result.warnings.push(
+          `Rule ${ruleId}: source object "${ipobj.name}" (id ${ipobjId}) resolved by position (address #${ordinal + 1} of its interface) to "${resolved.name}" (id ${resolved.id})`,
         );
       }
     }
@@ -1050,6 +2701,20 @@ export class PolicyReplicationService extends Service {
     });
 
     return resolved.id;
+  }
+
+  /**
+   * Position of a source address among the addresses of the same family and
+   * type on its own interface. This ordinal is the role-free way of saying
+   * which address of the interface a rule meant.
+   */
+  private sourceAddressOrdinal(context: ReplicationContext, ipobj: IPObjRow): number {
+    const siblings = (context.sourceAddressesByInterface.get(ipobj.interface) ?? []).filter(
+      (candidate) => candidate.type === ipobj.type && candidate.ip_version === ipobj.ip_version,
+    );
+    const index = siblings.findIndex((candidate) => candidate.id === ipobj.id);
+
+    return index === -1 ? 0 : index;
   }
 
   private resolveFwApplyTo(context: ReplicationContext, rule: PolicyRuleRow): number | null {
