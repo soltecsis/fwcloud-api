@@ -454,6 +454,9 @@ export class Routes extends RouteCollection {
                     )
                     .name('fwclouds.firewalls.system.crowdsec.transitions.remediation');
                   router
+                    .post('/transitions/role', CrowdSecController, 'transitionCrowdSecRole')
+                    .name('fwclouds.firewalls.system.crowdsec.transitions.role');
+                  router
                     .post('/bouncers/register', CrowdSecController, 'registerBouncer')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.register');
                   router
