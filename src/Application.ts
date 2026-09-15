@@ -86,18 +86,10 @@ import { WireGuardServiceProvider } from './models/vpn/wireguard/wireguard.provi
 import { IPSecServiceProvider } from './models/vpn/ipsec/ipsec.provider';
 import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.provider';
 import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
-import { AssistantContractCustomsServiceProvider } from './models/assistant-contract/assistant-contract-customs.provider';
-import { AgentHttpClientProvider } from './communications/assistant-agent/agent-http-client.provider';
-import { GenerationQueueProvider } from './communications/assistant-agent/generation-queue.provider';
-import { AssistedProfileHealthServiceProvider } from './communications/assistant-agent/assisted-profile-health.provider';
-import { AssistedProfileGenerationServiceProvider } from './communications/assistant-agent/assisted-profile-generation.provider';
-import { AssistedProfileHealthService } from './communications/assistant-agent/assisted-profile-health.service';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
-import { FirewallProfileDraftStateServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft-state.provider';
-import { FirewallProfileDraftServiceProvider } from './models/firewall-profile-draft/firewall-profile-draft.provider';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
 import { ProfileApplicationServiceProvider } from './models/replication-profile/profile-application.provider';
 import { ReplicationProfileValidationServiceProvider } from './models/replication-profile/replication-profile-validation.provider';
@@ -152,13 +144,6 @@ export class Application extends HTTPApplication {
 
       //Starting scheduled task from the openvpn service
       (await this.getService<OpenVPNService>(OpenVPNService.name)).startScheduledTasks();
-
-      // Starting the Assisted Profile agent health poller. Disabled deployments
-      // and unconfigured agents are handled internally: the availability
-      // snapshot simply stays unavailable, it never blocks application startup.
-      (
-        await this.getService<AssistedProfileHealthService>(AssistedProfileHealthService.name)
-      ).start();
     }
 
     return this;
@@ -167,11 +152,6 @@ export class Application extends HTTPApplication {
   protected providers(): Array<typeof ServiceProvider> {
     return [
       AIAssistantProvider,
-      AgentHttpClientProvider,
-      GenerationQueueProvider,
-      AssistedProfileHealthServiceProvider,
-      AssistedProfileGenerationServiceProvider,
-      AssistantContractCustomsServiceProvider,
       AuditEventServiceProvider,
       AuditLogServiceProvider,
       AuthorizationServiceProvider,
@@ -185,8 +165,6 @@ export class Application extends HTTPApplication {
       DHCPGroupServiceProvider,
       DHCPRuleServiceProvider,
       FirewallServiceProvider,
-      FirewallProfileDraftStateServiceProvider,
-      FirewallProfileDraftServiceProvider,
       FwCloudExportServiceProvider,
       FwCloudServiceProvider,
       HAProxyGroupServiceProvider,

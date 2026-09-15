@@ -1,22 +1,5 @@
 version: "3"
 services:
-  # Test-only deterministic replacement for the Assisted Profile agent.
-  fake-agent:
-    build:
-      context: .
-      dockerfile: e2e/fake-agent/Dockerfile
-    environment:
-      DEFAULT_BEHAVIOR: "healthy"
-      EXPECTED_API_KEY: "fwcloud-fake-agent-test-key"
-      SLOW_DELAY_MS: "5000"
-    expose:
-      - "8080"
-    healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8080/health']
-      interval: 2s
-      timeout: 1s
-      retries: 10
-
   mysql:
     image: "mysql:latest"
     container_name: "fwcloud-mysql"

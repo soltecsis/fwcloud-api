@@ -27,10 +27,6 @@ import {
 import { PolicyReplicationRequest } from '../../../../src/models/replication-profile/policy-replication.types';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import StringHelper from '../../../../src/utils/string.helper';
-import { AssistantContractCustoms } from '../../../../src/models/assistant-contract/assistant-contract-customs';
-import { AssistedProfileProposalMapper } from '../../../../src/models/assistant-contract/assisted-profile-proposal.mapper';
-import { validateReplicationProfilePayload } from '../../../../src/models/replication-profile/replication-profile-validation.service';
-import { makeAssistedProfileProposalFixture } from '../../../utils/assisted-profile-proposal-fixtures';
 
 describe(describeName('ProfileApplicationService Unit Tests'), () => {
   let app: Application;
@@ -289,28 +285,24 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
     });
   });
 
-  describe('Assisted Profile mapper integration', () => {
-    it('takes a validated sync cluster proposal through a non-destructive apply dry run', async () => {
-      const gateway = new AssistantContractCustoms();
-      const gatewayResult = gateway.check(
-        makeAssistedProfileProposalFixture({ targetKind: 'cluster' }),
-      );
-      expect(gatewayResult.ok).to.be.true;
-      if (gatewayResult.ok === false) {
-        throw new Error(gatewayResult.message);
-      }
-
-      const dto = new AssistedProfileProposalMapper().map(gatewayResult.payload);
-      expect(validateReplicationProfilePayload(dto)).to.deep.equal([]);
-      expect(dto.model.roleAssignments.interfaceRoles as string[]).to.include('sync');
-
+  describe('declarative cluster profile', () => {
+    it('previews a sync cluster profile without a source firewall or database writes', async () => {
       profile = await makeProfile({
-        name: dto.name,
-        description: dto.description ?? null,
-        scope: dto.scope,
         targetKind: 'cluster',
-        category: dto.category ?? null,
-        model: dto.model as unknown as Record<string, unknown>,
+        model: {
+          compatibility: { target_kinds: ['cluster'] },
+          provision: {
+            interfaces: [
+              { name: 'LAN', role: 'lan' },
+              { name: 'WAN', role: 'wan' },
+              { name: 'SYNC', role: 'sync' },
+            ],
+            rules: [
+              { chain: 'forward', action: 'accept', inRole: 'lan', outRole: 'wan' },
+              { chain: 'forward', action: 'accept', inRole: 'sync', outRole: 'sync' },
+            ],
+          },
+        },
       });
 
       const manager = db.getSource().manager;

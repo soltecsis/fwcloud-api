@@ -106,7 +106,6 @@ import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.m
 import { AI } from '../models/ai-assistant/ai-assistant.model';
 import { AuditLog } from '../models/audit/AuditLog';
 import { ReplicationProfile } from '../models/replication-profile/replication-profile.model';
-import { FirewallProfileDraft } from '../models/firewall-profile-draft/firewall-profile-draft.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -333,7 +332,6 @@ export class DatabaseService extends Service {
         PolicyRuleToIPSecPrefix,
         PolicyType,
         ReplicationProfile,
-        FirewallProfileDraft,
         RouteToIPObjGroup,
         RouteToIPObj,
         RouteToOpenVPNPrefix,

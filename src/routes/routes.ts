@@ -64,9 +64,7 @@ import { AIassistantController } from '../controllers/ai-assistant/ai-assistant.
 import { AuditLogController } from '../controllers/audit/audit-log.controller';
 import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
-import { DraftController } from '../controllers/draft/draft.controller';
 import { ReplicationProfileController } from '../controllers/replication-profile/replication-profile.controller';
-import { AssistantAvailabilityController } from '../controllers/assistant-availability/assistant-availability.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -271,19 +269,6 @@ export class Routes extends RouteCollection {
             router
               .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
               .name('fwclouds.assistant.profiles.apply');
-            router
-              .post('/drafts/generate', DraftController, 'generate')
-              .name('fwclouds.assistant.drafts.generate');
-            router.get('/drafts', DraftController, 'index').name('fwclouds.assistant.drafts.index');
-            router
-              .get('/drafts/:draft', DraftController, 'show')
-              .name('fwclouds.assistant.drafts.show');
-            router
-              .delete('/drafts/:draft', DraftController, 'discard')
-              .name('fwclouds.assistant.drafts.discard');
-            router
-              .get('/availability', AssistantAvailabilityController, 'show')
-              .name('fwclouds.assistant.availability.show');
           });
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
