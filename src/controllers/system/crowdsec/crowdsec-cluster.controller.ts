@@ -48,6 +48,7 @@ type ClusterMachineNodeResult = {
   machine_name: string;
   status: 'completed' | 'failed';
   error?: string;
+  central_bouncer_cleanup_required?: boolean;
 };
 
 export class CrowdSecClusterController extends Controller {
@@ -111,6 +112,7 @@ export class CrowdSecClusterController extends Controller {
 
     for (const node of nodes) {
       const machineName = this.machineName(node);
+      let centralBouncerCleanupRequired = false;
       channel.emit(
         'message',
         new ProgressPayload('info', false, `Installing CrowdSec Machine on node '${node.name}'`),
@@ -134,9 +136,13 @@ export class CrowdSecClusterController extends Controller {
         await centralCommunication.validateCrowdSecLapiMachine(machineName);
         const backend =
           (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
-        const bouncerApiKey = req.body.localRemediation
-          ? this.bouncerApiKey(await centralCommunication.registerCrowdSecBouncer(machineName))
-          : undefined;
+        let bouncerApiKey: string | undefined;
+        if (req.body.localRemediation) {
+          bouncerApiKey = this.bouncerApiKey(
+            await centralCommunication.registerCrowdSecBouncer(machineName),
+          );
+          centralBouncerCleanupRequired = true;
+        }
         await remoteCommunication.activateCrowdSecMachine(
           {
             machineName,
@@ -180,7 +186,18 @@ export class CrowdSecClusterController extends Controller {
           machine_name: machineName,
           status: 'failed',
           error: error instanceof Error ? error.message : 'CrowdSec Machine installation failed',
+          ...(centralBouncerCleanupRequired ? { central_bouncer_cleanup_required: true } : {}),
         });
+        if (centralBouncerCleanupRequired) {
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'warning',
+              false,
+              `Remove the CrowdSec Firewall Bouncer '${machineName}' manually from the central Local API`,
+            ),
+          );
+        }
         channel.emit(
           'message',
           new ProgressPayload(
