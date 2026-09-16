@@ -52,6 +52,7 @@ import { typeMap } from '../../config/policy/dangerousRules';
 
 const config = require('../../config/config');
 const fwcError = require('../../utils/error_table');
+const shellescape = require('shell-escape');
 
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
@@ -59,6 +60,7 @@ export class PolicyScript {
   private policyCompilationMode: PolicyCompilationMode;
   private restoreExecutions: Map<string, number> = new Map();
   private restoreFilterPolicies: Set<string> = new Set();
+  private dnsChecks: string[] = [];
   private path: string;
   private stream: any;
 
@@ -131,15 +133,12 @@ export class PolicyScript {
     return;
   }
 
-  private async dumpCompilation(
-    type: number,
-    options: { plain?: boolean } = {},
-  ): Promise<RuleCompilationResult[]> {
+  private async dumpCompilation(type: number): Promise<RuleCompilationResult[]> {
     const rulesCompiled = await this.compileRules(type);
 
     const dangerous: Array<RuleCompilationResult> = [];
 
-    if (this.useOptimizedPolicyCompilation() && !options.plain) {
+    if (this.useOptimizedPolicyCompilation()) {
       let optimized = '';
       let optimizedBuffer = '';
       let optimizedRuleLabels: string[] = [];
@@ -182,24 +181,17 @@ export class PolicyScript {
     let cs = '';
     for (let i = 0; i < rulesCompiled.length; i++) {
       const rule = rulesCompiled[i];
-      if (options.plain) {
-        if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
-        if (rule.active)
-          cs += this.useOptimizedPolicyCompilation()
-            ? this.renderOptimizedPolicyCommands(rule.cs)
-            : rule.cs;
-      } else {
-        cs += `\necho "Rule ${i + 1} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n`;
-        if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
-        if (rule.active)
-          cs += this.useOptimizedPolicyCompilation()
-            ? this.renderOptimizedPolicyCommands(rule.cs)
-            : rule.cs;
-      }
+      cs += `\necho "Rule ${i + 1} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n`;
+      cs += this.shellComment(rule.comment);
+      if (rule.active) cs += rule.cs;
       if (rule.dangerousRuleData) dangerous.push(rule);
     }
     this.stream.write(cs);
     return dangerous;
+  }
+
+  private shellComment(comment: string): string {
+    return comment ? `# ${comment.replace(/\n/g, '\n# ')}\n` : '';
   }
 
   private async compileRules(type: number): Promise<RuleCompilationResult[]> {
@@ -213,159 +205,94 @@ export class PolicyScript {
       null,
     );
 
+    if (this.policyCompiler === 'IPTables') this.collectDnsChecks(type, rulesData);
+
     return PolicyCompiler.compile(this.policyCompiler, rulesData, this.channel);
   }
 
-  private async dumpVyOSPolicy(): Promise<RuleCompilationResult[]> {
-    type ProgressNoticeConfig = { text: string; highlight?: boolean };
-    type VyOSChainConfig = {
-      title: string;
-      underline: string;
-      type: number;
-      progress?: ProgressNoticeConfig[];
-    };
-    type VyOSSectionConfig = {
-      banner: string[];
-      progress?: ProgressNoticeConfig[];
-      chains: VyOSChainConfig[];
-    };
+  // DNS objects are compiled as hostnames that iptables resolves on the firewall while loading the
+  // policy (IPv4 rules need an A record, IPv6 rules an AAAA record). Collect one check per DNS object
+  // used in the source or destination of an active rule, so the script install action can reject a
+  // policy with unresolvable hostnames instead of loading it partially.
+  private collectDnsChecks(type: number, rulesData: any): void {
+    const ipv = type >= PolicyTypesMap.get('IPv6:INPUT') ? 6 : 4;
+    const cmd = ipv === 4 ? '$IPTABLES' : '$IP6TABLES';
 
+    for (const rule of rulesData ?? []) {
+      if (!rule.active) continue;
+
+      for (const position of rule.positions) {
+        if (position.name !== 'Source' && position.name !== 'Destination') continue;
+
+        for (const ipobj of position.ipobjs) {
+          if (ipobj.type !== 9) continue; // DNS
+
+          const context = `DNS object '${ipobj.name}' (ID: ${ipobj.id}) in ${position.name.toLowerCase()} of rule ${rule.id} (IPv${ipv})`;
+          const check = `policy_check_dns "${cmd}" ${shellescape([ipobj.name, context])} || return 1\n`;
+          // Rules applied to a single cluster node are only loaded on that node.
+          this.dnsChecks.push(
+            rule.fw_apply_to && rule.firewall_name
+              ? `  if [ "$HOSTNAME" = ${shellescape([rule.firewall_name])} ]; then\n    ${check}  fi\n`
+              : `  ${check}`,
+          );
+        }
+      }
+    }
+  }
+
+  // Writes the filter and NAT tables of both IP versions, in load order, and returns the dangerous rules.
+  private async dumpPolicyTables(): Promise<RuleCompilationResult[]> {
+    const isVyOS = this.policyCompiler === 'VyOS';
+    const notice = (text: string, highlight = false) =>
+      this.channel.emit('message', new ProgressNoticePayload(text, highlight));
     let dangerous: Array<RuleCompilationResult> = [];
 
-    const sections: VyOSSectionConfig[] = [
-      {
-        banner: [
-          'echo',
-          'echo "***********************"',
-          'echo "* FILTER TABLE (IPv4) *"',
-          'echo "***********************"',
+    for (const ipv of ['IPv4', 'IPv6']) {
+      const tables: [string, [string, string][]][] = [
+        [
+          `FILTER TABLE (${ipv})`,
+          [
+            ['INPUT CHAIN', 'INPUT'],
+            ['OUTPUT CHAIN', 'OUTPUT'],
+            ['FORWARD CHAIN', 'FORWARD'],
+          ],
         ],
-        progress: [{ text: 'FILTER TABLE (IPv4):', highlight: true }],
-        chains: [
-          {
-            title: 'INPUT CHAIN',
-            underline: '-----------',
-            type: PolicyTypesMap.get('IPv4:INPUT'),
-            progress: [{ text: 'INPUT CHAIN:', highlight: true }],
-          },
-          {
-            title: 'OUTPUT CHAIN',
-            underline: '------------',
-            type: PolicyTypesMap.get('IPv4:OUTPUT'),
-            progress: [{ text: 'OUTPUT CHAIN:', highlight: true }],
-          },
-          {
-            title: 'FORWARD CHAIN',
-            underline: '-------------',
-            type: PolicyTypesMap.get('IPv4:FORWARD'),
-            progress: [{ text: 'FORWARD CHAIN:', highlight: true }],
-          },
+        [
+          `NAT TABLE (${ipv})`,
+          [
+            ['SNAT', 'SNAT'],
+            ['DNAT', 'DNAT'],
+          ],
         ],
-      },
-      {
-        banner: [
-          'echo',
-          'echo "********************"',
-          'echo "* NAT TABLE (IPv4) *"',
-          'echo "********************"',
-        ],
-        progress: [{ text: 'NAT TABLE (IPv4):', highlight: true }],
-        chains: [
-          {
-            title: 'SNAT',
-            underline: '----',
-            type: PolicyTypesMap.get('IPv4:SNAT'),
-            progress: [{ text: 'SNAT:', highlight: true }],
-          },
-          {
-            title: 'DNAT',
-            underline: '----',
-            type: PolicyTypesMap.get('IPv4:DNAT'),
-            progress: [{ text: 'DNAT:', highlight: true }],
-          },
-        ],
-      },
-      {
-        banner: [
-          'echo',
-          'echo "***********************"',
-          'echo "* FILTER TABLE (IPv6) *"',
-          'echo "***********************"',
-        ],
-        progress: [{ text: '' }, { text: '' }, { text: 'FILTER TABLE (IPv6):', highlight: true }],
-        chains: [
-          {
-            title: 'INPUT CHAIN',
-            underline: '-----------',
-            type: PolicyTypesMap.get('IPv6:INPUT'),
-            progress: [{ text: 'INPUT CHAIN:', highlight: true }],
-          },
-          {
-            title: 'OUTPUT CHAIN',
-            underline: '------------',
-            type: PolicyTypesMap.get('IPv6:OUTPUT'),
-            progress: [{ text: 'OUTPUT CHAIN:', highlight: true }],
-          },
-          {
-            title: 'FORWARD CHAIN',
-            underline: '-------------',
-            type: PolicyTypesMap.get('IPv6:FORWARD'),
-            progress: [{ text: 'FORWARD CHAIN:', highlight: true }],
-          },
-        ],
-      },
-      {
-        banner: [
-          'echo',
-          'echo "********************"',
-          'echo "* NAT TABLE (IPv6) *"',
-          'echo "********************"',
-        ],
-        progress: [{ text: 'NAT TABLE (IPv6):', highlight: true }],
-        chains: [
-          {
-            title: 'SNAT',
-            underline: '----',
-            type: PolicyTypesMap.get('IPv6:SNAT'),
-            progress: [{ text: 'SNAT:', highlight: true }],
-          },
-          {
-            title: 'DNAT',
-            underline: '----',
-            type: PolicyTypesMap.get('IPv6:DNAT'),
-            progress: [{ text: 'DNAT:', highlight: true }],
-          },
-        ],
-      },
-    ];
+      ];
 
-    let firstSection = true;
-    for (const section of sections) {
-      this.stream.write(firstSection ? '\n' : '\n\n');
-      firstSection = false;
-      for (const line of section.banner) this.stream.write(`${line}\n`);
-      this.emitProgressNotices(section.progress);
+      for (const [table, chains] of tables) {
+        const firstTable = ipv === 'IPv4' && table.startsWith('FILTER');
+        const firstIPv6Table = ipv === 'IPv6' && table.startsWith('FILTER');
+        const stars = `echo "${'*'.repeat(table.length + 4)}"\n`;
+        const separator = isVyOS
+          ? `${firstTable ? '\n' : '\n\n'}echo\n`
+          : `${firstIPv6Table ? '\n\n' : ''}\n\necho\n${firstIPv6Table ? 'echo\n' : ''}`;
+        this.stream.write(`${separator}${stars}echo "* ${table} *"\n${stars}`);
+        if (firstIPv6Table) {
+          notice('');
+          notice('');
+        }
+        notice(`${table}:`, true);
 
-      for (const chain of section.chains) {
-        this.stream.write('\n\n');
-        this.stream.write(`echo "${chain.title}"\n`);
-        this.stream.write(`echo "${chain.underline}"\n`);
-        this.emitProgressNotices(chain.progress);
-        dangerous = dangerous.concat(await this.dumpVyOSRules(chain.type));
+        for (const [index, [title, chain]] of chains.entries()) {
+          const echo = !isVyOS && index > 0 ? 'echo\n' : '';
+          this.stream.write(`\n\n${echo}echo "${title}"\necho "${'-'.repeat(title.length)}"\n`);
+          notice(`${title}:`, true);
+          const type = PolicyTypesMap.get(`${ipv}:${chain}`);
+          dangerous = dangerous.concat(
+            await (isVyOS ? this.dumpVyOSRules(type) : this.dumpCompilation(type)),
+          );
+        }
       }
     }
 
     return dangerous;
-  }
-
-  private emitProgressNotices(notices?: { text: string; highlight?: boolean }[]): void {
-    if (!notices) return;
-    for (const notice of notices) {
-      this.channel.emit(
-        'message',
-        new ProgressNoticePayload(notice.text, notice.highlight ?? false),
-      );
-    }
   }
 
   private async dumpVyOSRules(type: number): Promise<RuleCompilationResult[]> {
@@ -511,7 +438,9 @@ export class PolicyScript {
       `${chainPolicies.length > 0 ? `${chainPolicies.join('\n')}\n\n` : ''}` +
       `${restoreBuffer.lines.join('\n')}\n\n` +
       'COMMIT\n' +
-      'FWC_IPTABLES_RESTORE\n'
+      'FWC_IPTABLES_RESTORE\n' +
+      // The first restore flushes the table, including the temporary DNS resolution rules.
+      `${executions > 0 ? '' : `policy_dns_resolution allow "${restoreBuffer.restoreCommand === '$IPTABLES_RESTORE' ? '$IPTABLES' : '$IP6TABLES'}"\n`}`
     );
   }
 
@@ -732,6 +661,7 @@ export class PolicyScript {
 
   public dump(): Promise<Array<RuleCompilationResult>> {
     return new Promise(async (resolve, reject) => {
+      this.dnsChecks = [];
       this.stream = fs.createWriteStream(this.path);
       this.stream
         .on('open', async () => {
@@ -789,112 +719,18 @@ export class PolicyScript {
               if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
                 await this.dumpMangeTableRules(); // Generate default rules for mangle table
 
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "***********************"\n');
-              this.stream.write('echo "* FILTER TABLE (IPv4) *"\n');
-              this.stream.write('echo "***********************"\n');
-              this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv4):', true));
-              this.stream.write('\n\necho "INPUT CHAIN"\n');
-              this.stream.write('echo "-----------"\n');
-              this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "OUTPUT CHAIN"\n');
-              this.stream.write('echo "------------"\n');
-              this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "FORWARD CHAIN"\n');
-              this.stream.write('echo "-------------"\n');
-              this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "********************"\n');
-              this.stream.write('echo "* NAT TABLE (IPv4) *"\n');
-              this.stream.write('echo "********************"\n');
-              this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv4):', true));
-              this.stream.write('\n\necho "SNAT"\n');
-              this.stream.write('echo "----"\n');
-              this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "DNAT"\n');
-              this.stream.write('echo "----"\n');
-              this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT')),
-              );
-
-              this.stream.write('\n\n');
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo\n');
-              this.stream.write('echo "***********************"\n');
-              this.stream.write('echo "* FILTER TABLE (IPv6) *"\n');
-              this.stream.write('echo "***********************"\n');
-              this.channel.emit('message', new ProgressNoticePayload(''));
-              this.channel.emit('message', new ProgressNoticePayload(''));
-              this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv6):', true));
-              this.stream.write('\n\necho "INPUT CHAIN"\n');
-              this.stream.write('echo "-----------"\n');
-              this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "OUTPUT CHAIN"\n');
-              this.stream.write('echo "------------"\n');
-              this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "FORWARD CHAIN"\n');
-              this.stream.write('echo "-------------"\n');
-              this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "********************"\n');
-              this.stream.write('echo "* NAT TABLE (IPv6) *"\n');
-              this.stream.write('echo "********************"\n');
-              this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv6):', true));
-              this.stream.write('\n\necho "SNAT"\n');
-              this.stream.write('echo "----"\n');
-              this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT')),
-              );
-
-              this.stream.write('\n\necho\n');
-              this.stream.write('echo "DNAT"\n');
-              this.stream.write('echo "----"\n');
-              this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
-              dangerous = dangerous.concat(
-                await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT')),
-              );
-
+              dangerous = await this.dumpPolicyTables();
               this.stream.write('\n}\n\n');
+
+              // Used by policy_dns_resolution (header file) and the install action of the footer file.
+              this.stream.write(
+                `POLICY_DNS_OBJECTS="${this.dnsChecks.length > 0 ? 1 : 0}"\n\n` +
+                  `policy_dns_check() {\n${this.dnsChecks.join('')}  return 0\n}\n\n`,
+              );
 
               await this.dumpRouting();
             } else {
-              dangerous = dangerous.concat(await this.dumpVyOSPolicy());
+              dangerous = await this.dumpPolicyTables();
               this.stream.write('\n');
             }
 
