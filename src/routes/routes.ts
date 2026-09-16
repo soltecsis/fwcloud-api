@@ -791,6 +791,9 @@ export class Routes extends RouteCollection {
             router
               .post('/machines/install', CrowdSecClusterController, 'installMachine')
               .name('fwclouds.clusters.system.crowdsec.machines.install');
+            router
+              .get('/collections', CrowdSecClusterController, 'collections')
+              .name('fwclouds.clusters.system.crowdsec.collections.index');
           });
 
           //Firewalls

@@ -224,6 +224,36 @@ export class CrowdSecClusterController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
   }
 
+  @Validate()
+  public async collections(req: Request): Promise<ResponseBuilder> {
+    const nodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
+    for (const node of nodes) {
+      (await CrowdSecPolicy.view(node, req.session.user)).authorize();
+    }
+
+    const collections = await Promise.all(
+      nodes.map(async (node) => {
+        try {
+          return {
+            firewall_id: node.id,
+            name: node.name,
+            collections: await (
+              await this.agentCommunication(node, false)
+            ).getCrowdSecCollections(),
+          };
+        } catch (error) {
+          return {
+            firewall_id: node.id,
+            name: node.name,
+            error: error instanceof Error ? error.message : 'Unable to load CrowdSec collections',
+          };
+        }
+      }),
+    );
+
+    return ResponseBuilder.buildResponse().status(200).body({ nodes: collections });
+  }
+
   private async centralFirewall(id: number): Promise<Firewall> {
     const firewall = await db
       .getSource()
