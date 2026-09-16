@@ -44,7 +44,7 @@ import {
   CrowdSecInstallationMode,
 } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 
-describe.only(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
+describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let app: Application;
   let controller: CrowdSecClusterController;
   let centralFirewall: Firewall;
