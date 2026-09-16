@@ -98,6 +98,19 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     );
   }
 
+  public async hasOtherMachineDependents(
+    centralFirewallId: number,
+    firewallId: number,
+  ): Promise<boolean> {
+    return (
+      (await this.createQueryBuilder('installation')
+        .where('installation.central_firewall = :centralFirewallId', { centralFirewallId })
+        .andWhere('installation.mode = :mode', { mode: CrowdSecInstallationMode.Machine })
+        .andWhere('installation.firewall != :firewallId', { firewallId })
+        .getCount()) > 0
+    );
+  }
+
   public async setCentralLapiEnabled(
     firewallId: number,
     enabled: boolean,
