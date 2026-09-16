@@ -65,7 +65,7 @@ describe(describeName('Policy Compiler VyOS'), () => {
     sinon.stub(PolicyRule, 'firewallWithMarkRules').resolves(false);
 
     const script = new PolicyScript({}, 1, 1);
-    sinon.stub(script as any, 'dumpVyOSPolicy').resolves();
+    sinon.stub(script as any, 'dumpPolicyTables').resolves([]);
 
     await script.dump();
 

@@ -51,6 +51,13 @@ case "$ACTION" in
     ;;
 
   install)
+    # Reject the new script before it replaces the installed one, so the installer never loads it.
+    # The running policy may not allow the firewall's own DNS queries, as it happens while loading.
+    policy_dns_resolution allow
+    policy_dns_check
+    FWC_DNS_CHECK_STATUS=$?
+    policy_dns_resolution revoke
+    test "$FWC_DNS_CHECK_STATUS" = "0" || exit 1
     chmod 700 "$0"
 
     if [ -f "/etc/issue" ]; then
