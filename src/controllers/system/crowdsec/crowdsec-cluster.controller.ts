@@ -328,9 +328,8 @@ export class CrowdSecClusterController extends Controller {
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
     const prefix = 'fwcloud-';
-    const suffix = `-${firewall.id}`;
-    const availableNameLength = 128 - prefix.length - suffix.length;
-    return `${prefix}${(name || 'node').slice(0, availableNameLength)}${suffix}`;
+    const availableNameLength = 128 - prefix.length;
+    return `${prefix}${(name || 'node').slice(0, availableNameLength)}`;
   }
 
   private lapiUrl(value: unknown): string {

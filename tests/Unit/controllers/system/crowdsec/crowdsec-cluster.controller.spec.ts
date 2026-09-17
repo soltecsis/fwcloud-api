@@ -131,14 +131,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       saveMachineInstallationStub.calledWithMatch({
         firewallId: firstNode.id,
         centralFirewallId: centralFirewall.id,
-        machineName: 'fwcloud-cluster-master-11',
+        machineName: 'fwcloud-cluster-master',
       }),
     ).to.be.true;
     expect(
       saveMachineInstallationStub.calledWithMatch({
         firewallId: secondNode.id,
         centralFirewallId: centralFirewall.id,
-        machineName: 'fwcloud-cluster-slave-12',
+        machineName: 'fwcloud-cluster-slave',
       }),
     ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
@@ -148,13 +148,13 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master-11',
+          machine_name: 'fwcloud-cluster-master',
           status: 'completed',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave-12',
+          machine_name: 'fwcloud-cluster-slave',
           status: 'completed',
         },
       ],
@@ -179,7 +179,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           firewallId: firstNode.id,
         }),
     ).to.be.true;
-    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-slave-12')).to.be.true;
+    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-slave')).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
@@ -187,13 +187,13 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master-11',
+          machine_name: 'fwcloud-cluster-master',
           status: 'completed',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave-12',
+          machine_name: 'fwcloud-cluster-slave',
           status: 'failed',
           error: 'Node unavailable',
         },
