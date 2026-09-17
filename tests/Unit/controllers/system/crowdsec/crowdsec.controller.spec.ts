@@ -1268,7 +1268,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith('Activation failed');
 
     expect(removeBouncerStub.called).to.be.false;
-    expect(pingStub.calledBefore(removeMachineStub)).to.be.true;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(compatibilityStub.called).to.be.false;
     expect(saveMachineInstallationStub.called).to.be.false;
@@ -1937,6 +1936,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(removeBouncerStub.called).to.be.false;
+    expect(pingStub.calledBefore(removeMachineStub)).to.be.true;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(uninstallStub.calledOnceWithExactly(true, channel)).to.be.true;
     expect(removeMachineStub.calledBefore(uninstallStub)).to.be.true;
