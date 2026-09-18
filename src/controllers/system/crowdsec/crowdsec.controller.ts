@@ -280,6 +280,12 @@ export class CrowdSecController extends Controller {
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
     const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
     const remoteCommunication = await this.getAgentCommunication();
+    if (installation.machineConnectivityPending) {
+      await centralCommunication.ping();
+      await centralCommunication.configureCrowdSecCentralLapi(
+        this.listenerUriForLapiUrl(installation.lapiUrl),
+      );
+    }
     const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
       machineName: installation.machineName,
       lapiUrl: installation.lapiUrl,
@@ -331,7 +337,46 @@ export class CrowdSecController extends Controller {
 
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
 
-    await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+    let centralLapiAgentAvailable = true;
+    try {
+      await centralCommunication.ping();
+      await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+    } catch {
+      centralLapiAgentAvailable = false;
+      if (req.body.continueWithoutLapiConnectivity !== true) {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec Machine installation requires confirmation because the central Local API agent is unreachable',
+          ),
+        );
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'end',
+            false,
+            'CrowdSec Machine installation is awaiting confirmation',
+          ),
+        );
+        return ResponseBuilder.buildResponse()
+          .status(200)
+          .body({
+            machine: { installation_state: 'connectivity_confirmation_required' },
+            connectivity_confirmation_required: true,
+            connectivity_confirmation_reason: 'central_agent_unreachable',
+          });
+      }
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'Central CrowdSec Local API agent is unreachable; continuing without central configuration or registration',
+        ),
+      );
+    }
     const machine = await remoteCommunication.installCrowdSecMachine(
       {
         machineName: req.body.machineName,
@@ -358,7 +403,12 @@ export class CrowdSecController extends Controller {
       });
     }
 
-    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(centralFirewall.id, true);
+    if (centralLapiAgentAvailable) {
+      await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
+        centralFirewall.id,
+        true,
+      );
+    }
     if (this.machineInstallationState(machine) === 'pending_connectivity') {
       this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
         this._firewall,

@@ -58,6 +58,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let configureCentralLapiStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
   let validateCrowdSecLapiMachineStub: sinon.SinonStub;
+  let centralPingStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -107,6 +108,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     configureCentralLapiStub = sinon
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
+    centralPingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
     validateCrowdSecLapiMachineStub = sinon
       .stub(centralCommunication, 'validateCrowdSecLapiMachine')
       .resolves({});
@@ -177,6 +179,29 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       connectivity_confirmation_required: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'connectivity_confirmation_required',
+        },
+      ],
+    });
+  });
+
+  it('should require confirmation when the central LAPI agent is unreachable', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine');
+    centralPingStub.rejects(new Error('Central agent is unavailable'));
+
+    const response = await controller.installMachine(request());
+
+    expect(configureCentralLapiStub.called).to.be.false;
+    expect(firstInstall.called).to.be.false;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      connectivity_confirmation_required: true,
+      connectivity_confirmation_reason: 'central_agent_unreachable',
       nodes: [
         {
           firewall_id: firstNode.id,

@@ -101,7 +101,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     (controller as any)._firewall.install_communication = FirewallInstallCommunication.Agent;
 
     sinon.stub(Firewall.prototype, 'getCommunication').resolves(communication);
-    pingStub = sinon.stub(communication, 'ping').resolves();
+    pingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
     saveStandaloneInstallationStub = sinon
@@ -591,6 +591,47 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(saveMachineInstallationStub.called).to.be.false;
     expect(validateStub.called).to.be.false;
     expect(activateStub.called).to.be.false;
+  });
+
+  it('should require confirmation when the central CrowdSec agent is unreachable', async () => {
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: 'https',
+      getCommunication: async () => centralCommunication,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    const configureStub = sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi');
+    const installStub = sinon.stub(communication, 'installCrowdSecMachine');
+    pingStub.rejects(new Error('Central agent is unavailable'));
+    sinon
+      .stub(Channel, 'fromRequest')
+      .resolves(new Channel('crowdsec-machine', new EventEmitter()));
+
+    const response = await controller.installMachine({
+      body: {
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: false,
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(response.toJSON().data).to.deep.equal({
+      machine: { installation_state: 'connectivity_confirmation_required' },
+      connectivity_confirmation_required: true,
+      connectivity_confirmation_reason: 'central_agent_unreachable',
+    });
+    expect(configureStub.called).to.be.false;
+    expect(installStub.called).to.be.false;
+    expect(saveMachineInstallationStub.called).to.be.false;
   });
 
   it('should persist a CrowdSec Machine pending connectivity only after explicit confirmation', async () => {

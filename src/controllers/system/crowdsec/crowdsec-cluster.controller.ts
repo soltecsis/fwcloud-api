@@ -105,8 +105,53 @@ export class CrowdSecClusterController extends Controller {
       'message',
       new ProgressPayload('start', false, 'Installing CrowdSec Machines in cluster nodes'),
     );
-    await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
     const results: ClusterMachineNodeResult[] = [];
+    let centralLapiAgentAvailable = true;
+    try {
+      await centralCommunication.ping();
+      await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+    } catch {
+      centralLapiAgentAvailable = false;
+      if (req.body.continueWithoutLapiConnectivity !== true) {
+        const firstNode = nodes[0];
+        results.push({
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: this.machineName(firstNode),
+          status: 'connectivity_confirmation_required',
+        });
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec Machine installation requires confirmation because the central Local API agent is unreachable',
+          ),
+        );
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'end',
+            false,
+            'CrowdSec Machine installation is awaiting confirmation',
+          ),
+        );
+        return ResponseBuilder.buildResponse().status(200).body({
+          completed: false,
+          connectivity_confirmation_required: true,
+          connectivity_confirmation_reason: 'central_agent_unreachable',
+          nodes: results,
+        });
+      }
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'Central CrowdSec Local API agent is unreachable; continuing without central configuration or registration',
+        ),
+      );
+    }
     let centralLapiEnabled = false;
 
     for (const node of nodes) {
@@ -150,7 +195,7 @@ export class CrowdSecClusterController extends Controller {
             nodes: results,
           });
         }
-        if (!centralLapiEnabled) {
+        if (centralLapiAgentAvailable && !centralLapiEnabled) {
           await installationRepository.setCentralLapiEnabled(centralFirewall.id, true);
           centralLapiEnabled = true;
         }
@@ -162,6 +207,7 @@ export class CrowdSecClusterController extends Controller {
             lapiUrl,
             machineName,
             localRemediation: req.body.localRemediation,
+            machineConnectivityPending: true,
           });
           results.push({
             firewall_id: node.id,
