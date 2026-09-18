@@ -65,6 +65,7 @@ import { AuditLogController } from '../controllers/audit/audit-log.controller';
 import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-archive-config.controller';
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
 import { CrowdSecController } from '../controllers/system/crowdsec/crowdsec.controller';
+import { CrowdSecClusterController } from '../controllers/system/crowdsec/crowdsec-cluster.controller';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -784,6 +785,15 @@ export class Routes extends RouteCollection {
                 });
               });
             });
+          });
+
+          router.prefix('/clusters/:cluster/system/crowdsec', (router: RouterParser) => {
+            router
+              .post('/machines/install', CrowdSecClusterController, 'installMachine')
+              .name('fwclouds.clusters.system.crowdsec.machines.install');
+            router
+              .get('/collections', CrowdSecClusterController, 'collections')
+              .name('fwclouds.clusters.system.crowdsec.collections.index');
           });
 
           //Firewalls

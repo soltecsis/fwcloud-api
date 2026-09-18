@@ -78,6 +78,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let hasOtherMachineDependentsStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
   let removeMachineInstallationStub: sinon.SinonStub;
+  let pingStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -100,6 +101,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     (controller as any)._firewall.install_communication = FirewallInstallCommunication.Agent;
 
     sinon.stub(Firewall.prototype, 'getCommunication').resolves(communication);
+    pingStub = sinon.stub(communication, 'ping').resolves();
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
     saveStandaloneInstallationStub = sinon
@@ -1934,9 +1936,49 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(removeBouncerStub.called).to.be.false;
+    expect(pingStub.calledBefore(removeMachineStub)).to.be.true;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(uninstallStub.calledOnceWithExactly(true, channel)).to.be.true;
     expect(removeMachineStub.calledBefore(uninstallStub)).to.be.true;
+  });
+
+  it('should not remove a central Machine when the remote agent cannot be reached', async () => {
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => centralCommunication,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+      }),
+    );
+    const removeMachineStub = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec');
+    pingStub.rejects(new Error('Agent is unavailable'));
+
+    await expect(
+      controller.uninstall({
+        body: { confirm: true },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith('Agent is unavailable');
+
+    expect(removeMachineStub.called).to.be.false;
+    expect(uninstallStub.called).to.be.false;
+    expect(removeInstallationStub.called).to.be.false;
   });
 
   it('should reject CrowdSec operations when the firewall uses SSH', async () => {

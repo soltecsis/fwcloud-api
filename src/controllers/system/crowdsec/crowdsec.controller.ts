@@ -1222,6 +1222,9 @@ export class CrowdSecController extends Controller {
       );
     }
 
+    const communication = await this.getAgentCommunication();
+    await communication.ping();
+
     if (
       installation?.mode === CrowdSecInstallationMode.Machine &&
       installation.centralFirewallId !== null &&
@@ -1235,9 +1238,7 @@ export class CrowdSecController extends Controller {
     const channel = await Channel.fromRequest(req);
     channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
 
-    const result = await (
-      await this.getAgentCommunication()
-    ).uninstallCrowdSec(req.body.confirm, channel);
+    const result = await communication.uninstallCrowdSec(req.body.confirm, channel);
     this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
       this._firewall,
       false,
