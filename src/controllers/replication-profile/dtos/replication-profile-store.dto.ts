@@ -343,6 +343,11 @@ export class ReplicationProfileStoreModelDto {
   @IsOptional()
   @IsObject()
   sourceRef?: Record<string, unknown>;
+
+  /** CAs, certificates and VPN connections, template-only. Checked by ReplicationProfileValidationService. */
+  @IsOptional()
+  @IsObject()
+  vpnTemplate?: Record<string, unknown>;
 }
 
 export class ReplicationProfileVersionStoreDto {

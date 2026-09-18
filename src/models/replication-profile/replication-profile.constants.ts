@@ -74,6 +74,32 @@ export const REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND: Record<ReplicationProfileOb
     host: REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
   };
 
+export type ReplicationProfileVpnProtocol = 'openvpn' | 'wireguard' | 'ipsec';
+
+/**
+ * "ipobj.type" ids a VPN client config is checked against in ipobj_type__policy_position (a client
+ * is Source/Destination only; the matching server type has no rule position and is never used
+ * here). See app-options.service.ts's ObjectTypes on the UI side for the same values.
+ */
+export const REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL: Record<
+  ReplicationProfileVpnProtocol,
+  number
+> = {
+  openvpn: 311,
+  wireguard: 321,
+  ipsec: 331,
+};
+
+/**
+ * A VPN template connection's real, already-created config: id plus which protocol it is. Shared
+ * between profile-vpn-config-provisioning.service.ts (which creates these) and
+ * policy-replication.service.ts (which resolves a rule's VPN client reference against them).
+ */
+export interface ResolvedVpnConfig {
+  id: number;
+  protocol: ReplicationProfileVpnProtocol;
+}
+
 export function isReplicationProfileIpVersion(
   value: unknown,
 ): value is ReplicationProfileIpVersion {

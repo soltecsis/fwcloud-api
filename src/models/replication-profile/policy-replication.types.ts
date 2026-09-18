@@ -139,7 +139,8 @@ export function isStandardProvisionService(
  * rule says "only the addresses of my own LAN" without naming them.
  */
 export interface PolicyReplicationProvisionObject {
-  kind: 'address' | 'network' | 'range' | 'host' | 'interfaceRole' | 'std' | 'stdGroup';
+  kind:
+    'address' | 'network' | 'range' | 'host' | 'interfaceRole' | 'std' | 'stdGroup' | 'vpnClient';
   /** Address/network/range literal or { param } reference. Unused for the other kinds. */
   value?: PolicyReplicationValueRef;
   /** Interface role, when kind is 'interfaceRole'. */
@@ -147,6 +148,15 @@ export interface PolicyReplicationProvisionObject {
   /** Fixed id of a predefined FWCloud object or group, when kind is 'std' or 'stdGroup'. */
   id?: number;
   name?: string;
+  /**
+   * The template's own connection id, when kind is 'vpnClient' — a VPN client carries no address of
+   * its own here (unlike every other kind, which is a literal or a { param } reference): it is
+   * resolved later, in policy-replication.service.ts, against that connection's real, already-created
+   * config (see ProvisionOptions.vpnConfigIds there), because a VPN client is referenced in a rule
+   * through its own relation table (policy_r__openvpn and its WireGuard/IPsec equivalents), never as
+   * a plain address/network object.
+   */
+  vpnId?: string;
 }
 
 export interface PolicyReplicationProvisionRule {
@@ -730,6 +740,15 @@ function parseProvisionObject(
     const role = firstNonEmptyString(record, ['role', 'value', 'name', 'ref', 'label']);
 
     return role ? { kind: 'interfaceRole', role: ensureInterface(role) } : null;
+  }
+
+  // A VPN client is Source/Destination only, never an interface role. It is resolved against its
+  // real, already-created config downstream (see PolicyReplicationProvisionObject.vpnId), not here:
+  // there is no address to parse yet at this point, unlike every other kind.
+  if (type === 'vpnclient') {
+    const vpnId = firstNonEmptyString(record, ['vpnId', 'vpnid']);
+
+    return vpnId ? { kind: 'vpnClient', vpnId, name } : null;
   }
 
   const objectValue = firstValueOrParamRef(record, ['value', 'address', 'cidr', 'network', 'ip']);

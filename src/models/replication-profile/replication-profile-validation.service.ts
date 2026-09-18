@@ -3,6 +3,7 @@ import { ErrorPayload } from '../../fonaments/http/response-builder';
 import { Service } from '../../fonaments/services/service';
 import { IsRoutingTableNumberConstraint } from '../../fonaments/validation/rules/is-routing-table-number.validation';
 import { findSecretLikePaths } from './replication-profile-secret.guard';
+import { validateProfileVpnTemplate } from './replication-profile-vpn.validation';
 import {
   asReplicationProfileRecord,
   asReplicationProfileNonEmptyString,
@@ -225,6 +226,16 @@ class ReplicationProfileDefinitionValidator {
     this.validateCompatibility(model, rootTargetKind, errors);
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
+    if (model.vpnTemplate !== undefined) {
+      for (const issue of validateProfileVpnTemplate(model.vpnTemplate)) {
+        this.addError(
+          errors,
+          `vpn_${issue.code}`,
+          `Invalid VPN template: ${issue.code}.`,
+          issue.path,
+        );
+      }
+    }
 
     if (rootTargetKind === 'cluster') {
       this.validateClusterTopology(model, errors);
@@ -1144,6 +1155,21 @@ class ReplicationProfileDefinitionValidator {
       if (kind === 'interfacerole' || type === 'interface' || type === 'interfacerole') {
         const role = record.role ?? record.value ?? record.name ?? record.ref ?? record.label;
         this.validateInterfaceRoleValue(role, `${itemPath}.role`, interfaceRoles, errors);
+        return;
+      }
+
+      // normalizeProfileVpnRuleParameters() rewrites a VPN client reference into this shape (no
+      // address value of its own: it carries the connection's own id/name instead, and is resolved
+      // to a real address via vpnRuntime only when the model is provisioned).
+      if (kind === 'vpnclient' || type === 'vpnclient') {
+        if (typeof record.vpnId !== 'string' && typeof record.name !== 'string') {
+          this.addError(
+            errors,
+            'invalid_rule_object',
+            "A VPN client reference must carry the connection's vpnId or name.",
+            itemPath,
+          );
+        }
         return;
       }
 
