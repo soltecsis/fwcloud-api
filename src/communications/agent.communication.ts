@@ -1345,14 +1345,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async createCrowdSecLapiPreflightToken(machineName: string): Promise<Record<string, unknown>> {
-    try {
-      return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/preflight-tokens', {
-        machine_name: machineName,
-      });
-    } catch (error) {
-      this.handleCrowdSecRequestException(error);
-    }
+  async createCrowdSecLapiPreflightToken(_machineName: string): Promise<Record<string, unknown>> {
+    throw new HttpException('CrowdSec Local API preflight tokens are no longer supported', 410);
   }
 
   async installCrowdSecMachine(
@@ -1366,9 +1360,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           mode: 'machine',
           machine_name: installation.machineName,
           lapi_url: installation.lapiUrl,
-          central_agent_url: installation.centralAgentUrl,
-          central_agent_tls_fingerprint: installation.centralAgentTlsFingerprint,
-          preflight_token: installation.preflightToken,
+          ...(installation.continueWithoutLapiConnectivity === true
+            ? { continue_without_lapi_connectivity: true }
+            : {}),
         },
         eventEmitter,
       );
@@ -1409,9 +1403,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         {
           machine_name: reauthentication.machineName,
           lapi_url: reauthentication.lapiUrl,
-          central_agent_url: reauthentication.centralAgentUrl,
-          central_agent_tls_fingerprint: reauthentication.centralAgentTlsFingerprint,
-          preflight_token: reauthentication.preflightToken,
         },
         eventEmitter,
       );
@@ -1518,15 +1509,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           target: this.crowdSecTransitionTarget(transition.target),
           authority_changed: transition.authorityChanged,
           ...(transition.backend === undefined ? {} : { backend: transition.backend }),
-          ...(transition.preflight === undefined
-            ? {}
-            : {
-                preflight: {
-                  central_agent_url: transition.preflight.centralAgentUrl,
-                  central_agent_tls_fingerprint: transition.preflight.centralAgentTlsFingerprint,
-                  preflight_token: transition.preflight.preflightToken,
-                },
-              }),
         },
         eventEmitter,
       );

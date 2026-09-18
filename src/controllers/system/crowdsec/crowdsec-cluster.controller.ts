@@ -107,7 +107,6 @@ export class CrowdSecClusterController extends Controller {
     );
     await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
     await installationRepository.setCentralLapiEnabled(centralFirewall.id, true);
-    const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
     const results: ClusterMachineNodeResult[] = [];
 
     for (const node of nodes) {
@@ -120,16 +119,10 @@ export class CrowdSecClusterController extends Controller {
       try {
         await this.assertCanBecomeMachine(node, installationRepository);
         const remoteCommunication = await this.agentCommunication(node, false);
-        const preflightToken = this.preflightToken(
-          await centralCommunication.createCrowdSecLapiPreflightToken(machineName),
-        );
         await remoteCommunication.installCrowdSecMachine(
           {
             machineName,
             lapiUrl,
-            centralAgentUrl: centralCommunication.getUrl(),
-            centralAgentTlsFingerprint,
-            preflightToken,
           },
           channel,
         );
@@ -360,13 +353,6 @@ export class CrowdSecClusterController extends Controller {
     const url = new URL(lapiUrl);
     const host = isIP(url.hostname.replace(/^\[|\]$/g, '')) === 6 ? '[::]' : '0.0.0.0';
     return `${host}:${url.port}`;
-  }
-
-  private preflightToken(response: Record<string, unknown>): string {
-    if (typeof response.token !== 'string' || response.token.length === 0) {
-      throw new HttpException('Unable to create CrowdSec Local API preflight token', 502);
-    }
-    return response.token;
   }
 
   private bouncerApiKey(response: Record<string, unknown>): string {

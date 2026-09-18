@@ -373,10 +373,9 @@ describe(AgentCommunication.name, () => {
 
       await agent.configureCrowdSecCentralLapi('0.0.0.0:8080');
       await agent.validateCrowdSecLapiMachine('fwcloud-machine-01');
-      await agent.createCrowdSecLapiPreflightToken('fwcloud-machine-01');
       await agent.removeCrowdSecLapiMachine('fwcloud-machine-01');
 
-      expect(postStub.callCount).to.equal(3);
+      expect(postStub.callCount).to.equal(2);
       expect(postStub.firstCall.args[0]).to.equal(
         'http://host:0/api/v1/crowdsec/lapi/central/configure',
       );
@@ -384,21 +383,17 @@ describe(AgentCommunication.name, () => {
       expect(postStub.secondCall.args[0]).to.equal(
         'http://host:0/api/v1/crowdsec/lapi/machines/fwcloud-machine-01/validate',
       );
-      expect(postStub.thirdCall.args[1]).to.deep.equal({ machine_name: 'fwcloud-machine-01' });
       expect(deleteStub.firstCall.args[0]).to.equal(
         'http://host:0/api/v1/crowdsec/lapi/machines/fwcloud-machine-01',
       );
     });
 
-    it('should install a remote CrowdSec machine with the private preflight contract', async () => {
+    it('should install a remote CrowdSec machine with the direct LAPI contract', async () => {
       const stub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
 
       await agent.installCrowdSecMachine({
         machineName: 'fwcloud-machine-01',
         lapiUrl: 'http://192.0.2.10:8080',
-        centralAgentUrl: 'https://192.0.2.10:33033',
-        centralAgentTlsFingerprint: 'AA:BB',
-        preflightToken: 'preflight-secret',
       });
 
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
@@ -406,9 +401,6 @@ describe(AgentCommunication.name, () => {
         mode: 'machine',
         machine_name: 'fwcloud-machine-01',
         lapi_url: 'http://192.0.2.10:8080',
-        central_agent_url: 'https://192.0.2.10:33033',
-        central_agent_tls_fingerprint: 'AA:BB',
-        preflight_token: 'preflight-secret',
       });
     });
 

@@ -441,12 +441,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const configureStub = sinon
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
-    const tokenStub = sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
-    const fingerprintStub = sinon
-      .stub(centralCommunication, 'getTlsCertificateFingerprint')
-      .resolves('a'.repeat(64));
     const installStub = sinon.stub(communication, 'installCrowdSecMachine').resolves({
       machine_name: 'fwcloud-machine-01',
       state: 'pending',
@@ -481,16 +475,11 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       }),
     ).to.be.true;
     expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
-    expect(tokenStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
-    expect(fingerprintStub.calledOnce).to.be.true;
     expect(
       installStub.calledOnceWithExactly(
         {
           machineName: 'fwcloud-machine-01',
           lapiUrl: 'http://192.0.2.20:8080',
-          centralAgentUrl: 'https://192.0.2.20:33033',
-          centralAgentTlsFingerprint: 'a'.repeat(64),
-          preflightToken: 'preflight-token',
         },
         channel,
       ),
@@ -714,8 +703,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(prepareStub.calledOnce).to.be.true;
     expect(activateStub.calledOnce).to.be.true;
     expect(finalizeStub.calledOnce).to.be.true;
-    expect(preflightTokenStub.callCount).to.equal(2);
-    expect(preflightTokenStub.alwaysCalledWithExactly('fwcloud-machine-01')).to.be.true;
     expect(
       hasOtherMachineDependentsStub.calledOnceWithExactly(
         centralFirewall.id,
@@ -854,7 +841,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
-    expect(preflightTokenStub.callCount).to.equal(2);
     expect(preflightStub.calledOnce).to.be.true;
     expect(prepareStub.calledOnce).to.be.true;
     expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
@@ -995,7 +981,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(preflightTokenStub.callCount).to.equal(2);
     expect(prepareStub.calledOnce).to.be.true;
     expect(registerBouncerStub.called).to.be.false;
     expect(

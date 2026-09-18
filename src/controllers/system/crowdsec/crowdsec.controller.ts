@@ -279,16 +279,9 @@ export class CrowdSecController extends Controller {
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
     const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
     const remoteCommunication = await this.getAgentCommunication();
-    const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
-    const preflight = await centralCommunication.createCrowdSecLapiPreflightToken(
-      installation.machineName,
-    );
     const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
       machineName: installation.machineName,
       lapiUrl: installation.lapiUrl,
-      centralAgentUrl: centralCommunication.getUrl(),
-      centralAgentTlsFingerprint,
-      preflightToken: this.preflightToken(preflight),
     });
     const validation = await centralCommunication.validateCrowdSecLapiMachine(
       installation.machineName,
@@ -317,18 +310,10 @@ export class CrowdSecController extends Controller {
 
     await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
     await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(centralFirewall.id, true);
-    const centralAgentTlsFingerprint = await centralCommunication.getTlsCertificateFingerprint();
-    const preflight = await centralCommunication.createCrowdSecLapiPreflightToken(
-      req.body.machineName,
-    );
-    const preflightToken = this.preflightToken(preflight);
     const machine = await remoteCommunication.installCrowdSecMachine(
       {
         machineName: req.body.machineName,
         lapiUrl,
-        centralAgentUrl: centralCommunication.getUrl(),
-        centralAgentTlsFingerprint,
-        preflightToken,
       },
       channel,
     );
@@ -472,13 +457,6 @@ export class CrowdSecController extends Controller {
       },
       authorityChanged: false,
       backend,
-      preflight: {
-        centralAgentUrl: centralCommunication.getUrl(),
-        centralAgentTlsFingerprint: await centralCommunication.getTlsCertificateFingerprint(),
-        preflightToken: this.preflightToken(
-          await centralCommunication.createCrowdSecLapiPreflightToken(installation.machineName),
-        ),
-      },
     };
 
     let listenerChanged = false;
@@ -500,18 +478,7 @@ export class CrowdSecController extends Controller {
         );
       }
       const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
-      const preparation = await remoteCommunication.prepareCrowdSecTransition(
-        {
-          ...transition,
-          preflight: {
-            ...transition.preflight,
-            preflightToken: this.preflightToken(
-              await centralCommunication.createCrowdSecLapiPreflightToken(installation.machineName),
-            ),
-          },
-        },
-        channel,
-      );
+      const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       const activation = await remoteCommunication.activateCrowdSecTransition(
         { transitionId },
         channel,
@@ -618,15 +585,6 @@ export class CrowdSecController extends Controller {
       },
       authorityChanged: true,
       backend,
-      preflight: {
-        centralAgentUrl: targetCentralCommunication.getUrl(),
-        centralAgentTlsFingerprint: await targetCentralCommunication.getTlsCertificateFingerprint(),
-        preflightToken: this.preflightToken(
-          await targetCentralCommunication.createCrowdSecLapiPreflightToken(
-            installation.machineName,
-          ),
-        ),
-      },
     };
     let prepared = false;
     let activated = false;
@@ -636,20 +594,7 @@ export class CrowdSecController extends Controller {
         new ProgressPayload('start', false, 'Moving CrowdSec Machine to a new Local API'),
       );
       const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
-      const preparation = await remoteCommunication.prepareCrowdSecTransition(
-        {
-          ...transition,
-          preflight: {
-            ...transition.preflight,
-            preflightToken: this.preflightToken(
-              await targetCentralCommunication.createCrowdSecLapiPreflightToken(
-                installation.machineName,
-              ),
-            ),
-          },
-        },
-        channel,
-      );
+      const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
       const validation = await targetCentralCommunication.validateCrowdSecLapiMachine(
         installation.machineName,
@@ -781,13 +726,6 @@ export class CrowdSecController extends Controller {
       },
       authorityChanged: false,
       backend,
-      preflight: {
-        centralAgentUrl: centralCommunication.getUrl(),
-        centralAgentTlsFingerprint: await centralCommunication.getTlsCertificateFingerprint(),
-        preflightToken: this.preflightToken(
-          await centralCommunication.createCrowdSecLapiPreflightToken(installation.machineName),
-        ),
-      },
     };
     let prepared = false;
     let activated = false;
@@ -797,18 +735,7 @@ export class CrowdSecController extends Controller {
         new ProgressPayload('start', false, 'Changing CrowdSec local remediation'),
       );
       const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
-      const preparation = await remoteCommunication.prepareCrowdSecTransition(
-        {
-          ...transition,
-          preflight: {
-            ...transition.preflight,
-            preflightToken: this.preflightToken(
-              await centralCommunication.createCrowdSecLapiPreflightToken(installation.machineName),
-            ),
-          },
-        },
-        channel,
-      );
+      const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
       const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
       const bouncerApiKey = req.body.localRemediation
@@ -919,13 +846,6 @@ export class CrowdSecController extends Controller {
         },
         authorityChanged: true,
         backend,
-        preflight: {
-          centralAgentUrl: centralCommunication.getUrl(),
-          centralAgentTlsFingerprint: await centralCommunication.getTlsCertificateFingerprint(),
-          preflightToken: this.preflightToken(
-            await centralCommunication.createCrowdSecLapiPreflightToken(req.body.machineName),
-          ),
-        },
       };
       let prepared = false;
       let activated = false;
@@ -943,15 +863,7 @@ export class CrowdSecController extends Controller {
           channel,
         );
         const preparation = await remoteCommunication.prepareCrowdSecTransition(
-          {
-            ...transition,
-            preflight: {
-              ...transition.preflight,
-              preflightToken: this.preflightToken(
-                await centralCommunication.createCrowdSecLapiPreflightToken(req.body.machineName),
-              ),
-            },
-          },
+          transition,
           channel,
         );
         prepared = true;
@@ -1416,14 +1328,6 @@ export class CrowdSecController extends Controller {
     const url = new URL(lapiUrl);
     const host = isIP(url.hostname.replace(/^\[|\]$/g, '')) === 6 ? '[::]' : '0.0.0.0';
     return `${host}:${url.port}`;
-  }
-
-  private preflightToken(response: Record<string, unknown>): string {
-    if (typeof response.token !== 'string' || response.token.length === 0) {
-      throw new HttpException('Unable to create CrowdSec Local API preflight token', 502);
-    }
-
-    return response.token;
   }
 
   private bouncerApiKey(response: Record<string, unknown>): string {
