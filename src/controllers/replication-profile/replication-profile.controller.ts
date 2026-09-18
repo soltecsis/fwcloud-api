@@ -30,6 +30,7 @@ import {
 } from '../../models/replication-profile/replication-profile.service';
 import type { ReplicationProfileValidationError } from '../../models/replication-profile/replication-profile-validation.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
+import { normalizeProfileVpnRuleParameters } from '../../models/replication-profile/replication-profile-vpn-parameters';
 import type {
   PolicyReplicationMode,
   PolicyReplicationRequest,
@@ -39,6 +40,7 @@ import { loadReplicationProfileStandardCatalog } from '../../models/replication-
 import type { Authorization } from '../../fonaments/authorization/policy';
 import { ReplicationProfileResponseDto } from './dtos/replication-profile-response.dto';
 import { ReplicationProfileApplyDto } from './dtos/replication-profile-apply.dto';
+import { ReplicationProfileProvisionVpnDto } from './dtos/replication-profile-provision-vpn.dto';
 import {
   ReplicationProfileCloneDto,
   ReplicationProfileStoreDto,
@@ -312,6 +314,42 @@ export class ReplicationProfileController extends Controller {
         parameters: body.parameters,
         interfaceNameMapping: body.interfaceNameMapping,
         credentials: body.credentials,
+        vpnConnectionIds: body.vpnConnectionIds,
+      },
+    );
+
+    return ResponseBuilder.buildResponse()
+      .status(result.errors.length > 0 ? 422 : 200)
+      .body(result);
+  }
+
+  /**
+   * Creates a provisioning profile's VPN template for real (CAs, certificates and configs), ahead
+   * of the final `apply`. Used by the apply wizard so its VPN step drives the exact same VPN panels
+   * a user would use interactively, with a real certificate already attached, instead of a
+   * simulated preview. See ProfileApplicationService.provisionVpn().
+   */
+  @Validate(ReplicationProfileProvisionVpnDto)
+  public async provisionVpn(request: Request): Promise<ResponseBuilder> {
+    const version = this.parseVersionParam(request);
+    const body = request.body as ReplicationProfileProvisionVpnDto;
+
+    const profileApplicationService = await this.profileApplicationService();
+    const result = await profileApplicationService.provisionVpn(
+      {
+        user: request.session.user,
+        sessionId: AuditLogHelper.resolveSessionId(request),
+        sourceIp: request.ip ?? null,
+      },
+      {
+        fwCloudId: this._fwCloud.id,
+        profileCode: String(request.params.code),
+        profileVersion: version,
+        replication: {
+          target: { kind: body.target.kind as ReplicationProfileTargetKind, id: body.target.id },
+          mode: 'replace_defaults',
+        },
+        parameters: body.parameters,
       },
     );
 
@@ -581,7 +619,7 @@ export class ReplicationProfileController extends Controller {
       scope: profile.scope,
       category: profile.category,
       targetKind: profile.targetKind,
-      model: profile.model,
+      model: normalizeProfileVpnRuleParameters(profile.model),
       isBuiltin: profile.isBuiltin,
       isCustom,
       isActive: profile.isActive,

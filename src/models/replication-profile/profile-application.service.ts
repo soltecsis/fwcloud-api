@@ -38,10 +38,24 @@ import {
 } from './policy-replication.types';
 import {
   getProfileParameters,
+  resolveParameterValues,
   ReplicationProfileParameterValues,
 } from './replication-profile-parameters';
 import { ReplicationProfile } from './replication-profile.model';
 import { ReplicationProfileService } from './replication-profile.service';
+import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-parameters';
+import {
+  ProfileVpnCaTemplate,
+  ProfileVpnCertificateTemplate,
+  provisionVpnTemplatePki,
+} from './profile-vpn-pki-provisioning.service';
+import { ProfileVpnRollback } from './profile-vpn-rollback';
+import {
+  ProfileVpnConnectionTemplate,
+  provisionVpnTemplateConfigs,
+  resolveVpnConnectionValues,
+} from './profile-vpn-config-provisioning.service';
+import { ResolvedVpnConfig } from './replication-profile.constants';
 
 export const PROFILE_APPLICATION_AUDIT_CALL = 'profiles.apply';
 
@@ -72,6 +86,14 @@ export interface ProfileApplicationRequest {
   /** Provisioning only: role → name of an existing target interface to bind to it. */
   interfaceNameMapping?: Record<string, string>;
   /**
+   * Provisioning only, VPN templates: template connection id -> the real config id the apply
+   * wizard already created for it, through the normal VPN panels, before reaching this step. When
+   * supplied, this profile's own CA/certificate/VPN-config creation is skipped entirely (it was
+   * already done, for real, exactly like an interactive VPN creation would); when absent, they are
+   * created here in one batch from the template's declared values, as before.
+   */
+  vpnConnectionIds?: Record<string, number>;
+  /**
    * Transient runtime credentials of the wizard execution flow. They are
    * discarded after the operation: never persisted nor written to audit logs.
    */
@@ -82,6 +104,12 @@ interface TargetInfo {
   kind: 'firewall' | 'cluster';
   id: number;
   name: string;
+}
+
+export interface ProfileVpnProvisionResult {
+  /** Template connection id -> the real config id just created for it. */
+  connectionIds: Record<string, number>;
+  errors: string[];
 }
 
 /**
@@ -126,25 +154,30 @@ export class ProfileApplicationService extends Service {
     const startedAt = new Date();
     let profile: ReplicationProfile | null = null;
     let target: TargetInfo | null = null;
+    const vpnRollback = new ProfileVpnRollback();
 
     try {
-      const fwCloud = await this.manager
-        .getRepository(FwCloud)
-        .findOne({ where: { id: request.fwCloudId } });
-
-      if (!fwCloud) {
-        throw new NotFoundException(`FWCloud ${request.fwCloudId} not found`);
-      }
-
-      (await ReplicationProfilePolicy.apply(actor.user, fwCloud)).authorize();
+      await this.authorizeApplication(actor, request.fwCloudId);
 
       profile = await this.loadUsableProfile(request);
       target = await this.validateTarget(request);
 
-      const provision = getProfileProvisioning(profile.model);
+      const model = normalizeProfileVpnRuleParameters(profile.model);
+      const provision = getProfileProvisioning(model);
       let result: PolicyReplicationResult;
 
       if (provision) {
+        // The template's CAs/certificates have no keys of their own; a real firewall generates its
+        // own when the profile is applied. A dry run must not create them (or anything else) for real.
+        const vpnPkiErrors: string[] = [];
+        let vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined;
+
+        if (request.replication.mode !== 'dry_run') {
+          const resourced = await this.provisionVpnResources(request, model, target, vpnRollback);
+          vpnConfigIds = resourced.vpnConfigIds;
+          vpnPkiErrors.push(...resourced.errors);
+        }
+
         // Declarative profile: create interfaces/policy on the target; no source firewall needed.
         result = await this._policyReplicationService.provisionPolicyFromProfile(
           request.replication.target,
@@ -152,14 +185,16 @@ export class ProfileApplicationService extends Service {
           request.fwCloudId,
           request.replication.mode,
           {
-            parameters: getProfileParameters(profile.model),
+            parameters: getProfileParameters(model),
             parameterValues: request.parameters,
             profileCode: profile.code,
             profileVersion: profile.version,
             interfaceNameMapping: request.interfaceNameMapping,
             nodeRoleMapping: request.replication.nodeRoleMapping,
+            vpnConfigIds,
           },
         );
+        result.errors.push(...vpnPkiErrors);
       } else {
         await this.validateSourceFirewall(request);
         result = await this._policyReplicationService.replicatePolicyFromProfile({
@@ -168,14 +203,198 @@ export class ProfileApplicationService extends Service {
         });
       }
 
+      if (result.errors.length || (request.replication.mode !== 'dry_run' && !result.applied)) {
+        await vpnRollback.rollback(result.errors);
+        result.applied = false;
+      }
       await this.auditAttempt(actor, request, profile, target, startedAt, result);
 
       return result;
     } catch (error) {
-      await this.auditAttempt(actor, request, profile, target, startedAt, null, error);
+      const failure = await this.rollbackVpnFailure(vpnRollback, error);
+      await this.auditAttempt(actor, request, profile, target, startedAt, null, failure);
 
-      throw error;
+      throw failure;
     }
+  }
+
+  /**
+   * Creates a profile's VPN template for real (CAs, certificates and configs) ahead of the final
+   * `apply()` call, so the apply wizard can drive the exact same VPN panels a user would use
+   * interactively — with a real, already-created certificate to attach the config to — instead of
+   * a simulated preview. `apply()` itself calls this too (see provisionVpnResources()); this public
+   * entry point exists so the wizard can call it as its own step, before the target's policy exists.
+   *
+   * Ignores `request.replication.mode`: this always creates real resources (there is no "preview"
+   * form of "create a VPN configuration"), unlike apply() itself.
+   */
+  public async provisionVpn(
+    actor: ProfileApplicationActor,
+    request: ProfileApplicationRequest,
+  ): Promise<ProfileVpnProvisionResult> {
+    const startedAt = new Date();
+    let profile: ReplicationProfile | null = null;
+    let target: TargetInfo | null = null;
+    const vpnRollback = new ProfileVpnRollback();
+
+    try {
+      await this.authorizeApplication(actor, request.fwCloudId);
+
+      profile = await this.loadUsableProfile(request);
+      target = await this.validateTarget(request);
+
+      const model = normalizeProfileVpnRuleParameters(profile.model);
+      const { vpnConfigIds, errors } = await this.provisionVpnResources(
+        request,
+        model,
+        target,
+        vpnRollback,
+      );
+
+      if (errors.length) {
+        await vpnRollback.rollback(errors);
+      }
+
+      const connectionIds: Record<string, number> = {};
+      vpnConfigIds?.forEach((config, connectionId) => {
+        connectionIds[connectionId] = config.id;
+      });
+
+      await this.auditAttempt(
+        actor,
+        request,
+        profile,
+        target,
+        startedAt,
+        this.emptyPolicyReplicationResult(errors),
+      );
+
+      return { connectionIds, errors };
+    } catch (error) {
+      const failure = await this.rollbackVpnFailure(vpnRollback, error);
+      await this.auditAttempt(actor, request, profile, target, startedAt, null, failure);
+
+      throw failure;
+    }
+  }
+
+  private async authorizeApplication(
+    actor: ProfileApplicationActor,
+    fwCloudId: number,
+  ): Promise<void> {
+    const fwCloud = await this.manager.getRepository(FwCloud).findOne({ where: { id: fwCloudId } });
+    if (!fwCloud) {
+      throw new NotFoundException(`FWCloud ${fwCloudId} not found`);
+    }
+    (await ReplicationProfilePolicy.apply(actor.user, fwCloud)).authorize();
+  }
+
+  private async rollbackVpnFailure(rollback: ProfileVpnRollback, error: unknown): Promise<unknown> {
+    const cleanupErrors: string[] = [];
+    await rollback.rollback(cleanupErrors);
+    return cleanupErrors.length
+      ? new HttpException(
+          `${this.errorMessageOf(error)} | ${cleanupErrors.join(' | ')}`,
+          error instanceof HttpException ? error.status : 500,
+        )
+      : error;
+  }
+
+  /**
+   * The actual VPN CA/certificate/config creation, shared by apply() and provisionVpn(). Returns
+   * the real config id of every connection it could resolve — either because request.vpnConnectionIds
+   * already supplied it (the wizard created it earlier, via provisionVpn()) or because it was just
+   * created here from the template's own declared values (the non-wizard / API-only path).
+   */
+  private async provisionVpnResources(
+    request: ProfileApplicationRequest,
+    model: unknown,
+    target: TargetInfo | null,
+    vpnRollback: ProfileVpnRollback,
+  ): Promise<{ vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined; errors: string[] }> {
+    const errors: string[] = [];
+    const vpnTemplate = (
+      model as {
+        vpnTemplate?: {
+          cas?: ProfileVpnCaTemplate[];
+          certificates?: ProfileVpnCertificateTemplate[];
+          connections?: ProfileVpnConnectionTemplate[];
+        };
+        vpnRuntime?: unknown;
+      }
+    ).vpnTemplate;
+
+    if (!vpnTemplate) {
+      return { vpnConfigIds: undefined, errors };
+    }
+
+    if (request.vpnConnectionIds) {
+      // The apply wizard already created these for real, through the normal VPN panels, before
+      // reaching this step — nothing left to provision here, just look them up.
+      const vpnConfigIds = new Map<string, ResolvedVpnConfig>();
+
+      for (const connection of vpnTemplate.connections ?? []) {
+        const realId = request.vpnConnectionIds[connection.id];
+
+        if (realId !== undefined) {
+          vpnConfigIds.set(connection.id, { id: realId, protocol: connection.kind });
+        }
+      }
+
+      return { vpnConfigIds, errors };
+    }
+
+    // Validate inputs before generating keys or inserting PKI rows.
+    const parameterValues = resolveParameterValues(getProfileParameters(model), request.parameters);
+    const dbQuery = db.getQuery();
+    const pki = await provisionVpnTemplatePki(
+      dbQuery,
+      request.fwCloudId,
+      vpnTemplate.cas ?? [],
+      vpnTemplate.certificates ?? [],
+      errors,
+      vpnRollback,
+    );
+
+    // Real VPN configurations (as opposed to just their CA/certificates) are only created for a
+    // single firewall: a cluster's VPN topology (which node(s) actually run each server) is a
+    // product decision this profile format does not capture yet.
+    if (target?.kind !== 'firewall' || !vpnTemplate.connections?.length) {
+      return { vpnConfigIds: undefined, errors };
+    }
+
+    const resolvedVpnValues = resolveVpnConnectionValues(
+      (model as { vpnRuntime?: unknown }).vpnRuntime,
+      parameterValues,
+    );
+
+    const vpnConfigIds = await provisionVpnTemplateConfigs(
+      dbQuery,
+      request.fwCloudId,
+      target.id,
+      vpnTemplate.connections,
+      pki,
+      resolvedVpnValues,
+      errors,
+    );
+
+    return { vpnConfigIds, errors };
+  }
+
+  /** A result shape with nothing but the given errors, for auditAttempt()'s summary. */
+  private emptyPolicyReplicationResult(errors: string[]): PolicyReplicationResult {
+    return {
+      mode: 'replace_defaults',
+      applied: errors.length === 0,
+      createdRules: [],
+      createdGroups: [],
+      resolvedReferences: [],
+      removedDefaultRules: [],
+      skippedRules: [],
+      conflicts: [],
+      warnings: [],
+      errors,
+    };
   }
 
   /**

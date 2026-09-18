@@ -44,6 +44,7 @@ import {
 import {
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
+  REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL,
   REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
   REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
   REPLICATION_PROFILE_IPOBJ_TYPE_INTERFACE,
@@ -54,6 +55,7 @@ import {
   ReplicationProfileIpVersion,
   ReplicationProfileObjectKind,
   ReplicationProfileRuleChain,
+  ResolvedVpnConfig,
 } from './replication-profile.constants';
 import {
   isPolicyReplicationMode,
@@ -98,6 +100,14 @@ export interface ProvisionOptions {
    * e.g. { lan: 'eth1' }. They are bound instead of creating the profile interface.
    */
   interfaceNameMapping?: Record<string, string>;
+  /**
+   * Template VPN connection id -> its real, already-created config. Populated either by
+   * profile-application.service.ts's own PKI/VPN provisioning, or supplied directly when the apply
+   * wizard already created the VPN for real through the normal VPN panels before reaching this step.
+   * A rule referencing a VPN client with no entry here fails: there is no "resolve or create" for
+   * these, unlike a plain address/network object.
+   */
+  vpnConfigIds?: ReadonlyMap<string, ResolvedVpnConfig>;
 }
 
 export interface ProvisionRulePositions {
@@ -119,11 +129,14 @@ interface StandardReferenceRow {
   ip_version: number | string | null;
 }
 
-/** One resolved rule-side entry: an interface, an ip object or an object group. */
+/** One resolved rule-side entry: an interface, an ip object, an object group, or a real VPN config. */
 interface ProvisionSideRef {
   interfaceId?: number;
   ipobjId?: number;
   ipobjGroupId?: number;
+  /** Set when this reference is a real, already-created VPN client — see resolveVpnClientObject(). */
+  vpnConfigId?: number;
+  vpnRelation?: { table: string; column: string };
 }
 
 interface ProvisionRuleInterfaces {
@@ -508,6 +521,7 @@ export class PolicyReplicationService extends Service {
       result,
       mode,
       isDryRun,
+      options.vpnConfigIds,
     );
 
     if (countProvisionExtras(provision) > 0) {
@@ -773,6 +787,7 @@ export class PolicyReplicationService extends Service {
     result: PolicyReplicationResult,
     mode: PolicyReplicationMode,
     isDryRun: boolean,
+    vpnConfigIds: ReadonlyMap<string, ResolvedVpnConfig> | undefined,
   ): Promise<void> {
     // In merge mode an equivalent rule already on the target is left alone;
     // replace_defaults appends the profile rules above the catch-all.
@@ -814,6 +829,7 @@ export class PolicyReplicationService extends Service {
         parameterValues,
         resolver,
         result,
+        vpnConfigIds,
       );
 
       if (sides === null) {
@@ -936,6 +952,7 @@ export class PolicyReplicationService extends Service {
     parameterValues: Map<string, unknown>,
     resolver: ObjectBindingResolver,
     result: PolicyReplicationResult,
+    vpnConfigIds: ReadonlyMap<string, ResolvedVpnConfig> | undefined,
   ): Promise<ProvisionRuleSides | null> {
     const label = (side: string) => `Rule ${index + 1} (${side})`;
     const isNat = NAT_CHAINS.includes(rule.chain);
@@ -960,6 +977,7 @@ export class PolicyReplicationService extends Service {
         parameterValues,
         resolver,
         result,
+        vpnConfigIds,
       );
     const services = (
       items: PolicyReplicationProvisionService[],
@@ -1010,6 +1028,7 @@ export class PolicyReplicationService extends Service {
     parameterValues: Map<string, unknown>,
     resolver: ObjectBindingResolver,
     result: PolicyReplicationResult,
+    vpnConfigIds?: ReadonlyMap<string, ResolvedVpnConfig>,
   ): Promise<ProvisionSideRef[] | null> {
     const refs: ProvisionSideRef[] = [];
 
@@ -1027,6 +1046,15 @@ export class PolicyReplicationService extends Service {
 
         ref = { interfaceId };
         type = REPLICATION_PROFILE_IPOBJ_TYPE_INTERFACE;
+      } else if (object.kind === 'vpnClient') {
+        const resolved = this.resolveVpnClientObject(object, target, vpnConfigIds, result);
+
+        if (!resolved) {
+          return null;
+        }
+
+        ref = resolved.ref;
+        type = resolved.type;
       } else if (object.kind === 'std' || object.kind === 'stdGroup') {
         const standard = await this.resolveStandardReference(
           object.kind,
@@ -1067,6 +1095,46 @@ export class PolicyReplicationService extends Service {
     }
 
     return refs;
+  }
+
+  /**
+   * A VPN client is never a plain address/network object: FWCloud references it in a rule the same
+   * way the interactive policy grid does, through its own relation table (policy_r__openvpn and its
+   * WireGuard/IPsec equivalents — see VPN_RELATION_TABLES), not through policy_r__ipobj. There is
+   * nothing to create or reuse here (unlike resolveLiteralObject): the real config already exists,
+   * created either by profile-application.service.ts's own provisioning or supplied by the caller
+   * (the apply wizard, once it has created it for real through the normal VPN panels).
+   */
+  private resolveVpnClientObject(
+    object: PolicyReplicationProvisionObject,
+    target: ProvisionObjectTarget,
+    vpnConfigIds: ReadonlyMap<string, ResolvedVpnConfig> | undefined,
+    result: PolicyReplicationResult,
+  ): { ref: ProvisionSideRef; type: number } | null {
+    const label = object.name ?? object.vpnId ?? 'unknown';
+    const config = object.vpnId ? vpnConfigIds?.get(object.vpnId) : undefined;
+
+    if (!config) {
+      result.errors.push(`${target.label}: VPN client "${label}" has not been created yet.`);
+      return null;
+    }
+
+    const relation = VPN_RELATION_TABLES.find((entry) => entry.ownerKind === config.protocol);
+
+    if (!relation) {
+      result.errors.push(
+        `${target.label}: VPN client "${label}": unsupported protocol "${config.protocol}".`,
+      );
+      return null;
+    }
+
+    return {
+      ref: {
+        vpnConfigId: config.id,
+        vpnRelation: { table: relation.table, column: relation.column },
+      },
+      type: REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL[config.protocol],
+    };
   }
 
   private async resolveLiteralObject(
@@ -1277,6 +1345,7 @@ export class PolicyReplicationService extends Service {
     sides: ProvisionRuleSides,
   ): string {
     const interfaceIds = [...interfaces.inIds, ...interfaces.outIds];
+    // Include the VPN protocol and config ID so merge-mode signatures distinguish VPN clients.
     const ipobjIds = [
       ...sides.source,
       ...sides.destination,
@@ -1284,7 +1353,13 @@ export class PolicyReplicationService extends Service {
       ...sides.translatedSource,
       ...sides.translatedDestination,
       ...sides.translatedServices,
-    ].map((ref) => (ref.ipobjGroupId ? `g${ref.ipobjGroupId}` : String(ref.ipobjId ?? -1)));
+    ].map((ref) =>
+      ref.ipobjGroupId
+        ? `g${ref.ipobjGroupId}`
+        : ref.vpnConfigId !== undefined
+          ? `v${ref.vpnRelation?.column}${ref.vpnConfigId}`
+          : String(ref.ipobjId ?? -1),
+    );
 
     return [
       policyTypeId,
@@ -1388,6 +1463,16 @@ export class PolicyReplicationService extends Service {
     }
 
     for (const [index, ref] of refs.entries()) {
+      if (ref.vpnConfigId !== undefined && ref.vpnRelation) {
+        // A VPN client is a direct reference to its own config, in its own relation table
+        // (policy_r__openvpn and its WireGuard/IPsec equivalents), never policy_r__ipobj.
+        await dbQuery(
+          `INSERT INTO ${ref.vpnRelation.table} (rule, ${ref.vpnRelation.column}, position, position_order) VALUES (?, ?, ?, ?)`,
+          [ruleId, ref.vpnConfigId, position, index + 1],
+        );
+        continue;
+      }
+
       await dbQuery(
         'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, ?, ?, ?, ?)',
         [

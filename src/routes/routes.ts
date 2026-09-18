@@ -271,6 +271,9 @@ export class Routes extends RouteCollection {
           router
             .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
             .name('fwclouds.profiles.apply');
+          router
+            .post('/profiles/:code/:version/vpn', ReplicationProfileController, 'provisionVpn')
+            .name('fwclouds.profiles.provisionVpn');
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {
               router.put('/', CaController, 'update').name('fwclouds.cas.update');

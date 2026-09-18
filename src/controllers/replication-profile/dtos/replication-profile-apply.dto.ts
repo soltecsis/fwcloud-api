@@ -159,4 +159,14 @@ export class ReplicationProfileApplyDto {
   @IsOptional()
   @IsObject()
   credentials?: Record<string, unknown>;
+
+  /**
+   * Provisioning profiles with a VPN template only: template connection id -> the real config id
+   * the wizard already created for it (via the /vpn step, see ReplicationProfileProvisionVpnDto)
+   * before reaching this final apply. When supplied, the profile's own VPN creation is skipped —
+   * it already happened, for real.
+   */
+  @IsOptional()
+  @IsRoleIdMap()
+  vpnConnectionIds?: Record<string, number>;
 }
