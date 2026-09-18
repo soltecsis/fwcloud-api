@@ -57,6 +57,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let saveMachineInstallationStub: sinon.SinonStub;
   let configureCentralLapiStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
+  let validateCrowdSecLapiMachineStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -106,7 +107,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     configureCentralLapiStub = sinon
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
-    sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
+    validateCrowdSecLapiMachineStub = sinon
+      .stub(centralCommunication, 'validateCrowdSecLapiMachine')
+      .resolves({});
   });
 
   afterEach(() => {
@@ -163,7 +166,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       installation_state: 'connectivity_confirmation_required',
     });
     const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecMachine');
-    const validateStub = sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine');
 
     const response = await controller.installMachine(request());
 
@@ -171,7 +173,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(secondInstall.called).to.be.false;
     expect(setCentralLapiEnabledStub.called).to.be.false;
     expect(saveMachineInstallationStub.called).to.be.false;
-    expect(validateStub.called).to.be.false;
+    expect(validateCrowdSecLapiMachineStub.called).to.be.false;
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       connectivity_confirmation_required: true,
