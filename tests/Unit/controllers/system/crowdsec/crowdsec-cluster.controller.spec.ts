@@ -56,6 +56,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let managePolicyStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
   let configureCentralLapiStub: sinon.SinonStub;
+  let setCentralLapiEnabledStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -89,7 +90,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           : null,
       );
     sinon.stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents').resolves(false);
-    sinon
+    setCentralLapiEnabledStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
       .resolves(new CrowdSecInstallation());
     saveMachineInstallationStub = sinon
@@ -156,6 +157,34 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: secondNode.name,
           machine_name: 'fwcloud-cluster-slave',
           status: 'completed',
+        },
+      ],
+    });
+  });
+
+  it('should require confirmation before changing cluster nodes without LAPI connectivity', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine').resolves({
+      installation_state: 'connectivity_confirmation_required',
+    });
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecMachine');
+    const validateStub = sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine');
+
+    const response = await controller.installMachine(request());
+
+    expect(firstInstall.calledOnce).to.be.true;
+    expect(secondInstall.called).to.be.false;
+    expect(setCentralLapiEnabledStub.called).to.be.false;
+    expect(saveMachineInstallationStub.called).to.be.false;
+    expect(validateStub.called).to.be.false;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      connectivity_confirmation_required: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'connectivity_confirmation_required',
         },
       ],
     });

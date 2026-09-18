@@ -46,7 +46,7 @@ type ClusterMachineNodeResult = {
   firewall_id: number;
   name: string;
   machine_name: string;
-  status: 'completed' | 'failed';
+  status: 'completed' | 'connectivity_confirmation_required' | 'pending_connectivity' | 'failed';
   error?: string;
   central_bouncer_cleanup_required?: boolean;
 };
@@ -106,8 +106,8 @@ export class CrowdSecClusterController extends Controller {
       new ProgressPayload('start', false, 'Installing CrowdSec Machines in cluster nodes'),
     );
     await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
-    await installationRepository.setCentralLapiEnabled(centralFirewall.id, true);
     const results: ClusterMachineNodeResult[] = [];
+    let centralLapiEnabled = false;
 
     for (const node of nodes) {
       const machineName = this.machineName(node);
@@ -119,13 +119,66 @@ export class CrowdSecClusterController extends Controller {
       try {
         await this.assertCanBecomeMachine(node, installationRepository);
         const remoteCommunication = await this.agentCommunication(node, false);
-        await remoteCommunication.installCrowdSecMachine(
+        const machine = await remoteCommunication.installCrowdSecMachine(
           {
             machineName,
             lapiUrl,
+            ...(req.body.continueWithoutLapiConnectivity === true
+              ? { continueWithoutLapiConnectivity: true }
+              : {}),
           },
           channel,
         );
+        if (this.machineInstallationState(machine) === 'connectivity_confirmation_required') {
+          results.push({
+            firewall_id: node.id,
+            name: node.name,
+            machine_name: machineName,
+            status: 'connectivity_confirmation_required',
+          });
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'end',
+              false,
+              'CrowdSec Machine installation requires confirmation because the central Local API is unreachable',
+            ),
+          );
+          return ResponseBuilder.buildResponse().status(200).body({
+            completed: false,
+            connectivity_confirmation_required: true,
+            nodes: results,
+          });
+        }
+        if (!centralLapiEnabled) {
+          await installationRepository.setCentralLapiEnabled(centralFirewall.id, true);
+          centralLapiEnabled = true;
+        }
+        if (this.machineInstallationState(machine) === 'pending_connectivity') {
+          await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(node, true);
+          await installationRepository.saveMachineInstallation({
+            firewallId: node.id,
+            centralFirewallId: centralFirewall.id,
+            lapiUrl,
+            machineName,
+            localRemediation: req.body.localRemediation,
+          });
+          results.push({
+            firewall_id: node.id,
+            name: node.name,
+            machine_name: machineName,
+            status: 'pending_connectivity',
+          });
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'warning',
+              false,
+              `CrowdSec Machine installation on node '${node.name}' is pending central Local API connectivity`,
+            ),
+          );
+          continue;
+        }
         await centralCommunication.validateCrowdSecLapiMachine(machineName);
         const backend =
           (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
@@ -203,6 +256,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const completed = results.every((result) => result.status === 'completed');
+    const pendingConnectivity = results.some((result) => result.status === 'pending_connectivity');
     channel.emit(
       'message',
       new ProgressPayload(
@@ -210,11 +264,19 @@ export class CrowdSecClusterController extends Controller {
         !completed,
         completed
           ? 'CrowdSec Machine installation finished on all cluster nodes'
-          : 'CrowdSec Machine installation finished with node failures',
+          : pendingConnectivity
+            ? 'CrowdSec Machine installation is pending central Local API connectivity'
+            : 'CrowdSec Machine installation finished with node failures',
       ),
     );
 
-    return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed,
+        ...(pendingConnectivity ? { pending_connectivity: true } : {}),
+        nodes: results,
+      });
   }
 
   @Validate()
@@ -323,6 +385,10 @@ export class CrowdSecClusterController extends Controller {
     const prefix = 'fwcloud-';
     const availableNameLength = 128 - prefix.length;
     return `${prefix}${(name || 'node').slice(0, availableNameLength)}`;
+  }
+
+  private machineInstallationState(machine: Record<string, unknown>): string | undefined {
+    return typeof machine.installation_state === 'string' ? machine.installation_state : undefined;
   }
 
   private lapiUrl(value: unknown): string {

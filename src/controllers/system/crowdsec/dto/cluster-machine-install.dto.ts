@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsInt, IsString, Length, Matches, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
 
 export class CrowdSecClusterMachineInstallDto {
@@ -35,4 +35,8 @@ export class CrowdSecClusterMachineInstallDto {
 
   @IsBoolean()
   localRemediation: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  continueWithoutLapiConnectivity?: boolean;
 }

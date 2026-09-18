@@ -45,6 +45,10 @@ export class CrowdSecMachineInstallDto {
   localRemediation: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  continueWithoutLapiConnectivity?: boolean;
+
+  @IsOptional()
   @IsString()
   @Length(1, 512)
   bouncerApiKey?: string;

@@ -309,14 +309,59 @@ export class CrowdSecController extends Controller {
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
 
     await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
-    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(centralFirewall.id, true);
     const machine = await remoteCommunication.installCrowdSecMachine(
       {
         machineName: req.body.machineName,
         lapiUrl,
+        ...(req.body.continueWithoutLapiConnectivity === true
+          ? { continueWithoutLapiConnectivity: true }
+          : {}),
       },
       channel,
     );
+
+    if (this.machineInstallationState(machine) === 'connectivity_confirmation_required') {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec Machine installation requires confirmation because the central Local API is unreachable',
+        ),
+      );
+      return ResponseBuilder.buildResponse().status(200).body({
+        machine,
+        connectivity_confirmation_required: true,
+      });
+    }
+
+    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(centralFirewall.id, true);
+    if (this.machineInstallationState(machine) === 'pending_connectivity') {
+      this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+        this._firewall,
+        true,
+      );
+      await this.getCrowdSecInstallationRepository().saveMachineInstallation({
+        firewallId: this._firewall.id,
+        centralFirewallId: centralFirewall.id,
+        lapiUrl,
+        machineName: req.body.machineName,
+        localRemediation: req.body.localRemediation,
+      });
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'end',
+          false,
+          'CrowdSec Machine installation is pending central Local API connectivity',
+        ),
+      );
+      return ResponseBuilder.buildResponse().status(200).body({
+        machine,
+        pending_connectivity: true,
+      });
+    }
+
     try {
       const validation = await centralCommunication.validateCrowdSecLapiMachine(
         req.body.machineName,
@@ -1296,6 +1341,10 @@ export class CrowdSecController extends Controller {
     }
 
     return value;
+  }
+
+  private machineInstallationState(machine: Record<string, unknown>): string | undefined {
+    return typeof machine.installation_state === 'string' ? machine.installation_state : undefined;
   }
 
   private lapiUrl(value: unknown): string {

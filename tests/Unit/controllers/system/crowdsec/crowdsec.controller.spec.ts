@@ -529,6 +529,113 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     );
   });
 
+  it('should require confirmation without persisting an unreachable CrowdSec Machine', async () => {
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: 'https',
+      getCommunication: async () => centralCommunication,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
+    sinon.stub(communication, 'installCrowdSecMachine').resolves({
+      installation_state: 'connectivity_confirmation_required',
+    });
+    const validateStub = sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine');
+    const activateStub = sinon.stub(communication, 'activateCrowdSecMachine');
+    sinon
+      .stub(Channel, 'fromRequest')
+      .resolves(new Channel('crowdsec-machine', new EventEmitter()));
+
+    const response = await controller.installMachine({
+      body: {
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: false,
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(response.toJSON().data).to.deep.equal({
+      machine: { installation_state: 'connectivity_confirmation_required' },
+      connectivity_confirmation_required: true,
+    });
+    expect(setCentralLapiEnabledStub.called).to.be.false;
+    expect(saveMachineInstallationStub.called).to.be.false;
+    expect(validateStub.called).to.be.false;
+    expect(activateStub.called).to.be.false;
+  });
+
+  it('should persist a CrowdSec Machine pending connectivity only after explicit confirmation', async () => {
+    const centralCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.20',
+      port: 33033,
+      apikey: 'central-api-key',
+    });
+    const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: 'https',
+      getCommunication: async () => centralCommunication,
+    });
+    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
+    const installStub = sinon.stub(communication, 'installCrowdSecMachine').resolves({
+      installation_state: 'pending_connectivity',
+    });
+    const validateStub = sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine');
+    const activateStub = sinon.stub(communication, 'activateCrowdSecMachine');
+    sinon
+      .stub(Channel, 'fromRequest')
+      .resolves(new Channel('crowdsec-machine', new EventEmitter()));
+
+    const response = await controller.installMachine({
+      body: {
+        centralFirewallId: centralFirewall.id,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: true,
+        continueWithoutLapiConnectivity: true,
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      installStub.calledOnceWithExactly(
+        {
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          continueWithoutLapiConnectivity: true,
+        },
+        sinon.match.any,
+      ),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      machine: { installation_state: 'pending_connectivity' },
+      pending_connectivity: true,
+    });
+    expect(setCentralLapiEnabledStub.calledOnceWithExactly(centralFirewall.id, true)).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnceWithExactly({
+        firewallId: fwcProduct.firewall.id,
+        centralFirewallId: centralFirewall.id,
+        lapiUrl: 'http://192.0.2.20:8080',
+        machineName: 'fwcloud-machine-01',
+        localRemediation: true,
+      }),
+    ).to.be.true;
+    expect(validateStub.called).to.be.false;
+    expect(activateStub.called).to.be.false;
+  });
+
   it('should reject CrowdSec machine installation when the selected firewall is not standalone', async () => {
     const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
       id: fwcProduct.firewall.id + 1,
