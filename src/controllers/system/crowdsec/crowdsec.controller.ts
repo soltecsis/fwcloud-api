@@ -98,6 +98,7 @@ export class CrowdSecController extends Controller {
         central_lapi_enabled: centralLapiEnabled,
         central_lapi_has_machines: centralLapiHasMachines,
         machine_reauthentication_required: machineReauthenticationRequired,
+        machine_connectivity_pending: installation?.machineConnectivityPending === true,
         installation_mode: installation?.mode ?? null,
         local_remediation: installation?.localRemediation ?? false,
         central_lapi_firewall_id: installation?.centralFirewallId ?? null,
@@ -286,9 +287,31 @@ export class CrowdSecController extends Controller {
     const validation = await centralCommunication.validateCrowdSecLapiMachine(
       installation.machineName,
     );
-    const activation = await remoteCommunication.resumeCrowdSecMachine(
-      installation.machineName,
-      installation.localRemediation,
+    const activation = installation.machineConnectivityPending
+      ? await remoteCommunication.activateCrowdSecMachine({
+          machineName: installation.machineName,
+          localRemediation: installation.localRemediation,
+          backend: installation.localRemediation
+            ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
+                this._firewall.fwCloudId,
+                this._firewall.id,
+              )) ?? 'iptables')
+            : 'iptables',
+          ...(installation.localRemediation
+            ? {
+                bouncerApiKey: this.bouncerApiKey(
+                  await centralCommunication.registerCrowdSecBouncer(installation.machineName),
+                ),
+              }
+            : {}),
+        })
+      : await remoteCommunication.resumeCrowdSecMachine(
+          installation.machineName,
+          installation.localRemediation,
+        );
+    await this.getCrowdSecInstallationRepository().setMachineConnectivityPending(
+      this._firewall.id,
+      false,
     );
 
     return ResponseBuilder.buildResponse().status(200).body({ machine, validation, activation });
@@ -347,6 +370,7 @@ export class CrowdSecController extends Controller {
         lapiUrl,
         machineName: req.body.machineName,
         localRemediation: req.body.localRemediation,
+        machineConnectivityPending: true,
       });
       channel.emit(
         'message',

@@ -158,11 +158,32 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       central_lapi_enabled: false,
       central_lapi_has_machines: false,
       machine_reauthentication_required: false,
+      machine_connectivity_pending: false,
       installation_mode: null,
       local_remediation: false,
       central_lapi_firewall_id: null,
       central_lapi_url: null,
       machine_name: null,
+    });
+  });
+
+  it('should report a CrowdSec Machine registration pending Local API connectivity', async () => {
+    const status = { crowdsec: { installed: true, running: false } };
+    sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Machine,
+        machineConnectivityPending: true,
+      }),
+    );
+
+    const response = await controller.status({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(response.toJSON().data).to.include({
+      installation_mode: CrowdSecInstallationMode.Machine,
+      machine_connectivity_pending: true,
     });
   });
 
@@ -629,6 +650,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         lapiUrl: 'http://192.0.2.20:8080',
         machineName: 'fwcloud-machine-01',
         localRemediation: true,
+        machineConnectivityPending: true,
       }),
     ).to.be.true;
     expect(validateStub.called).to.be.false;

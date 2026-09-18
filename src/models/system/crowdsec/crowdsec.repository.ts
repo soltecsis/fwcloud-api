@@ -34,6 +34,7 @@ export type CrowdSecMachineInstallation = {
   lapiUrl: string;
   machineName: string;
   localRemediation: boolean;
+  machineConnectivityPending?: boolean;
 };
 
 export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallation> {
@@ -49,6 +50,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       lapiUrl: null,
       machineName: null,
       localRemediation: true,
+      machineConnectivityPending: false,
     });
   }
 
@@ -58,6 +60,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     return this.saveInstallation({
       ...installation,
       mode: CrowdSecInstallationMode.Machine,
+      machineConnectivityPending: installation.machineConnectivityPending ?? false,
     });
   }
 
@@ -118,6 +121,16 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     return this.saveInstallation({
       firewallId,
       centralLapiEnabled: enabled,
+    });
+  }
+
+  public async setMachineConnectivityPending(
+    firewallId: number,
+    pending: boolean,
+  ): Promise<CrowdSecInstallation> {
+    return this.saveInstallation({
+      firewallId,
+      machineConnectivityPending: pending,
     });
   }
 
