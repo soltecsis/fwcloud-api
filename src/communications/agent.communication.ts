@@ -85,6 +85,22 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec Local API configuration is invalid',
     status: 422,
   },
+  CROWDSEC_LAPI_HOST_UNRESOLVABLE: {
+    message: 'CrowdSec Local API host cannot be resolved',
+    status: 422,
+  },
+  CROWDSEC_LAPI_CONNECTION_REFUSED: {
+    message: 'CrowdSec Local API connection was refused',
+    status: 422,
+  },
+  CROWDSEC_LAPI_CONNECTION_TIMEOUT: {
+    message: 'CrowdSec Local API connection timed out',
+    status: 504,
+  },
+  CROWDSEC_LAPI_CONNECTION_FAILED: {
+    message: 'CrowdSec Local API connection failed',
+    status: 422,
+  },
   CROWDSEC_MACHINE_CONFLICT: {
     message: 'CrowdSec machine already exists',
     status: 409,

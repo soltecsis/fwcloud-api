@@ -216,11 +216,25 @@ describe(AgentCommunication.name, () => {
     it('should map Local API reachability errors to safe HTTP responses', () => {
       const error = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNAVAILABLE');
       const unreachableError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNREACHABLE');
+      const unresolvedHostError = crowdSecAgentErrorToHttpException(
+        'CROWDSEC_LAPI_HOST_UNRESOLVABLE',
+      );
+      const refusedError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_CONNECTION_REFUSED');
+      const timeoutError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_CONNECTION_TIMEOUT');
+      const connectionError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_CONNECTION_FAILED');
 
       expect(error.status).to.equal(422);
       expect(error.message).to.equal('CrowdSec Local API is unavailable');
       expect(unreachableError.status).to.equal(422);
       expect(unreachableError.message).to.equal('CrowdSec Local API is unreachable');
+      expect(unresolvedHostError.status).to.equal(422);
+      expect(unresolvedHostError.message).to.equal('CrowdSec Local API host cannot be resolved');
+      expect(refusedError.status).to.equal(422);
+      expect(refusedError.message).to.equal('CrowdSec Local API connection was refused');
+      expect(timeoutError.status).to.equal(504);
+      expect(timeoutError.message).to.equal('CrowdSec Local API connection timed out');
+      expect(connectionError.status).to.equal(422);
+      expect(connectionError.message).to.equal('CrowdSec Local API connection failed');
     });
 
     it('should not expose unknown agent error messages', () => {
