@@ -836,10 +836,6 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
-  createCrowdSecLapiPreflightToken(_machineName: string): Promise<Record<string, unknown>> {
-    throw new Error('CrowdSec Local API preflight tokens are no longer supported.');
-  }
-
   installCrowdSecMachine(
     _installation: CrowdSecMachineInstall,
     _eventEmitter?: EventEmitter,

@@ -106,10 +106,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     configureCentralLapiStub = sinon
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
   });
 

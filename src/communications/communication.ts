@@ -280,8 +280,6 @@ export abstract class Communication<ConnectionData> {
   abstract getCrowdSecLapiMachines(): Promise<Record<string, unknown>>;
   abstract validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
-  /** @deprecated Kept temporarily for test double compatibility; no production flow uses it. */
-  abstract createCrowdSecLapiPreflightToken(machineName: string): Promise<Record<string, unknown>>;
   abstract installCrowdSecMachine(
     installation: CrowdSecMachineInstall,
     eventEmitter?: EventEmitter,

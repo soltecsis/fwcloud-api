@@ -492,11 +492,10 @@ describe(AgentCommunication.name, () => {
     });
 
     it('should redact API and enrollment keys from CrowdSec progress output', () => {
-      const message =
-        'api_key: secret-key\nenrollment_key="enrollment-secret"\npreflight_token=token-secret';
+      const message = 'api_key: secret-key\nenrollment_key="enrollment-secret"';
 
       expect(sanitizeCrowdSecProgressMessage(message)).to.equal(
-        'api_key: [REDACTED]\nenrollment_key=[REDACTED]\npreflight_token=[REDACTED]',
+        'api_key: [REDACTED]\nenrollment_key=[REDACTED]',
       );
     });
 

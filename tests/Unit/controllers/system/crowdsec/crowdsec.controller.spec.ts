@@ -507,7 +507,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         local_remediation: true,
       },
     });
-    expect(JSON.stringify(response.toJSON())).to.not.contain('preflight-token');
     expect(JSON.stringify(response.toJSON())).to.not.contain('central-bouncer-key');
     expect(
       saveMachineInstallationStub.calledOnceWithExactly({
@@ -714,10 +713,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
     const registerBouncerStub = sinon.stub(centralCommunication, 'registerCrowdSecBouncer');
     const backendStub = sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend');
@@ -773,13 +768,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
     findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(installation);
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
     const configureCentralLapiStub = sinon
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({});
-    const preflightTokenStub = sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     const preflightStub = sinon
       .stub(communication, 'preflightCrowdSecTransition')
       .resolves({ phase: 'checking' });
@@ -828,7 +819,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.include({ changed: true });
-    expect(JSON.stringify(response.toJSON())).to.not.contain('preflight-token');
   });
 
   it('should leave a CrowdSec Machine unchanged when its central LAPI address is the same', async () => {
@@ -911,10 +901,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const configureStub = sinon
       .stub(targetCentralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
-    sinon.stub(targetCentralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    const preflightTokenStub = sinon
-      .stub(targetCentralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     const preflightStub = sinon
       .stub(communication, 'preflightCrowdSecTransition')
       .resolves({ phase: 'checking' });
@@ -968,7 +954,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       changed: true,
       source_machine_removed: true,
     });
-    expect(JSON.stringify(response.toJSON())).to.not.contain('preflight-token');
   });
 
   it('should enable managed local remediation for a CrowdSec Machine', async () => {
@@ -995,10 +980,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       }),
     );
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     sinon.stub(communication, 'preflightCrowdSecTransition').resolves({ phase: 'checking' });
     sinon.stub(communication, 'prepareCrowdSecTransition').resolves({ phase: 'prepared' });
     const registerBouncerStub = sinon
@@ -1058,10 +1039,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       );
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    const preflightTokenStub = sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     sinon.stub(communication, 'preflightCrowdSecTransition').resolves({ phase: 'checking' });
     const prepareStub = sinon
       .stub(communication, 'prepareCrowdSecTransition')
@@ -1100,7 +1077,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       }),
     ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
-    expect(JSON.stringify(response.toJSON())).to.not.contain('preflight-token');
   });
 
   it('should reject converting a standalone central LAPI with dependent Machines', async () => {
@@ -1327,10 +1303,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
     sinon
       .stub(centralCommunication, 'registerCrowdSecBouncer')
@@ -1632,10 +1604,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
-    sinon.stub(centralCommunication, 'createCrowdSecLapiPreflightToken').resolves({
-      token: 'preflight-token',
-    });
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
     sinon.stub(communication, 'installCrowdSecMachine').resolves({});
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
     const registerBouncerStub = sinon.stub(centralCommunication, 'registerCrowdSecBouncer');
