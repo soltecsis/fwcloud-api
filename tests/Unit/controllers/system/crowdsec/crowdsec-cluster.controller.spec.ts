@@ -56,6 +56,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let managePolicyStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
   let configureCentralLapiStub: sinon.SinonStub;
+  let setCentralLapiEnabledStub: sinon.SinonStub;
+  let validateCrowdSecLapiMachineStub: sinon.SinonStub;
+  let centralPingStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -89,7 +92,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           : null,
       );
     sinon.stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents').resolves(false);
-    sinon
+    setCentralLapiEnabledStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
       .resolves(new CrowdSecInstallation());
     saveMachineInstallationStub = sinon
@@ -105,11 +108,10 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     configureCentralLapiStub = sinon
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
-    sinon.stub(centralCommunication, 'getTlsCertificateFingerprint').resolves('a'.repeat(64));
-    sinon
-      .stub(centralCommunication, 'createCrowdSecLapiPreflightToken')
-      .resolves({ token: 'preflight-token' });
-    sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
+    centralPingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
+    validateCrowdSecLapiMachineStub = sinon
+      .stub(centralCommunication, 'validateCrowdSecLapiMachine')
+      .resolves({});
   });
 
   afterEach(() => {
@@ -156,6 +158,56 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: secondNode.name,
           machine_name: 'fwcloud-cluster-slave',
           status: 'completed',
+        },
+      ],
+    });
+  });
+
+  it('should require confirmation before changing cluster nodes without LAPI connectivity', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine').resolves({
+      installation_state: 'connectivity_confirmation_required',
+    });
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecMachine');
+
+    const response = await controller.installMachine(request());
+
+    expect(firstInstall.calledOnce).to.be.true;
+    expect(secondInstall.called).to.be.false;
+    expect(setCentralLapiEnabledStub.called).to.be.false;
+    expect(saveMachineInstallationStub.called).to.be.false;
+    expect(validateCrowdSecLapiMachineStub.called).to.be.false;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      connectivity_confirmation_required: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'connectivity_confirmation_required',
+        },
+      ],
+    });
+  });
+
+  it('should require confirmation when the central LAPI agent is unreachable', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine');
+    centralPingStub.rejects(new Error('Central agent is unavailable'));
+
+    const response = await controller.installMachine(request());
+
+    expect(configureCentralLapiStub.called).to.be.false;
+    expect(firstInstall.called).to.be.false;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      connectivity_confirmation_required: true,
+      connectivity_confirmation_reason: 'central_agent_unreachable',
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'connectivity_confirmation_required',
         },
       ],
     });

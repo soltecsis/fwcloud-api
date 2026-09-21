@@ -216,11 +216,25 @@ describe(AgentCommunication.name, () => {
     it('should map Local API reachability errors to safe HTTP responses', () => {
       const error = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNAVAILABLE');
       const unreachableError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_UNREACHABLE');
+      const unresolvedHostError = crowdSecAgentErrorToHttpException(
+        'CROWDSEC_LAPI_HOST_UNRESOLVABLE',
+      );
+      const refusedError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_CONNECTION_REFUSED');
+      const timeoutError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_CONNECTION_TIMEOUT');
+      const connectionError = crowdSecAgentErrorToHttpException('CROWDSEC_LAPI_CONNECTION_FAILED');
 
       expect(error.status).to.equal(422);
       expect(error.message).to.equal('CrowdSec Local API is unavailable');
       expect(unreachableError.status).to.equal(422);
       expect(unreachableError.message).to.equal('CrowdSec Local API is unreachable');
+      expect(unresolvedHostError.status).to.equal(422);
+      expect(unresolvedHostError.message).to.equal('CrowdSec Local API host cannot be resolved');
+      expect(refusedError.status).to.equal(422);
+      expect(refusedError.message).to.equal('CrowdSec Local API connection was refused');
+      expect(timeoutError.status).to.equal(504);
+      expect(timeoutError.message).to.equal('CrowdSec Local API connection timed out');
+      expect(connectionError.status).to.equal(422);
+      expect(connectionError.message).to.equal('CrowdSec Local API connection failed');
     });
 
     it('should not expose unknown agent error messages', () => {
@@ -373,10 +387,9 @@ describe(AgentCommunication.name, () => {
 
       await agent.configureCrowdSecCentralLapi('0.0.0.0:8080');
       await agent.validateCrowdSecLapiMachine('fwcloud-machine-01');
-      await agent.createCrowdSecLapiPreflightToken('fwcloud-machine-01');
       await agent.removeCrowdSecLapiMachine('fwcloud-machine-01');
 
-      expect(postStub.callCount).to.equal(3);
+      expect(postStub.callCount).to.equal(2);
       expect(postStub.firstCall.args[0]).to.equal(
         'http://host:0/api/v1/crowdsec/lapi/central/configure',
       );
@@ -384,21 +397,17 @@ describe(AgentCommunication.name, () => {
       expect(postStub.secondCall.args[0]).to.equal(
         'http://host:0/api/v1/crowdsec/lapi/machines/fwcloud-machine-01/validate',
       );
-      expect(postStub.thirdCall.args[1]).to.deep.equal({ machine_name: 'fwcloud-machine-01' });
       expect(deleteStub.firstCall.args[0]).to.equal(
         'http://host:0/api/v1/crowdsec/lapi/machines/fwcloud-machine-01',
       );
     });
 
-    it('should install a remote CrowdSec machine with the private preflight contract', async () => {
+    it('should install a remote CrowdSec machine with the direct LAPI contract', async () => {
       const stub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
 
       await agent.installCrowdSecMachine({
         machineName: 'fwcloud-machine-01',
         lapiUrl: 'http://192.0.2.10:8080',
-        centralAgentUrl: 'https://192.0.2.10:33033',
-        centralAgentTlsFingerprint: 'AA:BB',
-        preflightToken: 'preflight-secret',
       });
 
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/install');
@@ -406,9 +415,6 @@ describe(AgentCommunication.name, () => {
         mode: 'machine',
         machine_name: 'fwcloud-machine-01',
         lapi_url: 'http://192.0.2.10:8080',
-        central_agent_url: 'https://192.0.2.10:33033',
-        central_agent_tls_fingerprint: 'AA:BB',
-        preflight_token: 'preflight-secret',
       });
     });
 
@@ -500,11 +506,10 @@ describe(AgentCommunication.name, () => {
     });
 
     it('should redact API and enrollment keys from CrowdSec progress output', () => {
-      const message =
-        'api_key: secret-key\nenrollment_key="enrollment-secret"\npreflight_token=token-secret';
+      const message = 'api_key: secret-key\nenrollment_key="enrollment-secret"';
 
       expect(sanitizeCrowdSecProgressMessage(message)).to.equal(
-        'api_key: [REDACTED]\nenrollment_key=[REDACTED]\npreflight_token=[REDACTED]',
+        'api_key: [REDACTED]\nenrollment_key=[REDACTED]',
       );
     });
 

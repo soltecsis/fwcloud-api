@@ -836,10 +836,6 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
-  createCrowdSecLapiPreflightToken(_machineName: string): Promise<Record<string, unknown>> {
-    throw new Error('Method not implemented.');
-  }
-
   installCrowdSecMachine(
     _installation: CrowdSecMachineInstall,
     _eventEmitter?: EventEmitter,

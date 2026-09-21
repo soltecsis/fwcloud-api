@@ -21,7 +21,6 @@
 */
 
 import { EventEmitter } from 'events';
-import { createHash } from 'crypto';
 import {
   CCDHash,
   Communication,
@@ -54,7 +53,6 @@ import * as fs from 'fs';
 import FormData from 'form-data';
 import * as path from 'path';
 import * as https from 'https';
-import * as tls from 'tls';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
@@ -87,12 +85,20 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec Local API configuration is invalid',
     status: 422,
   },
-  CROWDSEC_LAPI_PREFLIGHT_TOKEN_INVALID: {
-    message: 'CrowdSec Local API preflight token is invalid or expired',
+  CROWDSEC_LAPI_HOST_UNRESOLVABLE: {
+    message: 'CrowdSec Local API host cannot be resolved',
     status: 422,
   },
-  CROWDSEC_LAPI_PREFLIGHT_FAILED: {
-    message: 'CrowdSec Local API agent preflight failed',
+  CROWDSEC_LAPI_CONNECTION_REFUSED: {
+    message: 'CrowdSec Local API connection was refused',
+    status: 422,
+  },
+  CROWDSEC_LAPI_CONNECTION_TIMEOUT: {
+    message: 'CrowdSec Local API connection timed out',
+    status: 504,
+  },
+  CROWDSEC_LAPI_CONNECTION_FAILED: {
+    message: 'CrowdSec Local API connection failed',
     status: 422,
   },
   CROWDSEC_MACHINE_CONFLICT: {
@@ -175,7 +181,7 @@ export function crowdSecAgentErrorToHttpException(code: unknown): HttpException 
 
 export function sanitizeCrowdSecProgressMessage(message: string): string {
   return message.replace(
-    /((?:"?(?:(?:api|enrollment)[ _-]?key|preflight[ _-]?token)"?\s*[:=]\s*))(?:(?:"[^"]*")|(?:'[^']*')|[^\s,}\]]+)/gi,
+    /((?:"?(?:(?:api|enrollment)[ _-]?key)"?\s*[:=]\s*))(?:(?:"[^"]*")|(?:'[^']*')|[^\s,}\]]+)/gi,
     '$1[REDACTED]',
   );
 }
@@ -265,47 +271,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   public getUrl(): string {
     return this.url;
-  }
-
-  public async getTlsCertificateFingerprint(): Promise<string> {
-    if (this.connectionData.protocol !== 'https') {
-      throw new HttpException('CrowdSec central Agent requires HTTPS communication', 422);
-    }
-
-    try {
-      const certificate = await new Promise<Buffer>((resolve, reject) => {
-        const socket = tls.connect({
-          host: this.connectionData.host,
-          port: this.connectionData.port,
-          rejectUnauthorized: false,
-        });
-        const timeout = setTimeout(() => {
-          socket.destroy();
-          reject(new Error('CrowdSec central Agent TLS certificate request timed out'));
-        }, 5000);
-
-        socket.once('error', (error) => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-        socket.once('secureConnect', () => {
-          clearTimeout(timeout);
-          const certificate = socket.getPeerCertificate();
-          socket.end();
-
-          if (!certificate.raw) {
-            reject(new Error('CrowdSec central Agent did not provide a TLS certificate'));
-            return;
-          }
-
-          resolve(certificate.raw);
-        });
-      });
-
-      return createHash('sha256').update(certificate).digest('hex');
-    } catch {
-      throw new HttpException('Unable to read CrowdSec central Agent TLS certificate', 502);
-    }
   }
 
   async installFirewallPolicy(
@@ -1345,16 +1310,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async createCrowdSecLapiPreflightToken(machineName: string): Promise<Record<string, unknown>> {
-    try {
-      return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/preflight-tokens', {
-        machine_name: machineName,
-      });
-    } catch (error) {
-      this.handleCrowdSecRequestException(error);
-    }
-  }
-
   async installCrowdSecMachine(
     installation: CrowdSecMachineInstall,
     eventEmitter?: EventEmitter,
@@ -1366,9 +1321,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           mode: 'machine',
           machine_name: installation.machineName,
           lapi_url: installation.lapiUrl,
-          central_agent_url: installation.centralAgentUrl,
-          central_agent_tls_fingerprint: installation.centralAgentTlsFingerprint,
-          preflight_token: installation.preflightToken,
+          ...(installation.continueWithoutLapiConnectivity === true
+            ? { continue_without_lapi_connectivity: true }
+            : {}),
         },
         eventEmitter,
       );
@@ -1409,9 +1364,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         {
           machine_name: reauthentication.machineName,
           lapi_url: reauthentication.lapiUrl,
-          central_agent_url: reauthentication.centralAgentUrl,
-          central_agent_tls_fingerprint: reauthentication.centralAgentTlsFingerprint,
-          preflight_token: reauthentication.preflightToken,
         },
         eventEmitter,
       );
@@ -1518,15 +1470,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           target: this.crowdSecTransitionTarget(transition.target),
           authority_changed: transition.authorityChanged,
           ...(transition.backend === undefined ? {} : { backend: transition.backend }),
-          ...(transition.preflight === undefined
-            ? {}
-            : {
-                preflight: {
-                  central_agent_url: transition.preflight.centralAgentUrl,
-                  central_agent_tls_fingerprint: transition.preflight.centralAgentTlsFingerprint,
-                  preflight_token: transition.preflight.preflightToken,
-                },
-              }),
+          ...(transition.machineConnectivityPending ? { machine_connectivity_pending: true } : {}),
         },
         eventEmitter,
       );

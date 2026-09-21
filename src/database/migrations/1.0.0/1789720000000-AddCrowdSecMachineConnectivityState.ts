@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
-import { CROWDSEC_LAPI_URL } from './machine-install.dto';
+import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-export class CrowdSecClusterMachineInstallDto {
-  @IsInt()
-  @Min(1)
-  centralFirewallId: number;
+export class AddCrowdSecMachineConnectivityState1789720000000 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.addColumn(
+      'crowdsec_installation',
+      new TableColumn({
+        name: 'machine_connectivity_pending',
+        type: 'tinyint',
+        length: '1',
+        isNullable: false,
+        default: 0,
+      }),
+    );
+  }
 
-  @IsString()
-  @Length(1, 256)
-  @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
-  lapiUrl: string;
-
-  @IsBoolean()
-  localRemediation: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  continueWithoutLapiConnectivity?: boolean;
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropColumn('crowdsec_installation', 'machine_connectivity_pending');
+  }
 }
