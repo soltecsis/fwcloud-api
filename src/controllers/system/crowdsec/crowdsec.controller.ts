@@ -596,7 +596,6 @@ export class CrowdSecController extends Controller {
           true,
         );
       }
-      const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       const activation = await remoteCommunication.activateCrowdSecTransition(
         { transitionId },
@@ -617,7 +616,6 @@ export class CrowdSecController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body({
         changed: true,
-        preflight,
         preparation,
         activation,
         finalization,
@@ -712,7 +710,6 @@ export class CrowdSecController extends Controller {
         'message',
         new ProgressPayload('start', false, 'Moving CrowdSec Machine to a new Local API'),
       );
-      const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
       const validation = await targetCentralCommunication.validateCrowdSecLapiMachine(
@@ -758,7 +755,6 @@ export class CrowdSecController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body({
         changed: true,
-        preflight,
         preparation,
         validation,
         activation,
@@ -853,7 +849,6 @@ export class CrowdSecController extends Controller {
         'message',
         new ProgressPayload('start', false, 'Changing CrowdSec local remediation'),
       );
-      const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
       const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
@@ -885,7 +880,6 @@ export class CrowdSecController extends Controller {
         .status(200)
         .body({
           changed: true,
-          preflight,
           preparation,
           activation,
           finalization,
@@ -977,10 +971,6 @@ export class CrowdSecController extends Controller {
             'Converting CrowdSec standalone installation to Machine',
           ),
         );
-        const preflight = await remoteCommunication.preflightCrowdSecTransition(
-          transition,
-          channel,
-        );
         const preparation = await remoteCommunication.prepareCrowdSecTransition(
           transition,
           channel,
@@ -1016,7 +1006,6 @@ export class CrowdSecController extends Controller {
 
         return ResponseBuilder.buildResponse().status(200).body({
           changed: true,
-          preflight,
           preparation,
           validation,
           activation,
@@ -1081,7 +1070,6 @@ export class CrowdSecController extends Controller {
         'message',
         new ProgressPayload('start', false, 'Restoring CrowdSec standalone installation'),
       );
-      const preflight = await remoteCommunication.preflightCrowdSecTransition(transition, channel);
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
       const activation = await remoteCommunication.activateCrowdSecTransition(
@@ -1104,7 +1092,6 @@ export class CrowdSecController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body({
         changed: true,
-        preflight,
         preparation,
         activation,
         finalization,
@@ -1242,7 +1229,9 @@ export class CrowdSecController extends Controller {
       this._firewall.id,
     );
     const centralBouncerCleanupRequired =
-      installation?.mode === CrowdSecInstallationMode.Machine && installation.localRemediation;
+      installation?.mode === CrowdSecInstallationMode.Machine &&
+      installation.localRemediation &&
+      !installation.machineConnectivityPending;
     if (
       installation?.mode === CrowdSecInstallationMode.Standalone &&
       (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
@@ -1256,18 +1245,32 @@ export class CrowdSecController extends Controller {
     const communication = await this.getAgentCommunication();
     await communication.ping();
 
+    const channel = await Channel.fromRequest(req);
+    let centralMachineCleanupRequired = false;
+    channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
+
     if (
       installation?.mode === CrowdSecInstallationMode.Machine &&
       installation.centralFirewallId !== null &&
-      installation.machineName !== null
+      installation.machineName !== null &&
+      !installation.machineConnectivityPending
     ) {
-      const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-      const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
-      await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
+      try {
+        const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
+        const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+        await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
+      } catch {
+        centralMachineCleanupRequired = true;
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec Machine could not be removed from its central Local API and must be removed manually when it is reachable',
+          ),
+        );
+      }
     }
-
-    const channel = await Channel.fromRequest(req);
-    channel.emit('message', new ProgressPayload('start', false, 'Uninstalling CrowdSec'));
 
     const result = await communication.uninstallCrowdSec(req.body.confirm, channel);
     this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
@@ -1283,6 +1286,7 @@ export class CrowdSecController extends Controller {
       .body({
         ...result,
         ...(centralBouncerCleanupRequired ? { central_bouncer_cleanup_required: true } : {}),
+        ...(centralMachineCleanupRequired ? { central_machine_cleanup_required: true } : {}),
       });
   }
 
