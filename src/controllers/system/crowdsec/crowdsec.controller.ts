@@ -1040,8 +1040,12 @@ export class CrowdSecController extends Controller {
       throw new HttpException('Invalid CrowdSec role transition target', 422);
     }
 
-    const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const machineConnectivityPending = installation.machineConnectivityPending === true;
+    const centralCommunication = machineConnectivityPending
+      ? undefined
+      : await this.getCentralAgentCommunication(
+          await this.getCentralFirewall(installation.centralFirewallId),
+        );
     const backend =
       (await Firewall.getCrowdSecFirewallBouncerBackend(
         this._firewall.fwCloudId,
@@ -1052,7 +1056,7 @@ export class CrowdSecController extends Controller {
       confirm: true,
       expected: {
         mode: 'machine' as const,
-        localRemediation: installation.localRemediation,
+        localRemediation: machineConnectivityPending ? false : installation.localRemediation,
         machineName: installation.machineName,
         lapiUrl: installation.lapiUrl,
       },
@@ -1062,6 +1066,7 @@ export class CrowdSecController extends Controller {
       },
       authorityChanged: true,
       backend,
+      machineConnectivityPending,
     };
     let prepared = false;
     let activated = false;
@@ -1080,24 +1085,29 @@ export class CrowdSecController extends Controller {
       await this.getCrowdSecInstallationRepository().saveStandaloneInstallation(this._firewall.id);
       const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
       let sourceMachineRemoved = true;
-      try {
-        await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
-      } catch {
-        sourceMachineRemoved = false;
+      if (centralCommunication) {
+        try {
+          await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
+        } catch {
+          sourceMachineRemoved = false;
+        }
       }
       channel.emit(
         'message',
         new ProgressPayload('end', false, 'CrowdSec standalone transition finished'),
       );
 
-      return ResponseBuilder.buildResponse().status(200).body({
-        changed: true,
-        preparation,
-        activation,
-        finalization,
-        source_machine_removed: sourceMachineRemoved,
-        source_bouncer_cleanup_required: installation.localRemediation,
-      });
+      return ResponseBuilder.buildResponse()
+        .status(200)
+        .body({
+          changed: true,
+          preparation,
+          activation,
+          finalization,
+          source_machine_removed: sourceMachineRemoved,
+          source_bouncer_cleanup_required:
+            !machineConnectivityPending && installation.localRemediation,
+        });
     } catch (error) {
       if (prepared && !activated) {
         try {

@@ -1470,6 +1470,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           target: this.crowdSecTransitionTarget(transition.target),
           authority_changed: transition.authorityChanged,
           ...(transition.backend === undefined ? {} : { backend: transition.backend }),
+          ...(transition.machineConnectivityPending ? { machine_connectivity_pending: true } : {}),
         },
         eventEmitter,
       );

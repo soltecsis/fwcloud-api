@@ -1229,6 +1229,51 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should restore a pending Machine as standalone without contacting its central LAPI', async () => {
+    const channel = new Channel('crowdsec-pending-machine-role-transition', new EventEmitter());
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: fwcProduct.firewall.id + 1,
+        machineName: 'fwcloud-machine-01',
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: true,
+        machineConnectivityPending: true,
+      }),
+    );
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
+    const prepareStub = sinon.stub(communication, 'prepareCrowdSecTransition').resolves({
+      phase: 'prepared',
+    });
+    sinon.stub(communication, 'activateCrowdSecTransition').resolves({
+      phase: 'active_pending_finalize',
+    });
+    sinon.stub(communication, 'finalizeCrowdSecTransition').resolves({ phase: 'completed' });
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+
+    const response = await controller.transitionCrowdSecRole({
+      body: {
+        confirm: true,
+        mode: CrowdSecInstallationMode.Standalone,
+        localRemediation: true,
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(prepareStub.calledOnce).to.be.true;
+    expect(
+      prepareStub.calledWithMatch({
+        expected: { localRemediation: false },
+        machineConnectivityPending: true,
+      }),
+    ).to.be.true;
+    expect(saveStandaloneInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(response.toJSON().data).to.include({
+      source_machine_removed: true,
+      source_bouncer_cleanup_required: false,
+    });
+  });
+
   it('should retain the Machine topology when standalone restoration fails before activation', async () => {
     const channel = new Channel('crowdsec-role-transition', new EventEmitter());
     const centralCommunication = new AgentCommunication({

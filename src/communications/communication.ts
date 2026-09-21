@@ -130,6 +130,7 @@ export type CrowdSecTransitionPrepare = {
   target: CrowdSecTransitionTarget;
   authorityChanged: boolean;
   backend?: CrowdSecFirewallBackend;
+  machineConnectivityPending?: boolean;
 };
 
 export type CrowdSecTransitionActivation = {
