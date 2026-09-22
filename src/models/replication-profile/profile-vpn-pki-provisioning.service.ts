@@ -25,6 +25,7 @@ import { Crt } from '../vpn/pki/Crt';
 import { CaPrefix } from '../vpn/pki/CaPrefix';
 import { Tree } from '../tree/Tree';
 import { ProfileVpnRollback } from './profile-vpn-rollback';
+import { queryRows } from './replication-sql.helpers';
 import config from '../../config/config';
 const utilsModel = require('../../utils/utils');
 
@@ -137,10 +138,9 @@ export async function provisionVpnTemplatePki(
 /**
  * WireGuard's own cryptography is an independent X25519 key pair it generates itself
  * (WireGuard.addCfg()); the certificate is only there to satisfy the `crt` foreign key every
- * OpenVPN/WireGuard/IPsec config row shares. The template format explicitly forbids a WireGuard
- * connection from declaring a certificateId (see replication-profile-vpn.validation.ts's
- * 'wireguard_certificate' check) so this is never visible to, or chosen by, the template author:
- * it reuses the first CA the template already created, or lazily creates one dedicated technical CA
+ * OpenVPN/WireGuard/IPsec config row shares. A WireGuard connection may declare a certificateId in
+ * the template, and then that one is used; this is only for the connections that do not. It
+ * reuses the first CA the template already created, or lazily creates one dedicated technical CA
  * (cached in `pki.caIds` so every WireGuard connection in the same apply shares it) when the
  * template declares none.
  */
@@ -278,15 +278,11 @@ export function describeVpnProvisionError(error: unknown): string {
 }
 
 /** Every FWCloud is seeded with exactly one top-level 'FCA' node (see Tree.ts) — CAs are created under it. */
-function findPkiRootNodeId(dbCon: any, fwCloudId: number): Promise<number | null> {
-  return new Promise((resolve, reject) => {
-    dbCon.query(
-      'SELECT id FROM fwc_tree WHERE fwcloud = ? AND node_type = ? LIMIT 1',
-      [fwCloudId, 'FCA'],
-      (error: unknown, rows: Array<{ id: number }>) => {
-        if (error) return reject(error);
-        resolve(rows.length > 0 ? rows[0].id : null);
-      },
-    );
-  });
+async function findPkiRootNodeId(dbCon: any, fwCloudId: number): Promise<number | null> {
+  const rows = await queryRows<{ id: number }>(
+    dbCon,
+    'SELECT id FROM fwc_tree WHERE fwcloud = ? AND node_type = ? LIMIT 1',
+    [fwCloudId, 'FCA'],
+  );
+  return rows.length > 0 ? rows[0].id : null;
 }
