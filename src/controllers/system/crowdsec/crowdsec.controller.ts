@@ -80,13 +80,21 @@ export class CrowdSecController extends Controller {
   public async status(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
     const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
-    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
-      this._firewall.id,
-    );
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    const installation = await installationRepository.findByFirewallId(this._firewall.id);
+    const communityBlocklistEnrollment = status.community_blocklist_enrollment ?? 'unknown';
+    let consoleEnrollmentConfirmed = installation?.consoleEnrollmentConfirmed === true;
+    if (
+      installation?.mode === CrowdSecInstallationMode.Lapi &&
+      communityBlocklistEnrollment === 'enrolled' &&
+      !consoleEnrollmentConfirmed
+    ) {
+      await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, true);
+      consoleEnrollmentConfirmed = true;
+    }
     const centralLapiEnabled = installation?.centralLapiEnabled === true;
     const centralLapiHasMachines =
-      centralLapiEnabled &&
-      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id));
+      centralLapiEnabled && (await installationRepository.hasMachineDependents(this._firewall.id));
     const lapiState = (status.lapi as Record<string, unknown> | undefined)?.state;
     const machineReauthenticationRequired =
       installation?.mode === CrowdSecInstallationMode.Machine &&
@@ -99,6 +107,8 @@ export class CrowdSecController extends Controller {
         central_lapi_has_machines: centralLapiHasMachines,
         machine_reauthentication_required: machineReauthenticationRequired,
         machine_connectivity_pending: installation?.machineConnectivityPending === true,
+        community_blocklist_enrollment: communityBlocklistEnrollment,
+        console_enrollment_confirmed: consoleEnrollmentConfirmed,
         installation_mode: installation?.mode ?? null,
         local_remediation: installation?.localRemediation ?? false,
         central_lapi_firewall_id: installation?.centralFirewallId ?? null,
@@ -209,11 +219,8 @@ export class CrowdSecController extends Controller {
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
       this._firewall.id,
     );
-    if (installation?.mode !== CrowdSecInstallationMode.Standalone) {
-      throw new HttpException(
-        'CrowdSec Local API requires a standalone CrowdSec installation',
-        409,
-      );
+    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+      throw new HttpException('CrowdSec Local API requires a LAPI CrowdSec installation', 409);
     }
 
     const centralLapiEnabled = this.isCentralLapiListener(req.body.listenUri);
@@ -327,7 +334,7 @@ export class CrowdSecController extends Controller {
   public async installMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    await this.assertCanTransitionStandaloneToMachine();
+    await this.assertCanTransitionLapiToMachine();
 
     const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
     const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
@@ -924,11 +931,11 @@ export class CrowdSecController extends Controller {
     const channel = await Channel.fromRequest(req);
     const transitionId = uuid.v4();
 
-    if (installation.mode === CrowdSecInstallationMode.Standalone) {
+    if (installation.mode === CrowdSecInstallationMode.Lapi) {
       if (req.body.mode !== CrowdSecInstallationMode.Machine) {
         throw new HttpException('Invalid CrowdSec role transition target', 422);
       }
-      await this.assertCanTransitionStandaloneToMachine();
+      await this.assertCanTransitionLapiToMachine();
 
       const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
       const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
@@ -948,7 +955,7 @@ export class CrowdSecController extends Controller {
         transitionId,
         confirm: true,
         expected: {
-          mode: 'standalone' as const,
+          mode: 'lapi' as const,
           localRemediation: true,
         },
         target: {
@@ -965,11 +972,7 @@ export class CrowdSecController extends Controller {
       try {
         channel.emit(
           'message',
-          new ProgressPayload(
-            'start',
-            false,
-            'Converting CrowdSec standalone installation to Machine',
-          ),
+          new ProgressPayload('start', false, 'Converting CrowdSec LAPI installation to Machine'),
         );
         const preparation = await remoteCommunication.prepareCrowdSecTransition(
           transition,
@@ -1016,7 +1019,7 @@ export class CrowdSecController extends Controller {
           try {
             await remoteCommunication.recoverCrowdSecTransition(transitionId);
           } catch {
-            // The agent preserves a recovery state when the former standalone role cannot be restored.
+            // The agent preserves a recovery state when the former LAPI role cannot be restored.
           }
           try {
             await centralCommunication.removeCrowdSecLapiMachine(req.body.machineName);
@@ -1033,7 +1036,7 @@ export class CrowdSecController extends Controller {
       installation.centralFirewallId === null ||
       installation.machineName === null ||
       installation.lapiUrl === null ||
-      req.body.mode !== CrowdSecInstallationMode.Standalone ||
+      req.body.mode !== CrowdSecInstallationMode.Lapi ||
       !req.body.localRemediation ||
       req.body.bouncerApiKey !== undefined
     ) {
@@ -1061,7 +1064,7 @@ export class CrowdSecController extends Controller {
         lapiUrl: installation.lapiUrl,
       },
       target: {
-        mode: 'standalone' as const,
+        mode: 'lapi' as const,
         localRemediation: true,
       },
       authorityChanged: true,
@@ -1073,7 +1076,7 @@ export class CrowdSecController extends Controller {
     try {
       channel.emit(
         'message',
-        new ProgressPayload('start', false, 'Restoring CrowdSec standalone installation'),
+        new ProgressPayload('start', false, 'Restoring CrowdSec LAPI installation'),
       );
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
@@ -1082,7 +1085,7 @@ export class CrowdSecController extends Controller {
         channel,
       );
       activated = true;
-      await this.getCrowdSecInstallationRepository().saveStandaloneInstallation(this._firewall.id);
+      await this.getCrowdSecInstallationRepository().saveLapiInstallation(this._firewall.id);
       const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
       let sourceMachineRemoved = true;
       if (centralCommunication) {
@@ -1094,7 +1097,7 @@ export class CrowdSecController extends Controller {
       }
       channel.emit(
         'message',
-        new ProgressPayload('end', false, 'CrowdSec standalone transition finished'),
+        new ProgressPayload('end', false, 'CrowdSec LAPI transition finished'),
       );
 
       return ResponseBuilder.buildResponse()
@@ -1175,7 +1178,30 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const response = await (await this.getAgentCommunication()).enrollCrowdSecConsole(req.body);
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    if (await installationRepository.findByFirewallId(this._firewall.id)) {
+      await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, false);
+    }
     return ResponseBuilder.buildResponse().status(200).body(response);
+  }
+
+  @Validate()
+  public async confirmConsoleEnrollment(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    const installation = await installationRepository.findByFirewallId(this._firewall.id);
+    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+      throw new HttpException(
+        'Manual CrowdSec Console enrollment confirmation requires a LAPI installation',
+        409,
+      );
+    }
+
+    await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, true);
+    return ResponseBuilder.buildResponse().status(200).body({
+      console_enrollment_confirmed: true,
+    });
   }
 
   @Validate(CrowdSecCollectionDto)
@@ -1224,7 +1250,7 @@ export class CrowdSecController extends Controller {
       this._firewall,
       true,
     );
-    await this.getCrowdSecInstallationRepository().saveStandaloneInstallation(this._firewall.id);
+    await this.getCrowdSecInstallationRepository().saveLapiInstallation(this._firewall.id);
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
@@ -1243,11 +1269,11 @@ export class CrowdSecController extends Controller {
       installation.localRemediation &&
       !installation.machineConnectivityPending;
     if (
-      installation?.mode === CrowdSecInstallationMode.Standalone &&
+      installation?.mode === CrowdSecInstallationMode.Lapi &&
       (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
     ) {
       throw new HttpException(
-        'CrowdSec standalone Local API has dependent machines and cannot be uninstalled',
+        'CrowdSec LAPI has dependent machines and cannot be uninstalled',
         409,
       );
     }
@@ -1344,9 +1370,9 @@ export class CrowdSecController extends Controller {
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
       firewall.id,
     );
-    if (installation?.mode !== CrowdSecInstallationMode.Standalone) {
+    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
       throw new HttpException(
-        'Central CrowdSec firewall requires a standalone CrowdSec installation',
+        'Central CrowdSec firewall requires a LAPI CrowdSec installation',
         409,
       );
     }
@@ -1354,16 +1380,16 @@ export class CrowdSecController extends Controller {
     return firewall;
   }
 
-  private async assertCanTransitionStandaloneToMachine(): Promise<void> {
+  private async assertCanTransitionLapiToMachine(): Promise<void> {
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
       this._firewall.id,
     );
     if (
-      installation?.mode === CrowdSecInstallationMode.Standalone &&
+      installation?.mode === CrowdSecInstallationMode.Lapi &&
       (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
     ) {
       throw new HttpException(
-        'CrowdSec standalone Local API has dependent machines and cannot be converted to a Machine',
+        'CrowdSec LAPI has dependent machines and cannot be converted to a Machine',
         409,
       );
     }

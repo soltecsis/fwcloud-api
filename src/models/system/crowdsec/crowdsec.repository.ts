@@ -42,15 +42,16 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     super(CrowdSecInstallation, manager);
   }
 
-  public async saveStandaloneInstallation(firewallId: number): Promise<CrowdSecInstallation> {
+  public async saveLapiInstallation(firewallId: number): Promise<CrowdSecInstallation> {
     return this.saveInstallation({
       firewallId,
-      mode: CrowdSecInstallationMode.Standalone,
+      mode: CrowdSecInstallationMode.Lapi,
       centralFirewallId: null,
       lapiUrl: null,
       machineName: null,
       localRemediation: true,
       machineConnectivityPending: false,
+      consoleEnrollmentConfirmed: false,
     });
   }
 
@@ -61,6 +62,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       ...installation,
       mode: CrowdSecInstallationMode.Machine,
       machineConnectivityPending: installation.machineConnectivityPending ?? false,
+      consoleEnrollmentConfirmed: false,
     });
   }
 
@@ -77,7 +79,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
   ): Promise<CrowdSecInstallation[]> {
     return this.createQueryBuilder('installation')
       .innerJoinAndSelect('installation.firewall', 'firewall')
-      .where('installation.mode = :mode', { mode: CrowdSecInstallationMode.Standalone })
+      .where('installation.mode = :mode', { mode: CrowdSecInstallationMode.Lapi })
       .andWhere('firewall.fwcloud = :fwcloudId', { fwcloudId })
       .andWhere('firewall.id != :remoteFirewallId', { remoteFirewallId })
       .andWhere('firewall.install_communication = :communication', {
@@ -131,6 +133,16 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     return this.saveInstallation({
       firewallId,
       machineConnectivityPending: pending,
+    });
+  }
+
+  public async setConsoleEnrollmentConfirmed(
+    firewallId: number,
+    confirmed: boolean,
+  ): Promise<CrowdSecInstallation> {
+    return this.saveInstallation({
+      firewallId,
+      consoleEnrollmentConfirmed: confirmed,
     });
   }
 

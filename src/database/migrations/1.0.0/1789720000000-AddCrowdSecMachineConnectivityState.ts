@@ -34,9 +34,21 @@ export class AddCrowdSecMachineConnectivityState1789720000000 implements Migrati
         default: 0,
       }),
     );
+
+    await queryRunner.addColumn(
+      'crowdsec_installation',
+      new TableColumn({
+        name: 'console_enrollment_confirmed',
+        type: 'tinyint',
+        length: '1',
+        isNullable: false,
+        default: 0,
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropColumn('crowdsec_installation', 'console_enrollment_confirmed');
     await queryRunner.dropColumn('crowdsec_installation', 'machine_connectivity_pending');
   }
 }

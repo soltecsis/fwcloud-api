@@ -87,7 +87,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       .callsFake(async (firewallId: number) =>
         firewallId === centralFirewall.id
           ? Object.assign(new CrowdSecInstallation(), {
-              mode: CrowdSecInstallationMode.Standalone,
+              mode: CrowdSecInstallationMode.Lapi,
             })
           : null,
       );
