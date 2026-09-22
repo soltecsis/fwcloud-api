@@ -368,9 +368,9 @@ export class CrowdSecClusterController extends Controller {
     const installation = await new CrowdSecInstallationRepository(
       db.getSource().manager,
     ).findByFirewallId(firewall.id);
-    if (installation?.mode !== CrowdSecInstallationMode.Standalone) {
+    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
       throw new HttpException(
-        'Central CrowdSec firewall requires a standalone CrowdSec installation',
+        'Central CrowdSec firewall requires a LAPI CrowdSec installation',
         409,
       );
     }
@@ -386,11 +386,11 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('CrowdSec Machine installation already exists on this node', 409);
     }
     if (
-      installation?.mode === CrowdSecInstallationMode.Standalone &&
+      installation?.mode === CrowdSecInstallationMode.Lapi &&
       (await installations.hasMachineDependents(firewall.id))
     ) {
       throw new HttpException(
-        'CrowdSec standalone Local API has dependent machines and cannot be converted to a Machine',
+        'CrowdSec LAPI has dependent machines and cannot be converted to a Machine',
         409,
       );
     }

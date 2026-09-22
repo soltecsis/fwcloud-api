@@ -35,7 +35,7 @@ import { Firewall } from '../../firewall/Firewall';
 const tableName = 'crowdsec_installation';
 
 export enum CrowdSecInstallationMode {
-  Standalone = 'standalone',
+  Lapi = 'lapi',
   Machine = 'machine',
 }
 

@@ -69,7 +69,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let communication: AgentCommunication;
   let viewPolicyStub: sinon.SinonStub;
   let managePolicyStub: sinon.SinonStub;
-  let saveStandaloneInstallationStub: sinon.SinonStub;
+  let saveLapiInstallationStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
   let removeInstallationStub: sinon.SinonStub;
   let findInstallationStub: sinon.SinonStub;
@@ -104,8 +104,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     pingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
-    saveStandaloneInstallationStub = sinon
-      .stub(CrowdSecInstallationRepository.prototype, 'saveStandaloneInstallation')
+    saveLapiInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
       .resolves(new CrowdSecInstallation());
     saveMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveMachineInstallation')
@@ -119,7 +119,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         firewallId === fwcProduct.firewall.id
           ? null
           : Object.assign(new CrowdSecInstallation(), {
-              mode: CrowdSecInstallationMode.Standalone,
+              mode: CrowdSecInstallationMode.Lapi,
             }),
       );
     findCentralCandidatesStub = sinon
@@ -324,14 +324,14 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200, data: machines });
   });
 
-  it('should list eligible standalone CrowdSec central LAPI firewalls', async () => {
+  it('should list eligible LAPI CrowdSec central firewalls', async () => {
     const centralFirewall = Object.assign(new Firewall(), {
       id: fwcProduct.firewall.id + 1,
       name: 'CrowdSec central',
     });
     const installation = Object.assign(new CrowdSecInstallation(), {
       firewall: centralFirewall,
-      mode: CrowdSecInstallationMode.Standalone,
+      mode: CrowdSecInstallationMode.Lapi,
     });
     findCentralCandidatesStub.resolves([installation]);
 
@@ -351,9 +351,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should configure a standalone CrowdSec central LAPI', async () => {
+  it('should configure a LAPI CrowdSec central firewall', async () => {
     findInstallationStub.resolves(
-      Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
+      Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }),
     );
     const configureStub = sinon
       .stub(communication, 'configureCrowdSecCentralLapi')
@@ -375,7 +375,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should reject central LAPI configuration without a standalone CrowdSec installation', async () => {
+  it('should reject central LAPI configuration without a LAPI CrowdSec installation', async () => {
     const configureStub = sinon.stub(communication, 'configureCrowdSecCentralLapi');
 
     await expect(
@@ -383,10 +383,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         body: { listenUri: '0.0.0.0:8080' },
         session: { user: null },
       } as unknown as Request),
-    ).to.be.rejectedWith(
-      HttpException,
-      'CrowdSec Local API requires a standalone CrowdSec installation',
-    );
+    ).to.be.rejectedWith(HttpException, 'CrowdSec Local API requires a LAPI CrowdSec installation');
 
     expect(configureStub.called).to.be.false;
   });
@@ -698,7 +695,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(activateStub.called).to.be.false;
   });
 
-  it('should reject CrowdSec machine installation when the selected firewall is not standalone', async () => {
+  it('should reject CrowdSec machine installation when the selected firewall is not LAPI', async () => {
     const centralFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
       id: fwcProduct.firewall.id + 1,
       install_communication: FirewallInstallCommunication.Agent,
@@ -724,18 +721,16 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith(
       HttpException,
-      'Central CrowdSec firewall requires a standalone CrowdSec installation',
+      'Central CrowdSec firewall requires a LAPI CrowdSec installation',
     );
 
     expect(configureStub.called).to.be.false;
   });
 
-  it('should reject CrowdSec Machine installation from a standalone central LAPI with dependents', async () => {
+  it('should reject CrowdSec Machine installation from a LAPI central firewall with dependents', async () => {
     findInstallationStub
       .withArgs(fwcProduct.firewall.id)
-      .resolves(
-        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
-      );
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
     hasMachineDependentsStub.withArgs(fwcProduct.firewall.id).resolves(true);
     const centralFirewallStub = sinon.stub(
       db.getSource().manager.getRepository(Firewall),
@@ -754,7 +749,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith(
       HttpException,
-      'CrowdSec standalone Local API has dependent machines and cannot be converted to a Machine',
+      'CrowdSec LAPI has dependent machines and cannot be converted to a Machine',
     );
 
     expect(centralFirewallStub.called).to.be.false;
@@ -1069,7 +1064,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(JSON.stringify(response.toJSON())).to.not.contain('central-bouncer-key');
   });
 
-  it('should convert a standalone CrowdSec installation to a Machine without local remediation', async () => {
+  it('should convert a LAPI CrowdSec installation to a Machine without local remediation', async () => {
     const channel = new Channel('crowdsec-role-transition', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1085,9 +1080,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
     findInstallationStub
       .withArgs(fwcProduct.firewall.id)
-      .resolves(
-        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
-      );
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
     const prepareStub = sinon
@@ -1129,12 +1122,10 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200 });
   });
 
-  it('should reject converting a standalone central LAPI with dependent Machines', async () => {
+  it('should reject converting a central LAPI with dependent Machines', async () => {
     findInstallationStub
       .withArgs(fwcProduct.firewall.id)
-      .resolves(
-        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
-      );
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
     hasMachineDependentsStub.withArgs(fwcProduct.firewall.id).resolves(true);
     const centralFirewallStub = sinon.stub(
       db.getSource().manager.getRepository(Firewall),
@@ -1155,7 +1146,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith(
       HttpException,
-      'CrowdSec standalone Local API has dependent machines and cannot be converted to a Machine',
+      'CrowdSec LAPI has dependent machines and cannot be converted to a Machine',
     );
 
     expect(centralFirewallStub.called).to.be.false;
@@ -1167,7 +1158,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       controller.transitionCrowdSecRole({
         body: {
           confirm: true,
-          mode: CrowdSecInstallationMode.Standalone,
+          mode: CrowdSecInstallationMode.Lapi,
           localRemediation: true,
         },
         session: { user: null },
@@ -1175,7 +1166,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejected;
   });
 
-  it('should restore a CrowdSec Machine as standalone and retain its central Bouncer for manual cleanup', async () => {
+  it('should restore a CrowdSec Machine as LAPI and retain its central Bouncer for manual cleanup', async () => {
     const channel = new Channel('crowdsec-role-transition', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1213,7 +1204,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const response = await controller.transitionCrowdSecRole({
       body: {
         confirm: true,
-        mode: CrowdSecInstallationMode.Standalone,
+        mode: CrowdSecInstallationMode.Lapi,
         localRemediation: true,
       },
       session: { user: null },
@@ -1221,7 +1212,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(activateStub.calledBefore(removeMachineStub)).to.be.true;
-    expect(saveStandaloneInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.include({
       source_machine_removed: true,
@@ -1229,7 +1220,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should restore a pending Machine as standalone without contacting its central LAPI', async () => {
+  it('should restore a pending Machine as LAPI without contacting its central LAPI', async () => {
     const channel = new Channel('crowdsec-pending-machine-role-transition', new EventEmitter());
     findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
       Object.assign(new CrowdSecInstallation(), {
@@ -1254,7 +1245,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const response = await controller.transitionCrowdSecRole({
       body: {
         confirm: true,
-        mode: CrowdSecInstallationMode.Standalone,
+        mode: CrowdSecInstallationMode.Lapi,
         localRemediation: true,
       },
       session: { user: null },
@@ -1267,14 +1258,14 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         machineConnectivityPending: true,
       }),
     ).to.be.true;
-    expect(saveStandaloneInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(response.toJSON().data).to.include({
       source_machine_removed: true,
       source_bouncer_cleanup_required: false,
     });
   });
 
-  it('should retain the Machine topology when standalone restoration fails before activation', async () => {
+  it('should retain the Machine topology when LAPI restoration fails before activation', async () => {
     const channel = new Channel('crowdsec-role-transition', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1313,7 +1304,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       controller.transitionCrowdSecRole({
         body: {
           confirm: true,
-          mode: CrowdSecInstallationMode.Standalone,
+          mode: CrowdSecInstallationMode.Lapi,
           localRemediation: true,
         },
         session: { user: null },
@@ -1323,10 +1314,10 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(activateStub.calledOnce).to.be.true;
     expect(recoverStub.calledOnce).to.be.true;
     expect(removeMachineStub.called).to.be.false;
-    expect(saveStandaloneInstallationStub.called).to.be.false;
+    expect(saveLapiInstallationStub.called).to.be.false;
   });
 
-  it('should persist standalone topology when central Machine cleanup fails', async () => {
+  it('should persist LAPI topology when central Machine cleanup fails', async () => {
     const channel = new Channel('crowdsec-role-transition', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1364,13 +1355,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const response = await controller.transitionCrowdSecRole({
       body: {
         confirm: true,
-        mode: CrowdSecInstallationMode.Standalone,
+        mode: CrowdSecInstallationMode.Lapi,
         localRemediation: true,
       },
       session: { user: null },
     } as unknown as Request);
 
-    expect(saveStandaloneInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.include({ source_machine_removed: false });
   });
@@ -1810,7 +1801,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       new Validator(
         {
           confirm: true,
-          mode: CrowdSecInstallationMode.Standalone,
+          mode: CrowdSecInstallationMode.Lapi,
           localRemediation: true,
         },
         CrowdSecTransitionDto,
@@ -1945,7 +1936,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(channelStub.calledOnce).to.be.true;
     expect(crowdsecStub.calledOnceWithExactly(channel, 'nftables')).to.be.true;
     expect(bouncerStub.called).to.be.false;
-    expect(saveStandaloneInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
@@ -1978,7 +1969,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith('CrowdSec install failed');
     expect(bouncerStub.called).to.be.false;
     expect(compatibilityStub.called).to.be.false;
-    expect(saveStandaloneInstallationStub.called).to.be.false;
+    expect(saveLapiInstallationStub.called).to.be.false;
   });
 
   it('should preserve the agent default backend when the compiler has no CrowdSec backend', async () => {
@@ -2227,9 +2218,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(removeInstallationStub.called).to.be.false;
   });
 
-  it('should reject standalone CrowdSec uninstallation with dependent machines before contacting the agent', async () => {
+  it('should reject LAPI CrowdSec uninstallation with dependent machines before contacting the agent', async () => {
     findInstallationStub.resolves(
-      Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Standalone }),
+      Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }),
     );
     hasMachineDependentsStub.resolves(true);
     const uninstallStub = sinon.stub(communication, 'uninstallCrowdSec');
@@ -2241,7 +2232,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith(
       HttpException,
-      'CrowdSec standalone Local API has dependent machines and cannot be uninstalled',
+      'CrowdSec LAPI has dependent machines and cannot be uninstalled',
     );
 
     expect(hasMachineDependentsStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;

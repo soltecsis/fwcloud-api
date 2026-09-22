@@ -117,7 +117,7 @@ export type CrowdSecMachineReauthentication = {
 };
 
 export type CrowdSecTransitionTarget = {
-  mode: 'standalone' | 'machine';
+  mode: 'lapi' | 'machine';
   localRemediation: boolean;
   machineName?: string;
   lapiUrl?: string;
