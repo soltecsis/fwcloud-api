@@ -4,17 +4,53 @@ on:
   push:
     branches:
       - main
+      - fixes
   pull_request:
     branches:
       - devel
       - fixes
       - auditlogs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: true
+  HUSKY: '0'
 
 jobs:
-  test:
-    if: github.repository_owner == 'soltecsis'
-    name: 'FWCloud-API Test'
+  quality:
+    name: FWCloud-API Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint:check
+      - name: Run Prettier
+        run: npm run format:check
+
+  test:
+    name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     services:
       mysql:
@@ -26,6 +62,11 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
       mysql8:
         image: mysql:8.0
         ports:
@@ -35,6 +76,11 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
       mariadb:
         image: mariadb:10.1
         ports:
@@ -44,8 +90,14 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
 
     strategy:
+      fail-fast: false
       matrix:
         node-version: ['20', '22', '24']
         database: [mysql, mysql8, mariadb]
@@ -64,30 +116,59 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-
-    - name: Cache node modules
-      uses: actions/cache@v4
-      env:
-        cache-name: cache-node-modules
-      with:
-        path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
+        cache: npm
+        cache-dependency-path: package-lock.json
+    - name: Show runtime versions
+      run: |
+        node --version
+        npm --version
     - name: Disable mysqldump column statistics
       run: echo 'column-statistics=0' | sudo tee -a /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
-      run: npm install
-    - name: Run ESLint
-      if: matrix.node-version == '20' || matrix.node-version == '22'
-      run: npm run lint:check
-    - name: Run Prettier
-      run: npm run format:check
-    - name: Build FWCloud
-      run: npm run build --if-present
-    - name: Run tests
-      run: TYPEORM_PORT=${{ matrix.port }} npm run test -- --forbid-only
+      run: npm ci
+    - name: Verify database connection
       env:
-        CI: true
+        TYPEORM_PORT: ${{ matrix.port }}
+      run: |
+        node <<'NODE'
+        const mysql = require('mysql2/promise');
+        (async () => {
+          const connection = await mysql.createConnection({
+            host: '127.0.0.1',
+            port: Number(process.env.TYPEORM_PORT),
+            user: 'fwcdbusr',
+            password: 'fwcdbusr',
+            database: 'fwcloud',
+            connectTimeout: 10000,
+          });
+          try {
+            await connection.query('SELECT 1');
+          } finally {
+            await connection.end();
+          }
+        })().catch(error => {
+          console.error(error);
+          process.exitCode = 1;
+        });
+        NODE
+    - name: Build FWCloud
+      run: npm run build
+    - name: Run tests
+      run: npm run test:ci
+      env:
+        TYPEORM_PORT: ${{ matrix.port }}
+
+  backend-ci:
+    name: backend-ci
+    if: ${{ always() }}
+    needs: [quality, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all checks to succeed
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$TEST_RESULT" = success
