@@ -6,6 +6,30 @@ export interface ProfileVpnValidationIssue {
   path: string;
 }
 type RecordValue = Record<string, unknown>;
+
+/**
+ * VPN options that carry a secret (keys, pre-shared keys, passwords). A template only keeps
+ * definitions, never key material, so these are refused wherever they appear.
+ */
+const SECRET_VPN_OPTION_MARKERS = [
+  '<<',
+  'psk',
+  'privatekey',
+  'presharedkey',
+  'password',
+  'passwd',
+  'secret',
+  'askpass',
+  'auth-user-pass',
+  'tls-auth',
+  'tls-crypt',
+  'pkcs12',
+];
+export function isSecretVpnOptionName(name: string): boolean {
+  const normalized = name.toLowerCase();
+  return SECRET_VPN_OPTION_MARKERS.some((marker) => normalized.includes(marker));
+}
+
 export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidationIssue[] {
   const errors: ProfileVpnValidationIssue[] = [];
   const fail = (code: string, path: string) => errors.push({ code, path });
@@ -28,8 +52,8 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
       fail('invalid_text', path);
     }
   };
-  const integer = (v: unknown, max: number, path: string) => {
-    if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > max) {
+  const integer = (v: unknown, max: number, path: string, min = 1) => {
+    if (!Number.isInteger(v) || (v as number) < min || (v as number) > max) {
       fail('invalid_number', path);
     }
   };
@@ -123,6 +147,7 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
         'remoteNetwork',
         'transport',
         'device',
+        'options',
       ],
       path,
     );
@@ -152,12 +177,35 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
         }
       }
     }
-    const cert = certificatesById.get(vpn.certificateId);
-    if (vpn.kind === 'wireguard') {
-      if (vpn.certificateId !== undefined) {
-        fail('wireguard_certificate', `${path}.certificateId`);
+    if (vpn.options !== undefined) {
+      const optionsPath = `${path}.options`;
+      if (!Array.isArray(vpn.options) || vpn.options.length > 300) {
+        fail('invalid_list', optionsPath);
+      } else {
+        vpn.options.forEach((option: unknown, j: number) => {
+          const optionPath = `${optionsPath}[${j}]`;
+          if (!record(option)) {
+            fail('invalid_structure', optionPath);
+            return;
+          }
+          fields(option, ['name', 'arg', 'scope', 'comment'], optionPath);
+          text(option.name, `${optionPath}.name`);
+          text(option.arg, `${optionPath}.arg`, false);
+          if (option.comment !== undefined) {
+            text(option.comment, `${optionPath}.comment`, false);
+          }
+          integer(option.scope, 9, `${optionPath}.scope`, 0);
+          if (typeof option.name === 'string' && isSecretVpnOptionName(option.name)) {
+            fail('secret_option', `${optionPath}.name`);
+          }
+        });
       }
-    } else if (!cert || cert.kind !== vpn.role) {
+    }
+    const cert = certificatesById.get(vpn.certificateId);
+    // WireGuard's keys do not come from a certificate, so declaring one is optional there: without
+    // it, applying the profile creates a technical one.
+    const optionalCertificate = vpn.kind === 'wireguard' && vpn.certificateId === undefined;
+    if (!optionalCertificate && (!cert || cert.kind !== vpn.role)) {
       fail('invalid_certificate', `${path}.certificateId`);
     }
     if (vpn.serverId !== undefined) {
@@ -170,7 +218,7 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
         server.id === vpn.id
       ) {
         fail('invalid_server', `${path}.serverId`);
-      } else if (vpn.kind !== 'wireguard') {
+      } else {
         const serverCert = certificatesById.get(server.certificateId);
         if (cert && serverCert && cert.caId !== serverCert.caId) {
           fail('ca_mismatch', `${path}.certificateId`);
