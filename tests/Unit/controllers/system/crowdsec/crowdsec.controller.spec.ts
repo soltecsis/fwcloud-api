@@ -241,6 +241,23 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should not persist CrowdSec Console enrollment already confirmed by the agent', async () => {
+    sinon.stub(communication, 'getCrowdSecStatus').resolves({
+      crowdsec: { installed: true },
+      community_blocklist_enrollment: 'enrolled',
+    });
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: true,
+      }),
+    );
+
+    await controller.status({ session: { user: null } } as unknown as Request);
+
+    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
+  });
+
   it('should forward CrowdSec decision filters to the agent', async () => {
     const decisions = { decisions: [] };
     const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions').resolves(decisions);
@@ -1691,7 +1708,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(statusStub.called).to.be.false;
   });
 
-  it('should enroll CrowdSec Console without returning the enrollment key', async () => {
+  it('should enroll CrowdSec Console and reset persisted confirmation without returning the enrollment key', async () => {
     const enrollmentKey = 'crowdsec-enrollment-key';
     const response = {
       status: {
@@ -1700,6 +1717,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       },
     };
     const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves(response);
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: true,
+      }),
+    );
 
     const result = await controller.enrollConsole({
       body: { enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] },
@@ -1707,6 +1730,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(enrollStub.calledOnceWithExactly({ enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] }))
+      .to.be.true;
+    expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, false))
       .to.be.true;
     expect(result.toJSON().data).to.deep.equal(response);
     expect(JSON.stringify(result.toJSON())).to.not.contain(enrollmentKey);
@@ -1725,6 +1750,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     findInstallationStub
       .withArgs(fwcProduct.firewall.id)
       .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    const statusStub = sinon.stub(communication, 'getCrowdSecStatus');
 
     const response = await controller.confirmConsoleEnrollment({
       session: { user: null },
@@ -1732,10 +1758,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to
       .be.true;
-    expect(response.toJSON()).to.include({
-      status: 200,
-      data: { console_enrollment_confirmed: true },
-    });
+    expect(statusStub.called).to.be.false;
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({ console_enrollment_confirmed: true });
   });
 
   it('should reject manual CrowdSec Console enrollment confirmation for a Machine', async () => {
@@ -1750,6 +1775,16 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       controller.confirmConsoleEnrollment({ session: { user: null } } as unknown as Request),
     ).to.be.rejectedWith(HttpException);
     expect(statusStub.called).to.be.false;
+    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
+  });
+
+  it('should reject manual CrowdSec Console enrollment confirmation without access', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+
+    await expect(
+      controller.confirmConsoleEnrollment({ session: { user: null } } as unknown as Request),
+    ).to.be.rejected;
+    expect(findInstallationStub.called).to.be.false;
     expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
   });
 
