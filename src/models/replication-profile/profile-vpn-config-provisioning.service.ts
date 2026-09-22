@@ -23,9 +23,14 @@
 import { ProfileVpnRollback } from './profile-vpn-rollback';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 import { WireGuard } from '../vpn/wireguard/WireGuard';
+import { IPSec } from '../vpn/ipsec/IPSec';
+import { Crt } from '../vpn/pki/Crt';
+import { IPSecPrefix } from '../vpn/ipsec/IPSecPrefix';
+import { IpUtils } from '../../utils/ip-utils';
 import { Interface } from '../interface/Interface';
 import { IPObj } from '../ipobj/IPObj';
 import { Tree } from '../tree/Tree';
+import { queryRows } from './replication-sql.helpers';
 import {
   dereferenceParameter,
   parseReplicationProfileAddress,
@@ -54,6 +59,15 @@ export interface ProfileVpnConnectionTemplate {
   remoteNetwork: string;
   transport: 'udp' | 'tcp';
   device: 'tun' | 'tap';
+  /** The connection's options as the template editor's option grid left them. */
+  options?: ProfileVpnOptionTemplate[];
+}
+
+export interface ProfileVpnOptionTemplate {
+  name: string;
+  arg: string;
+  scope: number;
+  comment?: string;
 }
 
 /** One entry per field `normalizeProfileVpnRuleParameters()` turned into an apply-time parameter. */
@@ -65,6 +79,12 @@ export type ProfileVpnRuntimeFields = Partial<
 export type ResolvedVpnConnectionValues = Partial<
   Record<'network' | 'endpoint' | 'remoteNetwork' | 'localNetwork', string>
 >;
+
+/** Looks up one of a connection's resolved runtime fields; every `provisionXxxServer/Client` takes one. */
+type ResolveVpnField = (
+  connectionId: string,
+  field: keyof ProfileVpnRuntimeFields,
+) => string | undefined;
 
 /**
  * Dereferences every VPN connection's runtime fields (as built by
@@ -101,6 +121,135 @@ export function resolveVpnConnectionValues(
   return resolved;
 }
 
+/** A preview creates nothing, so the VPN config a real apply would create has no id yet. */
+const PREVIEW_VPN_CONFIG_ID = 0;
+
+const certificateNotCreated = (label: string, name: string): string =>
+  `${label} "${name}": its certificate was not created, so it was skipped.`;
+const endpointNotProvided = (label: string, name: string): string =>
+  `${label} "${name}": the server's endpoint was not provided.`;
+
+/** A client of an external server authenticates with a pre-shared key, which a template cannot carry. */
+const isExternalIpsecClient = (connection: ProfileVpnConnectionTemplate): boolean =>
+  connection.kind === 'ipsec' && connection.role === 'client' && !connection.serverId;
+
+function externalIpsecClientError(connection: { name: string }): string {
+  return `IPsec connection "${connection.name}": a client of an external server needs a pre-shared key, which a profile cannot carry.`;
+}
+
+/** What every `provisionXxxServer/Client`'s catch block reports when its own writes fail partway through. */
+const provisionFailed = (label: string, name: string, error: unknown): string =>
+  `${label} "${name}": ${describeVpnProvisionError(error)}`;
+
+/**
+ * What a real apply would be able to create, without creating it: a preview lets rules reference
+ * those VPN clients (their real ids only exist once created) and reports what it would refuse,
+ * so it never promises more than the apply can do. Mirrors provisionVpnTemplateConfigs()'s scope:
+ * configs are only created for a single firewall, and IPsec needs a server of the profile.
+ */
+export function previewVpnTemplateConfigs(
+  connections: ProfileVpnConnectionTemplate[],
+  targetKind: 'firewall' | 'cluster',
+): { vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined; errors: string[] } {
+  const errors: string[] = [];
+
+  if (targetKind !== 'firewall' || connections.length === 0) {
+    return { vpnConfigIds: undefined, errors };
+  }
+
+  const vpnConfigIds = new Map<string, ResolvedVpnConfig>();
+
+  for (const connection of connections) {
+    if (isExternalIpsecClient(connection)) {
+      errors.push(externalIpsecClientError(connection));
+      continue;
+    }
+
+    vpnConfigIds.set(connection.id, { id: PREVIEW_VPN_CONFIG_ID, protocol: connection.kind });
+  }
+
+  return { vpnConfigIds, errors };
+}
+
+const VPN_CONFIG_TABLE_BY_PROTOCOL: Record<ProfileVpnConnectionTemplate['kind'], string> = {
+  openvpn: 'openvpn',
+  wireguard: 'wireguard',
+  ipsec: 'ipsec',
+};
+
+/**
+ * Binds VPN configs the caller says already exist to the template's connections. The ids come
+ * straight from the request, and a rule is later linked to them by id alone, so each one must be
+ * a config of the target firewall in this FWCloud: anything else would let a rule reference a
+ * VPN of another firewall or another FWCloud.
+ */
+export async function resolveSuppliedVpnConfigs(
+  dbCon: any,
+  fwCloudId: number,
+  target: { kind: 'firewall' | 'cluster'; id: number } | null,
+  connections: ProfileVpnConnectionTemplate[],
+  supplied: Record<string, number>,
+): Promise<{ vpnConfigIds: Map<string, ResolvedVpnConfig>; errors: string[] }> {
+  const vpnConfigIds = new Map<string, ResolvedVpnConfig>();
+  const errors: string[] = [];
+  const entries = Object.entries(supplied);
+
+  if (entries.length === 0) {
+    return { vpnConfigIds, errors };
+  }
+
+  if (target?.kind !== 'firewall') {
+    errors.push('Existing VPN configurations can only be bound to a firewall target.');
+    return { vpnConfigIds, errors };
+  }
+
+  // Independent reads (no shared rollback/ordering state, unlike the writes elsewhere in this
+  // file), so they run concurrently; results are then applied in the original entries order, to
+  // keep error/id ordering exactly what the sequential version produced.
+  type Resolved =
+    | { connectionId: string; error: string }
+    | { connectionId: string; configId: number; protocol: ProfileVpnConnectionTemplate['kind'] };
+
+  const results = await Promise.all<Resolved>(
+    entries.map(async ([connectionId, configId]) => {
+      const connection = connections.find((candidate) => candidate.id === connectionId);
+      const table = connection ? VPN_CONFIG_TABLE_BY_PROTOCOL[connection.kind] : undefined;
+
+      if (!connection || !table) {
+        return {
+          connectionId,
+          error: `VPN connection "${connectionId}" is not defined by this profile.`,
+        };
+      }
+
+      const owned = await queryRows(
+        dbCon,
+        `SELECT T.id FROM ${table} T INNER JOIN firewall F ON F.id = T.firewall WHERE T.id = ? AND F.id = ? AND F.fwcloud = ?`,
+        [configId, target.id, fwCloudId],
+      );
+
+      if (owned.length === 0) {
+        return {
+          connectionId,
+          error: `VPN connection "${connectionId}": ${configId} is not a ${connection.kind} configuration of this firewall.`,
+        };
+      }
+
+      return { connectionId, configId, protocol: connection.kind };
+    }),
+  );
+
+  for (const result of results) {
+    if ('error' in result) {
+      errors.push(result.error);
+    } else {
+      vpnConfigIds.set(result.connectionId, { id: result.configId, protocol: result.protocol });
+    }
+  }
+
+  return { vpnConfigIds, errors };
+}
+
 /**
  * Matches app-options.service.ts's `OptionScope` enum on the UI side. Kept as raw numbers (like the
  * rest of this legacy VPN model code) rather than imported, since the UI and API are separate
@@ -113,6 +262,9 @@ const enum OptionScope {
   wg_server_peer = 3,
   wg_client_interface = 4,
   wg_client_peer = 5,
+  ipsec_server = 6,
+  ipsec_client = 7,
+  ipsec_server_client = 8,
 }
 
 const OBJ_TYPE_ADDRESS = 5;
@@ -124,14 +276,76 @@ interface VpnOpt {
   scope: OptionScope;
   order: number;
   ipobj?: number | null;
+  comment?: string;
 }
 
 /**
- * Creates real OpenVPN and WireGuard server/client configurations for a VPN template, using the
- * exact same model methods (and the same option/tree/interface side effects) the interactive VPN
- * panels use, so applying a profile leaves configs indistinguishable from ones built by hand.
+ * Options the apply works out itself from what it is given (addresses, certificates, the free
+ * tunnel interface), so a template's stored value for them is only a preview and never wins.
+ */
+const DERIVED_OPTIONS = {
+  openvpnServer: new Set(['server', 'dev']),
+  openvpnClient: new Set(['remote', 'ifconfig-push']),
+  wireguardServer: new Set(['PrivateKey', 'PublicKey', 'Address']),
+  wireguardClient: new Set(['PrivateKey', 'PublicKey', 'Address', 'Endpoint', 'AllowedIPs']),
+  ipsecServer: new Set(['left', 'leftid', 'leftcert', 'leftsubnet', '<<psk>>']),
+  ipsecClient: new Set([
+    'leftid',
+    'leftcert',
+    'leftsourceip',
+    'right',
+    'rightid',
+    'rightsubnet',
+    '<<psk>>',
+  ]),
+} as const;
+
+/**
+ * The options a template's option grid left on a connection, applied over the ones the apply
+ * builds: a stored value replaces the built one, an option the operator removed is dropped, and one
+ * the operator added is appended. `stored` is only the options of this list's scope; a connection
+ * saved before options existed has none, and keeps exactly what the apply builds.
+ */
+function applyStoredOptions<T extends { name: string; arg: string | null; comment?: string }>(
+  built: T[],
+  stored: ProfileVpnOptionTemplate[] | undefined,
+  derived: ReadonlySet<string>,
+  create: (option: ProfileVpnOptionTemplate) => T,
+): T[] {
+  if (!stored) {
+    return built;
+  }
+
+  const builtNames = new Set(built.map((option) => option.name));
+  const kept = built.flatMap((option) => {
+    if (derived.has(option.name)) return [option];
+    const item = stored.find((candidate) => candidate.name === option.name);
+    return item
+      ? [{ ...option, arg: item.arg, ...(item.comment ? { comment: item.comment } : {}) }]
+      : [];
+  });
+  const added = stored
+    .filter((item) => !builtNames.has(item.name) && !derived.has(item.name))
+    .map(create);
+
+  return [...kept, ...added];
+}
+
+/** The stored options of one scope, or undefined when the connection has none stored at all. */
+function storedOptionsOf(
+  connection: ProfileVpnConnectionTemplate,
+  ...scopes: number[]
+): ProfileVpnOptionTemplate[] | undefined {
+  return connection.options?.filter((option) => scopes.includes(option.scope));
+}
+
+/**
+ * Creates real OpenVPN, WireGuard and IPsec server/client configurations for a VPN template, using
+ * the exact same model methods (and the same option/tree/interface side effects) the interactive
+ * VPN panels use, so applying a profile leaves configs indistinguishable from ones built by hand.
  *
- * IPsec is not covered yet (see the caller for the current scope of what's implemented).
+ * IPsec covers a server and its certificate clients. A client of an external server is refused:
+ * it authenticates with a pre-shared key, which a profile cannot carry.
  */
 export async function provisionVpnTemplateConfigs(
   dbCon: any,
@@ -157,59 +371,81 @@ export async function provisionVpnTemplateConfigs(
     field: keyof ResolvedVpnConnectionValues,
   ): string | undefined => resolvedValues[connectionId]?.[field];
 
-  const openvpnServers = servers.filter((c) => c.kind === 'openvpn');
-  const wireguardServers = servers.filter((c) => c.kind === 'wireguard');
+  const serversOf = (kind: ProfileVpnConnectionTemplate['kind']) =>
+    servers.filter((c) => c.kind === kind);
+  const clientsOf = (server: ProfileVpnConnectionTemplate) =>
+    clientsByServerId.get(server.id) ?? [];
 
-  for (const connection of connections.filter((c) => c.kind === 'ipsec')) {
-    errors.push(
-      `IPsec connection "${connection.name}": creating a real IPsec configuration is not implemented yet; only its CA/certificate were provisioned.`,
-    );
+  for (const connection of connections.filter(isExternalIpsecClient)) {
+    errors.push(externalIpsecClientError(connection));
   }
 
-  if (openvpnServers.length > 0) {
-    const rootNodeId = await findVpnRootNodeId(dbCon, fwCloudId, firewallId, 'OPN');
+  // Each protocol keeps its servers under a root node of the firewall's VPN tree.
+  const provisionUnderRoot = async (
+    label: string,
+    rootType: 'OPN' | 'WG' | 'IS',
+    protocolServers: ProfileVpnConnectionTemplate[],
+    provision: (rootNodeId: number, server: ProfileVpnConnectionTemplate) => Promise<void>,
+  ): Promise<void> => {
+    if (protocolServers.length === 0) return;
+
+    const rootNodeId = await findVpnRootNodeId(dbCon, fwCloudId, firewallId, rootType);
     if (rootNodeId === null) {
-      errors.push(`VPN template: could not find this firewall's OpenVPN tree root ("OPN").`);
-    } else {
-      for (const server of openvpnServers) {
-        await provisionOpenVpnServer(
-          dbCon,
-          fwCloudId,
-          firewallId,
-          rootNodeId,
-          server,
-          clientsByServerId.get(server.id) ?? [],
-          pki.certificateIds,
-          resolveField,
-          errors,
-          pki.rollback,
-          configIds,
-        );
-      }
+      errors.push(
+        `VPN template: could not find this firewall's ${label} tree root ("${rootType}").`,
+      );
+      return;
     }
-  }
 
-  if (wireguardServers.length > 0) {
-    const rootNodeId = await findVpnRootNodeId(dbCon, fwCloudId, firewallId, 'WG');
-    if (rootNodeId === null) {
-      errors.push(`VPN template: could not find this firewall's WireGuard tree root ("WG").`);
-    } else {
-      for (const server of wireguardServers) {
-        await provisionWireGuardServer(
-          dbCon,
-          fwCloudId,
-          firewallId,
-          rootNodeId,
-          server,
-          clientsByServerId.get(server.id) ?? [],
-          pki,
-          resolveField,
-          errors,
-          configIds,
-        );
-      }
+    for (const server of protocolServers) {
+      await provision(rootNodeId, server);
     }
-  }
+  };
+
+  await provisionUnderRoot('OpenVPN', 'OPN', serversOf('openvpn'), (rootNodeId, server) =>
+    provisionOpenVpnServer(
+      dbCon,
+      fwCloudId,
+      firewallId,
+      rootNodeId,
+      server,
+      clientsOf(server),
+      pki.certificateIds,
+      resolveField,
+      errors,
+      pki.rollback,
+      configIds,
+    ),
+  );
+  await provisionUnderRoot('WireGuard', 'WG', serversOf('wireguard'), (rootNodeId, server) =>
+    provisionWireGuardServer(
+      dbCon,
+      fwCloudId,
+      firewallId,
+      rootNodeId,
+      server,
+      clientsOf(server),
+      pki,
+      resolveField,
+      errors,
+      configIds,
+    ),
+  );
+  await provisionUnderRoot('IPsec', 'IS', serversOf('ipsec'), (rootNodeId, server) =>
+    provisionIpsecServer(
+      dbCon,
+      fwCloudId,
+      firewallId,
+      rootNodeId,
+      server,
+      clientsOf(server),
+      pki.certificateIds,
+      resolveField,
+      errors,
+      pki.rollback,
+      configIds,
+    ),
+  );
 
   return configIds;
 }
@@ -227,16 +463,14 @@ async function provisionOpenVpnServer(
   server: ProfileVpnConnectionTemplate,
   clients: ProfileVpnConnectionTemplate[],
   certificateIds: Map<string, number>,
-  resolveField: (connectionId: string, field: keyof ProfileVpnRuntimeFields) => string | undefined,
+  resolveField: ResolveVpnField,
   errors: string[],
   rollback: ProfileVpnRollback,
   configIds: Map<string, ResolvedVpnConfig>,
 ): Promise<void> {
   const crtId = server.certificateId ? certificateIds.get(server.certificateId) : undefined;
   if (crtId === undefined) {
-    errors.push(
-      `OpenVPN server "${server.name}": its certificate was not created, so it was skipped.`,
-    );
+    errors.push(certificateNotCreated('OpenVPN server', server.name));
     return;
   }
 
@@ -249,40 +483,22 @@ async function provisionOpenVpnServer(
   try {
     const prefix = prefixOf(network.netmask);
     const dottedMask = prefixToDottedMask(prefix);
-    const devName = await pickFreeInterfaceName(dbCon, fwCloudId, firewallId, 'tun');
+    const storedOptions = storedOptionsOf(server, OptionScope.ovp);
+    const devName = await resolveOpenVpnDevice(dbCon, fwCloudId, firewallId, server, storedOptions);
     const installName = `${sanitizeFilenamePart(server.name)}.conf`.slice(-63);
 
-    const networkIpobjId = (await IPObj.insertIpobj(dbCon, {
-      id: null,
-      fwcloud: fwCloudId,
-      interface: null,
-      name: `${server.name} network`,
-      type: OBJ_TYPE_NETWORK,
-      protocol: null,
-      address: network.address,
-      // OpenVPN.createOpenvpnServerInterface() reads this back and passes it straight to
-      // IpUtils.subnet(), which requires dotted-decimal (unlike dumpCfg(), which tolerantly
-      // converts a "/24"-style mask itself) — so this must already be dotted, not CIDR-prefix.
-      netmask: dottedMask,
-      diff_serv: null,
-      ip_version: 4,
-      icmp_code: null,
-      icmp_type: null,
-      tcp_flags_mask: null,
-      tcp_flags_settings: null,
-      range_start: null,
-      range_end: null,
-      source_port_start: 0,
-      source_port_end: 0,
-      destination_port_start: 0,
-      destination_port_end: 0,
-      options: null,
-    })) as number;
-
-    rollback.add(`VPN network ${networkIpobjId}`, async () => {
-      await IPObj.deleteIpobj(dbCon, fwCloudId, networkIpobjId);
-      await Tree.deleteObjFromTree(fwCloudId, networkIpobjId, OBJ_TYPE_NETWORK);
-    });
+    // OpenVPN.createOpenvpnServerInterface() reads the mask back and passes it straight to
+    // IpUtils.subnet(), which requires dotted-decimal (unlike dumpCfg(), which tolerantly converts a
+    // "/24"-style mask itself) — so it must already be dotted here, not a CIDR prefix.
+    const networkIpobjId = await insertVpnIpobj(
+      dbCon,
+      fwCloudId,
+      `${server.name} network`,
+      OBJ_TYPE_NETWORK,
+      network.address,
+      dottedMask,
+      rollback,
+    );
 
     const req = makeReq(dbCon, {
       fwcloud: fwCloudId,
@@ -336,7 +552,15 @@ async function provisionOpenVpnServer(
       { name: 'multihome', arg: '', scope: OptionScope.ovp, order: 0 },
       { name: 'fast-io', arg: '', scope: OptionScope.ovp, order: 0 },
     ];
-    await insertOpenVpnOptions(req, newOpenVpnId, options);
+    await insertOpenVpnOptions(
+      req,
+      newOpenVpnId,
+      applyStoredOptions(options, storedOptions, DERIVED_OPTIONS.openvpnServer, (option) => ({
+        ...option,
+        scope: OptionScope.ovp,
+        order: 0,
+      })),
+    );
 
     await Tree.newNode(dbCon, fwCloudId, server.name, rootNodeId, 'OSR', newOpenVpnId, 312);
     await OpenVPN.createOpenvpnServerInterface(req, newOpenVpnId);
@@ -359,8 +583,30 @@ async function provisionOpenVpnServer(
       );
     }
   } catch (error) {
-    errors.push(`OpenVPN server "${server.name}": ${describeVpnProvisionError(error)}`);
+    errors.push(provisionFailed('OpenVPN server', server.name, error));
   }
+}
+
+/**
+ * The tunnel interface of an OpenVPN server. The template's generic "tun"/"tap"/"tun0" means "a
+ * free one of that kind"; a specific name the operator typed is kept as it is.
+ */
+async function resolveOpenVpnDevice(
+  dbCon: any,
+  fwCloudId: number,
+  firewallId: number,
+  server: ProfileVpnConnectionTemplate,
+  stored: ProfileVpnOptionTemplate[] | undefined,
+): Promise<string> {
+  const chosen = stored?.find((option) => option.name === 'dev')?.arg?.trim();
+
+  if (chosen && !/^(tun|tap)0?$/.test(chosen)) {
+    return chosen;
+  }
+
+  const kind = chosen ? (chosen.startsWith('tap') ? 'tap' : 'tun') : server.device || 'tun';
+
+  return pickFreeInterfaceName(dbCon, fwCloudId, firewallId, kind);
 }
 
 async function provisionOpenVpnClient(
@@ -372,22 +618,20 @@ async function provisionOpenVpnClient(
   serverDottedMask: string,
   serverConfigId: number,
   certificateIds: Map<string, number>,
-  resolveField: (connectionId: string, field: keyof ProfileVpnRuntimeFields) => string | undefined,
+  resolveField: ResolveVpnField,
   errors: string[],
   rollback: ProfileVpnRollback,
   configIds: Map<string, ResolvedVpnConfig>,
 ): Promise<void> {
   const crtId = client.certificateId ? certificateIds.get(client.certificateId) : undefined;
   if (crtId === undefined) {
-    errors.push(
-      `OpenVPN client "${client.name}": its certificate was not created, so it was skipped.`,
-    );
+    errors.push(certificateNotCreated('OpenVPN client', client.name));
     return;
   }
 
   const endpoint = resolveField(server.id, 'endpoint');
   if (!endpoint) {
-    errors.push(`OpenVPN client "${client.name}": the server's endpoint was not provided.`);
+    errors.push(endpointNotProvided('OpenVPN client', client.name));
     return;
   }
 
@@ -441,7 +685,16 @@ async function provisionOpenVpnClient(
       { name: 'float', arg: '', scope: OptionScope.ovp, order: 0 },
       { name: 'remote-cert-tls', arg: 'server', scope: OptionScope.ovp, order: 0 },
     ];
-    await insertOpenVpnOptions(req, newOpenVpnId, options);
+    await insertOpenVpnOptions(
+      req,
+      newOpenVpnId,
+      applyStoredOptions(
+        options,
+        storedOptionsOf(client, OptionScope.ovp),
+        DERIVED_OPTIONS.openvpnClient,
+        (option) => ({ ...option, scope: OptionScope.ovp, order: 0 }),
+      ),
+    );
     await insertOpenVpnOptions(req, newOpenVpnId, [
       {
         name: 'ifconfig-push',
@@ -455,8 +708,35 @@ async function provisionOpenVpnClient(
     // Unlike the OpenVPN server, a client gets no tree node of its own in the interactive editor
     // either (that path is dead code there too) — clients are only reachable through the server.
   } catch (error) {
-    errors.push(`OpenVPN client "${client.name}": ${describeVpnProvisionError(error)}`);
+    errors.push(provisionFailed('OpenVPN client', client.name, error));
   }
+}
+
+/**
+ * The certificate a WireGuard config is bound to. WireGuard's own keys are an independent key pair,
+ * so a template may leave the certificate out: it then gets a technical one that exists only to
+ * satisfy the `crt` foreign key. When the template does declare one (dragged onto WireGuard like the
+ * real screen allows), that real certificate is used.
+ */
+async function wireGuardCertificateId(
+  dbCon: any,
+  fwCloudId: number,
+  pki: ProvisionedVpnPki,
+  role: 'server' | 'client',
+  connection: ProfileVpnConnectionTemplate,
+  errors: string[],
+): Promise<number | null> {
+  if (!connection.certificateId) {
+    return ensureWireGuardTechnicalCertificate(dbCon, fwCloudId, pki, role, connection.id, errors);
+  }
+
+  const crtId = pki.certificateIds.get(connection.certificateId);
+  if (crtId === undefined) {
+    errors.push(certificateNotCreated(`WireGuard ${role}`, connection.name));
+    return null;
+  }
+
+  return crtId;
 }
 
 async function provisionWireGuardServer(
@@ -467,7 +747,7 @@ async function provisionWireGuardServer(
   server: ProfileVpnConnectionTemplate,
   clients: ProfileVpnConnectionTemplate[],
   pki: ProvisionedVpnPki,
-  resolveField: (connectionId: string, field: keyof ProfileVpnRuntimeFields) => string | undefined,
+  resolveField: ResolveVpnField,
   errors: string[],
   configIds: Map<string, ResolvedVpnConfig>,
 ): Promise<void> {
@@ -477,17 +757,7 @@ async function provisionWireGuardServer(
     return;
   }
 
-  // A WireGuard connection never carries a certificateId in the template (see
-  // replication-profile-vpn.validation.ts): its certificate exists only to satisfy the crt foreign
-  // key, so it is minted here, invisible to the template author.
-  const crtId = await ensureWireGuardTechnicalCertificate(
-    dbCon,
-    fwCloudId,
-    pki,
-    'server',
-    server.id,
-    errors,
-  );
+  const crtId = await wireGuardCertificateId(dbCon, fwCloudId, pki, 'server', server, errors);
   if (crtId === null) {
     return;
   }
@@ -512,22 +782,28 @@ async function provisionWireGuardServer(
       await Tree.deleteObjFromTree(fwCloudId, newWireguardId, 322);
     });
 
-    await insertWireGuardOptions(req, [
-      {
-        name: 'Address',
-        arg: `${address.address}${address.netmask}`,
-        scope: OptionScope.wg_server_interface,
-        order: 1,
-        wireguard: newWireguardId,
-      },
-      {
-        name: 'ListenPort',
-        arg: String(server.port || 51820),
-        scope: OptionScope.wg_server_interface,
-        order: 2,
-        wireguard: newWireguardId,
-      },
-    ]);
+    await insertWireGuardOptions(
+      req,
+      applyStoredOptions(
+        [
+          {
+            name: 'Address',
+            arg: `${address.address}${address.netmask}`,
+            scope: OptionScope.wg_server_interface,
+            wireguard: newWireguardId,
+          },
+          {
+            name: 'ListenPort',
+            arg: String(server.port || 51820),
+            scope: OptionScope.wg_server_interface,
+            wireguard: newWireguardId,
+          },
+        ],
+        storedOptionsOf(server, OptionScope.wg_server_interface),
+        DERIVED_OPTIONS.wireguardServer,
+        (option) => ({ ...option, wireguard: newWireguardId }),
+      ),
+    );
 
     const nodeId = await Tree.newNode(
       dbCon,
@@ -557,7 +833,7 @@ async function provisionWireGuardServer(
       );
     }
   } catch (error) {
-    errors.push(`WireGuard server "${server.name}": ${describeVpnProvisionError(error)}`);
+    errors.push(provisionFailed('WireGuard server', server.name, error));
   }
 }
 
@@ -570,13 +846,13 @@ async function provisionWireGuardClient(
   client: ProfileVpnConnectionTemplate,
   serverConfigId: number,
   pki: ProvisionedVpnPki,
-  resolveField: (connectionId: string, field: keyof ProfileVpnRuntimeFields) => string | undefined,
+  resolveField: ResolveVpnField,
   errors: string[],
   configIds: Map<string, ResolvedVpnConfig>,
 ): Promise<void> {
   const endpoint = resolveField(server.id, 'endpoint');
   if (!endpoint) {
-    errors.push(`WireGuard client "${client.name}": the server's endpoint was not provided.`);
+    errors.push(endpointNotProvided('WireGuard client', client.name));
     return;
   }
 
@@ -592,15 +868,7 @@ async function provisionWireGuardClient(
     return;
   }
 
-  // Same reasoning as the server: the template never carries a certificateId for WireGuard.
-  const crtId = await ensureWireGuardTechnicalCertificate(
-    dbCon,
-    fwCloudId,
-    pki,
-    'client',
-    client.id,
-    errors,
-  );
+  const crtId = await wireGuardCertificateId(dbCon, fwCloudId, pki, 'client', client, errors);
   if (crtId === null) {
     return;
   }
@@ -623,29 +891,34 @@ async function provisionWireGuardClient(
       await Tree.deleteObjFromTree(fwCloudId, newWireguardId, 321);
     });
 
-    await insertWireGuardOptions(req, [
-      {
-        name: 'Address',
-        arg: `${address.address}${address.netmask}`,
-        scope: OptionScope.wg_client_interface,
-        order: 1,
-        wireguard: newWireguardId,
-      },
-      {
-        name: 'Endpoint',
-        arg: `${endpoint}:${server.port || 51820}`,
-        scope: OptionScope.wg_client_peer,
-        order: 2,
-        wireguard: newWireguardId,
-      },
-      {
-        name: 'AllowedIPs',
-        arg: allowedIps,
-        scope: OptionScope.wg_client_peer,
-        order: 3,
-        wireguard: newWireguardId,
-      },
-    ]);
+    await insertWireGuardOptions(
+      req,
+      applyStoredOptions(
+        [
+          {
+            name: 'Address',
+            arg: `${address.address}${address.netmask}`,
+            scope: OptionScope.wg_client_interface,
+            wireguard: newWireguardId,
+          },
+          {
+            name: 'Endpoint',
+            arg: `${endpoint}:${server.port || 51820}`,
+            scope: OptionScope.wg_client_peer,
+            wireguard: newWireguardId,
+          },
+          {
+            name: 'AllowedIPs',
+            arg: allowedIps,
+            scope: OptionScope.wg_client_peer,
+            wireguard: newWireguardId,
+          },
+        ],
+        storedOptionsOf(client, OptionScope.wg_client_interface, OptionScope.wg_client_peer),
+        DERIVED_OPTIONS.wireguardClient,
+        (option) => ({ ...option, wireguard: newWireguardId }),
+      ),
+    );
 
     // Mirrors the interactive controller: a placeholder peer entry on the server side, so the
     // options-grid shows the client under its server. dumpCfg() derives the real AllowedIPs for
@@ -664,7 +937,337 @@ async function provisionWireGuardClient(
     await Tree.newNode(dbCon, fwCloudId, client.name, serverNodeId, 'WGC', newWireguardId, 321);
     configIds.set(client.id, { id: newWireguardId, protocol: 'wireguard' });
   } catch (error) {
-    errors.push(`WireGuard client "${client.name}": ${describeVpnProvisionError(error)}`);
+    errors.push(provisionFailed('WireGuard client', client.name, error));
+  }
+}
+
+const IPSEC_IKE = 'aes256-sha256-modp2048!';
+const IPSEC_ESP = 'aes256-sha256!';
+
+interface IpsecOpt {
+  name: string;
+  arg: string | null;
+  ipobj?: number | null;
+  comment?: string;
+}
+
+async function insertIpsecOptions(
+  req: any,
+  ipsecId: number,
+  scope: OptionScope,
+  options: IpsecOpt[],
+): Promise<void> {
+  let order = 1;
+  for (const opt of options) {
+    await IPSec.addCfgOpt(req, {
+      name: opt.name,
+      arg: opt.arg,
+      ipobj: opt.ipobj ?? null,
+      scope,
+      order: order++,
+      ipsec: ipsecId,
+      ...(opt.comment ? { comment: opt.comment } : {}),
+    });
+  }
+}
+
+async function certificateCn(dbCon: any, crtId: number): Promise<string> {
+  return ((await Crt.getCRTdata(dbCon, crtId)) as { cn: string }).cn;
+}
+
+/** The address/network object an IPsec option points at, removed again if the apply is rolled back. */
+async function insertVpnIpobj(
+  dbCon: any,
+  fwCloudId: number,
+  name: string,
+  type: number,
+  address: string,
+  netmask: string,
+  rollback: ProfileVpnRollback,
+): Promise<number> {
+  const id = (await IPObj.insertIpobj(dbCon, {
+    id: null,
+    fwcloud: fwCloudId,
+    interface: null,
+    name,
+    type,
+    protocol: null,
+    address,
+    netmask,
+    diff_serv: null,
+    ip_version: 4,
+    icmp_code: null,
+    icmp_type: null,
+    tcp_flags_mask: null,
+    tcp_flags_settings: null,
+    range_start: null,
+    range_end: null,
+    source_port_start: 0,
+    source_port_end: 0,
+    destination_port_start: 0,
+    destination_port_end: 0,
+    options: null,
+  })) as number;
+
+  rollback.add(`VPN object ${id}`, async () => {
+    await IPObj.deleteIpobj(dbCon, fwCloudId, id);
+    await Tree.deleteObjFromTree(fwCloudId, id, type);
+  });
+
+  return id;
+}
+
+/**
+ * Mirrors what the interactive IPsec panel + controller do for a new server: a network object for
+ * its VPN network, the config with its certificate-based options, its tree node and its tunnel
+ * interface. IPsec allows a single server per firewall.
+ */
+async function provisionIpsecServer(
+  dbCon: any,
+  fwCloudId: number,
+  firewallId: number,
+  rootNodeId: number,
+  server: ProfileVpnConnectionTemplate,
+  clients: ProfileVpnConnectionTemplate[],
+  certificateIds: Map<string, number>,
+  resolveField: ResolveVpnField,
+  errors: string[],
+  rollback: ProfileVpnRollback,
+  configIds: Map<string, ResolvedVpnConfig>,
+): Promise<void> {
+  const crtId = server.certificateId ? certificateIds.get(server.certificateId) : undefined;
+  if (crtId === undefined) {
+    errors.push(certificateNotCreated('IPsec server', server.name));
+    return;
+  }
+
+  const network = parseReplicationProfileNetwork(resolveField(server.id, 'localNetwork'), 4);
+  if (!network) {
+    errors.push(`IPsec server "${server.name}": missing or invalid local network.`);
+    return;
+  }
+
+  // The tunnel interface takes the first address of the network, as the interactive panel does.
+  const prefix = prefixOf(network.netmask);
+  if (prefix > 30) {
+    errors.push(
+      `IPsec server "${server.name}": the local network needs room for the tunnel interface address.`,
+    );
+    return;
+  }
+  const interfaceAddress = IpUtils.fromLong(IpUtils.toLong(network.address) + 1);
+
+  try {
+    const existingServers = (await IPSec.getIPSecServersByFirewall(dbCon, firewallId)) as unknown[];
+    if (existingServers.length > 0) {
+      throw new Error('This firewall already has an IPsec server configured');
+    }
+
+    const cn = await certificateCn(dbCon, crtId);
+    const vpnNetwork = `${network.address}${network.netmask}`;
+    const networkIpobjId = await insertVpnIpobj(
+      dbCon,
+      fwCloudId,
+      `LAN-VPN-${cn}`.slice(0, 64),
+      OBJ_TYPE_NETWORK,
+      network.address,
+      network.netmask,
+      rollback,
+    );
+
+    const req = makeReq(dbCon, {
+      fwcloud: fwCloudId,
+      firewall: firewallId,
+      crt: crtId,
+      install_dir: '/etc',
+      install_name: (await IPSec.getConfigFilename(dbCon, firewallId)) as string,
+      comment: `Replication profile: ${server.name}`,
+    });
+
+    const newIpsecId = await IPSec.addCfg(req);
+    rollback.add(`IPsec ${newIpsecId}`, async () => {
+      await IPSec.delCfg(dbCon, fwCloudId, newIpsecId, false);
+      await Tree.deleteObjFromTree(fwCloudId, newIpsecId, 332);
+    });
+
+    const serverOptions: IpsecOpt[] = [
+      { name: 'keyexchange', arg: 'ikev2' },
+      { name: 'ike', arg: IPSEC_IKE },
+      { name: 'esp', arg: IPSEC_ESP },
+      { name: 'dpdaction', arg: 'clear' },
+      { name: 'dpddelay', arg: '300s' },
+      { name: 'rekey', arg: 'no' },
+      { name: 'left', arg: interfaceAddress },
+      { name: 'leftid', arg: `"CN=${cn}"` },
+      { name: 'leftcert', arg: `${cn}.crt` },
+      { name: 'leftsubnet', arg: vpnNetwork, ipobj: networkIpobjId },
+      { name: 'leftfirewall', arg: 'yes' },
+      { name: 'rightauth', arg: 'pubkey' },
+      { name: 'auto', arg: 'ignore' },
+      { name: 'charondebug', arg: 'ike 1, knl 1, cfg 0' },
+    ];
+    await insertIpsecOptions(
+      req,
+      newIpsecId,
+      OptionScope.ipsec_server,
+      applyStoredOptions(
+        serverOptions,
+        storedOptionsOf(server, OptionScope.ipsec_server),
+        DERIVED_OPTIONS.ipsecServer,
+        (option) => option,
+      ),
+    );
+
+    const nodeId = (await Tree.newNode(
+      dbCon,
+      fwCloudId,
+      cn,
+      rootNodeId,
+      'ISS',
+      newIpsecId,
+      332,
+    )) as number;
+    await IPSec.createIPSecServerInterface(req, newIpsecId);
+    configIds.set(server.id, { id: newIpsecId, protocol: 'ipsec' });
+
+    for (const client of clients) {
+      await provisionIpsecClient(
+        dbCon,
+        fwCloudId,
+        firewallId,
+        nodeId,
+        server,
+        client,
+        newIpsecId,
+        cn,
+        vpnNetwork,
+        certificateIds,
+        resolveField,
+        errors,
+        rollback,
+        configIds,
+      );
+    }
+  } catch (error) {
+    errors.push(provisionFailed('IPsec server', server.name, error));
+  }
+}
+
+/** A client of a server of this profile: its own address object, its options and the server's peer entry. */
+async function provisionIpsecClient(
+  dbCon: any,
+  fwCloudId: number,
+  firewallId: number,
+  serverNodeId: number,
+  server: ProfileVpnConnectionTemplate,
+  client: ProfileVpnConnectionTemplate,
+  serverConfigId: number,
+  serverCn: string,
+  vpnNetwork: string,
+  certificateIds: Map<string, number>,
+  resolveField: ResolveVpnField,
+  errors: string[],
+  rollback: ProfileVpnRollback,
+  configIds: Map<string, ResolvedVpnConfig>,
+): Promise<void> {
+  const crtId = client.certificateId ? certificateIds.get(client.certificateId) : undefined;
+  if (crtId === undefined) {
+    errors.push(certificateNotCreated('IPsec client', client.name));
+    return;
+  }
+
+  const endpoint = resolveField(server.id, 'endpoint');
+  if (!endpoint) {
+    errors.push(endpointNotProvided('IPsec client', client.name));
+    return;
+  }
+
+  const address = parseReplicationProfileAddress(resolveField(client.id, 'network'), 4);
+  if (!address) {
+    errors.push(`IPsec client "${client.name}": missing or invalid tunnel address.`);
+    return;
+  }
+
+  try {
+    const cn = await certificateCn(dbCon, crtId);
+    const addressIpobjId = await insertVpnIpobj(
+      dbCon,
+      fwCloudId,
+      cn.slice(0, 64),
+      OBJ_TYPE_ADDRESS,
+      address.address,
+      address.netmask,
+      rollback,
+    );
+
+    const req = makeReq(dbCon, {
+      fwcloud: fwCloudId,
+      firewall: firewallId,
+      ipsec: serverConfigId,
+      crt: crtId,
+      comment: `Replication profile: ${client.name}`,
+    });
+
+    const newIpsecId = await IPSec.addCfg(req);
+    rollback.add(`IPsec ${newIpsecId}`, async () => {
+      await IPSec.delCfg(dbCon, fwCloudId, newIpsecId, true);
+      await Tree.deleteObjFromTree(fwCloudId, newIpsecId, 331);
+    });
+
+    const clientOptions: IpsecOpt[] = [
+      { name: 'keyexchange', arg: 'ikev2' },
+      { name: 'ike', arg: IPSEC_IKE },
+      { name: 'esp', arg: IPSEC_ESP },
+      { name: 'left', arg: '%defaultroute' },
+      { name: 'leftid', arg: `"CN=${cn}"` },
+      { name: 'leftcert', arg: `${cn}.crt` },
+      { name: 'leftauth', arg: 'pubkey' },
+      { name: 'leftsourceip', arg: address.address, ipobj: addressIpobjId },
+      { name: 'right', arg: endpoint },
+      { name: 'rightid', arg: `"CN=${serverCn}"` },
+      { name: 'rightauth', arg: 'pubkey' },
+      { name: 'rightsubnet', arg: vpnNetwork },
+      { name: 'charondebug', arg: 'ike 1, cfg 0' },
+      { name: 'auto', arg: 'start' },
+    ];
+    await insertIpsecOptions(
+      req,
+      newIpsecId,
+      OptionScope.ipsec_client,
+      applyStoredOptions(
+        clientOptions,
+        storedOptionsOf(client, OptionScope.ipsec_client),
+        DERIVED_OPTIONS.ipsecClient,
+        (option) => option,
+      ),
+    );
+
+    // The server-side entries the interactive controller adds for every new client.
+    const [{ last }] = await queryRows(
+      dbCon,
+      'SELECT COALESCE(MAX(`order`), 0) AS last FROM ipsec_opt WHERE ipsec = ?',
+      [serverConfigId],
+    );
+    for (const [index, peerOption] of [
+      { name: 'rightsubnet', arg: null },
+      { name: 'auto', arg: 'add' },
+    ].entries()) {
+      await IPSec.addCfgOpt(req, {
+        ...peerOption,
+        ipsec: serverConfigId,
+        ipsec_cli: newIpsecId,
+        order: last + 1 + index,
+        scope: OptionScope.ipsec_server_client,
+      });
+    }
+
+    await Tree.newNode(dbCon, fwCloudId, cn, serverNodeId, 'ISC', newIpsecId, 331);
+    await IPSecPrefix.applyIPSecPrefixes(dbCon, fwCloudId, serverConfigId);
+    await IPSecPrefix.updateIPSecClientPrefixesFWStatus(dbCon, fwCloudId, newIpsecId);
+    await IPSec.updateIPSecStatus(dbCon, serverConfigId, '|1');
+    configIds.set(client.id, { id: newIpsecId, protocol: 'ipsec' });
+  } catch (error) {
+    errors.push(provisionFailed('IPsec client', client.name, error));
   }
 }
 
@@ -677,30 +1280,28 @@ async function insertOpenVpnOptions(req: any, openvpnId: number, options: VpnOpt
 
 async function insertWireGuardOptions(
   req: any,
-  options: Array<VpnOpt & { wireguard: number; wireguard_cli?: number }>,
+  options: Array<
+    Omit<VpnOpt, 'order'> & { order?: number; wireguard: number; wireguard_cli?: number }
+  >,
 ): Promise<void> {
-  for (const opt of options) {
-    await WireGuard.addCfgOpt(req, opt);
+  for (const [index, opt] of options.entries()) {
+    await WireGuard.addCfgOpt(req, { ...opt, order: opt.order ?? index + 1 });
   }
 }
 
 /** Every firewall is seeded with a VPN tree ('VPN' > 'OPN'/'WG'/'IS'); see Tree.vpnTree(). */
-function findVpnRootNodeId(
+async function findVpnRootNodeId(
   dbCon: any,
   fwCloudId: number,
   firewallId: number,
   nodeType: 'OPN' | 'WG' | 'IS',
 ): Promise<number | null> {
-  return new Promise((resolve, reject) => {
-    dbCon.query(
-      'SELECT id FROM fwc_tree WHERE fwcloud = ? AND node_type = ? AND id_obj = ? LIMIT 1',
-      [fwCloudId, nodeType, firewallId],
-      (error: unknown, rows: Array<{ id: number }>) => {
-        if (error) return reject(error);
-        resolve(rows.length > 0 ? rows[0].id : null);
-      },
-    );
-  });
+  const rows = await queryRows(
+    dbCon,
+    'SELECT id FROM fwc_tree WHERE fwcloud = ? AND node_type = ? AND id_obj = ? LIMIT 1',
+    [fwCloudId, nodeType, firewallId],
+  );
+  return rows.length > 0 ? rows[0].id : null;
 }
 
 /**
