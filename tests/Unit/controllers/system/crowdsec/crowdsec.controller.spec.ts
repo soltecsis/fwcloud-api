@@ -77,6 +77,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let hasMachineDependentsStub: sinon.SinonStub;
   let hasOtherMachineDependentsStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
+  let setConsoleEnrollmentConfirmedStub: sinon.SinonStub;
   let removeMachineInstallationStub: sinon.SinonStub;
   let pingStub: sinon.SinonStub;
 
@@ -133,6 +134,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .resolves(false);
     setCentralLapiEnabledStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
+      .resolves(new CrowdSecInstallation());
+    setConsoleEnrollmentConfirmedStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'setConsoleEnrollmentConfirmed')
       .resolves(new CrowdSecInstallation());
     removeMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'removeMachineInstallation')
@@ -208,6 +212,31 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     expect(response.toJSON().data).to.include({
       community_blocklist_enrollment: 'unknown',
+      console_enrollment_confirmed: true,
+    });
+  });
+
+  it('should persist CrowdSec Console enrollment reported by the agent once', async () => {
+    const status = {
+      crowdsec: { installed: true },
+      community_blocklist_enrollment: 'enrolled',
+    };
+    sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: false,
+      }),
+    );
+
+    const response = await controller.status({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to
+      .be.true;
+    expect(response.toJSON().data).to.include({
+      community_blocklist_enrollment: 'enrolled',
       console_enrollment_confirmed: true,
     });
   });
@@ -1690,6 +1719,38 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         CrowdSecConsoleEnrollDto,
       ).validate(),
     ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should confirm CrowdSec Console enrollment for a LAPI installation', async () => {
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+
+    const response = await controller.confirmConsoleEnrollment({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to
+      .be.true;
+    expect(response.toJSON()).to.include({
+      status: 200,
+      data: { console_enrollment_confirmed: true },
+    });
+  });
+
+  it('should reject manual CrowdSec Console enrollment confirmation for a Machine', async () => {
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(
+        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Machine }),
+      );
+    const statusStub = sinon.stub(communication, 'getCrowdSecStatus');
+
+    await expect(
+      controller.confirmConsoleEnrollment({ session: { user: null } } as unknown as Request),
+    ).to.be.rejectedWith(HttpException);
+    expect(statusStub.called).to.be.false;
+    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
   });
 
   it('should use the supplied central CrowdSec bouncer key for Machine local remediation', async () => {

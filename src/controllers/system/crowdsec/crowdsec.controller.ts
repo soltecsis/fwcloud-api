@@ -80,13 +80,21 @@ export class CrowdSecController extends Controller {
   public async status(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
     const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
-    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
-      this._firewall.id,
-    );
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    const installation = await installationRepository.findByFirewallId(this._firewall.id);
+    const communityBlocklistEnrollment = status.community_blocklist_enrollment ?? 'unknown';
+    let consoleEnrollmentConfirmed = installation?.consoleEnrollmentConfirmed === true;
+    if (
+      installation?.mode === CrowdSecInstallationMode.Lapi &&
+      communityBlocklistEnrollment === 'enrolled' &&
+      !consoleEnrollmentConfirmed
+    ) {
+      await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, true);
+      consoleEnrollmentConfirmed = true;
+    }
     const centralLapiEnabled = installation?.centralLapiEnabled === true;
     const centralLapiHasMachines =
-      centralLapiEnabled &&
-      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id));
+      centralLapiEnabled && (await installationRepository.hasMachineDependents(this._firewall.id));
     const lapiState = (status.lapi as Record<string, unknown> | undefined)?.state;
     const machineReauthenticationRequired =
       installation?.mode === CrowdSecInstallationMode.Machine &&
@@ -99,8 +107,8 @@ export class CrowdSecController extends Controller {
         central_lapi_has_machines: centralLapiHasMachines,
         machine_reauthentication_required: machineReauthenticationRequired,
         machine_connectivity_pending: installation?.machineConnectivityPending === true,
-        community_blocklist_enrollment: status.community_blocklist_enrollment ?? 'unknown',
-        console_enrollment_confirmed: installation?.consoleEnrollmentConfirmed === true,
+        community_blocklist_enrollment: communityBlocklistEnrollment,
+        console_enrollment_confirmed: consoleEnrollmentConfirmed,
         installation_mode: installation?.mode ?? null,
         local_remediation: installation?.localRemediation ?? false,
         central_lapi_firewall_id: installation?.centralFirewallId ?? null,
@@ -1175,6 +1183,25 @@ export class CrowdSecController extends Controller {
       await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, false);
     }
     return ResponseBuilder.buildResponse().status(200).body(response);
+  }
+
+  @Validate()
+  public async confirmConsoleEnrollment(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    const installation = await installationRepository.findByFirewallId(this._firewall.id);
+    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+      throw new HttpException(
+        'Manual CrowdSec Console enrollment confirmation requires a LAPI installation',
+        409,
+      );
+    }
+
+    await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, true);
+    return ResponseBuilder.buildResponse().status(200).body({
+      console_enrollment_confirmed: true,
+    });
   }
 
   @Validate(CrowdSecCollectionDto)
