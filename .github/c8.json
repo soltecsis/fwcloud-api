@@ -1,0 +1,12 @@
+{
+  "all": true,
+  "src": ["src"],
+  "include": ["src/**/*.ts", "src/**/*.js"],
+  "exclude": ["**/*.d.ts", "**/*.spec.ts", "**/*.spec.js", "tests/**", "node_modules/**"],
+  "extension": [".ts", ".js"],
+  "exclude-after-remap": true,
+  "reporter": ["text-summary", "lcovonly", "json-summary", "html"],
+  "reports-dir": "reports/coverage",
+  "temp-directory": "reports/.c8-tmp",
+  "check-coverage": false
+}

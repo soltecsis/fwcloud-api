@@ -41,6 +41,9 @@ nohup.out
 tests/playground
 tests/.tmp
 
+# CI test and coverage reports
+/reports/
+
 # NSIS library.
 lib/nsis-3.05/fwcloud-vpn/*.exe
 lib/nsis-3.05/fwcloud-vpn/*.ovpn

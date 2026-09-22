@@ -14,7 +14,7 @@ que la documentación evolucione junto con la configuración.
 | Destino de la PR | `fixes` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-09-18 |
+| Última actualización | 2026-09-21 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -49,7 +49,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | Fase | Contenido | Estado | Criterio de cierre |
 | --- | --- | --- | --- |
 | 1 | Instalación reproducible, separación de calidad/pruebas y controles de ejecución | Implementada localmente; pendiente de validación completa en Actions | PR hacia `fixes` con calidad y matriz completas correctas; protección configurada |
-| 2 | Informes de pruebas y cobertura | Pendiente | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
+| 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
 | 3 | Detección de secretos con Gitleaks | Pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
 | 4 | SCA y SBOM con Trivy | Pendiente | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
@@ -193,7 +193,138 @@ Node 20 muestra `EBADENGINE`, aunque instalación, lint y build finalizaron bien
 | Protección de rama | Pendiente de configuración y verificación |
 | Validación / responsable | Pendiente |
 
-## 5. Pendientes transversales
+## 5. Fase 2 — Informes de pruebas y cobertura
+
+### 5.1. Alcance y dependencias
+
+Se incorpora JUnit y un resumen JSON de estadísticas en todas las combinaciones.
+La cobertura se mide solo en Node 22 / MySQL 8.0, como referencia inicial de
+medición, sin definir por ello la plataforma de producción.
+
+Dependencias de desarrollo fijadas en `package.json` y `package-lock.json`:
+
+- `mocha-junit-reporter@2.2.1`: informe XML JUnit con pruebas pendientes.
+- `mocha-multi-reporters@1.5.2`: salida simultánea a consola y archivos.
+- `c8@12.0.0`: cobertura mediante V8.
+
+No se requiere una cuenta externa ni nuevos secretos de GitHub.
+
+### 5.2. Archivos y comandos
+
+| Archivo | Función |
+| --- | --- |
+| `.github/mocha-reporters.json` | Reporters de consola, JUnit y estadísticas |
+| `.github/c8.json` | Alcance, formatos y exclusiones de cobertura |
+| `scripts/mocha-stats-reporter.cjs` | Estadísticas agregadas sin nombres ni errores de pruebas |
+| `scripts/ci-reports.cjs` | Verificación, metadatos y resumen de GitHub |
+| `scripts/ci-reports.test.cjs` | Pruebas automatizadas del recolector, ejecutadas en el job de calidad |
+| `.github/workflows/nodejs.yml` | Cobertura de referencia y conservación de informes |
+| `.gitignore` | Exclusión del directorio generado `reports/` |
+
+```bash
+# Requiere servicios de prueba desechables y configuración de BD adecuada.
+npm run build
+npm run test:ci
+
+# Alternativa: la misma suite una sola vez, con cobertura.
+npm run test:coverage:ci
+```
+
+`test:ci` conserva `--forbid-only` y `--fail-zero`. `test:coverage:ci` lo ejecuta
+mediante c8, sin reconstruir ni ejecutar una segunda vez las pruebas.
+
+Para revisar informes ya generados, el workflow ejecuta `npm run ci:reports` con
+`TEST_OUTCOME`, `TEST_DATABASE`, `TEST_DATABASE_IMAGE` y `COVERAGE_EXPECTED`.
+La ausencia de un resultado de pruebas conocido no se interpreta como éxito.
+
+### 5.3. Cobertura
+
+- Se incluyen archivos propios de `src/**/*.ts` y `src/**/*.js`, también los no
+  ejecutados, con `all: true`.
+- Se excluyen declaraciones TypeScript, pruebas y dependencias.
+- Se utilizan los source maps existentes y se aplican exclusiones tras remapear.
+- Se generan LCOV, JSON, HTML y un resumen en consola.
+- No se impone un porcentaje mínimo en esta fase. Sí se exige un informe válido,
+  no vacío y con líneas de fuente cuando la combinación requiere cobertura.
+- Esta medición no acredita cobertura de seguridad ni de código propio que pudiera
+  quedar fuera de `src/`; cualquier ampliación del alcance deberá documentarse.
+
+```text
+reports/
+├── tests/
+│   ├── junit.xml
+│   └── results.json
+├── metadata.json
+└── coverage/
+    ├── lcov.info
+    ├── coverage-summary.json
+    └── index.html (y recursos HTML)
+```
+
+Los temporales de V8 quedan en `reports/.c8-tmp` y no se suben como evidencia.
+
+### 5.4. Recogida y aceptación de resultados
+
+- El paso de pruebas no utiliza `continue-on-error`.
+- Si se intentaron ejecutar pruebas, la verificación y subida se intentan también
+  tras un fallo, mediante `always()`.
+- Si instalación, conexión o build fallan antes, no se inventa un informe de pruebas.
+- El recolector falla si faltan informes obligatorios, hay cero pruebas, se informan
+  fallos o el paso de pruebas no terminó correctamente.
+- El manifiesto incluye el commit realmente comprobado mediante `git rev-parse HEAD`
+  (puede ser el merge sintético de una PR), evento, referencia, ejecución/intento,
+  versiones de Node/npm, imagen de BD seleccionada y estadísticas.
+- El resumen de Actions solo muestra datos agregados; el XML puede contener nombres
+  de pruebas, errores y trazas. Revisar su contenido antes de publicar ejecuciones
+  en repositorios públicos. El HTML de cobertura también contiene código fuente.
+- Un cierre forzoso del proceso o del runner puede impedir obtener resultados:
+  esos casos siguen siendo fallidos/incompletos.
+
+Se utiliza `actions/upload-artifact@v4.6.2`, fijada por SHA
+`ea165f8d65b6e75b540449e92b4886f43607fa02`, con retención solicitada de 90 días y
+`if-no-files-found: error`. La configuración del repositorio debe permitir esa
+retención; los artefactos no constituyen un archivo indefinido de releases.
+
+Nombres de los artefactos:
+
+```text
+backend-tests-node<NODE>-<BD>-<RUN_ID>-<ATTEMPT>
+backend-coverage-node22-mysql8-<RUN_ID>-<ATTEMPT>
+```
+
+### 5.5. Verificaciones locales
+
+Entorno: Node 20.20.2, npm 10.8.2. Instalación limpia y build en worktree temporal.
+
+| Verificación | Resultado |
+| --- | --- |
+| Instalación limpia con `npm ci` y build | Correctos; persiste la advertencia conocida de `openai` / Node 20 |
+| ESLint y Prettier del proyecto | Correctos |
+| Pruebas del recolector (`node --test scripts/ci-reports.test.cjs`) | Seis casos correctos: éxito, informes ausentes, fallo del proceso, fallos declarados y cobertura ausente/completa |
+| Reporters con suite sintética compilada | Éxito/fallo y pruebas omitidas reflejados en JSON/JUnit |
+| `.only` y cero pruebas | Código de salida 1 |
+| Cobertura con fuentes sintéticas TypeScript | Rutas originales verificadas; archivo no ejecutado incluido a 0; sin duplicados de `dist` ni pruebas |
+| Formatos LCOV, JSON, HTML y lectura por el recolector | Correctos |
+| Actionlint `1.7.7` y `git diff --check` | Correctos |
+
+Durante la validación se detectó que el reporter JSON nativo de Mocha no recibía
+la opción de archivo a través del adaptador multi-reporters. Se utiliza en su lugar
+un reporter de estadísticas agregado; JUnit conserva el detalle de las pruebas.
+
+Las verificaciones sintéticas no ejecutan la suite de negocio ni establecen su
+porcentaje de cobertura real. La matriz completa y la descarga de artefactos deben
+comprobarse en GitHub antes de cerrar esta fase.
+
+### 5.6. Cierre pendiente
+
+- [ ] Enlazar commit y PR de esta entrega.
+- [ ] Verificar las nueve combinaciones en Actions.
+- [ ] Descargar y abrir JUnit y cobertura de la combinación de referencia.
+- [ ] Registrar la línea base de cobertura real y revisar sus exclusiones.
+- [ ] Verificar la retención y la visibilidad de informes en el repositorio.
+- [ ] Registrar validación y responsable.
+
+## 6. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -206,7 +337,7 @@ Node 20 muestra `EBADENGINE`, aunque instalación, lint y build finalizaron bien
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 6. Procedimiento de actualización del informe
+## 7. Procedimiento de actualización del informe
 
 En cada entrega:
 
