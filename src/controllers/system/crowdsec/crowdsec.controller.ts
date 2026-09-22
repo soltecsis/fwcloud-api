@@ -99,6 +99,8 @@ export class CrowdSecController extends Controller {
         central_lapi_has_machines: centralLapiHasMachines,
         machine_reauthentication_required: machineReauthenticationRequired,
         machine_connectivity_pending: installation?.machineConnectivityPending === true,
+        community_blocklist_enrollment: status.community_blocklist_enrollment ?? 'unknown',
+        console_enrollment_confirmed: installation?.consoleEnrollmentConfirmed === true,
         installation_mode: installation?.mode ?? null,
         local_remediation: installation?.localRemediation ?? false,
         central_lapi_firewall_id: installation?.centralFirewallId ?? null,
@@ -1168,10 +1170,10 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const response = await (await this.getAgentCommunication()).enrollCrowdSecConsole(req.body);
-    await this.getCrowdSecInstallationRepository().setConsoleEnrollmentConfirmed(
-      this._firewall.id,
-      false,
-    );
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    if (await installationRepository.findByFirewallId(this._firewall.id)) {
+      await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, false);
+    }
     return ResponseBuilder.buildResponse().status(200).body(response);
   }
 

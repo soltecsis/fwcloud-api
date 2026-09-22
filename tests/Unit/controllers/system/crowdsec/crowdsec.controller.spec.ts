@@ -159,6 +159,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       central_lapi_has_machines: false,
       machine_reauthentication_required: false,
       machine_connectivity_pending: false,
+      community_blocklist_enrollment: 'unknown',
+      console_enrollment_confirmed: false,
       installation_mode: null,
       local_remediation: false,
       central_lapi_firewall_id: null,
@@ -184,6 +186,29 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.include({
       installation_mode: CrowdSecInstallationMode.Machine,
       machine_connectivity_pending: true,
+    });
+  });
+
+  it('should report CrowdSec Console enrollment state and persisted confirmation separately', async () => {
+    const status = {
+      crowdsec: { installed: true },
+      community_blocklist_enrollment: 'unknown',
+    };
+    sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: true,
+      }),
+    );
+
+    const response = await controller.status({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(response.toJSON().data).to.include({
+      community_blocklist_enrollment: 'unknown',
+      console_enrollment_confirmed: true,
     });
   });
 
