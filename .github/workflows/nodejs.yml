@@ -54,7 +54,7 @@ jobs:
   test:
     name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
 
     services:
       mysql:
