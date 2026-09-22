@@ -31,3 +31,12 @@ export function sqlPlaceholders(count: number): string {
 export function dbQuery<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   return db.getSource().query(sql, params);
 }
+
+/** Promisified `dbCon.query(sql, params, callback)`, for the callback-style connection object the legacy VPN model methods take as `req.dbCon`. */
+export function queryRows<T = any>(dbCon: any, sql: string, params: unknown[]): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    dbCon.query(sql, params, (error: unknown, rows: T[]) =>
+      error ? reject(error) : resolve(rows),
+    );
+  });
+}
