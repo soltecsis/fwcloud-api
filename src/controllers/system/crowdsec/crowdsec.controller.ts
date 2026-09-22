@@ -1168,6 +1168,10 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const response = await (await this.getAgentCommunication()).enrollCrowdSecConsole(req.body);
+    await this.getCrowdSecInstallationRepository().setConsoleEnrollmentConfirmed(
+      this._firewall.id,
+      false,
+    );
     return ResponseBuilder.buildResponse().status(200).body(response);
   }
 

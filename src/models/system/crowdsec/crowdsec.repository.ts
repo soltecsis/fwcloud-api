@@ -51,6 +51,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       machineName: null,
       localRemediation: true,
       machineConnectivityPending: false,
+      consoleEnrollmentConfirmed: false,
     });
   }
 
@@ -61,6 +62,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       ...installation,
       mode: CrowdSecInstallationMode.Machine,
       machineConnectivityPending: installation.machineConnectivityPending ?? false,
+      consoleEnrollmentConfirmed: false,
     });
   }
 
@@ -131,6 +133,16 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     return this.saveInstallation({
       firewallId,
       machineConnectivityPending: pending,
+    });
+  }
+
+  public async setConsoleEnrollmentConfirmed(
+    firewallId: number,
+    confirmed: boolean,
+  ): Promise<CrowdSecInstallation> {
+    return this.saveInstallation({
+      firewallId,
+      consoleEnrollmentConfirmed: confirmed,
     });
   }
 
