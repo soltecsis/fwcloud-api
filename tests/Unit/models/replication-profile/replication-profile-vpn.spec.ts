@@ -75,6 +75,62 @@ describe('VPN template contract', () => {
     assert.equal(getProfileProvisioning({ vpnTemplate: design() }), null);
   });
 
+  it('keeps the options of each connection and accepts a WireGuard certificate', () => {
+    const vpn: any = design();
+    vpn.connections[0].options = [
+      { name: 'port', arg: '4443', scope: 1 },
+      { name: 'ccd-exclusive', arg: '', scope: 1, comment: 'only listed clients' },
+      { name: 'ifconfig-push', arg: '', scope: 0 },
+    ];
+    vpn.connections[2].certificateId = 'server_cert';
+    vpn.connections[3].certificateId = 'client_cert';
+
+    assert.deepEqual(validateReplicationProfilePayload(payload(vpn)), []);
+  });
+
+  it('refuses VPN options that carry secrets, or that are malformed', () => {
+    const cases: Array<[(vpn: any) => void, string]> = [
+      [
+        (vpn) => (vpn.connections[2].options = [{ name: 'PrivateKey', arg: '', scope: 2 }]),
+        'secret_option',
+      ],
+      [
+        (vpn) =>
+          (vpn.connections[4].options = [{ name: '<<psk>>', arg: 'hunter2hunter2', scope: 6 }]),
+        'secret_option',
+      ],
+      [
+        (vpn) => (vpn.connections[0].options = [{ name: 'auth-user-pass', arg: '', scope: 1 }]),
+        'secret_option',
+      ],
+      [
+        (vpn) => (vpn.connections[0].options = [{ name: 'port', arg: '1', scope: 42 }]),
+        'invalid_number',
+      ],
+      [(vpn) => (vpn.connections[0].options = [{ name: 'port', scope: 1 }]), 'invalid_text'],
+      [
+        (vpn) => (vpn.connections[0].options = [{ name: 'port', arg: '1', scope: 1, extra: true }]),
+        'unsupported_field',
+      ],
+      [(vpn) => (vpn.connections[0].options = 'port 1194'), 'invalid_list'],
+      [
+        (vpn) =>
+          (vpn.connections[0].options = [{ name: 'port', arg: '-----BEGIN KEY-----', scope: 1 }]),
+        'invalid_text',
+      ],
+    ];
+    for (const [mutate, code] of cases) {
+      const vpn = design();
+      mutate(vpn);
+      assert.ok(
+        validateReplicationProfilePayload(payload(vpn)).some(
+          (error) => error.code === `vpn_${code}`,
+        ),
+        code,
+      );
+    }
+  });
+
   it('enforces reference, role and CA integrity at the API boundary', () => {
     const cases: Array<[(vpn: ReturnType<typeof design>) => void, string]> = [
       [
@@ -110,9 +166,9 @@ describe('VPN template contract', () => {
       ],
       [
         (vpn) => {
-          vpn.connections[2].certificateId = 'server_cert';
+          vpn.connections[2].certificateId = 'client_cert';
         },
-        'wireguard_certificate',
+        'invalid_certificate',
       ],
       [
         (vpn) => {

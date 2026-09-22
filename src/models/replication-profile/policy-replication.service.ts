@@ -102,9 +102,8 @@ export interface ProvisionOptions {
   interfaceNameMapping?: Record<string, string>;
   /**
    * Template VPN connection id -> its real, already-created config. Populated either by
-   * profile-application.service.ts's own PKI/VPN provisioning, or supplied directly when the apply
-   * wizard already created the VPN for real through the normal VPN panels before reaching this step.
-   * A rule referencing a VPN client with no entry here fails: there is no "resolve or create" for
+   * profile-application.service.ts's own PKI/VPN provisioning, or supplied directly by a caller that
+   * already created (and checked) them; in a preview it holds stand-ins with no real id. A rule referencing a VPN client with no entry here fails: there is no "resolve or create" for
    * these, unlike a plain address/network object.
    */
   vpnConfigIds?: ReadonlyMap<string, ResolvedVpnConfig>;
@@ -1103,7 +1102,7 @@ export class PolicyReplicationService extends Service {
    * WireGuard/IPsec equivalents — see VPN_RELATION_TABLES), not through policy_r__ipobj. There is
    * nothing to create or reuse here (unlike resolveLiteralObject): the real config already exists,
    * created either by profile-application.service.ts's own provisioning or supplied by the caller
-   * (the apply wizard, once it has created it for real through the normal VPN panels).
+   * (a caller that created it beforehand) — or a stand-in, in a preview.
    */
   private resolveVpnClientObject(
     object: PolicyReplicationProvisionObject,

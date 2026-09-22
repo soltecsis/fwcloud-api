@@ -325,9 +325,8 @@ export class ReplicationProfileController extends Controller {
 
   /**
    * Creates a provisioning profile's VPN template for real (CAs, certificates and configs), ahead
-   * of the final `apply`. Used by the apply wizard so its VPN step drives the exact same VPN panels
-   * a user would use interactively, with a real certificate already attached, instead of a
-   * simulated preview. See ProfileApplicationService.provisionVpn().
+   * of an `apply` that is then given the returned ids. `apply` alone creates the same resources in
+   * its own request, with a rollback shared with the policy. See ProfileApplicationService.provisionVpn().
    */
   @Validate(ReplicationProfileProvisionVpnDto)
   public async provisionVpn(request: Request): Promise<ResponseBuilder> {

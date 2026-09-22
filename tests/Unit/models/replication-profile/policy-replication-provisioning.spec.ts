@@ -357,6 +357,98 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     expect(await countIpObjs('type = 7 AND address = ?', ['192.168.50.0'])).to.be.eq(0);
   });
 
+  describe('VPN client references', () => {
+    const VPN_MODEL = {
+      provision: {
+        interfaces: [{ name: 'LAN', role: 'lan' }],
+        rules: [
+          {
+            chain: 'forward',
+            action: 'accept',
+            inRole: 'lan',
+            outRole: 'lan',
+            source: [{ type: 'vpnClient', vpnId: 'office', name: 'Office' }],
+            comment: 'Office VPN',
+          },
+        ],
+      },
+    };
+
+    const provisionVpn = (
+      mode: 'dry_run' | 'replace_defaults',
+      options: Parameters<typeof service.provisionPolicyFromProfile>[4],
+    ) =>
+      service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        getProfileProvisioning(VPN_MODEL),
+        fwc.fwcloud.id,
+        mode,
+        options,
+      );
+
+    it('should preview a rule that references a VPN client without writing anything', async () => {
+      const result = await provisionVpn('dry_run', {
+        vpnConfigIds: new Map([['office', { id: 0, protocol: 'openvpn' }]]),
+      });
+
+      expect(result.errors).to.be.empty;
+      expect(result.createdRules).to.have.length(1);
+      expect(result.createdRules[0].targetRuleId).to.be.null;
+      expect(await db.getSource().query('SELECT rule FROM policy_r__openvpn WHERE openvpn = 0')).to
+        .be.empty;
+    });
+
+    it('should link the rule to the real VPN client through the OpenVPN relation table', async () => {
+      const client = fwc.openvpnClients.get('OpenVPN-Cli-1');
+
+      const result = await provisionVpn('replace_defaults', {
+        vpnConfigIds: new Map([['office', { id: client.id, protocol: 'openvpn' }]]),
+      });
+
+      expect(result.errors).to.be.empty;
+      expect(result.applied).to.be.true;
+
+      const links = await db
+        .getSource()
+        .query('SELECT openvpn, position FROM policy_r__openvpn WHERE rule = ?', [
+          result.createdRules[0].targetRuleId,
+        ]);
+      expect(links).to.have.length(1);
+      expect(links[0].openvpn).to.be.eq(client.id);
+      // Nothing about it goes through the generic object table.
+      expect(
+        await db
+          .getSource()
+          .query('SELECT rule FROM policy_r__ipobj WHERE rule = ?', [
+            result.createdRules[0].targetRuleId,
+          ]),
+      ).to.be.empty;
+    });
+
+    it('should link the rule to an IPsec client through the IPsec relation table', async () => {
+      const client = fwc.ipsecClients.get('IPSec-Cli-1');
+
+      const result = await provisionVpn('replace_defaults', {
+        vpnConfigIds: new Map([['office', { id: client.id, protocol: 'ipsec' }]]),
+      });
+
+      expect(result.errors).to.be.empty;
+      const links = await db
+        .getSource()
+        .query('SELECT ipsec FROM policy_r__ipsec WHERE rule = ?', [
+          result.createdRules[0].targetRuleId,
+        ]);
+      expect(links.map((link: { ipsec: number }) => link.ipsec)).to.deep.equal([client.id]);
+    });
+
+    it('should refuse a VPN client that has not been created', async () => {
+      const result = await provisionVpn('replace_defaults', {});
+
+      expect(result.applied).to.be.false;
+      expect(result.errors.join(' ')).to.include('has not been created yet');
+    });
+  });
+
   it('should report a missing required parameter instead of writing a partial policy', async () => {
     const result = await service.provisionPolicyFromProfile(
       { kind: 'firewall', id: targetFirewall.id },

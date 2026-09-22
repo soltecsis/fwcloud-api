@@ -162,9 +162,9 @@ export class ReplicationProfileApplyDto {
 
   /**
    * Provisioning profiles with a VPN template only: template connection id -> the real config id
-   * the wizard already created for it (via the /vpn step, see ReplicationProfileProvisionVpnDto)
-   * before reaching this final apply. When supplied, the profile's own VPN creation is skipped —
-   * it already happened, for real.
+   * the caller already created for it (via POST .../vpn, see ReplicationProfileProvisionVpnDto).
+   * Each one must be a config of the target firewall. When supplied, the profile's own VPN creation
+   * is skipped — it already happened, for real.
    */
   @IsOptional()
   @IsRoleIdMap()

@@ -3,7 +3,7 @@ import { IsObject, IsOptional, ValidateNested } from 'class-validator';
 import { ReplicationProfileApplyTargetDto } from './replication-profile-apply.dto';
 
 /**
- * Creates a profile's VPN template for real ahead of the final apply() call — see
+ * Creates a profile's VPN template for real ahead of an apply() call that binds to the result — see
  * ProfileApplicationService.provisionVpn(). Deliberately smaller than
  * ReplicationProfileApplyDto: there is no mode (this always creates real resources) and no
  * source profile (VPN templates only exist on provisioning profiles).
