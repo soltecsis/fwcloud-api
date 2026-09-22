@@ -79,6 +79,9 @@ export class CrowdSecInstallation extends Model {
   @Column({ name: 'central_lapi_enabled', type: 'boolean', default: false })
   centralLapiEnabled: boolean;
 
+  @Column({ name: 'console_enrollment_confirmed', type: 'boolean', default: false })
+  consoleEnrollmentConfirmed: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
