@@ -448,10 +448,13 @@ export class Firewall extends Model {
       // Excluded in the firewall table the fields: install_user, install_pass, install_protocol, install_apikey
       const sql = `SELECT 
         T.id, T.cluster, T.fwcloud, T.name, T.comment, T.created_at, T.updated_at, T.compiled_at, T.installed_at, T.by_user, T.status, 
-        T.save_user_pass, T.install_interface, T.install_ipobj, T.fwmaster, T.install_port, T.options, T.install_communication, T.plugins, 
+        T.save_user_pass, T.install_interface, T.install_ipobj, T.fwmaster, T.install_port, T.options, T.install_communication, T.plugins,
+        C.mode AS crowdsec_mode, C.local_remediation AS crowdsec_local_remediation,
+        C.central_lapi_enabled AS crowdsec_central_lapi_enabled,
         I.name as interface_name, O.name as ip_name, O.address as ip
         FROM ${tableName} T 
         INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
+        LEFT JOIN crowdsec_installation C ON C.firewall=T.id
         LEFT JOIN interface I ON I.id=T.install_interface
         LEFT JOIN ipobj O ON O.id=T.install_ipobj AND O.interface=I.id
         WHERE T.fwcloud=${req.body.fwcloud}`;
