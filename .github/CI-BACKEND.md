@@ -14,7 +14,7 @@ que la documentación evolucione junto con la configuración.
 | Destino de la PR | `fixes` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-09-18 |
+| Última actualización | 2026-09-22 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -49,7 +49,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | Fase | Contenido | Estado | Criterio de cierre |
 | --- | --- | --- | --- |
 | 1 | Instalación reproducible, separación de calidad/pruebas y controles de ejecución | Implementada localmente; pendiente de validación completa en Actions | PR hacia `fixes` con calidad y matriz completas correctas; protección configurada |
-| 2 | Informes de pruebas y cobertura | Pendiente | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
+| 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
 | 3 | Detección de secretos con Gitleaks | Pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
 | 4 | SCA y SBOM con Trivy | Pendiente | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
@@ -83,7 +83,7 @@ No se han añadido dependencias ni cambiado las versiones del lockfile en esta f
 | Job | Función | Tiempo máximo |
 | --- | --- | --- |
 | `quality` / `FWCloud-API Quality` | Instalación, ESLint y Prettier con Node 22 | 20 minutos |
-| `test` / `FWCloud-API Test (Node ..., ...)` | Instalación, conexión a BD, build y pruebas en nueve combinaciones | 45 minutos por combinación |
+| `test` / `FWCloud-API Test (Node ..., ...)` | Instalación, conexión a BD, build y pruebas en nueve combinaciones | Valor predeterminado de GitHub (360 minutos); límite explícito comentado |
 | `backend-ci` | Exigir éxito de calidad y de la matriz completa | 5 minutos |
 
 - Calidad se ejecuta una vez, en lugar de repetirse en la matriz.
@@ -103,8 +103,8 @@ No se han añadido dependencias ni cambiado las versiones del lockfile en esta f
   `SELECT 1` sobre la base seleccionada por la matriz.
 - Las credenciales del workflow son datos del servicio de pruebas efímero, no
   credenciales de producción.
-- Se conserva por ahora el arranque de los tres servicios en cada combinación.
-  Arrancar solo el servicio necesario queda como optimización posterior.
+- Cada combinación arranca únicamente su base de datos. Las imágenes de los otros
+  servicios se resuelven a una cadena vacía, conservando los puertos de la matriz.
 
 ### 4.5. Comando de pruebas
 
@@ -124,6 +124,60 @@ npm run test:ci
 La suite utiliza una base de datos de pruebas y puede reiniciarla. Para reproducir
 la ejecución completa deben utilizarse servicios desechables y configuración de
 pruebas, nunca una conexión a datos operativos.
+
+### 4.5.1. Reinicio de la base de datos de pruebas
+
+`tests/utils/database-reset.ts` conserva en memoria una copia de los datos justo
+después de ejecutar todas las migraciones y las semillas. La copia incluye las
+tablas sin entidad, los registros creados por migraciones, el historial de
+migraciones y los contadores de autoincremento; no depende del directorio
+`tests/playground`, que se vacía entre pruebas.
+
+- `testSuite.resetDatabaseData()` vacía las tablas y restaura esa copia sin repetir
+  las migraciones ni leer de nuevo los archivos de semillas.
+- `testSuite.resetDatabaseData({ rebuildSchema: true })` elimina las tablas,
+  ejecuta las migraciones y semillas y renueva la copia. Se utiliza al iniciar la
+  suite y para limpiar las pruebas que modifican el esquema o restauran backups.
+- Una nueva prueba que borre tablas/columnas o ejecute migraciones debe solicitar
+  una reconstrucción completa en su limpieza (`after`, `afterEach` o `finally`),
+  incluso si falla una aserción. El reinicio rápido no repara cambios de esquema.
+- Las operaciones de restauración comparten una conexión. Sus ajustes de claves
+  foráneas y modo SQL se restauran en `finally`; un error hace fallar la prueba e
+  invalida la copia para que el siguiente reinicio reconstruya la base de datos.
+- Los borrados e inserciones comparten una transacción para evitar reconstruir
+  físicamente cada tabla mediante `TRUNCATE`. Los contadores se restauran después
+  del commit, porque `ALTER TABLE` realiza un commit implícito en MySQL/MariaDB.
+- Las pruebas siguen ejecutándose en serie y cada job conserva su propia BD.
+
+Se registran número de llamadas, tiempo total y máximo en milisegundos para
+`drop`, `migrate`, `seed`, `snapshot`, `rebuild` y `restore`. `rebuild` incluye las
+cuatro primeras fases; sus tiempos no deben sumarse de nuevo. Las mediciones se
+imprimen cada 50 reinicios y al finalizar. En CI también se guardan en
+`reports/tests/database-reset.json`, dentro del artefacto de pruebas, para
+comparar la restauración con la reconstrucción y conservar avances ante un corte.
+
+La validación en GitHub debe comprobar las nueve combinaciones, el mismo conjunto
+de pruebas y los informes de cobertura. Las mediciones locales no predicen los
+tiempos del runner alojado en GitHub.
+
+Validación local de esta optimización (Node 20.20.2):
+
+| Comprobación | Resultado |
+| --- | --- |
+| Compilación TypeScript, ESLint y Prettier | Correctos |
+| Actionlint 1.7.7 | Correcto |
+| Recolector de informes | 6 pruebas correctas |
+| MySQL 8.0.32: restauración y cambios de esquema | 10 pruebas correctas |
+| MariaDB 10.1: restauración, migraciones, importador y cambios de esquema | 20 pruebas correctas |
+
+En la muestra de MySQL 8, seis restauraciones sumaron 1.506 ms (251 ms de media),
+frente a 45.356 ms para tres reconstrucciones completas (15.119 ms de media).
+En MariaDB, seis restauraciones sumaron 581 ms frente a 57.474 ms para ocho
+reconstrucciones. Son mediciones del reinicio, no de la suite completa.
+
+La suite completa con Node 24 / MySQL 5.7 se inició, pero su resultado final no
+pudo recuperarse tras el cambio de sesión. No se considera validada. Quedan
+pendientes esa ejecución completa y la matriz de GitHub Actions.
 
 ### 4.6. Eventos
 
@@ -193,7 +247,138 @@ Node 20 muestra `EBADENGINE`, aunque instalación, lint y build finalizaron bien
 | Protección de rama | Pendiente de configuración y verificación |
 | Validación / responsable | Pendiente |
 
-## 5. Pendientes transversales
+## 5. Fase 2 — Informes de pruebas y cobertura
+
+### 5.1. Alcance y dependencias
+
+Se incorpora JUnit y un resumen JSON de estadísticas en todas las combinaciones.
+La cobertura se mide solo en Node 22 / MySQL 8.0, como referencia inicial de
+medición, sin definir por ello la plataforma de producción.
+
+Dependencias de desarrollo fijadas en `package.json` y `package-lock.json`:
+
+- `mocha-junit-reporter@2.2.1`: informe XML JUnit con pruebas pendientes.
+- `mocha-multi-reporters@1.5.2`: salida simultánea a consola y archivos.
+- `c8@12.0.0`: cobertura mediante V8.
+
+No se requiere una cuenta externa ni nuevos secretos de GitHub.
+
+### 5.2. Archivos y comandos
+
+| Archivo | Función |
+| --- | --- |
+| `.github/mocha-reporters.json` | Reporters de consola, JUnit y estadísticas |
+| `.github/c8.json` | Alcance, formatos y exclusiones de cobertura |
+| `scripts/mocha-stats-reporter.cjs` | Estadísticas agregadas sin nombres ni errores de pruebas |
+| `scripts/ci-reports.cjs` | Verificación, metadatos y resumen de GitHub |
+| `scripts/ci-reports.test.cjs` | Pruebas automatizadas del recolector, ejecutadas en el job de calidad |
+| `.github/workflows/nodejs.yml` | Cobertura de referencia y conservación de informes |
+| `.gitignore` | Exclusión del directorio generado `reports/` |
+
+```bash
+# Requiere servicios de prueba desechables y configuración de BD adecuada.
+npm run build
+npm run test:ci
+
+# Alternativa: la misma suite una sola vez, con cobertura.
+npm run test:coverage:ci
+```
+
+`test:ci` conserva `--forbid-only` y `--fail-zero`. `test:coverage:ci` lo ejecuta
+mediante c8, sin reconstruir ni ejecutar una segunda vez las pruebas.
+
+Para revisar informes ya generados, el workflow ejecuta `npm run ci:reports` con
+`TEST_OUTCOME`, `TEST_DATABASE`, `TEST_DATABASE_IMAGE` y `COVERAGE_EXPECTED`.
+La ausencia de un resultado de pruebas conocido no se interpreta como éxito.
+
+### 5.3. Cobertura
+
+- Se incluyen archivos propios de `src/**/*.ts` y `src/**/*.js`, también los no
+  ejecutados, con `all: true`.
+- Se excluyen declaraciones TypeScript, pruebas y dependencias.
+- Se utilizan los source maps existentes y se aplican exclusiones tras remapear.
+- Se generan LCOV, JSON, HTML y un resumen en consola.
+- No se impone un porcentaje mínimo en esta fase. Sí se exige un informe válido,
+  no vacío y con líneas de fuente cuando la combinación requiere cobertura.
+- Esta medición no acredita cobertura de seguridad ni de código propio que pudiera
+  quedar fuera de `src/`; cualquier ampliación del alcance deberá documentarse.
+
+```text
+reports/
+├── tests/
+│   ├── junit.xml
+│   └── results.json
+├── metadata.json
+└── coverage/
+    ├── lcov.info
+    ├── coverage-summary.json
+    └── index.html (y recursos HTML)
+```
+
+Los temporales de V8 quedan en `reports/.c8-tmp` y no se suben como evidencia.
+
+### 5.4. Recogida y aceptación de resultados
+
+- El paso de pruebas no utiliza `continue-on-error`.
+- Si se intentaron ejecutar pruebas, la verificación y subida se intentan también
+  tras un fallo, mediante `always()`.
+- Si instalación, conexión o build fallan antes, no se inventa un informe de pruebas.
+- El recolector falla si faltan informes obligatorios, hay cero pruebas, se informan
+  fallos o el paso de pruebas no terminó correctamente.
+- El manifiesto incluye el commit realmente comprobado mediante `git rev-parse HEAD`
+  (puede ser el merge sintético de una PR), evento, referencia, ejecución/intento,
+  versiones de Node/npm, imagen de BD seleccionada y estadísticas.
+- El resumen de Actions solo muestra datos agregados; el XML puede contener nombres
+  de pruebas, errores y trazas. Revisar su contenido antes de publicar ejecuciones
+  en repositorios públicos. El HTML de cobertura también contiene código fuente.
+- Un cierre forzoso del proceso o del runner puede impedir obtener resultados:
+  esos casos siguen siendo fallidos/incompletos.
+
+Se utiliza `actions/upload-artifact@v4.6.2`, fijada por SHA
+`ea165f8d65b6e75b540449e92b4886f43607fa02`, con retención solicitada de 90 días y
+`if-no-files-found: error`. La configuración del repositorio debe permitir esa
+retención; los artefactos no constituyen un archivo indefinido de releases.
+
+Nombres de los artefactos:
+
+```text
+backend-tests-node<NODE>-<BD>-<RUN_ID>-<ATTEMPT>
+backend-coverage-node22-mysql8-<RUN_ID>-<ATTEMPT>
+```
+
+### 5.5. Verificaciones locales
+
+Entorno: Node 20.20.2, npm 10.8.2. Instalación limpia y build en worktree temporal.
+
+| Verificación | Resultado |
+| --- | --- |
+| Instalación limpia con `npm ci` y build | Correctos; persiste la advertencia conocida de `openai` / Node 20 |
+| ESLint y Prettier del proyecto | Correctos |
+| Pruebas del recolector (`node --test scripts/ci-reports.test.cjs`) | Seis casos correctos: éxito, informes ausentes, fallo del proceso, fallos declarados y cobertura ausente/completa |
+| Reporters con suite sintética compilada | Éxito/fallo y pruebas omitidas reflejados en JSON/JUnit |
+| `.only` y cero pruebas | Código de salida 1 |
+| Cobertura con fuentes sintéticas TypeScript | Rutas originales verificadas; archivo no ejecutado incluido a 0; sin duplicados de `dist` ni pruebas |
+| Formatos LCOV, JSON, HTML y lectura por el recolector | Correctos |
+| Actionlint `1.7.7` y `git diff --check` | Correctos |
+
+Durante la validación se detectó que el reporter JSON nativo de Mocha no recibía
+la opción de archivo a través del adaptador multi-reporters. Se utiliza en su lugar
+un reporter de estadísticas agregado; JUnit conserva el detalle de las pruebas.
+
+Las verificaciones sintéticas no ejecutan la suite de negocio ni establecen su
+porcentaje de cobertura real. La matriz completa y la descarga de artefactos deben
+comprobarse en GitHub antes de cerrar esta fase.
+
+### 5.6. Cierre pendiente
+
+- [ ] Enlazar commit y PR de esta entrega.
+- [ ] Verificar las nueve combinaciones en Actions.
+- [ ] Descargar y abrir JUnit y cobertura de la combinación de referencia.
+- [ ] Registrar la línea base de cobertura real y revisar sus exclusiones.
+- [ ] Verificar la retención y la visibilidad de informes en el repositorio.
+- [ ] Registrar validación y responsable.
+
+## 6. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -206,7 +391,7 @@ Node 20 muestra `EBADENGINE`, aunque instalación, lint y build finalizaron bien
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 6. Procedimiento de actualización del informe
+## 7. Procedimiento de actualización del informe
 
 En cada entrega:
 

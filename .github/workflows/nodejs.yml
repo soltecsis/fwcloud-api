@@ -5,11 +5,13 @@ on:
     branches:
       - main
       - fixes
+      - ENS
   pull_request:
     branches:
       - devel
       - fixes
       - auditlogs
+      - ENS
   workflow_dispatch:
 
 permissions:
@@ -46,15 +48,17 @@ jobs:
         run: npm run lint:check
       - name: Run Prettier
         run: npm run format:check
+      - name: Verify CI report collector
+        run: node --test scripts/ci-reports.test.cjs
 
   test:
     name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # timeout-minutes: 120
 
     services:
       mysql:
-        image: mysql:5.7
+        image: ${{ matrix.database == 'mysql' && matrix.image || '' }}
         ports:
           - 8888:3306
         env:
@@ -68,7 +72,7 @@ jobs:
           --health-timeout=5s
           --health-retries=12
       mysql8:
-        image: mysql:8.0
+        image: ${{ matrix.database == 'mysql8' && matrix.image || '' }}
         ports:
           - 8890:3306
         env:
@@ -82,7 +86,7 @@ jobs:
           --health-timeout=5s
           --health-retries=12
       mariadb:
-        image: mariadb:10.1
+        image: ${{ matrix.database == 'mariadb' && matrix.image || '' }}
         ports:
           - 8889:3306
         env:
@@ -104,10 +108,13 @@ jobs:
         include:
           - database: mysql
             port: 8888
+            image: mysql:5.7
           - database: mysql8
             port: 8890
+            image: mysql:8.0
           - database: mariadb
             port: 8889
+            image: mariadb:10.1
 
     steps:
     - uses: actions/checkout@v4
@@ -154,9 +161,43 @@ jobs:
     - name: Build FWCloud
       run: npm run build
     - name: Run tests
-      run: npm run test:ci
+      id: tests
+      run: |
+        mkdir -p reports/tests
+        if [ "$COVERAGE_EXPECTED" = true ]; then
+          npm run test:coverage:ci
+        else
+          npm run test:ci
+        fi
       env:
         TYPEORM_PORT: ${{ matrix.port }}
+        COVERAGE_EXPECTED: ${{ matrix.node-version == '22' && matrix.database == 'mysql8' }}
+    - name: Verify reports and summarize results
+      if: ${{ always() && steps.tests.outcome != 'skipped' }}
+      run: npm run ci:reports
+      env:
+        TEST_OUTCOME: ${{ steps.tests.outcome }}
+        TEST_DATABASE: ${{ matrix.database }}
+        TEST_DATABASE_IMAGE: ${{ matrix.image }}
+        COVERAGE_EXPECTED: ${{ matrix.node-version == '22' && matrix.database == 'mysql8' }}
+    - name: Upload test evidence
+      if: ${{ always() && steps.tests.outcome != 'skipped' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: backend-tests-node${{ matrix.node-version }}-${{ matrix.database }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: |
+          reports/tests/
+          reports/metadata.json
+        retention-days: 90
+        if-no-files-found: error
+    - name: Upload coverage evidence
+      if: ${{ always() && steps.tests.outcome != 'skipped' && matrix.node-version == '22' && matrix.database == 'mysql8' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: backend-coverage-node22-mysql8-${{ github.run_id }}-${{ github.run_attempt }}
+        path: reports/coverage/
+        retention-days: 90
+        if-no-files-found: error
 
   backend-ci:
     name: backend-ci

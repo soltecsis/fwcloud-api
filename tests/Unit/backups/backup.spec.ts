@@ -204,6 +204,10 @@ describe(describeName('Backup Unit tests'), () => {
     let backup: Backup;
     let databaseService: DatabaseService;
 
+    afterEach(async () => {
+      await testSuite.resetDatabaseData({ rebuildSchema: true });
+    });
+
     beforeEach(async () => {
       backup = new Backup();
       backup = await backup.create(service.config.data_dir);
