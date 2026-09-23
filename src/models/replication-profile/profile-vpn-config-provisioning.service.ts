@@ -145,15 +145,15 @@ const provisionFailed = (label: string, name: string, error: unknown): string =>
  * What a real apply would be able to create, without creating it: a preview lets rules reference
  * those VPN clients (their real ids only exist once created) and reports what it would refuse,
  * so it never promises more than the apply can do. Mirrors provisionVpnTemplateConfigs()'s scope:
- * configs are only created for a single firewall, and IPsec needs a server of the profile.
+ * IPsec needs a server of the profile.
  */
-export function previewVpnTemplateConfigs(
-  connections: ProfileVpnConnectionTemplate[],
-  targetKind: 'firewall' | 'cluster',
-): { vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined; errors: string[] } {
+export function previewVpnTemplateConfigs(connections: ProfileVpnConnectionTemplate[]): {
+  vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined;
+  errors: string[];
+} {
   const errors: string[] = [];
 
-  if (targetKind !== 'firewall' || connections.length === 0) {
+  if (connections.length === 0) {
     return { vpnConfigIds: undefined, errors };
   }
 
@@ -180,13 +180,13 @@ const VPN_CONFIG_TABLE_BY_PROTOCOL: Record<ProfileVpnConnectionTemplate['kind'],
 /**
  * Binds VPN configs the caller says already exist to the template's connections. The ids come
  * straight from the request, and a rule is later linked to them by id alone, so each one must be
- * a config of the target firewall in this FWCloud: anything else would let a rule reference a
- * VPN of another firewall or another FWCloud.
+ * a config of the target's VPN firewall (a cluster's master node) in this FWCloud: anything else
+ * would let a rule reference a VPN of another firewall or another FWCloud.
  */
 export async function resolveSuppliedVpnConfigs(
   dbCon: any,
   fwCloudId: number,
-  target: { kind: 'firewall' | 'cluster'; id: number } | null,
+  firewallId: number | null,
   connections: ProfileVpnConnectionTemplate[],
   supplied: Record<string, number>,
 ): Promise<{ vpnConfigIds: Map<string, ResolvedVpnConfig>; errors: string[] }> {
@@ -198,8 +198,8 @@ export async function resolveSuppliedVpnConfigs(
     return { vpnConfigIds, errors };
   }
 
-  if (target?.kind !== 'firewall') {
-    errors.push('Existing VPN configurations can only be bound to a firewall target.');
+  if (firewallId === null) {
+    errors.push('Existing VPN configurations need a target firewall or cluster to bind them to.');
     return { vpnConfigIds, errors };
   }
 
@@ -225,7 +225,7 @@ export async function resolveSuppliedVpnConfigs(
       const owned = await queryRows(
         dbCon,
         `SELECT T.id FROM ${table} T INNER JOIN firewall F ON F.id = T.firewall WHERE T.id = ? AND F.id = ? AND F.fwcloud = ?`,
-        [configId, target.id, fwCloudId],
+        [configId, firewallId, fwCloudId],
       );
 
       if (owned.length === 0) {

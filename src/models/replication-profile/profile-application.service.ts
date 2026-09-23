@@ -328,20 +328,28 @@ export class ProfileApplicationService extends Service {
       return { vpnConfigIds: undefined, errors };
     }
 
+    // As in FWCloud, a cluster's VPN configurations belong to its master node.
+    const vpnFirewallId = await this.vpnFirewallIdOf(request.fwCloudId, target);
+
+    if (vpnFirewallId === null && vpnTemplate.connections?.length) {
+      errors.push(`Cluster "${target?.name}" has no master node to hold its VPN configurations.`);
+      return { vpnConfigIds: undefined, errors };
+    }
+
     if (request.vpnConnectionIds) {
       // Already created by the caller: nothing left to provision, but the ids are the caller's
       // word, so check they really are this firewall's before a rule is linked to them.
       return resolveSuppliedVpnConfigs(
         db.getQuery(),
         request.fwCloudId,
-        target,
+        vpnFirewallId,
         vpnTemplate.connections ?? [],
         request.vpnConnectionIds,
       );
     }
 
     if (request.replication.mode === 'dry_run') {
-      return previewVpnTemplateConfigs(vpnTemplate.connections ?? [], target?.kind ?? 'firewall');
+      return previewVpnTemplateConfigs(vpnTemplate.connections ?? []);
     }
 
     // Validate inputs before generating keys or inserting PKI rows.
@@ -356,10 +364,7 @@ export class ProfileApplicationService extends Service {
       vpnRollback,
     );
 
-    // Real VPN configurations (as opposed to just their CA/certificates) are only created for a
-    // single firewall: a cluster's VPN topology (which node(s) actually run each server) is a
-    // product decision this profile format does not capture yet.
-    if (target?.kind !== 'firewall' || !vpnTemplate.connections?.length) {
+    if (vpnFirewallId === null || !vpnTemplate.connections?.length) {
       return { vpnConfigIds: undefined, errors };
     }
 
@@ -371,7 +376,7 @@ export class ProfileApplicationService extends Service {
     const vpnConfigIds = await provisionVpnTemplateConfigs(
       dbQuery,
       request.fwCloudId,
-      target.id,
+      vpnFirewallId,
       vpnTemplate.connections,
       pki,
       resolvedVpnValues,
@@ -379,6 +384,29 @@ export class ProfileApplicationService extends Service {
     );
 
     return { vpnConfigIds, errors };
+  }
+
+  /**
+   * The firewall that owns the target's VPN configurations: the firewall itself, or a cluster's
+   * master node, which is where FWCloud keeps a cluster's VPNs (and installs them on every node).
+   */
+  protected async vpnFirewallIdOf(
+    fwCloudId: number,
+    target: TargetInfo | null,
+  ): Promise<number | null> {
+    if (!target) {
+      return null;
+    }
+
+    if (target.kind === 'firewall') {
+      return target.id;
+    }
+
+    const master = await this.manager
+      .getRepository(Firewall)
+      .findOne({ where: { clusterId: target.id, fwCloudId, fwmaster: 1 } });
+
+    return master?.id ?? null;
   }
 
   /** A result shape with nothing but the given errors, for auditAttempt()'s summary. */

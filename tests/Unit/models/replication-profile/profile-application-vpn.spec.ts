@@ -120,10 +120,21 @@ describe('Profile application: VPN references', () => {
       assert.equal(provision.callCount, 1, 'the rest of the preview is still computed');
     });
 
-    it('offers no VPN clients for a cluster target, where a real apply creates no VPN config either', async () => {
+    it('lets rules of a cluster reference the VPN clients its master node would hold', async () => {
       target = { kind: 'cluster', id: 3 };
-      await service.apply({ user: {} }, request('dry_run'));
+      sandbox.stub(service, 'vpnFirewallIdOf').resolves(20);
+      const result = await service.apply({ user: {} }, request('dry_run'));
 
+      assert.deepEqual(result.errors, []);
+      assert.deepEqual([...optionsOf().vpnConfigIds.keys()], ['office']);
+    });
+
+    it('reports a cluster without a master node instead of an unresolved VPN client', async () => {
+      target = { kind: 'cluster', id: 3 };
+      sandbox.stub(service, 'vpnFirewallIdOf').resolves(null);
+      const result = await service.apply({ user: {} }, request('dry_run'));
+
+      assert.ok(result.errors.some((error: string) => error.includes('no master node')));
       assert.equal(optionsOf().vpnConfigIds, undefined);
     });
   });
@@ -163,16 +174,17 @@ describe('Profile application: VPN references', () => {
       assert.equal(provision.callCount, 0);
     });
 
-    it('rejects them for a cluster target, which owns no VPN config itself', async () => {
+    it('checks them against the master node for a cluster target', async () => {
       target = { kind: 'cluster', id: 3 };
+      sandbox.stub(service, 'vpnFirewallIdOf').resolves(20);
+      ownedRows = [{ id: 5 }];
       const result = await service.apply(
         { user: {} },
         request('replace_defaults', { vpnConnectionIds: { office: 5 } }),
       );
 
-      assert.ok(result.errors.length > 0);
-      assert.equal(ownerQueries.length, 0);
-      assert.equal(provision.callCount, 0);
+      assert.deepEqual(result.errors, []);
+      assert.deepEqual(ownerQueries[0].params, [5, 20, 7]);
     });
 
     it('uses them when they belong to the target firewall', async () => {
@@ -191,6 +203,21 @@ describe('Profile application: VPN references', () => {
   });
 
   describe('real apply', () => {
+    it('creates the VPN configs of a cluster on its master node', async () => {
+      target = { kind: 'cluster', id: 3 };
+      sandbox.stub(service, 'vpnFirewallIdOf').resolves(20);
+      configs.resolves(new Map([['office', { id: 41, protocol: 'openvpn' }]]));
+
+      const result = await service.apply({ user: {} }, request('replace_defaults'));
+
+      assert.deepEqual(result.errors, []);
+      assert.equal(configs.firstCall.args[2], 20);
+      assert.deepEqual(
+        [...optionsOf().vpnConfigIds.entries()],
+        [['office', { id: 41, protocol: 'openvpn' }]],
+      );
+    });
+
     it('writes no policy at all when the VPN could not be created', async () => {
       const rollbackUndo = sandbox.stub().resolves();
       pki.callsFake(async (_db, _cloud, _cas, _certs, errors, rollback) => {
