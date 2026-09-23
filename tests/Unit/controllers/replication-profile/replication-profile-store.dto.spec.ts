@@ -7,6 +7,7 @@ import {
   ReplicationProfileVersionStoreDto,
 } from '../../../../src/controllers/replication-profile/dtos/replication-profile-store.dto';
 import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
+import { normalizeProfileVpnRuleParameters } from '../../../../src/models/replication-profile/replication-profile-vpn-parameters';
 
 /**
  * The DTO is exercised through the exact options the production validation
@@ -439,3 +440,77 @@ describe(ReplicationProfileVersionStoreDto.name, () => {
     expect(failed).to.include('version');
   });
 });
+
+for (const dto of [ReplicationProfileStoreDto, ReplicationProfileVersionStoreDto]) {
+  describe(`${dto.name} model.vpnRuntime`, () => {
+    function vpnPayload(withRule: boolean): Record<string, unknown> {
+      const payload = minimalPayload();
+      const model = payload.model as Record<string, unknown>;
+      model.vpnTemplate = {
+        version: 1,
+        cas: [],
+        certificates: [],
+        connections: [
+          {
+            id: 'vpn_client',
+            name: 'Office VPN',
+            kind: 'wireguard',
+            role: 'client',
+            endpoint: '',
+            port: 51820,
+            network: '',
+            localNetwork: '',
+            remoteNetwork: '',
+            transport: 'udp',
+            device: 'tun',
+          },
+        ],
+      };
+      model.provision = {
+        interfaces: [],
+        rules: withRule
+          ? [{ action: 'accept', source: [{ type: 'vpnClient', value: 'vpn_client' }] }]
+          : [],
+      };
+      payload.model = normalizeProfileVpnRuleParameters(model);
+      return payload;
+    }
+
+    it('should accept a VPN template without rules and its empty runtime mapping', async () => {
+      const payload = vpnPayload(false);
+      expect((payload.model as Record<string, unknown>).vpnRuntime).to.deep.equal({});
+      expect(await validatePayload(payload, dto)).to.be.empty;
+    });
+
+    it('should retain generated VPN parameter mappings through request validation', async () => {
+      const payload = vpnPayload(true);
+      const instance = plainToClass(dto, payload);
+      expect(await validate(instance, VALIDATION_OPTIONS)).to.be.empty;
+      expect(instance.model.vpnRuntime).to.deep.equal({
+        vpn_client: {
+          network: { param: 'vpn_vpn_client_network' },
+          remoteNetwork: { param: 'vpn_vpn_client_remoteNetwork' },
+        },
+      });
+      expect(instance.model.parameters).to.deep.equal(
+        (payload.model as Record<string, unknown>).parameters,
+      );
+    });
+
+    it('should reject runtime mappings that are not objects', async () => {
+      for (const vpnRuntime of [[], 'invalid', 1, false]) {
+        const payload = vpnPayload(false);
+        (payload.model as Record<string, unknown>).vpnRuntime = vpnRuntime;
+        expect(await validatePayload(payload, dto)).to.include('model.vpnRuntime');
+      }
+    });
+
+    it('should still reject secrets nested in VPN runtime mappings', async () => {
+      const payload = vpnPayload(false);
+      (payload.model as Record<string, unknown>).vpnRuntime = {
+        vpn_client: { privateKey: 'must-not-be-saved' },
+      };
+      expect(await validatePayload(payload, dto)).to.include('model');
+    });
+  });
+}
