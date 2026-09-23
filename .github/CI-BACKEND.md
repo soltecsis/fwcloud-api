@@ -14,7 +14,7 @@ que la documentación evolucione junto con la configuración.
 | Destino de la PR | `fixes` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-09-21 |
+| Última actualización | 2026-09-22 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -83,7 +83,7 @@ No se han añadido dependencias ni cambiado las versiones del lockfile en esta f
 | Job | Función | Tiempo máximo |
 | --- | --- | --- |
 | `quality` / `FWCloud-API Quality` | Instalación, ESLint y Prettier con Node 22 | 20 minutos |
-| `test` / `FWCloud-API Test (Node ..., ...)` | Instalación, conexión a BD, build y pruebas en nueve combinaciones | 45 minutos por combinación |
+| `test` / `FWCloud-API Test (Node ..., ...)` | Instalación, conexión a BD, build y pruebas en nueve combinaciones | Valor predeterminado de GitHub (360 minutos); límite explícito comentado |
 | `backend-ci` | Exigir éxito de calidad y de la matriz completa | 5 minutos |
 
 - Calidad se ejecuta una vez, en lugar de repetirse en la matriz.
@@ -103,8 +103,8 @@ No se han añadido dependencias ni cambiado las versiones del lockfile en esta f
   `SELECT 1` sobre la base seleccionada por la matriz.
 - Las credenciales del workflow son datos del servicio de pruebas efímero, no
   credenciales de producción.
-- Se conserva por ahora el arranque de los tres servicios en cada combinación.
-  Arrancar solo el servicio necesario queda como optimización posterior.
+- Cada combinación arranca únicamente su base de datos. Las imágenes de los otros
+  servicios se resuelven a una cadena vacía, conservando los puertos de la matriz.
 
 ### 4.5. Comando de pruebas
 
@@ -124,6 +124,60 @@ npm run test:ci
 La suite utiliza una base de datos de pruebas y puede reiniciarla. Para reproducir
 la ejecución completa deben utilizarse servicios desechables y configuración de
 pruebas, nunca una conexión a datos operativos.
+
+### 4.5.1. Reinicio de la base de datos de pruebas
+
+`tests/utils/database-reset.ts` conserva en memoria una copia de los datos justo
+después de ejecutar todas las migraciones y las semillas. La copia incluye las
+tablas sin entidad, los registros creados por migraciones, el historial de
+migraciones y los contadores de autoincremento; no depende del directorio
+`tests/playground`, que se vacía entre pruebas.
+
+- `testSuite.resetDatabaseData()` vacía las tablas y restaura esa copia sin repetir
+  las migraciones ni leer de nuevo los archivos de semillas.
+- `testSuite.resetDatabaseData({ rebuildSchema: true })` elimina las tablas,
+  ejecuta las migraciones y semillas y renueva la copia. Se utiliza al iniciar la
+  suite y para limpiar las pruebas que modifican el esquema o restauran backups.
+- Una nueva prueba que borre tablas/columnas o ejecute migraciones debe solicitar
+  una reconstrucción completa en su limpieza (`after`, `afterEach` o `finally`),
+  incluso si falla una aserción. El reinicio rápido no repara cambios de esquema.
+- Las operaciones de restauración comparten una conexión. Sus ajustes de claves
+  foráneas y modo SQL se restauran en `finally`; un error hace fallar la prueba e
+  invalida la copia para que el siguiente reinicio reconstruya la base de datos.
+- Los borrados e inserciones comparten una transacción para evitar reconstruir
+  físicamente cada tabla mediante `TRUNCATE`. Los contadores se restauran después
+  del commit, porque `ALTER TABLE` realiza un commit implícito en MySQL/MariaDB.
+- Las pruebas siguen ejecutándose en serie y cada job conserva su propia BD.
+
+Se registran número de llamadas, tiempo total y máximo en milisegundos para
+`drop`, `migrate`, `seed`, `snapshot`, `rebuild` y `restore`. `rebuild` incluye las
+cuatro primeras fases; sus tiempos no deben sumarse de nuevo. Las mediciones se
+imprimen cada 50 reinicios y al finalizar. En CI también se guardan en
+`reports/tests/database-reset.json`, dentro del artefacto de pruebas, para
+comparar la restauración con la reconstrucción y conservar avances ante un corte.
+
+La validación en GitHub debe comprobar las nueve combinaciones, el mismo conjunto
+de pruebas y los informes de cobertura. Las mediciones locales no predicen los
+tiempos del runner alojado en GitHub.
+
+Validación local de esta optimización (Node 20.20.2):
+
+| Comprobación | Resultado |
+| --- | --- |
+| Compilación TypeScript, ESLint y Prettier | Correctos |
+| Actionlint 1.7.7 | Correcto |
+| Recolector de informes | 6 pruebas correctas |
+| MySQL 8.0.32: restauración y cambios de esquema | 10 pruebas correctas |
+| MariaDB 10.1: restauración, migraciones, importador y cambios de esquema | 20 pruebas correctas |
+
+En la muestra de MySQL 8, seis restauraciones sumaron 1.506 ms (251 ms de media),
+frente a 45.356 ms para tres reconstrucciones completas (15.119 ms de media).
+En MariaDB, seis restauraciones sumaron 581 ms frente a 57.474 ms para ocho
+reconstrucciones. Son mediciones del reinicio, no de la suite completa.
+
+La suite completa con Node 24 / MySQL 5.7 se inició, pero su resultado final no
+pudo recuperarse tras el cambio de sesión. No se considera validada. Quedan
+pendientes esa ejecución completa y la matriz de GitHub Actions.
 
 ### 4.6. Eventos
 

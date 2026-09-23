@@ -54,11 +54,11 @@ jobs:
   test:
     name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # timeout-minutes: 120
 
     services:
       mysql:
-        image: mysql:5.7
+        image: ${{ matrix.database == 'mysql' && matrix.image || '' }}
         ports:
           - 8888:3306
         env:
@@ -72,7 +72,7 @@ jobs:
           --health-timeout=5s
           --health-retries=12
       mysql8:
-        image: mysql:8.0
+        image: ${{ matrix.database == 'mysql8' && matrix.image || '' }}
         ports:
           - 8890:3306
         env:
@@ -86,7 +86,7 @@ jobs:
           --health-timeout=5s
           --health-retries=12
       mariadb:
-        image: mariadb:10.1
+        image: ${{ matrix.database == 'mariadb' && matrix.image || '' }}
         ports:
           - 8889:3306
         env:

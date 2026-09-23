@@ -29,7 +29,7 @@ import { runCLICommandIsolated } from '../../../utils/utils';
 
 describe(describeName('MigrationRunCommand tests'), () => {
   after(async () => {
-    await testSuite.resetDatabaseData();
+    await testSuite.resetDatabaseData({ rebuildSchema: true });
   });
   it('should run the migrations', async () => {
     const app: AbstractApplication = testSuite.app;
