@@ -69,6 +69,43 @@ describe(describeName('Firewall Model Unit Tests'), () => {
     });
   });
 
+  describe('getFirewallsInFWCloud()', () => {
+    it('should return persisted CrowdSec metadata without secrets', async () => {
+      const rows = [
+        {
+          id: 1,
+          plugins: 4,
+          crowdsec_mode: 'machine',
+          crowdsec_local_remediation: 0,
+          crowdsec_central_lapi_enabled: 0,
+        },
+      ];
+      const query = sinon
+        .stub()
+        .callsFake((_sql: string, callback: (error: Error | null, result: unknown[]) => void) =>
+          callback(null, rows),
+        );
+
+      const result = await Firewall.getFirewallsInFWCloud({
+        body: { fwcloud: 2 },
+        dbCon: { query },
+        session: { user_id: 3 },
+      });
+
+      expect(result).to.deep.equal(rows);
+      expect(query.calledOnce).to.be.true;
+      const sql = query.firstCall.args[0] as string;
+      expect(sql).to.include('U.user=3');
+      expect(sql).to.include('T.fwcloud=2');
+      expect(sql).to.include('LEFT JOIN crowdsec_installation C ON C.firewall=T.id');
+      expect(sql).to.include('C.mode AS crowdsec_mode');
+      expect(sql).to.include('C.local_remediation AS crowdsec_local_remediation');
+      expect(sql).to.include('C.central_lapi_enabled AS crowdsec_central_lapi_enabled');
+      expect(sql).not.to.include('C.lapi_url');
+      expect(sql).not.to.include('C.machine_name');
+    });
+  });
+
   describe('hasMarkedRules()', () => {
     it('should return false if firewall does not have any rule', async () => {
       const firewall: Firewall = await manager.getRepository(Firewall).save(
