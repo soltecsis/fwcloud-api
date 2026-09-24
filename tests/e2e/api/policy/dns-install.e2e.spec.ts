@@ -178,7 +178,7 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
     const dnsServerAddress = docker(
       'inspect',
       '-f',
-      '{{.NetworkSettings.IPAddress}}',
+      '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
       dnsServer,
     ).trim();
     container = docker(
