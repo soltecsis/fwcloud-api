@@ -1266,7 +1266,10 @@ export class CrowdSecController extends Controller {
     if (enrollmentKey !== undefined) {
       channel.emit('message', new ProgressPayload('info', false, 'Enrolling CrowdSec Console'));
       try {
-        await communication.enrollCrowdSecConsole({ enrollmentKey });
+        await communication.enrollCrowdSecConsole({
+          enrollmentKey,
+          name: this.consoleInstanceName(),
+        });
         channel.emit(
           'message',
           new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
@@ -1530,6 +1533,16 @@ export class CrowdSecController extends Controller {
     }
 
     return response.api_key;
+  }
+
+  private consoleInstanceName(): string {
+    const name = this._firewall.name?.trim();
+
+    if (name && !/[^A-Za-z0-9._-]/.test(name)) {
+      return 'fwcloud-' + name;
+    }
+
+    return 'fwcloud-' + this._firewall.fwCloudId + '-' + this._firewall.id;
   }
 
   private async enrollmentKey(req: Request, value: unknown): Promise<string> {

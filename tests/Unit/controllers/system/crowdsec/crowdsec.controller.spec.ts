@@ -2148,8 +2148,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(crowdsecStub.calledBefore(enrollStub)).to.be.true;
-    expect(enrollStub.calledOnceWithExactly({ enrollmentKey: 'crowdsec-enrollment-key' })).to.be
-      .true;
+    expect(
+      enrollStub.calledOnceWithExactly({
+        enrollmentKey: 'crowdsec-enrollment-key',
+        name: 'fwcloud-' + fwcProduct.firewall.name,
+      }),
+    ).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
       new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
