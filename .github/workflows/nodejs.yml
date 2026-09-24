@@ -50,6 +50,103 @@ jobs:
         run: npm run format:check
       - name: Verify CI report collector
         run: node --test scripts/ci-reports.test.cjs
+      - name: Verify Gitleaks report collector
+        run: node --test scripts/gitleaks-report.test.cjs
+
+  secrets:
+    name: FWCloud-API Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITLEAKS_VERSION: '8.30.1'
+      GITLEAKS_ARCHIVE_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Gitleaks
+        env:
+          GITLEAKS_ARCHIVE: gitleaks_8.30.1_linux_x64.tar.gz
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${GITLEAKS_ARCHIVE}" \
+            --output "$RUNNER_TEMP/$GITLEAKS_ARCHIVE"
+          printf '%s  %s\n' "$GITLEAKS_ARCHIVE_SHA256" "$RUNNER_TEMP/$GITLEAKS_ARCHIVE" \
+            | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$GITLEAKS_ARCHIVE" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+      - name: Determine scan scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          git cat-file -e "$HEAD_SHA^{commit}"
+          if [ "$EVENT_NAME" = pull_request ]; then
+            git cat-file -e "$BASE_SHA^{commit}"
+            MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+            test -n "$MERGE_BASE"
+            LOG_OPTS="$MERGE_BASE..$HEAD_SHA"
+            SCAN_SCOPE="pull-request:$LOG_OPTS"
+          elif [ "$EVENT_NAME" = push ]; then
+            if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+              LOG_OPTS="$HEAD_SHA"
+              SCAN_SCOPE="new-branch-history:$HEAD_SHA"
+            else
+              git cat-file -e "$BEFORE_SHA^{commit}"
+              LOG_OPTS="$BEFORE_SHA..$HEAD_SHA"
+              SCAN_SCOPE="push:$LOG_OPTS"
+            fi
+          elif [ "$EVENT_NAME" = workflow_dispatch ]; then
+            LOG_OPTS="--all"
+            SCAN_SCOPE="full-history"
+          else
+            echo "Unsupported event: $EVENT_NAME" >&2
+            exit 1
+          fi
+          echo "log_opts=$LOG_OPTS" >> "$GITHUB_OUTPUT"
+          echo "scan_scope=$SCAN_SCOPE" >> "$GITHUB_OUTPUT"
+      - name: Scan secrets
+        id: gitleaks
+        env:
+          GITLEAKS_LOG_OPTS: ${{ steps.scope.outputs.log_opts }}
+        run: |
+          mkdir -p reports/secrets
+          set +e
+          "$RUNNER_TEMP/gitleaks" git \
+            --config .gitleaks.toml \
+            --log-opts="$GITLEAKS_LOG_OPTS" \
+            --redact=100 \
+            --report-format json \
+            --report-path reports/secrets/gitleaks.json \
+            --timeout 300 \
+            --no-banner \
+            --no-color \
+            .
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+      - name: Verify and summarize secret scan
+        id: secret_report
+        if: ${{ always() && steps.gitleaks.outcome != 'skipped' }}
+        env:
+          GITLEAKS_EXIT_CODE: ${{ steps.gitleaks.outputs.exit_code }}
+          GITLEAKS_LOG_OPTS: ${{ steps.scope.outputs.log_opts }}
+          GITLEAKS_SCAN_SCOPE: ${{ steps.scope.outputs.scan_scope }}
+        run: node scripts/gitleaks-report.cjs
+      - name: Remove detailed secret report
+        if: ${{ always() && steps.gitleaks.outcome != 'skipped' }}
+        run: rm -f reports/secrets/gitleaks.json
+      - name: Upload redacted secret scan evidence
+        if: ${{ always() && steps.gitleaks.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-secrets-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/secrets/metadata.json
+          retention-days: 90
+          if-no-files-found: error
 
   test:
     name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
@@ -202,7 +299,7 @@ jobs:
   backend-ci:
     name: backend-ci
     if: ${{ always() }}
-    needs: [quality, test]
+    needs: [quality, test, secrets]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -210,6 +307,8 @@ jobs:
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TEST_RESULT: ${{ needs.test.result }}
+          SECRETS_RESULT: ${{ needs.secrets.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_RESULT" = success
+          test "$SECRETS_RESULT" = success

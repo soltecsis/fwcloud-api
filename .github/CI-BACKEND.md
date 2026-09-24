@@ -14,7 +14,7 @@ que la documentación evolucione junto con la configuración.
 | Destino de la PR | `fixes` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-09-22 |
+| Última actualización | 2026-09-24 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -50,7 +50,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | --- | --- | --- | --- |
 | 1 | Instalación reproducible, separación de calidad/pruebas y controles de ejecución | Implementada localmente; pendiente de validación completa en Actions | PR hacia `fixes` con calidad y matriz completas correctas; protección configurada |
 | 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
-| 3 | Detección de secretos con Gitleaks | Pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
+| 3 | Detección de secretos con Gitleaks | Implementada localmente; revisión histórica y validación en Actions pendientes | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
 | 4 | SCA y SBOM con Trivy | Pendiente | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | Laboratorio efímero y DAST con ZAP | Pendiente | Entorno sintético aislado, autenticación y cobertura verificadas, resultados revisados |
@@ -303,6 +303,38 @@ La ausencia de un resultado de pruebas conocido no se interpreta como éxito.
 - Esta medición no acredita cobertura de seguridad ni de código propio que pudiera
   quedar fuera de `src/`; cualquier ampliación del alcance deberá documentarse.
 
+#### Métricas de cobertura e interpretación
+
+| Métrica | Qué mide | Qué permite identificar |
+| --- | --- | --- |
+| Líneas (`lines`) | Porcentaje de líneas ejecutables recorridas durante las pruebas | Zonas del código que no se han ejecutado |
+| Funciones (`functions`) | Porcentaje de funciones que se han llamado | Funciones que ninguna prueba está ejercitando |
+| Ramas (`branches`) | Porcentaje de alternativas recorridas, como los caminos de un `if/else` o un ternario | Decisiones de las que solo se prueba una parte de los caminos posibles |
+| Sentencias (`statements`) | Porcentaje de instrucciones ejecutadas; una línea puede contener varias instrucciones | Instrucciones sin ejecutar, con mayor detalle que el recuento por líneas |
+
+#### Alcance de la medición
+
+- Las pruebas se ejecutan en las nueve combinaciones de Node y base de datos.
+- La cobertura se recoge únicamente en Node 22 / MySQL 8.0, como referencia inicial.
+- En esa combinación, la suite se ejecuta una sola vez con la recogida de cobertura
+  activada.
+- En las otras ocho combinaciones, `Upload coverage evidence` aparece omitido
+  intencionadamente.
+- La combinación de referencia puede cambiar para alinearse con producción.
+- Los caminos exclusivos de otras versiones o bases de datos pueden no aparecer
+  cubiertos en este informe, aunque se ejecuten en otras combinaciones.
+
+#### Interpretación y límites
+
+Un 60 % de cobertura de líneas significa que las pruebas han ejecutado el 60 % de
+las líneas consideradas. No significa que el código sea un 60 % correcto o seguro.
+
+La cobertura no demuestra por sí sola que las pruebas comprueben correctamente los
+resultados, que se hayan probado todas las entradas posibles o que la autenticación,
+autorización y lógica de negocio sean seguras. En esta fase no se exige un porcentaje
+mínimo: se establece una línea base para identificar carencias y priorizar pruebas,
+especialmente en funciones críticas.
+
 ```text
 reports/
 ├── tests/
@@ -378,7 +410,146 @@ comprobarse en GitHub antes de cerrar esta fase.
 - [ ] Verificar la retención y la visibilidad de informes en el repositorio.
 - [ ] Registrar validación y responsable.
 
-## 6. Pendientes transversales
+## 6. Fase 3 — Detección de secretos con Gitleaks
+
+### 6.1. Objetivo y herramienta
+
+Se incorpora Gitleaks `8.30.1` como control independiente para detectar secretos en
+el historial Git introducido por cada cambio. No se añade como dependencia npm ni
+se utiliza la GitHub Action comercial.
+
+El binario oficial para Linux x64 se descarga durante el job `secrets`. La versión
+y el SHA-256 esperado quedan fijados en el workflow:
+
+```text
+Versión: 8.30.1
+Archivo: gitleaks_8.30.1_linux_x64.tar.gz
+SHA-256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+```
+
+El checksum se comprueba antes de extraer y ejecutar el binario. Un fallo de
+descarga, integridad, instalación, determinación del rango o ejecución impide que
+el job termine correctamente.
+
+### 6.2. Configuración y alcance
+
+`.gitleaks.toml` extiende las reglas predeterminadas incluidas en esa versión. En
+esta entrega no se añaden exclusiones, allowlists ni línea base.
+
+| Evento | Historial analizado |
+| --- | --- |
+| `pull_request` | Commits entre el ancestro común con la rama de destino y el SHA real de la rama origen |
+| `push` | Commits comprendidos entre `before` y el SHA recibido |
+| Primer push de una rama | Todo el historial alcanzable desde el SHA recibido |
+| `workflow_dispatch` | Todo el historial disponible, mediante `--all` |
+
+El checkout del job utiliza `fetch-depth: 0`. Se comprueba que los objetos Git
+necesarios existen y, en PR, que puede determinarse un ancestro común. El escaneo
+de PR detecta también un secreto añadido en un commit y eliminado en otro posterior:
+no se limita al estado final de los archivos.
+
+El modo `git` analiza contenido registrado en commits. Archivos locales ignorados,
+artefactos de ejecución y datos no versionados no forman parte del control de PR.
+
+### 6.3. Resultados y evidencias
+
+Gitleaks se ejecuta con redacción completa (`--redact=100`) y sin salida detallada.
+El informe completo se utiliza temporalmente para clasificar el resultado, pero se
+elimina antes de subir evidencias. Esto evita publicar rutas, líneas, autores o
+contexto sensible, especialmente en repositorios públicos.
+
+El artefacto conservado contiene únicamente `reports/secrets/metadata.json`:
+
+- commit, evento, referencia, ejecución e intento;
+- versión de Gitleaks y alcance del análisis;
+- estado y código de salida;
+- número de coincidencias y reglas activadas;
+- errores de consistencia, sin valores secretos ni ubicaciones.
+
+El nombre del artefacto es:
+
+```text
+backend-secrets-<RUN_ID>-<ATTEMPT>
+```
+
+Se solicitan 90 días de retención. El resumen de GitHub muestra solo datos
+agregados. Ante coincidencias, la reproducción local por personal autorizado debe
+utilizar el mismo binario, configuración y rango para revisar el detalle.
+
+El recolector distingue tres estados:
+
+| Estado | Interpretación |
+| --- | --- |
+| `success` | Escaneo completo sin coincidencias |
+| `findings` | Coincidencias que deben revisarse y tratarse |
+| `error` | Informe ausente, ejecución fallida o resultado inconsistente |
+
+Tanto `findings` como `error` bloquean el job. `backend-ci` depende ahora de
+`quality`, la matriz `test` y `secrets`.
+
+### 6.4. Revisión inicial del historial
+
+La revisión local inicial se ejecutó sobre todo el historial disponible con Gitleaks
+8.30.1, la configuración versionada y redacción completa:
+
+```text
+Commits analizados: 4567
+Volumen aproximado: 62,84 MB
+Coincidencias: 369
+Regla: generic-api-key
+```
+
+Estas coincidencias no se consideran automáticamente secretos confirmados ni falsos
+positivos. El análisis local, sin publicar valores, rutas ni contexto, permite esta
+clasificación preliminar:
+
+| Grupo | Coincidencias | Clasificación preliminar |
+| --- | ---: | --- |
+| Artefacto de log eliminado en 2018 | 360 | 276 valores con forma de token; requieren confirmar expiración o revocación |
+| Cuatro artefactos de configuración eliminados en 2018 | 6 | Valores asociados a contraseñas o secretos; requieren revisión de seguridad |
+| Fixture de prueba eliminado en 2026 | 1 | Valor de prueba con forma de token de acceso |
+| Fixture de prueba vigente | 1 | Secreto determinista usado exclusivamente por una prueba de doble factor |
+| Script de terceros vigente | 1 | Falso positivo provocado por concatenación de variables de shell |
+
+Los 366 hallazgos de 2018 deben tratarse como potencialmente sensibles hasta que el
+responsable confirme que nunca fueron credenciales funcionales o que están
+invalidadas. Si una credencial siguiera siendo válida, se revocará o rotará;
+eliminarla de la revisión actual no la elimina del historial.
+
+No se ha creado una línea base para silenciarlas. Cualquier excepción futura deberá
+ser concreta, estar justificada y ser revisable. Una ejecución manual de historial
+completo seguirá fallando hasta tratar o exceptuar de manera aprobada los hallazgos.
+
+### 6.5. Verificaciones locales
+
+| Verificación | Resultado |
+| --- | --- |
+| Descarga de Gitleaks 8.30.1 y comprobación del SHA-256 | Correcta |
+| Carga de `.gitleaks.toml` y revisión completa del historial | Correcta; clasificación preliminar agregada, con 366 hallazgos de 2018 pendientes de decisión de seguridad |
+| Repositorio sintético con secreto añadido y eliminado en commits sucesivos | El rango detecta una coincidencia aunque el archivo final esté limpio |
+| Redacción del valor sintético en el informe JSON | Correcta; el valor no aparece |
+| Commit temporal con los cambios completos de la fase 3 | Escaneo incremental correcto, sin coincidencias |
+| Recolector de evidencia | Cuatro pruebas correctas: limpio, hallazgo, informe ausente e inconsistencias |
+| Resumen y metadatos ante hallazgo sintético | No contienen el valor secreto |
+| Actionlint `1.7.7` sobre el workflow | Correcto |
+| `git diff --check` | Correcto |
+
+La revisión sintética utiliza una credencial ficticia generada exclusivamente para
+validar el detector. No se ha empleado ninguna credencial funcional.
+
+### 6.6. Cierre pendiente
+
+- [ ] Publicar la rama y enlazar la PR y el commit de esta fase.
+- [ ] Verificar un escaneo incremental limpio en GitHub Actions.
+- [ ] Comprobar que `backend-ci` exige el éxito de `FWCloud-API Secrets`.
+- [ ] Descargar y revisar el artefacto agregado y sus 90 días de retención efectiva.
+- [ ] Confirmar que logs, resumen y artefacto no exponen valores ni contexto sensible.
+- [ ] Confirmar el tratamiento de los 366 hallazgos potencialmente sensibles de 2018.
+- [ ] Aprobar cualquier excepción necesaria con alcance y justificación concretos.
+- [ ] Ejecutar de nuevo el historial completo y registrar el resultado aceptado.
+- [ ] Registrar validación, fecha y responsable.
+
+## 7. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -391,7 +562,7 @@ comprobarse en GitHub antes de cerrar esta fase.
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 7. Procedimiento de actualización del informe
+## 8. Procedimiento de actualización del informe
 
 En cada entrega:
 
