@@ -334,6 +334,7 @@ export class CrowdSecController extends Controller {
   public async installMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     await this.assertCanTransitionLapiToMachine();
 
     const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
@@ -447,7 +448,6 @@ export class CrowdSecController extends Controller {
       const validation = await centralCommunication.validateCrowdSecLapiMachine(
         req.body.machineName,
       );
-      const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
       const bouncerApiKey = req.body.localRemediation
         ? (providedBouncerApiKey ??
           this.bouncerApiKey(
@@ -670,6 +670,7 @@ export class CrowdSecController extends Controller {
       );
     }
 
+    const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     const lapiUrl = this.lapiUrl(req.body.lapiUrl);
     const targetCentralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
     const targetCentralCommunication =
@@ -722,7 +723,6 @@ export class CrowdSecController extends Controller {
       const validation = await targetCentralCommunication.validateCrowdSecLapiMachine(
         installation.machineName,
       );
-      const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
       const bouncerApiKey = installation.localRemediation
         ? (providedBouncerApiKey ??
           this.bouncerApiKey(
@@ -820,6 +820,7 @@ export class CrowdSecController extends Controller {
       );
     }
 
+    const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
     const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
     const remoteCommunication = await this.getAgentCommunication();
@@ -858,7 +859,6 @@ export class CrowdSecController extends Controller {
       );
       const preparation = await remoteCommunication.prepareCrowdSecTransition(transition, channel);
       prepared = true;
-      const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
       const bouncerApiKey = req.body.localRemediation
         ? (providedBouncerApiKey ??
           this.bouncerApiKey(
@@ -937,6 +937,7 @@ export class CrowdSecController extends Controller {
       }
       await this.assertCanTransitionLapiToMachine();
 
+      const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
       const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
       const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
       const lapiUrl = this.lapiUrl(req.body.lapiUrl);
@@ -982,7 +983,6 @@ export class CrowdSecController extends Controller {
         const validation = await centralCommunication.validateCrowdSecLapiMachine(
           req.body.machineName,
         );
-        const providedBouncerApiKey = this.optionalBouncerApiKey(req.body.bouncerApiKey);
         const bouncerApiKey = req.body.localRemediation
           ? (providedBouncerApiKey ??
             this.bouncerApiKey(
@@ -1177,7 +1177,13 @@ export class CrowdSecController extends Controller {
   public async enrollConsole(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    const response = await (await this.getAgentCommunication()).enrollCrowdSecConsole(req.body);
+    const enrollmentKey = await this.enrollmentKey(req, req.body.enrollmentKey);
+    const response = await (
+      await this.getAgentCommunication()
+    ).enrollCrowdSecConsole({
+      ...req.body,
+      enrollmentKey,
+    });
     const installationRepository = this.getCrowdSecInstallationRepository();
     if (await installationRepository.findByFirewallId(this._firewall.id)) {
       await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, false);
@@ -1241,6 +1247,11 @@ export class CrowdSecController extends Controller {
   public async install(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const enrollmentKey =
+      req.body?.enrollmentKey === undefined
+        ? undefined
+        : await this.enrollmentKey(req, req.body.enrollmentKey);
+
     const channel = await Channel.fromRequest(req);
     const { communication, backend } = await this.getCrowdSecInstallContext();
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec'));
@@ -1251,6 +1262,29 @@ export class CrowdSecController extends Controller {
       true,
     );
     await this.getCrowdSecInstallationRepository().saveLapiInstallation(this._firewall.id);
+
+    if (enrollmentKey !== undefined) {
+      channel.emit('message', new ProgressPayload('info', false, 'Enrolling CrowdSec Console'));
+      try {
+        await communication.enrollCrowdSecConsole({
+          enrollmentKey,
+          name: this.consoleInstanceName(),
+        });
+        channel.emit(
+          'message',
+          new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
+        );
+      } catch {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec installation completed, but Console enrollment could not be requested',
+          ),
+        );
+      }
+    }
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
@@ -1501,13 +1535,62 @@ export class CrowdSecController extends Controller {
     return response.api_key;
   }
 
-  private optionalBouncerApiKey(value: unknown): string | undefined {
-    if (typeof value !== 'string') {
+  private consoleInstanceName(): string {
+    const name = this._firewall.name?.trim();
+
+    if (name && !/[^A-Za-z0-9._-]/.test(name)) {
+      return 'fwcloud-' + name;
+    }
+
+    return 'fwcloud-' + this._firewall.fwCloudId + '-' + this._firewall.id;
+  }
+
+  private async enrollmentKey(req: Request, value: unknown): Promise<string> {
+    const enrollmentKey = await this.decryptCrowdSecSecret(req, value, 'CrowdSec enrollment key');
+    if (
+      enrollmentKey.length === 0 ||
+      enrollmentKey.length > 512 ||
+      this.hasControlCharacters(enrollmentKey)
+    ) {
+      throw new HttpException('Invalid CrowdSec enrollment key', 422);
+    }
+
+    return enrollmentKey;
+  }
+
+  private async optionalBouncerApiKey(req: Request, value: unknown): Promise<string | undefined> {
+    if (value === undefined) {
       return undefined;
     }
 
-    const apiKey = value.trim();
+    const apiKey = await this.decryptCrowdSecSecret(
+      req,
+      value,
+      'CrowdSec Firewall Bouncer API key',
+    );
+    if (apiKey.length === 0 || apiKey.length > 512 || this.hasControlCharacters(apiKey)) {
+      throw new HttpException('Invalid CrowdSec Firewall Bouncer API key', 422);
+    }
 
-    return apiKey.length > 0 ? apiKey : undefined;
+    return apiKey;
+  }
+
+  private async decryptCrowdSecSecret(req: Request, value: unknown, name: string): Promise<string> {
+    if (typeof value !== 'string') {
+      throw new HttpException('Invalid ' + name, 422);
+    }
+
+    try {
+      return (await new PgpHelper(req.session.pgp).decrypt(value)).trim();
+    } catch {
+      throw new HttpException('Invalid ' + name, 422);
+    }
+  }
+
+  private hasControlCharacters(value: string): boolean {
+    return Array.from(value).some((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127;
+    });
   }
 }

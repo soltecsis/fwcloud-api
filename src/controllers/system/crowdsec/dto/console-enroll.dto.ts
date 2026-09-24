@@ -26,8 +26,7 @@ const CROWDSEC_CONSOLE_IDENTIFIER = /^[A-Za-z0-9._-]+$/;
 
 export class CrowdSecConsoleEnrollDto {
   @IsString()
-  @Length(1, 512)
-  @Matches(/^[^\x00-\x1F\x7F]+$/, { message: 'Invalid CrowdSec enrollment key' })
+  @Length(1, 8192)
   enrollmentKey: string;
 
   @IsOptional()
