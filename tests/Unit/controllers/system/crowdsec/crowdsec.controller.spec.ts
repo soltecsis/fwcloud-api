@@ -80,6 +80,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let setConsoleEnrollmentConfirmedStub: sinon.SinonStub;
   let removeMachineInstallationStub: sinon.SinonStub;
   let pingStub: sinon.SinonStub;
+  let pgpDecryptStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -105,6 +106,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     pingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
+    pgpDecryptStub = sinon
+      .stub(PgpHelper.prototype, 'decrypt')
+      .callsFake(async (value: string) => value);
     saveLapiInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
       .resolves(new CrowdSecInstallation());
@@ -1710,6 +1714,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
   it('should enroll CrowdSec Console and reset persisted confirmation without returning the enrollment key', async () => {
     const enrollmentKey = 'crowdsec-enrollment-key';
+    const encryptedEnrollmentKey = 'encrypted-crowdsec-enrollment-key';
     const response = {
       status: {
         state: 'pending_approval' as const,
@@ -1717,6 +1722,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       },
     };
     const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves(response);
+    pgpDecryptStub.withArgs(encryptedEnrollmentKey).resolves(enrollmentKey);
     findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
       Object.assign(new CrowdSecInstallation(), {
         mode: CrowdSecInstallationMode.Lapi,
@@ -1725,7 +1731,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     );
 
     const result = await controller.enrollConsole({
-      body: { enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] },
+      body: { enrollmentKey: encryptedEnrollmentKey, name: 'fwcloud', tags: ['fwcloud'] },
       session: { user: null },
     } as unknown as Request);
 
@@ -1744,6 +1750,20 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         CrowdSecConsoleEnrollDto,
       ).validate(),
     ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should reject an invalid decrypted CrowdSec Console enrollment key before contacting the agent', async () => {
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole');
+    pgpDecryptStub.withArgs('encrypted-invalid-enrollment-key').resolves('invalid\nkey');
+
+    await expect(
+      controller.enrollConsole({
+        body: { enrollmentKey: 'encrypted-invalid-enrollment-key' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'Invalid CrowdSec enrollment key');
+
+    expect(enrollStub.called).to.be.false;
   });
 
   it('should confirm CrowdSec Console enrollment for a LAPI installation', async () => {
@@ -1789,6 +1809,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should use the supplied central CrowdSec bouncer key for Machine local remediation', async () => {
+    const encryptedBouncerApiKey = 'encrypted-manually-created-bouncer-key';
+    pgpDecryptStub.withArgs(encryptedBouncerApiKey).resolves('manually-created-bouncer-key');
     const channel = new Channel('crowdsec-machine-install', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1817,7 +1839,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         machineName: 'fwcloud-machine-01',
         lapiUrl: 'http://192.0.2.20:8080',
         localRemediation: true,
-        bouncerApiKey: 'manually-created-bouncer-key',
+        bouncerApiKey: encryptedBouncerApiKey,
       },
       session: { user: null },
     } as unknown as Request);
@@ -2106,6 +2128,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
   it('should request Console enrollment after a successful LAPI installation when a key is supplied', async () => {
     const crowdsec = { steps: [] };
+    const enrollmentKey = 'crowdsec-enrollment-key';
+    const encryptedEnrollmentKey = 'encrypted-crowdsec-enrollment-key';
+    pgpDecryptStub.withArgs(encryptedEnrollmentKey).resolves(enrollmentKey);
     const listener = new EventEmitter();
     const channel = new Channel('crowdsec-install', listener);
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
@@ -2118,7 +2143,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     );
 
     const response = await controller.install({
-      body: { enrollmentKey: 'crowdsec-enrollment-key' },
+      body: { enrollmentKey: encryptedEnrollmentKey },
       session: { user: null },
     } as unknown as Request);
 

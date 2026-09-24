@@ -68,6 +68,6 @@ export class CrowdSecTransitionDto {
 
   @IsOptional()
   @IsString()
-  @Length(1, 512)
+  @Length(1, 8192)
   bouncerApiKey?: string;
 }
