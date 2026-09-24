@@ -1895,6 +1895,18 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     await expect(
       new Validator(
         {
+          centralFirewallId: 1,
+          machineName: 'fwcloud-machine-01',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: false,
+          enrollmentKey: 'crowdsec-enrollment-key',
+        },
+        CrowdSecMachineInstallDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        {
           confirm: true,
           mode: CrowdSecInstallationMode.Machine,
           centralFirewallId: 1,
@@ -2077,6 +2089,80 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const body = response.toJSON();
     expect(body.status).to.equal(200);
     expect(body.data).to.deep.equal({ crowdsec });
+  });
+
+  it('should reject an invalid LAPI enrollment key before contacting the agent', async () => {
+    const installStub = sinon.stub(communication, 'installCrowdSec');
+
+    await expect(
+      controller.install({
+        body: { enrollmentKey: 42 },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'Invalid CrowdSec enrollment key');
+
+    expect(installStub.called).to.be.false;
+  });
+
+  it('should request Console enrollment after a successful LAPI installation when a key is supplied', async () => {
+    const crowdsec = { steps: [] };
+    const listener = new EventEmitter();
+    const channel = new Channel('crowdsec-install', listener);
+    const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves({});
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
+    const messages: ProgressPayload[] = [];
+    listener.on(channel.id, (message: SocketMessage) =>
+      messages.push(message.payload as ProgressPayload),
+    );
+
+    const response = await controller.install({
+      body: { enrollmentKey: 'crowdsec-enrollment-key' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(crowdsecStub.calledBefore(enrollStub)).to.be.true;
+    expect(enrollStub.calledOnceWithExactly({ enrollmentKey: 'crowdsec-enrollment-key' })).to.be
+      .true;
+    expect(messages).to.deep.equal([
+      new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
+      new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
+      new ProgressPayload('end', false, 'CrowdSec installation finished'),
+    ]);
+    expect(response.toJSON().data).to.deep.equal({ crowdsec });
+  });
+
+  it('should retain a successful LAPI installation when Console enrollment fails', async () => {
+    const crowdsec = { steps: [] };
+    const listener = new EventEmitter();
+    const channel = new Channel('crowdsec-install', listener);
+    sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
+    sinon.stub(communication, 'enrollCrowdSecConsole').rejects(new Error('Console unavailable'));
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
+    const messages: ProgressPayload[] = [];
+    listener.on(channel.id, (message: SocketMessage) =>
+      messages.push(message.payload as ProgressPayload),
+    );
+
+    const response = await controller.install({
+      body: { enrollmentKey: 'crowdsec-enrollment-key' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(messages).to.deep.equal([
+      new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
+      new ProgressPayload(
+        'warning',
+        false,
+        'CrowdSec installation completed, but Console enrollment could not be requested',
+      ),
+      new ProgressPayload('end', false, 'CrowdSec installation finished'),
+    ]);
+    expect(response.toJSON().data).to.deep.equal({ crowdsec });
   });
 
   it('should not invoke a separate Firewall Bouncer operation when CrowdSec installation fails', async () => {

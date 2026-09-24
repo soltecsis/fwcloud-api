@@ -1241,6 +1241,16 @@ export class CrowdSecController extends Controller {
   public async install(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const enrollmentKey = req.body?.enrollmentKey;
+    if (
+      enrollmentKey !== undefined &&
+      (typeof enrollmentKey !== 'string' ||
+        enrollmentKey.trim().length === 0 ||
+        enrollmentKey.length > 512)
+    ) {
+      throw new HttpException('Invalid CrowdSec enrollment key', 400);
+    }
+
     const channel = await Channel.fromRequest(req);
     const { communication, backend } = await this.getCrowdSecInstallContext();
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec'));
@@ -1251,6 +1261,26 @@ export class CrowdSecController extends Controller {
       true,
     );
     await this.getCrowdSecInstallationRepository().saveLapiInstallation(this._firewall.id);
+
+    if (enrollmentKey !== undefined) {
+      channel.emit('message', new ProgressPayload('info', false, 'Enrolling CrowdSec Console'));
+      try {
+        await communication.enrollCrowdSecConsole({ enrollmentKey });
+        channel.emit(
+          'message',
+          new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
+        );
+      } catch {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec installation completed, but Console enrollment could not be requested',
+          ),
+        );
+      }
+    }
 
     channel.emit('message', new ProgressPayload('end', false, 'CrowdSec installation finished'));
 
