@@ -200,6 +200,42 @@ describe(describeName('VPN template options provisioning'), () => {
       expect(options).to.include({ ListenPort: '51999', DNS: '1.1.1.1', Address: '10.50.0.1/24' });
       expect(options).to.not.have.property('PrivateKey');
     });
+
+    it('links the server and client addresses to IP objects, like the interactive panel', async () => {
+      const client = connection({
+        id: 'wgc',
+        name: 'WG Laptop',
+        kind: 'wireguard',
+        role: 'client',
+        serverId: 'wgs',
+        certificateId: 'clicert',
+      });
+      const configs = await provision([wgServer, client], {
+        ...values,
+        wgc: { network: '10.50.0.2/24', remoteNetwork: '192.168.1.0/24' },
+      });
+
+      expect(errors).to.be.empty;
+      const linked = async (id: number) =>
+        Object.fromEntries(
+          (
+            await rows(
+              `SELECT W.name, W.arg, O.type, O.address FROM wireguard_opt W
+               LEFT JOIN ipobj O ON O.id = W.ipobj WHERE W.wireguard = ? AND W.ipobj IS NOT NULL`,
+              [id],
+            )
+          ).map((row) => [row.name, [row.arg, row.type, row.address]]),
+        );
+
+      // The network object behind '<<vpn_network>>', and the tunnel interface's first host.
+      expect(await linked(configs.get('wgs').id)).to.deep.equal({
+        '<<vpn_network>>': ['10.50.0.0/24', 7, '10.50.0.0'],
+        Address: ['10.50.0.1/24', 5, '10.50.0.1'],
+      });
+      expect(await linked(configs.get('wgc').id)).to.deep.equal({
+        Address: ['10.50.0.2/24', 5, '10.50.0.2'],
+      });
+    });
   });
 
   describe('IPsec', () => {

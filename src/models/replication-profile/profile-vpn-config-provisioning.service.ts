@@ -286,7 +286,7 @@ interface VpnOpt {
 const DERIVED_OPTIONS = {
   openvpnServer: new Set(['server', 'dev']),
   openvpnClient: new Set(['remote', 'ifconfig-push']),
-  wireguardServer: new Set(['PrivateKey', 'PublicKey', 'Address']),
+  wireguardServer: new Set(['PrivateKey', 'PublicKey', 'Address', '<<vpn_network>>']),
   wireguardClient: new Set(['PrivateKey', 'PublicKey', 'Address', 'Endpoint', 'AllowedIPs']),
   ipsecServer: new Set(['left', 'leftid', 'leftcert', 'leftsubnet', '<<psk>>']),
   ipsecClient: new Set([
@@ -751,8 +751,8 @@ async function provisionWireGuardServer(
   errors: string[],
   configIds: Map<string, ResolvedVpnConfig>,
 ): Promise<void> {
-  const address = parseReplicationProfileAddress(resolveField(server.id, 'network'), 4);
-  if (!address) {
+  const network = parseReplicationProfileNetwork(resolveField(server.id, 'network'), 4);
+  if (!network) {
     errors.push(`WireGuard server "${server.name}": missing or invalid interface address.`);
     return;
   }
@@ -763,6 +763,19 @@ async function provisionWireGuardServer(
   }
 
   try {
+    // As the interactive panel does: a network object for the VPN network ('<<vpn_network>>'), from
+    // which createWireGuardServerInterface() gives the tunnel interface the 'Address' option's first
+    // host and links that option to it (the tree reads both).
+    const networkIpobjId = await insertVpnIpobj(
+      dbCon,
+      fwCloudId,
+      `LAN-VPN-${server.name}`.slice(0, 64),
+      OBJ_TYPE_NETWORK,
+      network.address,
+      network.netmask,
+      pki.rollback,
+    );
+
     const installName = await WireGuard.getConfigFilename(dbCon, firewallId);
     const req = makeReq(dbCon, {
       fwcloud: fwCloudId,
@@ -788,7 +801,14 @@ async function provisionWireGuardServer(
         [
           {
             name: 'Address',
-            arg: `${address.address}${address.netmask}`,
+            arg: `${IpUtils.fromLong(IpUtils.toLong(network.address) + 1)}${network.netmask}`,
+            scope: OptionScope.wg_server_interface,
+            wireguard: newWireguardId,
+          },
+          {
+            name: '<<vpn_network>>',
+            arg: `${network.address}${network.netmask}`,
+            ipobj: networkIpobjId,
             scope: OptionScope.wg_server_interface,
             wireguard: newWireguardId,
           },
@@ -883,6 +903,18 @@ async function provisionWireGuardClient(
       comment: `Replication profile: ${client.name}`,
     });
 
+    // As the interactive panel does: an address object for the client's tunnel address, referenced
+    // by its 'Address' option (the tree reads the client's address from it).
+    const addressIpobjId = await insertVpnIpobj(
+      dbCon,
+      fwCloudId,
+      `VPN-${client.name}`.slice(0, 64),
+      OBJ_TYPE_ADDRESS,
+      address.address,
+      address.netmask,
+      pki.rollback,
+    );
+
     // Same as the server: addCfg() already generated this client's own key pair, and dumpCfg() reads
     // the server's PublicKey (for this client's [Peer] section) from the server row itself.
     const newWireguardId: number = await WireGuard.addCfg(req);
@@ -898,6 +930,7 @@ async function provisionWireGuardClient(
           {
             name: 'Address',
             arg: `${address.address}${address.netmask}`,
+            ipobj: addressIpobjId,
             scope: OptionScope.wg_client_interface,
             wireguard: newWireguardId,
           },
