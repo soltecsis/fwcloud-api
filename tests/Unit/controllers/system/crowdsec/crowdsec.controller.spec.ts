@@ -82,6 +82,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let pingStub: sinon.SinonStub;
   let exportCrowdSecMachineCredentialsStub: sinon.SinonStub;
   let replicateCrowdSecLapiMachineStub: sinon.SinonStub;
+  let replicateCrowdSecLapiBouncerStub: sinon.SinonStub;
   let pgpDecryptStub: sinon.SinonStub;
 
   beforeEach(async () => {
@@ -114,6 +115,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .callsFake(async (name: string) => ({ login: name, password: 'machine-password' }));
     replicateCrowdSecLapiMachineStub = sinon
       .stub(AgentCommunication.prototype, 'replicateCrowdSecLapiMachine')
+      .resolves({});
+    replicateCrowdSecLapiBouncerStub = sinon
+      .stub(AgentCommunication.prototype, 'replicateCrowdSecLapiBouncer')
       .resolves({});
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
@@ -549,9 +553,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       machine_name: 'fwcloud-machine-01',
       state: 'pending',
     });
-    const registerBouncerStub = sinon
-      .stub(centralCommunication, 'registerCrowdSecBouncer')
-      .resolves({ name: 'fwcloud-machine-01', api_key: 'central-bouncer-key' });
     const activateStub = sinon.stub(communication, 'activateCrowdSecMachine').resolves({
       machine_name: 'fwcloud-machine-01',
       state: 'validated',
@@ -594,14 +595,16 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       ),
     ).to.be.true;
 
-    expect(registerBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(replicateCrowdSecLapiBouncerStub.calledOnce).to.be.true;
+    const generatedBouncerApiKey = replicateCrowdSecLapiBouncerStub.getCall(0).args[1];
+    expect(generatedBouncerApiKey).to.be.a('string').and.not.empty;
     expect(
       activateStub.calledOnceWithExactly(
         {
           machineName: 'fwcloud-machine-01',
           localRemediation: true,
           backend: 'nftables',
-          bouncerApiKey: 'central-bouncer-key',
+          bouncerApiKey: generatedBouncerApiKey,
         },
         channel,
       ),
@@ -618,7 +621,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         local_remediation: true,
       },
     });
-    expect(JSON.stringify(response.toJSON())).to.not.contain('central-bouncer-key');
+    expect(JSON.stringify(response.toJSON())).to.not.contain(generatedBouncerApiKey);
     expect(
       saveMachineInstallationStub.calledOnceWithExactly({
         firewallId: fwcProduct.firewall.id,
@@ -865,7 +868,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
-    const registerBouncerStub = sinon.stub(centralCommunication, 'registerCrowdSecBouncer');
     const backendStub = sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend');
     sinon.stub(communication, 'installCrowdSecMachine').resolves({});
     const activateStub = sinon.stub(communication, 'activateCrowdSecMachine').resolves({});
@@ -881,7 +883,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(registerBouncerStub.called).to.be.false;
+    expect(replicateCrowdSecLapiBouncerStub.called).to.be.false;
     expect(backendStub.called).to.be.false;
     expect(
       activateStub.calledOnceWithExactly(
@@ -1847,7 +1849,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
     sinon.stub(communication, 'installCrowdSecMachine').resolves({});
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
-    const registerBouncerStub = sinon.stub(centralCommunication, 'registerCrowdSecBouncer');
     const activateStub = sinon.stub(communication, 'activateCrowdSecMachine').resolves({});
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
     sinon.stub(Channel, 'fromRequest').resolves(channel);
@@ -1863,7 +1864,12 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(registerBouncerStub.notCalled).to.be.true;
+    expect(
+      replicateCrowdSecLapiBouncerStub.calledOnceWithExactly(
+        'fwcloud-machine-01',
+        'manually-created-bouncer-key',
+      ),
+    ).to.be.true;
     expect(
       activateStub.calledOnceWithExactly(
         {

@@ -1318,6 +1318,20 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async replicateCrowdSecLapiBouncer(
+    name: string,
+    apiKey: string,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/bouncers/replicate',
+        { name, api_key: apiKey },
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   async getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/machines');

@@ -837,6 +837,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
+  replicateCrowdSecLapiBouncer(_name: string, _apiKey: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
   getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }

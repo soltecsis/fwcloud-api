@@ -246,9 +246,8 @@ export class CrowdSecClusterController extends Controller {
           (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
         let bouncerApiKey: string | undefined;
         if (req.body.localRemediation) {
-          bouncerApiKey = CrowdSecLapiSharedService.bouncerApiKey(
-            await centralCommunication.registerCrowdSecBouncer(machineName),
-          );
+          bouncerApiKey = CrowdSecLapiSharedService.generateBouncerApiKey();
+          await lapiService.replicateBouncer(centralLapiNodes, machineName, bouncerApiKey);
           centralBouncerCleanupRequired = true;
         }
         await remoteCommunication.activateCrowdSecMachine(

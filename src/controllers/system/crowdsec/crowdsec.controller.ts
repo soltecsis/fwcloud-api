@@ -459,13 +459,15 @@ export class CrowdSecController extends Controller {
         ),
       };
       const bouncerApiKey = req.body.localRemediation
-        ? (providedBouncerApiKey ??
-          CrowdSecLapiSharedService.bouncerApiKey(
-            await centralCommunication.registerCrowdSecBouncer(
-              CrowdSecLapiSharedService.machineName(req.body.machineName),
-            ),
-          ))
+        ? (providedBouncerApiKey ?? CrowdSecLapiSharedService.generateBouncerApiKey())
         : undefined;
+      if (bouncerApiKey) {
+        await lapiService.replicateBouncer(
+          centralLapiNodes,
+          CrowdSecLapiSharedService.machineName(req.body.machineName),
+          bouncerApiKey,
+        );
+      }
       const backend = req.body.localRemediation
         ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
             this._firewall.fwCloudId,

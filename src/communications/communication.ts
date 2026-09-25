@@ -289,6 +289,10 @@ export abstract class Communication<ConnectionData> {
     name: string,
     password: string,
   ): Promise<Record<string, unknown>>;
+  abstract replicateCrowdSecLapiBouncer(
+    name: string,
+    apiKey: string,
+  ): Promise<Record<string, unknown>>;
   abstract getCrowdSecLapiMachines(): Promise<Record<string, unknown>>;
   abstract validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;

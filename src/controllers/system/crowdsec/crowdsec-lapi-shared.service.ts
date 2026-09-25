@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { randomBytes } from 'crypto';
 import { isIP } from 'net';
 import { EntityManager } from 'typeorm';
 import { AgentCommunication } from '../../../communications/agent.communication';
@@ -145,6 +146,25 @@ export class CrowdSecLapiSharedService {
       });
     }
     return replicatedNodes;
+  }
+
+  async replicateBouncer(
+    nodes: CentralLapiNode[],
+    name: string,
+    apiKey: string,
+  ): Promise<Record<string, unknown>[]> {
+    const replicatedNodes: Record<string, unknown>[] = [];
+    for (const node of nodes) {
+      replicatedNodes.push({
+        firewall_id: node.firewall.id,
+        replication: await node.communication.replicateCrowdSecLapiBouncer(name, apiKey),
+      });
+    }
+    return replicatedNodes;
+  }
+
+  static generateBouncerApiKey(): string {
+    return randomBytes(32).toString('hex');
   }
 
   static primaryNode(nodes: CentralLapiNode[], firewallId: number): CentralLapiNode {
