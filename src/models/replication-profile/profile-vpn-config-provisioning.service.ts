@@ -301,6 +301,23 @@ const DERIVED_OPTIONS = {
 } as const;
 
 /**
+ * Derived options the template editor lets the operator set instead (a client's Endpoint or remotes,
+ * picked like in the real panels). Stored with a value only when set, and then those values win.
+ */
+const PICKABLE_OPTIONS = {
+  openvpnClient: new Set(['remote']),
+  wireguardClient: new Set(['Endpoint']),
+} as const;
+
+/** The values the operator set for a pickable option, if any (OpenVPN takes several remotes). */
+function pickedOptions(
+  stored: ProfileVpnOptionTemplate[] | undefined,
+  name: string,
+): ProfileVpnOptionTemplate[] {
+  return stored?.filter((option) => option.name === name && option.arg?.trim()) ?? [];
+}
+
+/**
  * The options a template's option grid left on a connection, applied over the ones the apply
  * builds: a stored value replaces the built one, an option the operator removed is dropped, and one
  * the operator added is appended. `stored` is only the options of this list's scope; a connection
@@ -311,6 +328,7 @@ function applyStoredOptions<T extends { name: string; arg: string | null; commen
   stored: ProfileVpnOptionTemplate[] | undefined,
   derived: ReadonlySet<string>,
   create: (option: ProfileVpnOptionTemplate) => T,
+  pickable: ReadonlySet<string> = new Set(),
 ): T[] {
   if (!stored) {
     return built;
@@ -318,6 +336,14 @@ function applyStoredOptions<T extends { name: string; arg: string | null; commen
 
   const builtNames = new Set(built.map((option) => option.name));
   const kept = built.flatMap((option) => {
+    const picked = pickable.has(option.name) ? pickedOptions(stored, option.name) : [];
+    if (picked.length) {
+      return picked.map((item) => ({
+        ...option,
+        arg: item.arg.trim(),
+        ...(item.comment ? { comment: item.comment } : {}),
+      }));
+    }
     if (derived.has(option.name)) return [option];
     const item = stored.find((candidate) => candidate.name === option.name);
     return item
@@ -633,8 +659,10 @@ async function provisionOpenVpnClient(
     return;
   }
 
+  // Remotes picked in the template editor replace the one worked out from the server's endpoint.
+  const storedOvpOptions = storedOptionsOf(client, OptionScope.ovp);
   const endpoint = resolveField(server.id, 'endpoint');
-  if (!endpoint) {
+  if (!endpoint && !pickedOptions(storedOvpOptions, 'remote').length) {
     errors.push(endpointNotProvided('OpenVPN client', client.name));
     return;
   }
@@ -694,9 +722,10 @@ async function provisionOpenVpnClient(
       newOpenVpnId,
       applyStoredOptions(
         options,
-        storedOptionsOf(client, OptionScope.ovp),
+        storedOvpOptions,
         DERIVED_OPTIONS.openvpnClient,
         (option) => ({ ...option, scope: OptionScope.ovp, order: 0 }),
+        PICKABLE_OPTIONS.openvpnClient,
       ),
     );
     await insertOpenVpnOptions(req, newOpenVpnId, [
@@ -874,8 +903,14 @@ async function provisionWireGuardClient(
   errors: string[],
   configIds: Map<string, ResolvedVpnConfig>,
 ): Promise<void> {
+  const storedClientOptions = storedOptionsOf(
+    client,
+    OptionScope.wg_client_interface,
+    OptionScope.wg_client_peer,
+  );
+  // An endpoint picked in the template editor replaces the one worked out from the server's.
   const endpoint = resolveField(server.id, 'endpoint');
-  if (!endpoint) {
+  if (!endpoint && !pickedOptions(storedClientOptions, 'Endpoint').length) {
     errors.push(endpointNotProvided('WireGuard client', client.name));
     return;
   }
@@ -951,9 +986,10 @@ async function provisionWireGuardClient(
             wireguard: newWireguardId,
           },
         ],
-        storedOptionsOf(client, OptionScope.wg_client_interface, OptionScope.wg_client_peer),
+        storedClientOptions,
         DERIVED_OPTIONS.wireguardClient,
         (option) => ({ ...option, wireguard: newWireguardId }),
+        PICKABLE_OPTIONS.wireguardClient,
       ),
     );
 

@@ -15,6 +15,7 @@ const connection = (overrides: Partial<ProfileVpnConnectionTemplate>) =>
 
 const OVP = 1;
 const WG_SERVER_INTERFACE = 2;
+const WG_CLIENT_PEER = 5;
 const IPSEC_SERVER = 6;
 
 describe(describeName('VPN template options provisioning'), () => {
@@ -159,7 +160,7 @@ describe(describeName('VPN template options provisioning'), () => {
           {
             ...client,
             options: [
-              { name: 'remote', arg: 'ignored 1', scope: OVP },
+              { name: 'remote', arg: '', scope: OVP },
               { name: 'verb', arg: '5', scope: OVP },
               { name: 'client', arg: '', scope: OVP },
             ],
@@ -172,6 +173,32 @@ describe(describeName('VPN template options provisioning'), () => {
       const options = await optionsOf('openvpn_opt', 'openvpn', configs.get('cli').id, OVP);
       expect(options).to.include({ verb: '5', remote: 'vpn.example.com 1194' });
       expect(options).to.not.have.any.keys('cipher', 'tls-client');
+    });
+
+    it('keeps every remote picked in the template editor instead of the server endpoint', async () => {
+      const configs = await provision(
+        [
+          connection({}),
+          {
+            ...client,
+            options: [
+              { name: 'remote', arg: '203.0.113.7 1194', scope: OVP },
+              { name: 'remote', arg: '198.51.100.9 1195', scope: OVP },
+            ],
+          },
+        ],
+        { ...values, srv: { network: values.srv.network } },
+      );
+
+      expect(errors).to.be.empty;
+      const remotes = await rows(
+        "SELECT arg FROM openvpn_opt WHERE openvpn = ? AND name = 'remote' ORDER BY arg",
+        [configs.get('cli').id],
+      );
+      expect(remotes.map((row) => row.arg)).to.deep.equal([
+        '198.51.100.9 1195',
+        '203.0.113.7 1194',
+      ]);
     });
   });
 
@@ -247,6 +274,69 @@ describe(describeName('VPN template options provisioning'), () => {
       });
       expect(await linked(configs.get('wgc').id)).to.deep.equal({
         Address: ['10.50.0.2/24', 5, '10.50.0.2'],
+      });
+    });
+
+    describe('client Endpoint', () => {
+      const wgClient = connection({
+        id: 'wgc',
+        name: 'WG Laptop',
+        kind: 'wireguard',
+        role: 'client',
+        serverId: 'wgs',
+        certificateId: 'clicert',
+      });
+      const clientValues = {
+        ...values,
+        wgc: { network: '10.50.0.2/24', remoteNetwork: '192.168.1.0/24' },
+      };
+      const endpointOf = async (configs: Map<string, { id: number }>) =>
+        (await optionsOf('wireguard_opt', 'wireguard', configs.get('wgc').id, WG_CLIENT_PEER))
+          .Endpoint;
+
+      it("is worked out from the server's endpoint and port when the template left it empty", async () => {
+        const configs = await provision(
+          [
+            wgServer,
+            { ...wgClient, options: [{ name: 'Endpoint', arg: '', scope: WG_CLIENT_PEER }] },
+          ],
+          clientValues,
+        );
+
+        expect(errors).to.be.empty;
+        expect(await endpointOf(configs)).to.equal('wg.example.com:51820');
+      });
+
+      it('keeps the one picked in the template editor', async () => {
+        const configs = await provision(
+          [
+            wgServer,
+            {
+              ...wgClient,
+              options: [{ name: 'Endpoint', arg: '203.0.113.7:51999', scope: WG_CLIENT_PEER }],
+            },
+          ],
+          clientValues,
+        );
+
+        expect(errors).to.be.empty;
+        expect(await endpointOf(configs)).to.equal('203.0.113.7:51999');
+      });
+
+      it("doesn't need the server's endpoint once one was picked", async () => {
+        const configs = await provision(
+          [
+            wgServer,
+            {
+              ...wgClient,
+              options: [{ name: 'Endpoint', arg: '203.0.113.7:51820', scope: WG_CLIENT_PEER }],
+            },
+          ],
+          { ...clientValues, wgs: { network: '10.50.0.1/24' } },
+        );
+
+        expect(errors).to.be.empty;
+        expect(await endpointOf(configs)).to.equal('203.0.113.7:51820');
       });
     });
   });
