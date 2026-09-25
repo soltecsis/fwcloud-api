@@ -230,16 +230,21 @@ export class CrowdSecController extends Controller {
       );
     }
 
-    const result = await (
-      await this.getAgentCommunication()
-    ).configureCrowdSecCentralLapi(req.body.listenUri);
-    await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
-      this._firewall.id,
-      centralLapiEnabled,
+    const lapiService = this.lapiService();
+    const centralLapiNodes = await lapiService.getCentralNodes(this._firewall);
+    const configuredNodes = await lapiService.configureListeners(
+      centralLapiNodes,
+      req.body.listenUri,
     );
+    await lapiService.setCentralLapiEnabled(centralLapiNodes, centralLapiEnabled);
+    const localResult = configuredNodes.find((node) => node.firewall_id === this._firewall.id);
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body({ ...result, central_lapi_enabled: centralLapiEnabled });
+      .body({
+        ...(localResult?.result ?? { listen_uri: req.body.listenUri }),
+        central_lapi_enabled: centralLapiEnabled,
+        ...(configuredNodes.length > 1 ? { nodes: configuredNodes } : {}),
+      });
   }
 
   @Validate()

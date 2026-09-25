@@ -125,16 +125,28 @@ export class CrowdSecLapiSharedService {
     await this.configureListeners(nodes, listenUri);
   }
 
-  async configureListeners(nodes: CentralLapiNode[], listenUri: string): Promise<void> {
+  async configureListeners(
+    nodes: CentralLapiNode[],
+    listenUri: string,
+  ): Promise<Array<{ firewall_id: number; result: Record<string, unknown> }>> {
+    const configuredNodes: Array<{ firewall_id: number; result: Record<string, unknown> }> = [];
     for (const node of nodes) {
-      await node.communication.configureCrowdSecCentralLapi(listenUri);
+      configuredNodes.push({
+        firewall_id: node.firewall.id,
+        result: await node.communication.configureCrowdSecCentralLapi(listenUri),
+      });
+    }
+    return configuredNodes;
+  }
+
+  async setCentralLapiEnabled(nodes: CentralLapiNode[], enabled: boolean): Promise<void> {
+    for (const node of nodes) {
+      await this.installationRepository.setCentralLapiEnabled(node.firewall.id, enabled);
     }
   }
 
   async enable(nodes: CentralLapiNode[]): Promise<void> {
-    for (const node of nodes) {
-      await this.installationRepository.setCentralLapiEnabled(node.firewall.id, true);
-    }
+    await this.setCentralLapiEnabled(nodes, true);
   }
 
   async replicateMachineCredentials(

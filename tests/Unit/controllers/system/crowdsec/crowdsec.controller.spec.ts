@@ -465,6 +465,46 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should configure the CrowdSec central listener on every LAPI cluster node', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    const localConfigureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+    const secondConfigureStub = sinon
+      .stub(secondCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+
+    const response = await controller.configureCentralLapi({
+      body: { listenUri: '0.0.0.0:8080' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(localConfigureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(secondConfigureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(setCentralLapiEnabledStub.callCount).to.equal(2);
+    expect((response.toJSON().data as { nodes: unknown[] }).nodes).to.have.length(2);
+  });
+
   it('should reject central LAPI configuration without a LAPI CrowdSec installation', async () => {
     const configureStub = sinon.stub(communication, 'configureCrowdSecCentralLapi');
 

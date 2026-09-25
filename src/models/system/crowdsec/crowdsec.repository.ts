@@ -93,13 +93,14 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
   }
 
   public async hasMachineDependents(centralFirewallId: number): Promise<boolean> {
+    const centralFirewallIds = await this.centralLapiFirewallIds(centralFirewallId);
     return (
-      (await this.count({
-        where: {
-          centralFirewallId,
-          mode: CrowdSecInstallationMode.Machine,
-        },
-      })) > 0
+      (await this.createQueryBuilder('installation')
+        .where('installation.central_firewall IN (:...centralFirewallIds)', {
+          centralFirewallIds,
+        })
+        .andWhere('installation.mode = :mode', { mode: CrowdSecInstallationMode.Machine })
+        .getCount()) > 0
     );
   }
 
@@ -107,9 +108,12 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
     centralFirewallId: number,
     firewallId: number,
   ): Promise<boolean> {
+    const centralFirewallIds = await this.centralLapiFirewallIds(centralFirewallId);
     return (
       (await this.createQueryBuilder('installation')
-        .where('installation.central_firewall = :centralFirewallId', { centralFirewallId })
+        .where('installation.central_firewall IN (:...centralFirewallIds)', {
+          centralFirewallIds,
+        })
         .andWhere('installation.mode = :mode', { mode: CrowdSecInstallationMode.Machine })
         .andWhere('installation.firewall != :firewallId', { firewallId })
         .getCount()) > 0
@@ -148,6 +152,25 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
 
   public async removeByFirewallId(firewallId: number): Promise<void> {
     await this.delete({ firewallId });
+  }
+
+  private async centralLapiFirewallIds(centralFirewallId: number): Promise<number[]> {
+    const firewallRepository = this.manager.getRepository(Firewall);
+    const centralFirewall = await firewallRepository.findOne({
+      where: { id: centralFirewallId },
+    });
+    if (!centralFirewall || !centralFirewall.clusterId) {
+      return [centralFirewallId];
+    }
+
+    return (
+      await firewallRepository.find({
+        where: {
+          clusterId: centralFirewall.clusterId,
+          fwCloudId: centralFirewall.fwCloudId,
+        },
+      })
+    ).map((firewall) => firewall.id);
   }
 
   public async removeMachineInstallation(
