@@ -339,10 +339,6 @@ export class CrowdSecController extends Controller {
     const lapiService = this.lapiService();
     const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
     const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
-    const centralCommunication = CrowdSecLapiSharedService.primaryNode(
-      centralLapiNodes,
-      centralFirewall.id,
-    ).communication;
     const remoteCommunication = await this.getAgentCommunication();
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const channel = await Channel.fromRequest(req);
@@ -450,6 +446,7 @@ export class CrowdSecController extends Controller {
       });
     }
 
+    let bouncerReplicationStarted = false;
     try {
       const validation = {
         nodes: await lapiService.replicateMachineCredentials(
@@ -462,6 +459,7 @@ export class CrowdSecController extends Controller {
         ? (providedBouncerApiKey ?? CrowdSecLapiSharedService.generateBouncerApiKey())
         : undefined;
       if (bouncerApiKey) {
+        bouncerReplicationStarted = true;
         await lapiService.replicateBouncer(
           centralLapiNodes,
           CrowdSecLapiSharedService.machineName(req.body.machineName),
@@ -503,10 +501,28 @@ export class CrowdSecController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body({ machine, validation, activation });
     } catch (error) {
-      try {
-        await centralCommunication.removeCrowdSecLapiMachine(req.body.machineName);
-      } catch {
-        // The primary installation error is more useful than a failed Machine cleanup.
+      const machineCleanup = await lapiService.cleanupMachine(
+        centralLapiNodes,
+        req.body.machineName,
+      );
+      const bouncerCleanup = bouncerReplicationStarted
+        ? await lapiService.cleanupBouncer(
+            centralLapiNodes,
+            CrowdSecLapiSharedService.machineName(req.body.machineName),
+          )
+        : undefined;
+      if (
+        !machineCleanup.completed ||
+        (bouncerCleanup !== undefined && !bouncerCleanup.completed)
+      ) {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec central Local API cleanup is incomplete and must be retried manually',
+          ),
+        );
       }
 
       throw error;

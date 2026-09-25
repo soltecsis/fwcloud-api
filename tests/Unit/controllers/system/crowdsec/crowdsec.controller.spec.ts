@@ -1462,7 +1462,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.include({ source_machine_removed: false });
   });
 
-  it('should preserve the central Bouncer when CrowdSec machine activation fails', async () => {
+  it('should compensate central LAPI Machine and Bouncer replicas when activation fails', async () => {
     const channel = new Channel('crowdsec-machine-install', new EventEmitter());
     const centralCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1479,9 +1479,6 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
     sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
     sinon.stub(centralCommunication, 'validateCrowdSecLapiMachine').resolves({});
-    sinon
-      .stub(centralCommunication, 'registerCrowdSecBouncer')
-      .resolves({ api_key: 'central-bouncer-key' });
     const removeBouncerStub = sinon
       .stub(centralCommunication, 'removeCrowdSecBouncer')
       .resolves({});
@@ -1506,7 +1503,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       } as unknown as Request),
     ).to.be.rejectedWith('Activation failed');
 
-    expect(removeBouncerStub.called).to.be.false;
+    expect(removeBouncerStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(compatibilityStub.called).to.be.false;
     expect(saveMachineInstallationStub.called).to.be.false;

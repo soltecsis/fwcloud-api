@@ -45,6 +45,7 @@ type ClusterMachineNodeResult = {
   status: 'completed' | 'connectivity_confirmation_required' | 'pending_connectivity' | 'failed';
   error?: string;
   central_bouncer_cleanup_required?: boolean;
+  central_machine_cleanup_required?: boolean;
 };
 
 export class CrowdSecClusterController extends Controller {
@@ -99,10 +100,6 @@ export class CrowdSecClusterController extends Controller {
         422,
       );
     }
-    const centralCommunication = CrowdSecLapiSharedService.primaryNode(
-      centralLapiNodes,
-      centralFirewall.id,
-    ).communication;
     const channel = await Channel.fromRequest(req);
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
 
@@ -163,7 +160,7 @@ export class CrowdSecClusterController extends Controller {
 
     for (const node of nodes) {
       const machineName = CrowdSecLapiSharedService.machineNameForFirewall(node);
-      let centralBouncerCleanupRequired = false;
+      let bouncerReplicationStarted = false;
       channel.emit(
         'message',
         new ProgressPayload('info', false, `Installing CrowdSec Machine on node '${node.name}'`),
@@ -247,8 +244,8 @@ export class CrowdSecClusterController extends Controller {
         let bouncerApiKey: string | undefined;
         if (req.body.localRemediation) {
           bouncerApiKey = CrowdSecLapiSharedService.generateBouncerApiKey();
+          bouncerReplicationStarted = true;
           await lapiService.replicateBouncer(centralLapiNodes, machineName, bouncerApiKey);
-          centralBouncerCleanupRequired = true;
         }
         await remoteCommunication.activateCrowdSecMachine(
           {
@@ -278,30 +275,33 @@ export class CrowdSecClusterController extends Controller {
           new ProgressPayload(
             'success',
             false,
-            `CrowdSec Machine installation finished on node '${node.name}'`,
+            'CrowdSec Machine installation finished on node ' + node.name,
           ),
         );
       } catch (error) {
-        try {
-          await centralCommunication.removeCrowdSecLapiMachine(machineName);
-        } catch {
-          // Preserve the original node failure; the central LAPI may require manual cleanup.
-        }
+        const machineCleanup = await lapiService.cleanupMachine(centralLapiNodes, machineName);
+        const bouncerCleanup = bouncerReplicationStarted
+          ? await lapiService.cleanupBouncer(centralLapiNodes, machineName)
+          : undefined;
+        const centralMachineCleanupRequired = !machineCleanup.completed;
+        const centralBouncerCleanupRequired =
+          bouncerCleanup !== undefined && !bouncerCleanup.completed;
         results.push({
           firewall_id: node.id,
           name: node.name,
           machine_name: machineName,
           status: 'failed',
           error: error instanceof Error ? error.message : 'CrowdSec Machine installation failed',
+          ...(centralMachineCleanupRequired ? { central_machine_cleanup_required: true } : {}),
           ...(centralBouncerCleanupRequired ? { central_bouncer_cleanup_required: true } : {}),
         });
-        if (centralBouncerCleanupRequired) {
+        if (centralMachineCleanupRequired || centralBouncerCleanupRequired) {
           channel.emit(
             'message',
             new ProgressPayload(
               'warning',
               false,
-              `Remove the CrowdSec Firewall Bouncer '${machineName}' manually from the central Local API`,
+              'CrowdSec central Local API cleanup is incomplete and must be retried manually',
             ),
           );
         }
@@ -310,7 +310,7 @@ export class CrowdSecClusterController extends Controller {
           new ProgressPayload(
             'error',
             false,
-            `CrowdSec Machine installation failed on node '${node.name}'`,
+            'CrowdSec Machine installation failed on node ' + node.name,
           ),
         );
       }

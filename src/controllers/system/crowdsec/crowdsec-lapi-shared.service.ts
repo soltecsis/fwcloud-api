@@ -38,6 +38,14 @@ export type CentralLapiNode = {
   communication: AgentCommunication;
 };
 
+export type CentralLapiCleanup = {
+  completed: boolean;
+  nodes: Array<{
+    firewall_id: number;
+    cleaned: boolean;
+  }>;
+};
+
 export class CrowdSecLapiSharedService {
   private installationRepository: CrowdSecInstallationRepository;
 
@@ -165,6 +173,33 @@ export class CrowdSecLapiSharedService {
 
   static generateBouncerApiKey(): string {
     return randomBytes(32).toString('hex');
+  }
+
+  async cleanupMachine(nodes: CentralLapiNode[], name: string): Promise<CentralLapiCleanup> {
+    return this.cleanup(nodes, (node) => node.communication.removeCrowdSecLapiMachine(name));
+  }
+
+  async cleanupBouncer(nodes: CentralLapiNode[], name: string): Promise<CentralLapiCleanup> {
+    return this.cleanup(nodes, (node) => node.communication.removeCrowdSecBouncer(name));
+  }
+
+  private async cleanup(
+    nodes: CentralLapiNode[],
+    operation: (node: CentralLapiNode) => Promise<Record<string, unknown>>,
+  ): Promise<CentralLapiCleanup> {
+    const cleanupNodes: CentralLapiCleanup['nodes'] = [];
+    for (const node of nodes) {
+      try {
+        await operation(node);
+        cleanupNodes.push({ firewall_id: node.firewall.id, cleaned: true });
+      } catch {
+        cleanupNodes.push({ firewall_id: node.firewall.id, cleaned: false });
+      }
+    }
+    return {
+      completed: cleanupNodes.every((node) => node.cleaned),
+      nodes: cleanupNodes,
+    };
   }
 
   static primaryNode(nodes: CentralLapiNode[], firewallId: number): CentralLapiNode {
