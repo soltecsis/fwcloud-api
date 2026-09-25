@@ -246,9 +246,29 @@ export class CrowdSecController extends Controller {
   public async validateMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
+    const localLapiNodes = await this.getLocalLapiNodes();
+    if (localLapiNodes) {
+      const validations: Array<Record<string, unknown>> = [];
+      let machine: Record<string, unknown> | undefined;
+      for (const node of localLapiNodes) {
+        const validation = await node.communication.validateCrowdSecLapiMachine(machineName);
+        validations.push({ firewall_id: node.firewall.id, validation });
+        if (node.firewall.id === this._firewall.id) {
+          machine = validation;
+        }
+      }
+      return ResponseBuilder.buildResponse()
+        .status(200)
+        .body({
+          ...machine,
+          nodes: validations,
+        });
+    }
+
     const machine = await (
       await this.getAgentCommunication()
-    ).validateCrowdSecLapiMachine(CrowdSecLapiSharedService.machineName(req.params.machine));
+    ).validateCrowdSecLapiMachine(machineName);
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
@@ -257,10 +277,19 @@ export class CrowdSecController extends Controller {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
+    const localLapiNodes = await this.getLocalLapiNodes();
+    if (localLapiNodes) {
+      const cleanup = await this.lapiService().cleanupMachine(localLapiNodes, machineName);
+      return ResponseBuilder.buildResponse().status(200).body({
+        name: machineName,
+        removed: cleanup.completed,
+        nodes: cleanup.nodes,
+      });
+    }
+
     const machine = await (
       await this.getAgentCommunication()
     ).removeCrowdSecLapiMachine(machineName);
-
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
@@ -1229,15 +1258,25 @@ export class CrowdSecController extends Controller {
   public async registerBouncer(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    const bouncer = await (
-      await this.getAgentCommunication()
-    ).registerCrowdSecBouncer(this.bouncerName(req.body.name));
+    const name = this.bouncerName(req.body.name);
+    const localLapiNodes = await this.getLocalLapiNodes();
+    const bouncer = localLapiNodes
+      ? {
+          name,
+          api_key: CrowdSecLapiSharedService.generateBouncerApiKey(),
+        }
+      : await (await this.getAgentCommunication()).registerCrowdSecBouncer(name);
     const apiKey = bouncer.api_key;
+    const replication =
+      localLapiNodes && typeof apiKey === 'string'
+        ? await this.lapiService().replicateBouncer(localLapiNodes, name, apiKey)
+        : undefined;
     const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
     const protectedBouncer =
       typeof apiKey === 'string'
         ? {
             ...bouncer,
+            ...(replication ? { nodes: replication } : {}),
             api_key: await pgp.encrypt(apiKey),
           }
         : bouncer;
@@ -1249,9 +1288,18 @@ export class CrowdSecController extends Controller {
   public async removeBouncer(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    const bouncer = await (
-      await this.getAgentCommunication()
-    ).removeCrowdSecBouncer(this.bouncerName(req.params.bouncer));
+    const name = this.bouncerName(req.params.bouncer);
+    const localLapiNodes = await this.getLocalLapiNodes();
+    if (localLapiNodes) {
+      const cleanup = await this.lapiService().cleanupBouncer(localLapiNodes, name);
+      return ResponseBuilder.buildResponse().status(200).body({
+        name,
+        removed: cleanup.completed,
+        nodes: cleanup.nodes,
+      });
+    }
+
+    const bouncer = await (await this.getAgentCommunication()).removeCrowdSecBouncer(name);
     return ResponseBuilder.buildResponse().status(200).body(bouncer);
   }
 
@@ -1468,6 +1516,18 @@ export class CrowdSecController extends Controller {
         ...(centralBouncerCleanupRequired ? { central_bouncer_cleanup_required: true } : {}),
         ...(centralMachineCleanupRequired ? { central_machine_cleanup_required: true } : {}),
       });
+  }
+
+  private async getLocalLapiNodes() {
+    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
+      this._firewall.id,
+    );
+    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+      return undefined;
+    }
+
+    const nodes = await this.lapiService().getCentralNodes(this._firewall);
+    return nodes.length > 1 ? nodes : undefined;
   }
 
   private async getAgentCommunication(): Promise<AgentCommunication> {

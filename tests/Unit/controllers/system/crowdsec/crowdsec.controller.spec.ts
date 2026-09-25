@@ -502,6 +502,77 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(removalResponse.toJSON()).to.include({ status: 200, data: removal });
   });
 
+  it('should replicate manual Machine and Bouncer actions across local LAPI cluster nodes', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    const localValidateStub = sinon
+      .stub(communication, 'validateCrowdSecLapiMachine')
+      .resolves({ state: 'validated' });
+    const secondValidateStub = sinon
+      .stub(secondCommunication, 'validateCrowdSecLapiMachine')
+      .resolves({ state: 'validated' });
+    const localMachineRemoveStub = sinon
+      .stub(communication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const secondMachineRemoveStub = sinon
+      .stub(secondCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const localBouncerRemoveStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves({});
+    const secondBouncerRemoveStub = sinon
+      .stub(secondCommunication, 'removeCrowdSecBouncer')
+      .resolves({});
+    const encryptStub = sinon.stub(PgpHelper.prototype, 'encrypt').resolves('encrypted-api-key');
+
+    const validationResponse = await controller.validateMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+    const machineRemovalResponse = await controller.removeMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+    const bouncerResponse = await controller.registerBouncer({
+      body: { name: 'remote-bouncer' },
+      session: { user: null, uiPublicKey: 'ui-public-key' },
+    } as unknown as Request);
+    const bouncerRemovalResponse = await controller.removeBouncer({
+      params: { bouncer: 'remote-bouncer' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(localValidateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(secondValidateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(localMachineRemoveStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(secondMachineRemoveStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(replicateCrowdSecLapiBouncerStub.callCount).to.equal(2);
+    expect(localBouncerRemoveStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
+    expect(secondBouncerRemoveStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
+    expect(encryptStub.calledOnce).to.be.true;
+    expect((validationResponse.toJSON().data as { nodes: unknown[] }).nodes).to.have.length(2);
+    expect(machineRemovalResponse.toJSON().data).to.include({ removed: true });
+    expect(bouncerResponse.toJSON().data).to.include({ api_key: 'encrypted-api-key' });
+    expect(bouncerRemovalResponse.toJSON().data).to.include({ removed: true });
+  });
+
   it('should reject invalid or unauthorized CrowdSec LAPI machine operations', async () => {
     const machinesStub = sinon.stub(communication, 'getCrowdSecLapiMachines');
     const validateStub = sinon.stub(communication, 'validateCrowdSecLapiMachine');
