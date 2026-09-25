@@ -21,7 +21,6 @@
 */
 
 import { Request } from 'express';
-import { isIP } from 'net';
 import * as uuid from 'uuid';
 import { AgentCommunication } from '../../../communications/agent.communication';
 import { CrowdSecFirewallBackend } from '../../../communications/communication';
@@ -29,11 +28,7 @@ import { Validate, ValidateQuery } from '../../../decorators/validate.decorator'
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
-import {
-  Firewall,
-  FirewallInstallCommunication,
-  FirewallInstallProtocol,
-} from '../../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import { FirewallRepository } from '../../../models/firewall/firewall.repository';
 import { CrowdSecInstallationRepository } from '../../../models/system/crowdsec/crowdsec.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
@@ -51,13 +46,9 @@ import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 import { CrowdSecMachineInstallDto } from './dto/machine-install.dto';
 import { CrowdSecTransitionDto } from './dto/transition.dto';
 import { CrowdSecCentralLapiConfigureDto } from './dto/central-lapi-configure.dto';
+import { CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 import { PgpHelper } from '../../../utils/pgp';
 import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
-
-type CentralLapiNode = {
-  firewall: Firewall;
-  communication: AgentCommunication;
-};
 
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
@@ -257,7 +248,7 @@ export class CrowdSecController extends Controller {
 
     const machine = await (
       await this.getAgentCommunication()
-    ).validateCrowdSecLapiMachine(this.machineName(req.params.machine));
+    ).validateCrowdSecLapiMachine(CrowdSecLapiSharedService.machineName(req.params.machine));
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
@@ -265,7 +256,7 @@ export class CrowdSecController extends Controller {
   public async removeMachine(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
-    const machineName = this.machineName(req.params.machine);
+    const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
     const machine = await (
       await this.getAgentCommunication()
     ).removeCrowdSecLapiMachine(machineName);
@@ -290,12 +281,15 @@ export class CrowdSecController extends Controller {
     }
 
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const centralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+      centralFirewall,
+      true,
+    );
     const remoteCommunication = await this.getAgentCommunication();
     if (installation.machineConnectivityPending) {
       await centralCommunication.ping();
       await centralCommunication.configureCrowdSecCentralLapi(
-        this.listenerUriForLapiUrl(installation.lapiUrl),
+        CrowdSecLapiSharedService.listenerUriForLapiUrl(installation.lapiUrl),
       );
     }
     const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
@@ -317,7 +311,7 @@ export class CrowdSecController extends Controller {
             : 'iptables',
           ...(installation.localRemediation
             ? {
-                bouncerApiKey: this.bouncerApiKey(
+                bouncerApiKey: CrowdSecLapiSharedService.bouncerApiKey(
                   await centralCommunication.registerCrowdSecBouncer(installation.machineName),
                 ),
               }
@@ -342,20 +336,25 @@ export class CrowdSecController extends Controller {
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     await this.assertCanTransitionLapiToMachine();
 
+    const lapiService = this.lapiService();
     const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
-    const centralLapiNodes = await this.getCentralLapiNodes(centralFirewall);
-    const centralCommunication = centralLapiNodes.find(
-      (node) => node.firewall.id === centralFirewall.id,
-    )!.communication;
+    const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
+    const centralCommunication = CrowdSecLapiSharedService.primaryNode(
+      centralLapiNodes,
+      centralFirewall.id,
+    ).communication;
     const remoteCommunication = await this.getAgentCommunication();
-    const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const channel = await Channel.fromRequest(req);
 
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
 
     let centralLapiAgentAvailable = true;
     try {
-      await this.preflightCentralLapiNodes(centralLapiNodes, this.listenerUriForLapiUrl(lapiUrl));
+      await lapiService.preflight(
+        centralLapiNodes,
+        CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl),
+      );
     } catch {
       centralLapiAgentAvailable = false;
       if (req.body.continueWithoutLapiConnectivity !== true) {
@@ -403,7 +402,10 @@ export class CrowdSecController extends Controller {
       channel,
     );
 
-    if (this.machineInstallationState(machine) === 'connectivity_confirmation_required') {
+    if (
+      CrowdSecLapiSharedService.machineInstallationState(machine) ===
+      'connectivity_confirmation_required'
+    ) {
       channel.emit(
         'message',
         new ProgressPayload(
@@ -419,14 +421,9 @@ export class CrowdSecController extends Controller {
     }
 
     if (centralLapiAgentAvailable) {
-      for (const node of centralLapiNodes) {
-        await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
-          node.firewall.id,
-          true,
-        );
-      }
+      await lapiService.enable(centralLapiNodes);
     }
-    if (this.machineInstallationState(machine) === 'pending_connectivity') {
+    if (CrowdSecLapiSharedService.machineInstallationState(machine) === 'pending_connectivity') {
       this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
         this._firewall,
         true,
@@ -454,16 +451,18 @@ export class CrowdSecController extends Controller {
     }
 
     try {
-      const validation = await this.replicateCentralLapiMachineCredentials(
-        centralLapiNodes,
-        remoteCommunication,
-        req.body.machineName,
-      );
+      const validation = {
+        nodes: await lapiService.replicateMachineCredentials(
+          centralLapiNodes,
+          remoteCommunication,
+          req.body.machineName,
+        ),
+      };
       const bouncerApiKey = req.body.localRemediation
         ? (providedBouncerApiKey ??
-          this.bouncerApiKey(
+          CrowdSecLapiSharedService.bouncerApiKey(
             await centralCommunication.registerCrowdSecBouncer(
-              this.machineName(req.body.machineName),
+              CrowdSecLapiSharedService.machineName(req.body.machineName),
             ),
           ))
         : undefined;
@@ -543,7 +542,7 @@ export class CrowdSecController extends Controller {
       );
     }
 
-    const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     if (lapiUrl === installation.lapiUrl) {
       return ResponseBuilder.buildResponse().status(200).body({
         changed: false,
@@ -552,11 +551,16 @@ export class CrowdSecController extends Controller {
     }
 
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const centralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+      centralFirewall,
+      true,
+    );
     const remoteCommunication = await this.getAgentCommunication();
     const channel = await Channel.fromRequest(req);
-    const previousListenerUri = this.listenerUriForLapiUrl(installation.lapiUrl);
-    const targetListenerUri = this.listenerUriForLapiUrl(lapiUrl);
+    const previousListenerUri = CrowdSecLapiSharedService.listenerUriForLapiUrl(
+      installation.lapiUrl,
+    );
+    const targetListenerUri = CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl);
     const listenerChangeRequired = previousListenerUri !== targetListenerUri;
     if (
       listenerChangeRequired &&
@@ -682,10 +686,12 @@ export class CrowdSecController extends Controller {
     }
 
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
-    const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const targetCentralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
-    const targetCentralCommunication =
-      await this.getCentralAgentCommunication(targetCentralFirewall);
+    const targetCentralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+      targetCentralFirewall,
+      true,
+    );
     const remoteCommunication = await this.getAgentCommunication();
     const channel = await Channel.fromRequest(req);
     const backend = installation.localRemediation
@@ -697,7 +703,7 @@ export class CrowdSecController extends Controller {
     const transitionId = uuid.v4();
 
     await targetCentralCommunication.configureCrowdSecCentralLapi(
-      this.listenerUriForLapiUrl(lapiUrl),
+      CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl),
     );
     await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
       targetCentralFirewall.id,
@@ -736,7 +742,7 @@ export class CrowdSecController extends Controller {
       );
       const bouncerApiKey = installation.localRemediation
         ? (providedBouncerApiKey ??
-          this.bouncerApiKey(
+          CrowdSecLapiSharedService.bouncerApiKey(
             await targetCentralCommunication.registerCrowdSecBouncer(installation.machineName),
           ))
         : undefined;
@@ -756,8 +762,10 @@ export class CrowdSecController extends Controller {
       let sourceMachineRemoved = true;
       try {
         const sourceCentralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-        const sourceCentralCommunication =
-          await this.getCentralAgentCommunication(sourceCentralFirewall);
+        const sourceCentralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+          sourceCentralFirewall,
+          true,
+        );
         try {
           await sourceCentralCommunication.removeCrowdSecLapiMachine(installation.machineName);
         } catch {
@@ -817,7 +825,7 @@ export class CrowdSecController extends Controller {
     ) {
       throw new HttpException('CrowdSec Machine installation was not found', 409);
     }
-    const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     if (
       req.body.mode !== CrowdSecInstallationMode.Machine ||
       req.body.centralFirewallId !== installation.centralFirewallId ||
@@ -833,7 +841,10 @@ export class CrowdSecController extends Controller {
 
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const centralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+      centralFirewall,
+      true,
+    );
     const remoteCommunication = await this.getAgentCommunication();
     const channel = await Channel.fromRequest(req);
     const backend = req.body.localRemediation
@@ -872,7 +883,7 @@ export class CrowdSecController extends Controller {
       prepared = true;
       const bouncerApiKey = req.body.localRemediation
         ? (providedBouncerApiKey ??
-          this.bouncerApiKey(
+          CrowdSecLapiSharedService.bouncerApiKey(
             await centralCommunication.registerCrowdSecBouncer(installation.machineName),
           ))
         : undefined;
@@ -950,15 +961,20 @@ export class CrowdSecController extends Controller {
 
       const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
       const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
-      const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
-      const lapiUrl = this.lapiUrl(req.body.lapiUrl);
+      const centralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+        centralFirewall,
+        true,
+      );
+      const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
       const backend = req.body.localRemediation
         ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
             this._firewall.fwCloudId,
             this._firewall.id,
           )) ?? 'iptables')
         : undefined;
-      await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+      await centralCommunication.configureCrowdSecCentralLapi(
+        CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl),
+      );
       await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
         centralFirewall.id,
         true,
@@ -996,7 +1012,7 @@ export class CrowdSecController extends Controller {
         );
         const bouncerApiKey = req.body.localRemediation
           ? (providedBouncerApiKey ??
-            this.bouncerApiKey(
+            CrowdSecLapiSharedService.bouncerApiKey(
               await centralCommunication.registerCrowdSecBouncer(req.body.machineName),
             ))
           : undefined;
@@ -1057,8 +1073,9 @@ export class CrowdSecController extends Controller {
     const machineConnectivityPending = installation.machineConnectivityPending === true;
     const centralCommunication = machineConnectivityPending
       ? undefined
-      : await this.getCentralAgentCommunication(
+      : await CrowdSecLapiSharedService.agentCommunication(
           await this.getCentralFirewall(installation.centralFirewallId),
+          true,
         );
     const backend =
       (await Firewall.getCrowdSecFirewallBouncerBackend(
@@ -1338,7 +1355,10 @@ export class CrowdSecController extends Controller {
     ) {
       try {
         const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-        const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+        const centralCommunication = await CrowdSecLapiSharedService.agentCommunication(
+          centralFirewall,
+          true,
+        );
         await centralCommunication.removeCrowdSecLapiMachine(installation.machineName);
       } catch {
         centralMachineCleanupRequired = true;
@@ -1402,132 +1422,15 @@ export class CrowdSecController extends Controller {
       throw new HttpException('CrowdSec machine must use a different central LAPI firewall', 422);
     }
 
-    const firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOne({
-        where: { id, fwCloudId: this._firewall.fwCloudId },
-      });
-    if (!firewall) {
-      throw new HttpException('Central CrowdSec firewall was not found', 404);
-    }
-
-    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
-      firewall.id,
-    );
-    if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
-      throw new HttpException(
-        'Central CrowdSec firewall requires a LAPI CrowdSec installation',
-        409,
-      );
-    }
-
-    return firewall;
+    return this.lapiService().getCentralFirewall(id);
   }
 
-  private async getCentralLapiNodes(centralFirewall: Firewall): Promise<CentralLapiNode[]> {
-    const firewalls =
-      centralFirewall.clusterId === null || centralFirewall.clusterId === undefined
-        ? [centralFirewall]
-        : await db
-            .getSource()
-            .manager.getRepository(Firewall)
-            .find({
-              where: { clusterId: centralFirewall.clusterId, fwCloudId: this._firewall.fwCloudId },
-            });
-    if (firewalls.length === 0) {
-      throw new HttpException('Central CrowdSec LAPI cluster has no firewall nodes', 409);
-    }
-
-    const installationRepository = this.getCrowdSecInstallationRepository();
-    const nodes: CentralLapiNode[] = [];
-    for (const firewall of [...firewalls].sort((first, second) => first.id - second.id)) {
-      const installation = await installationRepository.findByFirewallId(firewall.id);
-      if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
-        throw new HttpException(
-          'Every central CrowdSec cluster node requires a LAPI CrowdSec installation',
-          409,
-        );
-      }
-      nodes.push({
-        firewall,
-        communication: await this.getCentralAgentCommunication(firewall),
-      });
-    }
-    return nodes;
-  }
-
-  private async preflightCentralLapiNodes(
-    nodes: CentralLapiNode[],
-    listenUri: string,
-  ): Promise<void> {
-    for (const node of nodes) {
-      await node.communication.ping();
-      await node.communication.getCrowdSecLapiReplicationReadiness();
-    }
-    for (const node of nodes) {
-      await node.communication.configureCrowdSecCentralLapi(listenUri);
-    }
-  }
-
-  private async replicateCentralLapiMachineCredentials(
-    nodes: CentralLapiNode[],
-    remoteCommunication: AgentCommunication,
-    machineName: string,
-  ): Promise<Record<string, unknown>> {
-    const credentials = await remoteCommunication.exportCrowdSecMachineCredentials(machineName);
-    if (credentials.login !== machineName || credentials.password.length === 0) {
-      throw new HttpException('Unable to export CrowdSec Machine credentials', 502);
-    }
-
-    const replicatedNodes: Record<string, unknown>[] = [];
-    for (const node of nodes) {
-      replicatedNodes.push({
-        firewall_id: node.firewall.id,
-        replication: await node.communication.replicateCrowdSecLapiMachine(
-          credentials.login,
-          credentials.password,
-        ),
-      });
-    }
-    return { nodes: replicatedNodes };
+  private lapiService(): CrowdSecLapiSharedService {
+    return new CrowdSecLapiSharedService(db.getSource().manager, this._firewall.fwCloudId);
   }
 
   private async assertCanTransitionLapiToMachine(): Promise<void> {
-    const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
-      this._firewall.id,
-    );
-    if (
-      installation?.mode === CrowdSecInstallationMode.Lapi &&
-      (await this.getCrowdSecInstallationRepository().hasMachineDependents(this._firewall.id))
-    ) {
-      throw new HttpException(
-        'CrowdSec LAPI has dependent machines and cannot be converted to a Machine',
-        409,
-      );
-    }
-  }
-
-  private async getCentralAgentCommunication(firewall: Firewall): Promise<AgentCommunication> {
-    if (
-      firewall.install_communication !== FirewallInstallCommunication.Agent ||
-      firewall.install_protocol !== FirewallInstallProtocol.HTTPS
-    ) {
-      throw new HttpException(
-        'Central CrowdSec LAPI requires HTTPS FWCloud Agent communication',
-        409,
-      );
-    }
-
-    const communication = await firewall.getCommunication();
-    if (!(communication instanceof AgentCommunication)) {
-      throw new HttpException(
-        'Central CrowdSec LAPI requires HTTPS FWCloud Agent communication',
-        409,
-      );
-    }
-
-    return communication;
+    await this.lapiService().assertCanBecomeMachine(this._firewall);
   }
 
   private isCentralLapiListener(listenUri: string): boolean {
@@ -1547,7 +1450,6 @@ export class CrowdSecController extends Controller {
     if (!/^[1-9]\d{0,18}$/.test(id)) {
       throw new HttpException('Invalid CrowdSec decision ID', 400);
     }
-
     return id;
   }
 
@@ -1558,69 +1460,14 @@ export class CrowdSecController extends Controller {
     if (value === 'fwcloud') {
       throw new HttpException('The FWCloud bouncer name is reserved', 409);
     }
-
     return value;
-  }
-
-  private machineName(value: unknown): string {
-    if (typeof value !== 'string' || !/^[A-Za-z0-9_.-]{1,128}$/.test(value)) {
-      throw new HttpException('Invalid CrowdSec machine name', 400);
-    }
-
-    return value;
-  }
-
-  private machineInstallationState(machine: Record<string, unknown>): string | undefined {
-    return typeof machine.installation_state === 'string' ? machine.installation_state : undefined;
-  }
-
-  private lapiUrl(value: unknown): string {
-    if (typeof value !== 'string') {
-      throw new HttpException('Invalid CrowdSec Local API URL', 400);
-    }
-
-    try {
-      const url = new URL(value);
-      if (
-        !['http:', 'https:'].includes(url.protocol) ||
-        isIP(url.hostname.replace(/^\[|\]$/g, '')) === 0 ||
-        url.port.length === 0 ||
-        url.username.length > 0 ||
-        url.password.length > 0 ||
-        (url.pathname !== '' && url.pathname !== '/') ||
-        url.search.length > 0 ||
-        url.hash.length > 0
-      ) {
-        throw new Error('Invalid CrowdSec Local API URL');
-      }
-
-      return url.toString().replace(/\/$/, '');
-    } catch {
-      throw new HttpException('Invalid CrowdSec Local API URL', 400);
-    }
-  }
-
-  private listenerUriForLapiUrl(lapiUrl: string): string {
-    const url = new URL(lapiUrl);
-    const host = isIP(url.hostname.replace(/^\[|\]$/g, '')) === 6 ? '[::]' : '0.0.0.0';
-    return `${host}:${url.port}`;
-  }
-
-  private bouncerApiKey(response: Record<string, unknown>): string {
-    if (typeof response.api_key !== 'string' || response.api_key.length === 0) {
-      throw new HttpException('Unable to create CrowdSec Firewall Bouncer API key', 502);
-    }
-
-    return response.api_key;
   }
 
   private consoleInstanceName(): string {
     const name = this._firewall.name?.trim();
-
     if (name && !/[^A-Za-z0-9._-]/.test(name)) {
       return 'fwcloud-' + name;
     }
-
     return 'fwcloud-' + this._firewall.fwCloudId + '-' + this._firewall.id;
   }
 
@@ -1633,7 +1480,6 @@ export class CrowdSecController extends Controller {
     ) {
       throw new HttpException('Invalid CrowdSec enrollment key', 422);
     }
-
     return enrollmentKey;
   }
 
