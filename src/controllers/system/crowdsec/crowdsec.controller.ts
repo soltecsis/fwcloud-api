@@ -323,46 +323,77 @@ export class CrowdSecController extends Controller {
       CrowdSecLapiSharedService.listenerUriForLapiUrl(installation.lapiUrl),
     );
     await lapiService.enable(centralLapiNodes);
-    const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
-      machineName: installation.machineName,
-      lapiUrl: installation.lapiUrl,
-    });
-    const validation = {
-      nodes: await lapiService.replicateMachineCredentials(
-        centralLapiNodes,
-        remoteCommunication,
-        installation.machineName,
-      ),
-    };
-    const bouncerApiKey =
-      installation.machineConnectivityPending && installation.localRemediation
-        ? CrowdSecLapiSharedService.generateBouncerApiKey()
-        : undefined;
-    if (bouncerApiKey) {
-      await lapiService.replicateBouncer(centralLapiNodes, installation.machineName, bouncerApiKey);
-    }
-    const activation = installation.machineConnectivityPending
-      ? await remoteCommunication.activateCrowdSecMachine({
-          machineName: installation.machineName,
-          localRemediation: installation.localRemediation,
-          backend: installation.localRemediation
-            ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
-                this._firewall.fwCloudId,
-                this._firewall.id,
-              )) ?? 'iptables')
-            : 'iptables',
-          ...(bouncerApiKey ? { bouncerApiKey } : {}),
-        })
-      : await remoteCommunication.resumeCrowdSecMachine(
+    let reauthenticated = false;
+    let bouncerReplicationStarted = false;
+    try {
+      const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
+        machineName: installation.machineName,
+        lapiUrl: installation.lapiUrl,
+      });
+      reauthenticated = true;
+      const validation = {
+        nodes: await lapiService.replicateMachineCredentials(
+          centralLapiNodes,
+          remoteCommunication,
           installation.machineName,
-          installation.localRemediation,
+        ),
+      };
+      const bouncerApiKey =
+        installation.machineConnectivityPending && installation.localRemediation
+          ? CrowdSecLapiSharedService.generateBouncerApiKey()
+          : undefined;
+      if (bouncerApiKey) {
+        bouncerReplicationStarted = true;
+        await lapiService.replicateBouncer(
+          centralLapiNodes,
+          installation.machineName,
+          bouncerApiKey,
         );
-    await this.getCrowdSecInstallationRepository().setMachineConnectivityPending(
-      this._firewall.id,
-      false,
-    );
+      }
+      const activation = installation.machineConnectivityPending
+        ? await remoteCommunication.activateCrowdSecMachine({
+            machineName: installation.machineName,
+            localRemediation: installation.localRemediation,
+            backend: installation.localRemediation
+              ? ((await Firewall.getCrowdSecFirewallBouncerBackend(
+                  this._firewall.fwCloudId,
+                  this._firewall.id,
+                )) ?? 'iptables')
+              : 'iptables',
+            ...(bouncerApiKey ? { bouncerApiKey } : {}),
+          })
+        : await remoteCommunication.resumeCrowdSecMachine(
+            installation.machineName,
+            installation.localRemediation,
+          );
+      await this.getCrowdSecInstallationRepository().setMachineConnectivityPending(
+        this._firewall.id,
+        false,
+      );
 
-    return ResponseBuilder.buildResponse().status(200).body({ machine, validation, activation });
+      return ResponseBuilder.buildResponse().status(200).body({ machine, validation, activation });
+    } catch (error) {
+      if (!reauthenticated) {
+        throw error;
+      }
+      const machineCleanup = await lapiService.cleanupMachine(
+        centralLapiNodes,
+        installation.machineName,
+      );
+      const bouncerCleanup = bouncerReplicationStarted
+        ? await lapiService.cleanupBouncer(centralLapiNodes, installation.machineName)
+        : undefined;
+      if (
+        !machineCleanup.completed ||
+        (bouncerCleanup !== undefined && !bouncerCleanup.completed)
+      ) {
+        throw new HttpException(
+          'CrowdSec Machine reauthentication failed and central Local API cleanup is incomplete',
+          502,
+        );
+      }
+      throw error;
+    }
   }
 
   @Validate(CrowdSecMachineInstallDto)
