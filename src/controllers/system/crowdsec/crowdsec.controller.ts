@@ -454,7 +454,9 @@ export class CrowdSecController extends Controller {
     }
 
     try {
-      const validation = await centralCommunication.validateCrowdSecLapiMachine(
+      const validation = await this.replicateCentralLapiMachineCredentials(
+        centralLapiNodes,
+        remoteCommunication,
         req.body.machineName,
       );
       const bouncerApiKey = req.body.localRemediation
@@ -1466,6 +1468,29 @@ export class CrowdSecController extends Controller {
     for (const node of nodes) {
       await node.communication.configureCrowdSecCentralLapi(listenUri);
     }
+  }
+
+  private async replicateCentralLapiMachineCredentials(
+    nodes: CentralLapiNode[],
+    remoteCommunication: AgentCommunication,
+    machineName: string,
+  ): Promise<Record<string, unknown>> {
+    const credentials = await remoteCommunication.exportCrowdSecMachineCredentials(machineName);
+    if (credentials.login !== machineName || credentials.password.length === 0) {
+      throw new HttpException('Unable to export CrowdSec Machine credentials', 502);
+    }
+
+    const replicatedNodes: Record<string, unknown>[] = [];
+    for (const node of nodes) {
+      replicatedNodes.push({
+        firewall_id: node.firewall.id,
+        replication: await node.communication.replicateCrowdSecLapiMachine(
+          credentials.login,
+          credentials.password,
+        ),
+      });
+    }
+    return { nodes: replicatedNodes };
   }
 
   private async assertCanTransitionLapiToMachine(): Promise<void> {

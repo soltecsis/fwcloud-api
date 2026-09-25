@@ -112,6 +112,10 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon
       .stub(AgentCommunication.prototype, 'getCrowdSecLapiReplicationReadiness')
       .resolves({ ready: true });
+    sinon
+      .stub(AgentCommunication.prototype, 'exportCrowdSecMachineCredentials')
+      .callsFake(async (name: string) => ({ login: name, password: 'machine-password' }));
+    sinon.stub(AgentCommunication.prototype, 'replicateCrowdSecLapiMachine').resolves({});
     validateCrowdSecLapiMachineStub = sinon
       .stub(centralCommunication, 'validateCrowdSecLapiMachine')
       .resolves({});

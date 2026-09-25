@@ -29,6 +29,7 @@ import {
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
   CrowdSecMachineActivation,
+  CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
@@ -1284,6 +1285,34 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   async getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/replication/readiness');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async exportCrowdSecMachineCredentials(name: string): Promise<CrowdSecMachineCredentials> {
+    try {
+      return (await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/machines/' + encodeURIComponent(name) + '/credentials/export',
+        {},
+      )) as CrowdSecMachineCredentials;
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async replicateCrowdSecLapiMachine(
+    name: string,
+    password: string,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/replicate',
+        {
+          name,
+          password,
+        },
+      );
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }

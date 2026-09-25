@@ -238,7 +238,11 @@ export class CrowdSecClusterController extends Controller {
           );
           continue;
         }
-        await centralCommunication.validateCrowdSecLapiMachine(machineName);
+        await this.replicateCentralLapiMachineCredentials(
+          centralLapiNodes,
+          remoteCommunication,
+          machineName,
+        );
         const backend =
           (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
         let bouncerApiKey: string | undefined;
@@ -429,6 +433,24 @@ export class CrowdSecClusterController extends Controller {
     }
     for (const node of nodes) {
       await node.communication.configureCrowdSecCentralLapi(listenUri);
+    }
+  }
+
+  private async replicateCentralLapiMachineCredentials(
+    nodes: CentralLapiNode[],
+    remoteCommunication: AgentCommunication,
+    machineName: string,
+  ): Promise<void> {
+    const credentials = await remoteCommunication.exportCrowdSecMachineCredentials(machineName);
+    if (credentials.login !== machineName || credentials.password.length === 0) {
+      throw new HttpException('Unable to export CrowdSec Machine credentials', 502);
+    }
+
+    for (const node of nodes) {
+      await node.communication.replicateCrowdSecLapiMachine(
+        credentials.login,
+        credentials.password,
+      );
     }
   }
 
