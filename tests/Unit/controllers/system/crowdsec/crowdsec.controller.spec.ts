@@ -104,6 +104,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     sinon.stub(Firewall.prototype, 'getCommunication').resolves(communication);
     pingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
+    sinon
+      .stub(AgentCommunication.prototype, 'getCrowdSecLapiReplicationReadiness')
+      .resolves({ ready: true });
     viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
     pgpDecryptStub = sinon

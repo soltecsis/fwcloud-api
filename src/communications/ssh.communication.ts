@@ -824,6 +824,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
+  getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
   getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }

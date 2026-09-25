@@ -109,6 +109,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
     centralPingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
+    sinon
+      .stub(AgentCommunication.prototype, 'getCrowdSecLapiReplicationReadiness')
+      .resolves({ ready: true });
     validateCrowdSecLapiMachineStub = sinon
       .stub(centralCommunication, 'validateCrowdSecLapiMachine')
       .resolves({});

@@ -54,6 +54,11 @@ import { CrowdSecCentralLapiConfigureDto } from './dto/central-lapi-configure.dt
 import { PgpHelper } from '../../../utils/pgp';
 import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
 
+type CentralLapiNode = {
+  firewall: Firewall;
+  communication: AgentCommunication;
+};
+
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
 
@@ -338,7 +343,10 @@ export class CrowdSecController extends Controller {
     await this.assertCanTransitionLapiToMachine();
 
     const centralFirewall = await this.getCentralFirewall(req.body.centralFirewallId);
-    const centralCommunication = await this.getCentralAgentCommunication(centralFirewall);
+    const centralLapiNodes = await this.getCentralLapiNodes(centralFirewall);
+    const centralCommunication = centralLapiNodes.find(
+      (node) => node.firewall.id === centralFirewall.id,
+    )!.communication;
     const remoteCommunication = await this.getAgentCommunication();
     const lapiUrl = this.lapiUrl(req.body.lapiUrl);
     const channel = await Channel.fromRequest(req);
@@ -347,8 +355,7 @@ export class CrowdSecController extends Controller {
 
     let centralLapiAgentAvailable = true;
     try {
-      await centralCommunication.ping();
-      await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+      await this.preflightCentralLapiNodes(centralLapiNodes, this.listenerUriForLapiUrl(lapiUrl));
     } catch {
       centralLapiAgentAvailable = false;
       if (req.body.continueWithoutLapiConnectivity !== true) {
@@ -412,10 +419,12 @@ export class CrowdSecController extends Controller {
     }
 
     if (centralLapiAgentAvailable) {
-      await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
-        centralFirewall.id,
-        true,
-      );
+      for (const node of centralLapiNodes) {
+        await this.getCrowdSecInstallationRepository().setCentralLapiEnabled(
+          node.firewall.id,
+          true,
+        );
+      }
     }
     if (this.machineInstallationState(machine) === 'pending_connectivity') {
       this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
@@ -1412,6 +1421,51 @@ export class CrowdSecController extends Controller {
     }
 
     return firewall;
+  }
+
+  private async getCentralLapiNodes(centralFirewall: Firewall): Promise<CentralLapiNode[]> {
+    const firewalls =
+      centralFirewall.clusterId === null || centralFirewall.clusterId === undefined
+        ? [centralFirewall]
+        : await db
+            .getSource()
+            .manager.getRepository(Firewall)
+            .find({
+              where: { clusterId: centralFirewall.clusterId, fwCloudId: this._firewall.fwCloudId },
+            });
+    if (firewalls.length === 0) {
+      throw new HttpException('Central CrowdSec LAPI cluster has no firewall nodes', 409);
+    }
+
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    const nodes: CentralLapiNode[] = [];
+    for (const firewall of [...firewalls].sort((first, second) => first.id - second.id)) {
+      const installation = await installationRepository.findByFirewallId(firewall.id);
+      if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+        throw new HttpException(
+          'Every central CrowdSec cluster node requires a LAPI CrowdSec installation',
+          409,
+        );
+      }
+      nodes.push({
+        firewall,
+        communication: await this.getCentralAgentCommunication(firewall),
+      });
+    }
+    return nodes;
+  }
+
+  private async preflightCentralLapiNodes(
+    nodes: CentralLapiNode[],
+    listenUri: string,
+  ): Promise<void> {
+    for (const node of nodes) {
+      await node.communication.ping();
+      await node.communication.getCrowdSecLapiReplicationReadiness();
+    }
+    for (const node of nodes) {
+      await node.communication.configureCrowdSecCentralLapi(listenUri);
+    }
   }
 
   private async assertCanTransitionLapiToMachine(): Promise<void> {

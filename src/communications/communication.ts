@@ -278,6 +278,7 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
   abstract configureCrowdSecCentralLapi(listenUri: string): Promise<Record<string, unknown>>;
+  abstract getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>>;
   abstract getCrowdSecLapiMachines(): Promise<Record<string, unknown>>;
   abstract validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;

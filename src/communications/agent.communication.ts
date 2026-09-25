@@ -1281,6 +1281,14 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/replication/readiness');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   async getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/machines');

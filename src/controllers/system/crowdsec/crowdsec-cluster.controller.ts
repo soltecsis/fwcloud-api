@@ -51,6 +51,11 @@ type ClusterMachineNodeResult = {
   central_bouncer_cleanup_required?: boolean;
 };
 
+type CentralLapiNode = {
+  firewall: Firewall;
+  communication: AgentCommunication;
+};
+
 export class CrowdSecClusterController extends Controller {
   private _cluster: Cluster;
 
@@ -91,13 +96,20 @@ export class CrowdSecClusterController extends Controller {
 
     const lapiUrl = this.lapiUrl(req.body.lapiUrl);
     const centralFirewall = await this.centralFirewall(req.body.centralFirewallId);
-    if (nodes.some((node) => node.id === centralFirewall.id)) {
+    const centralLapiNodes = await this.getCentralLapiNodes(centralFirewall);
+    if (
+      nodes.some((node) =>
+        centralLapiNodes.some((centralNode) => centralNode.firewall.id === node.id),
+      )
+    ) {
       throw new HttpException(
         'CrowdSec Machine nodes must use an external central LAPI firewall',
         422,
       );
     }
-    const centralCommunication = await this.agentCommunication(centralFirewall, true);
+    const centralCommunication = centralLapiNodes.find(
+      (node) => node.firewall.id === centralFirewall.id,
+    )!.communication;
     const channel = await Channel.fromRequest(req);
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
 
@@ -108,8 +120,7 @@ export class CrowdSecClusterController extends Controller {
     const results: ClusterMachineNodeResult[] = [];
     let centralLapiAgentAvailable = true;
     try {
-      await centralCommunication.ping();
-      await centralCommunication.configureCrowdSecCentralLapi(this.listenerUriForLapiUrl(lapiUrl));
+      await this.preflightCentralLapiNodes(centralLapiNodes, this.listenerUriForLapiUrl(lapiUrl));
     } catch {
       centralLapiAgentAvailable = false;
       if (req.body.continueWithoutLapiConnectivity !== true) {
@@ -196,7 +207,9 @@ export class CrowdSecClusterController extends Controller {
           });
         }
         if (centralLapiAgentAvailable && !centralLapiEnabled) {
-          await installationRepository.setCentralLapiEnabled(centralFirewall.id, true);
+          for (const centralNode of centralLapiNodes) {
+            await installationRepository.setCentralLapiEnabled(centralNode.firewall.id, true);
+          }
           centralLapiEnabled = true;
         }
         if (this.machineInstallationState(machine) === 'pending_connectivity') {
@@ -375,6 +388,48 @@ export class CrowdSecClusterController extends Controller {
       );
     }
     return firewall;
+  }
+
+  private async getCentralLapiNodes(centralFirewall: Firewall): Promise<CentralLapiNode[]> {
+    const firewalls =
+      centralFirewall.clusterId === null || centralFirewall.clusterId === undefined
+        ? [centralFirewall]
+        : await db
+            .getSource()
+            .manager.getRepository(Firewall)
+            .find({
+              where: { clusterId: centralFirewall.clusterId, fwCloudId: this._cluster.fwCloudId },
+            });
+    if (firewalls.length === 0) {
+      throw new HttpException('Central CrowdSec LAPI cluster has no firewall nodes', 409);
+    }
+
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const nodes: CentralLapiNode[] = [];
+    for (const firewall of [...firewalls].sort((first, second) => first.id - second.id)) {
+      const installation = await installationRepository.findByFirewallId(firewall.id);
+      if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+        throw new HttpException(
+          'Every central CrowdSec cluster node requires a LAPI CrowdSec installation',
+          409,
+        );
+      }
+      nodes.push({ firewall, communication: await this.agentCommunication(firewall, true) });
+    }
+    return nodes;
+  }
+
+  private async preflightCentralLapiNodes(
+    nodes: CentralLapiNode[],
+    listenUri: string,
+  ): Promise<void> {
+    for (const node of nodes) {
+      await node.communication.ping();
+      await node.communication.getCrowdSecLapiReplicationReadiness();
+    }
+    for (const node of nodes) {
+      await node.communication.configureCrowdSecCentralLapi(listenUri);
+    }
   }
 
   private async assertCanBecomeMachine(
