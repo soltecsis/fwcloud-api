@@ -4,6 +4,7 @@ import { Service } from '../../fonaments/services/service';
 import { IsRoutingTableNumberConstraint } from '../../fonaments/validation/rules/is-routing-table-number.validation';
 import { findSecretLikePaths } from './replication-profile-secret.guard';
 import { validateProfileVpnTemplate } from './replication-profile-vpn.validation';
+import { getProfileProvisioning } from './policy-replication.types';
 import {
   asReplicationProfileRecord,
   asReplicationProfileNonEmptyString,
@@ -235,6 +236,7 @@ class ReplicationProfileDefinitionValidator {
           issue.path,
         );
       }
+      this.validateVpnOptionParameters(model, parameterNames, errors);
     }
 
     if (rootTargetKind === 'cluster') {
@@ -242,6 +244,49 @@ class ReplicationProfileDefinitionValidator {
     }
 
     return errors;
+  }
+
+  /**
+   * A VPN option bound to a profile object must name one of the model's parameters, and one bound
+   * to an interface role one of the interfaces the profile declares.
+   */
+  private validateVpnOptionParameters(
+    model: ValidationRecord,
+    parameterNames: Set<string>,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    const connections = (model.vpnTemplate as { connections?: unknown })?.connections;
+    if (!Array.isArray(connections)) return;
+    const roles = new Set(
+      (getProfileProvisioning(model)?.interfaces ?? []).map((iface) => iface.role),
+    );
+
+    connections.forEach((connection: { options?: unknown }, i) => {
+      if (!Array.isArray(connection?.options)) return;
+      connection.options.forEach((option: { param?: unknown; interfaceRole?: unknown }, j) => {
+        const path = `model.vpnTemplate.connections[${i}].options[${j}]`;
+        if (typeof option?.param === 'string' && option.param) {
+          this.validateParameterReference(
+            { param: option.param },
+            `${path}.param`,
+            parameterNames,
+            errors,
+          );
+        }
+        if (
+          typeof option?.interfaceRole === 'string' &&
+          option.interfaceRole &&
+          !roles.has(option.interfaceRole)
+        ) {
+          this.addError(
+            errors,
+            'invalid_interface_role',
+            `References interface role "${option.interfaceRole}", which the profile does not declare.`,
+            `${path}.interfaceRole`,
+          );
+        }
+      });
+    });
   }
 
   private validateSecrets(payload: unknown, errors: ReplicationProfileValidationError[]): void {

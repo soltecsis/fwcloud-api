@@ -68,6 +68,10 @@ export interface ProfileVpnOptionTemplate {
   arg: string;
   scope: number;
   comment?: string;
+  /** The profile object (parameter) whose address the option's host takes when the profile is applied. */
+  param?: string;
+  /** Or the profile interface role, whose address on the target the option's host takes. */
+  interfaceRole?: string;
 }
 
 /** One entry per field `normalizeProfileVpnRuleParameters()` turned into an apply-time parameter. */
@@ -315,6 +319,88 @@ function pickedOptions(
   name: string,
 ): ProfileVpnOptionTemplate[] {
   return stored?.filter((option) => option.name === name && option.arg?.trim()) ?? [];
+}
+
+/**
+ * The first IPv4 address (else IPv6) of each interface a profile declares, on the firewall it's
+ * applied to: the interface assigned to its role (`nameMapping`, role → name), else the one of the
+ * same name. What an endpoint bound to an interface role takes (see bindVpnOptionParameters).
+ */
+export async function loadInterfaceRoleAddresses(
+  dbCon: any,
+  firewallId: number,
+  interfaces: Array<{ role: string; name: string }>,
+  nameMapping: Record<string, string> | undefined,
+): Promise<Map<string, string>> {
+  const addresses = new Map<string, string>();
+  if (!interfaces.length) return addresses;
+
+  const rows = await queryRows<{ name: string; address: string }>(
+    dbCon,
+    `SELECT I.name, O.address FROM interface I INNER JOIN ipobj O ON O.interface = I.id
+     WHERE I.firewall = ? AND O.type = ? AND O.address IS NOT NULL
+     ORDER BY O.ip_version, O.id`,
+    [firewallId, OBJ_TYPE_ADDRESS],
+  );
+
+  // Rows come ordered by family then id, so the first one of each interface is kept.
+  const addressByName = new Map<string, string>();
+  for (const row of rows) {
+    if (!addressByName.has(row.name.toLowerCase()))
+      addressByName.set(row.name.toLowerCase(), row.address);
+  }
+  for (const { role, name } of interfaces) {
+    const address = addressByName.get((nameMapping?.[role] || name).toLowerCase());
+    if (address) addresses.set(role, address);
+  }
+  return addresses;
+}
+
+/**
+ * Gives the template options bound to a profile object (`param`) or interface role (`interfaceRole`)
+ * the address that object or interface has as applied, keeping the port they were picked with:
+ * "host port" for OpenVPN, "host:port" for WireGuard. One left without an address is reported, and
+ * its option left empty.
+ */
+export function bindVpnOptionParameters(
+  connections: ProfileVpnConnectionTemplate[],
+  parameterValues: Map<string, unknown>,
+  errors: string[],
+  interfaceAddresses: Map<string, string>,
+): ProfileVpnConnectionTemplate[] {
+  return connections.map((connection) => {
+    if (!connection.options?.some((option) => option.param || option.interfaceRole))
+      return connection;
+
+    return {
+      ...connection,
+      options: connection.options.map(({ param, interfaceRole, ...option }) => {
+        if (!param && !interfaceRole) return option;
+
+        const value = param
+          ? dereferenceParameter({ param }, parameterValues)
+          : interfaceAddresses.get(interfaceRole);
+        const host = parseReplicationProfileAddress(value);
+        if (!host) {
+          errors.push(
+            param
+              ? `VPN connection "${connection.name}": the object its ${option.name} points to has no address.`
+              : `VPN connection "${connection.name}": the interface "${interfaceRole}" its ${option.name} points to has no address on the target.`,
+          );
+          return { ...option, arg: '' };
+        }
+
+        const port = /(\d+)\s*$/.exec(option.arg ?? '')?.[1] ?? String(connection.port);
+        return {
+          ...option,
+          arg:
+            connection.kind === 'wireguard'
+              ? `${host.ipVersion === 6 ? `[${host.address}]` : host.address}:${port}`
+              : `${host.address} ${port}`,
+        };
+      }),
+    };
+  });
 }
 
 /**

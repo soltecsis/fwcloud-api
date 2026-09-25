@@ -88,6 +88,36 @@ describe('VPN template contract', () => {
     assert.deepEqual(validateReplicationProfilePayload(payload(vpn)), []);
   });
 
+  it('binds a client endpoint option only to a declared profile parameter', () => {
+    const vpn: any = design();
+    vpn.connections[3].options = [{ name: 'Endpoint', arg: 'Edge:51820', scope: 5, param: 'edge' }];
+    const profile: any = payload(vpn);
+
+    assert.deepEqual(
+      validateReplicationProfilePayload(profile).map((error: any) => [error.code, error.path]),
+      [['unknown_parameter_reference', 'model.vpnTemplate.connections[3].options[0].param']],
+    );
+
+    profile.model.parameters = [{ name: 'edge', type: 'address', required: true, ipVersion: 4 }];
+    assert.deepEqual(validateReplicationProfilePayload(profile), []);
+  });
+
+  it('binds a client endpoint option only to an interface role the profile declares', () => {
+    const vpn: any = design();
+    vpn.connections[3].options = [
+      { name: 'Endpoint', arg: 'eth0:51820', scope: 5, interfaceRole: 'wan' },
+    ];
+    const profile: any = payload(vpn);
+
+    assert.deepEqual(
+      validateReplicationProfilePayload(profile).map((error: any) => [error.code, error.path]),
+      [['invalid_interface_role', 'model.vpnTemplate.connections[3].options[0].interfaceRole']],
+    );
+
+    profile.model.provision.interfaces = [{ role: 'wan', name: 'eth0' }];
+    assert.deepEqual(validateReplicationProfilePayload(profile), []);
+  });
+
   it('refuses VPN options that carry secrets, or that are malformed', () => {
     const cases: Array<[(vpn: any) => void, string]> = [
       [

@@ -188,11 +188,17 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
             fail('invalid_structure', optionPath);
             return;
           }
-          fields(option, ['name', 'arg', 'scope', 'comment'], optionPath);
+          fields(option, ['name', 'arg', 'scope', 'comment', 'param', 'interfaceRole'], optionPath);
           text(option.name, `${optionPath}.name`);
           text(option.arg, `${optionPath}.arg`, false);
           if (option.comment !== undefined) {
             text(option.comment, `${optionPath}.comment`, false);
+          }
+          if (option.param !== undefined) {
+            text(option.param, `${optionPath}.param`);
+          }
+          if (option.interfaceRole !== undefined) {
+            text(option.interfaceRole, `${optionPath}.interfaceRole`);
           }
           integer(option.scope, 9, `${optionPath}.scope`, 0);
           if (typeof option.name === 'string' && isSecretVpnOptionName(option.name)) {

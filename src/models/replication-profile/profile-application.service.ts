@@ -54,6 +54,8 @@ import {
   previewVpnTemplateConfigs,
   ProfileVpnConnectionTemplate,
   provisionVpnTemplateConfigs,
+  bindVpnOptionParameters,
+  loadInterfaceRoleAddresses,
   resolveSuppliedVpnConfigs,
   resolveVpnConnectionValues,
 } from './profile-vpn-config-provisioning.service';
@@ -373,11 +375,29 @@ export class ProfileApplicationService extends Service {
       parameterValues,
     );
 
+    // Only an endpoint bound to an interface role needs the target's interface addresses.
+    const interfaceAddresses = vpnTemplate.connections.some((c) =>
+      c.options?.some((o) => o.interfaceRole),
+    )
+      ? await loadInterfaceRoleAddresses(
+          dbQuery,
+          vpnFirewallId,
+          getProfileProvisioning(model)?.interfaces ?? [],
+          request.interfaceNameMapping,
+        )
+      : new Map<string, string>();
+    const connections = bindVpnOptionParameters(
+      vpnTemplate.connections,
+      parameterValues,
+      errors,
+      interfaceAddresses,
+    );
+
     const vpnConfigIds = await provisionVpnTemplateConfigs(
       dbQuery,
       request.fwCloudId,
       vpnFirewallId,
-      vpnTemplate.connections,
+      connections,
       pki,
       resolvedVpnValues,
       errors,

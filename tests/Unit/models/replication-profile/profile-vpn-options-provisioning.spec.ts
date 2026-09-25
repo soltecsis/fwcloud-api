@@ -3,10 +3,14 @@ import db from '../../../../src/database/database-manager';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Crt } from '../../../../src/models/vpn/pki/Crt';
+import { Interface } from '../../../../src/models/interface/Interface';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { createVpnProvisioningTarget, vpnConnection } from '../../../utils/vpn-template-fixtures';
 import { ProfileVpnRollback } from '../../../../src/models/replication-profile/profile-vpn-rollback';
 import {
   ProfileVpnConnectionTemplate,
+  bindVpnOptionParameters,
+  loadInterfaceRoleAddresses,
   provisionVpnTemplateConfigs,
 } from '../../../../src/models/replication-profile/profile-vpn-config-provisioning.service';
 
@@ -338,6 +342,121 @@ describe(describeName('VPN template options provisioning'), () => {
         expect(errors).to.be.empty;
         expect(await endpointOf(configs)).to.equal('203.0.113.7:51820');
       });
+    });
+  });
+
+  describe('options bound to a profile object', () => {
+    const bind = (
+      options: ProfileVpnConnectionTemplate['options'],
+      kind: 'openvpn' | 'wireguard',
+    ) =>
+      bindVpnOptionParameters(
+        [connection({ id: 'cli', name: 'Laptop', kind, role: 'client', options })],
+        new Map<string, unknown>([
+          ['edge_ip', '203.0.113.7'],
+          ['edge_v6', '2001:db8::7'],
+          ['empty', ''],
+        ]),
+        errors,
+        new Map(),
+      )[0].options;
+
+    it("take the object's address as applied and keep the port they were picked with", () => {
+      expect(
+        bind([{ name: 'Endpoint', arg: 'Edge:51999', scope: 5, param: 'edge_ip' }], 'wireguard'),
+      ).to.deep.equal([{ name: 'Endpoint', arg: '203.0.113.7:51999', scope: 5 }]);
+      expect(
+        bind([{ name: 'Endpoint', arg: 'Edge:51820', scope: 5, param: 'edge_v6' }], 'wireguard')[0]
+          .arg,
+      ).to.equal('[2001:db8::7]:51820');
+      expect(
+        bind([{ name: 'remote', arg: 'Edge 1195', scope: OVP, param: 'edge_ip' }], 'openvpn')[0]
+          .arg,
+      ).to.equal('203.0.113.7 1195');
+      expect(errors).to.be.empty;
+    });
+
+    it('take the address of the interface playing their role on the target', () => {
+      const options = bindVpnOptionParameters(
+        [
+          connection({
+            id: 'cli',
+            name: 'Laptop',
+            kind: 'wireguard',
+            role: 'client',
+            options: [{ name: 'Endpoint', arg: 'eth0:51820', scope: 5, interfaceRole: 'wan' }],
+          }),
+        ],
+        new Map(),
+        errors,
+        new Map([['wan', '198.51.100.4']]),
+      )[0].options;
+
+      expect(options).to.deep.equal([{ name: 'Endpoint', arg: '198.51.100.4:51820', scope: 5 }]);
+      expect(errors).to.be.empty;
+    });
+
+    it('find the interface assigned to each role, else the one of the same name', async () => {
+      const iface = async (name: string, addresses: Array<[string, number]>) => {
+        const saved = await db
+          .getSource()
+          .manager.getRepository(Interface)
+          .save(
+            db.getSource().manager.getRepository(Interface).create({
+              name,
+              type: '10',
+              interface_type: '10',
+              firewallId: firewall.id,
+            }),
+          );
+        for (const [address, ipVersion] of addresses) {
+          await db
+            .getSource()
+            .manager.getRepository(IPObj)
+            .save(
+              db
+                .getSource()
+                .manager.getRepository(IPObj)
+                .create({
+                  name: `${name} ${address}`,
+                  address,
+                  ipObjTypeId: 5,
+                  ip_version: ipVersion,
+                  interfaceId: saved.id,
+                }),
+            );
+        }
+      };
+      await iface('ens18', [
+        ['2001:db8::4', 6],
+        ['198.51.100.4', 4],
+      ]);
+      await iface('eth1', [['192.0.2.1', 4]]);
+      await iface('eth9', []);
+
+      const addresses = await loadInterfaceRoleAddresses(
+        db.getQuery(),
+        firewall.id,
+        [
+          { role: 'wan', name: 'eth0' },
+          { role: 'lan', name: 'eth1' },
+          { role: 'dmz', name: 'eth9' },
+        ],
+        { wan: 'ens18' },
+      );
+
+      expect(Object.fromEntries(addresses)).to.deep.equal({
+        wan: '198.51.100.4',
+        lan: '192.0.2.1',
+      });
+    });
+
+    it('report an object applied without an address', () => {
+      expect(
+        bind([{ name: 'Endpoint', arg: 'Edge:51820', scope: 5, param: 'empty' }], 'wireguard')[0]
+          .arg,
+      ).to.equal('');
+      expect(errors).to.have.length(1);
     });
   });
 
