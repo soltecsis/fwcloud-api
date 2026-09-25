@@ -122,6 +122,10 @@ export class CrowdSecLapiSharedService {
       await node.communication.ping();
       await node.communication.getCrowdSecLapiReplicationReadiness();
     }
+    await this.configureListeners(nodes, listenUri);
+  }
+
+  async configureListeners(nodes: CentralLapiNode[], listenUri: string): Promise<void> {
     for (const node of nodes) {
       await node.communication.configureCrowdSecCentralLapi(listenUri);
     }
