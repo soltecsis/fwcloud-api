@@ -366,10 +366,14 @@ export async function provisionVpnTemplateConfigs(
     clientsByServerId.set(client.serverId, list);
   }
 
+  // A connection without apply-time parameters (no rule references it) keeps its template values.
+  const connectionsById = new Map(connections.map((c) => [c.id, c]));
   const resolveField = (
     connectionId: string,
     field: keyof ResolvedVpnConnectionValues,
-  ): string | undefined => resolvedValues[connectionId]?.[field];
+  ): string | undefined =>
+    resolvedValues[connectionId]?.[field] ??
+    (connectionsById.get(connectionId)?.[field]?.trim() || undefined);
 
   const serversOf = (kind: ProfileVpnConnectionTemplate['kind']) =>
     servers.filter((c) => c.kind === kind);

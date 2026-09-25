@@ -129,6 +129,19 @@ describe(describeName('VPN template options provisioning'), () => {
       expect(comment).to.equal('faster failover');
     });
 
+    it("creates a connection no rule references with the template's own values", async () => {
+      // No rule points at it, so it got no apply-time parameters: nothing in `resolved`.
+      const configs = await provision(
+        [connection({ network: '10.8.0.0/24', endpoint: 'vpn.example.com' })],
+        {},
+      );
+
+      expect(errors).to.be.empty;
+      expect(
+        (await optionsOf('openvpn_opt', 'openvpn', configs.get('srv').id, OVP)).server,
+      ).to.equal('10.8.0.0 255.255.255.0');
+    });
+
     it('keeps a tunnel interface name the operator typed', async () => {
       const server = connection({ options: [{ name: 'dev', arg: 'tun7', scope: OVP }] });
       const configs = await provision([server], { srv: values.srv });
