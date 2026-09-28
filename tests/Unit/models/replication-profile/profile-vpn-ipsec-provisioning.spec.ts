@@ -4,6 +4,7 @@ import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Crt } from '../../../../src/models/vpn/pki/Crt';
 import { IPSec } from '../../../../src/models/vpn/ipsec/IPSec';
+import { Tree } from '../../../../src/models/tree/Tree';
 import { createVpnProvisioningTarget, vpnConnection } from '../../../utils/vpn-template-fixtures';
 import { ProfileVpnRollback } from '../../../../src/models/replication-profile/profile-vpn-rollback';
 import {
@@ -150,6 +151,18 @@ describe(describeName('IPsec VPN template provisioning'), () => {
       id_obj: clientId,
       obj_type: 331,
     });
+  });
+
+  it('keeps the firewalls tree loadable with a client whose right is a literal host', async () => {
+    const configs = await provision([server, client]);
+    expect(errors).to.be.empty;
+
+    const tree = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwc.fwcloud.id);
+    const find = (node: any): any =>
+      node.node_type === 'ISC' && node.id_obj === configs.get('cli').id
+        ? node
+        : node.children?.map(find).find(Boolean);
+    expect(find(tree)?.address).to.equal('vpn.example.com');
   });
 
   it('produces configuration files the installer can use', async () => {

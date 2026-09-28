@@ -441,7 +441,7 @@ export class Tree extends Model {
 
     const result: IPObj = await qb.getOne();
 
-    node.address = result.address ?? '';
+    node.address = result?.address ?? '';
 
     return node;
   }
@@ -460,7 +460,7 @@ export class Tree extends Model {
     }
     const result: IPObj = await qb.getOne();
 
-    node.address = result.address ?? '';
+    node.address = result?.address ?? '';
 
     return node;
   }
@@ -478,7 +478,17 @@ export class Tree extends Model {
       qb.andWhere('option.name = :name', { name: 'right' });
     }
     const result: IPObj = await qb.getOne();
-    node.address = result.address ?? '';
+    node.address = result?.address ?? '';
+
+    // A client's 'right' may be a literal host instead of an object (the store DTO accepts one, and
+    // replication profiles apply it that way).
+    if (!result && node.node_type !== 'ISS') {
+      const right: IPSecOption = await db
+        .getSource()
+        .manager.getRepository(IPSecOption)
+        .findOne({ where: { ipSecId: node.id_obj, name: 'right' } });
+      node.address = right?.arg ?? '';
+    }
 
     return node;
   }
