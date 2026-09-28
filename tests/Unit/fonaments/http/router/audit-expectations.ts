@@ -81,6 +81,7 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/profiles/:code/versions': { audited: true },
   'POST /fwclouds/:fwcloud/profiles/:code/:version/clone': { audited: true },
   'POST /fwclouds/:fwcloud/profiles/:code/:version/apply': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/:version/vpn': { audited: true },
   'POST /fwclouds/:fwcloud/export': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/AIassistant': {
     audited: false,
