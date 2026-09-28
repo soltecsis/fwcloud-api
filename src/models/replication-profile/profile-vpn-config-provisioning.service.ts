@@ -446,6 +446,22 @@ function applyStoredOptions<T extends { name: string; arg: string | null; commen
   return [...kept, ...added];
 }
 
+/**
+ * An IPsec client's rightsubnet: its server's network, then the routes the operator added to it in
+ * the template. The template's own server network is skipped (older profiles stored it whole).
+ */
+function withAddedRoutes(
+  vpnNetwork: string,
+  server: ProfileVpnConnectionTemplate,
+  stored: ProfileVpnOptionTemplate[] | undefined,
+): string {
+  const routes = (stored?.find((option) => option.name === 'rightsubnet')?.arg ?? '')
+    .split(',')
+    .map((route) => route.trim())
+    .filter((route) => route && route !== server.localNetwork?.trim());
+  return [...new Set([vpnNetwork, ...routes])].join(', ');
+}
+
 /** The stored options of one scope, or undefined when the connection has none stored at all. */
 function storedOptionsOf(
   connection: ProfileVpnConnectionTemplate,
@@ -1389,7 +1405,7 @@ async function provisionIpsecClient(
       { name: 'right', arg: endpoint },
       { name: 'rightid', arg: `"CN=${serverCn}"` },
       { name: 'rightauth', arg: 'pubkey' },
-      { name: 'rightsubnet', arg: vpnNetwork },
+      { name: 'rightsubnet', arg: withAddedRoutes(vpnNetwork, server, storedClientOptions) },
       { name: 'charondebug', arg: 'ike 1, cfg 0' },
       { name: 'auto', arg: 'start' },
     ];

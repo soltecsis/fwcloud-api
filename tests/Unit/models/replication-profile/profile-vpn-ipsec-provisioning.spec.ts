@@ -250,6 +250,26 @@ describe(describeName('IPsec VPN template provisioning'), () => {
     });
   });
 
+  it("puts the routes added in the template after the server's network in the client's rightsubnet", async () => {
+    const configs = await provision([
+      { ...server, localNetwork: '192.168.1.0/24' },
+      {
+        ...client,
+        options: [
+          { name: 'rightsubnet', arg: '192.168.1.0/24, 10.30.0.0/24, 10.20.0.0/24', scope: 7 },
+        ],
+      },
+    ]);
+
+    expect(errors).to.be.empty;
+    expect(
+      await rows('SELECT arg FROM ipsec_opt WHERE ipsec = ? AND name = ?', [
+        configs.get('cli').id,
+        'rightsubnet',
+      ]),
+    ).to.deep.equal([{ arg: '10.20.0.0/24, 10.30.0.0/24' }]);
+  });
+
   it('removes everything it created when it is rolled back', async () => {
     const before = {
       ipsec: await rows('SELECT id FROM ipsec WHERE firewall = ?', [firewall.id]),
