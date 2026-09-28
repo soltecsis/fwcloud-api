@@ -311,6 +311,7 @@ const DERIVED_OPTIONS = {
 const PICKABLE_OPTIONS = {
   openvpnClient: new Set(['remote']),
   wireguardClient: new Set(['Endpoint']),
+  ipsecClient: new Set(['right']),
 } as const;
 
 /** The values the operator set for a pickable option, if any (OpenVPN takes several remotes). */
@@ -359,8 +360,8 @@ export async function loadInterfaceRoleAddresses(
 /**
  * Gives the template options bound to a profile object (`param`) or interface role (`interfaceRole`)
  * the address that object or interface has as applied, keeping the port they were picked with:
- * "host port" for OpenVPN, "host:port" for WireGuard. One left without an address is reported, and
- * its option left empty.
+ * "host port" for OpenVPN, "host:port" for WireGuard, just the host for IPsec. One left without an
+ * address is reported, and its option left empty.
  */
 export function bindVpnOptionParameters(
   connections: ProfileVpnConnectionTemplate[],
@@ -396,7 +397,9 @@ export function bindVpnOptionParameters(
           arg:
             connection.kind === 'wireguard'
               ? `${host.ipVersion === 6 ? `[${host.address}]` : host.address}:${port}`
-              : `${host.address} ${port}`,
+              : connection.kind === 'ipsec'
+                ? host.address
+                : `${host.address} ${port}`,
         };
       }),
     };
@@ -1335,8 +1338,9 @@ async function provisionIpsecClient(
     return;
   }
 
+  const storedClientOptions = storedOptionsOf(client, OptionScope.ipsec_client);
   const endpoint = resolveField(server.id, 'endpoint');
-  if (!endpoint) {
+  if (!endpoint && !pickedOptions(storedClientOptions, 'right').length) {
     errors.push(endpointNotProvided('IPsec client', client.name));
     return;
   }
@@ -1395,9 +1399,10 @@ async function provisionIpsecClient(
       OptionScope.ipsec_client,
       applyStoredOptions(
         clientOptions,
-        storedOptionsOf(client, OptionScope.ipsec_client),
+        storedClientOptions,
         DERIVED_OPTIONS.ipsecClient,
         (option) => option,
+        PICKABLE_OPTIONS.ipsecClient,
       ),
     );
 

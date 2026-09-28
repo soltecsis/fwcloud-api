@@ -8,6 +8,7 @@ import { createVpnProvisioningTarget, vpnConnection } from '../../../utils/vpn-t
 import { ProfileVpnRollback } from '../../../../src/models/replication-profile/profile-vpn-rollback';
 import {
   ProfileVpnConnectionTemplate,
+  bindVpnOptionParameters,
   provisionVpnTemplateConfigs,
 } from '../../../../src/models/replication-profile/profile-vpn-config-provisioning.service';
 
@@ -170,6 +171,83 @@ describe(describeName('IPsec VPN template provisioning'), () => {
     expect(clientDump.cfg).to.include('right = vpn.example.com');
     expect(clientDump.cfg).to.include('leftsourceip = 10.20.0.5');
     expect(clientDump.cfg).to.include('leftcert = Prof-Client.crt');
+  });
+
+  describe('client right', () => {
+    const pickedEndpoints: Array<{
+      label: string;
+      option: NonNullable<ProfileVpnConnectionTemplate['options']>[number];
+    }> = [
+      {
+        label: 'a cloud object address',
+        option: { name: 'right', arg: '203.0.113.7', scope: 7 },
+      },
+      {
+        label: 'a template object parameter',
+        option: { name: 'right', arg: 'Edge', scope: 7, param: 'edge_ip' },
+      },
+      {
+        label: 'a template interface role',
+        option: { name: 'right', arg: 'eth0', scope: 7, interfaceRole: 'wan' },
+      },
+    ];
+
+    for (const { label, option } of pickedEndpoints) {
+      it(`stores ${label} without a port even without the server's endpoint`, async () => {
+        const connections = bindVpnOptionParameters(
+          [server, { ...client, options: [option] }],
+          new Map([['edge_ip', '203.0.113.7']]),
+          errors,
+          new Map([['wan', '203.0.113.7']]),
+        );
+        const configs = await provision(connections, {
+          srv: { localNetwork: values.srv.localNetwork },
+          cli: values.cli,
+        });
+
+        expect(errors).to.be.empty;
+        expect(
+          await rows('SELECT arg, scope FROM ipsec_opt WHERE ipsec = ? AND name = ?', [
+            configs.get('cli').id,
+            'right',
+          ]),
+        ).to.deep.equal([{ arg: '203.0.113.7', scope: 7 }]);
+        const dumped = (await IPSec.dumpCfg(db.getQuery(), configs.get('cli').id)) as {
+          cfg: string;
+        };
+        expect(dumped.cfg).to.match(/right = 203\.0\.113\.7\r?\n/);
+      });
+    }
+
+    it("uses the server's endpoint when the picker was left empty", async () => {
+      const configs = await provision([
+        server,
+        { ...client, options: [{ name: 'right', arg: '', scope: 7 }] },
+      ]);
+
+      expect(errors).to.be.empty;
+      expect(
+        await rows('SELECT arg FROM ipsec_opt WHERE ipsec = ? AND name = ?', [
+          configs.get('cli').id,
+          'right',
+        ]),
+      ).to.deep.equal([{ arg: 'vpn.example.com' }]);
+    });
+
+    it("prefers the selected endpoint over the server's deployment value", async () => {
+      const configs = await provision([
+        server,
+        { ...client, options: [{ name: 'right', arg: '203.0.113.7', scope: 7 }] },
+      ]);
+
+      expect(errors).to.be.empty;
+      expect(
+        await rows('SELECT arg FROM ipsec_opt WHERE ipsec = ? AND name = ?', [
+          configs.get('cli').id,
+          'right',
+        ]),
+      ).to.deep.equal([{ arg: '203.0.113.7' }]);
+    });
   });
 
   it('removes everything it created when it is rolled back', async () => {
