@@ -204,7 +204,13 @@ export class CrowdSecController extends Controller {
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
-        candidates: candidates.map(({ firewall }) => ({ id: firewall.id, name: firewall.name })),
+        candidates: candidates.map(({ firewall }) => ({
+          id: firewall.id,
+          name: firewall.name,
+          ...(firewall.clusterId !== null && firewall.clusterId !== undefined
+            ? { cluster_id: firewall.clusterId }
+            : {}),
+        })),
       });
   }
 

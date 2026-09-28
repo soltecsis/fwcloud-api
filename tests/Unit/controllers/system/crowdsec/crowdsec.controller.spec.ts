@@ -418,6 +418,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const centralFirewall = Object.assign(new Firewall(), {
       id: fwcProduct.firewall.id + 1,
       name: 'CrowdSec central',
+      clusterId: 42,
     });
     const installation = Object.assign(new CrowdSecInstallation(), {
       firewall: centralFirewall,
@@ -437,7 +438,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
-      candidates: [{ id: centralFirewall.id, name: centralFirewall.name }],
+      candidates: [
+        {
+          id: centralFirewall.id,
+          name: centralFirewall.name,
+          cluster_id: centralFirewall.clusterId,
+        },
+      ],
     });
   });
 
