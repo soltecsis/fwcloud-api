@@ -256,17 +256,28 @@ export class CrowdSecController extends Controller {
     if (localLapiNodes) {
       const validations: Array<Record<string, unknown>> = [];
       let machine: Record<string, unknown> | undefined;
+      let completed = true;
       for (const node of localLapiNodes) {
-        const validation = await node.communication.validateCrowdSecLapiMachine(machineName);
-        validations.push({ firewall_id: node.firewall.id, validation });
-        if (node.firewall.id === this._firewall.id) {
-          machine = validation;
+        try {
+          const validation = await node.communication.validateCrowdSecLapiMachine(machineName);
+          validations.push({ firewall_id: node.firewall.id, validated: true, validation });
+          if (node.firewall.id === this._firewall.id) {
+            machine = validation;
+          }
+        } catch {
+          completed = false;
+          validations.push({
+            firewall_id: node.firewall.id,
+            validated: false,
+            error: 'CrowdSec Machine validation failed',
+          });
         }
       }
       return ResponseBuilder.buildResponse()
         .status(200)
         .body({
-          ...machine,
+          ...(machine ?? { name: machineName }),
+          completed,
           nodes: validations,
         });
     }
@@ -1303,10 +1314,21 @@ export class CrowdSecController extends Controller {
         }
       : await (await this.getAgentCommunication()).registerCrowdSecBouncer(name);
     const apiKey = bouncer.api_key;
-    const replication =
-      localLapiNodes && typeof apiKey === 'string'
-        ? await this.lapiService().replicateBouncer(localLapiNodes, name, apiKey)
-        : undefined;
+    let replication: Record<string, unknown>[] | undefined;
+    if (localLapiNodes && typeof apiKey === 'string') {
+      try {
+        replication = await this.lapiService().replicateBouncer(localLapiNodes, name, apiKey);
+      } catch (error) {
+        const cleanup = await this.lapiService().cleanupBouncer(localLapiNodes, name);
+        if (!cleanup.completed) {
+          throw new HttpException(
+            'CrowdSec central Local API Bouncer cleanup is incomplete and must be retried manually',
+            502,
+          );
+        }
+        throw error;
+      }
+    }
     const pgp = new PgpHelper({ public: req.session.uiPublicKey, private: '' });
     const protectedBouncer =
       typeof apiKey === 'string'

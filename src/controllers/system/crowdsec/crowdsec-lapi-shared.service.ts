@@ -130,13 +130,43 @@ export class CrowdSecLapiSharedService {
     listenUri: string,
   ): Promise<Array<{ firewall_id: number; result: Record<string, unknown> }>> {
     const configuredNodes: Array<{ firewall_id: number; result: Record<string, unknown> }> = [];
-    for (const node of nodes) {
-      configuredNodes.push({
-        firewall_id: node.firewall.id,
-        result: await node.communication.configureCrowdSecCentralLapi(listenUri),
-      });
+    try {
+      for (const node of nodes) {
+        configuredNodes.push({
+          firewall_id: node.firewall.id,
+          result: await node.communication.configureCrowdSecCentralLapi(listenUri),
+        });
+      }
+      return configuredNodes;
+    } catch (error) {
+      let rollbackCompleted = true;
+      for (const configuredNode of [...configuredNodes].reverse()) {
+        const previousListenUri = configuredNode.result.previous_listen_uri;
+        if (typeof previousListenUri !== 'string') {
+          rollbackCompleted = false;
+          continue;
+        }
+        const node = nodes.find(
+          (candidate) => candidate.firewall.id === configuredNode.firewall_id,
+        );
+        if (!node) {
+          rollbackCompleted = false;
+          continue;
+        }
+        try {
+          await node.communication.configureCrowdSecCentralLapi(previousListenUri);
+        } catch {
+          rollbackCompleted = false;
+        }
+      }
+      if (!rollbackCompleted) {
+        throw new HttpException(
+          'CrowdSec central Local API listener rollback is incomplete and must be retried manually',
+          502,
+        );
+      }
+      throw error;
     }
-    return configuredNodes;
   }
 
   async setCentralLapiEnabled(nodes: CentralLapiNode[], enabled: boolean): Promise<void> {

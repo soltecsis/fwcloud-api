@@ -505,6 +505,48 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect((response.toJSON().data as { nodes: unknown[] }).nodes).to.have.length(2);
   });
 
+  it('should roll back configured LAPI listeners when a cluster node fails', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    const localConfigureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .onFirstCall()
+      .resolves({ previous_listen_uri: '127.0.0.1:8080' })
+      .onSecondCall()
+      .resolves({});
+    sinon
+      .stub(secondCommunication, 'configureCrowdSecCentralLapi')
+      .rejects(new Error('listener configuration failed'));
+
+    await expect(
+      controller.configureCentralLapi({
+        body: { listenUri: '0.0.0.0:8080' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(Error, 'listener configuration failed');
+
+    expect(localConfigureStub.calledWithExactly('127.0.0.1:8080')).to.be.true;
+  });
+
   it('should reject central LAPI configuration without a LAPI CrowdSec installation', async () => {
     const configureStub = sinon.stub(communication, 'configureCrowdSecCentralLapi');
 
@@ -611,6 +653,57 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(machineRemovalResponse.toJSON().data).to.include({ removed: true });
     expect(bouncerResponse.toJSON().data).to.include({ api_key: 'encrypted-api-key' });
     expect(bouncerRemovalResponse.toJSON().data).to.include({ removed: true });
+  });
+
+  it('should report partial Machine validation and compensate failed Bouncer replication', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    sinon.stub(communication, 'validateCrowdSecLapiMachine').resolves({ state: 'validated' });
+    sinon
+      .stub(secondCommunication, 'validateCrowdSecLapiMachine')
+      .rejects(new Error('validation failed'));
+    const localBouncerCleanupStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves({});
+    const secondBouncerCleanupStub = sinon
+      .stub(secondCommunication, 'removeCrowdSecBouncer')
+      .resolves({});
+    replicateCrowdSecLapiBouncerStub.onFirstCall().resolves({});
+    replicateCrowdSecLapiBouncerStub.onSecondCall().rejects(new Error('replication failed'));
+
+    const validationResponse = await controller.validateMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+    await expect(
+      controller.registerBouncer({
+        body: { name: 'partial-bouncer' },
+        session: { user: null, uiPublicKey: 'ui-public-key' },
+      } as unknown as Request),
+    ).to.be.rejectedWith(Error, 'replication failed');
+
+    expect(validationResponse.toJSON().data).to.include({ completed: false });
+    expect((validationResponse.toJSON().data as { nodes: unknown[] }).nodes).to.have.length(2);
+    expect(replicateCrowdSecLapiBouncerStub.callCount).to.equal(2);
+    expect(localBouncerCleanupStub.calledOnceWithExactly('partial-bouncer')).to.be.true;
+    expect(secondBouncerCleanupStub.calledOnceWithExactly('partial-bouncer')).to.be.true;
   });
 
   it('should reject invalid or unauthorized CrowdSec LAPI machine operations', async () => {
