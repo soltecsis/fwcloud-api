@@ -154,6 +154,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
       completed: true,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
       nodes: [
         {
           firewall_id: firstNode.id,
@@ -187,6 +193,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       connectivity_confirmation_required: true,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
       nodes: [
         {
           firewall_id: firstNode.id,
@@ -243,6 +255,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
       nodes: [
         {
           firewall_id: firstNode.id,

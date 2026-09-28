@@ -38,6 +38,8 @@ export type CentralLapiNode = {
   communication: AgentCommunication;
 };
 
+export type CentralLapiProgress = (message: string) => void;
+
 export type CentralLapiCleanup = {
   completed: boolean;
   nodes: Array<{
@@ -117,25 +119,34 @@ export class CrowdSecLapiSharedService {
     }
   }
 
-  async preflight(nodes: CentralLapiNode[], listenUri: string): Promise<void> {
+  async preflight(
+    nodes: CentralLapiNode[],
+    listenUri: string,
+    progress?: CentralLapiProgress,
+  ): Promise<void> {
     for (const node of nodes) {
+      progress?.("Checking central CrowdSec LAPI node '" + node.firewall.name + "'");
       await node.communication.ping();
       await node.communication.getCrowdSecLapiReplicationReadiness();
+      progress?.("Central CrowdSec LAPI node '" + node.firewall.name + "' is ready");
     }
-    await this.configureListeners(nodes, listenUri);
+    await this.configureListeners(nodes, listenUri, progress);
   }
 
   async configureListeners(
     nodes: CentralLapiNode[],
     listenUri: string,
+    progress?: CentralLapiProgress,
   ): Promise<Array<{ firewall_id: number; result: Record<string, unknown> }>> {
     const configuredNodes: Array<{ firewall_id: number; result: Record<string, unknown> }> = [];
     try {
       for (const node of nodes) {
+        progress?.("Configuring central CrowdSec LAPI node '" + node.firewall.name + "'");
         configuredNodes.push({
           firewall_id: node.firewall.id,
           result: await node.communication.configureCrowdSecCentralLapi(listenUri),
         });
+        progress?.("Central CrowdSec LAPI node '" + node.firewall.name + "' is configured");
       }
       return configuredNodes;
     } catch (error) {
@@ -154,6 +165,7 @@ export class CrowdSecLapiSharedService {
           continue;
         }
         try {
+          progress?.("Restoring central CrowdSec LAPI node '" + node.firewall.name + "'");
           await node.communication.configureCrowdSecCentralLapi(previousListenUri);
         } catch {
           rollbackCompleted = false;
@@ -183,6 +195,7 @@ export class CrowdSecLapiSharedService {
     nodes: CentralLapiNode[],
     remoteCommunication: AgentCommunication,
     machineName: string,
+    progress?: CentralLapiProgress,
   ): Promise<Record<string, unknown>[]> {
     const credentials = await remoteCommunication.exportCrowdSecMachineCredentials(machineName);
     if (credentials.login !== machineName || credentials.password.length === 0) {
@@ -191,13 +204,22 @@ export class CrowdSecLapiSharedService {
 
     const replicatedNodes: Record<string, unknown>[] = [];
     for (const node of nodes) {
+      progress?.(
+        "Replicating CrowdSec Machine credentials on central LAPI node '" +
+          node.firewall.name +
+          "'",
+      );
       replicatedNodes.push({
         firewall_id: node.firewall.id,
+        name: node.firewall.name,
         replication: await node.communication.replicateCrowdSecLapiMachine(
           credentials.login,
           credentials.password,
         ),
       });
+      progress?.(
+        "CrowdSec Machine credentials replicated on central LAPI node '" + node.firewall.name + "'",
+      );
     }
     return replicatedNodes;
   }
@@ -206,13 +228,17 @@ export class CrowdSecLapiSharedService {
     nodes: CentralLapiNode[],
     name: string,
     apiKey: string,
+    progress?: CentralLapiProgress,
   ): Promise<Record<string, unknown>[]> {
     const replicatedNodes: Record<string, unknown>[] = [];
     for (const node of nodes) {
+      progress?.("Replicating CrowdSec Bouncer on central LAPI node '" + node.firewall.name + "'");
       replicatedNodes.push({
         firewall_id: node.firewall.id,
+        name: node.firewall.name,
         replication: await node.communication.replicateCrowdSecLapiBouncer(name, apiKey),
       });
+      progress?.("CrowdSec Bouncer replicated on central LAPI node '" + node.firewall.name + "'");
     }
     return replicatedNodes;
   }

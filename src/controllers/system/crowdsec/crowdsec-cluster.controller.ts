@@ -101,6 +101,8 @@ export class CrowdSecClusterController extends Controller {
       );
     }
     const channel = await Channel.fromRequest(req);
+    const centralLapiProgress = (message: string) =>
+      channel.emit('message', new ProgressPayload('info', false, message));
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
 
     channel.emit(
@@ -113,6 +115,7 @@ export class CrowdSecClusterController extends Controller {
       await lapiService.preflight(
         centralLapiNodes,
         CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl),
+        centralLapiProgress,
       );
     } catch {
       centralLapiAgentAvailable = false;
@@ -196,11 +199,19 @@ export class CrowdSecClusterController extends Controller {
               'CrowdSec Machine installation requires confirmation because the central Local API is unreachable',
             ),
           );
-          return ResponseBuilder.buildResponse().status(200).body({
-            completed: false,
-            connectivity_confirmation_required: true,
-            nodes: results,
-          });
+          return ResponseBuilder.buildResponse()
+            .status(200)
+            .body({
+              completed: false,
+              connectivity_confirmation_required: true,
+              central_lapi_nodes: centralLapiAgentAvailable
+                ? centralLapiNodes.map((node) => ({
+                    firewall_id: node.firewall.id,
+                    name: node.firewall.name,
+                  }))
+                : [],
+              nodes: results,
+            });
         }
         if (centralLapiAgentAvailable && !centralLapiEnabled) {
           await lapiService.enable(centralLapiNodes);
@@ -238,6 +249,7 @@ export class CrowdSecClusterController extends Controller {
           centralLapiNodes,
           remoteCommunication,
           machineName,
+          centralLapiProgress,
         );
         const backend =
           (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
@@ -245,7 +257,12 @@ export class CrowdSecClusterController extends Controller {
         if (req.body.localRemediation) {
           bouncerApiKey = CrowdSecLapiSharedService.generateBouncerApiKey();
           bouncerReplicationStarted = true;
-          await lapiService.replicateBouncer(centralLapiNodes, machineName, bouncerApiKey);
+          await lapiService.replicateBouncer(
+            centralLapiNodes,
+            machineName,
+            bouncerApiKey,
+            centralLapiProgress,
+          );
         }
         await remoteCommunication.activateCrowdSecMachine(
           {
@@ -336,6 +353,12 @@ export class CrowdSecClusterController extends Controller {
       .body({
         completed,
         ...(pendingConnectivity ? { pending_connectivity: true } : {}),
+        central_lapi_nodes: centralLapiAgentAvailable
+          ? centralLapiNodes.map((node) => ({
+              firewall_id: node.firewall.id,
+              name: node.firewall.name,
+            }))
+          : [],
         nodes: results,
       });
   }

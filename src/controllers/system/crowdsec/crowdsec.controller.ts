@@ -420,6 +420,8 @@ export class CrowdSecController extends Controller {
     const remoteCommunication = await this.getAgentCommunication();
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const channel = await Channel.fromRequest(req);
+    const centralLapiProgress = (message: string) =>
+      channel.emit('message', new ProgressPayload('info', false, message));
 
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec machine'));
 
@@ -428,6 +430,7 @@ export class CrowdSecController extends Controller {
       await lapiService.preflight(
         centralLapiNodes,
         CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl),
+        centralLapiProgress,
       );
     } catch {
       centralLapiAgentAvailable = false;
@@ -531,6 +534,7 @@ export class CrowdSecController extends Controller {
           centralLapiNodes,
           remoteCommunication,
           req.body.machineName,
+          centralLapiProgress,
         ),
       };
       const bouncerApiKey = req.body.localRemediation
@@ -542,6 +546,7 @@ export class CrowdSecController extends Controller {
           centralLapiNodes,
           CrowdSecLapiSharedService.machineName(req.body.machineName),
           bouncerApiKey,
+          centralLapiProgress,
         );
       }
       const backend = req.body.localRemediation
