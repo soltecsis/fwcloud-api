@@ -307,10 +307,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             id: firewall.id,
             name: firewall.name,
           });
-          expect(result.model.provision.interfaces).to.deep.eq([{ name: 'eth0', role: 'wan' }]);
+          expect(result.model.provision.interfaces).to.deep.eq([
+            { name: 'eth0', role: 'wan', addresses: [] },
+          ]);
           expect(result.model.provision.rules).to.deep.eq([
             {
               chain: 'forward',
+              ipVersion: 4,
               action: 'accept',
               inRole: 'wan',
               comment: 'Allow forwarded traffic from WAN.',
