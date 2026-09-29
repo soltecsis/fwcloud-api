@@ -279,6 +279,38 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should retry only the selected failed cluster nodes', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine');
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecMachine').resolves({});
+    sinon.stub(secondCommunication, 'activateCrowdSecMachine').resolves({});
+
+    const response = await controller.installMachine(request({ nodeIds: [secondNode.id] }));
+
+    expect(firstInstall.called).to.be.false;
+    expect(secondInstall.calledOnce).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({ firewallId: secondNode.id }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
+      nodes: [
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'fwcloud-cluster-slave',
+          status: 'completed',
+        },
+      ],
+    });
+  });
+
   it('should reject unauthorized cluster Machine installation before contacting agents', async () => {
     managePolicyStub.resolves(Authorization.revoke());
 
@@ -302,12 +334,13 @@ function communication(protocol: 'http' | 'https', host: string): AgentCommunica
   return new AgentCommunication({ protocol, host, port: 33033, apikey: 'api-key' });
 }
 
-function request(): Request {
+function request(body: Record<string, unknown> = {}): Request {
   return {
     body: {
       centralFirewallId: 10,
       lapiUrl: 'http://192.0.2.10:8080',
       localRemediation: false,
+      ...body,
     },
     session: { user: null },
   } as unknown as Request;

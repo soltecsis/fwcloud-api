@@ -78,9 +78,22 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecClusterMachineInstallDto)
   public async installMachine(req: Request): Promise<ResponseBuilder> {
-    const nodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
+    const clusterNodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
+    const requestedNodeIds = req.body.nodeIds as number[] | undefined;
+    const requestedNodeIdsSet = requestedNodeIds ? new Set(requestedNodeIds) : undefined;
+    const nodes = requestedNodeIdsSet
+      ? clusterNodes.filter((node) => requestedNodeIdsSet.has(node.id))
+      : clusterNodes;
     if (nodes.length === 0) {
-      throw new HttpException('CrowdSec cluster has no firewall nodes', 409);
+      throw new HttpException(
+        requestedNodeIdsSet
+          ? 'Selected CrowdSec cluster nodes were not found'
+          : 'CrowdSec cluster has no firewall nodes',
+        409,
+      );
+    }
+    if (requestedNodeIdsSet && nodes.length !== requestedNodeIdsSet.size) {
+      throw new HttpException('Selected CrowdSec nodes do not belong to this cluster', 422);
     }
     for (const node of nodes) {
       (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
