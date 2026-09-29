@@ -28,6 +28,7 @@ import { PolicyTypesMap } from '../policy/PolicyType';
 import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replication.service';
 import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
+import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
 import {
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
@@ -60,6 +61,7 @@ const CAPTURED_POLICIES = (['IPv4', 'IPv6'] as const).flatMap((family) =>
 );
 
 type SnapshotChain = 'input' | 'output' | 'forward' | 'snat' | 'dnat';
+type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
@@ -128,6 +130,19 @@ interface SnapshotRuleIpObjRow {
   position: number;
 }
 
+interface SnapshotRuleVpnRef {
+  rule: number;
+  position: number;
+  connectionKey: string;
+}
+
+/** Everything a policy rule references, by kind. */
+interface SnapshotRuleRefs {
+  interfaces: SnapshotRuleInterfaceRow[];
+  ipObjs: SnapshotRuleIpObjRow[];
+  vpns: SnapshotRuleVpnRef[];
+}
+
 /** A reference to capture: one object, one group or one interface of the source firewall. */
 interface SnapshotObjectRef {
   ipobj?: number;
@@ -168,11 +183,12 @@ interface SnapshotProvisionAddress {
 }
 
 interface SnapshotProvisionObject {
-  kind: 'address' | 'network' | 'range' | 'interfaceRole' | 'std' | 'stdGroup';
+  kind: 'address' | 'network' | 'range' | 'interfaceRole' | 'std' | 'stdGroup' | 'vpnClient';
   value?: unknown;
   role?: string;
   id?: number;
   name?: string;
+  vpnId?: string;
 }
 
 type SnapshotProvisionService =
@@ -307,8 +323,9 @@ class SnapshotParameterCollector {
 /**
  * Builds custom replication ("policy template") profiles by capturing the
  * current structure of an existing firewall or cluster: its interfaces become
- * the profile's logical roles and its IPv4 FORWARD policy becomes the
- * declarative `provision`/`policyStructure` rules. The captured profile is
+ * the profile's logical roles, its filter/NAT policies become declarative
+ * `provision`/`policyStructure` rules, and its VPNs become `vpnTemplate`
+ * definitions. The captured profile is
  * self-contained, so it can later be applied without the source firewall.
  *
  * Only rules expressible in the MVP profile vocabulary (accept/deny, in/out
@@ -353,7 +370,7 @@ export class ReplicationProfileSnapshotService extends Service {
   }
 
   /**
-   * Captures the interfaces and IPv4 FORWARD policy of the source into a
+   * Captures the interfaces, policies, services and VPNs of the source into a
    * profile model, without persisting anything.
    */
   public async buildSourceSnapshot(
@@ -372,11 +389,23 @@ export class ReplicationProfileSnapshotService extends Service {
     const addressesByInterface = await this.loadInterfaceAddresses(
       interfaces.map((iface) => iface.id),
     );
+    const { vpnTemplate, clients } = await captureVpnSnapshot(
+      resolved.firewall.id,
+      fwCloudId,
+      warnings,
+    );
+    const vpnObjects = new Map(
+      Array.from(clients, ([key, client]): [string, SnapshotProvisionObject] => [
+        key,
+        { kind: 'vpnClient', vpnId: client.id, name: client.name },
+      ]),
+    );
     const rules = await this.capturePolicyRules(
       resolved.firewall.id,
       roleByInterfaceId,
       parameters,
       warnings,
+      vpnObjects,
     );
 
     // assignInterfaceRoles already guarantees uniqueness.
@@ -423,6 +452,7 @@ export class ReplicationProfileSnapshotService extends Service {
       },
       policyStructure,
       provision: policyStructure,
+      ...(vpnTemplate ? { vpnTemplate } : {}),
       sourceRef: {
         kind: source.kind,
         id: source.id,
@@ -554,6 +584,7 @@ export class ReplicationProfileSnapshotService extends Service {
     roleByInterfaceId: Map<number, string>,
     parameters: SnapshotParameterCollector,
     warnings: string[],
+    vpnObjects: Map<string, SnapshotProvisionObject>,
   ): Promise<SnapshotProvisionRule[]> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow & { type: number }>(
@@ -565,11 +596,17 @@ export class ReplicationProfileSnapshotService extends Service {
       (rule) => rule.special === 0 && !DEFAULT_RULE_COMMENTS.includes(rule.comment ?? ''),
     );
     const ruleIds = candidateRules.map((rule) => rule.id);
-    const [interfaceRefs, ipObjRefs, vpnRefRuleIds] = await Promise.all([
+    const [interfaceRefs, ipObjRefs, vpnRefs] = await Promise.all([
       this.loadRuleInterfaceRefs(ruleIds),
       this.loadRuleIpObjRefs(ruleIds),
-      this.loadRuleIdsWithVpnRefs(ruleIds),
+      this.loadRuleVpnRefs(ruleIds),
     ]);
+    const refsOf = (ruleId: number): SnapshotRuleRefs => ({
+      interfaces: interfaceRefs.get(ruleId) ?? [],
+      ipObjs: ipObjRefs.get(ruleId) ?? [],
+      vpns: vpnRefs.get(ruleId) ?? [],
+    });
+
     const allRefs = Array.from(ipObjRefs.values()).flat();
     const lookup = await this.loadObjectLookup(allRefs);
 
@@ -588,9 +625,8 @@ export class ReplicationProfileSnapshotService extends Service {
           rule,
           policy,
           label,
-          interfaceRefs.get(rule.id) ?? [],
-          ipObjRefs.get(rule.id) ?? [],
-          vpnRefRuleIds.has(rule.id),
+          refsOf(rule.id),
+          vpnObjects,
           roleByInterfaceId,
           lookup,
           parameters,
@@ -614,11 +650,10 @@ export class ReplicationProfileSnapshotService extends Service {
    */
   private captureRule(
     rule: SnapshotRuleRow,
-    policy: (typeof CAPTURED_POLICIES)[number],
+    policy: CapturedPolicy,
     label: string,
-    interfaceRefs: SnapshotRuleInterfaceRow[],
-    ipObjRefs: SnapshotRuleIpObjRow[],
-    hasVpnRefs: boolean,
+    { interfaces: interfaceRefs, ipObjs: ipObjRefs, vpns: vpnRefs }: SnapshotRuleRefs,
+    vpnObjects: Map<string, SnapshotProvisionObject>,
     roleByInterfaceId: Map<number, string>,
     lookup: SnapshotObjectLookup,
     parameters: SnapshotParameterCollector,
@@ -631,12 +666,19 @@ export class ReplicationProfileSnapshotService extends Service {
       return null;
     }
 
-    if (hasVpnRefs) {
-      warnings.push(`${label} was not captured: VPN references cannot be templated yet.`);
+    const { positions } = policy;
+    if (
+      vpnRefs.some(
+        (ref) =>
+          !vpnObjects.has(ref.connectionKey) ||
+          ![positions.source, positions.destination].includes(ref.position),
+      )
+    ) {
+      warnings.push(
+        `${label} was not captured: it contains a VPN reference that cannot be represented by a captured VPN client.`,
+      );
       return null;
     }
-
-    const { positions } = policy;
     const inRefs = interfaceRefs.filter((ref) => ref.position === positions.in);
     const outRefs = interfaceRefs.filter((ref) => ref.position === positions.out);
 
@@ -669,6 +711,11 @@ export class ReplicationProfileSnapshotService extends Service {
       ipObjRefs.filter((ref) => position !== undefined && ref.position === position);
     const objects = (position: number | undefined) =>
       this.captureObjects(at(position), roleByInterfaceId, lookup, parameters);
+    // Checked above: every VPN reference is a captured client in the source or destination.
+    const vpnClientsAt = (position: number | undefined) =>
+      vpnRefs
+        .filter((ref) => ref.position === position)
+        .map((ref) => vpnObjects.get(ref.connectionKey)!);
     const services = (position: number | undefined) =>
       this.captureServices(at(position), lookup, parameters, label);
 
@@ -714,8 +761,8 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     const fields: [keyof SnapshotProvisionRule, unknown[]][] = [
-      ['source', value(sides.source)],
-      ['destination', value(sides.destination)],
+      ['source', [...value(sides.source), ...vpnClientsAt(positions.source)]],
+      ['destination', [...value(sides.destination), ...vpnClientsAt(positions.destination)]],
       ['services', value(sides.services)],
       ['translatedSource', value(sides.translatedSource)],
       ['translatedDestination', value(sides.translatedDestination)],
@@ -1417,22 +1464,27 @@ export class ReplicationProfileSnapshotService extends Service {
     return this.groupByRule(rows);
   }
 
-  /** Ids of the rules holding VPN (OpenVPN/WireGuard/IPSec) references. */
-  private async loadRuleIdsWithVpnRefs(ruleIds: number[]): Promise<Set<number>> {
+  /** VPN references retain their side and identity when the client was captured. */
+  private async loadRuleVpnRefs(ruleIds: number[]): Promise<Map<number, SnapshotRuleVpnRef[]>> {
     if (ruleIds.length === 0) {
-      return new Set();
+      return new Map();
     }
 
     const results = await Promise.all(
-      VPN_RELATION_TABLES.map(({ table }) =>
-        dbQuery<{ rule: number }>(
-          `SELECT rule FROM ${table} WHERE rule IN (${sqlPlaceholders(ruleIds.length)})`,
+      VPN_RELATION_TABLES.map(async ({ table, column, ownerKind }) => {
+        const rows = await dbQuery<{ rule: number; position: number; vpn: number }>(
+          `SELECT rule, position, ${column} AS vpn FROM ${table} WHERE rule IN (${sqlPlaceholders(ruleIds.length)}) ORDER BY position_order`,
           ruleIds,
-        ),
-      ),
+        );
+        return rows.map((row) => ({
+          rule: row.rule,
+          position: row.position,
+          connectionKey: `${ownerKind}:${row.vpn}`,
+        }));
+      }),
     );
 
-    return new Set(results.flat().map((row) => row.rule));
+    return this.groupByRule(results.flat());
   }
 
   private groupByRule<T extends { rule: number }>(rows: T[]): Map<number, T[]> {

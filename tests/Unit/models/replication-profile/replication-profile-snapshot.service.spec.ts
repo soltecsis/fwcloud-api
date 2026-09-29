@@ -16,12 +16,23 @@ import { ReplicationProfile } from '../../../../src/models/replication-profile/r
 import { ReplicationProfileSnapshotService } from '../../../../src/models/replication-profile/replication-profile-snapshot.service';
 import { PolicyReplicationService } from '../../../../src/models/replication-profile/policy-replication.service';
 import { getProfileProvisioning } from '../../../../src/models/replication-profile/policy-replication.types';
+import {
+  ProfileVpnConnectionTemplate,
+  resolveVpnConnectionValues,
+} from '../../../../src/models/replication-profile/profile-vpn-config-provisioning.service';
+import {
+  ProfileVpnCaTemplate,
+  ProfileVpnCertificateTemplate,
+} from '../../../../src/models/replication-profile/profile-vpn-pki-provisioning.service';
+import { validateProfileVpnTemplate } from '../../../../src/models/replication-profile/replication-profile-vpn.validation';
+import { normalizeProfileVpnRuleParameters } from '../../../../src/models/replication-profile/replication-profile-vpn-parameters';
 
 interface CapturedObject {
   kind: string;
   value?: unknown;
   role?: string;
   name?: string;
+  vpnId?: string;
 }
 
 interface CapturedRule {
@@ -129,6 +140,96 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
   function getParameters(profile: ReplicationProfile): CapturedParameter[] {
     return (profile.model.parameters ?? []) as CapturedParameter[];
+  }
+
+  function getVpnTemplate(profile: ReplicationProfile) {
+    return profile.model.vpnTemplate as {
+      version: number;
+      cas: ProfileVpnCaTemplate[];
+      certificates: ProfileVpnCertificateTemplate[];
+      connections: ProfileVpnConnectionTemplate[];
+    };
+  }
+
+  /** Real source configurations, with object-backed options whose literal arguments are empty. */
+  async function makeVpnPair(
+    kind: ProfileVpnConnectionTemplate['kind'],
+    firewallId = source.firewall.id,
+  ) {
+    const query = (sql: string, params: unknown[] = []) => db.getSource().query(sql, params);
+    const certificateNames = {
+      openvpn: ['OpenVPN-Server', 'OpenVPN-Cli-1'],
+      wireguard: ['Wireguard-Server', 'WireGuard-Cli-1'],
+      ipsec: ['IPSec-Server', 'IPSec-Cli-1'],
+    }[kind];
+    const serverCrt = fwc.crts.get(certificateNames[0]);
+    const clientCrt = fwc.crts.get(certificateNames[1]);
+    const insertConfig = async (crt: number, parent: number | null, type: number) => {
+      const extraColumns =
+        kind === 'wireguard' ? ', public_key, private_key' : kind === 'ipsec' ? ', type' : '';
+      const extraValues = kind === 'wireguard' ? ", '', ''" : kind === 'ipsec' ? ', ?' : '';
+      const result = await query(
+        `INSERT INTO ${kind} (firewall, crt, ${kind}${extraColumns}) VALUES (?, ?, ?${extraValues})`,
+        [firewallId, crt, parent, ...(kind === 'ipsec' ? [type] : [])],
+      );
+      return Number(result.insertId);
+    };
+    const serverId = await insertConfig(serverCrt.id, null, 2);
+    const clientId = await insertConfig(clientCrt.id, serverId, 1);
+    const addresses = db.getSource().manager.getRepository(IPObj);
+    const network = await addresses.save({
+      name: `${kind} VPN network`,
+      address: '10.88.0.0',
+      netmask: '/24',
+      ipObjTypeId: 7,
+      ip_version: 4,
+      fwCloudId: fwc.fwcloud.id,
+    });
+    const clientAddress = await addresses.save({
+      name: `${kind} VPN client`,
+      address: '10.88.0.2',
+      netmask: '/24',
+      ipObjTypeId: 5,
+      ip_version: 4,
+      fwCloudId: fwc.fwcloud.id,
+    });
+    let order = 0;
+    const addOption = (
+      configId: number,
+      name: string,
+      arg: string,
+      scope: number,
+      ipobj: number | null = null,
+      comment: string | null = null,
+    ) =>
+      query(
+        `INSERT INTO ${kind}_opt (${kind}, name, arg, scope, ipobj, \`order\`, comment) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [configId, name, arg, scope, ipobj, ++order, comment],
+      );
+    if (kind === 'openvpn') {
+      await addOption(serverId, 'server', '', 1, network.id);
+      await addOption(serverId, 'port', '4443', 1);
+      await addOption(serverId, 'proto', 'tcp-server', 1);
+      await addOption(serverId, 'dev', 'tun7', 1);
+      await addOption(serverId, 'keepalive', '20 240', 1, null, 'Custom failover');
+      await addOption(clientId, 'ifconfig-push', '', 0, clientAddress.id);
+      await addOption(clientId, 'remote', 'vpn.example.com 4443', 1);
+    } else if (kind === 'wireguard') {
+      await addOption(serverId, '<<vpn_network>>', '', 2, network.id);
+      await addOption(serverId, 'Address', '10.88.0.1/24', 2);
+      await addOption(serverId, 'ListenPort', '51825', 2);
+      await addOption(clientId, 'Address', '', 4, clientAddress.id);
+      await addOption(clientId, 'Endpoint', 'vpn.example.com:51825', 5);
+      await addOption(clientId, 'AllowedIPs', '192.168.60.0/24', 5);
+      await addOption(clientId, 'PersistentKeepalive', '25', 5, null, 'Keep NAT alive');
+    } else {
+      await addOption(serverId, 'leftsubnet', '', 6, network.id);
+      await addOption(serverId, 'ike', 'aes256-sha256-modp2048', 6, null, 'Custom proposal');
+      await addOption(clientId, 'leftsourceip', '', 7, clientAddress.id);
+      await addOption(clientId, 'right', 'vpn.example.com', 7);
+      await addOption(clientId, 'rightsubnet', '10.88.0.0/24', 7);
+    }
+    return { serverId, clientId, serverCrt, clientCrt, addOption };
   }
 
   it('should be provided as an application service', () => {
@@ -352,6 +453,214 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           { fwCloudId: fwc.fwcloud.id + 1 },
         ),
       ).to.be.rejectedWith(NotFoundException);
+    });
+
+    it('should capture the master VPN configurations without duplicating the backup VPNs', async () => {
+      await makeVpnPair('openvpn');
+      const backup = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneOrFail({
+          where: { clusterId: cluster.id, fwmaster: 0 },
+        });
+      await makeVpnPair('wireguard', backup.id);
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'cluster', id: cluster.id }, name: 'Cluster with VPN' },
+        { fwCloudId: fwc.fwcloud.id },
+      );
+
+      expect(warnings).to.be.empty;
+      expect(profile.targetKind).to.equal('cluster');
+      const vpn = getVpnTemplate(profile);
+      expect(vpn.connections).to.have.length(2);
+      expect(vpn.connections.map((connection) => connection.kind)).to.deep.equal([
+        'openvpn',
+        'openvpn',
+      ]);
+      expect(vpn.connections.find((connection) => connection.role === 'client').serverId).to.equal(
+        vpn.connections.find((connection) => connection.role === 'server').id,
+      );
+      expect(validateProfileVpnTemplate(vpn)).to.be.empty;
+    });
+  });
+
+  describe('VPN snapshots', () => {
+    for (const kind of ['openvpn', 'wireguard', 'ipsec'] as const) {
+      it(`should capture ${kind} configuration, PKI, options and policy references`, async () => {
+        const { clientId, serverCrt, clientCrt } = await makeVpnPair(kind);
+        const ruleId = await insertForwardRule(source.firewall.id, 100, {
+          comment: `Allow ${kind} client`,
+        });
+        await db
+          .getSource()
+          .query(
+            `INSERT INTO policy_r__${kind} (rule, ${kind}, position, position_order) VALUES (?, ?, 7, 1)`,
+            [ruleId, clientId],
+          );
+
+        const { profile, warnings } = await service.createProfileFromSource(
+          { source: { kind: 'firewall', id: source.firewall.id }, name: `${kind} snapshot` },
+          { fwCloudId: fwc.fwcloud.id },
+        );
+
+        expect(warnings).to.be.empty;
+        const vpn = getVpnTemplate(profile);
+        expect(vpn.version).to.equal(1);
+        expect(vpn.connections).to.have.length(2);
+        expect(vpn.cas).to.have.length(1);
+        expect(vpn.cas[0]).to.include({ commonName: fwc.ca.cn, validityDays: fwc.ca.days });
+        expect(vpn.certificates).to.have.length(2);
+        const server = vpn.connections.find((connection) => connection.role === 'server');
+        const client = vpn.connections.find((connection) => connection.role === 'client');
+        expect(server.kind).to.equal(kind);
+        expect(client).to.include({ kind, serverId: server.id, network: '10.88.0.2/24' });
+        expect(vpn.certificates.find((cert) => cert.id === server.certificateId)).to.include({
+          commonName: serverCrt.cn,
+          kind: 'server',
+          caId: vpn.cas[0].id,
+        });
+        expect(vpn.certificates.find((cert) => cert.id === client.certificateId)).to.include({
+          commonName: clientCrt.cn,
+          kind: 'client',
+          caId: vpn.cas[0].id,
+        });
+        expect(server).to.not.have.any.keys('firewall', 'crt', 'status', 'install_name');
+        for (const option of [...server.options, ...client.options]) {
+          expect(option).to.not.have.any.keys('id', 'ipobj', 'openvpn', 'wireguard', 'ipsec');
+        }
+
+        if (kind === 'openvpn') {
+          expect(server).to.include({ network: '10.88.0.0/24', port: 4443, transport: 'tcp' });
+          expect(server.options).to.deep.include({
+            name: 'keepalive',
+            arg: '20 240',
+            scope: 1,
+            comment: 'Custom failover',
+          });
+          expect(server.options).to.deep.include({ name: 'dev', arg: 'tun7', scope: 1 });
+        } else if (kind === 'wireguard') {
+          expect(server.port).to.equal(51825);
+          expect(client.remoteNetwork).to.equal('192.168.60.0/24');
+          expect(client.options).to.deep.include({
+            name: 'PersistentKeepalive',
+            arg: '25',
+            scope: 5,
+            comment: 'Keep NAT alive',
+          });
+        } else {
+          expect(server.localNetwork).to.equal('10.88.0.0/24');
+          expect(client.endpoint).to.equal('vpn.example.com');
+          expect(server.options).to.deep.include({
+            name: 'ike',
+            arg: 'aes256-sha256-modp2048',
+            scope: 6,
+            comment: 'Custom proposal',
+          });
+        }
+
+        expect(validateProfileVpnTemplate(vpn)).to.be.empty;
+        const normalized = normalizeProfileVpnRuleParameters(profile.model);
+        const reparsed = getProfileProvisioning(normalized);
+        expect(reparsed.rules).to.have.length(1);
+        expect(reparsed.rules[0].source).to.have.length(1);
+        expect(reparsed.rules[0].source[0]).to.include({ kind: 'vpnClient', vpnId: client.id });
+        const runtime = resolveVpnConnectionValues(
+          normalized.vpnRuntime,
+          new Map(
+            (normalized.parameters as CapturedParameter[]).map((parameter) => [
+              parameter.name,
+              parameter.default,
+            ]),
+          ),
+        );
+        expect(runtime[client.id].network).to.equal('10.88.0.2/24');
+        expect(
+          kind === 'ipsec' ? runtime[server.id].localNetwork : runtime[server.id].network,
+        ).to.be.a('string').and.not.be.empty;
+      });
+    }
+
+    it('should omit VPN credentials while retaining the reusable connections and safe options', async () => {
+      const openvpn = await makeVpnPair('openvpn');
+      const wireguard = await makeVpnPair('wireguard');
+      const ipsec = await makeVpnPair('ipsec');
+      await openvpn.addOption(openvpn.clientId, 'auth-user-pass', 'snapshot-openvpn-password', 1);
+      await wireguard.addOption(wireguard.serverId, 'PrivateKey', 'snapshot-wireguard-key', 2);
+      await ipsec.addOption(ipsec.serverId, '<<psk>>', 'snapshot-ipsec-key', 6);
+      await db
+        .getSource()
+        .query('UPDATE wireguard SET private_key = ? WHERE id = ?', [
+          'snapshot-stored-private-key',
+          wireguard.serverId,
+        ]);
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'VPN without credentials' },
+        { fwCloudId: fwc.fwcloud.id },
+      );
+
+      const vpn = getVpnTemplate(profile);
+      expect(vpn.connections).to.have.length(6);
+      expect(vpn.cas).to.have.length(1);
+      expect(vpn.certificates).to.have.length(6);
+      const serialized = JSON.stringify(profile.model);
+      for (const secret of [
+        'snapshot-openvpn-password',
+        'snapshot-wireguard-key',
+        'snapshot-ipsec-key',
+        'snapshot-stored-private-key',
+      ]) {
+        expect(serialized).to.not.contain(secret);
+        expect(warnings.join(' ')).to.not.contain(secret);
+      }
+      const optionNames = vpn.connections.flatMap((connection) =>
+        connection.options.map((option) => option.name),
+      );
+      expect(optionNames).to.not.include.members(['auth-user-pass', 'PrivateKey', '<<psk>>']);
+      expect(optionNames).to.include.members(['keepalive', 'PersistentKeepalive', 'ike']);
+      expect(validateProfileVpnTemplate(vpn)).to.be.empty;
+    });
+
+    it('should omit a whole rule when its VPN match cannot be represented', async () => {
+      const { serverId } = await makeVpnPair('openvpn');
+      const prefix = await db
+        .getSource()
+        .query('INSERT INTO openvpn_prefix (openvpn, name) VALUES (?, ?)', [
+          serverId,
+          'Department-',
+        ]);
+      const prefixRule = await insertForwardRule(source.firewall.id, 100, {
+        comment: 'Restricted to a dynamic VPN prefix',
+      });
+      await attachInterface(prefixRule, source.lanInterface.id, 22);
+      await db
+        .getSource()
+        .query(
+          'INSERT INTO policy_r__openvpn_prefix (rule, prefix, position, position_order) VALUES (?, ?, 7, 1)',
+          [prefixRule, prefix.insertId],
+        );
+      const foreignRule = await insertForwardRule(source.firewall.id, 101, {
+        comment: 'Restricted to a VPN from another firewall',
+      });
+      await attachInterface(foreignRule, source.lanInterface.id, 22);
+      await db
+        .getSource()
+        .query(
+          'INSERT INTO policy_r__wireguard (rule, wireguard, position, position_order) VALUES (?, ?, 8, 1)',
+          [foreignRule, fwc.wireguardClients.get('WireGuard-Cli-1').id],
+        );
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Unsupported VPN matches' },
+        { fwCloudId: fwc.fwcloud.id },
+      );
+
+      expect(getProvision(profile).rules).to.be.empty;
+      expect(getVpnTemplate(profile).connections).to.have.length(2);
+      expect(warnings).to.have.length(2);
+      expect(warnings.join(' ')).to.include('Restricted to a dynamic VPN prefix');
+      expect(warnings.join(' ')).to.include('Restricted to a VPN from another firewall');
     });
   });
 

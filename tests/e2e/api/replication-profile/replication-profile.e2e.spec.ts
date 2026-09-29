@@ -13,6 +13,9 @@ import {
 } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { User } from '../../../../src/models/user/User';
+import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
+import { Ca } from '../../../../src/models/vpn/pki/Ca';
+import { Crt } from '../../../../src/models/vpn/pki/Crt';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
@@ -324,6 +327,96 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           expect(persisted.fwCloudId).to.be.eq(fwCloud.id);
           expect(persisted.isBuiltin).to.be.false;
         });
+    });
+
+    it('should return and persist VPN definitions and their policy references from the source', async () => {
+      const firewall = await makeSourceFirewall();
+      const manager = db.getSource().manager;
+      const ca = await manager.getRepository(Ca).save({
+        fwCloudId: fwCloud.id,
+        cn: 'Snapshot VPN CA',
+        days: 3650,
+      });
+      const serverCrt = await manager.getRepository(Crt).save({
+        caId: ca.id,
+        cn: 'VPN server',
+        days: 365,
+        type: 2,
+      });
+      const clientCrt = await manager.getRepository(Crt).save({
+        caId: ca.id,
+        cn: 'VPN client',
+        days: 365,
+        type: 1,
+      });
+      const server = await manager.getRepository(OpenVPN).save({
+        firewallId: firewall.id,
+        crtId: serverCrt.id,
+      });
+      const client = await manager.getRepository(OpenVPN).save({
+        firewallId: firewall.id,
+        parentId: server.id,
+        crtId: clientCrt.id,
+      });
+      await manager.query(
+        'INSERT INTO openvpn_opt (openvpn, name, arg, scope, `order`) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)',
+        [
+          server.id,
+          'server',
+          '10.90.0.0 255.255.255.0',
+          1,
+          1,
+          client.id,
+          'ifconfig-push',
+          '10.90.0.2 255.255.255.0',
+          0,
+          1,
+        ],
+      );
+      const ruleId = await PolicyRule.insertPolicy_r({
+        firewall: firewall.id,
+        type: 3,
+        rule_order: 2,
+        action: 1,
+        active: 1,
+        options: 0,
+        special: 0,
+        comment: 'Allow captured VPN client',
+      });
+      await manager.query(
+        'INSERT INTO policy_r__openvpn (rule, openvpn, position, position_order) VALUES (?, ?, 7, 1)',
+        [ruleId, client.id],
+      );
+
+      const response = await request(app.express)
+        .post(fromSourceUrl())
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          source: { kind: 'firewall', id: firewall.id },
+          name: 'Firewall with VPN',
+          code: `${codePrefix}vpn-source`,
+        })
+        .expect(201);
+      const result = response.body.data;
+      const vpn = result.model.vpnTemplate;
+      expect(vpn.connections).to.have.length(2);
+      expect(vpn.cas).to.have.length(1);
+      expect(vpn.certificates).to.have.length(2);
+      const capturedClient = vpn.connections.find((entry) => entry.role === 'client');
+      const capturedServer = vpn.connections.find((entry) => entry.role === 'server');
+      expect(capturedClient.serverId).to.eq(capturedServer.id);
+      expect(capturedServer.network).to.eq('10.90.0.0/24');
+      expect(capturedClient.network).to.eq('10.90.0.2/24');
+      const capturedRule = result.model.provision.rules.find(
+        (rule) => rule.comment === 'Allow captured VPN client',
+      );
+      expect(capturedRule.source[0]).to.include({ kind: 'vpnClient', vpnId: capturedClient.id });
+      const networkParam = result.model.vpnRuntime[capturedClient.id].network.param;
+      expect(result.model.parameters.find((entry) => entry.name === networkParam).default).to.eq(
+        '10.90.0.2/24',
+      );
+      const persisted = await repository.findOneOrFail({ where: { id: result.id } });
+      expect(persisted.model.vpnTemplate).to.deep.eq(vpn);
     });
 
     it('should reject requests without a session', async () => {
