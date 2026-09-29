@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import * as ipaddr from 'ipaddr.js';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
@@ -66,6 +67,24 @@ type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
+
+/**
+ * FWCloud stores an object's netmask as '/24' or as '255.255.255.0' (the interface the OpenVPN
+ * server creates uses the latter); profile values are CIDR. A mask that isn't a valid one is kept
+ * as-is so validation reports the object instead of silently widening it.
+ */
+export function ipObjCidr(address: string, netmask: string | null): string {
+  if (!netmask) return address;
+  if (netmask.startsWith('/')) return `${address}${netmask}`;
+  if (/^\d+$/.test(netmask)) return `${address}/${netmask}`;
+  try {
+    const prefix = ipaddr.parse(netmask).prefixLengthFromSubnetMask();
+    if (prefix !== null) return `${address}/${prefix}`;
+  } catch {
+    // Not a dotted netmask: fall through.
+  }
+  return `${address}${netmask}`;
+}
 
 export interface ReplicationProfileSnapshotSource {
   kind: ReplicationProfileTargetKind;
@@ -864,7 +883,7 @@ export class ReplicationProfileSnapshotService extends Service {
 
       captured.push({
         kind,
-        value: parameters.defineAddress(kind, `${ipobj.address}${ipobj.netmask ?? ''}`, ipobj.name),
+        value: parameters.defineAddress(kind, ipObjCidr(ipobj.address, ipobj.netmask), ipobj.name),
         name: ipobj.name,
       });
     }
@@ -1400,7 +1419,7 @@ export class ReplicationProfileSnapshotService extends Service {
         value: parameters.defineInterfaceAddress(
           role,
           captured.length,
-          `${address.address}${address.netmask ?? ''}`,
+          ipObjCidr(address.address, address.netmask),
         ),
         name: address.name,
       });

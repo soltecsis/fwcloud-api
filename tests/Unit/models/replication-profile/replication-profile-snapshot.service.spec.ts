@@ -13,7 +13,10 @@ import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { NotFoundException } from '../../../../src/fonaments/exceptions/not-found-exception';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
-import { ReplicationProfileSnapshotService } from '../../../../src/models/replication-profile/replication-profile-snapshot.service';
+import {
+  ipObjCidr,
+  ReplicationProfileSnapshotService,
+} from '../../../../src/models/replication-profile/replication-profile-snapshot.service';
 import { PolicyReplicationService } from '../../../../src/models/replication-profile/policy-replication.service';
 import { getProfileProvisioning } from '../../../../src/models/replication-profile/policy-replication.types';
 import {
@@ -311,6 +314,45 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       expect(warnings).to.be.empty;
       expect(getProvision(profile).rules).to.be.empty;
+    });
+
+    it('should capture an interface address stored with a dotted netmask as CIDR', async () => {
+      // The tun interface FWCloud creates for an OpenVPN server stores its mask this way.
+      await db.getSource().manager.getRepository(IPObj).save({
+        name: 'tun0',
+        address: '192.168.1.1',
+        netmask: '255.255.255.0',
+        ipObjTypeId: 5,
+        ip_version: 4,
+        interfaceId: source.lanInterface.id,
+      });
+
+      const { profile } = await service.createProfileFromSource(
+        {
+          source: { kind: 'firewall', id: source.firewall.id },
+          name: 'Snapshot with a dotted netmask',
+        },
+        { fwCloudId: fwc.fwcloud.id },
+      );
+
+      const lan = getProvision(profile).interfaces.find((iface) => iface.name === 'ens19');
+      const addresses = lan.addresses as Array<{ value: { param: string } }>;
+      const defaults = addresses.map(
+        (address) =>
+          getParameters(profile).find((parameter) => parameter.name === address.value.param)
+            .default,
+      );
+      expect(defaults).to.include('192.168.1.1/24');
+    });
+
+    it('should convert every FWCloud netmask notation to a CIDR suffix', () => {
+      expect(ipObjCidr('10.0.0.1', '/24')).to.eq('10.0.0.1/24');
+      expect(ipObjCidr('10.0.0.1', '255.255.255.0')).to.eq('10.0.0.1/24');
+      expect(ipObjCidr('10.0.0.1', '16')).to.eq('10.0.0.1/16');
+      expect(ipObjCidr('10.0.0.1', null)).to.eq('10.0.0.1');
+      expect(ipObjCidr('2001:db8::1', 'ffff:ffff:ffff:ffff::')).to.eq('2001:db8::1/64');
+      // Not a mask: left for validation to report rather than silently dropped.
+      expect(ipObjCidr('10.0.0.1', '255.0.255.0')).to.eq('10.0.0.1255.0.255.0');
     });
 
     it('should capture a source address as a profile parameter', async () => {
