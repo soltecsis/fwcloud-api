@@ -55,6 +55,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let secondCommunication: AgentCommunication;
   let managePolicyStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
+  let setCrowdSecCompatibilityStub: sinon.SinonStub;
   let configureCentralLapiStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
   let validateCrowdSecLapiMachineStub: sinon.SinonStub;
@@ -98,7 +99,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     saveMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveMachineInstallation')
       .resolves(new CrowdSecInstallation());
-    sinon
+    setCrowdSecCompatibilityStub = sinon
       .stub(FirewallRepository.prototype, 'setCrowdSecCompatibility')
       .callsFake(async (firewall: Firewall) => firewall);
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
@@ -136,6 +137,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
 
     expect(firstInstall.calledOnce).to.be.true;
     expect(secondInstall.calledOnce).to.be.true;
+    expect(setCrowdSecCompatibilityStub.calledWith(firstNode, false)).to.be.true;
+    expect(setCrowdSecCompatibilityStub.calledWith(secondNode, false)).to.be.true;
     expect(firstInstall.calledBefore(secondInstall)).to.be.true;
     expect(
       saveMachineInstallationStub.calledWithMatch({

@@ -233,7 +233,10 @@ export class CrowdSecClusterController extends Controller {
         if (
           CrowdSecLapiSharedService.machineInstallationState(machine) === 'pending_connectivity'
         ) {
-          await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(node, true);
+          await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+            node,
+            req.body.localRemediation,
+          );
           await installationRepository.saveMachineInstallation({
             firewallId: node.id,
             centralFirewallId: centralFirewall.id,
@@ -286,7 +289,10 @@ export class CrowdSecClusterController extends Controller {
           },
           channel,
         );
-        await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(node, true);
+        await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+          node,
+          req.body.localRemediation,
+        );
         await installationRepository.saveMachineInstallation({
           firewallId: node.id,
           centralFirewallId: centralFirewall.id,

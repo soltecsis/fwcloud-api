@@ -383,6 +383,10 @@ export class CrowdSecController extends Controller {
             installation.machineName,
             installation.localRemediation,
           );
+      this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+        this._firewall,
+        installation.localRemediation,
+      );
       await this.getCrowdSecInstallationRepository().setMachineConnectivityPending(
         this._firewall.id,
         false,
@@ -509,7 +513,7 @@ export class CrowdSecController extends Controller {
     if (CrowdSecLapiSharedService.machineInstallationState(machine) === 'pending_connectivity') {
       this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
         this._firewall,
-        true,
+        req.body.localRemediation,
       );
       await this.getCrowdSecInstallationRepository().saveMachineInstallation({
         firewallId: this._firewall.id,
@@ -573,7 +577,7 @@ export class CrowdSecController extends Controller {
 
       this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
         this._firewall,
-        true,
+        req.body.localRemediation,
       );
       await this.getCrowdSecInstallationRepository().saveMachineInstallation({
         firewallId: this._firewall.id,
@@ -1027,6 +1031,10 @@ export class CrowdSecController extends Controller {
         machineName: installation.machineName,
         localRemediation: req.body.localRemediation,
       });
+      this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+        this._firewall,
+        req.body.localRemediation,
+      );
       const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
       channel.emit(
         'message',
@@ -1174,6 +1182,10 @@ export class CrowdSecController extends Controller {
           machineName: req.body.machineName,
           localRemediation: req.body.localRemediation,
         });
+        this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+          this._firewall,
+          req.body.localRemediation,
+        );
         const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
         channel.emit(
           'message',
@@ -1275,6 +1287,10 @@ export class CrowdSecController extends Controller {
       );
       activated = true;
       await this.getCrowdSecInstallationRepository().saveLapiInstallation(this._firewall.id);
+      this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
+        this._firewall,
+        true,
+      );
       const finalization = await remoteCommunication.finalizeCrowdSecTransition(transitionId);
       let sourceMachineRemoved = true;
       if (sourceCentralLapiNodes) {

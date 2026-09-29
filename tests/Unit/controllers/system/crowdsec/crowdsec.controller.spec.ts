@@ -1117,7 +1117,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         centralFirewallId: centralFirewall.id,
         machineName: 'fwcloud-machine-01',
         lapiUrl: 'http://192.0.2.20:8080',
-        localRemediation: true,
+        localRemediation: false,
         continueWithoutLapiConnectivity: true,
       },
       session: { user: null },
@@ -1144,10 +1144,17 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         centralFirewallId: centralFirewall.id,
         lapiUrl: 'http://192.0.2.20:8080',
         machineName: 'fwcloud-machine-01',
-        localRemediation: true,
+        localRemediation: false,
         machineConnectivityPending: true,
       }),
     ).to.be.true;
+    const installedFirewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: { id: fwcProduct.firewall.id, fwCloudId: fwcProduct.fwcloud.id },
+      });
+    expect(installedFirewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(0);
     expect(validateStub.called).to.be.false;
     expect(activateStub.called).to.be.false;
   });
