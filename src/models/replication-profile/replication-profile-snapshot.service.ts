@@ -43,10 +43,6 @@ import {
   type CreateCustomReplicationProfileOptions,
 } from './replication-profile.service';
 
-// Comments of the default rules created by PolicyRule.insertDefaultPolicy that
-// are not flagged through the special column.
-const DEFAULT_RULE_COMMENTS: string[] = Object.values(DefaultPolicyRuleComments);
-
 /** Filter and NAT policies of both families, in FWCloud tree order, with their positions. */
 const CAPTURED_POLICIES = (['IPv4', 'IPv6'] as const).flatMap((family) =>
   (['INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'] as const).map((chain) => ({
@@ -64,9 +60,14 @@ const CAPTURED_POLICIES = (['IPv4', 'IPv6'] as const).flatMap((family) =>
 type SnapshotChain = 'input' | 'output' | 'forward' | 'snat' | 'dnat';
 type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 
+const CAPTURED_POLICY_BY_TYPE = new Map(CAPTURED_POLICIES.map((policy) => [policy.typeId, policy]));
+
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
+
+// Predefined service group the default "useful ICMP" INPUT rule allows.
+const DEFAULT_ICMP_SERVICE_GROUP = 5;
 
 /**
  * FWCloud stores an object's netmask as '/24' or as '255.255.255.0' (the interface the OpenVPN
@@ -419,9 +420,13 @@ export class ReplicationProfileSnapshotService extends Service {
         { kind: 'vpnClient', vpnId: client.id, name: client.name },
       ]),
     );
+    const loopbackInterfaceIds = new Set(
+      interfaces.filter((iface) => iface.name === 'lo').map((iface) => iface.id),
+    );
     const rules = await this.capturePolicyRules(
       resolved.firewall.id,
       roleByInterfaceId,
+      loopbackInterfaceIds,
       parameters,
       warnings,
       vpnObjects,
@@ -595,12 +600,13 @@ export class ReplicationProfileSnapshotService extends Service {
 
   /**
    * Captures every filter and NAT policy of the source, in both IP families.
-   * Default rules are left out; rules the vocabulary cannot express are
-   * reported through `warnings` instead of being widened.
+   * Policies holding only their untouched default rules are left out; rules the
+   * vocabulary cannot express are reported through `warnings` instead of being widened.
    */
   private async capturePolicyRules(
     firewallId: number,
     roleByInterfaceId: Map<number, string>,
+    loopbackInterfaceIds: Set<number>,
     parameters: SnapshotParameterCollector,
     warnings: string[],
     vpnObjects: Map<string, SnapshotProvisionObject>,
@@ -611,10 +617,8 @@ export class ReplicationProfileSnapshotService extends Service {
        WHERE firewall = ? AND type IN (${sqlPlaceholders(typeIds.length)}) ORDER BY rule_order`,
       [firewallId, ...typeIds],
     );
-    const candidateRules = rules.filter(
-      (rule) => rule.special === 0 && !DEFAULT_RULE_COMMENTS.includes(rule.comment ?? ''),
-    );
-    const ruleIds = candidateRules.map((rule) => rule.id);
+    const nonSpecialRules = rules.filter((rule) => rule.special === 0);
+    const ruleIds = nonSpecialRules.map((rule) => rule.id);
     const [interfaceRefs, ipObjRefs, vpnRefs] = await Promise.all([
       this.loadRuleInterfaceRefs(ruleIds),
       this.loadRuleIpObjRefs(ruleIds),
@@ -626,8 +630,27 @@ export class ReplicationProfileSnapshotService extends Service {
       vpns: vpnRefs.get(ruleId) ?? [],
     });
 
-    const allRefs = Array.from(ipObjRefs.values()).flat();
-    const lookup = await this.loadObjectLookup(allRefs);
+    // Applying a profile that brings rules to a policy replaces that policy's default rules, so a
+    // policy is captured whole, defaults included, once it holds anything else: a rule of its own or
+    // a default rule the user changed. Policies left with their untouched defaults are skipped, as
+    // the target generates those itself.
+    const customizedTypes = new Set(
+      nonSpecialRules
+        .filter(
+          (rule) =>
+            !this.isUntouchedDefaultRule(
+              rule,
+              CAPTURED_POLICY_BY_TYPE.get(Number(rule.type)),
+              refsOf(rule.id),
+              loopbackInterfaceIds,
+            ),
+        )
+        .map((rule) => Number(rule.type)),
+    );
+    const candidateRules = nonSpecialRules.filter((rule) => customizedTypes.has(Number(rule.type)));
+    const lookup = await this.loadObjectLookup(
+      candidateRules.flatMap((rule) => ipObjRefs.get(rule.id) ?? []),
+    );
 
     const captured: SnapshotProvisionRule[] = [];
 
@@ -659,6 +682,48 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     return captured;
+  }
+
+  /**
+   * Whether a rule is still exactly one of the INPUT rules PolicyRule.insertDefaultPolicy creates:
+   * "self host" accepts anything coming in through the loopback interface, and "useful ICMP" the
+   * predefined ICMP group (5) as its only service. Any change (another object, a VPN, a different
+   * action, disabling it) makes it the user's own.
+   */
+  private isUntouchedDefaultRule(
+    rule: SnapshotRuleRow,
+    policy: CapturedPolicy | undefined,
+    { interfaces, ipObjs, vpns }: SnapshotRuleRefs,
+    loopbackInterfaceIds: Set<number>,
+  ): boolean {
+    if (
+      policy?.chain !== 'input' ||
+      rule.action !== RULE_ACTION_ACCEPT ||
+      rule.active !== 1 ||
+      vpns.length > 0
+    ) {
+      return false;
+    }
+
+    if (rule.comment === DefaultPolicyRuleComments.SELF_HOST_TRAFFIC) {
+      return (
+        ipObjs.length === 0 &&
+        interfaces.length === 1 &&
+        interfaces[0].position === policy.positions.in &&
+        loopbackInterfaceIds.has(interfaces[0].interface)
+      );
+    }
+
+    if (rule.comment === DefaultPolicyRuleComments.USEFUL_ICMP) {
+      return (
+        interfaces.length === 0 &&
+        ipObjs.length === 1 &&
+        ipObjs[0].position === policy.positions.service &&
+        Number(ipObjs[0].ipobj_g) === DEFAULT_ICMP_SERVICE_GROUP
+      );
+    }
+
+    return false;
   }
 
   /**

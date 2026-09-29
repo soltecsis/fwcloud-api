@@ -9,15 +9,19 @@ import {
 import StringHelper from '../../../../src/utils/string.helper';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
-import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { DefaultPolicyRuleComments, PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { NotFoundException } from '../../../../src/fonaments/exceptions/not-found-exception';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import {
   ipObjCidr,
   ReplicationProfileSnapshotService,
 } from '../../../../src/models/replication-profile/replication-profile-snapshot.service';
-import { PolicyReplicationService } from '../../../../src/models/replication-profile/policy-replication.service';
+import {
+  getProvisionRulePositions,
+  PolicyReplicationService,
+} from '../../../../src/models/replication-profile/policy-replication.service';
 import { getProfileProvisioning } from '../../../../src/models/replication-profile/policy-replication.types';
 import {
   ProfileVpnConnectionTemplate,
@@ -343,6 +347,100 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             .default,
       );
       expect(defaults).to.include('192.168.1.1/24');
+    });
+
+    describe('default INPUT rules', () => {
+      const SELF_HOST = DefaultPolicyRuleComments.SELF_HOST_TRAFFIC;
+      const USEFUL_ICMP = DefaultPolicyRuleComments.USEFUL_ICMP;
+      const inputPositions = getProvisionRulePositions(4, 'input');
+
+      /** The "self host" and "useful ICMP" rules FWCloud creates for a firewall with a loopback. */
+      async function addDefaultInputRules(): Promise<void> {
+        const lo = await db.getSource().manager.getRepository(Interface).save({
+          name: 'lo',
+          type: '10',
+          interface_type: '10',
+          firewallId: source.firewall.id,
+        });
+        // Without the stateful option: the fixture already created the special rules.
+        await PolicyRule.insertDefaultPolicy(source.firewall.id, lo.id, 0);
+      }
+
+      function snapshot() {
+        return service.createProfileFromSource(
+          { source: { kind: 'firewall', id: source.firewall.id }, name: 'Default rules snapshot' },
+          { fwCloudId: fwc.fwcloud.id },
+        );
+      }
+
+      it('should skip them while they are untouched, as the target creates its own', async () => {
+        await addDefaultInputRules();
+
+        const { profile, warnings } = await snapshot();
+
+        expect(warnings).to.be.empty;
+        expect(getProvision(profile).rules).to.be.empty;
+      });
+
+      it('should capture the INPUT policy whole once it holds a rule of its own', async () => {
+        // Applying a profile with INPUT rules replaces the target's default INPUT rules.
+        await addDefaultInputRules();
+        const ssh = await makeTcpService(22);
+        const sshRuleId = await PolicyRule.insertPolicy_r({
+          firewall: source.firewall.id,
+          type: 1, // IPv4 INPUT
+          rule_order: 10,
+          action: 1,
+          active: 1,
+          options: 0,
+          special: 0,
+          comment: 'Allow admin SSH',
+        });
+        await attachIpObj(sshRuleId, ssh.id, inputPositions.service);
+
+        const { profile, warnings } = await snapshot();
+
+        expect(warnings).to.be.empty;
+        const rules = getProvision(profile).rules;
+        expect(rules.map((rule) => rule.comment)).to.deep.eq([
+          SELF_HOST,
+          USEFUL_ICMP,
+          'Allow admin SSH',
+        ]);
+        expect(rules.every((rule) => rule.chain === 'input' && rule.ipVersion === 4)).to.be.true;
+        expect(rules[0]).to.include({ action: 'accept', inRole: 'lo' });
+        expect(rules[1].services[0]).to.include({ kind: 'stdGroup', id: 5 });
+      });
+
+      it('should capture a default rule the user gave a VPN client, and the rest of its policy', async () => {
+        await addDefaultInputRules();
+        const { clientId } = await makeVpnPair('openvpn');
+        const [selfHost] = await db
+          .getSource()
+          .query('SELECT id FROM policy_r WHERE firewall = ? AND type = 1 AND comment = ?', [
+            source.firewall.id,
+            SELF_HOST,
+          ]);
+        await db
+          .getSource()
+          .query(
+            'INSERT INTO policy_r__openvpn (rule, openvpn, position, position_order) VALUES (?, ?, ?, 1)',
+            [selfHost.id, clientId, inputPositions.source],
+          );
+
+        const { profile, warnings } = await snapshot();
+
+        expect(warnings).to.be.empty;
+        const rules = getProvision(profile).rules;
+        expect(rules.map((rule) => rule.comment)).to.deep.eq([SELF_HOST, USEFUL_ICMP]);
+        const client = getVpnTemplate(profile).connections.find(
+          (connection) => connection.role === 'client',
+        );
+        expect(rules[0].inRole).to.eq('lo');
+        expect(rules[0].source).to.deep.eq([
+          { kind: 'vpnClient', vpnId: client.id, name: client.name },
+        ]);
+      });
     });
 
     it('should convert every FWCloud netmask notation to a CIDR suffix', () => {
