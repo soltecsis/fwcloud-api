@@ -30,6 +30,24 @@ export function isSecretVpnOptionName(name: string): boolean {
   return SECRET_VPN_OPTION_MARKERS.some((marker) => normalized.includes(marker));
 }
 
+/** A template text: at most 255 characters, without line breaks, NUL or PEM blocks; `required` also rejects a blank one. */
+export function isValidVpnText(value: unknown, required = false): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= 255 &&
+    (!required || !!value.trim()) &&
+    !/-----BEGIN|[\r\n\x00]/.test(value)
+  );
+}
+
+const HOSTNAME_PATTERN =
+  /^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+/** An endpoint host: an IP address or a DNS name. */
+export function isValidVpnHost(host: string): boolean {
+  return ipaddr.isValid(host) || HOSTNAME_PATTERN.test(host);
+}
+
 export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidationIssue[] {
   const errors: ProfileVpnValidationIssue[] = [];
   const fail = (code: string, path: string) => errors.push({ code, path });
@@ -43,12 +61,7 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
     }
   };
   const text = (v: unknown, path: string, required = true) => {
-    if (
-      typeof v !== 'string' ||
-      v.length > 255 ||
-      (required && !v.trim()) ||
-      (typeof v === 'string' && /-----BEGIN|[\r\n\x00]/.test(v))
-    ) {
+    if (!isValidVpnText(v, required)) {
       fail('invalid_text', path);
     }
   };
@@ -157,14 +170,7 @@ export function validateProfileVpnTemplate(value: unknown): ProfileVpnValidation
     choice(vpn.device, ['tun', 'tap'], `${path}.device`);
     integer(vpn.port, 65535, `${path}.port`);
     text(vpn.endpoint, `${path}.endpoint`, false);
-    if (
-      typeof vpn.endpoint === 'string' &&
-      vpn.endpoint &&
-      !ipaddr.isValid(vpn.endpoint) &&
-      !/^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(
-        vpn.endpoint,
-      )
-    ) {
+    if (typeof vpn.endpoint === 'string' && vpn.endpoint && !isValidVpnHost(vpn.endpoint)) {
       fail('invalid_endpoint', `${path}.endpoint`);
     }
     for (const key of ['network', 'localNetwork', 'remoteNetwork']) {
