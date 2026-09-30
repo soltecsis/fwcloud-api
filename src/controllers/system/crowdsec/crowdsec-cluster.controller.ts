@@ -45,7 +45,12 @@ type ClusterMachineNodeResult = {
   firewall_id: number;
   name: string;
   machine_name: string;
-  status: 'completed' | 'connectivity_confirmation_required' | 'pending_connectivity' | 'failed';
+  status:
+    | 'completed'
+    | 'connectivity_confirmation_required'
+    | 'pending_connectivity'
+    | 'recovery_required'
+    | 'failed';
   error?: string;
   central_bouncer_cleanup_required?: boolean;
   central_machine_cleanup_required?: boolean;
@@ -391,6 +396,7 @@ export class CrowdSecClusterController extends Controller {
       let prepared = false;
       let activated = false;
       let bouncerReplicationStarted = false;
+      let recoveryRequired = false;
       try {
         const installation = await new CrowdSecInstallationRepository(
           db.getSource().manager,
@@ -461,7 +467,7 @@ export class CrowdSecClusterController extends Controller {
             const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
             await communication.recoverCrowdSecTransition(transitionId);
           } catch {
-            // The failed node remains available for a recovery retry.
+            recoveryRequired = true;
           }
         }
         const machineCleanup = await lapiService.cleanupMachine(centralLapiNodes, machineName);
@@ -472,7 +478,7 @@ export class CrowdSecClusterController extends Controller {
           firewall_id: node.id,
           name: node.name,
           machine_name: machineName,
-          status: 'failed',
+          status: recoveryRequired ? 'recovery_required' : 'failed',
           error: error instanceof Error ? error.message : 'CrowdSec cluster node transition failed',
           ...(!machineCleanup.completed ? { central_machine_cleanup_required: true } : {}),
           ...(bouncerCleanup && !bouncerCleanup.completed
