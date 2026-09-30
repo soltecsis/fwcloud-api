@@ -105,23 +105,19 @@ export class PolicyScript {
       'options_load() {\n' + '  echo\n' + '  echo "OPTIONS"\n' + '  echo "-------"\n',
     );
 
-    // IPv4 packet forwarding
+    // IPv4 and IPv6 packet forwarding. Every option is applied and any failure fails the policy
+    // load, except for the options of an IP version not available (skipped by policy_sysctl).
     const ipv4ForwardingAction = options & FireWallOptMask.IPv4_FORWARDING ? '1' : '0';
-    this.stream.write(
-      '  if [ -z "$SYSCTL" ]; then\n' +
-        `    echo ${ipv4ForwardingAction} > /proc/sys/net/ipv4/ip_forward\n` +
-        '  else\n' +
-        `    $SYSCTL -w net.ipv4.conf.all.forwarding=${ipv4ForwardingAction}\n` +
-        '  fi\n\n',
-    );
-
-    // IPv6 packet forwarding
     const ipv6ForwardingAction = options & FireWallOptMask.IPv6_FORWARDING ? '1' : '0';
-    this.stream.write(`  $SYSCTL -w net.ipv6.conf.all.forwarding=${ipv6ForwardingAction}\n`);
+    this.stream.write(
+      '  FWC_OPTIONS_STATUS=0\n' +
+        `  policy_sysctl net.ipv4.conf.all.forwarding ${ipv4ForwardingAction} || FWC_OPTIONS_STATUS=1\n` +
+        `  policy_sysctl net.ipv6.conf.all.forwarding ${ipv6ForwardingAction} || FWC_OPTIONS_STATUS=1\n`,
+    );
 
     if (options & FireWallOptMask.DOCKER_COMPAT) this.stream.write('\n  DOCKER_COMPATIBILITY=1\n');
 
-    this.stream.write('}\n\n');
+    this.stream.write('  return $FWC_OPTIONS_STATUS\n}\n\n');
 
     this.channel.emit(
       'message',
@@ -130,7 +126,6 @@ export class PolicyScript {
         true,
       ),
     );
-    return;
   }
 
   private async dumpCompilation(type: number): Promise<RuleCompilationResult[]> {
@@ -247,7 +242,11 @@ export class PolicyScript {
       this.channel.emit('message', new ProgressNoticePayload(text, highlight));
     let dangerous: Array<RuleCompilationResult> = [];
 
-    for (const ipv of ['IPv4', 'IPv6']) {
+    for (const version of [4, 6]) {
+      const ipv = `IPv${version}`;
+      // Skip the policy of an IP version not available on the firewall (see policy_ip_available).
+      if (!isVyOS) this.stream.write(`\nif policy_ip_available ${version}; then`);
+
       const tables: [string, [string, string][]][] = [
         [
           `FILTER TABLE (${ipv})`,
@@ -290,6 +289,11 @@ export class PolicyScript {
           );
         }
       }
+
+      if (!isVyOS)
+        this.stream.write(
+          `\nelse\n  echo\n  echo "${ipv} not available on this system, ${ipv} policy skipped."\nfi\n`,
+        );
     }
 
     return dangerous;
@@ -772,8 +776,8 @@ export class PolicyScript {
     this.stream.write('echo "* NFTABLES TABLES AND CHAINS *"\n');
     this.stream.write('echo "******************************"\n');
     const families = ['ip', 'ip6'];
-    const nftablesStdCommands: string[] = [];
     for (const family of families) {
+      const nftablesStdCommands: string[] = [];
       nftablesStdCommands.push(`add table ${family} filter`);
       nftablesStdCommands.push(
         `add chain ${family} filter INPUT { type filter hook input priority 0; policy drop; }`,
@@ -813,13 +817,19 @@ export class PolicyScript {
       nftablesStdCommands.push(
         `add chain ${family} mangle POSTROUTING { type filter hook postrouting priority - 150; policy accept; }`,
       );
+
+      // Only for the IP versions available on the firewall (see policy_ip_available), each one in
+      // its own nft -f block since a failed command rejects the whole block.
+      this.stream.write(`if policy_ip_available ${family === 'ip' ? 4 : 6}; then\n`);
+      this.stream.write(
+        this.useOptimizedNftablesFile()
+          ? this.renderNftablesFileCommands(nftablesStdCommands)
+          : nftablesStdCommands
+              .map((command) => `$NFT ${command.replace(/;/g, '\\;')}`)
+              .join('\n') + '\n',
+      );
+      this.stream.write('fi\n');
     }
-    this.stream.write(
-      this.useOptimizedNftablesFile()
-        ? this.renderNftablesFileCommands(nftablesStdCommands)
-        : nftablesStdCommands.map((command) => `$NFT ${command.replace(/;/g, '\\;')}`).join('\n') +
-            '\n',
-    );
     return;
   }
 
@@ -831,6 +841,8 @@ export class PolicyScript {
     this.stream.write('echo "* MANGLE TABLE *"\n');
     this.stream.write('echo "****************"\n');
     this.stream.write('#Automatic rules for mangle table.\n');
+    // IPv4 only rules (see policy_ip_available).
+    this.stream.write('if policy_ip_available 4; then\n');
     if (this.policyCompiler == 'IPTables') {
       const mangleRules =
         '$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n' +
@@ -860,6 +872,7 @@ export class PolicyScript {
           : mangleRules.map((rule) => `$NFT ${rule}`).join('\n') + '\n',
       );
     }
+    this.stream.write('fi\n');
     return;
   }
 
