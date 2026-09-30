@@ -707,6 +707,208 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterTransitionDto)
+  public async transitionMachineAddress(req: Request): Promise<ResponseBuilder> {
+    if (!req.body.confirm) {
+      throw new HttpException('CrowdSec transition confirmation is required', 422);
+    }
+    if (
+      req.body.mode !== CrowdSecInstallationMode.Machine ||
+      req.body.centralFirewallId === undefined ||
+      req.body.lapiUrl === undefined ||
+      req.body.bouncerApiKey !== undefined
+    ) {
+      throw new HttpException('Invalid CrowdSec cluster Machine address transition target', 422);
+    }
+
+    const nodes = await this.getAuthorizedNodes(req);
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const installations = await Promise.all(
+      nodes.map((node) => installationRepository.findByFirewallId(node.id)),
+    );
+    if (
+      installations.some(
+        (installation) =>
+          installation?.mode !== CrowdSecInstallationMode.Machine ||
+          installation.centralFirewallId !== req.body.centralFirewallId ||
+          installation.machineName === null ||
+          installation.lapiUrl === null ||
+          installation.machineConnectivityPending ||
+          installation.localRemediation !== req.body.localRemediation,
+      )
+    ) {
+      throw new HttpException('CrowdSec Machine address transition is not available', 409);
+    }
+
+    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
+    const previousLapiUrls = installations.map((installation) => installation!.lapiUrl!);
+    if (previousLapiUrls.every((previousLapiUrl) => previousLapiUrl === lapiUrl)) {
+      return ResponseBuilder.buildResponse().status(200).body({
+        changed: false,
+        message: 'CrowdSec Local API address is unchanged',
+      });
+    }
+    const previousListenerUris = [
+      ...new Set(
+        previousLapiUrls.map((previousLapiUrl) =>
+          CrowdSecLapiSharedService.listenerUriForLapiUrl(previousLapiUrl),
+        ),
+      ),
+    ];
+    if (previousListenerUris.length !== 1) {
+      throw new HttpException(
+        'Selected CrowdSec Machine nodes do not share the current central Local API listener',
+        409,
+      );
+    }
+
+    const { centralLapiNodes } = await this.getExternalCentralLapiTarget(
+      req.body.centralFirewallId,
+      nodes,
+    );
+    const channel = await Channel.fromRequest(req);
+    const lapiService = this.lapiService();
+    const previousListenerUri = previousListenerUris[0];
+    const targetListenerUri = CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl);
+    const listenerChangeRequired = previousListenerUri !== targetListenerUri;
+    if (
+      listenerChangeRequired &&
+      (await installationRepository.hasMachineDependentsExcept(
+        req.body.centralFirewallId,
+        nodes.map((node) => node.id),
+      ))
+    ) {
+      throw new HttpException(
+        'CrowdSec central Local API port cannot be changed while other Machines are connected',
+        409,
+      );
+    }
+
+    let listenerChanged = false;
+    if (listenerChangeRequired) {
+      channel.emit(
+        'message',
+        new ProgressPayload('info', false, 'Reconfiguring CrowdSec central Local API listener'),
+      );
+      await lapiService.preflight(centralLapiNodes, targetListenerUri);
+      await lapiService.enable(centralLapiNodes);
+      listenerChanged = true;
+    }
+
+    const results: ClusterMachineNodeResult[] = [];
+    channel.emit(
+      'message',
+      new ProgressPayload('start', false, 'Changing CrowdSec Local API address in cluster nodes'),
+    );
+    await this.runSequentialNodeOperations(nodes, async (node) => {
+      const installation = installations.find((candidate) => candidate!.firewallId === node.id)!;
+      const machineName = installation.machineName!;
+      let transitionId: string | undefined;
+      let prepared = false;
+      let activated = false;
+      let recoveryRequired = false;
+      try {
+        const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+        const backend = installation.localRemediation
+          ? ((await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ??
+            'iptables')
+          : undefined;
+        transitionId = uuid.v4();
+        const transition = {
+          transitionId,
+          confirm: true,
+          expected: {
+            mode: 'machine' as const,
+            localRemediation: installation.localRemediation,
+            machineName,
+            lapiUrl: installation.lapiUrl,
+          },
+          target: {
+            mode: 'machine' as const,
+            localRemediation: installation.localRemediation,
+            machineName,
+            lapiUrl,
+          },
+          authorityChanged: false,
+          backend,
+        };
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'info',
+            false,
+            'Changing CrowdSec Local API address on node ' + node.name,
+          ),
+        );
+        await communication.prepareCrowdSecTransition(transition, channel);
+        prepared = true;
+        await communication.activateCrowdSecTransition({ transitionId }, channel);
+        activated = true;
+        await this.persistMachineNode({
+          node,
+          centralFirewallId: installation.centralFirewallId!,
+          lapiUrl,
+          machineName,
+          localRemediation: installation.localRemediation,
+        });
+        await communication.finalizeCrowdSecTransition(transitionId);
+        results.push({
+          firewall_id: node.id,
+          name: node.name,
+          machine_name: machineName,
+          status: 'completed',
+        });
+      } catch (error) {
+        if (prepared && !activated && transitionId) {
+          try {
+            const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+            await communication.recoverCrowdSecTransition(transitionId);
+          } catch {
+            recoveryRequired = true;
+          }
+        }
+        results.push({
+          firewall_id: node.id,
+          name: node.name,
+          machine_name: machineName,
+          status: recoveryRequired ? 'recovery_required' : 'failed',
+          error:
+            error instanceof Error
+              ? error.message
+              : 'CrowdSec cluster node address transition failed',
+        });
+      }
+      return true;
+    });
+
+    const completed = results.every((result) => result.status === 'completed');
+    if (listenerChanged && !results.some((result) => result.status === 'completed')) {
+      try {
+        await lapiService.configureListeners(centralLapiNodes, previousListenerUri);
+      } catch {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec central Local API listener rollback is incomplete and must be retried manually',
+          ),
+        );
+      }
+    }
+    channel.emit(
+      'message',
+      new ProgressPayload(
+        'end',
+        !completed,
+        completed
+          ? 'CrowdSec Local API address changed on all cluster nodes'
+          : 'CrowdSec Local API address transition finished with node failures',
+      ),
+    );
+    return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+  }
+
+  @Validate(CrowdSecClusterTransitionDto)
   public async transitionRemediation(req: Request): Promise<ResponseBuilder> {
     if (!req.body.confirm) {
       throw new HttpException('CrowdSec transition confirmation is required', 422);
