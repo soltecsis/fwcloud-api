@@ -136,6 +136,7 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
     const response = await install();
     expect(response.status, response.body?.message).to.equal(204);
     expect(onFirewall('iptables -S; ip6tables -S')).not.to.contain('FWCloud DNS resolution');
+    expect(onFirewall('sh /etc/fwcloud/fwcloud.sh status')).to.equal('OK. Policy loaded.\n');
   }
 
   async function install(): Promise<request.Response> {
@@ -210,7 +211,7 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
 
     // Start every test from a firewall without any installed policy.
     onFirewall(
-      'for cmd in iptables ip6tables; do $cmd -P INPUT ACCEPT; $cmd -P OUTPUT ACCEPT; $cmd -P FORWARD ACCEPT; $cmd -F; $cmd -X; done; rm -rf /etc/fwcloud /root/fwcloud.sh',
+      'for cmd in iptables ip6tables; do $cmd -P INPUT ACCEPT; $cmd -P OUTPUT ACCEPT; $cmd -P FORWARD ACCEPT; $cmd -F; $cmd -X; done; rm -rf /etc/fwcloud /root/fwcloud.sh /var/run/fwcloud-policy.status /usr/local/sbin/sysctl',
     );
 
     fwc = await new FwCloudFactory().make();
@@ -323,5 +324,23 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
     expect(
       onFirewall('test -f /etc/fwcloud/fwcloud.sh && echo installed || echo missing'),
     ).to.equal('missing\n');
+  });
+
+  it('should report a failed policy load and leave DROP default policies', async () => {
+    await compile();
+    // A sysctl command that fails on existing kernel parameters.
+    onFirewall('ln -s /bin/false /usr/local/sbin/sysctl');
+
+    const response = await install();
+    expect(response.status).to.equal(400);
+    expect(response.body.message).to.contain('ERROR: Policy load failed');
+
+    for (const cmd of ['iptables', 'ip6tables'])
+      expect(onFirewall(`${cmd} -S`)).to.contain(
+        '-P INPUT DROP\n-P FORWARD DROP\n-P OUTPUT DROP\n',
+      );
+    expect(onFirewall('sh /etc/fwcloud/fwcloud.sh status; echo "exit $?"')).to.equal(
+      'ERROR: Policy load failed\nexit 1\n',
+    );
   });
 });

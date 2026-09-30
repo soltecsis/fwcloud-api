@@ -26,13 +26,18 @@ BOOT_STATE=$(systemctl is-system-running 2>/dev/null || true)
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
 SYSTEMD_FILE_ROUTING="/etc/systemd/system/fwcloud-routing.service"
 
+# Kernel parameters, also used to detect the IP versions available on this system.
+SYSCTL_DIR="/proc/sys"
+# Result of the last policy load, reported by the status action. It doesn't survive a reboot.
+POLICY_STATUS_FILE="/var/run/fwcloud-policy.status"
+
 if [ -z "$HOSTNAME" ]; then
   HOSTNAME=`hostname`
 fi
 
 log() {
   echo "$1"
-  which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"
+  test -n "$LOGGER" && which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"
 }
 
 policy_load_elapsed_msg() {
@@ -58,28 +63,65 @@ policy_load_timestamp_ms() {
   printf '%s%s\n' "$TIMESTAMP_S" "$TIMESTAMP_MS"
 }
 
+policy_ip_available() {
+  # $1: IP version (4 or 6).
+  # An IP version disabled at boot (e.g. ipv6.disable=1) or not built into the kernel has no kernel
+  # parameters and no packets of that version can reach the firewall, so its policy is skipped.
+  # An IP version disabled through sysctl (disable_ipv6, set by systemd, NetworkManager...), globally or
+  # per interface, keeps its kernel parameters and can be enabled again at any time: its policy is loaded.
+  # Without any network kernel parameters (e.g. /proc not mounted) nothing can be told: none is skipped.
+  test -d "$SYSCTL_DIR/net" || return 0
+  if [ "$1" = "6" -a ! -d "$SYSCTL_DIR/net/ipv6" -a -z "$FWC_IPV6_MODPROBE" ]; then
+    # IPv6 may be a kernel module not loaded yet, which could be loaded later without any policy.
+    FWC_IPV6_MODPROBE=1
+    $MODPROBE ipv6 >/dev/null 2>&1
+  fi
+  test -d "$SYSCTL_DIR/net/ipv$1"
+}
+
+policy_iptables_available() {
+  # $1: iptables command ($IPTABLES or $IP6TABLES).
+  # True if it is installed and its IP version is available on this system.
+  test -f "$1" -a -x "$1" || return 1
+  if [ "$1" = "$IP6TABLES" ]; then policy_ip_available 6; else policy_ip_available 4; fi
+}
+
+policy_sysctl() {
+  # $1: kernel parameter, $2: value.
+  # The parameters of an IP version not available on this system, or of an interface without it, don't
+  # exist: they are skipped instead of failing the policy load.
+  FWC_SYSCTL_FILE="$SYSCTL_DIR/`echo "$1" | tr './' '/.'`"
+  if [ ! -f "$FWC_SYSCTL_FILE" ]; then
+    echo "$1: not available on this system, skipped."
+    return 0
+  fi
+
+  if [ -z "$SYSCTL" ]; then
+    echo "$2" > "$FWC_SYSCTL_FILE" && echo "$1 = $2"
+  else
+    $SYSCTL -w "$1=$2"
+  fi
+}
+
 check_cmds() {
   test -z "$LSMOD" && echo "ERROR: Command 'lsmod' not found." && exit 1
   test -z "$MODPROBE" && echo "ERROR: Command 'modprobe' not found." && exit 1
   test -z "$IP" && echo "ERROR: Command 'ip' not found." && exit 1
   test "$POLICY_COMPILER" = "IPTables" -a -z "$IPTABLES" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'iptables' not found." && exit 1
-  test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IPTABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'iptables-restore'." && exit 1
-  test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IP6TABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'ip6tables-restore'." && exit 1
+  if [ "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" ]; then
+    test -z "$IPTABLES_RESTORE" && policy_ip_available 4 && echo "ERROR: Optimized IPTables compilation requires command 'iptables-restore'." && exit 1
+    test -z "$IP6TABLES_RESTORE" && policy_ip_available 6 && echo "ERROR: Optimized IPTables compilation requires command 'ip6tables-restore'." && exit 1
+  fi
   test "$POLICY_COMPILER" = "NFTables" -a -z "$NFT" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'nft' not found." && exit 1
 }
 
 iptables_default_filter_policy() {
-  if [ ! -z "$IPTABLES" -a -f "$IPTABLES" -a -x "$IPTABLES" ]; then
-    $IPTABLES  -P OUTPUT  $1
-    $IPTABLES  -P INPUT   $1
-    $IPTABLES  -P FORWARD $1
-  fi
-
-  if [ ! -z "$IP6TABLES" -a -f "$IP6TABLES" -a -x "$IP6TABLES" ]; then
-    $IP6TABLES -P OUTPUT  $1
-    $IP6TABLES -P INPUT   $1
-    $IP6TABLES -P FORWARD $1
-  fi
+  for FWC_IPTABLES_CMD in "$IPTABLES" "$IP6TABLES"; do
+    policy_iptables_available "$FWC_IPTABLES_CMD" || continue
+    $FWC_IPTABLES_CMD -P OUTPUT  $1
+    $FWC_IPTABLES_CMD -P INPUT   $1
+    $FWC_IPTABLES_CMD -P FORWARD $1
+  done
 }
 
 load_nat_modules() {
@@ -89,56 +131,40 @@ load_nat_modules() {
     MODULES_DIR="/lib/modules/`uname -r`/kernel/net/"
   fi
   MODULES=$(find $MODULES_DIR -name '*nat*'| sed  -e 's/^.*\///' -e 's/\([^\.]\)\..*/\1/')
+  LOADED_MODULES=`$LSMOD`
   for module in $MODULES; do
-    if $LSMOD | grep ${module} >/dev/null; then continue; fi
+    case "$LOADED_MODULES" in *"$module"*) continue ;; esac
     $MODPROBE ${module} ||  exit 1
+    # It may have loaded other modules of the list as dependencies.
+    LOADED_MODULES=`$LSMOD`
   done
 }
 
-reset_iptables_v4() { 
-  if [ ! -z "$IPTABLES" -a -f "$IPTABLES" -a -x "$IPTABLES" ]; then
-    $IPTABLES --flush
-    $IPTABLES -X
-    $IPTABLES --flush
-    $IPTABLES --flush FORWARD
-    $IPTABLES --flush INPUT
-    $IPTABLES --flush OUTPUT
-    $IPTABLES --table nat --flush
-    $IPTABLES --table nat --delete-chain
-    $IPTABLES --table mangle --flush
-    $IPTABLES --table mangle --delete-chain
-    $IPTABLES --delete-chain
-  fi
-}
-
-reset_iptables_v6() {
-  if [ ! -z "$IP6TABLES" -a -f "$IP6TABLES" -a -x "$IP6TABLES" ]; then
-    IPv6_TABLES="filter nat mangle"
-    for table in $IPv6_TABLES; do
-      $IP6TABLES -t $table -L -n | while read c chain rest; do
-          if test "X$c" = "XChain" ; then
-            $IP6TABLES -t $table -F $chain
-        fi
-      done
-      $IP6TABLES -t $table -X
-    done
-  fi
+reset_iptables() {
+  # $1: iptables command. Flushes all the chains and deletes the user chains of its tables.
+  policy_iptables_available "$1" || return 0
+  for table in filter nat mangle; do
+    $1 -t $table -F
+    $1 -t $table -X
+  done
 }
 
 reset_nft() {
   if [ -f "$NFT" ]; then
     $NFT flush ruleset arp
-    $NFT flush ruleset ip
-    $NFT flush ruleset ip6
+    policy_ip_available 4 && $NFT flush ruleset ip
+    policy_ip_available 6 && $NFT flush ruleset ip6
     $NFT flush ruleset bridge
     $NFT flush ruleset inet
   fi
 }
 
 policy_empty() {
+  # From now on the previous policy is no longer loaded (see status).
+  rm -f "$POLICY_STATUS_FILE"
   reset_nft
-  reset_iptables_v4
-  reset_iptables_v6
+  reset_iptables "$IPTABLES"
+  reset_iptables "$IP6TABLES"
 }
 
 create_systemd_service() {
@@ -214,13 +240,29 @@ check_docker_iptables_disabled() {
 }
 
 status() {
-  NL=`$IPTABLES -nL | wc -l`
-  if [ $NL -lt 9 ]; then
-    echo "ERROR: Policy not loaded"
-    exit 1
-  else
-    echo "OK. Policy loaded."
-  fi 
+  case "`cat "$POLICY_STATUS_FILE" 2>/dev/null`" in
+    OK)
+      ;;
+    ERROR)
+      echo "ERROR: Policy load failed"
+      exit 1
+      ;;
+    *)
+      echo "ERROR: Policy not loaded"
+      exit 1
+      ;;
+  esac
+
+  # The IPTables policy could have been flushed after loading it.
+  if [ "$POLICY_COMPILER" = "IPTables" ]; then
+    policy_ip_available 4 && FWC_STATUS_CMD="$IPTABLES" || FWC_STATUS_CMD="$IP6TABLES"
+    if [ `$FWC_STATUS_CMD -nL | wc -l` -lt 9 ]; then
+      echo "ERROR: Policy not loaded"
+      exit 1
+    fi
+  fi
+
+  echo "OK. Policy loaded."
 }
 
 policy_check_dns() {
@@ -228,7 +270,8 @@ policy_check_dns() {
   # fail halfway through the policy load. "-C" parses and resolves the address exactly as the rule
   # will, without modifying the ruleset: exit 0/1 means the address was accepted (rule present or
   # absent), any other exit code means iptables rejected it.
-  test -z "$1" && return 0
+  # Nothing to check without the command or its IP version (whose rules are not loaded).
+  policy_iptables_available "$1" || return 0
   FWC_DNS_CHECK_OUTPUT=`"$1" -C INPUT -s "$2" -j ACCEPT 2>&1`
   case "$?" in
     0|1) return 0 ;;
@@ -244,14 +287,16 @@ policy_dns_resolution() {
   # The policy is loaded with DROP default policies, so without these temporary rules the firewall
   # could not send its own DNS queries (directly or through a local resolver on loopback) while
   # iptables resolves the DNS objects. Only used if the policy has DNS objects.
-  # $1: "allow" inserts the rules at the top of the chains, "revoke" removes them.
+  # $1: "allow" inserts the rules at the top of the chains, "revoke" removes all their copies.
   # $2: optional iptables command, both IPv4 and IPv6 commands by default.
   test "$POLICY_DNS_OBJECTS" = "1" || return 0
   for FWC_DNS_CMD in ${2:-$IPTABLES $IP6TABLES}; do
+    policy_iptables_available "$FWC_DNS_CMD" || continue
     while read -r FWC_DNS_CHAIN FWC_DNS_MATCH; do
-      while $FWC_DNS_CMD -D $FWC_DNS_CHAIN $FWC_DNS_MATCH -m comment --comment "FWCloud DNS resolution" -j ACCEPT 2>/dev/null; do :; done
       if [ "$1" = "allow" ]; then
         $FWC_DNS_CMD -I $FWC_DNS_CHAIN 1 $FWC_DNS_MATCH -m comment --comment "FWCloud DNS resolution" -j ACCEPT
+      else
+        while $FWC_DNS_CMD -D $FWC_DNS_CHAIN $FWC_DNS_MATCH -m comment --comment "FWCloud DNS resolution" -j ACCEPT 2>/dev/null; do :; done
       fi
     done <<EOF
 INPUT -i lo
@@ -268,11 +313,15 @@ policy_apply() {
   load_nat_modules
   policy_empty
   policy_dns_resolution allow
-  if ! policy_load || ! options_load; then
-    policy_dns_resolution revoke
-    echo "ERROR: Policy load failed"
-    iptables_default_filter_policy ACCEPT
-    return 1
-  fi
+  FWC_POLICY_RESULT=OK
+  policy_load && options_load || FWC_POLICY_RESULT=ERROR
   policy_dns_resolution revoke
+  if [ "$FWC_POLICY_RESULT" = "ERROR" ]; then
+    echo "ERROR: Policy load failed"
+    # Fail closed: the rules already loaded are kept and any other packet is dropped.
+    iptables_default_filter_policy DROP
+  fi
+  # Reported by the status action.
+  { echo "$FWC_POLICY_RESULT" > "$POLICY_STATUS_FILE"; } 2>/dev/null
+  test "$FWC_POLICY_RESULT" = "OK"
 }
