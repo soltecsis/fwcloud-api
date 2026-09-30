@@ -36,7 +36,7 @@ import db from '../../../database/database-manager';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.dto';
-import { CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
+import { CentralLapiNode, CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 
 type ClusterMachineNodeResult = {
   firewall_id: number;
@@ -82,23 +82,13 @@ export class CrowdSecClusterController extends Controller {
 
     const lapiService = this.lapiService();
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
-    const centralFirewall = await lapiService.getCentralFirewall(req.body.centralFirewallId);
-    const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
-    if (
-      nodes.some((node) =>
-        centralLapiNodes.some((centralNode) => centralNode.firewall.id === node.id),
-      )
-    ) {
-      throw new HttpException(
-        'CrowdSec Machine nodes must use an external central LAPI firewall',
-        422,
-      );
-    }
+    const { centralFirewall, centralLapiNodes } = await this.getExternalCentralLapiTarget(
+      req.body.centralFirewallId,
+      nodes,
+    );
     const channel = await Channel.fromRequest(req);
     const centralLapiProgress = (message: string) =>
       channel.emit('message', new ProgressPayload('info', false, message));
-    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
-
     channel.emit(
       'message',
       new ProgressPayload('start', false, 'Installing CrowdSec Machines in cluster nodes'),
@@ -155,7 +145,7 @@ export class CrowdSecClusterController extends Controller {
     }
     let centralLapiEnabled = false;
 
-    for (const node of nodes) {
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
       const machineName = CrowdSecLapiSharedService.machineNameForFirewall(node);
       let bouncerReplicationStarted = false;
       channel.emit(
@@ -193,19 +183,7 @@ export class CrowdSecClusterController extends Controller {
               'CrowdSec Machine installation requires confirmation because the central Local API is unreachable',
             ),
           );
-          return ResponseBuilder.buildResponse()
-            .status(200)
-            .body({
-              completed: false,
-              connectivity_confirmation_required: true,
-              central_lapi_nodes: centralLapiAgentAvailable
-                ? centralLapiNodes.map((node) => ({
-                    firewall_id: node.firewall.id,
-                    name: node.firewall.name,
-                  }))
-                : [],
-              nodes: results,
-            });
+          return false;
         }
         if (centralLapiAgentAvailable && !centralLapiEnabled) {
           await lapiService.enable(centralLapiNodes);
@@ -214,12 +192,8 @@ export class CrowdSecClusterController extends Controller {
         if (
           CrowdSecLapiSharedService.machineInstallationState(machine) === 'pending_connectivity'
         ) {
-          await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+          await this.persistMachineNode({
             node,
-            req.body.localRemediation,
-          );
-          await installationRepository.saveMachineInstallation({
-            firewallId: node.id,
             centralFirewallId: centralFirewall.id,
             lapiUrl,
             machineName,
@@ -240,7 +214,7 @@ export class CrowdSecClusterController extends Controller {
               `CrowdSec Machine installation on node '${node.name}' is pending central Local API connectivity`,
             ),
           );
-          continue;
+          return true;
         }
         await lapiService.replicateMachineCredentials(
           centralLapiNodes,
@@ -270,12 +244,8 @@ export class CrowdSecClusterController extends Controller {
           },
           channel,
         );
-        await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+        await this.persistMachineNode({
           node,
-          req.body.localRemediation,
-        );
-        await installationRepository.saveMachineInstallation({
-          firewallId: node.id,
           centralFirewallId: centralFirewall.id,
           lapiUrl,
           machineName,
@@ -331,6 +301,23 @@ export class CrowdSecClusterController extends Controller {
           ),
         );
       }
+      return true;
+    });
+
+    if (!completedAllNodes) {
+      return ResponseBuilder.buildResponse()
+        .status(200)
+        .body({
+          completed: false,
+          connectivity_confirmation_required: true,
+          central_lapi_nodes: centralLapiAgentAvailable
+            ? centralLapiNodes.map((node) => ({
+                firewall_id: node.firewall.id,
+                name: node.firewall.name,
+              }))
+            : [],
+          nodes: results,
+        });
     }
 
     const completed = results.every((result) => result.status === 'completed');
@@ -391,6 +378,67 @@ export class CrowdSecClusterController extends Controller {
     );
 
     return ResponseBuilder.buildResponse().status(200).body({ nodes: collections });
+  }
+
+  private async persistMachineNode({
+    node,
+    centralFirewallId,
+    lapiUrl,
+    machineName,
+    localRemediation,
+    machineConnectivityPending = false,
+  }: {
+    node: Firewall;
+    centralFirewallId: number;
+    lapiUrl: string;
+    machineName: string;
+    localRemediation: boolean;
+    machineConnectivityPending?: boolean;
+  }): Promise<void> {
+    await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+      node,
+      localRemediation,
+    );
+    await new CrowdSecInstallationRepository(db.getSource().manager).saveMachineInstallation({
+      firewallId: node.id,
+      centralFirewallId,
+      lapiUrl,
+      machineName,
+      localRemediation,
+      ...(machineConnectivityPending ? { machineConnectivityPending: true } : {}),
+    });
+  }
+
+  private async getExternalCentralLapiTarget(
+    centralFirewallId: number,
+    nodes: Firewall[],
+  ): Promise<{ centralFirewall: Firewall; centralLapiNodes: CentralLapiNode[] }> {
+    const lapiService = this.lapiService();
+    const centralFirewall = await lapiService.getCentralFirewall(centralFirewallId);
+    const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
+    if (
+      nodes.some((node) =>
+        centralLapiNodes.some((centralNode) => centralNode.firewall.id === node.id),
+      )
+    ) {
+      throw new HttpException(
+        'CrowdSec Machine nodes must use an external central LAPI firewall',
+        422,
+      );
+    }
+    return { centralFirewall, centralLapiNodes };
+  }
+
+  private async runSequentialNodeOperations(
+    nodes: Firewall[],
+    operation: (node: Firewall) => Promise<boolean>,
+  ): Promise<boolean> {
+    for (const node of nodes) {
+      if (!(await operation(node))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private async getAuthorizedNodes(req: Request): Promise<Firewall[]> {
