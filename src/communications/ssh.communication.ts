@@ -36,6 +36,7 @@ import {
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
   CrowdSecMachineActivation,
+  CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
@@ -821,6 +822,22 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   }
 
   configureCrowdSecCentralLapi(_listenUri: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  exportCrowdSecMachineCredentials(_name: string): Promise<CrowdSecMachineCredentials> {
+    throw new Error('Method not implemented.');
+  }
+
+  replicateCrowdSecLapiMachine(_name: string, _password: string): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  replicateCrowdSecLapiBouncer(_name: string, _apiKey: string): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
 

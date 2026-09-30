@@ -55,6 +55,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let secondCommunication: AgentCommunication;
   let managePolicyStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
+  let setCrowdSecCompatibilityStub: sinon.SinonStub;
   let configureCentralLapiStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
   let validateCrowdSecLapiMachineStub: sinon.SinonStub;
@@ -98,7 +99,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     saveMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveMachineInstallation')
       .resolves(new CrowdSecInstallation());
-    sinon
+    setCrowdSecCompatibilityStub = sinon
       .stub(FirewallRepository.prototype, 'setCrowdSecCompatibility')
       .callsFake(async (firewall: Firewall) => firewall);
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
@@ -109,6 +110,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       .stub(centralCommunication, 'configureCrowdSecCentralLapi')
       .resolves({ listen_uri: '0.0.0.0:8080' });
     centralPingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
+    sinon
+      .stub(AgentCommunication.prototype, 'getCrowdSecLapiReplicationReadiness')
+      .resolves({ ready: true });
+    sinon
+      .stub(AgentCommunication.prototype, 'exportCrowdSecMachineCredentials')
+      .callsFake(async (name: string) => ({ login: name, password: 'machine-password' }));
+    sinon.stub(AgentCommunication.prototype, 'replicateCrowdSecLapiMachine').resolves({});
+    sinon.stub(AgentCommunication.prototype, 'replicateCrowdSecLapiBouncer').resolves({});
     validateCrowdSecLapiMachineStub = sinon
       .stub(centralCommunication, 'validateCrowdSecLapiMachine')
       .resolves({});
@@ -128,6 +137,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
 
     expect(firstInstall.calledOnce).to.be.true;
     expect(secondInstall.calledOnce).to.be.true;
+    expect(setCrowdSecCompatibilityStub.calledWith(firstNode, false)).to.be.true;
+    expect(setCrowdSecCompatibilityStub.calledWith(secondNode, false)).to.be.true;
     expect(firstInstall.calledBefore(secondInstall)).to.be.true;
     expect(
       saveMachineInstallationStub.calledWithMatch({
@@ -146,6 +157,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
       completed: true,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
       nodes: [
         {
           firewall_id: firstNode.id,
@@ -179,6 +196,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       connectivity_confirmation_required: true,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
       nodes: [
         {
           firewall_id: firstNode.id,
@@ -235,6 +258,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
       nodes: [
         {
           firewall_id: firstNode.id,
@@ -248,6 +277,38 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           machine_name: 'fwcloud-cluster-slave',
           status: 'failed',
           error: 'Node unavailable',
+        },
+      ],
+    });
+  });
+
+  it('should retry only the selected failed cluster nodes', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine');
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecMachine').resolves({});
+    sinon.stub(secondCommunication, 'activateCrowdSecMachine').resolves({});
+
+    const response = await controller.installMachine(request({ nodeIds: [secondNode.id] }));
+
+    expect(firstInstall.called).to.be.false;
+    expect(secondInstall.calledOnce).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({ firewallId: secondNode.id }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      central_lapi_nodes: [
+        {
+          firewall_id: centralFirewall.id,
+          name: centralFirewall.name,
+        },
+      ],
+      nodes: [
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'fwcloud-cluster-slave',
+          status: 'completed',
         },
       ],
     });
@@ -276,12 +337,13 @@ function communication(protocol: 'http' | 'https', host: string): AgentCommunica
   return new AgentCommunication({ protocol, host, port: 33033, apikey: 'api-key' });
 }
 
-function request(): Request {
+function request(body: Record<string, unknown> = {}): Request {
   return {
     body: {
       centralFirewallId: 10,
       lapiUrl: 'http://192.0.2.10:8080',
       localRemediation: false,
+      ...body,
     },
     session: { user: null },
   } as unknown as Request;

@@ -29,6 +29,7 @@ import {
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
   CrowdSecMachineActivation,
+  CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
@@ -1276,6 +1277,56 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/central/configure', {
         listen_uri: listenUri,
       });
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/replication/readiness');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async exportCrowdSecMachineCredentials(name: string): Promise<CrowdSecMachineCredentials> {
+    try {
+      return (await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/machines/' + encodeURIComponent(name) + '/credentials/export',
+        {},
+      )) as CrowdSecMachineCredentials;
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async replicateCrowdSecLapiMachine(
+    name: string,
+    password: string,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/machines/replicate',
+        {
+          name,
+          password,
+        },
+      );
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async replicateCrowdSecLapiBouncer(
+    name: string,
+    apiKey: string,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.runCrowdSecOperation(
+        this.url + '/api/v1/crowdsec/lapi/bouncers/replicate',
+        { name, api_key: apiKey },
+      );
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }

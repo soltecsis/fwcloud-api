@@ -54,6 +54,7 @@ var router = express.Router();
  * @type ../../models/compile/
  */
 import { Firewall } from '../../models/firewall/Firewall';
+import { CrowdSecInstallationRepository } from '../../models/system/crowdsec/crowdsec.repository';
 import { AgentCommunication } from '../../communications/agent.communication';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
@@ -87,8 +88,13 @@ router.post('/', async (req, res, next) => {
       config.get('policy').script_name,
     );
     if (communication instanceof AgentCommunication) {
-      const backend = await Firewall.getCrowdSecFirewallBouncerBackend(req.body.fwcloud, nodeId);
-      await communication.installFirewallPolicy(policyPath, channel, backend ?? undefined);
+      const crowdSecInstallation = await new CrowdSecInstallationRepository(
+        db.getSource().manager,
+      ).findByFirewallId(nodeId);
+      const backend = crowdSecInstallation?.localRemediation
+        ? await Firewall.getCrowdSecFirewallBouncerBackend(req.body.fwcloud, nodeId)
+        : undefined;
+      await communication.installFirewallPolicy(policyPath, channel, backend);
     } else {
       await communication.installFirewallPolicy(policyPath, channel);
     }
