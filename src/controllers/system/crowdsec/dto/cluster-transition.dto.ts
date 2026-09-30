@@ -21,9 +21,6 @@
 */
 
 import {
-  ArrayNotEmpty,
-  ArrayUnique,
-  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -68,12 +65,4 @@ export class CrowdSecClusterTransitionDto {
   @IsString()
   @Length(1, 8192)
   bouncerApiKey?: string;
-
-  @IsOptional()
-  @IsArray()
-  @ArrayNotEmpty()
-  @ArrayUnique()
-  @IsInt({ each: true })
-  @Min(1, { each: true })
-  nodeIds?: number[];
 }

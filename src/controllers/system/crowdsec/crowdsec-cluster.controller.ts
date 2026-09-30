@@ -372,7 +372,7 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster role transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req);
+    const nodes = await this.getAuthorizedNodes(req, false);
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const { centralFirewall, centralLapiNodes } = await this.getExternalCentralLapiTarget(
       req.body.centralFirewallId,
@@ -520,7 +520,7 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster central LAPI transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req);
+    const nodes = await this.getAuthorizedNodes(req, false);
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const { centralFirewall, centralLapiNodes } = await this.getExternalCentralLapiTarget(
       req.body.centralFirewallId,
@@ -720,7 +720,7 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster Machine address transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req);
+    const nodes = await this.getAuthorizedNodes(req, false);
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
     const installations = await Promise.all(
       nodes.map((node) => installationRepository.findByFirewallId(node.id)),
@@ -921,7 +921,7 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster remediation transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req);
+    const nodes = await this.getAuthorizedNodes(req, false);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
@@ -1139,7 +1139,7 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster role transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req);
+    const nodes = await this.getAuthorizedNodes(req, false);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const results: ClusterMachineNodeResult[] = [];
@@ -1319,9 +1319,15 @@ export class CrowdSecClusterController extends Controller {
     return true;
   }
 
-  private async getAuthorizedNodes(req: Request): Promise<Firewall[]> {
+  private async getAuthorizedNodes(
+    req: Request,
+    allowNodeSelection: boolean = true,
+  ): Promise<Firewall[]> {
     const clusterNodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
     const requestedNodeIds = req.body.nodeIds as number[] | undefined;
+    if (!allowNodeSelection && requestedNodeIds !== undefined) {
+      throw new HttpException('CrowdSec cluster transitions must include every cluster node', 422);
+    }
     const requestedNodeIdsSet = requestedNodeIds ? new Set(requestedNodeIds) : undefined;
     const nodes = requestedNodeIdsSet
       ? clusterNodes.filter((node) => requestedNodeIdsSet.has(node.id))
