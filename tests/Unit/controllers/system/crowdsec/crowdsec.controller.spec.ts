@@ -91,7 +91,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     fwcProduct = await new FwCloudFactory().make();
     controller = new CrowdSecController(app);
     communication = new AgentCommunication({
-      protocol: 'http',
+      protocol: 'https',
       host: 'host',
       port: 0,
       apikey: 'api-key',
@@ -104,6 +104,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       },
     } as unknown as Request);
     (controller as any)._firewall.install_communication = FirewallInstallCommunication.Agent;
+    (controller as any)._firewall.install_protocol = FirewallInstallProtocol.HTTPS;
 
     sinon.stub(Firewall.prototype, 'getCommunication').resolves(communication);
     pingStub = sinon.stub(AgentCommunication.prototype, 'ping').resolves();
@@ -461,7 +462,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(findInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(findInstallationStub.calledWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
     expect(setCentralLapiEnabledStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to.be
       .true;
@@ -974,7 +975,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.deep.equal({
       machine: { machine_name: 'fwcloud-machine-01', state: 'pending' },
       validation: {
-        nodes: [{ firewall_id: centralFirewall.id, replication: {} }],
+        nodes: [{ firewall_id: centralFirewall.id, name: centralFirewall.name, replication: {} }],
       },
       activation: {
         machine_name: 'fwcloud-machine-01',
@@ -1517,6 +1518,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       }),
     );
     sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
+    sinon.stub(centralCommunication, 'configureCrowdSecCentralLapi').resolves({});
     sinon.stub(communication, 'prepareCrowdSecTransition').resolves({ phase: 'prepared' });
     sinon.stub(communication, 'activateCrowdSecTransition').resolves({
       phase: 'active_pending_finalize',
