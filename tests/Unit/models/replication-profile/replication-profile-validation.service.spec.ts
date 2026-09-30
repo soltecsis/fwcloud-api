@@ -6,6 +6,7 @@ import {
   ReplicationProfileValidationException,
   validateReplicationProfilePayload,
 } from '../../../../src/models/replication-profile/replication-profile-validation.service';
+import { readVersionedReplicationProfileTemplate } from '../../../utils/replication-profile-fixtures';
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -104,7 +105,12 @@ function pathsFor(payload: unknown): Array<string | undefined> {
 
 describe(describeName('Replication Profile Validation Service Unit Tests'), () => {
   it('should accept valid built-in, firewall and cluster profiles', () => {
-    expect(errorsFor(defaultReplicationProfile)).to.be.empty;
+    expect(
+      errorsFor({
+        target_kind: defaultReplicationProfile.target_kind,
+        model: readVersionedReplicationProfileTemplate(defaultReplicationProfile.path),
+      }),
+    ).to.be.empty;
     expect(errorsFor(firewallProfile())).to.be.empty;
     expect(errorsFor(clusterProfile())).to.be.empty;
   });

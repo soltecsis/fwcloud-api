@@ -1,3 +1,8 @@
+export interface ReplicationProfileTemplateErrorDto {
+  reason: string;
+  message: string;
+}
+
 export interface ReplicationProfileResponseDto {
   id: number;
   code: string;
@@ -7,7 +12,10 @@ export interface ReplicationProfileResponseDto {
   scope: string;
   category: string | null;
   targetKind: string;
-  model: Record<string, unknown>;
+  /** Loaded from the profile template; null when that template could not be read. */
+  model: Record<string, unknown> | null;
+  /** Why the template could not be read: the profile is still listed, marked, but unusable. */
+  templateError: ReplicationProfileTemplateErrorDto | null;
   isBuiltin: boolean;
   isCustom: boolean;
   isActive: boolean;

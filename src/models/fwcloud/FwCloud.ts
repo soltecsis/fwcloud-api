@@ -48,6 +48,7 @@ import { FSHelper } from '../../utils/fs-helper';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { IPObjRepository } from '../ipobj/IPObj.repository';
 import { DatabaseService } from '../../database/database.service';
+import { getFwCloudReplicationProfileTemplatesDirectory } from '../replication-profile/replication-profile-template';
 
 const tableName: string = 'fwcloud';
 
@@ -146,6 +147,7 @@ export class FwCloud extends Model {
     FSHelper.rmDirectorySync(this.getPkiDirectoryPath());
     FSHelper.rmDirectorySync(this.getPolicyDirectoryPath());
     FSHelper.rmDirectorySync(this.getSnapshotDirectoryPath());
+    FSHelper.rmDirectorySync(this.getReplicationProfileTemplatesDirectoryPath());
   }
 
   @AfterInsert()
@@ -309,6 +311,7 @@ export class FwCloud extends Model {
         // Custom replication profiles owned by this fwcloud. Built-in profiles
         // have fwcloud_id NULL and are global, so they are never matched here.
         // Required because the fwcloud_id foreign key is ON DELETE RESTRICT.
+        // Their templates go with the data directories removed after commit.
         `delete from replication_profiles where fwcloud_id=${this.id};`,
 
         // Remove the fwcloud itself.
@@ -367,6 +370,19 @@ export class FwCloud extends Model {
   public getSnapshotDirectoryPath(): string {
     if (this.id) {
       return path.join(app().config.get('snapshot').data_dir, this.id.toString());
+    }
+
+    return null;
+  }
+
+  /**
+   * Returns the fwcloud directory for the templates of its custom replication profiles
+   *
+   * @return {string}
+   */
+  public getReplicationProfileTemplatesDirectoryPath(): string {
+    if (this.id) {
+      return getFwCloudReplicationProfileTemplatesDirectory(this.id);
     }
 
     return null;

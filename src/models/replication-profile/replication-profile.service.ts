@@ -1,4 +1,5 @@
 import db from '../../database/database-manager';
+import { logger } from '../../fonaments/abstract-application';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
@@ -16,6 +17,15 @@ import {
   ReplicationProfileValidationError,
   ReplicationProfileValidationService,
 } from './replication-profile-validation.service';
+import {
+  buildReplicationProfileTemplatePath,
+  loadReplicationProfileModel,
+  readReplicationProfileModel,
+  removeReplicationProfileModel,
+  writeReplicationProfileModel,
+  type ReplicationProfileModel,
+  type ReplicationProfileTemplateRead,
+} from './replication-profile-template';
 import { AuditLogService } from '../audit/AuditLog.service';
 
 export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
@@ -63,6 +73,15 @@ export interface ReplicationProfileMutationActor {
 export interface RemoveCustomReplicationProfileOptions {
   fwCloudId: number;
   actor?: ReplicationProfileMutationActor;
+}
+
+/**
+ * A profile with its template already read. Listings and removals report a
+ * broken template here instead of failing because of it.
+ */
+export interface ReplicationProfileWithTemplate {
+  profile: ReplicationProfile;
+  template: ReplicationProfileTemplateRead;
 }
 
 export interface ReplicationProfileManagementFailureAuditInput {
@@ -142,34 +161,14 @@ export class ReplicationProfileService extends Service {
     return db.getSource().manager.getRepository(ReplicationProfile);
   }
 
-  public async findActive(
-    targetKind?: ReplicationProfileTargetKind,
-    fwCloudId?: number,
-  ): Promise<ReplicationProfile[]> {
-    const activeWhere = {
-      isActive: true,
-      isDeprecated: false,
-    };
-    const profiles = await this.repository.find({
-      where: this.buildFwCloudScopeWhere(activeWhere, fwCloudId),
-      order: {
-        code: 'ASC',
-        version: 'DESC',
-      },
-    });
-
-    const preferredProfiles = this.preferLatestProfiles(profiles, fwCloudId);
-
-    if (!targetKind) {
-      return preferredProfiles;
-    }
-
-    return preferredProfiles.filter((profile) => this.supportsTargetKind(profile, targetKind));
-  }
-
+  /**
+   * Catalog profiles with their templates read once, for both the target kind
+   * filter and the response. A profile whose template cannot be read is still
+   * listed, carrying the error, so it does not hide the valid ones.
+   */
   public async findCatalog(
     filters: ReplicationProfileCatalogFilters,
-  ): Promise<ReplicationProfile[]> {
+  ): Promise<ReplicationProfileWithTemplate[]> {
     const where: FindOptionsWhere<ReplicationProfile> = {
       isActive: true,
     };
@@ -244,18 +243,6 @@ export class ReplicationProfileService extends Service {
         fwCloudId: IsNull(),
       },
     });
-  }
-
-  private buildFwCloudScopeWhere(
-    where: FindOptionsWhere<ReplicationProfile>,
-    fwCloudId?: number,
-  ): FindOptionsWhere<ReplicationProfile> | FindOptionsWhere<ReplicationProfile>[] {
-    return fwCloudId === undefined
-      ? where
-      : [
-          { ...where, fwCloudId: IsNull() },
-          { ...where, fwCloudId },
-        ];
   }
 
   private buildCatalogWhere(
@@ -489,7 +476,7 @@ export class ReplicationProfileService extends Service {
   }
 
   /**
-   * Removes a custom profile from the database so the same code/version can be
+   * Removes a custom profile and its template so the same code/version can be
    * created again. Built-in profiles cannot be removed (403) and profiles from
    * another FWCloud are indistinguishable from missing ones (404) so their
    * existence is never leaked.
@@ -498,7 +485,7 @@ export class ReplicationProfileService extends Service {
     code: string,
     version: number,
     options: RemoveCustomReplicationProfileOptions,
-  ): Promise<ReplicationProfile> {
+  ): Promise<ReplicationProfileWithTemplate> {
     const startedAt = new Date();
     let profile: ReplicationProfile | null = null;
 
@@ -512,8 +499,11 @@ export class ReplicationProfileService extends Service {
         );
       }
 
+      // Read before removing it: a broken template must not prevent the removal either.
+      const template = readReplicationProfileModel(profile);
       const removedProfile = { ...profile } as ReplicationProfile;
       await this.repository.remove(profile);
+      this.removeProfileTemplate(removedProfile);
 
       await this.auditProfileManagementSuccess({
         operation: 'remove',
@@ -526,7 +516,7 @@ export class ReplicationProfileService extends Service {
         },
       });
 
-      return removedProfile;
+      return { profile: removedProfile, template };
     } catch (error) {
       await this.auditProfileManagementFailure({
         operation: 'remove',
@@ -591,6 +581,7 @@ export class ReplicationProfileService extends Service {
 
     if (this.canReuseCustomProfileIdentity(existingProfile)) {
       await this.repository.remove(existingProfile);
+      this.removeProfileTemplate(existingProfile);
       return;
     }
 
@@ -640,8 +631,17 @@ export class ReplicationProfileService extends Service {
       scope: payload.scope ?? sourceProfile.scope,
       targetKind: payload.targetKind ?? sourceProfile.targetKind,
       category: payload.category ?? sourceProfile.category,
-      model: this.cloneProfileModel(sourceProfile.model),
+      model: loadReplicationProfileModel(sourceProfile),
     };
+  }
+
+  /** The row is already gone, so a template left behind is only unused disk data. */
+  private removeProfileTemplate(profile: ReplicationProfile): void {
+    try {
+      removeReplicationProfileModel(profile);
+    } catch (error) {
+      logger().warn(error.message);
+    }
   }
 
   private async auditProfileManagementSuccess(
@@ -814,12 +814,6 @@ export class ReplicationProfileService extends Service {
     return 'operation failed';
   }
 
-  private cloneProfileModel(
-    model: Record<string, unknown> | null | undefined,
-  ): Record<string, unknown> {
-    return JSON.parse(JSON.stringify(model ?? {}));
-  }
-
   private cleanAuditData(data: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(
       Object.entries(data).filter(([, value]) => value !== undefined),
@@ -837,101 +831,52 @@ export class ReplicationProfileService extends Service {
     return slug.length > 0 ? slug : 'profile';
   }
 
+  /** Without a model (unreadable template) only the profile's own target kind counts. */
   public supportsTargetKind(
     profile: ReplicationProfile,
     targetKind: ReplicationProfileTargetKind,
+    model: ReplicationProfileModel | null,
   ): boolean {
     const compatibleTargetKinds = new Set<ReplicationProfileTargetKind>([
       ...normalizeReplicationProfileTargetKinds(profile.targetKind),
-      ...getReplicationProfileModelTargetKinds(profile.model),
+      ...getReplicationProfileModelTargetKinds(model),
     ]);
 
     return compatibleTargetKinds.has(targetKind);
   }
 
-  private preferLatestProfiles(
-    profiles: ReplicationProfile[],
-    fwCloudId?: number,
-  ): ReplicationProfile[] {
-    return this.preferLatestByKey(
-      profiles,
-      (profile) =>
-        fwCloudId === undefined ? `${profile.fwCloudId ?? 'global'}:${profile.code}` : profile.code,
-      (candidate, current) => this.isPreferredProfile(candidate, current, fwCloudId),
-    ).sort((left, right) => this.compareScopedProfiles(left, right));
-  }
+  /** Keeps the latest version of each code, separately for built-ins and each FWCloud. */
+  private preferLatestCatalogProfiles(profiles: ReplicationProfile[]): ReplicationProfile[] {
+    const latestProfiles = new Map<string, ReplicationProfile>();
 
-  private isPreferredProfile(
-    candidate: ReplicationProfile,
-    current: ReplicationProfile,
-    fwCloudId?: number,
-  ): boolean {
-    if (fwCloudId !== undefined) {
-      const candidateIsOwned = candidate.fwCloudId === fwCloudId;
-      const currentIsOwned = current.fwCloudId === fwCloudId;
+    for (const profile of profiles) {
+      const key = `${profile.isBuiltin ? 'builtin' : `custom:${profile.fwCloudId}`}:${profile.code}`;
+      const current = latestProfiles.get(key);
 
-      if (candidateIsOwned !== currentIsOwned) {
-        return candidateIsOwned;
+      if (!current || profile.version > current.version) {
+        latestProfiles.set(key, profile);
       }
     }
 
-    return candidate.version > current.version;
-  }
-
-  private preferLatestCatalogProfiles(profiles: ReplicationProfile[]): ReplicationProfile[] {
-    return this.preferLatestByKey(
-      profiles,
-      (profile) =>
-        `${profile.isBuiltin ? 'builtin' : `custom:${profile.fwCloudId}`}:${profile.code}`,
-      (candidate, current) => candidate.version > current.version,
-    ).sort((left, right) => this.compareCatalogProfiles(left, right));
+    return Array.from(latestProfiles.values()).sort((left, right) =>
+      this.compareCatalogProfiles(left, right),
+    );
   }
 
   private filterCatalogProfiles(
     profiles: ReplicationProfile[],
     filters: ReplicationProfileCatalogFilters,
-  ): ReplicationProfile[] {
+  ): ReplicationProfileWithTemplate[] {
     const search = filters.search?.trim().toLowerCase();
 
-    return profiles.filter(
-      (profile) =>
-        (!filters.targetKind || this.supportsTargetKind(profile, filters.targetKind)) &&
-        (!search || this.matchesCatalogSearch(profile, search)),
-    );
-  }
-
-  private preferLatestByKey(
-    profiles: ReplicationProfile[],
-    keyFor: (profile: ReplicationProfile) => string,
-    isPreferred: (candidate: ReplicationProfile, current: ReplicationProfile) => boolean,
-  ): ReplicationProfile[] {
-    const preferredProfiles = new Map<string, ReplicationProfile>();
-
-    for (const profile of profiles) {
-      const key = keyFor(profile);
-      const current = preferredProfiles.get(key);
-
-      if (!current || isPreferred(profile, current)) {
-        preferredProfiles.set(key, profile);
-      }
-    }
-
-    return Array.from(preferredProfiles.values());
-  }
-
-  private compareScopedProfiles(left: ReplicationProfile, right: ReplicationProfile): number {
-    const codeOrder = left.code.localeCompare(right.code);
-    if (codeOrder !== 0) {
-      return codeOrder;
-    }
-
-    const leftNamespace = left.fwCloudId ?? 0;
-    const rightNamespace = right.fwCloudId ?? 0;
-    if (leftNamespace !== rightNamespace) {
-      return leftNamespace - rightNamespace;
-    }
-
-    return right.version - left.version;
+    return profiles
+      .filter((profile) => !search || this.matchesCatalogSearch(profile, search))
+      .map((profile) => ({ profile, template: readReplicationProfileModel(profile) }))
+      .filter(
+        ({ profile, template }) =>
+          !filters.targetKind ||
+          this.supportsTargetKind(profile, filters.targetKind, template.model),
+      );
   }
 
   private compareCatalogProfiles(left: ReplicationProfile, right: ReplicationProfile): number {
@@ -977,7 +922,7 @@ export class ReplicationProfileService extends Service {
       description: payload.description ?? null,
       scope: payload.scope,
       targetKind: this.effectiveProfileTargetKind(payload.targetKind),
-      model: payload.model as Record<string, unknown>,
+      path: buildReplicationProfileTemplatePath({ ...identity, fwCloudId: options.fwCloudId }),
       category: payload.category ?? null,
       isBuiltin: false,
       isActive: true,
@@ -989,7 +934,15 @@ export class ReplicationProfileService extends Service {
       updated_at: now,
     });
 
-    return this.repository.save(profile);
+    // Inserting first makes a concurrent create of the same code and version fail on the unique
+    // index before it can overwrite this template, and writing the template before the commit
+    // keeps every reader from seeing the profile without it.
+    return db.getSource().transaction(async (manager) => {
+      const savedProfile = await manager.save(profile);
+      writeReplicationProfileModel(savedProfile, payload.model);
+
+      return savedProfile;
+    });
   }
 
   private effectiveProfileTargetKind(targetKind: string | undefined): ReplicationProfileTargetKind {

@@ -51,8 +51,7 @@ describe('Profile application: VPN references', () => {
     } as any);
     sandbox.stub(ReplicationProfilePolicy, 'apply').resolves({ authorize() {} } as any);
     sandbox.stub(service, 'loadUsableProfile').callsFake(async () => ({
-      code: 'template',
-      version: 1,
+      profile: { code: 'template', version: 1 },
       model: {
         provision: { interfaces: [{ name: 'wan' }], rules: [] },
         vpnTemplate: { cas: [], certificates: [], connections },

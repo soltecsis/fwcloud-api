@@ -1,7 +1,6 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../Model';
-import { assertProfileDefinitionHasNoSecrets } from './replication-profile-secret.guard';
-import { assertReplicationProfilePayloadIsValid } from './replication-profile-validation.service';
+import { resolveReplicationProfileTemplatePath } from './replication-profile-template';
 import {
   isReplicationProfileStringValue,
   REPLICATION_PROFILE_TARGET_KINDS,
@@ -54,10 +53,12 @@ export class ReplicationProfile extends Model {
   })
   targetKind: ReplicationProfileTargetKind;
 
-  @Column({
-    type: 'simple-json',
-  })
-  model: Record<string, unknown>;
+  /**
+   * Template holding the profile model, relative to `config/templates`. Load
+   * and store the model through replication-profile-template.ts.
+   */
+  @Column()
+  path: string;
 
   @Column({
     name: 'is_built_in',
@@ -101,31 +102,14 @@ export class ReplicationProfile extends Model {
   updated_by: number | null;
 
   /**
-   * Credentials must never be persisted inside profile definitions: they may
-   * only exist as transient runtime input of the wizard execution flow.
+   * Keep the entity as the final persistence boundary for template paths, so
+   * no save can point a profile at a file outside the templates directory.
+   * The model itself is validated when its template is written and read.
    */
   @BeforeInsert()
   @BeforeUpdate()
-  rejectSecretsInDefinition(): void {
-    assertProfileDefinitionHasNoSecrets(this.model);
-  }
-
-  /**
-   * Keep the entity as the final persistence boundary, so direct repository
-   * saves and future create/version/clone flows cannot bypass validation.
-   */
-  @BeforeInsert()
-  @BeforeUpdate()
-  rejectInvalidDefinition(): void {
-    assertReplicationProfilePayloadIsValid(
-      {
-        targetKind: this.targetKind,
-        model: this.model,
-      },
-      {
-        validateSecrets: false,
-      },
-    );
+  rejectUnsafeTemplatePath(): void {
+    resolveReplicationProfileTemplatePath(this);
   }
 
   public getTableName(): string {

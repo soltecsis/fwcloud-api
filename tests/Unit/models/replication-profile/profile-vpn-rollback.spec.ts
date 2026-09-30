@@ -183,8 +183,7 @@ describe('Profile application rollback boundary', () => {
     sandbox.stub(db, 'getQuery').returns({} as any);
     sandbox.stub(ReplicationProfilePolicy, 'apply').resolves({ authorize() {} } as any);
     sandbox.stub(service, 'loadUsableProfile').resolves({
-      code: 'template',
-      version: 1,
+      profile: { code: 'template', version: 1 },
       model: {
         provision: { interfaces: [{ name: 'wan' }], rules: [] },
         vpnTemplate: { cas: [], certificates: [], connections: [] },
