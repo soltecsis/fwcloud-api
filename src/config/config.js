@@ -416,6 +416,15 @@ const config = convict({
       env: 'SNAPSHOT_DATA_DIR'
     },
   },
+  // Replication profiles configuration.
+  replication_profiles: {
+    data_dir: {
+      doc: 'Directory for the JSON templates of the custom replication profiles of each FWCloud.',
+      format: String,
+      default: './config/templates/custom/',
+      env: 'REPLICATION_PROFILES_DATA_DIR'
+    },
+  },
   // FwCloud Exporter configuration.
   exporter: {
     data_dir: {

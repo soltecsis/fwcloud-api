@@ -64,6 +64,7 @@ const routesMap: Map<string, string> = new Map<string, string>([
   ['pki', 'pki'],
   ['policy', 'policy'],
   ['snapshot', 'snapshot'],
+  ['replication_profiles', 'replication_profiles'],
 ]);
 export class Backup implements Responsable {
   static DUMP_FILENAME: string = 'db.sql';

@@ -25,6 +25,7 @@ dist/
 #fwcloud runtime files
 DATA/
 sessions/
+config/templates/custom/
 
 #fwcloud custom configuration files
 .env
