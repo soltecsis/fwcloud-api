@@ -807,6 +807,9 @@ export class Routes extends RouteCollection {
             router
               .post('/transitions/remediation', CrowdSecClusterController, 'transitionRemediation')
               .name('fwclouds.clusters.system.crowdsec.transitions.remediation');
+            router
+              .post('/transitions/lapi', CrowdSecClusterController, 'transitionMachineCentralLapi')
+              .name('fwclouds.clusters.system.crowdsec.transitions.lapi');
           });
 
           //Firewalls
