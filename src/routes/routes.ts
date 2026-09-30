@@ -801,6 +801,9 @@ export class Routes extends RouteCollection {
             router
               .get('/collections', CrowdSecClusterController, 'collections')
               .name('fwclouds.clusters.system.crowdsec.collections.index');
+            router
+              .post('/transitions/role', CrowdSecClusterController, 'transitionRole')
+              .name('fwclouds.clusters.system.crowdsec.transitions.role');
           });
 
           //Firewalls
