@@ -40,10 +40,10 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { REPLICATION_PROFILE_TARGET_KINDS } from '../../../models/replication-profile/replication-profile.constants';
-
-/** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
-const CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+import {
+  REPLICATION_PROFILE_CODE_PATTERN,
+  REPLICATION_PROFILE_TARGET_KINDS,
+} from '../../../models/replication-profile/replication-profile.constants';
 
 export class ReplicationProfileSourceDto {
   @IsIn(REPLICATION_PROFILE_TARGET_KINDS)
@@ -73,7 +73,7 @@ export class ReplicationProfileFromSourceDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  @Matches(CODE_PATTERN, {
+  @Matches(REPLICATION_PROFILE_CODE_PATTERN, {
     message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
   })
   code?: string;
