@@ -89,14 +89,17 @@ export class ReplicationProfileTemplateException extends HttpException {
   }
 }
 
-/** Version-controlled templates of the built-in profiles. */
+/**
+ * Version-controlled templates of the built-in profiles. Relative to the
+ * working directory, like the configuration files and the data directories.
+ */
 export function getReplicationProfileTemplatesDirectory(): string {
-  return path.resolve(app().path, 'config', 'templates');
+  return path.resolve('config', 'templates');
 }
 
 /** Templates of the custom profiles, one directory per FWCloud. */
 export function getCustomReplicationProfileTemplatesDirectory(): string {
-  return path.resolve(app().path, app().config.get('replication_profiles').data_dir);
+  return path.resolve(app().config.get('replication_profiles').data_dir);
 }
 
 /** Where the `custom/<fwcloud>/` templates of one FWCloud are stored. */
