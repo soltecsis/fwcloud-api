@@ -12,6 +12,10 @@ import {
   PROFILE_REMOVE_AUDIT_CALL,
 } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
+import {
+  loadReplicationProfileModel,
+  removeReplicationProfileModel,
+} from '../../../../src/models/replication-profile/replication-profile-template';
 import { User } from '../../../../src/models/user/User';
 import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
 import { Ca } from '../../../../src/models/vpn/pki/Ca';
@@ -19,7 +23,12 @@ import { Crt } from '../../../../src/models/vpn/pki/Crt';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
-import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
+import {
+  ReplicationProfileFixture,
+  makeCustomReplicationProfilePayload,
+  makeReplicationProfileFixture,
+  templateExists,
+} from '../../../utils/replication-profile-fixtures';
 import request = require('supertest');
 import { Like, Repository } from 'typeorm';
 
@@ -31,25 +40,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
   let repository: Repository<ReplicationProfile>;
   let codePrefix: string;
 
-  const makeProfile = (overrides: Partial<ReplicationProfile> = {}): ReplicationProfile => {
-    return repository.create({
+  const makeProfile = (overrides: Partial<ReplicationProfileFixture> = {}): ReplicationProfile =>
+    makeReplicationProfileFixture({
       code: `${codePrefix}profile`,
-      version: 1,
-      name: 'Test replication profile',
-      description: null,
-      scope: 'generic',
-      targetKind: 'firewall',
-      model: {
-        replicate: {},
-        options: {},
-      },
-      isBuiltin: false,
-      isActive: true,
-      isDeprecated: false,
       fwCloudId: fwCloud?.id ?? null,
       ...overrides,
     });
-  };
 
   const makeCreatePayload = (overrides: Record<string, unknown> = {}): Record<string, unknown> =>
     makeCustomReplicationProfilePayload(codePrefix, overrides);
@@ -416,7 +412,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         '10.90.0.2/24',
       );
       const persisted = await repository.findOneOrFail({ where: { id: result.id } });
-      expect(persisted.model.vpnTemplate).to.deep.eq(vpn);
+      expect(loadReplicationProfileModel(persisted).vpnTemplate).to.deep.eq(vpn);
     });
 
     it('should reject requests without a session', async () => {
@@ -537,7 +533,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             is_built_in: false,
             fwcloud_id: fwCloud.id,
           });
-          expect(result.model).to.deep.eq(builtIn.model);
+          expect(result.model).to.deep.eq(loadReplicationProfileModel(builtIn));
 
           const source = await repository.findOneOrFail({ where: { id: builtIn.id } });
           expect(source.isBuiltin).to.be.true;
@@ -814,9 +810,36 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             is_deprecated: false,
             fwcloud_id: fwCloud.id,
           });
-          expect(result.model).to.deep.equal(profile.model);
+          expect(result.model).to.deep.equal(loadReplicationProfileModel(profile));
+          expect(result.templateError).to.be.null;
           expect(result.createdAt).to.be.a('string');
           expect(result.updatedAt).to.be.a('string');
+        });
+    });
+
+    it('should list profiles whose template cannot be read marked, next to the valid ones', async () => {
+      const [valid, broken] = await repository.save([
+        makeProfile({ code: `${codePrefix}listed-valid` }),
+        makeProfile({ code: `${codePrefix}listed-broken` }),
+      ]);
+      removeReplicationProfileModel(broken);
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const listed = (code: string) =>
+            response.body.data.find((profile) => profile.code === code);
+
+          expect(listed(valid.code).model).to.deep.eq({ replicate: {}, options: {} });
+          expect(listed(valid.code).templateError).to.be.null;
+          expect(listed(broken.code).model).to.be.null;
+          expect(listed(broken.code).templateError).to.deep.eq({
+            reason: 'not_found',
+            message: `Template "${broken.path}" of replication profile ${broken.code} v1 does not exist.`,
+          });
+          expect(listed('default').templateError).to.be.null;
         });
     });
 
@@ -1056,7 +1079,22 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             version: profile.version,
             targetKind: profile.targetKind,
           });
-          expect(response.body.data.model).to.deep.equal(profile.model);
+          expect(response.body.data.model).to.deep.equal(loadReplicationProfileModel(profile));
+        });
+    });
+
+    it('should answer with a controlled error when the profile template is missing', async () => {
+      const profile = await repository.save(makeProfile({ code: `${codePrefix}no-template` }));
+      removeReplicationProfileModel(profile);
+
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(500)
+        .then((response) => {
+          expect(response.body.message).to.be.eq(
+            `Template "${profile.path}" of replication profile ${profile.code} v1 does not exist.`,
+          );
         });
     });
 
@@ -1108,10 +1146,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             is_built_in: false,
             fwcloud_id: fwCloud.id,
           });
+          expect(response.body.data.model).to.deep.eq({ replicate: {}, options: {} });
         });
 
       const persisted = await repository.findOne({ where: { id: profile.id } });
       expect(persisted).to.be.null;
+      expect(templateExists(profile)).to.be.false;
 
       await request(app.express)
         .get(`/fwclouds/${fwCloud.id}/profiles`)
@@ -1140,6 +1180,25 @@ describe(describeName('Replication Profile E2E Tests'), () => {
             fwcloud_id: fwCloud.id,
           });
         });
+    });
+
+    it('should delete a custom profile whose template is missing', async () => {
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}remove-no-template`, fwCloudId: fwCloud.id }),
+      );
+      removeReplicationProfileModel(profile);
+
+      await request(app.express)
+        .delete(deleteUrl(profile.code, profile.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data).to.include({ id: profile.id, code: profile.code });
+          expect(response.body.data.model).to.be.null;
+          expect(response.body.data.templateError).to.include({ reason: 'not_found' });
+        });
+
+      expect(await repository.findOne({ where: { id: profile.id } })).to.be.null;
     });
 
     it('should reject built-in profile removal', async () => {

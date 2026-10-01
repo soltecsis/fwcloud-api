@@ -1,8 +1,19 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import db from '../../src/database/database-manager';
 import { Firewall, FireWallOptMask } from '../../src/models/firewall/Firewall';
 import { Interface } from '../../src/models/interface/Interface';
 import { IPObj } from '../../src/models/ipobj/IPObj';
 import { PolicyRule } from '../../src/models/policy/PolicyRule';
+import { ReplicationProfile } from '../../src/models/replication-profile/replication-profile.model';
+import {
+  buildReplicationProfileTemplatePath,
+  getReplicationProfileTemplatesDirectory,
+  resolveReplicationProfileTemplatePath,
+  writeReplicationProfileModel,
+  type ReplicationProfileModel,
+  type ReplicationProfileTemplateReference,
+} from '../../src/models/replication-profile/replication-profile-template';
 import StringHelper from '../../src/utils/string.helper';
 import { FwCloudProduct } from './fwcloud-factory';
 
@@ -11,6 +22,87 @@ export interface ReplicationTargetSide {
   wanInterface: Interface;
   lanInterface: Interface;
   wanAddress: IPObj;
+}
+
+export type ReplicationProfileFixture = Partial<Omit<ReplicationProfile, 'path'>> & {
+  code: string;
+  model?: ReplicationProfileModel;
+};
+
+/**
+ * Where makeReplicationProfileFixture() keeps the template of a profile.
+ * Profiles without a FWCloud keep theirs among the custom templates as well,
+ * so fixtures never write into the version-controlled config/templates.
+ */
+export function replicationProfileFixtureTemplate({
+  code,
+  version = 1,
+  fwCloudId = null,
+  targetKind = 'firewall',
+}: {
+  code: string;
+  version?: number;
+  fwCloudId?: number | null;
+  targetKind?: string;
+}): ReplicationProfileTemplateReference {
+  const templatePath = buildReplicationProfileTemplatePath({ code, version, fwCloudId });
+
+  return {
+    code,
+    version,
+    targetKind,
+    path: typeof fwCloudId === 'number' ? templatePath : `custom/fixtures/${templatePath}`,
+  };
+}
+
+/** Builds (without saving) an active custom profile and writes its template. */
+export function makeReplicationProfileFixture({
+  model = { replicate: {}, options: {} },
+  ...fields
+}: ReplicationProfileFixture): ReplicationProfile {
+  const profile = db
+    .getSource()
+    .manager.getRepository(ReplicationProfile)
+    .create({
+      version: 1,
+      name: 'Test replication profile',
+      description: null,
+      scope: 'generic',
+      targetKind: 'firewall',
+      isBuiltin: false,
+      isActive: true,
+      isDeprecated: false,
+      ...fields,
+    });
+
+  profile.path = replicationProfileFixtureTemplate(profile).path;
+  writeReplicationProfileModel(profile, model);
+
+  return profile;
+}
+
+export function templateExists(profile: ReplicationProfileTemplateReference): boolean {
+  return fs.existsSync(resolveReplicationProfileTemplatePath(profile));
+}
+
+/** Puts raw content where a template is expected, skipping the writer checks. */
+export function writeRawReplicationProfileTemplate(
+  profile: ReplicationProfileTemplateReference,
+  content: string,
+): void {
+  const file = resolveReplicationProfileTemplatePath(profile);
+
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, content);
+}
+
+/** A version-controlled template exactly as shipped, read without the loader checks. */
+export function readVersionedReplicationProfileTemplate(
+  templatePath: string,
+): ReplicationProfileModel {
+  return JSON.parse(
+    fs.readFileSync(path.join(getReplicationProfileTemplatesDirectory(), templatePath), 'utf8'),
+  );
 }
 
 export function makeCustomReplicationProfilePayload(

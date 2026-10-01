@@ -30,6 +30,10 @@ import {
 } from '../../models/replication-profile/replication-profile.service';
 import type { ReplicationProfileValidationError } from '../../models/replication-profile/replication-profile-validation.service';
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
+import {
+  loadReplicationProfileModel,
+  type ReplicationProfileTemplateRead,
+} from '../../models/replication-profile/replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from '../../models/replication-profile/replication-profile-vpn-parameters';
 import type {
   PolicyReplicationMode,
@@ -79,7 +83,7 @@ export class ReplicationProfileController extends Controller {
 
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body(profiles.map((profile) => this.toResponse(profile)));
+      .body(profiles.map(({ profile, template }) => this.toResponse(profile, template)));
   }
 
   /** Predefined FWCloud objects and services a profile can reference by id. */
@@ -283,13 +287,13 @@ export class ReplicationProfileController extends Controller {
       },
     );
 
-    const profile = await replicationProfileService.removeCustomProfile(
+    const { profile, template } = await replicationProfileService.removeCustomProfile(
       code,
       version,
       this.removeOptions(request),
     );
 
-    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile));
+    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile, template));
   }
 
   @Validate(ReplicationProfileApplyDto)
@@ -606,7 +610,14 @@ export class ReplicationProfileController extends Controller {
       : null;
   }
 
-  private toResponse(profile: ReplicationProfile): ReplicationProfileResponseDto {
+  /** Without an already read template, an unreadable one fails the request. */
+  private toResponse(
+    profile: ReplicationProfile,
+    template: ReplicationProfileTemplateRead = {
+      model: loadReplicationProfileModel(profile),
+      error: null,
+    },
+  ): ReplicationProfileResponseDto {
     const isCustom = !profile.isBuiltin;
 
     return {
@@ -618,7 +629,10 @@ export class ReplicationProfileController extends Controller {
       scope: profile.scope,
       category: profile.category,
       targetKind: profile.targetKind,
-      model: normalizeProfileVpnRuleParameters(profile.model),
+      model: normalizeProfileVpnRuleParameters(template.model),
+      templateError: template.error
+        ? { reason: template.error.reason, message: template.error.message }
+        : null,
       isBuiltin: profile.isBuiltin,
       isCustom,
       isActive: profile.isActive,

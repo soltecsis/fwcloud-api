@@ -4,7 +4,9 @@ import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import {
+  ReplicationProfileFixture,
   ReplicationTargetSide,
+  makeReplicationProfileFixture,
   makeReplicationTargetFirewall,
 } from '../../../utils/replication-profile-fixtures';
 import { createUser } from '../../../utils/utils';
@@ -26,7 +28,9 @@ import {
 } from '../../../../src/models/replication-profile/profile-application.service';
 import { PolicyReplicationRequest } from '../../../../src/models/replication-profile/policy-replication.types';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
+import { resolveReplicationProfileTemplatePath } from '../../../../src/models/replication-profile/replication-profile-template';
 import StringHelper from '../../../../src/utils/string.helper';
+import * as fs from 'fs';
 
 describe(describeName('ProfileApplicationService Unit Tests'), () => {
   let app: Application;
@@ -111,25 +115,20 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
     });
   });
 
-  function makeProfile(overrides: Partial<ReplicationProfile> = {}): Promise<ReplicationProfile> {
+  function makeProfile(
+    overrides: Partial<ReplicationProfileFixture> = {},
+  ): Promise<ReplicationProfile> {
     const repository = db.getSource().manager.getRepository(ReplicationProfile);
 
     return repository.save(
-      repository.create({
+      makeReplicationProfileFixture({
         code: `profile-app-${Date.now()}-${++profileCounter}`,
-        version: 1,
         name: 'Profile application test profile',
-        description: null,
-        scope: 'generic',
-        targetKind: 'firewall',
         model: {
           compatibility: { targetKinds: ['firewall', 'cluster'] },
           replicate: {},
           options: {},
         },
-        isBuiltin: false,
-        isActive: true,
-        isDeprecated: false,
         ...overrides,
       }),
     );
@@ -736,12 +735,8 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
         ]);
       expect(Number(auditRows[0].n)).to.be.eq(0);
 
-      const profileRows = await db
-        .getSource()
-        .query('SELECT COUNT(*) AS n FROM replication_profiles WHERE model LIKE ?', [
-          `%${secretMarker}%`,
-        ]);
-      expect(Number(profileRows[0].n)).to.be.eq(0);
+      const template = fs.readFileSync(resolveReplicationProfileTemplatePath(profile), 'utf8');
+      expect(template).not.to.contain(secretMarker);
     });
 
     it('should build the audit payload only from allow-listed fields', async () => {

@@ -153,6 +153,19 @@ describe(describeName('Backup Unit tests'), () => {
       ).to.be.true;
     });
 
+    it('should copy replication profile templates if exists', async () => {
+      let backup: Backup = new Backup();
+
+      FSHelper.mkdirSync(path.join(app.config.get('replication_profiles').data_dir, 'test'));
+      backup = await backup.create(service.config.data_dir);
+
+      expect(
+        FSHelper.directoryExistsSync(
+          path.join(backup.path, Backup.DATA_DIRNAME, 'replication_profiles', 'test'),
+        ),
+      ).to.be.true;
+    });
+
     it('should generate a backup.json file with metadata', async () => {
       let backup: Backup = new Backup();
       backup.setComment('test comment');
@@ -314,6 +327,19 @@ describe(describeName('Backup Unit tests'), () => {
 
       expect(FSHelper.directoryExistsSync(path.join(app.config.get('snapshot').data_dir, 'test')))
         .to.be.true;
+    });
+
+    it('should import replication profile templates if they exist in the backup', async () => {
+      let backup: Backup = new Backup();
+      const templatesDirectory = app.config.get('replication_profiles').data_dir;
+
+      FSHelper.mkdirSync(path.join(templatesDirectory, 'test'));
+      backup = await backup.create(service.config.data_dir);
+      FSHelper.rmDirectorySync(path.join(templatesDirectory, 'test'));
+
+      await backup.restore();
+
+      expect(FSHelper.directoryExistsSync(path.join(templatesDirectory, 'test'))).to.be.true;
     });
 
     it('should remove compilation status from firewalls', async () => {

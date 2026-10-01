@@ -5,6 +5,13 @@ import { ReplicationProfile } from '../../../../src/models/replication-profile/r
 import { ReplicationProfileValidationException } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import StringHelper from '../../../../src/utils/string.helper';
+import {
+  ReplicationProfileFixture,
+  makeReplicationProfileFixture,
+  replicationProfileFixtureTemplate,
+  templateExists,
+} from '../../../utils/replication-profile-fixtures';
+import * as fs from 'fs';
 import { Like, QueryFailedError, Repository } from 'typeorm';
 
 describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Tests'), () => {
@@ -14,21 +21,15 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
   let fwCloudB: FwCloud;
   let codePrefix: string;
 
-  const makeProfile = (overrides: Partial<ReplicationProfile> = {}): ReplicationProfile =>
-    repository.create({
+  const makeProfile = (overrides: Partial<ReplicationProfileFixture> = {}): ReplicationProfile =>
+    makeReplicationProfileFixture({
       code: `${codePrefix}profile`,
-      version: 1,
       name: 'Custom profile',
-      description: null,
       scope: 'custom',
-      targetKind: 'firewall',
       model: {
         compatibility: { targetKinds: ['firewall'] },
         roleAssignments: { interfaceRoles: ['wan', 'lan'] },
       },
-      isBuiltin: false,
-      isActive: true,
-      isDeprecated: false,
       ...overrides,
     });
 
@@ -67,9 +68,21 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     expect(preset).not.to.be.null;
     expect(preset.isBuiltin).to.be.true;
     expect(preset.fwCloudId).to.be.null;
+    expect(preset.path).to.be.eq(defaultReplicationProfile.path);
     expect(preset.category).to.be.null;
     expect(preset.created_by).to.be.null;
     expect(preset.updated_by).to.be.null;
+  });
+
+  it('should store the template path instead of the model', async () => {
+    const columns: Array<{ Field: string; Type: string; Null: string }> = await db
+      .getSource()
+      .query('SHOW COLUMNS FROM replication_profiles');
+    const pathColumn = columns.find((column) => column.Field === 'path');
+
+    expect(columns.map((column) => column.Field)).not.to.include('model');
+    expect(pathColumn.Type).to.be.eq('varchar(512)');
+    expect(pathColumn.Null).to.be.eq('NO');
   });
 
   it('should persist a custom profile scoped to a FWCloud', async () => {
@@ -92,24 +105,28 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     expect(reloaded.updated_by).to.be.eq(7);
   });
 
-  it('should reject invalid profile definitions before persistence', async () => {
-    await expect(
-      repository.save(
-        makeProfile({
-          code: `${codePrefix}invalid-definition`,
-          targetKind: 'firewall',
-          model: {
-            compatibility: { target_kinds: ['cluster'] },
-            provision: {
-              interfaces: [
-                { name: 'eth0', role: 'wan' },
-                { name: 'eth1', role: 'wan' },
-              ],
-            },
+  it('should reject invalid profile definitions before writing their template', async () => {
+    const code = `${codePrefix}invalid-definition`;
+
+    expect(() =>
+      makeProfile({
+        code,
+        fwCloudId: fwCloudA.id,
+        targetKind: 'firewall',
+        model: {
+          compatibility: { target_kinds: ['cluster'] },
+          provision: {
+            interfaces: [
+              { name: 'eth0', role: 'wan' },
+              { name: 'eth1', role: 'wan' },
+            ],
           },
-        }),
-      ),
-    ).to.be.rejectedWith(ReplicationProfileValidationException);
+        },
+      }),
+    ).to.throw(ReplicationProfileValidationException);
+
+    expect(templateExists(replicationProfileFixtureTemplate({ code, fwCloudId: fwCloudA.id }))).to
+      .be.false;
   });
 
   it('should allow the same code+version in two different FWClouds', async () => {
@@ -165,9 +182,11 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     );
 
     const managedFwCloud = await FwCloud.findOneOrFail({ where: { id: owner.id } });
+    expect(templateExists(custom)).to.be.true;
     await managedFwCloud.remove();
 
     expect(await repository.findOne({ where: { id: custom.id } })).to.be.null;
+    expect(fs.existsSync(managedFwCloud.getReplicationProfileTemplatesDirectoryPath())).to.be.false;
 
     const preset = await repository.findOne({
       where: { code: defaultReplicationProfile.code, version: defaultReplicationProfile.version },

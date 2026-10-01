@@ -5,54 +5,5 @@
   "description": "Default predefined replication profile for standard firewall provisioning.",
   "scope": "generic",
   "target_kind": "firewall",
-  "model": {
-    "compatibility": {
-      "target_kinds": ["firewall"]
-    },
-    "replicate": {
-      "firewall": {
-        "interfaces": true,
-        "routing": true,
-        "policyRules": true,
-        "natRules": true,
-        "objects": true,
-        "services": true,
-        "ipObjects": true,
-        "ipObjectGroups": true
-      },
-      "vpn": {
-        "openvpn": true,
-        "wireguard": true,
-        "ipsec": false
-      },
-      "system": {
-        "dns": false,
-        "ntp": false,
-        "users": false,
-        "certificates": false
-      }
-    },
-    "options": {
-      "overwriteExisting": false,
-      "preserveLocalNames": true,
-      "preserveTargetSpecificValues": true,
-      "validateBeforeApply": true
-    },
-    "provision": {
-      "interfaces": [
-        { "name": "WAN", "role": "wan" },
-        { "name": "LAN", "role": "lan" }
-      ],
-      "rules": [
-        {
-          "chain": "forward",
-          "action": "accept",
-          "inRole": "lan",
-          "outRole": "wan",
-          "service": { "protocol": "tcp", "port": 800 },
-          "comment": "Allow only LAN -> WAN on tcp/800."
-        }
-      ]
-    }
-  }
+  "path": "default.v1.json"
 }

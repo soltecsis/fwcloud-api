@@ -104,6 +104,10 @@ before(async () => {
   await dbService.emptyDatabase();
 
   await testSuite.resetDatabaseData();
+
+  // Custom replication profile templates are kept outside the playground so
+  // they last as long as the rows pointing to them; start without leftovers.
+  fse.emptyDirSync(testSuite.app.config.get('replication_profiles').data_dir);
 });
 
 async function emptyPlayground(): Promise<void> {

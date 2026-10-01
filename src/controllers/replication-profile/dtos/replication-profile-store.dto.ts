@@ -57,6 +57,7 @@ import {
   asReplicationProfileRecord,
   isReplicationProfilePort,
   isReplicationProfileStringValue,
+  REPLICATION_PROFILE_CODE_PATTERN,
   REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
   REPLICATION_PROFILE_RULE_ACTIONS,
   REPLICATION_PROFILE_RULE_PROTOCOLS,
@@ -68,9 +69,6 @@ import { isReplicationProfileParameterRef } from '../../../models/replication-pr
 const TARGET_KINDS: readonly string[] = REPLICATION_PROFILE_TARGET_KINDS;
 const RULE_ACTIONS: readonly string[] = REPLICATION_PROFILE_RULE_ACTIONS;
 const RULE_PROTOCOLS: readonly string[] = REPLICATION_PROFILE_RULE_PROTOCOLS;
-
-/** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
-const CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 function isArraySubsetOf(value: unknown, allowed: readonly string[]): boolean {
   return (
@@ -392,7 +390,7 @@ export class ReplicationProfileStoreDto extends ReplicationProfileVersionStoreDt
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  @Matches(CODE_PATTERN, {
+  @Matches(REPLICATION_PROFILE_CODE_PATTERN, {
     message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
   })
   code?: string;
@@ -410,7 +408,7 @@ export class ReplicationProfileCloneDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  @Matches(CODE_PATTERN, {
+  @Matches(REPLICATION_PROFILE_CODE_PATTERN, {
     message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
   })
   code?: string;

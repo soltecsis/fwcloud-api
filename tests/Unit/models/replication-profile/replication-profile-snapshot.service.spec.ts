@@ -33,6 +33,7 @@ import {
 } from '../../../../src/models/replication-profile/profile-vpn-pki-provisioning.service';
 import { validateProfileVpnTemplate } from '../../../../src/models/replication-profile/replication-profile-vpn.validation';
 import { normalizeProfileVpnRuleParameters } from '../../../../src/models/replication-profile/replication-profile-vpn-parameters';
+import { loadReplicationProfileModel } from '../../../../src/models/replication-profile/replication-profile-template';
 
 interface CapturedObject {
   kind: string;
@@ -139,18 +140,18 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
     interfaces: Array<{ name: string; role: string; addresses: Array<{ value: unknown }> }>;
     rules: CapturedRule[];
   } {
-    return profile.model.provision as {
+    return loadReplicationProfileModel(profile).provision as {
       interfaces: Array<{ name: string; role: string; addresses: Array<{ value: unknown }> }>;
       rules: CapturedRule[];
     };
   }
 
   function getParameters(profile: ReplicationProfile): CapturedParameter[] {
-    return (profile.model.parameters ?? []) as CapturedParameter[];
+    return (loadReplicationProfileModel(profile).parameters ?? []) as CapturedParameter[];
   }
 
   function getVpnTemplate(profile: ReplicationProfile) {
-    return profile.model.vpnTemplate as {
+    return loadReplicationProfileModel(profile).vpnTemplate as {
       version: number;
       cas: ProfileVpnCaTemplate[];
       certificates: ProfileVpnCertificateTemplate[];
@@ -298,12 +299,13 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(denyRule.inRole).to.be.eq(roleByName.get('ens18'));
       expect(denyRule.services).to.be.undefined;
 
-      const sourceRef = profile.model.sourceRef as Record<string, unknown>;
+      const model = loadReplicationProfileModel(profile);
+      const sourceRef = model.sourceRef as Record<string, unknown>;
       expect(sourceRef.kind).to.be.eq('firewall');
       expect(sourceRef.id).to.be.eq(source.firewall.id);
       expect(sourceRef.name).to.be.eq(source.firewall.name);
 
-      const compatibility = profile.model.compatibility as Record<string, unknown>;
+      const compatibility = model.compatibility as Record<string, unknown>;
       expect(compatibility.target_kinds).to.deep.eq(['firewall', 'cluster']);
     });
 
@@ -562,7 +564,8 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(profile.targetKind).to.be.eq('cluster');
       expect(getProvision(profile).rules).to.have.length(1);
 
-      const topologyPreset = profile.model.topologyPreset as {
+      const model = loadReplicationProfileModel(profile);
+      const topologyPreset = model.topologyPreset as {
         nodes: Array<{ role: string; name: string; required: boolean }>;
       };
       expect(topologyPreset.nodes).to.have.length(2);
@@ -575,10 +578,10 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(topologyPreset.nodes[1].role).to.be.eq('backup');
       expect(topologyPreset.nodes[1].required).to.be.false;
 
-      const roleAssignments = profile.model.roleAssignments as Record<string, unknown>;
+      const roleAssignments = model.roleAssignments as Record<string, unknown>;
       expect(roleAssignments.nodeRoles).to.deep.eq(['master', 'backup']);
 
-      const sourceRef = profile.model.sourceRef as Record<string, unknown>;
+      const sourceRef = model.sourceRef as Record<string, unknown>;
       expect(sourceRef.kind).to.be.eq('cluster');
       expect(sourceRef.name).to.be.eq(cluster.name);
     });
@@ -700,7 +703,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         }
 
         expect(validateProfileVpnTemplate(vpn)).to.be.empty;
-        const normalized = normalizeProfileVpnRuleParameters(profile.model);
+        const normalized = normalizeProfileVpnRuleParameters(loadReplicationProfileModel(profile));
         const reparsed = getProfileProvisioning(normalized);
         expect(reparsed.rules).to.have.length(1);
         expect(reparsed.rules[0].source).to.have.length(1);
@@ -744,7 +747,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(vpn.connections).to.have.length(6);
       expect(vpn.cas).to.have.length(1);
       expect(vpn.certificates).to.have.length(6);
-      const serialized = JSON.stringify(profile.model);
+      const serialized = JSON.stringify(loadReplicationProfileModel(profile));
       for (const secret of [
         'snapshot-openvpn-password',
         'snapshot-wireguard-key',
@@ -876,7 +879,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       );
 
       expect(warnings).to.be.empty;
-      const provision = profile.model.provision as Record<string, any>;
+      const provision = loadReplicationProfileModel(profile).provision as Record<string, any>;
       const forward = provision.rules.find((rule) => rule.chain === 'forward');
       expect(forward.source).to.deep.equal([{ kind: 'stdGroup', id: 1, name: 'rfc1918-nets' }]);
       expect(forward.services).to.deep.equal([{ kind: 'std', id: 20029, name: 'https' }]);
@@ -895,7 +898,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(getParameters(profile).some((parameter) => parameter.type === 'range')).to.be.true;
 
       // The captured model is a valid provisioning profile again.
-      const reparsed = getProfileProvisioning(profile.model);
+      const reparsed = getProfileProvisioning(loadReplicationProfileModel(profile));
       expect(reparsed.rules).to.have.length(2);
       expect(reparsed.routing.tables[0].routes).to.have.length(1);
       expect(reparsed.system.dhcp).to.have.length(1);

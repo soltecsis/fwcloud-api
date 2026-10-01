@@ -1,6 +1,9 @@
 export const REPLICATION_PROFILE_TARGET_KINDS = ['firewall', 'cluster'] as const;
 export type ReplicationProfileTargetKind = (typeof REPLICATION_PROFILE_TARGET_KINDS)[number];
 
+/** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
+export const REPLICATION_PROFILE_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 export const REPLICATION_PROFILE_CATALOG_ORIGINS = ['builtin', 'custom', 'all'] as const;
 export type ReplicationProfileCatalogOrigin = (typeof REPLICATION_PROFILE_CATALOG_ORIGINS)[number];
 

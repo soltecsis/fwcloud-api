@@ -46,6 +46,9 @@
     "ipsec": {
         "data_dir": "tests/playground/DATA/ipsec"
     },
+    "replication_profiles": {
+        "data_dir": "tests/.tmp/replication_profiles"
+    },
     "api_server": {
         "https": false
     },

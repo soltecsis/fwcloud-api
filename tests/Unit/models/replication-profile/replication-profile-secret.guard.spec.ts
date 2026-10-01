@@ -8,6 +8,22 @@ import {
   findSecretLikePaths,
   isSecretLikeKey,
 } from '../../../../src/models/replication-profile/replication-profile-secret.guard';
+import {
+  getReplicationProfileTemplatesDirectory,
+  loadReplicationProfileModel,
+  ReplicationProfileTemplateException,
+  resolveReplicationProfileTemplatePath,
+  writeReplicationProfileModel,
+} from '../../../../src/models/replication-profile/replication-profile-template';
+import { expectThrownAs } from '../../../utils/assertions';
+import {
+  makeReplicationProfileFixture,
+  readVersionedReplicationProfileTemplate,
+  replicationProfileFixtureTemplate,
+  templateExists,
+  writeRawReplicationProfileTemplate,
+} from '../../../utils/replication-profile-fixtures';
+import * as fs from 'fs';
 import { Repository } from 'typeorm';
 
 describe(describeName('Replication Profile Secret Guard Unit Tests'), () => {
@@ -65,55 +81,56 @@ describe(describeName('Replication Profile Secret Guard Unit Tests'), () => {
     });
   });
 
-  describe('preset definitions', () => {
-    it('should not contain secret-like fields in the shipped presets', () => {
+  describe('shipped definitions', () => {
+    it('should not contain secret-like fields in the shipped presets and templates', () => {
+      const templates = fs
+        .readdirSync(getReplicationProfileTemplatesDirectory())
+        .filter((fileName) => fileName.endsWith('.json'));
+
+      expect(templates).to.include(defaultReplicationProfile.path);
       expect(findSecretLikePaths(defaultReplicationProfile)).to.deep.eq([]);
+      for (const fileName of templates) {
+        expect(
+          findSecretLikePaths(readVersionedReplicationProfileTemplate(fileName)),
+          fileName,
+        ).to.deep.eq([]);
+      }
     });
   });
 
-  describe('profile persistence', () => {
+  describe('profile templates', () => {
     let repository: Repository<ReplicationProfile>;
+    let code: string;
 
     const makeProfile = (model: Record<string, unknown>): ReplicationProfile =>
-      repository.create({
-        code: `secret-guard-${Date.now()}-${Math.round(Math.random() * 100000)}`,
-        version: 1,
-        name: 'Secret guard test profile',
-        description: null,
-        scope: 'generic',
-        targetKind: 'firewall',
-        model,
-        isBuiltin: false,
-        isActive: true,
-        isDeprecated: false,
-      });
+      makeReplicationProfileFixture({ code, name: 'Secret guard test profile', model });
 
     beforeEach(() => {
       repository = db.getSource().manager.getRepository(ReplicationProfile);
+      code = `secret-guard-${Date.now()}-${Math.round(Math.random() * 100000)}`;
     });
 
-    it('should reject inserting a profile whose definition contains secrets', async () => {
-      await expect(
-        repository.save(makeProfile({ options: { password: 'super-secret' } })),
-      ).to.be.rejectedWith(ProfileSecretPersistenceError);
-
-      const persisted = await db
-        .getSource()
-        .query("SELECT COUNT(*) AS n FROM replication_profiles WHERE model LIKE '%super-secret%'");
-      expect(Number(persisted[0].n)).to.be.eq(0);
+    it('should reject writing a template whose definition contains secrets', () => {
+      expect(() => makeProfile({ options: { password: 'super-secret' } })).to.throw(
+        ProfileSecretPersistenceError,
+      );
+      expect(templateExists(replicationProfileFixtureTemplate({ code }))).to.be.false;
     });
 
-    it('should reject updating a profile definition with secret-like fields', async () => {
+    it('should reject overwriting a template with secret-like fields', async () => {
       const profile = await repository.save(makeProfile({ replicate: {}, options: {} }));
 
-      profile.model = { options: { sshKey: '-----BEGIN OPENSSH PRIVATE KEY-----' } };
+      expect(() =>
+        writeReplicationProfileModel(profile, {
+          options: { sshKey: '-----BEGIN OPENSSH PRIVATE KEY-----' },
+        }),
+      ).to.throw(ProfileSecretPersistenceError);
 
-      await expect(repository.save(profile)).to.be.rejectedWith(ProfileSecretPersistenceError);
+      const template = fs.readFileSync(resolveReplicationProfileTemplatePath(profile), 'utf8');
+      expect(template).not.to.contain('OPENSSH PRIVATE KEY');
+      expect(loadReplicationProfileModel(profile)).to.deep.eq({ replicate: {}, options: {} });
 
-      const persisted = await db
-        .getSource()
-        .query('SELECT model FROM replication_profiles WHERE id = ?', [profile.id]);
-      expect(persisted[0].model).not.to.contain('OPENSSH PRIVATE KEY');
+      await repository.delete(profile.id);
     });
 
     it('should keep accepting clean profile definitions', async () => {
@@ -122,6 +139,26 @@ describe(describeName('Replication Profile Secret Guard Unit Tests'), () => {
       );
 
       expect(profile.id).to.be.a('number');
+      expect(loadReplicationProfileModel(profile)).to.deep.eq({
+        replicate: { firewall: { policyRules: true } },
+        options: {},
+      });
+
+      await repository.delete(profile.id);
+    });
+
+    it('should reject loading a template edited to contain secrets', async () => {
+      const profile = await repository.save(makeProfile({ replicate: {}, options: {} }));
+      writeRawReplicationProfileTemplate(
+        profile,
+        JSON.stringify({ replicate: {}, options: { apiKey: 'leaked' } }),
+      );
+
+      const error = expectThrownAs(
+        () => loadReplicationProfileModel(profile),
+        ReplicationProfileTemplateException,
+      );
+      expect(error.reason).to.be.eq('invalid_model');
 
       await repository.delete(profile.id);
     });

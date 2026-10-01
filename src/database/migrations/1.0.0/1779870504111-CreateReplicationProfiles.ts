@@ -49,8 +49,10 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
             default: "'firewall'",
           },
           {
-            name: 'model',
-            type: 'longtext',
+            // JSON template with the profile model, relative to config/templates.
+            name: 'path',
+            type: 'varchar',
+            length: '512',
             isNullable: false,
           },
           {
@@ -105,7 +107,7 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
         description,
         scope,
         target_kind,
-        model,
+        path,
         is_built_in,
         is_active,
         is_deprecated
@@ -120,7 +122,7 @@ export class CreateReplicationProfiles1779870504111 implements MigrationInterfac
         defaultReplicationProfile.description,
         defaultReplicationProfile.scope,
         defaultReplicationProfile.target_kind,
-        JSON.stringify(defaultReplicationProfile.model),
+        defaultReplicationProfile.path,
         1,
         1,
         0,

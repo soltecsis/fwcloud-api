@@ -646,8 +646,10 @@ export class PolicyScript {
                 : policyConfig.footer_file;
             this.stream.write(fs.readFileSync(footerFilePath, 'utf8'));
 
-            /* Close stream. */
-            this.stream.end();
+            /* Close stream and wait until the whole script is on disk: callers read it right away. */
+            await new Promise<void>((flushed, failed) =>
+              this.stream.end((error?: Error) => (error ? failed(error) : flushed())),
+            );
 
             // Update firewall status flags.
             await Firewall.updateFirewallStatus(this.fwcloud, this.firewall, '&~1');

@@ -16,3 +16,18 @@ export async function expectRejectedAs<T extends Error>(
 
   throw new Error('Expected promise to reject');
 }
+
+/** Runs a call that must throw and returns the error only after checking its runtime type. */
+export function expectThrownAs<T extends Error>(
+  call: () => unknown,
+  expected: ErrorConstructor<T>,
+): T {
+  try {
+    call();
+  } catch (error) {
+    expect(error).to.be.instanceOf(expected);
+    return error as T;
+  }
+
+  throw new Error('Expected call to throw');
+}

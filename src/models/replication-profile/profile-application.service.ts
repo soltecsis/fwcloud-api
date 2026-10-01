@@ -43,6 +43,10 @@ import {
 } from './replication-profile-parameters';
 import { ReplicationProfile } from './replication-profile.model';
 import { ReplicationProfileService } from './replication-profile.service';
+import {
+  loadReplicationProfileModel,
+  type ReplicationProfileModel,
+} from './replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-parameters';
 import {
   ProfileVpnCaTemplate,
@@ -163,10 +167,11 @@ export class ProfileApplicationService extends Service {
     try {
       await this.authorizeApplication(actor, request.fwCloudId);
 
-      profile = await this.loadUsableProfile(request);
+      const usable = await this.loadUsableProfile(request);
+      profile = usable.profile;
       target = await this.validateTarget(request);
 
-      const model = normalizeProfileVpnRuleParameters(profile.model);
+      const model = normalizeProfileVpnRuleParameters(usable.model);
       const provision = getProfileProvisioning(model);
       let result: PolicyReplicationResult;
 
@@ -242,10 +247,11 @@ export class ProfileApplicationService extends Service {
     try {
       await this.authorizeApplication(actor, request.fwCloudId);
 
-      profile = await this.loadUsableProfile(request);
+      const usable = await this.loadUsableProfile(request);
+      profile = usable.profile;
       target = await this.validateTarget(request);
 
-      const model = normalizeProfileVpnRuleParameters(profile.model);
+      const model = normalizeProfileVpnRuleParameters(usable.model);
       const { vpnConfigIds, errors } = await this.provisionVpnResources(
         request,
         model,
@@ -455,7 +461,7 @@ export class ProfileApplicationService extends Service {
    */
   protected async loadUsableProfile(
     request: ProfileApplicationRequest,
-  ): Promise<ReplicationProfile> {
+  ): Promise<{ profile: ReplicationProfile; model: ReplicationProfileModel }> {
     const profile = await this._replicationProfileService.findAnyByCodeAndVersion(
       request.profileCode,
       request.profileVersion,
@@ -486,15 +492,22 @@ export class ProfileApplicationService extends Service {
       );
     }
 
+    // Loaded once here: the compatibility check and the application share the same model.
+    const model = loadReplicationProfileModel(profile);
+
     if (
-      !this._replicationProfileService.supportsTargetKind(profile, request.replication.target.kind)
+      !this._replicationProfileService.supportsTargetKind(
+        profile,
+        request.replication.target.kind,
+        model,
+      )
     ) {
       throw new ProfileApplicationScopeException(
         `Replication profile "${profile.name}" is not compatible with target kind "${request.replication.target.kind}"`,
       );
     }
 
-    return profile;
+    return { profile, model };
   }
 
   /** Verifies that the target firewall/cluster belongs to the request FWCloud. */

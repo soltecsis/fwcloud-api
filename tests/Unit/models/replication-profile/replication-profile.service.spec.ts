@@ -11,10 +11,27 @@ import {
   PROFILE_REMOVE_AUDIT_CALL,
   PROFILE_VERSION_AUDIT_CALL,
   ReplicationProfileService,
+  type ReplicationProfileCatalogFilters,
 } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ReplicationProfileValidationException } from '../../../../src/models/replication-profile/replication-profile-validation.service';
+import {
+  getFwCloudReplicationProfileTemplatesDirectory,
+  loadReplicationProfileModel,
+  removeReplicationProfileModel,
+  ReplicationProfileTemplateException,
+  resolveReplicationProfileTemplatePath,
+} from '../../../../src/models/replication-profile/replication-profile-template';
 import StringHelper from '../../../../src/utils/string.helper';
-import { makeCustomReplicationProfilePayload } from '../../../utils/replication-profile-fixtures';
+import {
+  ReplicationProfileFixture,
+  makeCustomReplicationProfilePayload,
+  makeReplicationProfileFixture,
+  readVersionedReplicationProfileTemplate,
+  templateExists,
+  writeRawReplicationProfileTemplate,
+} from '../../../utils/replication-profile-fixtures';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Like, Repository } from 'typeorm';
 
 describe(describeName('Replication Profile Service Unit Tests'), () => {
@@ -23,24 +40,8 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
   let service: ReplicationProfileService;
   let codePrefix: string;
 
-  const makeProfile = (overrides: Partial<ReplicationProfile> = {}): ReplicationProfile => {
-    return repository.create({
-      code: `${codePrefix}profile`,
-      version: 1,
-      name: 'Test replication profile',
-      description: null,
-      scope: 'generic',
-      targetKind: 'firewall',
-      model: {
-        replicate: {},
-        options: {},
-      },
-      isBuiltin: false,
-      isActive: true,
-      isDeprecated: false,
-      ...overrides,
-    });
-  };
+  const makeProfile = (overrides: Partial<ReplicationProfileFixture> = {}): ReplicationProfile =>
+    makeReplicationProfileFixture({ code: `${codePrefix}profile`, ...overrides });
 
   const makeCreatePayload = (overrides: Record<string, unknown> = {}): Record<string, unknown> =>
     makeCustomReplicationProfilePayload(codePrefix, overrides);
@@ -102,91 +103,17 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
     });
   });
 
-  describe('findActive()', () => {
-    it('should return the latest active non-deprecated profile for each code', async () => {
-      await repository.save([
-        makeProfile({ code: `${codePrefix}b`, version: 1 }),
-        makeProfile({ code: `${codePrefix}a`, version: 1 }),
-        makeProfile({ code: `${codePrefix}a`, version: 2 }),
-        makeProfile({ code: `${codePrefix}inactive`, isActive: false }),
-        makeProfile({ code: `${codePrefix}deprecated`, isDeprecated: true }),
-      ]);
-
-      const profiles = (await service.findActive()).filter((profile) =>
-        profile.code.startsWith(codePrefix),
-      );
-
-      expect(profiles.map((profile) => `${profile.code}:${profile.version}`)).to.be.deep.eq([
-        `${codePrefix}a:2`,
-        `${codePrefix}b:1`,
-      ]);
-    });
-
-    it('should fall back to the latest non-deprecated version when newer versions are deprecated', async () => {
-      await repository.save([
-        makeProfile({ code: `${codePrefix}fallback`, version: 1 }),
-        makeProfile({ code: `${codePrefix}fallback`, version: 2 }),
-        makeProfile({ code: `${codePrefix}fallback`, version: 3, isDeprecated: true }),
-      ]);
-
-      const profiles = (await service.findActive()).filter((profile) =>
-        profile.code.startsWith(codePrefix),
-      );
-
-      expect(profiles.map((profile) => `${profile.code}:${profile.version}`)).to.be.deep.eq([
-        `${codePrefix}fallback:2`,
-      ]);
-    });
-
-    it('should filter active profiles by target kind and compatibility metadata', async () => {
-      await repository.save([
-        makeProfile({ code: `${codePrefix}firewall`, targetKind: 'firewall' }),
-        makeProfile({ code: `${codePrefix}cluster`, targetKind: 'cluster' }),
-        makeProfile({
-          code: `${codePrefix}compatible-cluster`,
-          targetKind: 'firewall',
-          model: {
-            compatibility: {
-              target_kinds: ['firewall', 'cluster'],
-            },
-            replicate: {},
-            options: {},
-          },
-        }),
-      ]);
-
-      const profiles = (await service.findActive('cluster')).filter((profile) =>
-        profile.code.startsWith(codePrefix),
-      );
-
-      expect(profiles.map((profile) => profile.code)).to.be.deep.eq([
-        `${codePrefix}cluster`,
-        `${codePrefix}compatible-cluster`,
-      ]);
-    });
-
-    it('should return global profiles and profiles owned by the requested FWCloud', async () => {
-      const fwCloudA = await makeFwCloud();
-      const fwCloudB = await makeFwCloud();
-
-      await repository.save([
-        makeProfile({ code: `${codePrefix}global`, isBuiltin: true, fwCloudId: null }),
-        makeProfile({ code: `${codePrefix}owned`, fwCloudId: fwCloudA.id }),
-        makeProfile({ code: `${codePrefix}foreign`, fwCloudId: fwCloudB.id }),
-      ]);
-
-      const profiles = (await service.findActive(undefined, fwCloudA.id)).filter((profile) =>
-        profile.code.startsWith(codePrefix),
-      );
-
-      expect(profiles.map((profile) => profile.code)).to.be.deep.eq([
-        `${codePrefix}global`,
-        `${codePrefix}owned`,
-      ]);
-    });
-  });
-
   describe('findCatalog()', () => {
+    const findCatalogProfiles = async (
+      filters: ReplicationProfileCatalogFilters,
+    ): Promise<ReplicationProfile[]> =>
+      (await service.findCatalog(filters))
+        .map(({ profile }) => profile)
+        .filter((profile) => profile.code.startsWith(codePrefix));
+
+    const findCatalogCodes = async (filters: ReplicationProfileCatalogFilters): Promise<string[]> =>
+      (await findCatalogProfiles(filters)).map((profile) => profile.code);
+
     it('should return built-in profiles and current-FWCloud custom profiles only', async () => {
       const fwCloudA = await makeFwCloud();
       const fwCloudB = await makeFwCloud();
@@ -198,11 +125,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         makeProfile({ code: `${codePrefix}orphan-custom`, fwCloudId: null }),
       ]);
 
-      const profiles = (await service.findCatalog({ fwCloudId: fwCloudA.id })).filter((profile) =>
-        profile.code.startsWith(codePrefix),
-      );
-
-      expect(profiles.map((profile) => profile.code)).to.deep.eq([
+      expect(await findCatalogCodes({ fwCloudId: fwCloudA.id })).to.deep.eq([
         `${codePrefix}builtin`,
         `${codePrefix}owned`,
       ]);
@@ -216,19 +139,16 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         makeProfile({ code: `${codePrefix}custom`, fwCloudId: fwCloud.id }),
       ]);
 
-      const builtin = (await service.findCatalog({ fwCloudId: fwCloud.id, origin: 'builtin' }))
-        .filter((profile) => profile.code.startsWith(codePrefix))
-        .map((profile) => profile.code);
-      const custom = (await service.findCatalog({ fwCloudId: fwCloud.id, origin: 'custom' }))
-        .filter((profile) => profile.code.startsWith(codePrefix))
-        .map((profile) => profile.code);
-      const all = (await service.findCatalog({ fwCloudId: fwCloud.id, origin: 'all' }))
-        .filter((profile) => profile.code.startsWith(codePrefix))
-        .map((profile) => profile.code);
-
-      expect(builtin).to.deep.eq([`${codePrefix}builtin`]);
-      expect(custom).to.deep.eq([`${codePrefix}custom`]);
-      expect(all).to.deep.eq([`${codePrefix}builtin`, `${codePrefix}custom`]);
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id, origin: 'builtin' })).to.deep.eq([
+        `${codePrefix}builtin`,
+      ]);
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id, origin: 'custom' })).to.deep.eq([
+        `${codePrefix}custom`,
+      ]);
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id, origin: 'all' })).to.deep.eq([
+        `${codePrefix}builtin`,
+        `${codePrefix}custom`,
+      ]);
     });
 
     it('should hide deprecated catalog profiles unless explicitly requested', async () => {
@@ -244,17 +164,58 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         makeProfile({ code: `${codePrefix}inactive`, fwCloudId: fwCloud.id, isActive: false }),
       ]);
 
-      const defaultCodes = (await service.findCatalog({ fwCloudId: fwCloud.id }))
-        .filter((profile) => profile.code.startsWith(codePrefix))
-        .map((profile) => profile.code);
-      const withDeprecatedCodes = (
-        await service.findCatalog({ fwCloudId: fwCloud.id, includeDeprecated: true })
-      )
-        .filter((profile) => profile.code.startsWith(codePrefix))
-        .map((profile) => profile.code);
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id })).to.deep.eq([`${codePrefix}active`]);
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id, includeDeprecated: true })).to.deep.eq(
+        [`${codePrefix}active`, `${codePrefix}deprecated`],
+      );
+    });
 
-      expect(defaultCodes).to.deep.eq([`${codePrefix}active`]);
-      expect(withDeprecatedCodes).to.deep.eq([`${codePrefix}active`, `${codePrefix}deprecated`]);
+    it('should list a profile whose template cannot be read with its error, next to the valid ones', async () => {
+      const fwCloud = await makeFwCloud();
+      const [, broken] = await repository.save([
+        makeProfile({ code: `${codePrefix}valid`, fwCloudId: fwCloud.id }),
+        makeProfile({ code: `${codePrefix}broken`, fwCloudId: fwCloud.id }),
+      ]);
+      writeRawReplicationProfileTemplate(broken, '{ broken');
+
+      const entries = (await service.findCatalog({ fwCloudId: fwCloud.id })).filter(({ profile }) =>
+        profile.code.startsWith(codePrefix),
+      );
+      const [brokenEntry, validEntry] = entries;
+
+      expect(entries.map(({ profile }) => profile.code)).to.deep.eq([
+        `${codePrefix}broken`,
+        `${codePrefix}valid`,
+      ]);
+      expect(validEntry.template).to.deep.eq({
+        model: { replicate: {}, options: {} },
+        error: null,
+      });
+      expect(brokenEntry.template.model).to.be.null;
+      expect(brokenEntry.template.error).to.be.instanceOf(ReplicationProfileTemplateException);
+      expect(brokenEntry.template.error.reason).to.be.eq('invalid_json');
+    });
+
+    it('should match a profile whose template cannot be read by its own target kind', async () => {
+      const fwCloud = await makeFwCloud();
+      const broken = await repository.save(
+        makeProfile({
+          code: `${codePrefix}broken-cluster`,
+          fwCloudId: fwCloud.id,
+          targetKind: 'cluster',
+          model: {
+            compatibility: { target_kinds: ['cluster', 'firewall'] },
+            replicate: {},
+            options: {},
+          },
+        }),
+      );
+      removeReplicationProfileModel(broken);
+
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id, targetKind: 'cluster' })).to.deep.eq([
+        `${codePrefix}broken-cluster`,
+      ]);
+      expect(await findCatalogCodes({ fwCloudId: fwCloud.id, targetKind: 'firewall' })).to.be.empty;
     });
 
     it('should filter catalog profiles by target kind and search fields', async () => {
@@ -279,18 +240,13 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         }),
       ]);
 
-      const profiles = (
-        await service.findCatalog({
+      expect(
+        await findCatalogCodes({
           fwCloudId: fwCloud.id,
           targetKind: 'cluster',
           search: 'lan',
-        })
-      ).filter((profile) => profile.code.startsWith(codePrefix));
-
-      expect(profiles.map((profile) => profile.code)).to.have.members([
-        `${codePrefix}cluster-lan`,
-        `${codePrefix}description-hit`,
-      ]);
+        }),
+      ).to.have.members([`${codePrefix}cluster-lan`, `${codePrefix}description-hit`]);
     });
 
     it('should keep built-in and custom catalog entries distinct when they share a code', async () => {
@@ -304,9 +260,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         makeProfile({ code, version: 2, fwCloudId: fwCloud.id, name: 'Custom v2' }),
       ]);
 
-      const profiles = (await service.findCatalog({ fwCloudId: fwCloud.id })).filter(
-        (profile) => profile.code === code,
-      );
+      const profiles = await findCatalogProfiles({ fwCloudId: fwCloud.id });
 
       expect(
         profiles.map((profile) => `${profile.isBuiltin ? 'builtin' : 'custom'}:${profile.version}`),
@@ -346,7 +300,10 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(profile.description).to.be.deep.eq(defaultReplicationProfile.description);
       expect(profile.scope).to.be.deep.eq(defaultReplicationProfile.scope);
       expect(profile.targetKind).to.be.deep.eq(defaultReplicationProfile.target_kind);
-      expect(profile.model).to.be.deep.eq(defaultReplicationProfile.model);
+      expect(profile.path).to.be.eq('default.v1.json');
+      expect(loadReplicationProfileModel(profile)).to.be.deep.eq(
+        readVersionedReplicationProfileTemplate(defaultReplicationProfile.path),
+      );
       expect(profile.isBuiltin).to.be.true;
       expect(profile.isActive).to.be.true;
       expect(profile.isDeprecated).to.be.false;
@@ -393,6 +350,44 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(reloaded.updated_by).to.be.eq(7);
     });
 
+    it('should store the model in the FWCloud template named after its code and version', async () => {
+      const fwCloud = await makeFwCloud();
+      const payload = makeCreatePayload({ code: `${codePrefix}templated`, version: 2 });
+
+      const saved = await service.createCustomProfile(payload as any, { fwCloudId: fwCloud.id });
+      const reloaded = await repository.findOneOrFail({ where: { id: saved.id } });
+
+      expect(reloaded.path).to.be.eq(`custom/${fwCloud.id}/${codePrefix}templated.v2.json`);
+      expect(resolveReplicationProfileTemplatePath(reloaded)).to.be.eq(
+        path.join(
+          getFwCloudReplicationProfileTemplatesDirectory(fwCloud.id),
+          `${codePrefix}templated.v2.json`,
+        ),
+      );
+      expect(loadReplicationProfileModel(reloaded)).to.deep.eq(payload.model);
+    });
+
+    it('should not keep the profile when its template cannot be written', async () => {
+      const fwCloud = await makeFwCloud();
+      const code = `${codePrefix}unwritable`;
+      const fwCloudTemplatesDirectory = getFwCloudReplicationProfileTemplatesDirectory(fwCloud.id);
+      // A file where the FWCloud template directory should be makes the write fail.
+      fs.rmSync(fwCloudTemplatesDirectory, { recursive: true, force: true });
+      fs.writeFileSync(fwCloudTemplatesDirectory, '');
+
+      try {
+        await expect(
+          service.createCustomProfile(makeCreatePayload({ code }) as any, {
+            fwCloudId: fwCloud.id,
+          }),
+        ).to.be.rejectedWith(ReplicationProfileTemplateException, /could not be written/);
+      } finally {
+        fs.rmSync(fwCloudTemplatesDirectory, { force: true });
+      }
+
+      expect(await repository.findOne({ where: { code, fwCloudId: fwCloud.id } })).to.be.null;
+    });
+
     it('should preserve explicit code and version when provided', async () => {
       const fwCloud = await makeFwCloud();
       const payload = makeCreatePayload({
@@ -431,10 +426,9 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       });
 
       expect(saved.targetKind).to.be.eq('firewall');
-      expect((saved.model.compatibility as Record<string, unknown>).target_kinds).to.deep.eq([
-        'firewall',
-        'cluster',
-      ]);
+      expect(
+        (loadReplicationProfileModel(saved).compatibility as Record<string, unknown>).target_kinds,
+      ).to.deep.eq(['firewall', 'cluster']);
     });
 
     it('should produce stable URL-safe slugs from names', () => {
@@ -491,6 +485,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(saved.code).to.be.eq(code);
       const deletedStaleProfile = await repository.findOne({ where: { id: stale.id } });
       expect(deletedStaleProfile).to.be.null;
+      expect(loadReplicationProfileModel(saved)).to.deep.eq(payload.model);
     });
 
     it('should audit successful profile creation with secret-safe metadata only', async () => {
@@ -603,9 +598,11 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         created_by: 23,
         updated_by: 23,
       });
-      expect(saved.model).to.deep.eq(builtIn.model);
+      expect(saved.path).to.be.eq(`custom/${fwCloud.id}/${codePrefix}builtin-clone-copy.v1.json`);
+      expect(loadReplicationProfileModel(saved)).to.deep.eq(loadReplicationProfileModel(builtIn));
       expect(reloadedSource.isBuiltin).to.be.true;
       expect(reloadedSource.fwCloudId).to.be.null;
+      expect(reloadedSource.path).to.be.eq(builtIn.path);
     });
 
     it('should not clone custom profiles owned by another FWCloud', async () => {
@@ -706,6 +703,12 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(reloadedOriginal.version).to.be.eq(1);
       expect(reloadedOriginal.isActive).to.be.true;
       expect(reloadedOriginal.isDeprecated).to.be.false;
+      expect(saved.path).not.to.be.eq(reloadedOriginal.path);
+      expect(loadReplicationProfileModel(saved)).to.deep.eq(payload.model);
+      expect(loadReplicationProfileModel(reloadedOriginal)).to.deep.eq({
+        replicate: {},
+        options: {},
+      });
     });
 
     it('should increment from the highest existing custom version', async () => {
@@ -821,7 +824,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
   });
 
   describe('removeCustomProfile()', () => {
-    it('should delete a custom profile row and return the removed profile', async () => {
+    it('should delete a custom profile row and template and return the removed profile', async () => {
       const fwCloud = await makeFwCloud();
       const profile = await repository.save(
         makeProfile({
@@ -837,15 +840,35 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         actor: { userId: 11 },
       });
 
-      expect(result).to.include({
+      expect(result.profile).to.include({
         id: profile.id,
         code: profile.code,
         version: profile.version,
         updated_by: 3,
       });
+      expect(result.template).to.deep.eq({ model: { replicate: {}, options: {} }, error: null });
 
       const reloaded = await repository.findOne({ where: { id: profile.id } });
       expect(reloaded).to.be.null;
+      expect(templateExists(profile)).to.be.false;
+    });
+
+    it('should remove a custom profile whose template can no longer be read', async () => {
+      const fwCloud = await makeFwCloud();
+      const profile = await repository.save(
+        makeProfile({ code: `${codePrefix}broken-remove`, fwCloudId: fwCloud.id }),
+      );
+      writeRawReplicationProfileTemplate(profile, '{ broken');
+
+      const result = await service.removeCustomProfile(profile.code, profile.version, {
+        fwCloudId: fwCloud.id,
+      });
+
+      expect(result.profile.code).to.be.eq(profile.code);
+      expect(result.template.model).to.be.null;
+      expect(result.template.error.reason).to.be.eq('invalid_json');
+      expect(await repository.findOne({ where: { id: profile.id } })).to.be.null;
+      expect(templateExists(profile)).to.be.false;
     });
 
     it('should reject built-in profiles', async () => {

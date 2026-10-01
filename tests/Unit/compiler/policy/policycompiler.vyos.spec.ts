@@ -51,7 +51,7 @@ describe(describeName('Policy Compiler VyOS'), () => {
 
     const fakeStream: any = {
       write: sinon.stub().returns(true),
-      end: sinon.stub(),
+      end: sinon.stub().yields(),
       on(event: string, handler: () => void | Promise<void>) {
         if (event === 'open') handler();
         return this;
