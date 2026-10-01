@@ -368,7 +368,11 @@ export class CrowdSecClusterController extends Controller {
     if (req.body.mode === CrowdSecInstallationMode.Lapi) {
       return this.transitionNodesToLapi(req);
     }
-    if (req.body.mode !== CrowdSecInstallationMode.Machine) {
+    if (
+      req.body.mode !== CrowdSecInstallationMode.Machine ||
+      req.body.centralFirewallId === undefined ||
+      req.body.lapiUrl === undefined
+    ) {
       throw new HttpException('Invalid CrowdSec cluster role transition target', 422);
     }
 

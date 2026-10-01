@@ -29,7 +29,6 @@ import {
   Length,
   Matches,
   Min,
-  ValidateIf,
 } from 'class-validator';
 import { CrowdSecInstallationMode } from '../../../../models/system/crowdsec/crowdsec-installation.model';
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
@@ -44,18 +43,12 @@ export class CrowdSecClusterTransitionDto {
   @IsBoolean()
   localRemediation: boolean;
 
-  @ValidateIf(
-    (transition: CrowdSecClusterTransitionDto) =>
-      transition.mode === CrowdSecInstallationMode.Machine,
-  )
+  @IsOptional()
   @IsInt()
   @Min(1)
   centralFirewallId?: number;
 
-  @ValidateIf(
-    (transition: CrowdSecClusterTransitionDto) =>
-      transition.mode === CrowdSecInstallationMode.Machine,
-  )
+  @IsOptional()
   @IsString()
   @Length(1, 256)
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })

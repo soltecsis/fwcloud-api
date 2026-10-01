@@ -36,6 +36,9 @@ import { Cluster } from '../../../../../src/models/firewall/Cluster';
 import { CrowdSecInstallationRepository } from '../../../../../src/models/system/crowdsec/crowdsec.repository';
 import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
 import { CrowdSecPolicy } from '../../../../../src/policies/crowdsec.policy';
+import { CrowdSecClusterTransitionDto } from '../../../../../src/controllers/system/crowdsec/dto/cluster-transition.dto';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
+import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
 import db from '../../../../../src/database/database-manager';
@@ -318,7 +321,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should transition selected LAPI cluster nodes to Machines sequentially', async () => {
+  it('should transition LAPI cluster nodes to Machines sequentially', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
     findByFirewallIdStub.callsFake(async (firewallId: number) => {
       if (firewallId === centralFirewall.id) {
         return Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi });
@@ -337,7 +341,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       request({
         confirm: true,
         mode: CrowdSecInstallationMode.Machine,
-        nodeIds: [firstNode.id],
       }),
     );
 
@@ -365,7 +368,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should transition selected Machine cluster nodes to LAPI installations', async () => {
+  it('should transition Machine cluster nodes to LAPI installations', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
     findByFirewallIdStub.callsFake(async (firewallId: number) =>
       firewallId === centralFirewall.id
         ? lapiInstallation(centralFirewall.id)
@@ -390,7 +394,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         localRemediation: true,
         centralFirewallId: undefined,
         lapiUrl: undefined,
-        nodeIds: [firstNode.id],
       }),
     );
 
@@ -413,7 +416,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should move a selected Machine node to another central LAPI', async () => {
+  it('should move Machine nodes to another central LAPI', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
     const targetCentralFirewall = firewall(20, 'target-central-lapi', null);
     const targetCommunication = communication('https', '192.0.2.20');
     (targetCentralFirewall as any).getCommunication = async () => targetCommunication;
@@ -441,7 +445,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         centralFirewallId: targetCentralFirewall.id,
         lapiUrl: 'http://192.0.2.20:8080',
         localRemediation: false,
-        nodeIds: [firstNode.id],
       }),
     );
 
@@ -457,7 +460,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.include({ completed: true });
   });
 
-  it('should change the central LAPI address for selected Machine nodes', async () => {
+  it('should change the central LAPI address for Machine nodes', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
     findByFirewallIdStub.callsFake(async (firewallId: number) =>
       firewallId === centralFirewall.id
         ? lapiInstallation(centralFirewall.id)
@@ -477,7 +481,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         confirm: true,
         mode: CrowdSecInstallationMode.Machine,
         lapiUrl: 'http://192.0.2.10:8181',
-        nodeIds: [firstNode.id],
       }),
     );
 
@@ -493,7 +496,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.include({ completed: true });
   });
 
-  it('should enable remediation for selected Machine nodes', async () => {
+  it('should enable remediation for Machine nodes', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
     findByFirewallIdStub.callsFake(async (firewallId: number) =>
       firewallId === centralFirewall.id
         ? lapiInstallation(centralFirewall.id)
@@ -512,7 +516,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         centralFirewallId: undefined,
         lapiUrl: undefined,
         localRemediation: true,
-        nodeIds: [firstNode.id],
       }),
     );
 
@@ -526,6 +529,57 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     ).to.be.true;
     expect(setCrowdSecCompatibilityStub.calledWith(firstNode, true)).to.be.true;
     expect(response.toJSON().data).to.include({ completed: true });
+  });
+
+  it('should validate cluster remediation without a central LAPI target', async () => {
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          localRemediation: true,
+        },
+        CrowdSecClusterTransitionDto,
+      ).validate(),
+    ).to.be.fulfilled;
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          localRemediation: true,
+          centralFirewallId: 0,
+        },
+        CrowdSecClusterTransitionDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should require a central LAPI target when transitioning a cluster to Machine mode', async () => {
+    await expect(
+      controller.transitionRole(
+        request({
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          centralFirewallId: undefined,
+          lapiUrl: undefined,
+        }),
+      ),
+    ).to.be.rejectedWith('Invalid CrowdSec cluster role transition target');
+    expect(configureCentralLapiStub.called).to.be.false;
+  });
+
+  it('should reject selecting individual nodes for a cluster transition', async () => {
+    await expect(
+      controller.transitionRemediation(
+        request({
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          localRemediation: true,
+          nodeIds: [firstNode.id],
+        }),
+      ),
+    ).to.be.rejectedWith('CrowdSec cluster transitions must include every cluster node');
   });
 
   it('should preserve completed nodes and report recovery requirements after a partial failure', async () => {

@@ -75,13 +75,13 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
 
   public async findCentralCandidates(
     fwcloudId: number,
-    remoteFirewallId: number,
+    remoteFirewallIds: number[],
   ): Promise<CrowdSecInstallation[]> {
     return this.createQueryBuilder('installation')
       .innerJoinAndSelect('installation.firewall', 'firewall')
       .where('installation.mode = :mode', { mode: CrowdSecInstallationMode.Lapi })
       .andWhere('firewall.fwcloud = :fwcloudId', { fwcloudId })
-      .andWhere('firewall.id != :remoteFirewallId', { remoteFirewallId })
+      .andWhere('firewall.id NOT IN (:...remoteFirewallIds)', { remoteFirewallIds })
       .andWhere('firewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
       })
