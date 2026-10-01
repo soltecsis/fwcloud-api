@@ -30,6 +30,7 @@ import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import { FirewallRepository } from '../../../models/firewall/firewall.repository';
+import { Cluster } from '../../../models/firewall/Cluster';
 import { CrowdSecInstallationRepository } from '../../../models/system/crowdsec/crowdsec.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import { Channel } from '../../../sockets/channels/channel';
@@ -196,9 +197,27 @@ export class CrowdSecController extends Controller {
   public async centralLapiCandidates(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const excludedFirewallIds = [this._firewall.id];
+    if (this._firewall.clusterId !== null && this._firewall.clusterId !== undefined) {
+      const cluster = await db
+        .getSource()
+        .manager.getRepository(Cluster)
+        .findOne({
+          where: { id: this._firewall.clusterId, fwCloudId: this._firewall.fwCloudId },
+          relations: ['firewalls'],
+        });
+      if (cluster) {
+        excludedFirewallIds.splice(
+          0,
+          excludedFirewallIds.length,
+          ...cluster.firewalls.map((node) => node.id),
+        );
+      }
+    }
+
     const candidates = await this.getCrowdSecInstallationRepository().findCentralCandidates(
       this._firewall.fwCloudId,
-      this._firewall.id,
+      excludedFirewallIds,
     );
 
     return ResponseBuilder.buildResponse()

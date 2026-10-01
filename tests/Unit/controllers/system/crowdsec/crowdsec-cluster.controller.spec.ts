@@ -36,6 +36,9 @@ import { Cluster } from '../../../../../src/models/firewall/Cluster';
 import { CrowdSecInstallationRepository } from '../../../../../src/models/system/crowdsec/crowdsec.repository';
 import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
 import { CrowdSecPolicy } from '../../../../../src/policies/crowdsec.policy';
+import { CrowdSecClusterTransitionDto } from '../../../../../src/controllers/system/crowdsec/dto/cluster-transition.dto';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
+import { Validator } from '../../../../../src/fonaments/validation/validator';
 import { Channel } from '../../../../../src/sockets/channels/channel';
 import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
 import db from '../../../../../src/database/database-manager';
@@ -60,6 +63,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let setCentralLapiEnabledStub: sinon.SinonStub;
   let validateCrowdSecLapiMachineStub: sinon.SinonStub;
   let centralPingStub: sinon.SinonStub;
+  let findByFirewallIdStub: sinon.SinonStub;
+  let findCentralFirewallStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -82,8 +87,10 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
 
     managePolicyStub = sinon.stub(CrowdSecPolicy, 'manage').resolves(Authorization.grant());
-    sinon.stub(db.getSource().manager.getRepository(Firewall), 'findOne').resolves(centralFirewall);
-    sinon
+    findCentralFirewallStub = sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'findOne')
+      .resolves(centralFirewall);
+    findByFirewallIdStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'findByFirewallId')
       .callsFake(async (firewallId: number) =>
         firewallId === centralFirewall.id
@@ -314,6 +321,326 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should transition LAPI cluster nodes to Machines sequentially', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) => {
+      if (firewallId === centralFirewall.id) {
+        return Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi });
+      }
+      if (firewallId === firstNode.id || firewallId === secondNode.id) {
+        return Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi });
+      }
+      return null;
+    });
+    const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    const secondPrepare = sinon.stub(secondCommunication, 'prepareCrowdSecTransition');
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+      }),
+    );
+
+    expect(prepare.calledOnce).to.be.true;
+    expect(secondPrepare.called).to.be.false;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({
+          firewallId: firstNode.id,
+          centralFirewallId: centralFirewall.id,
+          machineName: 'fwcloud-cluster-master',
+          localRemediation: false,
+        }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'completed',
+        },
+      ],
+    });
+  });
+
+  it('should transition Machine cluster nodes to LAPI installations', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id
+        ? lapiInstallation(centralFirewall.id)
+        : firewallId === firstNode.id
+          ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', true)
+          : null,
+    );
+    const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    const saveLapiInstallation = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(firstNode.id));
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Lapi,
+        localRemediation: true,
+        centralFirewallId: undefined,
+        lapiUrl: undefined,
+      }),
+    );
+
+    expect(prepare.calledOnce).to.be.true;
+    expect(saveLapiInstallation.calledOnceWithExactly(firstNode.id)).to.be.true;
+    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(setCrowdSecCompatibilityStub.calledWith(firstNode, true)).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'completed',
+          source_machine_removed: true,
+          source_bouncer_cleanup_required: true,
+        },
+      ],
+    });
+  });
+
+  it('should move Machine nodes to another central LAPI', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    const targetCentralFirewall = firewall(20, 'target-central-lapi', null);
+    const targetCommunication = communication('https', '192.0.2.20');
+    (targetCentralFirewall as any).getCommunication = async () => targetCommunication;
+    findCentralFirewallStub.callsFake(async (options: { where: { id: number } }) =>
+      options.where.id === targetCentralFirewall.id ? targetCentralFirewall : centralFirewall,
+    );
+    findByFirewallIdStub.callsFake(async (firewallId: number) => {
+      if (firewallId === centralFirewall.id || firewallId === targetCentralFirewall.id) {
+        return lapiInstallation(firewallId);
+      }
+      return firewallId === firstNode.id
+        ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', false)
+        : null;
+    });
+    sinon.stub(targetCommunication, 'configureCrowdSecCentralLapi').resolves({});
+    const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
+
+    const response = await controller.transitionMachineCentralLapi(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: targetCentralFirewall.id,
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: false,
+      }),
+    );
+
+    expect(prepare.calledOnce).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({
+          firewallId: firstNode.id,
+          centralFirewallId: targetCentralFirewall.id,
+          lapiUrl: 'http://192.0.2.20:8080',
+        }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.include({ completed: true });
+  });
+
+  it('should change the central LAPI address for Machine nodes', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id
+        ? lapiInstallation(centralFirewall.id)
+        : firewallId === firstNode.id
+          ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', false)
+          : null,
+    );
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependentsExcept')
+      .resolves(false);
+    const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+
+    const response = await controller.transitionMachineAddress(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+        lapiUrl: 'http://192.0.2.10:8181',
+      }),
+    );
+
+    expect(prepare.calledOnce).to.be.true;
+    expect(configureCentralLapiStub.calledOnce).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({
+          firewallId: firstNode.id,
+          lapiUrl: 'http://192.0.2.10:8181',
+        }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.include({ completed: true });
+  });
+
+  it('should enable remediation for Machine nodes', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id
+        ? lapiInstallation(centralFirewall.id)
+        : firewallId === firstNode.id
+          ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', false)
+          : null,
+    );
+    const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+
+    const response = await controller.transitionRemediation(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: undefined,
+        lapiUrl: undefined,
+        localRemediation: true,
+      }),
+    );
+
+    expect(prepare.calledOnce).to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({
+          firewallId: firstNode.id,
+          localRemediation: true,
+        }),
+    ).to.be.true;
+    expect(setCrowdSecCompatibilityStub.calledWith(firstNode, true)).to.be.true;
+    expect(response.toJSON().data).to.include({ completed: true });
+  });
+
+  it('should validate cluster remediation without a central LAPI target', async () => {
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          localRemediation: true,
+        },
+        CrowdSecClusterTransitionDto,
+      ).validate(),
+    ).to.be.fulfilled;
+    await expect(
+      new Validator(
+        {
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          localRemediation: true,
+          centralFirewallId: 0,
+        },
+        CrowdSecClusterTransitionDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should require a central LAPI target when transitioning a cluster to Machine mode', async () => {
+    await expect(
+      controller.transitionRole(
+        request({
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          centralFirewallId: undefined,
+          lapiUrl: undefined,
+        }),
+      ),
+    ).to.be.rejectedWith('Invalid CrowdSec cluster role transition target');
+    expect(configureCentralLapiStub.called).to.be.false;
+  });
+
+  it('should reject selecting individual nodes for a cluster transition', async () => {
+    await expect(
+      controller.transitionRemediation(
+        request({
+          confirm: true,
+          mode: CrowdSecInstallationMode.Machine,
+          centralFirewallId: undefined,
+          lapiUrl: undefined,
+          localRemediation: true,
+          nodeIds: [firstNode.id],
+        }),
+      ),
+    ).to.be.rejectedWith('CrowdSec cluster transitions must include every cluster node');
+  });
+
+  it('should preserve completed nodes and report recovery requirements after a partial failure', async () => {
+    findByFirewallIdStub.callsFake(async (firewallId: number) => {
+      if (firewallId === centralFirewall.id) {
+        return lapiInstallation(centralFirewall.id);
+      }
+      return firewallId === firstNode.id || firewallId === secondNode.id
+        ? lapiInstallation(firewallId)
+        : null;
+    });
+    sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    sinon.stub(secondCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon
+      .stub(secondCommunication, 'activateCrowdSecTransition')
+      .rejects(new Error('Activation failed'));
+    sinon
+      .stub(secondCommunication, 'recoverCrowdSecTransition')
+      .rejects(new Error('Recovery failed'));
+    sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+      }),
+    );
+
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'completed',
+        },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'fwcloud-cluster-slave',
+          status: 'recovery_required',
+          error: 'Activation failed',
+        },
+      ],
+    });
+  });
+
+  it('should authorize cluster role transitions before contacting agents', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+
+    await expect(
+      controller.transitionRole(request({ confirm: true, mode: CrowdSecInstallationMode.Machine })),
+    ).to.be.rejected;
+    expect(configureCentralLapiStub.called).to.be.false;
+  });
+
   it('should reject unauthorized cluster Machine installation before contacting agents', async () => {
     managePolicyStub.resolves(Authorization.revoke());
 
@@ -321,6 +648,30 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(configureCentralLapiStub.called).to.be.false;
   });
 });
+
+function lapiInstallation(firewallId: number): CrowdSecInstallation {
+  return Object.assign(new CrowdSecInstallation(), {
+    firewallId,
+    mode: CrowdSecInstallationMode.Lapi,
+    localRemediation: true,
+  });
+}
+
+function machineInstallation(
+  firewallId: number,
+  machineName: string,
+  localRemediation: boolean,
+): CrowdSecInstallation {
+  return Object.assign(new CrowdSecInstallation(), {
+    firewallId,
+    mode: CrowdSecInstallationMode.Machine,
+    centralFirewallId: 10,
+    lapiUrl: 'http://192.0.2.10:8080',
+    machineName,
+    localRemediation,
+    machineConnectivityPending: false,
+  });
+}
 
 function firewall(id: number, name: string, clusterId: number | null): Firewall {
   return Object.assign(new Firewall(), {

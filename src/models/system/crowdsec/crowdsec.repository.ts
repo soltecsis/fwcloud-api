@@ -75,13 +75,13 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
 
   public async findCentralCandidates(
     fwcloudId: number,
-    remoteFirewallId: number,
+    remoteFirewallIds: number[],
   ): Promise<CrowdSecInstallation[]> {
     return this.createQueryBuilder('installation')
       .innerJoinAndSelect('installation.firewall', 'firewall')
       .where('installation.mode = :mode', { mode: CrowdSecInstallationMode.Lapi })
       .andWhere('firewall.fwcloud = :fwcloudId', { fwcloudId })
-      .andWhere('firewall.id != :remoteFirewallId', { remoteFirewallId })
+      .andWhere('firewall.id NOT IN (:...remoteFirewallIds)', { remoteFirewallIds })
       .andWhere('firewall.install_communication = :communication', {
         communication: FirewallInstallCommunication.Agent,
       })
@@ -116,6 +116,22 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
         })
         .andWhere('installation.mode = :mode', { mode: CrowdSecInstallationMode.Machine })
         .andWhere('installation.firewall != :firewallId', { firewallId })
+        .getCount()) > 0
+    );
+  }
+
+  public async hasMachineDependentsExcept(
+    centralFirewallId: number,
+    firewallIds: number[],
+  ): Promise<boolean> {
+    const centralFirewallIds = await this.centralLapiFirewallIds(centralFirewallId);
+    return (
+      (await this.createQueryBuilder('installation')
+        .where('installation.central_firewall IN (:...centralFirewallIds)', {
+          centralFirewallIds,
+        })
+        .andWhere('installation.mode = :mode', { mode: CrowdSecInstallationMode.Machine })
+        .andWhere('installation.firewall NOT IN (:...firewallIds)', { firewallIds })
         .getCount()) > 0
     );
   }

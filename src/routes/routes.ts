@@ -801,6 +801,18 @@ export class Routes extends RouteCollection {
             router
               .get('/collections', CrowdSecClusterController, 'collections')
               .name('fwclouds.clusters.system.crowdsec.collections.index');
+            router
+              .post('/transitions/role', CrowdSecClusterController, 'transitionRole')
+              .name('fwclouds.clusters.system.crowdsec.transitions.role');
+            router
+              .post('/transitions/remediation', CrowdSecClusterController, 'transitionRemediation')
+              .name('fwclouds.clusters.system.crowdsec.transitions.remediation');
+            router
+              .post('/transitions/lapi', CrowdSecClusterController, 'transitionMachineCentralLapi')
+              .name('fwclouds.clusters.system.crowdsec.transitions.lapi');
+            router
+              .post('/transitions/address', CrowdSecClusterController, 'transitionMachineAddress')
+              .name('fwclouds.clusters.system.crowdsec.transitions.address');
           });
 
           //Firewalls

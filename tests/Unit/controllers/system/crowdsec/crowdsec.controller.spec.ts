@@ -432,10 +432,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(
-      findCentralCandidatesStub.calledOnceWithExactly(
-        fwcProduct.firewall.fwCloudId,
+      findCentralCandidatesStub.calledOnceWithExactly(fwcProduct.firewall.fwCloudId, [
         fwcProduct.firewall.id,
-      ),
+      ]),
     ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
