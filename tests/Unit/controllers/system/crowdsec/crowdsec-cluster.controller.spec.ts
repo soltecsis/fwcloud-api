@@ -575,6 +575,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         request({
           confirm: true,
           mode: CrowdSecInstallationMode.Machine,
+          centralFirewallId: undefined,
+          lapiUrl: undefined,
           localRemediation: true,
           nodeIds: [firstNode.id],
         }),
