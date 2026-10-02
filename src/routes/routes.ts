@@ -486,6 +486,9 @@ export class Routes extends RouteCollection {
                     )
                     .name('fwclouds.firewalls.system.crowdsec.console.enrollment.confirm');
                   router
+                    .post('/console/enrollment/clear', CrowdSecController, 'clearConsoleEnrollment')
+                    .name('fwclouds.firewalls.system.crowdsec.console.enrollment.clear');
+                  router
                     .post('/collections/install', CrowdSecController, 'installCollection')
                     .name('fwclouds.firewalls.system.crowdsec.collections.install');
                   router

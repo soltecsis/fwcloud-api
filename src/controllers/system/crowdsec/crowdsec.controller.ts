@@ -1464,6 +1464,28 @@ export class CrowdSecController extends Controller {
     });
   }
 
+  @Validate()
+  public async clearConsoleEnrollment(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const installationRepository = this.getCrowdSecInstallationRepository();
+    const installation = await installationRepository.findByFirewallId(this._firewall.id);
+    if (
+      installation?.mode !== CrowdSecInstallationMode.Lapi ||
+      installation.consoleEnrollmentConfirmed !== true
+    ) {
+      throw new HttpException(
+        'Clearing CrowdSec Console enrollment confirmation requires a confirmed LAPI installation',
+        409,
+      );
+    }
+
+    await installationRepository.setConsoleEnrollmentConfirmed(this._firewall.id, false);
+    return ResponseBuilder.buildResponse().status(200).body({
+      console_enrollment_confirmed: false,
+    });
+  }
+
   @Validate(CrowdSecCollectionDto)
   public async installCollection(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();

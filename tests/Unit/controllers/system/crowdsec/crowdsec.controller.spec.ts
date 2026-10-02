@@ -236,7 +236,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should persist CrowdSec Console enrollment reported by the agent once', async () => {
+  it('should restore CrowdSec Console enrollment confirmation when the agent reports enrollment', async () => {
     const status = {
       crowdsec: { installed: true },
       community_blocklist_enrollment: 'enrolled',
@@ -2218,6 +2218,71 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     await expect(
       controller.confirmConsoleEnrollment({ session: { user: null } } as unknown as Request),
     ).to.be.rejected;
+    expect(findInstallationStub.called).to.be.false;
+    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
+  });
+
+  it('should clear a stale CrowdSec Console enrollment confirmation for a LAPI installation', async () => {
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: true,
+      }),
+    );
+    const statusStub = sinon.stub(communication, 'getCrowdSecStatus');
+
+    const response = await controller.clearConsoleEnrollment({
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, false))
+      .to.be.true;
+    expect(statusStub.called).to.be.false;
+    expect(response.toJSON()).to.include({ status: 200 });
+    expect(response.toJSON().data).to.deep.equal({ console_enrollment_confirmed: false });
+  });
+
+  it('should reject clearing a CrowdSec Console enrollment confirmation without a confirmed LAPI installation', async () => {
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: false,
+      }),
+    );
+    const statusStub = sinon.stub(communication, 'getCrowdSecStatus');
+
+    await expect(
+      controller.clearConsoleEnrollment({ session: { user: null } } as unknown as Request),
+    ).to.be.rejectedWith(HttpException);
+
+    expect(statusStub.called).to.be.false;
+    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
+  });
+
+  it('should reject clearing a CrowdSec Console enrollment confirmation for a Machine installation', async () => {
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Machine,
+        consoleEnrollmentConfirmed: true,
+      }),
+    );
+    const statusStub = sinon.stub(communication, 'getCrowdSecStatus');
+
+    await expect(
+      controller.clearConsoleEnrollment({ session: { user: null } } as unknown as Request),
+    ).to.be.rejectedWith(HttpException);
+
+    expect(statusStub.called).to.be.false;
+    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
+  });
+
+  it('should reject clearing a CrowdSec Console enrollment confirmation without access', async () => {
+    managePolicyStub.resolves(Authorization.revoke());
+
+    await expect(
+      controller.clearConsoleEnrollment({ session: { user: null } } as unknown as Request),
+    ).to.be.rejected;
+
     expect(findInstallationStub.called).to.be.false;
     expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
   });
