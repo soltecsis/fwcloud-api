@@ -23,6 +23,7 @@ describe(describeName('Replication Profile Model Unit Tests'), () => {
       expect(ReplicationProfile.getOriginalColumnName('isDeprecated')).to.be.deep.eq(
         'is_deprecated',
       );
+      expect(ReplicationProfile.getOriginalColumnName('userId')).to.be.eq('user_id');
       expect(ReplicationProfile.getOriginalColumnName('targetKind')).to.be.deep.eq('target_kind');
     });
   });

@@ -1,6 +1,11 @@
 export const REPLICATION_PROFILE_TARGET_KINDS = ['firewall', 'cluster'] as const;
 export type ReplicationProfileTargetKind = (typeof REPLICATION_PROFILE_TARGET_KINDS)[number];
 
+/** Custom profile owners must be positive, safely representable integer IDs. */
+export function isReplicationProfileOwnerId(userId: number | null | undefined): userId is number {
+  return Number.isSafeInteger(userId) && userId > 0;
+}
+
 /** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
 export const REPLICATION_PROFILE_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 

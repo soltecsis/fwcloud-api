@@ -29,29 +29,32 @@ export type ReplicationProfileFixture = Partial<Omit<ReplicationProfile, 'path'>
   model?: ReplicationProfileModel;
 };
 
+/** The seeded administrator owns the custom fixtures that are not given an owner. */
+const DEFAULT_FIXTURE_OWNER_ID = 1;
+
 /**
  * Where makeReplicationProfileFixture() keeps the template of a profile.
- * Profiles without a FWCloud keep theirs among the custom templates as well,
+ * Profiles without an owner keep theirs among the custom templates as well,
  * so fixtures never write into the version-controlled config/templates.
  */
 export function replicationProfileFixtureTemplate({
   code,
   version = 1,
-  fwCloudId = null,
+  userId = DEFAULT_FIXTURE_OWNER_ID,
   targetKind = 'firewall',
 }: {
   code: string;
   version?: number;
-  fwCloudId?: number | null;
+  userId?: number | null;
   targetKind?: string;
 }): ReplicationProfileTemplateReference {
-  const templatePath = buildReplicationProfileTemplatePath({ code, version, fwCloudId });
+  const templatePath = buildReplicationProfileTemplatePath({ code, version, userId });
 
   return {
     code,
     version,
     targetKind,
-    path: typeof fwCloudId === 'number' ? templatePath : `custom/fixtures/${templatePath}`,
+    path: typeof userId === 'number' ? templatePath : `custom/fixtures/${templatePath}`,
   };
 }
 
@@ -72,6 +75,7 @@ export function makeReplicationProfileFixture({
       isBuiltin: false,
       isActive: true,
       isDeprecated: false,
+      userId: fields.isBuiltin ? null : DEFAULT_FIXTURE_OWNER_ID,
       ...fields,
     });
 

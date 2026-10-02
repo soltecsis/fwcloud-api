@@ -20,6 +20,9 @@ export interface ReplicationProfileResponseDto {
   isCustom: boolean;
   isActive: boolean;
   isDeprecated: boolean;
+  /** Owner of a custom profile, who can use it from any of their FWClouds; null for built-in ones. */
+  userId: number | null;
+  /** FWCloud a custom profile was created from; null once that FWCloud is removed. */
   fwcloudId: number | null;
   createdBy: number | null;
   updatedBy: number | null;
@@ -29,4 +32,5 @@ export interface ReplicationProfileResponseDto {
   is_active: boolean;
   is_deprecated: boolean;
   fwcloud_id: number | null;
+  user_id: number | null;
 }

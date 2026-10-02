@@ -124,6 +124,7 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       makeReplicationProfileFixture({
         code: `profile-app-${Date.now()}-${++profileCounter}`,
         name: 'Profile application test profile',
+        userId: authorizedUser.id,
         model: {
           compatibility: { targetKinds: ['firewall', 'cluster'] },
           replicate: {},
@@ -529,11 +530,31 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       expect(data.status).to.be.eq('failed');
     });
 
+    it('should reject the owner of a profile in a FWCloud they cannot access', async () => {
+      const target = await makeTargetFirewall();
+      const rulesBefore = await countTargetRules(target.firewall.id);
+      const unauthorizedOwner = await createUser({ role: 0 });
+      const ownedProfile = await makeProfile({ userId: unauthorizedOwner.id });
+
+      await expect(
+        service.apply(
+          actor(unauthorizedOwner),
+          makeApplyRequest(target, 'replace_defaults', { profileCode: ownedProfile.code }),
+        ),
+      ).to.be.rejectedWith(AuthorizationException);
+
+      expect(await countTargetRules(target.firewall.id)).to.be.eq(rulesBefore);
+    });
+
     it('should allow an administrator without explicit FWCloud assignment', async () => {
       const target = await makeTargetFirewall();
       const adminUser = await createUser({ role: 1 });
+      const adminProfile = await makeProfile({ userId: adminUser.id });
 
-      const result = await service.apply(actor(adminUser), makeApplyRequest(target, 'dry_run'));
+      const result = await service.apply(
+        actor(adminUser),
+        makeApplyRequest(target, 'dry_run', { profileCode: adminProfile.code }),
+      );
 
       expect(result.errors).to.be.empty;
     });
@@ -555,19 +576,51 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       expect(entries[0].status).to.be.eq(404);
     });
 
-    it('should reject custom profiles owned by another FWCloud', async () => {
+    it('should apply a custom profile of the user that was created from another FWCloud', async () => {
       const target = await makeTargetFirewall();
       const otherFwCloud = await db
         .getSource()
         .manager.getRepository(FwCloud)
         .save({ name: StringHelper.randomize(10) });
-      const foreignProfile = await makeProfile({ fwCloudId: otherFwCloud.id });
+      const reusedProfile = await makeProfile({ fwCloudId: otherFwCloud.id });
+
+      const result = await service.apply(
+        actor(authorizedUser),
+        makeApplyRequest(target, 'replace_defaults', { profileCode: reusedProfile.code }),
+      );
+
+      expect(result.applied).to.be.true;
+      expect(result.errors).to.be.empty;
+      expect(await countTargetRules(target.firewall.id)).to.be.eq(3);
+    });
+
+    it('should reject custom profiles owned by another user with access to the same FWCloud', async () => {
+      const target = await makeTargetFirewall();
+      const rulesBefore = await countTargetRules(target.firewall.id);
+      const otherUser = await createUser({ role: 0 });
+      otherUser.fwClouds = [fwc.fwcloud];
+      await db.getSource().manager.getRepository(User).save(otherUser);
+      const foreignProfile = await makeProfile({
+        fwCloudId: fwc.fwcloud.id,
+        userId: otherUser.id,
+      });
 
       await expect(
         service.apply(
           actor(authorizedUser),
           makeApplyRequest(target, 'replace_defaults', { profileCode: foreignProfile.code }),
         ),
+      ).to.be.rejectedWith(NotFoundException);
+
+      expect(await countTargetRules(target.firewall.id)).to.be.eq(rulesBefore);
+    });
+
+    it('should reject the custom profiles of another user for an administrator too', async () => {
+      const target = await makeTargetFirewall();
+      const adminUser = await createUser({ role: 1 });
+
+      await expect(
+        service.apply(actor(adminUser), makeApplyRequest(target, 'dry_run')),
       ).to.be.rejectedWith(NotFoundException);
     });
 

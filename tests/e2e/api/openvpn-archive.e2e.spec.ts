@@ -128,12 +128,18 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
       });
 
       it('should throw an exception if process is locked', async () => {
-        openVPNService.archiveHistory();
+        // The lock is held here rather than by an archiver left running in
+        // background, which could finish before the request reached it.
+        const release = await openVPNService['_archiveMutex'].acquire();
 
-        await request(app.express)
-          .post(_URL().getURL('openvpnarchives.store'))
-          .set('Cookie', [attachSession(adminUserSessionId)])
-          .expect(500);
+        try {
+          await request(app.express)
+            .post(_URL().getURL('openvpnarchives.store'))
+            .set('Cookie', [attachSession(adminUserSessionId)])
+            .expect(500);
+        } finally {
+          release();
+        }
       });
     });
   });

@@ -419,7 +419,7 @@ const config = convict({
   // Replication profiles configuration.
   replication_profiles: {
     data_dir: {
-      doc: 'Directory for the JSON templates of the custom replication profiles of each FWCloud.',
+      doc: 'Directory for the JSON templates of the custom replication profiles of each user.',
       format: String,
       default: './config/templates/custom/',
       env: 'REPLICATION_PROFILES_DATA_DIR'
