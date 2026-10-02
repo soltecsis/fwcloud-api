@@ -9,12 +9,12 @@ que la documentación evolucione junto con la configuración.
 | Campo | Valor |
 | --- | --- |
 | Repositorio | `fwcloud-api` |
-| Rama de trabajo | `ciBackendHardering` |
+| Rama de trabajo actual | `integrateTrivy` |
 | Base inicial | `upstream/fixes`, commit `6e6a964c` |
-| Destino de la PR | `fixes` |
+| Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-09-24 |
+| Última actualización | 2026-10-02 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -22,7 +22,7 @@ Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
 ### Flujo de integración acordado
 
 ```text
-Rama de trabajo → PR hacia fixes → CI y validación manual
+Rama de trabajo → PR hacia ENS → CI y validación manual
     → promoción a main → despliegue → alineación de devel
 ```
 
@@ -50,8 +50,8 @@ anterior no acreditan automáticamente revisiones posteriores.
 | --- | --- | --- | --- |
 | 1 | Instalación reproducible, separación de calidad/pruebas y controles de ejecución | Implementada localmente; pendiente de validación completa en Actions | PR hacia `fixes` con calidad y matriz completas correctas; protección configurada |
 | 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
-| 3 | Detección de secretos con Gitleaks | Implementada localmente; revisión histórica y validación en Actions pendientes | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
-| 4 | SCA y SBOM con Trivy | Pendiente | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
+| 3 | Detección de secretos con Gitleaks | Validada en Actions e integrada mediante la PR #1563; revisión histórica pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
+| 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | Laboratorio efímero y DAST con ZAP | Pendiente | Entorno sintético aislado, autenticación y cobertura verificadas, resultados revisados |
 | Posterior | SonarQube | Aplazada | Integración y política de análisis acordadas; sin SAST provisional |
@@ -539,9 +539,10 @@ validar el detector. No se ha empleado ninguna credencial funcional.
 
 ### 6.6. Cierre pendiente
 
-- [ ] Publicar la rama y enlazar la PR y el commit de esta fase.
-- [ ] Verificar un escaneo incremental limpio en GitHub Actions.
-- [ ] Comprobar que `backend-ci` exige el éxito de `FWCloud-API Secrets`.
+- [x] Publicar la rama y enlazar la PR y el commit de esta fase: PR #1563,
+      commit `78dd3345` y merge `735e5f0a`.
+- [x] Verificar un escaneo incremental limpio en GitHub Actions.
+- [x] Comprobar que `backend-ci` exige el éxito de `FWCloud-API Secrets`.
 - [ ] Descargar y revisar el artefacto agregado y sus 90 días de retención efectiva.
 - [ ] Confirmar que logs, resumen y artefacto no exponen valores ni contexto sensible.
 - [ ] Confirmar el tratamiento de los 366 hallazgos potencialmente sensibles de 2018.
@@ -549,7 +550,250 @@ validar el detector. No se ha empleado ninguna credencial funcional.
 - [ ] Ejecutar de nuevo el historial completo y registrar el resultado aceptado.
 - [ ] Registrar validación, fecha y responsable.
 
-## 7. Pendientes transversales
+## 7. Fase 4 — SCA y SBOM con Trivy
+
+### 7.1. Objetivo y alcance
+
+Se incorpora Trivy `0.74.0` para inventariar el árbol npm fijado por
+`package-lock.json`, detectar vulnerabilidades conocidas y generar un SBOM
+CycloneDX. El análisis incluye dependencias directas, transitivas, de ejecución,
+desarrollo y opcionales detectadas por Trivy.
+
+Esta fase analiza el repositorio asociado al commit del CI. No acredita todavía las
+dependencias efectivamente incluidas en las imágenes Docker ni en los paquetes DEB y
+RPM; sus procesos de construcción descargan una rama móvil y requieren una revisión
+posterior de trazabilidad.
+
+El escáner de secretos de Trivy se deshabilita expresamente para no duplicar el
+control de Gitleaks. Tampoco se ejecuta `npm ci` ni ningún script de ciclo de vida
+para realizar el inventario.
+
+### 7.2. Instalación e integridad
+
+El job `sca` descarga el archivo oficial para Linux x64 y comprueba su SHA-256 antes
+de extraerlo:
+
+```text
+Versión: 0.74.0
+Archivo: trivy_0.74.0_Linux-64bit.tar.gz
+SHA-256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
+```
+
+La versión ejecutada y la fecha de la base de vulnerabilidades se obtienen de
+Trivy después del análisis. El recolector exige que la versión coincida con la
+configurada y que exista una fecha válida de actualización de la base.
+
+### 7.3. Línea base y remediación
+
+La revisión inicial se realizó con Trivy 0.74.0 sobre el lockfile de la rama
+`integrateTrivy`:
+
+| Métrica inicial | Resultado |
+| --- | ---: |
+| Componentes npm inventariados | 630 |
+| Dependencias directas / indirectas | 83 / 547 |
+| Dependencias de ejecución / desarrollo | 413 / 217 |
+| Vulnerabilidades `CRITICAL` | 0 |
+| Vulnerabilidades `HIGH` | 1 |
+| Vulnerabilidades `MEDIUM` | 2 |
+
+El hallazgo `HIGH` correspondía a `js-yaml@4.3.1`, dependencia de desarrollo
+transitiva de ESLint y Mocha. Se actualizó únicamente el lockfile a `4.3.2`, versión
+corregida admitida por las restricciones existentes. Después de la actualización:
+
+| Severidad | Resultado |
+| --- | ---: |
+| `CRITICAL` | 0 |
+| `HIGH` | 0 |
+| `MEDIUM` | 2 |
+| `LOW` / `UNKNOWN` | 0 |
+
+Los dos hallazgos `MEDIUM` de esta revisión inicial afectaban a `qs@6.15.3`,
+dependencia transitiva del runtime de TSOA, y disponían de corrección en `6.16.0`.
+Las restricciones transitivas de aquel lockfile no seleccionaban esa versión. Se
+mantuvieron visibles sin bloquear la política inicial. La actualización posterior
+de `qs` y sus dependencias superiores está registrada en 7.8. No se crearon
+excepciones ni un archivo `.trivyignore`.
+
+Como comprobación complementaria, `npm audit` pasa de un `HIGH` y tres `MODERATE` a
+tres `MODERATE`. Las cantidades no tienen por qué coincidir con Trivy: las fuentes y
+la forma de agrupar cadenas afectadas son diferentes.
+
+### 7.4. Política de bloqueo
+
+| Condición | Resultado del job |
+| --- | --- |
+| Vulnerabilidad `CRITICAL` o `HIGH` | Bloqueo |
+| Vulnerabilidad `MEDIUM`, `LOW` o `UNKNOWN` | Se informa sin bloquear |
+| Error de instalación, base de datos, escaneo o SBOM | Bloqueo |
+| Informe ausente, vacío, malformado o inconsistente | Bloqueo |
+| Lockfile no detectado o inventario npm vacío | Bloqueo |
+| Versión de Trivy distinta de la configurada | Bloqueo |
+
+No se utiliza `--ignore-unfixed`. También se deshabilita la carga implícita de
+`.trivyignore` y `trivy.yaml` para impedir que una configuración futura silencie
+hallazgos o incorpore vulnerabilidades al SBOM sin pasar por el recolector. Una
+vulnerabilidad bloqueante sin corrección debe revisarse y, si procede, exceptuarse
+de forma explícita, limitada, temporal y auditable. Las excepciones futuras deberán
+identificar el hallazgo concreto, justificar el riesgo, indicar responsable y tener
+fecha de revisión o caducidad.
+
+### 7.5. Job y evidencias
+
+El nuevo job `FWCloud-API SCA and SBOM` realiza:
+
+1. checkout del commit;
+2. descarga y verificación de Trivy;
+3. escaneo `vuln` del árbol npm, incluyendo dependencias de desarrollo;
+4. generación independiente del SBOM CycloneDX;
+5. registro de versión de Trivy y base de vulnerabilidades;
+6. validación cerrada mediante `scripts/trivy-report.cjs`;
+7. eliminación del informe detallado de vulnerabilidades;
+8. subida de evidencia agregada y del SBOM.
+
+El artefacto se denomina:
+
+```text
+backend-sca-sbom-<RUN_ID>-<ATTEMPT>
+```
+
+Se solicitan 90 días de retención. Contiene:
+
+```text
+reports/dependencies/metadata.json
+reports/dependencies/sbom.cdx.json
+```
+
+El informe detallado `trivy.json` se utiliza solo durante el job y se elimina antes
+de publicar el artefacto. El resumen de Actions y `metadata.json` contienen conteos,
+versiones, estado, hash SHA-256 del lockfile y metadatos de ejecución, pero no
+descripciones de vulnerabilidades ni rutas detalladas.
+
+El SBOM es CycloneDX 1.7. La generación local produjo 631 componentes totales, de
+los cuales 630 son componentes npm, y 632 relaciones. El recolector comprueba que
+los componentes npm coincidan con los paquetes del informe de vulnerabilidades.
+
+`backend-ci` depende ahora de `quality`, la matriz `test`, `secrets` y `sca`. Se
+mantiene su nombre para conservar estable el check utilizado por la protección de
+ramas.
+
+### 7.6. Recolector y pruebas
+
+`scripts/trivy-report.cjs` falla ante análisis incompletos, evidencia inválida o
+hallazgos bloqueantes y genera evidencia incluso cuando el resultado no es
+aceptable. `scripts/trivy-report.test.cjs` cubre doce escenarios:
+
+- análisis limpio con dependencias de ejecución y desarrollo;
+- vulnerabilidad media informativa;
+- vulnerabilidad alta bloqueante sin exposición de detalle;
+- informe o SBOM ausente;
+- error operativo de cualquiera de los dos comandos;
+- inventario vacío;
+- cantidades o identidades inconsistentes entre informe y SBOM;
+- estructura de vulnerabilidades malformada;
+- entradas nulas con conservación de metadatos de error;
+- versión inesperada o metadatos de base ausentes;
+- versión CycloneDX o fecha de base de vulnerabilidades inválidas.
+
+### 7.7. Verificaciones locales
+
+| Verificación | Resultado |
+| --- | --- |
+| Descarga de Trivy 0.74.0 y comprobación SHA-256 | Correcta |
+| Inventario de `package-lock.json` con dependencias de desarrollo | Correcto; 630 paquetes npm |
+| SBOM CycloneDX y relaciones | Correcto; 631 componentes y 632 relaciones |
+| Política antes de remediar `js-yaml` | Bloqueo por un hallazgo `HIGH` |
+| Política después de remediar `js-yaml` | Correcta; dos `MEDIUM` informativos |
+| Pruebas de los tres recolectores | 22 pruebas correctas |
+| Actionlint `1.7.7` | Correcto |
+| `git diff --check` | Correcto |
+
+### 7.8. Validación en CI y cierre
+
+La fase 4 está publicada en `origin/integrateTrivy`. La ejecución correcta en
+GitHub Actions y la integración del control en el CI fueron confirmadas por el
+responsable de la entrega en esta conversación el 2026-10-02. Esta confirmación
+registra la validación comunicada; las referencias a la PR y ejecución concreta
+quedan pendientes de incorporación al informe.
+
+| Entrega | Commit |
+| --- | --- |
+| Job SCA/SBOM, recolector y remediación inicial | `df57ae42` |
+| Comandos locales, configuración compartida y actualización de dependencias | `6df43611` |
+
+El segundo commit incorpora la remediación de los hallazgos observados durante la
+validación local del lanzador, mediante actualizaciones de dependencias directas y
+transitivas:
+
+| Dependencia | Versión anterior | Versión publicada |
+| --- | --- | --- |
+| `joi` | `18.2.5` | `18.2.9` |
+| `moment` | `2.30.1` | `2.31.0` |
+| `engine.io` | `6.6.9` | `6.6.11` |
+| `brace-expansion` | `1.1.18` / `2.1.4` / `5.0.9` | `1.1.21` / `2.1.7` / `5.0.12` |
+| `qs` | `6.15.3` | `6.16.0` |
+| `body-parser` transitivo de TSOA | `1.20.6` | `1.20.8` |
+| `express` transitivo de TSOA | `4.22.2` | `4.22.3` |
+
+La ejecución aceptada satisface la política bloqueante de 7.4. Los conteos de las
+revisiones anteriores se conservan como evidencia histórica; no se presenta un
+nuevo conteo sin el informe de la ejecución validada. La base de vulnerabilidades
+puede introducir nuevos hallazgos en ejecuciones posteriores del mismo commit.
+
+- [x] Publicar la rama y registrar los commits de la entrega.
+- [x] Verificar `FWCloud-API SCA and SBOM` en GitHub Actions, según confirmación del responsable.
+- [x] Integrar `sca` como dependencia obligatoria de `backend-ci`.
+- [x] Actualizar las dependencias afectadas en `package.json` y `package-lock.json`.
+- [ ] Enlazar la PR y la ejecución de Actions validada.
+- [ ] Descargar y validar `metadata.json` y el SBOM CycloneDX.
+- [ ] Confirmar la retención efectiva de 90 días.
+- [ ] Confirmar que el informe detallado no se publica.
+- [ ] Completar la identificación del responsable y las referencias de evidencia.
+
+### 7.9. Integración local mediante Docker
+
+Se incorporan los comandos `npm run security:scan`, `npm run security:check` y
+`npm run security:sbom`, disponibles sin instalación de Trivy ni dependencias npm.
+Requieren Node/npm y Docker arrancado. La [guía local](../docs/SECURITY-DEPENDENCIES.md)
+describe los requisitos, informes y resolución de hallazgos.
+
+`scripts/trivy-config.json` centraliza versión, checksum del binario, digest de la
+imagen Docker, parámetros y severidades bloqueantes. `scripts/trivy-run.cjs` ejecuta
+los mismos comandos mediante Docker en local y mediante el binario verificado en
+Actions. El recolector consume también la política compartida.
+
+La imagen local queda fijada como:
+
+```text
+aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+```
+
+El repositorio se monta en lectura y la salida se escribe desde Node en el
+anfitrión, evitando archivos propiedad de root. La caché se conserva en el volumen
+Docker `fwcloud-trivy-cache`. El análisis local conserva el JSON detallado; el CI
+mantiene la eliminación previa a la publicación de artefactos.
+
+Verificación del 2026-10-02: `security:scan` muestra 14 hallazgos (8 `HIGH`,
+6 `MEDIUM`) con la base actualizada; `security:check` los bloquea y conserva la
+evidencia. `security:sbom` genera correctamente el inventario CycloneDX. Estos datos
+actualizan la observación del día, sin sustituir la línea base histórica de 7.3.
+Estos hallazgos corresponden al lockfile anterior a la remediación publicada en
+`6df43611`. Las actualizaciones posteriores y la validación correcta comunicada
+del CI se registran en 7.8.
+
+Verificaciones de esta integración:
+
+| Verificación | Resultado |
+| --- | --- |
+| `security:scan` y `security:sbom` con Docker | Correctos |
+| `security:check` con Docker | Código 1 por los ocho hallazgos `HIGH`, sin errores de evidencia |
+| Lanzador nativo y recolector utilizados por CI | Mismos 630 paquetes y 14 hallazgos; bloqueo correcto |
+| Permisos de informes locales | Escritos por el usuario del anfitrión |
+| Pruebas de recolectores y lanzador | 27 pruebas correctas |
+| Actionlint `1.7.7`, ESLint y Prettier del proyecto | Correctos |
+| `git diff --check` | Correcto |
+
+## 8. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -562,7 +806,7 @@ validar el detector. No se ha empleado ninguna credencial funcional.
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 8. Procedimiento de actualización del informe
+## 9. Procedimiento de actualización del informe
 
 En cada entrega:
 
