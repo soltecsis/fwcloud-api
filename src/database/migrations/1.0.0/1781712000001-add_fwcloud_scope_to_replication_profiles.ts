@@ -30,53 +30,67 @@ import {
 } from 'typeorm';
 
 /**
- * Extends `replication_profiles` so profiles can be owned by a FWCloud.
+ * Extends `replication_profiles` so profiles can be owned by a user.
  *
  * Two effective namespaces coexist:
- * - built-in / global profiles: `fwcloud_id IS NULL`, shared by every FWCloud;
- * - custom profiles: `fwcloud_id` set, visible only inside that FWCloud.
+ * - built-in / global profiles: `user_id IS NULL`, shared by every user;
+ * - custom profiles: `user_id` set, visible only to that user, from every
+ *   FWCloud they have access to.
+ *
+ * `fwcloud_id` only records the FWCloud a custom profile was created from. It
+ * does not limit where the profile can be used.
  *
  * The original `UNIQUE (code, version)` is replaced by a namespace-aware unique
  * index. Because MySQL/MariaDB treat multiple NULLs in a unique index as
- * distinct, `fwcloud_id` cannot be indexed directly (two different built-ins
+ * distinct, `user_id` cannot be indexed directly (two different built-ins
  * could then share the same code+version). Instead a generated column
- * `fwcloud_ns = COALESCE(fwcloud_id, 0)` collapses every built-in into the
- * single namespace `0`, and the unique index covers `(fwcloud_ns, code,
- * version)`. This keeps built-ins globally unique while letting two different
- * FWClouds reuse the same custom code+version.
+ * `user_ns = COALESCE(user_id, 0)` collapses every built-in into the single
+ * namespace `0`, and the unique index covers `(user_ns, code, version)`. This
+ * keeps built-ins globally unique while letting two different users reuse the
+ * same custom code+version.
  *
- * Engine notes (validated on MySQL 5.7 / 8.0 and MariaDB 10.1):
+ * Engine notes (validated on MySQL 9.4 and MariaDB 12.0):
  * - the generated column keyword differs per engine (`STORED` on MySQL,
  *   `PERSISTENT` on MariaDB, which also rejects indexing a VIRTUAL column), so
  *   it is created with raw SQL branched on the server version;
- * - the `fwcloud_id` foreign key uses `ON DELETE RESTRICT`: InnoDB refuses
+ * - the `user_id` foreign key uses `ON DELETE RESTRICT`: InnoDB refuses
  *   `CASCADE`/`SET NULL` on a column feeding an indexed generated column.
- *   FWCloud deletion removes owned profiles explicitly in `FwCloud.remove()`.
+ *   User deletion removes owned profiles explicitly in `User._delete()`;
+ * - the `fwcloud_id` foreign key uses `ON DELETE SET NULL`, so a profile
+ *   outlives the FWCloud it was created from.
  */
 export class AddFwcloudScopeToReplicationProfiles1781712000001 implements MigrationInterface {
   private readonly tableName = 'replication_profiles';
-  private readonly foreignKeyName = 'FK_replication_profiles_fwcloud_id';
-  private readonly generatedColumn = 'fwcloud_ns';
+  private readonly userForeignKeyName = 'FK_replication_profiles_user_id';
+  private readonly fwCloudForeignKeyName = 'FK_replication_profiles_fwcloud_id';
+  private readonly generatedColumn = 'user_ns';
   private readonly namespaceUniqueIndex = 'UQ_replication_profiles_ns_code_version';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns(this.tableName, [
+      new TableColumn({ name: 'user_id', type: 'int', isNullable: true, default: null }),
       new TableColumn({ name: 'fwcloud_id', type: 'int', isNullable: true, default: null }),
       new TableColumn({ name: 'category', type: 'varchar', isNullable: true, default: null }),
       new TableColumn({ name: 'created_by', type: 'int', isNullable: true, default: null }),
       new TableColumn({ name: 'updated_by', type: 'int', isNullable: true, default: null }),
     ]);
 
-    await queryRunner.createForeignKey(
-      this.tableName,
+    await queryRunner.createForeignKeys(this.tableName, [
       new TableForeignKey({
-        name: this.foreignKeyName,
-        columnNames: ['fwcloud_id'],
-        referencedTableName: 'fwcloud',
+        name: this.userForeignKeyName,
+        columnNames: ['user_id'],
+        referencedTableName: 'user',
         referencedColumnNames: ['id'],
         onDelete: 'RESTRICT',
       }),
-    );
+      new TableForeignKey({
+        name: this.fwCloudForeignKeyName,
+        columnNames: ['fwcloud_id'],
+        referencedTableName: 'fwcloud',
+        referencedColumnNames: ['id'],
+        onDelete: 'SET NULL',
+      }),
+    ]);
 
     // Resolve the current global unique's name before adding the generated
     // column, so we drop it by the name TypeORM auto-generated in the create
@@ -87,7 +101,7 @@ export class AddFwcloudScopeToReplicationProfiles1781712000001 implements Migrat
     const [{ version }] = await queryRunner.query('SELECT VERSION() AS version');
     const generatedKeyword = String(version).includes('MariaDB') ? 'PERSISTENT' : 'STORED';
     await queryRunner.query(
-      `ALTER TABLE \`${this.tableName}\` ADD COLUMN \`${this.generatedColumn}\` INT GENERATED ALWAYS AS (COALESCE(\`fwcloud_id\`, 0)) ${generatedKeyword}`,
+      `ALTER TABLE \`${this.tableName}\` ADD COLUMN \`${this.generatedColumn}\` INT GENERATED ALWAYS AS (COALESCE(\`user_id\`, 0)) ${generatedKeyword}`,
     );
 
     if (globalUniqueName) {
@@ -103,7 +117,7 @@ export class AddFwcloudScopeToReplicationProfiles1781712000001 implements Migrat
 
   /**
    * Reverses the migration. Restoring the global `UNIQUE (code, version)` can
-   * legitimately fail if custom profiles created cross-FWCloud code+version
+   * legitimately fail if custom profiles created cross-user code+version
    * collisions while the migration was applied; that is expected, not a bug.
    */
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -115,14 +129,15 @@ export class AddFwcloudScopeToReplicationProfiles1781712000001 implements Migrat
     );
 
     const table = await queryRunner.getTable(this.tableName);
-    const foreignKey = table?.foreignKeys.find(
-      (fk) => fk.name === this.foreignKeyName || fk.columnNames.indexOf('fwcloud_id') !== -1,
+    const foreignKeys = (table?.foreignKeys ?? []).filter(
+      (fk) => fk.columnNames.includes('user_id') || fk.columnNames.includes('fwcloud_id'),
     );
-    if (foreignKey) {
-      await queryRunner.dropForeignKey(this.tableName, foreignKey);
+    if (foreignKeys.length > 0) {
+      await queryRunner.dropForeignKeys(this.tableName, foreignKeys);
     }
 
     await queryRunner.dropColumns(this.tableName, [
+      'user_id',
       'fwcloud_id',
       'category',
       'created_by',

@@ -6,6 +6,7 @@ import {
   ReplicationTargetSide,
   makeReplicationTargetFirewall,
 } from '../../../utils/replication-profile-fixtures';
+import { createUser } from '../../../utils/utils';
 import StringHelper from '../../../../src/utils/string.helper';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
@@ -66,6 +67,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
   let service: ReplicationProfileSnapshotService;
   let fwc: FwCloudProduct;
   let source: ReplicationTargetSide;
+  let ownerId: number;
 
   before(async () => {
     app = testSuite.app;
@@ -78,6 +80,8 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
     );
     fwc = await new FwCloudFactory().make();
     source = await makeReplicationTargetFirewall(fwc);
+    // A new owner for every test: the code of a profile is unique for its user.
+    ownerId = (await createUser({ role: 0 })).id;
   });
 
   async function insertForwardRule(
@@ -265,13 +269,14 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           source: { kind: 'firewall', id: source.firewall.id },
           name: 'Snapshot of edge firewall',
         },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;
       expect(profile.targetKind).to.be.eq('firewall');
       expect(profile.scope).to.be.eq('fwcloud');
       expect(profile.isBuiltin).to.be.false;
+      expect(profile.userId).to.be.eq(ownerId);
       expect(profile.fwCloudId).to.be.eq(fwc.fwcloud.id);
 
       const provision = getProvision(profile);
@@ -315,7 +320,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           source: { kind: 'firewall', id: source.firewall.id },
           name: 'Snapshot without custom rules',
         },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;
@@ -338,7 +343,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           source: { kind: 'firewall', id: source.firewall.id },
           name: 'Snapshot with a dotted netmask',
         },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       const lan = getProvision(profile).interfaces.find((iface) => iface.name === 'ens19');
@@ -371,7 +376,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       function snapshot() {
         return service.createProfileFromSource(
           { source: { kind: 'firewall', id: source.firewall.id }, name: 'Default rules snapshot' },
-          { fwCloudId: fwc.fwcloud.id },
+          { fwCloudId: fwc.fwcloud.id, userId: ownerId },
         );
       }
 
@@ -466,7 +471,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           source: { kind: 'firewall', id: source.firewall.id },
           name: 'Snapshot with a source object',
         },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;
@@ -499,7 +504,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           source: { kind: 'firewall', id: source.firewall.id },
           name: 'Snapshot with warnings',
         },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(getProvision(profile).rules).to.be.empty;
@@ -515,7 +520,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             source: { kind: 'firewall', id: source.firewall.id },
             name: 'Cross-cloud snapshot',
           },
-          { fwCloudId: fwc.fwcloud.id + 1 },
+          { fwCloudId: fwc.fwcloud.id + 1, userId: ownerId },
         ),
       ).to.be.rejectedWith(NotFoundException);
     });
@@ -557,7 +562,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           source: { kind: 'cluster', id: cluster.id },
           name: 'Snapshot of HA cluster',
         },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;
@@ -593,7 +598,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             source: { kind: 'cluster', id: cluster.id },
             name: 'Cross-cloud cluster snapshot',
           },
-          { fwCloudId: fwc.fwcloud.id + 1 },
+          { fwCloudId: fwc.fwcloud.id + 1, userId: ownerId },
         ),
       ).to.be.rejectedWith(NotFoundException);
     });
@@ -610,7 +615,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const { profile, warnings } = await service.createProfileFromSource(
         { source: { kind: 'cluster', id: cluster.id }, name: 'Cluster with VPN' },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;
@@ -644,7 +649,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
         const { profile, warnings } = await service.createProfileFromSource(
           { source: { kind: 'firewall', id: source.firewall.id }, name: `${kind} snapshot` },
-          { fwCloudId: fwc.fwcloud.id },
+          { fwCloudId: fwc.fwcloud.id, userId: ownerId },
         );
 
         expect(warnings).to.be.empty;
@@ -740,7 +745,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const { profile, warnings } = await service.createProfileFromSource(
         { source: { kind: 'firewall', id: source.firewall.id }, name: 'VPN without credentials' },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       const vpn = getVpnTemplate(profile);
@@ -796,7 +801,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const { profile, warnings } = await service.createProfileFromSource(
         { source: { kind: 'firewall', id: source.firewall.id }, name: 'Unsupported VPN matches' },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(getProvision(profile).rules).to.be.empty;
@@ -875,7 +880,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const { profile, warnings } = await service.createProfileFromSource(
         { source: { kind: 'firewall', id: source.firewall.id }, name: 'Round trip' },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;
@@ -921,7 +926,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const { profile, warnings } = await service.createProfileFromSource(
         { source: { kind: 'firewall', id: source.firewall.id }, name: 'Group snapshot' },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(getProvision(profile).rules).to.be.empty;
@@ -943,7 +948,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const { profile, warnings } = await service.createProfileFromSource(
         { source: { kind: 'firewall', id: source.firewall.id }, name: 'Two inbound snapshot' },
-        { fwCloudId: fwc.fwcloud.id },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
       );
 
       expect(warnings).to.be.empty;

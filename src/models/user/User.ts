@@ -36,6 +36,9 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
 import { Tfa } from './Tfa';
+import { logger } from '../../fonaments/abstract-application';
+import { FSHelper } from '../../utils/fs-helper';
+import { getUserReplicationProfileTemplatesDirectory } from '../replication-profile/replication-profile-template';
 
 const fwcError = require('../../utils/error_table');
 
@@ -298,20 +301,39 @@ export class User extends Model {
     });
   }
 
-  public static _delete(req): Promise<void> {
-    return new Promise((resolve, reject) => {
-      req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error, result) => {
-        if (error) return reject(error);
+  public static async _delete(req): Promise<void> {
+    const userId = await db.getSource().transaction(async (manager): Promise<number | null> => {
+      const [user] = await manager.query(`select id from ${tableName} where customer=? and id=?`, [
+        req.body.customer,
+        req.body.user,
+      ]);
 
-        req.dbCon.query(
-          `delete from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-          (error, result) => {
-            if (error) return reject(error);
-            resolve();
-          },
-        );
-      });
+      if (!user) {
+        return null;
+      }
+
+      // Custom replication profiles are private to the user who owns them, so
+      // they are removed too. Required because their user_id foreign key is ON
+      // DELETE RESTRICT. Their templates go with the directory removed below.
+      await manager.query('delete from replication_profiles where user_id=?', [user.id]);
+      await manager.query('delete from user__fwcloud where user=?', [user.id]);
+      await manager.query(`delete from ${tableName} where id=?`, [user.id]);
+
+      return user.id;
     });
+
+    if (userId === null) {
+      return;
+    }
+
+    try {
+      FSHelper.rmDirectorySync(getUserReplicationProfileTemplatesDirectory(userId));
+    } catch (error) {
+      // The user is already gone: templates left behind are only unused disk data.
+      logger().warn(
+        `Could not remove the replication profile templates of user ${userId}: ${error.message}`,
+      );
+    }
   }
 
   public static lastAdminUser(req) {

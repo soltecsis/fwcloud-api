@@ -37,7 +37,7 @@ import {
  * Replication profile models are stored as JSON templates, not in the
  * database: `replication_profiles.path` holds where, relative to
  * `config/templates`. Built-in templates are version-controlled there. The
- * templates of the custom profiles created in each FWCloud go below `custom/`,
+ * templates of the custom profiles owned by each user go below `custom/`,
  * which is served from the `replication_profiles.data_dir` directory
  * (`config/templates/custom` by default) so backups include them.
  *
@@ -58,6 +58,8 @@ export type ReplicationProfileTemplateErrorReason =
   'invalid_path' | 'not_found' | 'unreadable' | 'invalid_json' | 'invalid_model' | 'unwritable';
 
 const CUSTOM_TEMPLATES_SEGMENT = 'custom';
+/** Keeps the user directories apart from the former `custom/<fwcloud>/` ones. */
+const USER_TEMPLATES_SEGMENT = 'users';
 const TEMPLATE_EXTENSION = '.json';
 /**
  * No segment can be empty, `.` or `..`. Profile codes use the same charset, but
@@ -97,31 +99,35 @@ export function getReplicationProfileTemplatesDirectory(): string {
   return path.resolve('config', 'templates');
 }
 
-/** Templates of the custom profiles, one directory per FWCloud. */
+/** Templates of the custom profiles, one directory per owning user. */
 export function getCustomReplicationProfileTemplatesDirectory(): string {
   return path.resolve(app().config.get('replication_profiles').data_dir);
 }
 
-/** Where the `custom/<fwcloud>/` templates of one FWCloud are stored. */
-export function getFwCloudReplicationProfileTemplatesDirectory(fwCloudId: number): string {
-  return path.join(getCustomReplicationProfileTemplatesDirectory(), String(fwCloudId));
+/** Where the `custom/users/<user>/` templates of one user are stored. */
+export function getUserReplicationProfileTemplatesDirectory(userId: number): string {
+  return path.join(
+    getCustomReplicationProfileTemplatesDirectory(),
+    USER_TEMPLATES_SEGMENT,
+    String(userId),
+  );
 }
 
 /**
  * Deterministic template path of a profile, derived from the same
- * (FWCloud, code, version) key the database keeps unique: built-in profiles
- * (no FWCloud) use `<code>.v<version>.json` and custom ones
- * `custom/<fwcloud>/<code>.v<version>.json`.
+ * (owner, code, version) key the database keeps unique: built-in profiles
+ * (no owner) use `<code>.v<version>.json` and custom ones
+ * `custom/users/<user>/<code>.v<version>.json`.
  */
 export function buildReplicationProfileTemplatePath(identity: {
   code: string;
   version: number;
-  fwCloudId: number | null;
+  userId: number | null;
 }): string {
   const fileName = `${identity.code}.v${identity.version}${TEMPLATE_EXTENSION}`;
 
-  return typeof identity.fwCloudId === 'number'
-    ? `${CUSTOM_TEMPLATES_SEGMENT}/${identity.fwCloudId}/${fileName}`
+  return typeof identity.userId === 'number'
+    ? `${CUSTOM_TEMPLATES_SEGMENT}/${USER_TEMPLATES_SEGMENT}/${identity.userId}/${fileName}`
     : fileName;
 }
 
