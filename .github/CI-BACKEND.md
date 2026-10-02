@@ -14,7 +14,7 @@ que la documentación evolucione junto con la configuración.
 | Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-09-29 |
+| Última actualización | 2026-10-02 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -717,6 +717,48 @@ aceptable. `scripts/trivy-report.test.cjs` cubre doce escenarios:
 - [ ] Confirmar que el informe detallado no se publica.
 - [ ] Registrar la revisión y tratamiento futuro de los dos hallazgos `MEDIUM`.
 - [ ] Registrar ejecución, fecha y responsable.
+
+### 7.9. Integración local mediante Docker
+
+Se incorporan los comandos `npm run security:scan`, `npm run security:check` y
+`npm run security:sbom`, disponibles sin instalación de Trivy ni dependencias npm.
+Requieren Node/npm y Docker arrancado. La [guía local](../docs/SECURITY-DEPENDENCIES.md)
+describe los requisitos, informes y resolución de hallazgos.
+
+`scripts/trivy-config.json` centraliza versión, checksum del binario, digest de la
+imagen Docker, parámetros y severidades bloqueantes. `scripts/trivy-run.cjs` ejecuta
+los mismos comandos mediante Docker en local y mediante el binario verificado en
+Actions. El recolector consume también la política compartida.
+
+La imagen local queda fijada como:
+
+```text
+aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+```
+
+El repositorio se monta en lectura y la salida se escribe desde Node en el
+anfitrión, evitando archivos propiedad de root. La caché se conserva en el volumen
+Docker `fwcloud-trivy-cache`. El análisis local conserva el JSON detallado; el CI
+mantiene la eliminación previa a la publicación de artefactos.
+
+Verificación del 2026-10-02: `security:scan` muestra 14 hallazgos (8 `HIGH`,
+6 `MEDIUM`) con la base actualizada; `security:check` los bloquea y conserva la
+evidencia. `security:sbom` genera correctamente el inventario CycloneDX. Estos datos
+actualizan la observación del día, sin sustituir la línea base histórica de 7.3.
+Las dependencias afectadas requieren remediación antes de que el control SCA pase
+con esta base; esta entrega incorpora el lanzador local.
+
+Verificaciones de esta integración:
+
+| Verificación | Resultado |
+| --- | --- |
+| `security:scan` y `security:sbom` con Docker | Correctos |
+| `security:check` con Docker | Código 1 por los ocho hallazgos `HIGH`, sin errores de evidencia |
+| Lanzador nativo y recolector utilizados por CI | Mismos 630 paquetes y 14 hallazgos; bloqueo correcto |
+| Permisos de informes locales | Escritos por el usuario del anfitrión |
+| Pruebas de recolectores y lanzador | 27 pruebas correctas |
+| Actionlint `1.7.7`, ESLint y Prettier del proyecto | Correctos |
+| `git diff --check` | Correcto |
 
 ## 8. Pendientes transversales
 

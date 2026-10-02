@@ -1,0 +1,21 @@
+{
+  "version": "0.74.0",
+  "archive": "trivy_0.74.0_Linux-64bit.tar.gz",
+  "archiveSha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+  "image": "aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969",
+  "cacheVolume": "fwcloud-trivy-cache",
+  "blockingSeverities": ["HIGH", "CRITICAL"],
+  "cycloneDxVersion": "1.7",
+  "commonArgs": [
+    "--config", "/dev/null",
+    "--include-dev-deps",
+    "--timeout", "10m",
+    "--disable-telemetry",
+    "--skip-version-check"
+  ],
+  "vulnerabilityArgs": [
+    "--scanners", "vuln",
+    "--pkg-types", "library",
+    "--ignorefile", "/dev/null"
+  ]
+}

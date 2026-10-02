@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const config = require('./trivy-config.json');
 
 const env = process.env;
 const reportPath = env.TRIVY_REPORT_PATH || 'reports/dependencies/trivy.json';
@@ -9,7 +10,7 @@ const sbomPath = env.TRIVY_SBOM_PATH || 'reports/dependencies/sbom.cdx.json';
 const versionPath = env.TRIVY_VERSION_PATH || 'reports/dependencies/trivy-version.json';
 const metadataPath = env.TRIVY_METADATA_PATH || 'reports/dependencies/metadata.json';
 const lockfilePath = env.TRIVY_LOCKFILE_PATH || 'package-lock.json';
-const blockingSeverities = new Set(['HIGH', 'CRITICAL']);
+const blockingSeverities = new Set(config.blockingSeverities);
 const severityCounts = { UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
 const errors = [];
 
@@ -96,7 +97,7 @@ let npmComponentCount = 0;
 let npmComponents = [];
 if (sbom) {
   if (sbom.bomFormat !== 'CycloneDX') errors.push('SBOM is not in CycloneDX format.');
-  if (sbom.specVersion !== '1.7') errors.push('SBOM does not use CycloneDX 1.7.');
+  if (sbom.specVersion !== config.cycloneDxVersion) errors.push('Unsupported CycloneDX version.');
   if (!sbom.metadata?.component) errors.push('SBOM has no root component metadata.');
   if (!Array.isArray(sbom.components)) errors.push('SBOM has no components array.');
   else {
@@ -174,7 +175,10 @@ if (versionInfo) {
   if (Number.isNaN(Date.parse(versionInfo.VulnerabilityDB?.UpdatedAt))) {
     errors.push('Trivy version information has no vulnerability database timestamp.');
   }
-  if (env.TRIVY_VERSION && versionInfo.Version !== env.TRIVY_VERSION) {
+  if (
+    versionInfo.Version !== config.version ||
+    (env.TRIVY_VERSION && versionInfo.Version !== env.TRIVY_VERSION)
+  ) {
     errors.push('Executed Trivy version does not match the configured version.');
   }
 }

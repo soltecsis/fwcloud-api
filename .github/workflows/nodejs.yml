@@ -53,7 +53,7 @@ jobs:
       - name: Verify Gitleaks report collector
         run: node --test scripts/gitleaks-report.test.cjs
       - name: Verify Trivy report collector
-        run: node --test scripts/trivy-report.test.cjs
+        run: node --test scripts/trivy-report.test.cjs scripts/trivy-run.test.cjs
 
   secrets:
     name: FWCloud-API Secrets
@@ -154,14 +154,22 @@ jobs:
     name: FWCloud-API SCA and SBOM
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      TRIVY_VERSION: '0.74.0'
-      TRIVY_ARCHIVE_SHA256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
     steps:
       - uses: actions/checkout@v4
+      - name: Load shared Trivy configuration
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const c = require("./scripts/trivy-config.json");
+            fs.appendFileSync(process.env.GITHUB_ENV, [
+              "TRIVY_VERSION=" + c.version,
+              "TRIVY_ARCHIVE=" + c.archive,
+              "TRIVY_ARCHIVE_SHA256=" + c.archiveSha256,
+              "TRIVY_BINARY=" + process.env.RUNNER_TEMP + "/trivy",
+              ""
+            ].join("\n"));
+          '
       - name: Install Trivy
-        env:
-          TRIVY_ARCHIVE: trivy_0.74.0_Linux-64bit.tar.gz
         run: |
           curl --fail --silent --show-error --location \
             "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${TRIVY_ARCHIVE}" \
@@ -173,22 +181,8 @@ jobs:
       - name: Scan dependency vulnerabilities
         id: trivy
         run: |
-          mkdir -p reports/dependencies
           set +e
-          "$RUNNER_TEMP/trivy" fs \
-            --config /dev/null \
-            --scanners vuln \
-            --pkg-types library \
-            --include-dev-deps \
-            --list-all-pkgs \
-            --ignorefile /dev/null \
-            --format json \
-            --output reports/dependencies/trivy.json \
-            --timeout 10m \
-            --disable-telemetry \
-            --skip-version-check \
-            --quiet \
-            .
+          node scripts/trivy-run.cjs json
           STATUS=$?
           set -e
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
@@ -196,23 +190,13 @@ jobs:
         id: sbom
         run: |
           set +e
-          "$RUNNER_TEMP/trivy" fs \
-            --config /dev/null \
-            --include-dev-deps \
-            --format cyclonedx \
-            --output reports/dependencies/sbom.cdx.json \
-            --timeout 10m \
-            --disable-telemetry \
-            --skip-version-check \
-            --quiet \
-            .
+          node scripts/trivy-run.cjs sbom
           STATUS=$?
           set -e
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
       - name: Record Trivy and database versions
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
-        run: |
-          "$RUNNER_TEMP/trivy" version --format json > reports/dependencies/trivy-version.json
+        run: node scripts/trivy-run.cjs version
       - name: Verify and summarize dependency scan
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
         env:
