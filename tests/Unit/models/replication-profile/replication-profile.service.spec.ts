@@ -146,14 +146,25 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       ]);
     });
 
-    it('should return only built-in profiles when there is no user', async () => {
+    it('should return only built-in profiles when there is no valid user', async () => {
       await repository.save([
         makeProfile({ code: `${codePrefix}builtin`, isBuiltin: true, fwCloudId: null }),
         makeProfile({ code: `${codePrefix}custom` }),
       ]);
 
-      expect(await findCatalogCodes({ userId: null })).to.deep.eq([`${codePrefix}builtin`]);
-      expect(await findCatalogCodes({ userId: null, origin: 'custom' })).to.be.empty;
+      for (const userId of [
+        undefined,
+        null,
+        0,
+        -1,
+        1.5,
+        NaN,
+        Infinity,
+        Number.MAX_SAFE_INTEGER + 1,
+      ]) {
+        expect(await findCatalogCodes({ userId })).to.deep.eq([`${codePrefix}builtin`]);
+        expect(await findCatalogCodes({ userId, origin: 'custom' })).to.be.empty;
+      }
     });
 
     it('should filter catalog profiles by origin', async () => {
@@ -353,6 +364,26 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect((await service.findByCodeAndVersion(code, 1, otherUserId)).id).to.be.eq(foreign.id);
       expect((await service.findByCodeAndVersion(code, 1, 999999)).id).to.be.eq(global.id);
       expect((await service.findByCodeAndVersion(code, 1)).id).to.be.eq(global.id);
+    });
+
+    it('should fall back to built-ins only when the lookup excludes the matching custom profile', async () => {
+      for (const state of [{ isActive: false }, { isDeprecated: true }]) {
+        const code = `${codePrefix}${state.isActive === false ? 'inactive' : 'deprecated'}`;
+        const builtin = await repository.save(makeProfile({ code, isBuiltin: true }));
+        const custom = await repository.save(makeProfile({ code, ...state }));
+
+        expect((await service.findByCodeAndVersion(code, 1, userId)).id).to.be.eq(builtin.id);
+        expect((await service.findAnyByCodeAndVersion(code, 1, userId)).id).to.be.eq(custom.id);
+
+        for (const invalidUserId of [undefined, null, 0, -1, NaN]) {
+          expect((await service.findByCodeAndVersion(code, 1, invalidUserId)).id).to.be.eq(
+            builtin.id,
+          );
+          expect((await service.findAnyByCodeAndVersion(code, 1, invalidUserId)).id).to.be.eq(
+            builtin.id,
+          );
+        }
+      }
     });
 
     it('should not resolve the custom profiles of another user', async () => {

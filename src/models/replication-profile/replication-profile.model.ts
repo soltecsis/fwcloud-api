@@ -3,6 +3,7 @@ import Model from '../Model';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { resolveReplicationProfileTemplatePath } from './replication-profile-template';
 import {
+  isReplicationProfileOwnerId,
   isReplicationProfileStringValue,
   REPLICATION_PROFILE_TARGET_KINDS,
 } from './replication-profile.constants';
@@ -128,13 +129,11 @@ export class ReplicationProfile extends Model {
   @BeforeInsert()
   @BeforeUpdate()
   rejectInconsistentOwner(): void {
-    const hasOwner = Number.isSafeInteger(this.userId) && this.userId > 0;
-
     if (this.isBuiltin && this.userId !== null && this.userId !== undefined) {
       throw new HttpException('Built-in replication profiles cannot have an owner.', 422);
     }
 
-    if (!this.isBuiltin && !hasOwner) {
+    if (!this.isBuiltin && !isReplicationProfileOwnerId(this.userId)) {
       throw new HttpException('Custom replication profiles require an owner.', 422);
     }
   }
