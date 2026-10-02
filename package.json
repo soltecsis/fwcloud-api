@@ -17,6 +17,7 @@
     "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
     "test:ci": "NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors --forbid-only --fail-zero --reporter mocha-multi-reporters --reporter-options configFile=.github/mocha-reporters.json \"dist/tests/**/*spec.js\"",
     "test:coverage:ci": "c8 --config .github/c8.json npm run test:ci",
+    "test:security": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --forbid-only --fail-zero \"dist/tests/e2e/security/**/*.spec.js\" dist/tests/Unit/gates/is-logged-in.spec.js",
     "ci:reports": "node scripts/ci-reports.cjs",
     "security:scan": "node scripts/trivy-local.cjs scan",
     "security:check": "node scripts/trivy-local.cjs check",
