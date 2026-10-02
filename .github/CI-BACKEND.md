@@ -9,7 +9,7 @@ que la documentación evolucione junto con la configuración.
 | Campo | Valor |
 | --- | --- |
 | Repositorio | `fwcloud-api` |
-| Rama de trabajo actual | `integrateTrivy` |
+| Rama de trabajo actual | `testAuthSecurity` |
 | Base inicial | `upstream/fixes`, commit `6e6a964c` |
 | Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
@@ -52,7 +52,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
 | 3 | Detección de secretos con Gitleaks | Validada en Actions e integrada mediante la PR #1563; revisión histórica pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
 | 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
-| 5 | Pruebas negativas de autenticación y autorización | Pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
+| 5 | Pruebas negativas de autenticación y autorización | Implementada y validada localmente; matriz completa en Actions pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | Laboratorio efímero y DAST con ZAP | Pendiente | Entorno sintético aislado, autenticación y cobertura verificadas, resultados revisados |
 | Posterior | SonarQube | Aplazada | Integración y política de análisis acordadas; sin SAST provisional |
 
@@ -793,7 +793,164 @@ Verificaciones de esta integración:
 | Actionlint `1.7.7`, ESLint y Prettier del proyecto | Correctos |
 | `git diff --check` | Correcto |
 
-## 8. Pendientes transversales
+## 8. Fase 5 — Pruebas negativas de autenticación y autorización
+
+### 8.1. Objetivo y entorno
+
+La entrega parte del merge `53d7347c` de la fase 4 en `ENS` y utiliza la rama
+`testAuthSecurity`. Se incorporan pruebas TypeScript para verificar rechazo de
+credenciales y sesiones inválidas, permisos por rol, aislamiento de recursos y
+ausencia de modificaciones no autorizadas.
+
+La aplicación utiliza `AuthorizationTest` cuando `NODE_ENV=test`. Los nuevos casos
+de seguridad delegan de forma acotada en el método real de `Authorization`, con
+el contexto del middleware de pruebas y el almacén real de sesiones de Express.
+Se conserva la configuración de pruebas: no se carga el entorno de producción.
+
+`tests/utils/production-auth-harness.ts` restaura el middleware y la configuración
+tras cada caso y comprueba que el handler real se ha ejecutado. Las pruebas
+existentes siguen utilizando su mecanismo de sesiones sintéticas.
+
+### 8.2. Fixtures y aislamiento
+
+`tests/utils/security-fixtures.ts` crea cuentas sintéticas con contraseñas bcrypt
+compatibles con el login real. Los casos obtienen la cookie firmada mediante
+`POST /user/login`; no sustituyen el login por `attachSession`.
+
+Los escenarios utilizan los roles admitidos por la API:
+
+- administrador (`role: 1`), con las facultades globales actuales;
+- manager (`role: 2`), con acceso mediante pertenencia a una FWCloud.
+
+Para aislar recursos se crean dos managers, dos FWClouds, sus firewalls, tablas de
+routing y rutas. Cada manager se asigna únicamente a su cloud. No se asume que
+customer y FWCloud representen la misma frontera de autorización.
+
+Los datos se restablecen antes de cada caso y al finalizar cada suite. Se generan
+contraseñas, tokens y secretos TOTP exclusivamente para pruebas, sin incluir sus
+valores en nombres de casos ni en las nuevas aserciones. La ejecución local utiliza
+un contenedor MySQL desechable, distinto de la base habitual de desarrollo.
+
+### 8.3. Cobertura añadida
+
+| Suite | Casos | Comprobaciones principales |
+| --- | ---: | --- |
+| `authentication.e2e.spec.ts` | 18 | Login real, credenciales incorrectas, rutas protegidas, firma de cookie, sesiones eliminadas/incompletas, inactividad, logout y cuenta eliminada |
+| `function-permissions.e2e.spec.ts` | 13 | Gestión de usuarios/customers, escalada de rol, permisos de cloud, funciones administrativas y cambio de contraseña propia |
+| `resource-isolation.e2e.spec.ts` | 13 | Dos managers/clouds, objetos existentes ajenos, padres e hijos incompatibles, colecciones filtradas, revocación y operaciones masivas sin cambios parciales |
+| `confirmation-token.e2e.spec.ts` | 7 | Token ausente, incorrecto, ajeno o anterior; token válido sin privilegios y ausencia de efectos sobre el recurso |
+| `profile-tfa.e2e.spec.ts` | 9 | Propiedad de la configuración 2FA, verificación TOTP real, códigos inválidos/ausentes y actualización/borrado limitado a la cuenta actual |
+| `Unit/gates/is-logged-in.spec.ts` | 4 | Rechazo de usuario nulo/indefinido o sesión ausente, y control positivo |
+| **Total nuevo** | **64** | Controles positivos y negativos, con comprobación del estado persistido |
+
+Las modificaciones y eliminaciones rechazadas se comprueban también en la base de
+datos. Las pruebas masivas mezclan una ruta propia y otra existente ajena y exigen
+que ninguna se modifique o elimine. Expiración y logout comprueban además la
+liberación del lock asociado a la sesión.
+
+### 8.4. Contratos HTTP
+
+Se conservan los contratos existentes, distinguiendo la capa que rechaza:
+
+| Control | Respuesta verificada |
+| --- | --- |
+| Credenciales incorrectas | `401`, `BAD_LOGIN` |
+| Entrada de login malformada | `400` |
+| Sesión inválida o incompleta | `400`, `SESSION_BAD` |
+| Inactividad superior al límite | `400`, `SESSION_EXPIRED` |
+| Gestión legacy reservada al administrador | `400`, `NOT_ADMIN_USER` |
+| Cloud o firewall ajeno en acceso legacy | `400`, `ACC_FWCLOUD` / `ACC_FIREWALL` |
+| Política o gate nuevo sin permisos | `401` |
+| Token de confirmación inválido | `403` |
+| Recurso ajeno mezclado con un padre distinto | `404` |
+
+Las peticiones de autorización utilizan datos válidos y un token de confirmación
+correcto cuando corresponde, para alcanzar el control de permisos. El caso de
+creación de usuario utiliza también cifrado PGP válido para la sesión.
+
+### 8.5. Fallos reproducidos y corregidos
+
+1. **Gate `isLoggedIn`:** su condición con `OR` admitía usuarios nulos e indefinidos,
+   y una sesión ausente provocaba una excepción. Se reemplaza por una comprobación
+   segura de presencia de usuario. Las cuatro pruebas unitarias verifican el
+   comportamiento, además de las denegaciones HTTP con el middleware real.
+2. **Setup 2FA de otra cuenta:** el endpoint de perfil admitía un `body.user` ajeno.
+   Ahora exige el usuario de la sesión y persiste la configuración antes de
+   devolver éxito, eliminando el callback asíncrono no esperado.
+3. **Verificación 2FA de otra cuenta:** se aceptaba un secreto temporal ajeno y un
+   código válido. El controlador verifica la pertenencia del setup y el servicio
+   limita el `UPDATE` por usuario además del secreto temporal. Una regresión con
+   el mismo secreto en dos cuentas comprueba esa limitación de la actualización.
+
+Las pruebas existentes del perfil pasan a utilizar códigos TOTP reales y fixtures
+independientes, eliminando el stub global de verificación y las dependencias de
+orden entre casos. Las suites de perfil fijan y restauran únicamente `Date` para
+evitar fallos aleatorios al cambiar de ventana TOTP, manteniendo los temporizadores
+de E/S reales. La suite existente de tokens restaura la configuración tras cada
+prueba para evitar contaminación de otras suites.
+
+### 8.6. Ejecución e integración en CI
+
+El nuevo comando local reconstruye la aplicación y ejecuta los 64 casos:
+
+```bash
+npm run test:security
+```
+
+Se debe configurar una base desechable: el setup de pruebas reconstruye y carga
+datos en la base seleccionada por `TYPEORM_*`. No deben utilizarse datos operativos.
+La suite comparte aplicación, base de datos y almacén de sesiones y se ejecuta en
+serie, sin el modo paralelo de Mocha.
+
+`test:ci` y `test:coverage:ci` descubren automáticamente los nuevos `*spec.js` tras
+el build. Los casos forman parte de la matriz existente de Node 20/22/24 y
+MySQL/MySQL8/MariaDB, sus informes JUnit y la cobertura de referencia.
+`backend-ci` ya exige el éxito de `test`, por lo que los fallos de esta fase bloquean
+el check agregado sin añadir un job ni repetir la suite en el workflow.
+
+### 8.7. Verificaciones locales
+
+| Verificación | Resultado |
+| --- | --- |
+| Build TypeScript | Correcto |
+| `test:security` con Node 20.20.2 y MySQL 8.0.46 desechable | 64 pruebas correctas |
+| Casos nuevos junto a suites existentes de perfil y tokens, con reporteros de CI | 80 pruebas correctas |
+| Suites de perfil tras estabilizar la ventana TOTP | 20 pruebas correctas |
+| Recolector de JUnit y resultados de la ejecución enfocada | Evidencia completa; 80 correctas, 0 fallos y 0 pendientes |
+| Regresiones de gate y propiedad 2FA antes de corregir | Fallos reproducidos |
+| ESLint y Prettier | Correctos |
+| Gitleaks 8.30.1 sobre las suites y fixtures nuevos de seguridad | Sin hallazgos |
+| `git diff --check` | Correcto |
+| Suite completa local | Incompleta por límite de ejecución de 15 minutos; no acredita el resultado completo |
+| Ampliación local a más suites de API | Incompleta por límite de ejecución de 6 minutos |
+
+Las ejecuciones ampliadas se registran como incompletas, no como validaciones
+correctas de toda la API. La matriz completa debe finalizar en Actions antes de
+cerrar la fase.
+
+### 8.8. Límites y requisitos pendientes
+
+- La cobertura es representativa de los mecanismos y recursos indicados; no
+  acredita automáticamente todas las rutas de la API ni WebSockets.
+- Se verifica el 2FA personal del perfil. La obligatoriedad del 2FA persistido
+  durante el login requiere concretar su contrato y revisar su enlace con la sesión;
+  esta entrega no acredita esa obligatoriedad.
+- No se redefine la duración, consumo único ni vinculación por sesión de los tokens
+  de confirmación; las pruebas verifican el mecanismo actual por usuario.
+- Políticas de cuentas deshabilitadas, restricciones por IP y revocación global de
+  sesiones tras cambio de contraseña requieren requisitos específicos.
+- El DAST y el laboratorio desplegado corresponden a la fase 6.
+
+### 8.9. Cierre pendiente
+
+- [ ] Publicar la rama y enlazar PR y commit.
+- [ ] Completar las nueve combinaciones de la matriz en Actions.
+- [ ] Verificar la inclusión de las suites de seguridad en JUnit y cobertura.
+- [ ] Confirmar que un fallo de seguridad bloquea `backend-ci`.
+- [ ] Registrar la revisión de las correcciones de gate y propiedad 2FA.
+- [ ] Registrar requisitos pendientes, ejecución, fecha y responsable.
+
+## 9. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -806,7 +963,7 @@ Verificaciones de esta integración:
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 9. Procedimiento de actualización del informe
+## 10. Procedimiento de actualización del informe
 
 En cada entrega:
 
