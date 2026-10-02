@@ -52,6 +52,8 @@ jobs:
         run: node --test scripts/ci-reports.test.cjs
       - name: Verify Gitleaks report collector
         run: node --test scripts/gitleaks-report.test.cjs
+      - name: Verify Trivy report collector
+        run: node --test scripts/trivy-report.test.cjs
 
   secrets:
     name: FWCloud-API Secrets
@@ -145,6 +147,89 @@ jobs:
         with:
           name: backend-secrets-${{ github.run_id }}-${{ github.run_attempt }}
           path: reports/secrets/metadata.json
+          retention-days: 90
+          if-no-files-found: error
+
+  sca:
+    name: FWCloud-API SCA and SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TRIVY_VERSION: '0.74.0'
+      TRIVY_ARCHIVE_SHA256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Trivy
+        env:
+          TRIVY_ARCHIVE: trivy_0.74.0_Linux-64bit.tar.gz
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${TRIVY_ARCHIVE}" \
+            --output "$RUNNER_TEMP/$TRIVY_ARCHIVE"
+          printf '%s  %s\n' "$TRIVY_ARCHIVE_SHA256" "$RUNNER_TEMP/$TRIVY_ARCHIVE" \
+            | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$TRIVY_ARCHIVE" -C "$RUNNER_TEMP" trivy
+          "$RUNNER_TEMP/trivy" --version
+      - name: Scan dependency vulnerabilities
+        id: trivy
+        run: |
+          mkdir -p reports/dependencies
+          set +e
+          "$RUNNER_TEMP/trivy" fs \
+            --config /dev/null \
+            --scanners vuln \
+            --pkg-types library \
+            --include-dev-deps \
+            --list-all-pkgs \
+            --ignorefile /dev/null \
+            --format json \
+            --output reports/dependencies/trivy.json \
+            --timeout 10m \
+            --disable-telemetry \
+            --skip-version-check \
+            --quiet \
+            .
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+      - name: Generate CycloneDX SBOM
+        id: sbom
+        run: |
+          set +e
+          "$RUNNER_TEMP/trivy" fs \
+            --config /dev/null \
+            --include-dev-deps \
+            --format cyclonedx \
+            --output reports/dependencies/sbom.cdx.json \
+            --timeout 10m \
+            --disable-telemetry \
+            --skip-version-check \
+            --quiet \
+            .
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+      - name: Record Trivy and database versions
+        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        run: |
+          "$RUNNER_TEMP/trivy" version --format json > reports/dependencies/trivy-version.json
+      - name: Verify and summarize dependency scan
+        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        env:
+          TRIVY_EXIT_CODE: ${{ steps.trivy.outputs.exit_code }}
+          TRIVY_SBOM_EXIT_CODE: ${{ steps.sbom.outputs.exit_code }}
+        run: node scripts/trivy-report.cjs
+      - name: Remove detailed vulnerability report
+        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        run: rm -f reports/dependencies/trivy.json reports/dependencies/trivy-version.json
+      - name: Upload dependency security evidence
+        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-sca-sbom-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/dependencies/metadata.json
+            reports/dependencies/sbom.cdx.json
           retention-days: 90
           if-no-files-found: error
 
@@ -299,7 +384,7 @@ jobs:
   backend-ci:
     name: backend-ci
     if: ${{ always() }}
-    needs: [quality, test, secrets]
+    needs: [quality, test, secrets, sca]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -308,7 +393,9 @@ jobs:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TEST_RESULT: ${{ needs.test.result }}
           SECRETS_RESULT: ${{ needs.secrets.result }}
+          SCA_RESULT: ${{ needs.sca.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_RESULT" = success
           test "$SECRETS_RESULT" = success
+          test "$SCA_RESULT" = success
