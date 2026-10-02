@@ -51,7 +51,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 1 | Instalación reproducible, separación de calidad/pruebas y controles de ejecución | Implementada localmente; pendiente de validación completa en Actions | PR hacia `fixes` con calidad y matriz completas correctas; protección configurada |
 | 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
 | 3 | Detección de secretos con Gitleaks | Validada en Actions e integrada mediante la PR #1563; revisión histórica pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
-| 4 | SCA y SBOM con Trivy | Implementada localmente; validación en Actions pendiente | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
+| 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | Laboratorio efímero y DAST con ZAP | Pendiente | Entorno sintético aislado, autenticación y cobertura verificadas, resultados revisados |
 | Posterior | SonarQube | Aplazada | Integración y política de análisis acordadas; sin SAST provisional |
@@ -608,11 +608,12 @@ corregida admitida por las restricciones existentes. Después de la actualizaci�
 | `MEDIUM` | 2 |
 | `LOW` / `UNKNOWN` | 0 |
 
-Los dos hallazgos `MEDIUM` afectan a `qs@6.15.3`, dependencia transitiva del runtime
-de TSOA, y disponen de corrección en `6.16.0`. Las restricciones transitivas actuales
-no seleccionan esa versión. Se mantienen visibles y pendientes de actualización,
-pero no bloquean la política inicial. No se han creado excepciones ni un archivo
-`.trivyignore`.
+Los dos hallazgos `MEDIUM` de esta revisión inicial afectaban a `qs@6.15.3`,
+dependencia transitiva del runtime de TSOA, y disponían de corrección en `6.16.0`.
+Las restricciones transitivas de aquel lockfile no seleccionaban esa versión. Se
+mantuvieron visibles sin bloquear la política inicial. La actualización posterior
+de `qs` y sus dependencias superiores está registrada en 7.8. No se crearon
+excepciones ni un archivo `.trivyignore`.
 
 Como comprobación complementaria, `npm audit` pasa de un `HIGH` y tres `MODERATE` a
 tres `MODERATE`. Las cantidades no tienen por qué coincidir con Trivy: las fuentes y
@@ -707,16 +708,47 @@ aceptable. `scripts/trivy-report.test.cjs` cubre doce escenarios:
 | Actionlint `1.7.7` | Correcto |
 | `git diff --check` | Correcto |
 
-### 7.8. Cierre pendiente
+### 7.8. Validación en CI y cierre
 
-- [ ] Publicar la rama y enlazar PR y commit.
-- [ ] Verificar `FWCloud-API SCA and SBOM` en GitHub Actions.
-- [ ] Confirmar que `backend-ci` exige el éxito de `sca`.
+La fase 4 está publicada en `origin/integrateTrivy`. La ejecución correcta en
+GitHub Actions y la integración del control en el CI fueron confirmadas por el
+responsable de la entrega en esta conversación el 2026-10-02. Esta confirmación
+registra la validación comunicada; las referencias a la PR y ejecución concreta
+quedan pendientes de incorporación al informe.
+
+| Entrega | Commit |
+| --- | --- |
+| Job SCA/SBOM, recolector y remediación inicial | `df57ae42` |
+| Comandos locales, configuración compartida y actualización de dependencias | `6df43611` |
+
+El segundo commit incorpora la remediación de los hallazgos observados durante la
+validación local del lanzador, mediante actualizaciones de dependencias directas y
+transitivas:
+
+| Dependencia | Versión anterior | Versión publicada |
+| --- | --- | --- |
+| `joi` | `18.2.5` | `18.2.9` |
+| `moment` | `2.30.1` | `2.31.0` |
+| `engine.io` | `6.6.9` | `6.6.11` |
+| `brace-expansion` | `1.1.18` / `2.1.4` / `5.0.9` | `1.1.21` / `2.1.7` / `5.0.12` |
+| `qs` | `6.15.3` | `6.16.0` |
+| `body-parser` transitivo de TSOA | `1.20.6` | `1.20.8` |
+| `express` transitivo de TSOA | `4.22.2` | `4.22.3` |
+
+La ejecución aceptada satisface la política bloqueante de 7.4. Los conteos de las
+revisiones anteriores se conservan como evidencia histórica; no se presenta un
+nuevo conteo sin el informe de la ejecución validada. La base de vulnerabilidades
+puede introducir nuevos hallazgos en ejecuciones posteriores del mismo commit.
+
+- [x] Publicar la rama y registrar los commits de la entrega.
+- [x] Verificar `FWCloud-API SCA and SBOM` en GitHub Actions, según confirmación del responsable.
+- [x] Integrar `sca` como dependencia obligatoria de `backend-ci`.
+- [x] Actualizar las dependencias afectadas en `package.json` y `package-lock.json`.
+- [ ] Enlazar la PR y la ejecución de Actions validada.
 - [ ] Descargar y validar `metadata.json` y el SBOM CycloneDX.
 - [ ] Confirmar la retención efectiva de 90 días.
 - [ ] Confirmar que el informe detallado no se publica.
-- [ ] Registrar la revisión y tratamiento futuro de los dos hallazgos `MEDIUM`.
-- [ ] Registrar ejecución, fecha y responsable.
+- [ ] Completar la identificación del responsable y las referencias de evidencia.
 
 ### 7.9. Integración local mediante Docker
 
@@ -745,8 +777,9 @@ Verificación del 2026-10-02: `security:scan` muestra 14 hallazgos (8 `HIGH`,
 6 `MEDIUM`) con la base actualizada; `security:check` los bloquea y conserva la
 evidencia. `security:sbom` genera correctamente el inventario CycloneDX. Estos datos
 actualizan la observación del día, sin sustituir la línea base histórica de 7.3.
-Las dependencias afectadas requieren remediación antes de que el control SCA pase
-con esta base; esta entrega incorpora el lanzador local.
+Estos hallazgos corresponden al lockfile anterior a la remediación publicada en
+`6df43611`. Las actualizaciones posteriores y la validación correcta comunicada
+del CI se registran en 7.8.
 
 Verificaciones de esta integración:
 
