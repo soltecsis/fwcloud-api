@@ -134,6 +134,9 @@
     "ws": "8.21.3",
     "typeorm": {
       "uuid": "14.0.2"
+    },
+    "nodemon": {
+      "chokidar": "5.0.0"
     }
   },
   "allowScripts": {
