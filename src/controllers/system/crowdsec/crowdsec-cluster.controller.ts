@@ -1035,6 +1035,7 @@ export class CrowdSecClusterController extends Controller {
     const lapiService = this.lapiService();
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     const results: ClusterMachineNodeResult[] = [];
+    const transitionAttempts: ClusterTransitionAttempt[] = [];
 
     channel.emit(
       'message',
@@ -1111,6 +1112,7 @@ export class CrowdSecClusterController extends Controller {
         );
         await communication.prepareCrowdSecTransition(transition, channel);
         prepared = true;
+        transitionAttempts.push({ node, transitionId });
         const bouncerApiKey = req.body.localRemediation
           ? (providedBouncerApiKey ?? CrowdSecLapiSharedService.generateBouncerApiKey())
           : undefined;
@@ -1127,7 +1129,6 @@ export class CrowdSecClusterController extends Controller {
           machineName,
           localRemediation: req.body.localRemediation,
         });
-        await communication.finalizeCrowdSecTransition(transitionId);
         results.push({
           firewall_id: node.id,
           name: node.name,
@@ -1173,9 +1174,25 @@ export class CrowdSecClusterController extends Controller {
       return false;
     });
     if (!completedAllNodes) {
+      await this.rollbackClusterTransitions(transitionAttempts, initialNodeStates, results);
       this.appendCancelledNodeResults(nodes, results, initialNodeStates);
     }
-    const completed = results.every((result) => result.status === 'completed');
+    const finalizationCompleted = completedAllNodes
+      ? await this.finalizeClusterTransitions(transitionAttempts, results)
+      : true;
+    const completed = results.every(
+      (result) => result.status === 'completed' || result.status === 'finalization_failed',
+    );
+    if (!finalizationCompleted) {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec transition is active, but one or more nodes require finalization confirmation',
+        ),
+      );
+    }
     channel.emit(
       'message',
       new ProgressPayload(
@@ -1186,7 +1203,13 @@ export class CrowdSecClusterController extends Controller {
           : 'CrowdSec local remediation changed with node failures',
       ),
     );
-    return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed,
+        ...(!finalizationCompleted ? { finalization_incomplete: true } : {}),
+        nodes: results,
+      });
   }
 
   @Validate()
