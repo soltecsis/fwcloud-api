@@ -1,5 +1,6 @@
 import { Application } from '../../../../src/Application';
 import { User } from '../../../../src/models/user/User';
+import { Tfa } from '../../../../src/models/user/Tfa';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import request = require('supertest');
@@ -12,20 +13,36 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'), () => {
   let adminUserSessionId: string;
   let loggedUser: User;
   let loggedUserSessionId: string;
-  let stub;
-
-  before(async () => {
+  let clock: Sinon.SinonFakeTimers;
+  beforeEach(async () => {
+    await testSuite.resetDatabaseData();
     app = testSuite.app;
 
-    loggedUser = await createUser({ role: 0 });
+    loggedUser = await createUser({ role: 2 });
 
     adminUser = await createUser({ role: 1 });
-  });
-
-  beforeEach(() => {
+    clock = Sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
     adminUserSessionId = generateSession(adminUser);
     loggedUserSessionId = generateSession(loggedUser);
   });
+
+  afterEach(() => {
+    clock?.restore();
+  });
+
+  after(async () => {
+    await testSuite.resetDatabaseData();
+  });
+
+  async function pendingSetup(user: User): Promise<Tfa> {
+    return await Tfa.create({
+      userId: user.id,
+      secret: '',
+      tempSecret: speakeasy.generateSecret().base32,
+      dataURL: '',
+      tfaURL: '',
+    }).save();
+  }
 
   describe('TFAController@setup', () => {
     it('Guest User should not setup 2FA', async () => {
@@ -65,6 +82,7 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'), () => {
     });
 
     it('User have 2FA', async () => {
+      await pendingSetup(adminUser);
       return await request(app.express)
         .get('/profile/tfa/setup')
         .set('Cookie', [attachSession(adminUserSessionId)])
@@ -82,10 +100,6 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'), () => {
   });
 
   describe('TFAController@verify', () => {
-    before(() => {
-      stub = Sinon.stub(speakeasy.totp, 'verify');
-    });
-
     it('Guest User should not verify AuthCode', async () => {
       await request(app.express)
         .post('/profile/tfa/verify')
@@ -97,26 +111,26 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'), () => {
     });
 
     it('User verify correctly AuthCode', async () => {
-      stub.returns(true);
+      const setup = await pendingSetup(adminUser);
 
       await request(app.express)
         .post('/profile/tfa/verify')
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send({
-          tempSecret: 'CorrectTempSecret',
-          authCode: 'CorrectAuthCode',
+          tempSecret: setup.tempSecret,
+          authCode: speakeasy.totp({ secret: setup.tempSecret, encoding: 'base32' }),
         })
         .expect(200);
     });
 
     it('User verify incorrectly AuthCode', async () => {
-      stub.returns(false);
+      const setup = await pendingSetup(adminUser);
 
       await request(app.express)
         .post('/profile/tfa/verify')
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send({
-          tempSecret: 'CorrectTempSecret',
+          tempSecret: setup.tempSecret,
           authCode: 'IncorrectAuthCode',
         })
         .expect(401);
@@ -128,6 +142,7 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'), () => {
       return await request(app.express).delete('/profile/tfa/setup').expect(401);
     });
     it('User delete 2FA', async () => {
+      await pendingSetup(adminUser);
       return await request(app.express)
         .delete('/profile/tfa/setup')
         .set('Cookie', [attachSession(adminUserSessionId)])
