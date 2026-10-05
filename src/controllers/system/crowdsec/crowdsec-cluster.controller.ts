@@ -876,6 +876,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const results: ClusterMachineNodeResult[] = [];
+    const transitionAttempts: ClusterTransitionAttempt[] = [];
     channel.emit(
       'message',
       new ProgressPayload('start', false, 'Changing CrowdSec Local API address in cluster nodes'),
@@ -923,6 +924,7 @@ export class CrowdSecClusterController extends Controller {
         );
         await communication.prepareCrowdSecTransition(transition, channel);
         prepared = true;
+        transitionAttempts.push({ node, transitionId });
         await communication.activateCrowdSecTransition({ transitionId }, channel);
         activated = true;
         await this.persistMachineNode({
@@ -932,7 +934,6 @@ export class CrowdSecClusterController extends Controller {
           machineName,
           localRemediation: installation.localRemediation,
         });
-        await communication.finalizeCrowdSecTransition(transitionId);
         results.push({
           firewall_id: node.id,
           name: node.name,
@@ -963,10 +964,26 @@ export class CrowdSecClusterController extends Controller {
       return false;
     });
     if (!completedAllNodes) {
+      await this.rollbackClusterTransitions(transitionAttempts, initialNodeStates, results);
       this.appendCancelledNodeResults(nodes, results, initialNodeStates);
     }
-    const completed = results.every((result) => result.status === 'completed');
-    if (listenerChanged && !results.some((result) => result.status === 'completed')) {
+    const finalizationCompleted = completedAllNodes
+      ? await this.finalizeClusterTransitions(transitionAttempts, results)
+      : true;
+    const completed = results.every(
+      (result) => result.status === 'completed' || result.status === 'finalization_failed',
+    );
+    if (!finalizationCompleted) {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec transition is active, but one or more nodes require finalization confirmation',
+        ),
+      );
+    }
+    if (listenerChanged && !completedAllNodes) {
       try {
         await lapiService.configureListeners(centralLapiNodes, previousListenerUri);
       } catch {
@@ -990,7 +1007,13 @@ export class CrowdSecClusterController extends Controller {
           : 'CrowdSec Local API address transition finished with node failures',
       ),
     );
-    return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed,
+        ...(!finalizationCompleted ? { finalization_incomplete: true } : {}),
+        nodes: results,
+      });
   }
 
   @Validate(CrowdSecClusterTransitionDto)
