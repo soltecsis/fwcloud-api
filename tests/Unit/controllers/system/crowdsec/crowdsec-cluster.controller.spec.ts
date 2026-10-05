@@ -100,6 +100,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           : null,
       );
     sinon.stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents').resolves(false);
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'restoreInstallation')
+      .resolves(new CrowdSecInstallation());
     setCentralLapiEnabledStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
       .resolves(new CrowdSecInstallation());
@@ -584,7 +587,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith('CrowdSec cluster transitions must include every cluster node');
   });
 
-  it('should preserve completed nodes and report recovery requirements after a partial failure', async () => {
+  it('should roll back activated nodes after a later cluster transition failure', async () => {
     findByFirewallIdStub.callsFake(async (firewallId: number) => {
       if (firewallId === centralFirewall.id) {
         return lapiInstallation(centralFirewall.id);
@@ -596,6 +599,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
     sinon.stub(secondCommunication, 'prepareCrowdSecTransition').resolves({});
     sinon
       .stub(secondCommunication, 'activateCrowdSecTransition')
@@ -619,14 +623,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           firewall_id: firstNode.id,
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
-          status: 'completed',
+          status: 'rolled_back',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
           machine_name: 'fwcloud-cluster-slave',
-          status: 'recovery_required',
-          error: 'Activation failed',
+          status: 'rollback_failed',
+          error: 'CrowdSec node rollback failed and requires manual recovery',
         },
       ],
     });

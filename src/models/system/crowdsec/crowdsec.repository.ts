@@ -28,6 +28,20 @@ import {
   FirewallInstallProtocol,
 } from '../../firewall/Firewall';
 
+export type CrowdSecInstallationRestore = Pick<
+  CrowdSecInstallation,
+  | 'mode'
+  | 'centralFirewallId'
+  | 'lapiUrl'
+  | 'machineName'
+  | 'localRemediation'
+  | 'machineConnectivityPending'
+  | 'centralLapiEnabled'
+  | 'consoleEnrollmentConfirmed'
+> & {
+  firewallId: number;
+};
+
 export type CrowdSecMachineInstallation = {
   firewallId: number;
   centralFirewallId: number;
@@ -64,6 +78,12 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       machineConnectivityPending: installation.machineConnectivityPending ?? false,
       consoleEnrollmentConfirmed: false,
     });
+  }
+
+  public async restoreInstallation(
+    installation: CrowdSecInstallationRestore,
+  ): Promise<CrowdSecInstallation> {
+    return this.saveInstallation(installation);
   }
 
   public async findByFirewallId(firewallId: number): Promise<CrowdSecInstallation | null> {
