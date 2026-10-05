@@ -23,9 +23,12 @@
 import { Request } from 'express';
 import * as uuid from 'uuid';
 import { AgentCommunication } from '../../../communications/agent.communication';
-import { Firewall } from '../../../models/firewall/Firewall';
+import { Firewall, FireWallOptMask } from '../../../models/firewall/Firewall';
 import { Cluster } from '../../../models/firewall/Cluster';
-import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
+import {
+  CrowdSecInstallation,
+  CrowdSecInstallationMode,
+} from '../../../models/system/crowdsec/crowdsec-installation.model';
 import { CrowdSecInstallationRepository } from '../../../models/system/crowdsec/crowdsec.repository';
 import { FirewallRepository } from '../../../models/firewall/firewall.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
@@ -41,6 +44,24 @@ import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
 import { CentralLapiNode, CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 
+type ClusterCrowdSecInstallationSnapshot = Pick<
+  CrowdSecInstallation,
+  | 'mode'
+  | 'centralFirewallId'
+  | 'lapiUrl'
+  | 'machineName'
+  | 'localRemediation'
+  | 'machineConnectivityPending'
+  | 'centralLapiEnabled'
+  | 'consoleEnrollmentConfirmed'
+>;
+
+type ClusterCrowdSecNodeSnapshot = {
+  firewallId: number;
+  crowdsecCompatibility: boolean;
+  installation: ClusterCrowdSecInstallationSnapshot | null;
+};
+
 type ClusterMachineNodeResult = {
   firewall_id: number;
   name: string;
@@ -50,7 +71,8 @@ type ClusterMachineNodeResult = {
     | 'connectivity_confirmation_required'
     | 'pending_connectivity'
     | 'recovery_required'
-    | 'failed';
+    | 'failed'
+    | 'cancelled';
   error?: string;
   central_bouncer_cleanup_required?: boolean;
   central_machine_cleanup_required?: boolean;
@@ -377,6 +399,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const nodes = await this.getAuthorizedNodes(req, false);
+    const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const { centralFirewall, centralLapiNodes } = await this.getExternalCentralLapiTarget(
       req.body.centralFirewallId,
@@ -399,7 +422,8 @@ export class CrowdSecClusterController extends Controller {
       'message',
       new ProgressPayload('start', false, 'Converting CrowdSec cluster nodes to Machines'),
     );
-    await this.runSequentialNodeOperations(nodes, async (node) => {
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
+      this.requireInitialNodeState(initialNodeStates, node);
       const machineName = CrowdSecLapiSharedService.machineNameForFirewall(node);
       let transitionId: string | undefined;
       let prepared = false;
@@ -470,6 +494,7 @@ export class CrowdSecClusterController extends Controller {
           machine_name: machineName,
           status: 'completed',
         });
+        return true;
       } catch (error) {
         if (prepared && !activated && transitionId) {
           try {
@@ -495,8 +520,11 @@ export class CrowdSecClusterController extends Controller {
             : {}),
         });
       }
-      return true;
+      return false;
     });
+    if (!completedAllNodes) {
+      this.appendCancelledNodeResults(nodes, results, initialNodeStates);
+    }
     const completed = results.every((result) => result.status === 'completed');
     channel.emit(
       'message',
@@ -525,6 +553,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const nodes = await this.getAuthorizedNodes(req, false);
+    const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     const { centralFirewall, centralLapiNodes } = await this.getExternalCentralLapiTarget(
       req.body.centralFirewallId,
@@ -551,7 +580,8 @@ export class CrowdSecClusterController extends Controller {
         'Moving CrowdSec Machine cluster nodes to a new Local API',
       ),
     );
-    await this.runSequentialNodeOperations(nodes, async (node) => {
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
+      this.requireInitialNodeState(initialNodeStates, node);
       let transitionId: string | undefined;
       let prepared = false;
       let activated = false;
@@ -651,6 +681,7 @@ export class CrowdSecClusterController extends Controller {
           source_machine_removed: sourceMachineRemoved,
           source_bouncer_cleanup_required: installation.localRemediation,
         });
+        return true;
       } catch (error) {
         if (prepared && !activated && transitionId) {
           try {
@@ -680,7 +711,7 @@ export class CrowdSecClusterController extends Controller {
               ? { central_bouncer_cleanup_required: true }
               : {}),
           });
-          return true;
+          return false;
         }
         results.push({
           firewall_id: node.id,
@@ -693,9 +724,11 @@ export class CrowdSecClusterController extends Controller {
               : 'CrowdSec cluster node central LAPI transition failed',
         });
       }
-      return true;
+      return false;
     });
-
+    if (!completedAllNodes) {
+      this.appendCancelledNodeResults(nodes, results, initialNodeStates);
+    }
     const completed = results.every((result) => result.status === 'completed');
     channel.emit(
       'message',
@@ -725,6 +758,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const nodes = await this.getAuthorizedNodes(req, false);
+    const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
     const installations = await Promise.all(
       nodes.map((node) => installationRepository.findByFirewallId(node.id)),
@@ -803,7 +837,8 @@ export class CrowdSecClusterController extends Controller {
       'message',
       new ProgressPayload('start', false, 'Changing CrowdSec Local API address in cluster nodes'),
     );
-    await this.runSequentialNodeOperations(nodes, async (node) => {
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
+      this.requireInitialNodeState(initialNodeStates, node);
       const installation = installations.find((candidate) => candidate!.firewallId === node.id)!;
       const machineName = installation.machineName!;
       let transitionId: string | undefined;
@@ -861,6 +896,7 @@ export class CrowdSecClusterController extends Controller {
           machine_name: machineName,
           status: 'completed',
         });
+        return true;
       } catch (error) {
         if (prepared && !activated && transitionId) {
           try {
@@ -881,9 +917,11 @@ export class CrowdSecClusterController extends Controller {
               : 'CrowdSec cluster node address transition failed',
         });
       }
-      return true;
+      return false;
     });
-
+    if (!completedAllNodes) {
+      this.appendCancelledNodeResults(nodes, results, initialNodeStates);
+    }
     const completed = results.every((result) => result.status === 'completed');
     if (listenerChanged && !results.some((result) => result.status === 'completed')) {
       try {
@@ -926,6 +964,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const nodes = await this.getAuthorizedNodes(req, false);
+    const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
@@ -935,7 +974,8 @@ export class CrowdSecClusterController extends Controller {
       'message',
       new ProgressPayload('start', false, 'Changing CrowdSec local remediation in cluster nodes'),
     );
-    await this.runSequentialNodeOperations(nodes, async (node) => {
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
+      this.requireInitialNodeState(initialNodeStates, node);
       let transitionId: string | undefined;
       let prepared = false;
       let activated = false;
@@ -1030,6 +1070,7 @@ export class CrowdSecClusterController extends Controller {
           central_bouncer_cleanup_required:
             !req.body.localRemediation && installation.localRemediation,
         });
+        return true;
       } catch (error) {
         if (prepared && req.body.localRemediation && !activated && transitionId) {
           try {
@@ -1050,7 +1091,7 @@ export class CrowdSecClusterController extends Controller {
                   'CrowdSec central Local API Bouncer cleanup is incomplete and must be retried manually',
                 central_bouncer_cleanup_required: true,
               });
-              return true;
+              return false;
             }
           }
         }
@@ -1063,9 +1104,11 @@ export class CrowdSecClusterController extends Controller {
             error instanceof Error ? error.message : 'CrowdSec cluster node remediation failed',
         });
       }
-      return true;
+      return false;
     });
-
+    if (!completedAllNodes) {
+      this.appendCancelledNodeResults(nodes, results, initialNodeStates);
+    }
     const completed = results.every((result) => result.status === 'completed');
     channel.emit(
       'message',
@@ -1144,6 +1187,7 @@ export class CrowdSecClusterController extends Controller {
     }
 
     const nodes = await this.getAuthorizedNodes(req, false);
+    const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const results: ClusterMachineNodeResult[] = [];
@@ -1152,7 +1196,8 @@ export class CrowdSecClusterController extends Controller {
       'message',
       new ProgressPayload('start', false, 'Restoring CrowdSec LAPI installations in cluster nodes'),
     );
-    await this.runSequentialNodeOperations(nodes, async (node) => {
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
+      this.requireInitialNodeState(initialNodeStates, node);
       let transitionId: string | undefined;
       let prepared = false;
       let activated = false;
@@ -1228,6 +1273,7 @@ export class CrowdSecClusterController extends Controller {
           source_bouncer_cleanup_required:
             !machineConnectivityPending && installation.localRemediation,
         });
+        return true;
       } catch (error) {
         if (prepared && !activated && transitionId) {
           try {
@@ -1245,9 +1291,11 @@ export class CrowdSecClusterController extends Controller {
           error: error instanceof Error ? error.message : 'CrowdSec cluster node transition failed',
         });
       }
-      return true;
+      return false;
     });
-
+    if (!completedAllNodes) {
+      this.appendCancelledNodeResults(nodes, results, initialNodeStates);
+    }
     const completed = results.every((result) => result.status === 'completed');
     channel.emit(
       'message',
@@ -1260,6 +1308,69 @@ export class CrowdSecClusterController extends Controller {
       ),
     );
     return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+  }
+
+  private appendCancelledNodeResults(
+    nodes: Firewall[],
+    results: ClusterMachineNodeResult[],
+    snapshots: Map<number, ClusterCrowdSecNodeSnapshot>,
+  ): void {
+    const processedNodeIds = new Set(results.map((result) => result.firewall_id));
+    for (const node of nodes) {
+      if (processedNodeIds.has(node.id)) {
+        continue;
+      }
+      const snapshot = this.requireInitialNodeState(snapshots, node);
+      results.push({
+        firewall_id: node.id,
+        name: node.name,
+        machine_name:
+          snapshot.installation?.machineName ??
+          CrowdSecLapiSharedService.machineNameForFirewall(node),
+        status: 'cancelled',
+        error: 'CrowdSec cluster transition was cancelled after a previous node failed',
+      });
+    }
+  }
+
+  private async captureInitialNodeStates(
+    nodes: Firewall[],
+  ): Promise<Map<number, ClusterCrowdSecNodeSnapshot>> {
+    const repository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const snapshots = new Map<number, ClusterCrowdSecNodeSnapshot>();
+
+    for (const node of nodes) {
+      const installation = await repository.findByFirewallId(node.id);
+      snapshots.set(node.id, {
+        firewallId: node.id,
+        crowdsecCompatibility: (node.options & FireWallOptMask.CROWDSEC_COMPAT) !== 0,
+        installation: installation
+          ? {
+              mode: installation.mode,
+              centralFirewallId: installation.centralFirewallId,
+              lapiUrl: installation.lapiUrl,
+              machineName: installation.machineName,
+              localRemediation: installation.localRemediation,
+              machineConnectivityPending: installation.machineConnectivityPending,
+              centralLapiEnabled: installation.centralLapiEnabled,
+              consoleEnrollmentConfirmed: installation.consoleEnrollmentConfirmed,
+            }
+          : null,
+      });
+    }
+
+    return snapshots;
+  }
+
+  private requireInitialNodeState(
+    snapshots: Map<number, ClusterCrowdSecNodeSnapshot>,
+    node: Firewall,
+  ): ClusterCrowdSecNodeSnapshot {
+    const snapshot = snapshots.get(node.id);
+    if (!snapshot) {
+      throw new HttpException('CrowdSec cluster node initial state was not captured', 500);
+    }
+    return snapshot;
   }
 
   private async persistMachineNode({

@@ -632,6 +632,50 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should cancel untouched cluster nodes after a transition failure', async () => {
+    findByFirewallIdStub.callsFake(async (firewallId: number) => {
+      if (firewallId === centralFirewall.id) {
+        return lapiInstallation(centralFirewall.id);
+      }
+      return firewallId === firstNode.id || firewallId === secondNode.id
+        ? lapiInstallation(firewallId)
+        : null;
+    });
+    sinon
+      .stub(firstCommunication, 'prepareCrowdSecTransition')
+      .rejects(new Error('Preparation failed'));
+    const secondPrepare = sinon.stub(secondCommunication, 'prepareCrowdSecTransition');
+    sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+      }),
+    );
+
+    expect(secondPrepare.called).to.be.false;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'failed',
+          error: 'Preparation failed',
+        },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'fwcloud-cluster-slave',
+          status: 'cancelled',
+          error: 'CrowdSec cluster transition was cancelled after a previous node failed',
+        },
+      ],
+    });
+  });
+
   it('should authorize cluster role transitions before contacting agents', async () => {
     managePolicyStub.resolves(Authorization.revoke());
 
