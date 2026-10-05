@@ -1280,6 +1280,7 @@ export class CrowdSecClusterController extends Controller {
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const results: ClusterMachineNodeResult[] = [];
+    const transitionAttempts: ClusterTransitionAttempt[] = [];
 
     channel.emit(
       'message',
@@ -1307,11 +1308,6 @@ export class CrowdSecClusterController extends Controller {
 
         machineName = installation.machineName;
         const machineConnectivityPending = installation.machineConnectivityPending === true;
-        const sourceCentralLapiNodes = machineConnectivityPending
-          ? undefined
-          : await lapiService.getCentralNodes(
-              await lapiService.getCentralFirewall(installation.centralFirewallId),
-            );
         const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
         const backend =
           (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
@@ -1340,27 +1336,18 @@ export class CrowdSecClusterController extends Controller {
         );
         await communication.prepareCrowdSecTransition(transition, channel);
         prepared = true;
+        transitionAttempts.push({ node, transitionId });
         await communication.activateCrowdSecTransition({ transitionId }, channel);
         activated = true;
         await new CrowdSecInstallationRepository(db.getSource().manager).saveLapiInstallation(
           node.id,
         );
         await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(node, true);
-        await communication.finalizeCrowdSecTransition(transitionId);
-
-        let sourceMachineRemoved = true;
-        if (sourceCentralLapiNodes) {
-          const cleanup = await lapiService.cleanupMachine(sourceCentralLapiNodes, machineName);
-          sourceMachineRemoved = cleanup.completed;
-        }
         results.push({
           firewall_id: node.id,
           name: node.name,
           machine_name: machineName,
           status: 'completed',
-          source_machine_removed: sourceMachineRemoved,
-          source_bouncer_cleanup_required:
-            !machineConnectivityPending && installation.localRemediation,
         });
         return true;
       } catch (error) {
@@ -1383,9 +1370,28 @@ export class CrowdSecClusterController extends Controller {
       return false;
     });
     if (!completedAllNodes) {
+      await this.rollbackClusterTransitions(transitionAttempts, initialNodeStates, results);
       this.appendCancelledNodeResults(nodes, results, initialNodeStates);
     }
-    const completed = results.every((result) => result.status === 'completed');
+    const finalizationCompleted = completedAllNodes
+      ? await this.finalizeClusterTransitions(transitionAttempts, results)
+      : true;
+    if (completedAllNodes && finalizationCompleted) {
+      await this.cleanupSourceMachineRegistrations(results, initialNodeStates, lapiService);
+    }
+    const completed = results.every(
+      (result) => result.status === 'completed' || result.status === 'finalization_failed',
+    );
+    if (!finalizationCompleted) {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec transition is active, but one or more nodes require finalization confirmation',
+        ),
+      );
+    }
     channel.emit(
       'message',
       new ProgressPayload(
@@ -1396,7 +1402,13 @@ export class CrowdSecClusterController extends Controller {
           : 'CrowdSec LAPI transition finished with node failures',
       ),
     );
-    return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed,
+        ...(!finalizationCompleted ? { finalization_incomplete: true } : {}),
+        nodes: results,
+      });
   }
 
   private async cleanupSourceMachineRegistrations(
@@ -1406,6 +1418,11 @@ export class CrowdSecClusterController extends Controller {
   ): Promise<void> {
     for (const result of results) {
       const snapshot = snapshots.get(result.firewall_id)?.installation;
+      if (snapshot?.machineConnectivityPending) {
+        result.source_machine_removed = true;
+        result.source_bouncer_cleanup_required = false;
+        continue;
+      }
       if (
         result.status !== 'completed' ||
         snapshot?.mode !== CrowdSecInstallationMode.Machine ||
