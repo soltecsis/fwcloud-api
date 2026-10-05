@@ -14,7 +14,7 @@ que la documentación evolucione junto con la configuración.
 | Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-10-02 |
+| Última actualización | 2026-10-05 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -52,7 +52,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 2 | Informes de pruebas y cobertura | Implementada localmente; pendiente de validación completa en Actions | Informes por ejecución, también ante fallos; cobertura verificada sobre fuentes TypeScript |
 | 3 | Detección de secretos con Gitleaks | Validada en Actions e integrada mediante la PR #1563; revisión histórica pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
 | 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
-| 5 | Pruebas negativas de autenticación y autorización | Implementada y validada localmente; matriz completa en Actions pendiente | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
+| 5 | Pruebas negativas de autenticación y autorización | Publicada y validada en Actions; referencias y evidencias pendientes de registro | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | Laboratorio efímero y DAST con ZAP | Pendiente | Entorno sintético aislado, autenticación y cobertura verificadas, resultados revisados |
 | Posterior | SonarQube | Aplazada | Integración y política de análisis acordadas; sin SAST provisional |
 
@@ -916,7 +916,8 @@ el check agregado sin añadir un job ni repetir la suite en el workflow.
 | `test:security` con Node 20.20.2 y MySQL 8.0.46 desechable | 64 pruebas correctas |
 | Casos nuevos junto a suites existentes de perfil y tokens, con reporteros de CI | 80 pruebas correctas |
 | Suites de perfil tras estabilizar la ventana TOTP | 20 pruebas correctas |
-| Recolector de JUnit y resultados de la ejecución enfocada | Evidencia completa; 80 correctas, 0 fallos y 0 pendientes |
+| Validación enfocada adicional con reporteros de CI | 82 pruebas correctas |
+| Recolector de JUnit y resultados de la última ejecución enfocada | Evidencia completa; 82 correctas, 0 fallos y 0 pendientes |
 | Regresiones de gate y propiedad 2FA antes de corregir | Fallos reproducidos |
 | ESLint y Prettier | Correctos |
 | Gitleaks 8.30.1 sobre las suites y fixtures nuevos de seguridad | Sin hallazgos |
@@ -925,8 +926,8 @@ el check agregado sin añadir un job ni repetir la suite en el workflow.
 | Ampliación local a más suites de API | Incompleta por límite de ejecución de 6 minutos |
 
 Las ejecuciones ampliadas se registran como incompletas, no como validaciones
-correctas de toda la API. La matriz completa debe finalizar en Actions antes de
-cerrar la fase.
+correctas de toda la API. La validación posterior en Actions se registra en 8.9,
+separada de estos resultados locales.
 
 ### 8.8. Límites y requisitos pendientes
 
@@ -941,14 +942,31 @@ cerrar la fase.
   sesiones tras cambio de contraseña requieren requisitos específicos.
 - El DAST y el laboratorio desplegado corresponden a la fase 6.
 
-### 8.9. Cierre pendiente
+### 8.9. Validación en CI y cierre
 
-- [ ] Publicar la rama y enlazar PR y commit.
-- [ ] Completar las nueve combinaciones de la matriz en Actions.
+La fase 5 está publicada en `origin/testAuthSecurity`. La ejecución correcta en
+GitHub Actions y la comprobación de sus resultados fueron confirmadas por el
+responsable de la entrega en esta conversación el 2026-10-05. Se registra esta
+validación comunicada; las referencias a la PR y a la ejecución concreta quedan
+pendientes de incorporación al informe.
+
+| Entrega | Commit |
+| --- | --- |
+| Pruebas de autenticación, autorización y aislamiento; endurecimiento de gate y perfil 2FA | `19802b5d` |
+| Última revisión publicada y validada | `d0489910` |
+
+Los resultados locales de 8.7 se conservan como evidencia histórica y no se
+presentan como conteos de la ejecución de Actions. Los límites y requisitos de
+8.8 siguen identificados para posteriores entregas.
+
+- [x] Publicar la rama y registrar los commits de la entrega.
+- [x] Completar la matriz en Actions, según confirmación del responsable.
+- [x] Comprobar los resultados de CI, según confirmación del responsable.
+- [ ] Enlazar la PR y la ejecución de Actions validada.
 - [ ] Verificar la inclusión de las suites de seguridad en JUnit y cobertura.
 - [ ] Confirmar que un fallo de seguridad bloquea `backend-ci`.
 - [ ] Registrar la revisión de las correcciones de gate y propiedad 2FA.
-- [ ] Registrar requisitos pendientes, ejecución, fecha y responsable.
+- [ ] Completar la identificación del responsable y las referencias de evidencia.
 
 ## 9. Pendientes transversales
 
