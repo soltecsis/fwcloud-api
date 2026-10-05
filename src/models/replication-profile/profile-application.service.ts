@@ -82,7 +82,10 @@ export interface ProfileApplicationActor {
 }
 
 export interface ProfileApplicationRequest {
-  /** FWCloud the wizard is operating on; profile usage is scoped to it. */
+  /**
+   * FWCloud the wizard is operating on. The profile may have been created from
+   * another one, but its target and everything it uses must belong to this one.
+   */
   fwCloudId: number;
   profileCode: string;
   profileVersion: number;
@@ -167,7 +170,7 @@ export class ProfileApplicationService extends Service {
     try {
       await this.authorizeApplication(actor, request.fwCloudId);
 
-      const usable = await this.loadUsableProfile(request);
+      const usable = await this.loadUsableProfile(request, actor.user.id);
       profile = usable.profile;
       target = await this.validateTarget(request);
 
@@ -247,7 +250,7 @@ export class ProfileApplicationService extends Service {
     try {
       await this.authorizeApplication(actor, request.fwCloudId);
 
-      const usable = await this.loadUsableProfile(request);
+      const usable = await this.loadUsableProfile(request, actor.user.id);
       profile = usable.profile;
       target = await this.validateTarget(request);
 
@@ -455,17 +458,19 @@ export class ProfileApplicationService extends Service {
   }
 
   /**
-   * Loads the requested profile rejecting unusable ones (missing, disabled,
+   * Loads the requested profile, among the built-in ones and the custom ones
+   * of the user applying it, rejecting unusable ones (missing, disabled,
    * deprecated, wrong scope or incompatible with the target kind) before any
    * change is written.
    */
   protected async loadUsableProfile(
     request: ProfileApplicationRequest,
+    userId: number,
   ): Promise<{ profile: ReplicationProfile; model: ReplicationProfileModel }> {
     const profile = await this._replicationProfileService.findAnyByCodeAndVersion(
       request.profileCode,
       request.profileVersion,
-      request.fwCloudId,
+      userId,
     );
 
     if (!profile) {

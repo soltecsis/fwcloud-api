@@ -25,12 +25,12 @@
  * profile.
  *
  * The MVP contract intentionally distinguishes:
- * - built-in/global profiles: seeded by migrations, owned by no FWCloud. The
+ * - built-in/global profiles: seeded by migrations, owned by nobody. The
  *   client can never create one — `isBuiltin`/`isActive`/`isDeprecated`/
- *   `fwcloud_id` are not part of this DTO, so the global whitelist validation
- *   (`forbidNonWhitelisted`) rejects any attempt to set them.
- * - custom FWCloud profiles: created through this contract, always scoped to
- *   the FWCloud of the request.
+ *   `user_id`/`fwcloud_id` are not part of this DTO, so the global whitelist
+ *   validation (`forbidNonWhitelisted`) rejects any attempt to set them.
+ * - custom profiles: created through this contract, always owned by the user
+ *   of the request, who can use them from every FWCloud they have access to.
  */
 
 import { Type } from 'class-transformer';

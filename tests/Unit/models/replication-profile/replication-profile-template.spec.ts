@@ -6,6 +6,7 @@ import {
   buildReplicationProfileTemplatePath,
   getCustomReplicationProfileTemplatesDirectory,
   getReplicationProfileTemplatesDirectory,
+  getUserReplicationProfileTemplatesDirectory,
   loadReplicationProfileModel,
   removeReplicationProfileModel,
   ReplicationProfileTemplateException,
@@ -60,11 +61,11 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
   describe('buildReplicationProfileTemplatePath()', () => {
     it('should name the template after the profile code and version', () => {
       expect(
-        buildReplicationProfileTemplatePath({ code: 'default', version: 1, fwCloudId: null }),
+        buildReplicationProfileTemplatePath({ code: 'default', version: 1, userId: null }),
       ).to.be.eq('default.v1.json');
       expect(
-        buildReplicationProfileTemplatePath({ code: 'office-lan', version: 3, fwCloudId: 12 }),
-      ).to.be.eq('custom/12/office-lan.v3.json');
+        buildReplicationProfileTemplatePath({ code: 'office-lan', version: 3, userId: 12 }),
+      ).to.be.eq('custom/users/12/office-lan.v3.json');
     });
   });
 
@@ -73,8 +74,11 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
       expect(resolveReplicationProfileTemplatePath(reference('default.v1.json'))).to.be.eq(
         path.join(getReplicationProfileTemplatesDirectory(), 'default.v1.json'),
       );
-      expect(resolveReplicationProfileTemplatePath(reference('custom/12/office.v1.json'))).to.be.eq(
-        path.join(getCustomReplicationProfileTemplatesDirectory(), '12', 'office.v1.json'),
+      expect(
+        resolveReplicationProfileTemplatePath(reference('custom/users/12/office.v1.json')),
+      ).to.be.eq(path.join(getUserReplicationProfileTemplatesDirectory(12), 'office.v1.json'));
+      expect(getUserReplicationProfileTemplatesDirectory(12)).to.be.eq(
+        path.join(getCustomReplicationProfileTemplatesDirectory(), 'users', '12'),
       );
     });
 
@@ -82,12 +86,12 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
       for (const unsafePath of [
         '../test.json',
         'custom/../../test.json',
-        'custom/12/../../../../config/prod.json',
+        'custom/users/12/../../../../../config/prod.json',
         './default.v1.json',
         '/etc/passwd',
         '/etc/fwcloud.json',
         'C:\\fwcloud\\default.v1.json',
-        'custom\\12\\office.v1.json',
+        'custom\\users\\12\\office.v1.json',
         'custom//office.v1.json',
         '.hidden.json',
         'default.v1.txt',
@@ -114,6 +118,7 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
         isBuiltin: false,
         isActive: true,
         isDeprecated: false,
+        userId: 1,
       });
 
       await expect(repository.save(profile)).to.be.rejectedWith(
@@ -137,7 +142,7 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
     });
 
     it('should find a valid version-controlled template for every seeded profile', async () => {
-      const seeded = (await repository.find({ where: { isBuiltin: true, fwCloudId: IsNull() } }))
+      const seeded = (await repository.find({ where: { isBuiltin: true, userId: IsNull() } }))
         // Built-in fixtures of other tests keep their templates among the custom ones.
         .filter((profile) => !profile.path.startsWith('custom/'));
 
@@ -156,6 +161,25 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
       expect(error.message).to.be.eq(
         `Template "${profile.path}" of replication profile ${profile.code} v1 does not exist.`,
       );
+    });
+
+    it('should reject a template that cannot be read', () => {
+      const profile = reference(`custom/fixtures/${codePrefix}unreadable.v1.json`);
+      const file = resolveReplicationProfileTemplatePath(profile);
+      // A directory where the template should be makes reading it fail.
+      fs.mkdirSync(file, { recursive: true });
+
+      try {
+        const error = catchTemplateError(() => loadReplicationProfileModel(profile));
+
+        expect(error.reason).to.be.eq('unreadable');
+        expect(error.status).to.be.eq(500);
+        expect(error.message).to.be.eq(
+          `Template "${profile.path}" of replication profile ${profile.code} v1 could not be read (EISDIR).`,
+        );
+      } finally {
+        fs.rmdirSync(file);
+      }
     });
 
     it('should reject a template that is not valid JSON', () => {

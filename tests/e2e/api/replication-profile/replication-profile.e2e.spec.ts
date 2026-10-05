@@ -35,6 +35,7 @@ import { Like, Repository } from 'typeorm';
 describe(describeName('Replication Profile E2E Tests'), () => {
   let app: Application;
   let adminUser: User;
+  let otherUser: User;
   let adminUserSessionId: string;
   let fwCloud: FwCloud;
   let repository: Repository<ReplicationProfile>;
@@ -44,6 +45,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     makeReplicationProfileFixture({
       code: `${codePrefix}profile`,
       fwCloudId: fwCloud?.id ?? null,
+      userId: overrides.isBuiltin ? null : adminUser.id,
       ...overrides,
     });
 
@@ -56,6 +58,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     codePrefix = `rp-e2e-${Date.now()}-${Math.round(Math.random() * 100000)}-`;
 
     adminUser = await createUser({ role: 1 });
+    otherUser = await createUser({ role: 0 });
     adminUserSessionId = generateSession(adminUser);
 
     fwCloud = await db
@@ -120,7 +123,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
   });
 
   describe('POST /fwclouds/:fwcloud/profiles', () => {
-    it('should create a FWCloud-scoped custom profile with generated code and version defaults', async () => {
+    it('should create a user-owned custom profile with generated code and version defaults', async () => {
       const expectedCode = `${codePrefix}basic-lan-wan-profile`;
 
       await request(app.express)
@@ -152,6 +155,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           expect(persisted.isActive).to.be.true;
           expect(persisted.isDeprecated).to.be.false;
           expect(persisted.fwCloudId).to.be.eq(fwCloud.id);
+          expect(persisted.userId).to.be.eq(adminUser.id);
         });
 
       await request(app.express)
@@ -321,6 +325,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
           const persisted = await repository.findOneOrFail({ where: { code, version: 1 } });
           expect(persisted.fwCloudId).to.be.eq(fwCloud.id);
+          expect(persisted.userId).to.be.eq(adminUser.id);
           expect(persisted.isBuiltin).to.be.false;
         });
     });
@@ -596,13 +601,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       await auditRepository.delete({ call: PROFILE_CLONE_AUDIT_CALL });
     });
 
-    it('should not clone custom profiles owned by another FWCloud', async () => {
-      const otherFwCloud = await db
-        .getSource()
-        .manager.getRepository(FwCloud)
-        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+    it('should not clone custom profiles owned by another user', async () => {
       const foreign = await repository.save(
-        makeProfile({ code: `${codePrefix}foreign-clone`, fwCloudId: otherFwCloud.id }),
+        makeProfile({
+          code: `${codePrefix}foreign-clone`,
+          fwCloudId: fwCloud.id,
+          userId: otherUser.id,
+        }),
       );
 
       await request(app.express)
@@ -744,15 +749,15 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     });
 
     it('should enforce FWCloud access and custom profile isolation', async () => {
-      const otherFwCloud = await db
-        .getSource()
-        .manager.getRepository(FwCloud)
-        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
       const owned = await repository.save(
         makeProfile({ code: `${codePrefix}owned-version`, fwCloudId: fwCloud.id }),
       );
       const foreign = await repository.save(
-        makeProfile({ code: `${codePrefix}foreign-version`, fwCloudId: otherFwCloud.id }),
+        makeProfile({
+          code: `${codePrefix}foreign-version`,
+          fwCloudId: fwCloud.id,
+          userId: otherUser.id,
+        }),
       );
       const regularUser = await createUser({ role: 0 });
       const regularUserSessionId = generateSession(regularUser);
@@ -874,16 +879,11 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
-    it('should not include custom profiles owned by another FWCloud', async () => {
-      const otherFwCloud = await db
-        .getSource()
-        .manager.getRepository(FwCloud)
-        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
-
+    it('should not include custom profiles owned by another user', async () => {
       await repository.save([
         makeProfile({ code: `${codePrefix}global`, isBuiltin: true, fwCloudId: null }),
         makeProfile({ code: `${codePrefix}owned`, fwCloudId: fwCloud.id }),
-        makeProfile({ code: `${codePrefix}foreign`, fwCloudId: otherFwCloud.id }),
+        makeProfile({ code: `${codePrefix}foreign`, fwCloudId: fwCloud.id, userId: otherUser.id }),
       ]);
 
       await request(app.express)
@@ -1109,13 +1109,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .expect(401);
     });
 
-    it('should not return custom profiles owned by another FWCloud', async () => {
-      const otherFwCloud = await db
-        .getSource()
-        .manager.getRepository(FwCloud)
-        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+    it('should not return custom profiles owned by another user', async () => {
       const profile = await repository.save(
-        makeProfile({ code: `${codePrefix}foreign-detail`, fwCloudId: otherFwCloud.id }),
+        makeProfile({
+          code: `${codePrefix}foreign-detail`,
+          fwCloudId: fwCloud.id,
+          userId: otherUser.id,
+        }),
       );
 
       await request(app.express)
@@ -1219,13 +1219,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(persisted.isDeprecated).to.be.false;
     });
 
-    it('should not remove custom profiles owned by another FWCloud', async () => {
-      const otherFwCloud = await db
-        .getSource()
-        .manager.getRepository(FwCloud)
-        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+    it('should not remove custom profiles owned by another user', async () => {
       const foreign = await repository.save(
-        makeProfile({ code: `${codePrefix}foreign-delete`, fwCloudId: otherFwCloud.id }),
+        makeProfile({
+          code: `${codePrefix}foreign-delete`,
+          fwCloudId: fwCloud.id,
+          userId: otherUser.id,
+        }),
       );
 
       await request(app.express)
@@ -1376,14 +1376,17 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .expect(401);
     });
 
-    it('should allow users with access to the FWCloud', async () => {
+    it('should allow users with access to the FWCloud to apply their profiles', async () => {
       const regularUser = await createUser({ role: 0 });
       regularUser.fwClouds = [fwCloud];
       await db.getSource().manager.getRepository(User).save(regularUser);
       const regularUserSessionId = generateSession(regularUser);
+      const ownedProfile = await repository.save(
+        makeProfile({ code: `${codePrefix}apply-owned`, userId: regularUser.id }),
+      );
 
       await request(app.express)
-        .post(applyUrl())
+        .post(applyUrl(ownedProfile.code, ownedProfile.version))
         .set('Cookie', [attachSession(regularUserSessionId)])
         .send(applyBody())
         .expect(200)
@@ -1461,6 +1464,319 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(applyBody())
         .expect(422);
+    });
+  });
+
+  describe('custom profiles of a user across FWClouds', () => {
+    let owner: User;
+    let ownerSessionId: string;
+    let otherUserSessionId: string;
+    let otherFwCloud: FwCloud;
+    let profile: ReplicationProfile;
+    let sourceFirewall: Firewall;
+    let targetFirewall: Firewall;
+
+    const catalogUrl = (cloud: FwCloud): string => `/fwclouds/${cloud.id}/profiles`;
+
+    const profileUrl = (cloud: FwCloud): string =>
+      `${catalogUrl(cloud)}/${profile.code}/${profile.version}`;
+
+    const applyBody = (
+      overrides: { sourceFirewallId?: number; targetFirewallId?: number } = {},
+    ) => ({
+      sourceProfile: {
+        firewallId: overrides.sourceFirewallId ?? sourceFirewall.id,
+        interfaceRoles: {},
+      },
+      target: { kind: 'firewall', id: overrides.targetFirewallId ?? targetFirewall.id },
+      interfaceRoleMapping: {},
+      mode: 'dry_run',
+    });
+
+    const listedProfiles = async (cloud: FwCloud, sessionId: string): Promise<any[]> =>
+      (
+        await request(app.express)
+          .get(catalogUrl(cloud))
+          .set('Cookie', [attachSession(sessionId)])
+          .expect(200)
+      ).body.data;
+
+    /**
+     * A mutating request takes the edit lock of its FWCloud for its session and
+     * here every request is a new one, so a FWCloud member would be locked out
+     * by its own previous request.
+     */
+    const releaseFwCloudLocks = (): Promise<void> =>
+      db.getSource().query('UPDATE fwcloud SET locked = 0, locked_by = NULL');
+
+    beforeEach(async () => {
+      otherFwCloud = await db
+        .getSource()
+        .manager.getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false, locked_by: null });
+
+      // Both users can access both FWClouds: only the owner must see the profile.
+      owner = await createUser({ role: 0 });
+      owner.fwClouds = [fwCloud, otherFwCloud];
+      otherUser.fwClouds = [fwCloud, otherFwCloud];
+      await db.getSource().manager.getRepository(User).save([owner, otherUser]);
+      ownerSessionId = generateSession(owner);
+      otherUserSessionId = generateSession(otherUser);
+
+      await request(app.express)
+        .post(catalogUrl(fwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .send(makeCreatePayload({ code: `${codePrefix}reusable` }))
+        .expect(201);
+      profile = await repository.findOneOrFail({ where: { code: `${codePrefix}reusable` } });
+      await releaseFwCloudLocks();
+
+      // The profile is used in the FWCloud it was not created from.
+      const firewallRepository = db.getSource().manager.getRepository(Firewall);
+      sourceFirewall = await firewallRepository.save({
+        name: StringHelper.randomize(10),
+        fwCloudId: otherFwCloud.id,
+      });
+      targetFirewall = await firewallRepository.save({
+        name: StringHelper.randomize(10),
+        fwCloudId: otherFwCloud.id,
+      });
+    });
+
+    it('should belong to the user who creates it, whatever the FWCloud it is created from', async () => {
+      expect(profile.userId).to.be.eq(owner.id);
+      expect(profile.fwCloudId).to.be.eq(fwCloud.id);
+      expect(profile.path).to.be.eq(`custom/users/${owner.id}/${profile.code}.v1.json`);
+    });
+
+    it('should list the profile to its owner from every FWCloud, with the built-in ones', async () => {
+      for (const cloud of [fwCloud, otherFwCloud]) {
+        const profiles = await listedProfiles(cloud, ownerSessionId);
+        const listed = profiles.find((item) => item.id === profile.id);
+
+        expect(listed, `FWCloud ${cloud.id}`).not.to.be.undefined;
+        expect(listed.isCustom).to.be.true;
+        expect(listed.userId).to.be.eq(owner.id);
+        expect(listed.user_id).to.be.eq(owner.id);
+        expect(listed.fwcloudId).to.be.eq(fwCloud.id);
+        expect(listed.model).to.deep.eq(loadReplicationProfileModel(profile));
+        expect(profiles.some((item) => item.isBuiltin && item.userId === null)).to.be.true;
+      }
+
+      const customProfiles = await request(app.express)
+        .get(catalogUrl(otherFwCloud))
+        .query({ origin: 'custom' })
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(200);
+      expect(customProfiles.body.data.map((item) => item.id)).to.deep.eq([profile.id]);
+    });
+
+    it('should return the profile to its owner from every FWCloud', async () => {
+      for (const cloud of [fwCloud, otherFwCloud]) {
+        await request(app.express)
+          .get(profileUrl(cloud))
+          .set('Cookie', [attachSession(ownerSessionId)])
+          .expect(200)
+          .then((response) => {
+            expect(response.body.data.id).to.be.eq(profile.id);
+            expect(response.body.data.model).to.deep.eq(loadReplicationProfileModel(profile));
+          });
+      }
+    });
+
+    it('should apply the profile in another FWCloud of its owner', async () => {
+      await request(app.express)
+        .post(`${profileUrl(otherFwCloud)}/apply`)
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .send(applyBody())
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.mode).to.be.eq('dry_run');
+          expect(response.body.data.applied).to.be.false;
+        });
+    });
+
+    it('should clone, version and delete the profile from another FWCloud of its owner', async () => {
+      await request(app.express)
+        .post(`${profileUrl(otherFwCloud)}/clone`)
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .send({ code: `${codePrefix}reusable-copy` })
+        .expect(201)
+        .then((response) => {
+          expect(response.body.data.userId).to.be.eq(owner.id);
+          expect(response.body.data.fwcloudId).to.be.eq(otherFwCloud.id);
+        });
+
+      await releaseFwCloudLocks();
+      await request(app.express)
+        .post(`${catalogUrl(otherFwCloud)}/${profile.code}/versions`)
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .send(makeCreatePayload())
+        .expect(201)
+        .then((response) => {
+          expect(response.body.data.version).to.be.eq(2);
+          expect(response.body.data.userId).to.be.eq(owner.id);
+        });
+
+      await releaseFwCloudLocks();
+      await request(app.express)
+        .delete(profileUrl(otherFwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(200);
+
+      expect(await repository.findOne({ where: { id: profile.id } })).to.be.null;
+      expect(templateExists(profile)).to.be.false;
+    });
+
+    it('should hide the profile from another user with access to the same FWClouds', async () => {
+      for (const cloud of [fwCloud, otherFwCloud]) {
+        const profiles = await listedProfiles(cloud, otherUserSessionId);
+
+        expect(profiles.some((item) => item.id === profile.id)).to.be.false;
+        expect(profiles.some((item) => item.isBuiltin)).to.be.true;
+
+        await request(app.express)
+          .get(profileUrl(cloud))
+          .set('Cookie', [attachSession(otherUserSessionId)])
+          .expect(404);
+      }
+    });
+
+    it('should not let another user apply, clone, version or delete the profile', async () => {
+      await request(app.express)
+        .post(`${profileUrl(otherFwCloud)}/apply`)
+        .set('Cookie', [attachSession(otherUserSessionId)])
+        .send(applyBody())
+        .expect(404);
+
+      await releaseFwCloudLocks();
+      await request(app.express)
+        .post(`${profileUrl(otherFwCloud)}/clone`)
+        .set('Cookie', [attachSession(otherUserSessionId)])
+        .send({ code: `${codePrefix}stolen-copy` })
+        .expect(404);
+
+      await releaseFwCloudLocks();
+      await request(app.express)
+        .post(`${catalogUrl(otherFwCloud)}/${profile.code}/versions`)
+        .set('Cookie', [attachSession(otherUserSessionId)])
+        .send(makeCreatePayload())
+        .expect(404);
+
+      await releaseFwCloudLocks();
+      await request(app.express)
+        .delete(profileUrl(otherFwCloud))
+        .set('Cookie', [attachSession(otherUserSessionId)])
+        .expect(404);
+
+      expect(await repository.count({ where: { code: Like(`${codePrefix}%`) } })).to.be.eq(1);
+      expect(templateExists(profile)).to.be.true;
+    });
+
+    it('should hide the profile from an administrator who does not own it', async () => {
+      const profiles = await listedProfiles(fwCloud, adminUserSessionId);
+
+      expect(profiles.some((item) => item.id === profile.id)).to.be.false;
+
+      await request(app.express)
+        .get(profileUrl(fwCloud))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+    });
+
+    it('should let another user have a profile with the same code and version', async () => {
+      await request(app.express)
+        .post(catalogUrl(fwCloud))
+        .set('Cookie', [attachSession(otherUserSessionId)])
+        .send(makeCreatePayload({ code: profile.code, name: `${codePrefix}Other profile` }))
+        .expect(201)
+        .then((response) => {
+          expect(response.body.data.id).not.to.be.eq(profile.id);
+          expect(response.body.data.userId).to.be.eq(otherUser.id);
+        });
+
+      await request(app.express)
+        .get(profileUrl(fwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.id).to.be.eq(profile.id);
+        });
+    });
+
+    it('should still require access to the FWCloud the profile is used from', async () => {
+      owner.fwClouds = [fwCloud];
+      await db.getSource().manager.getRepository(User).save(owner);
+
+      await request(app.express)
+        .get(catalogUrl(otherFwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(401);
+
+      await request(app.express)
+        .get(profileUrl(otherFwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(401);
+
+      await request(app.express)
+        .post(`${profileUrl(otherFwCloud)}/apply`)
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .send(applyBody())
+        .expect(401);
+
+      await request(app.express)
+        .get(profileUrl(fwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(200);
+    });
+
+    it('should not reach firewalls of another FWCloud through the profile', async () => {
+      const foreignFirewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .save({ name: StringHelper.randomize(10), fwCloudId: fwCloud.id });
+      // Unlike the profiles created through the API, this one copies the policy
+      // of a source firewall, so both ends of its application are checked.
+      const sourceBased = await repository.save(
+        makeProfile({ code: `${codePrefix}source-based`, userId: owner.id }),
+      );
+
+      for (const [code, body] of [
+        [profile.code, applyBody({ targetFirewallId: foreignFirewall.id })],
+        [sourceBased.code, applyBody({ targetFirewallId: foreignFirewall.id })],
+        [sourceBased.code, applyBody({ sourceFirewallId: foreignFirewall.id })],
+      ] as Array<[string, ReturnType<typeof applyBody>]>) {
+        await releaseFwCloudLocks();
+        await request(app.express)
+          .post(`${catalogUrl(otherFwCloud)}/${code}/1/apply`)
+          .set('Cookie', [attachSession(ownerSessionId)])
+          .send(body)
+          .expect(422)
+          .then((response) => {
+            expect(response.body.message).to.contain(
+              `does not belong to FWCloud ${otherFwCloud.id}`,
+            );
+          });
+      }
+    });
+
+    it('should keep the profile usable after the FWCloud it was created from is removed', async () => {
+      await (await FwCloud.findOneOrFail({ where: { id: fwCloud.id } })).remove();
+
+      await request(app.express)
+        .get(profileUrl(otherFwCloud))
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.userId).to.be.eq(owner.id);
+          expect(response.body.data.fwcloudId).to.be.null;
+        });
+
+      await request(app.express)
+        .post(`${profileUrl(otherFwCloud)}/apply`)
+        .set('Cookie', [attachSession(ownerSessionId)])
+        .send(applyBody())
+        .expect(200);
     });
   });
 });

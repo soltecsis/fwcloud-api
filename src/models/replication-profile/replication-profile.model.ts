@@ -1,7 +1,9 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../Model';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { resolveReplicationProfileTemplatePath } from './replication-profile-template';
 import {
+  isReplicationProfileOwnerId,
   isReplicationProfileStringValue,
   REPLICATION_PROFILE_TARGET_KINDS,
 } from './replication-profile.constants';
@@ -79,9 +81,17 @@ export class ReplicationProfile extends Model {
   isDeprecated: boolean;
 
   /**
-   * FWCloud that owns this custom profile. NULL for built-in/global profiles,
-   * which are shared by every FWCloud. The DB-only generated column
-   * `fwcloud_ns` (COALESCE(fwcloud_id, 0)) is intentionally not mapped here.
+   * User that owns this custom profile, who can use it from every FWCloud they
+   * have access to. NULL for built-in/global profiles, which are shared by
+   * every user. The DB-only generated column `user_ns` (COALESCE(user_id, 0))
+   * is intentionally not mapped here.
+   */
+  @Column({ name: 'user_id', nullable: true })
+  userId: number | null;
+
+  /**
+   * FWCloud a custom profile was created from. It does not limit where the
+   * profile can be used, and it becomes NULL when that FWCloud is removed.
    */
   @Column({ name: 'fwcloud_id', nullable: true })
   fwCloudId: number | null;
@@ -110,6 +120,22 @@ export class ReplicationProfile extends Model {
   @BeforeUpdate()
   rejectUnsafeTemplatePath(): void {
     resolveReplicationProfileTemplatePath(this);
+  }
+
+  /**
+   * A custom profile without an owner would be out of everybody's reach, and
+   * a built-in one with an owner would stop being shared.
+   */
+  @BeforeInsert()
+  @BeforeUpdate()
+  rejectInconsistentOwner(): void {
+    if (this.isBuiltin && this.userId !== null && this.userId !== undefined) {
+      throw new HttpException('Built-in replication profiles cannot have an owner.', 422);
+    }
+
+    if (!this.isBuiltin && !isReplicationProfileOwnerId(this.userId)) {
+      throw new HttpException('Custom replication profiles require an owner.', 422);
+    }
   }
 
   public getTableName(): string {

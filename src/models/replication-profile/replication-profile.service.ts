@@ -8,6 +8,7 @@ import { ReplicationProfile } from './replication-profile.model';
 import {
   type ReplicationProfileCatalogOrigin,
   getReplicationProfileModelTargetKinds,
+  isReplicationProfileOwnerId,
   isReplicationProfileStringValue,
   normalizeReplicationProfileTargetKinds,
   REPLICATION_PROFILE_TARGET_KINDS,
@@ -48,7 +49,9 @@ export interface CreateCustomReplicationProfilePayload {
 }
 
 export interface CreateCustomReplicationProfileOptions {
+  /** FWCloud the request is made from: recorded as where the profile was created and audited. */
   fwCloudId: number;
+  /** Owner of the profile, when no actor carries it. */
   userId?: number | null;
   actor?: ReplicationProfileMutationActor;
 }
@@ -70,10 +73,7 @@ export interface ReplicationProfileMutationActor {
   sourceIp?: string | null;
 }
 
-export interface RemoveCustomReplicationProfileOptions {
-  fwCloudId: number;
-  actor?: ReplicationProfileMutationActor;
-}
+export type RemoveCustomReplicationProfileOptions = CreateCustomReplicationProfileOptions;
 
 /**
  * A profile with its template already read. Listings and removals report a
@@ -106,6 +106,8 @@ export interface ReplicationProfileManagementFailureAuditInput {
 
 interface ReplicationProfileManagementSuccessAuditInput {
   operation: ReplicationProfileManagementOperation;
+  /** FWCloud the operation was requested from, not necessarily where the profile was created. */
+  fwCloudId: number;
   profile: ReplicationProfile;
   startedAt: Date;
   status: number;
@@ -116,7 +118,8 @@ interface ReplicationProfileManagementSuccessAuditInput {
 }
 
 export interface ReplicationProfileCatalogFilters {
-  fwCloudId: number;
+  /** User whose custom profiles are listed with the built-in ones, whatever the FWCloud. */
+  userId: number | null;
   targetKind?: ReplicationProfileTargetKind;
   origin?: ReplicationProfileCatalogOrigin;
   includeDeprecated?: boolean;
@@ -131,6 +134,7 @@ export type CreateCustomReplicationProfileVersionPayload = Omit<
 interface CustomReplicationProfileIdentity {
   code: string;
   version: number;
+  userId: number;
 }
 
 const DEFAULT_CUSTOM_PROFILE_VERSION = 1;
@@ -177,8 +181,15 @@ export class ReplicationProfileService extends Service {
       where.isDeprecated = false;
     }
 
+    const scopes = this.buildProfileScopes(where, filters.userId, filters.origin ?? 'all');
+
+    // Without conditions the query would return the profiles of every user.
+    if (scopes.length === 0) {
+      return [];
+    }
+
     const profiles = await this.repository.find({
-      where: this.buildCatalogWhere(where, filters.fwCloudId, filters.origin ?? 'all'),
+      where: scopes,
       order: {
         code: 'ASC',
         version: 'DESC',
@@ -191,85 +202,68 @@ export class ReplicationProfileService extends Service {
   public async findByCodeAndVersion(
     code: string,
     version: number,
-    fwCloudId?: number,
+    userId?: number | null,
   ): Promise<ReplicationProfile | null> {
-    return this.findOneInFwCloudScope(
+    return this.findOneInUserScope(
       {
         code,
         version,
         isActive: true,
         isDeprecated: false,
       },
-      fwCloudId,
+      userId,
     );
   }
 
   public async findAnyByCodeAndVersion(
     code: string,
     version: number,
-    fwCloudId?: number,
+    userId?: number | null,
   ): Promise<ReplicationProfile | null> {
-    return this.findOneInFwCloudScope(
+    return this.findOneInUserScope(
       {
         code,
         version,
       },
-      fwCloudId,
+      userId,
     );
   }
 
-  private async findOneInFwCloudScope(
+  /**
+   * A custom profile of the user takes precedence over a built-in one with the
+   * same code and version. Without a user only the built-in ones are searched,
+   * so the custom profiles of somebody else are never reached.
+   */
+  private findOneInUserScope(
     where: FindOptionsWhere<ReplicationProfile>,
-    fwCloudId?: number,
+    userId?: number | null,
   ): Promise<ReplicationProfile | null> {
-    if (fwCloudId === undefined) {
-      return this.repository.findOne({ where });
-    }
-
-    const scopedProfile = await this.repository.findOne({
-      where: {
-        ...where,
-        fwCloudId,
-      },
-    });
-
-    if (scopedProfile) {
-      return scopedProfile;
-    }
-
     return this.repository.findOne({
-      where: {
-        ...where,
-        fwCloudId: IsNull(),
-      },
+      where: this.buildProfileScopes(where, userId, 'all'),
+      order: { isBuiltin: 'ASC' },
     });
   }
 
-  private buildCatalogWhere(
+  /**
+   * The catalog of a user is made of the built-in profiles and the custom ones
+   * they own. The FWCloud the catalog is requested from does not narrow it.
+   */
+  private buildProfileScopes(
     where: FindOptionsWhere<ReplicationProfile>,
-    fwCloudId: number,
+    userId: number | null | undefined,
     origin: ReplicationProfileCatalogOrigin,
-  ): FindOptionsWhere<ReplicationProfile> | FindOptionsWhere<ReplicationProfile>[] {
-    const builtinWhere: FindOptionsWhere<ReplicationProfile> = {
-      ...where,
-      isBuiltin: true,
-      fwCloudId: IsNull(),
-    };
-    const customWhere: FindOptionsWhere<ReplicationProfile> = {
-      ...where,
-      isBuiltin: false,
-      fwCloudId,
-    };
+  ): FindOptionsWhere<ReplicationProfile>[] {
+    const scopes: FindOptionsWhere<ReplicationProfile>[] = [];
 
-    if (origin === 'builtin') {
-      return builtinWhere;
+    if (origin !== 'custom') {
+      scopes.push({ ...where, isBuiltin: true, userId: IsNull() });
     }
 
-    if (origin === 'custom') {
-      return customWhere;
+    if (origin !== 'builtin' && isReplicationProfileOwnerId(userId)) {
+      scopes.push({ ...where, isBuiltin: false, userId });
     }
 
-    return [builtinWhere, customWhere];
+    return scopes;
   }
 
   public async createCustomProfile(
@@ -279,16 +273,18 @@ export class ReplicationProfileService extends Service {
     const startedAt = new Date();
     const code = payload.code ?? this.slugFromName(payload.name);
     const version = payload.version ?? DEFAULT_CUSTOM_PROFILE_VERSION;
-    const actor = this.actorFromCreateOptions(options);
+    const actor = this.actorFromMutationOptions(options);
 
     try {
+      const userId = this.requireOwnerUserId(options);
       this.assertPayloadDefinitionIsValid(payload);
 
-      await this.assertCustomProfileIdentityIsAvailable(code, version, options.fwCloudId);
+      await this.assertCustomProfileIdentityIsAvailable(code, version, userId);
 
-      const profile = await this.persistCustomProfile(payload, options, { code, version });
+      const profile = await this.persistCustomProfile(payload, options, { code, version, userId });
       await this.auditProfileManagementSuccess({
         operation: 'create',
+        fwCloudId: options.fwCloudId,
         profile,
         actor,
         status: 201,
@@ -323,12 +319,13 @@ export class ReplicationProfileService extends Service {
     options: CreateCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
     const startedAt = new Date();
-    const actor = this.actorFromCreateOptions(options);
+    const actor = this.actorFromMutationOptions(options);
     let sourceProfile: ReplicationProfile | null = null;
     let targetPayload: CreateCustomReplicationProfilePayload | null = null;
 
     try {
-      sourceProfile = await this.findAnyByCodeAndVersion(code, version, options.fwCloudId);
+      const userId = this.requireOwnerUserId(options);
+      sourceProfile = await this.findAnyByCodeAndVersion(code, version, userId);
 
       if (!sourceProfile) {
         throw new NotFoundException('Replication profile not found');
@@ -341,7 +338,7 @@ export class ReplicationProfileService extends Service {
       const cloneCode = payload.code ?? `${sourceProfile.code}-copy`;
       const cloneVersion = DEFAULT_CUSTOM_PROFILE_VERSION;
 
-      await this.assertCustomProfileIdentityIsAvailable(cloneCode, cloneVersion, options.fwCloudId);
+      await this.assertCustomProfileIdentityIsAvailable(cloneCode, cloneVersion, userId);
 
       targetPayload = this.buildClonePayload(sourceProfile, payload, cloneCode, cloneVersion);
 
@@ -350,10 +347,12 @@ export class ReplicationProfileService extends Service {
       const profile = await this.persistCustomProfile(targetPayload, options, {
         code: cloneCode,
         version: cloneVersion,
+        userId,
       });
 
       await this.auditProfileManagementSuccess({
         operation: 'clone',
+        fwCloudId: options.fwCloudId,
         profile,
         actor,
         status: 201,
@@ -392,12 +391,15 @@ export class ReplicationProfileService extends Service {
     options: CreateCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
     const startedAt = new Date();
-    const actor = this.actorFromCreateOptions(options);
+    const actor = this.actorFromMutationOptions(options);
     let latestCustomProfile: ReplicationProfile | null = null;
     let nextVersion: number | null = null;
 
     try {
-      latestCustomProfile = await this.findLatestCustomProfile(code, options.fwCloudId);
+      const userId = this.requireOwnerUserId(options);
+      latestCustomProfile = await this.findOwnedCustomProfile({ code }, userId, {
+        version: 'DESC',
+      });
 
       if (!latestCustomProfile) {
         throw await this.resolveMissingCustomProfileError(
@@ -419,10 +421,12 @@ export class ReplicationProfileService extends Service {
       const profile = await this.persistCustomProfile(payload, options, {
         code,
         version: nextVersion,
+        userId,
       });
 
       await this.auditProfileManagementSuccess({
         operation: 'update',
+        fwCloudId: options.fwCloudId,
         profile,
         actor,
         status: 201,
@@ -478,7 +482,7 @@ export class ReplicationProfileService extends Service {
   /**
    * Removes a custom profile and its template so the same code/version can be
    * created again. Built-in profiles cannot be removed (403) and profiles from
-   * another FWCloud are indistinguishable from missing ones (404) so their
+   * another user are indistinguishable from missing ones (404) so their
    * existence is never leaked.
    */
   public async removeCustomProfile(
@@ -487,10 +491,12 @@ export class ReplicationProfileService extends Service {
     options: RemoveCustomReplicationProfileOptions,
   ): Promise<ReplicationProfileWithTemplate> {
     const startedAt = new Date();
+    const actor = this.actorFromMutationOptions(options);
     let profile: ReplicationProfile | null = null;
 
     try {
-      profile = await this.findOwnedCustomProfile({ code, version }, options.fwCloudId);
+      const userId = this.requireOwnerUserId(options);
+      profile = await this.findOwnedCustomProfile({ code, version }, userId);
 
       if (!profile) {
         throw await this.resolveMissingCustomProfileError(
@@ -507,8 +513,9 @@ export class ReplicationProfileService extends Service {
 
       await this.auditProfileManagementSuccess({
         operation: 'remove',
+        fwCloudId: options.fwCloudId,
         profile: removedProfile,
-        actor: options.actor,
+        actor,
         status: 200,
         startedAt,
         data: {
@@ -521,7 +528,7 @@ export class ReplicationProfileService extends Service {
       await this.auditProfileManagementFailure({
         operation: 'remove',
         fwCloudId: options.fwCloudId,
-        actor: options.actor,
+        actor,
         profileId: profile?.id ?? null,
         profileCode: profile?.code ?? code,
         profileVersion: profile?.version ?? version,
@@ -542,7 +549,7 @@ export class ReplicationProfileService extends Service {
    * Builds the error to raise when a custom profile the caller expected to own
    * could not be found: a built-in profile with the same identity yields a 403
    * (built-ins are shared and public), everything else -- including profiles
-   * owned by another FWCloud -- yields the generic 404 so their existence is
+   * owned by another user -- yields the generic 404 so their existence is
    * never leaked.
    */
   private async resolveMissingCustomProfileError(
@@ -552,7 +559,7 @@ export class ReplicationProfileService extends Service {
     const builtInExists = await this.repository.exists({
       where: {
         ...builtInIdentity,
-        fwCloudId: IsNull(),
+        userId: IsNull(),
         isBuiltin: true,
       },
     });
@@ -565,15 +572,9 @@ export class ReplicationProfileService extends Service {
   private async assertCustomProfileIdentityIsAvailable(
     code: string,
     version: number,
-    fwCloudId: number,
+    userId: number,
   ): Promise<void> {
-    const existingProfile = await this.repository.findOne({
-      where: {
-        code,
-        version,
-        fwCloudId,
-      },
-    });
+    const existingProfile = await this.findOwnedCustomProfile({ code, version }, userId);
 
     if (!existingProfile) {
       return;
@@ -586,27 +587,20 @@ export class ReplicationProfileService extends Service {
     }
 
     throw new HttpException(
-      `Replication profile "${code}" (version ${version}) already exists in this FWCloud.`,
+      `Replication profile "${code}" (version ${version}) already exists for this user.`,
       409,
     );
   }
 
-  private findLatestCustomProfile(
-    code: string,
-    fwCloudId: number,
-  ): Promise<ReplicationProfile | null> {
-    return this.findOwnedCustomProfile({ code }, fwCloudId, { version: 'DESC' });
-  }
-
   private findOwnedCustomProfile(
     where: FindOptionsWhere<ReplicationProfile>,
-    fwCloudId: number,
+    userId: number,
     order?: FindOptionsOrder<ReplicationProfile>,
   ): Promise<ReplicationProfile | null> {
     return this.repository.findOne({
       where: {
         ...where,
-        fwCloudId,
+        userId,
         isBuiltin: false,
       },
       ...(order ? { order } : {}),
@@ -658,11 +652,12 @@ export class ReplicationProfileService extends Service {
       userName: actor?.userName ?? null,
       sessionId: actor?.sessionId ?? null,
       sourceIp: actor?.sourceIp ?? null,
-      fwCloudId: input.profile.fwCloudId,
+      fwCloudId: input.fwCloudId,
       data: this.cleanAuditData({
         operation: input.operation,
         result: 'success',
         ...this.profileAuditData(input.profile),
+        fwCloudId: input.fwCloudId,
         ...this.sourceProfileAuditData(input.sourceProfile),
         ...this.previousProfileAuditData(input.previousProfile),
         ...input.data,
@@ -733,7 +728,6 @@ export class ReplicationProfileService extends Service {
       profileCode: profile.code,
       profileVersion: profile.version,
       profileName: profile.name,
-      fwCloudId: profile.fwCloudId,
       targetKind: profile.targetKind,
       scope: profile.scope,
       category: profile.category,
@@ -791,7 +785,7 @@ export class ReplicationProfileService extends Service {
     return version ? `${code} v${version}` : code;
   }
 
-  private actorFromCreateOptions(
+  private actorFromMutationOptions(
     options: CreateCustomReplicationProfileOptions,
   ): ReplicationProfileMutationActor | undefined {
     if (options.actor) {
@@ -799,6 +793,17 @@ export class ReplicationProfileService extends Service {
     }
 
     return options.userId !== undefined ? { userId: options.userId } : undefined;
+  }
+
+  /** Custom profiles belong to whoever manages them, so managing one requires that user. */
+  private requireOwnerUserId(options: CreateCustomReplicationProfileOptions): number {
+    const userId = options.actor?.userId ?? options.userId;
+
+    if (!isReplicationProfileOwnerId(userId)) {
+      throw new HttpException('A user is required to manage custom replication profiles.', 403);
+    }
+
+    return userId;
   }
 
   private statusFromError(error: unknown): number {
@@ -837,20 +842,18 @@ export class ReplicationProfileService extends Service {
     targetKind: ReplicationProfileTargetKind,
     model: ReplicationProfileModel | null,
   ): boolean {
-    const compatibleTargetKinds = new Set<ReplicationProfileTargetKind>([
-      ...normalizeReplicationProfileTargetKinds(profile.targetKind),
-      ...getReplicationProfileModelTargetKinds(model),
-    ]);
-
-    return compatibleTargetKinds.has(targetKind);
+    return (
+      normalizeReplicationProfileTargetKinds(profile.targetKind).includes(targetKind) ||
+      getReplicationProfileModelTargetKinds(model).includes(targetKind)
+    );
   }
 
-  /** Keeps the latest version of each code, separately for built-ins and each FWCloud. */
+  /** Keeps the latest version of each code, separately for built-ins and each user. */
   private preferLatestCatalogProfiles(profiles: ReplicationProfile[]): ReplicationProfile[] {
     const latestProfiles = new Map<string, ReplicationProfile>();
 
     for (const profile of profiles) {
-      const key = `${profile.isBuiltin ? 'builtin' : `custom:${profile.fwCloudId}`}:${profile.code}`;
+      const key = `${profile.isBuiltin ? 'builtin' : `custom:${profile.userId}`}:${profile.code}`;
       const current = latestProfiles.get(key);
 
       if (!current || profile.version > current.version) {
@@ -869,14 +872,23 @@ export class ReplicationProfileService extends Service {
   ): ReplicationProfileWithTemplate[] {
     const search = filters.search?.trim().toLowerCase();
 
-    return profiles
-      .filter((profile) => !search || this.matchesCatalogSearch(profile, search))
-      .map((profile) => ({ profile, template: readReplicationProfileModel(profile) }))
-      .filter(
-        ({ profile, template }) =>
-          !filters.targetKind ||
-          this.supportsTargetKind(profile, filters.targetKind, template.model),
-      );
+    const entries: ReplicationProfileWithTemplate[] = [];
+
+    for (const profile of profiles) {
+      if (search && !this.matchesCatalogSearch(profile, search)) {
+        continue;
+      }
+
+      const template = readReplicationProfileModel(profile);
+      if (
+        !filters.targetKind ||
+        this.supportsTargetKind(profile, filters.targetKind, template.model)
+      ) {
+        entries.push({ profile, template });
+      }
+    }
+
+    return entries;
   }
 
   private compareCatalogProfiles(left: ReplicationProfile, right: ReplicationProfile): number {
@@ -913,7 +925,7 @@ export class ReplicationProfileService extends Service {
     options: CreateCustomReplicationProfileOptions,
     identity: CustomReplicationProfileIdentity,
   ): Promise<ReplicationProfile> {
-    const userId = options.actor?.userId ?? options.userId ?? null;
+    const { userId } = identity;
     const now = new Date();
     const profile = this.repository.create({
       code: identity.code,
@@ -922,12 +934,13 @@ export class ReplicationProfileService extends Service {
       description: payload.description ?? null,
       scope: payload.scope,
       targetKind: this.effectiveProfileTargetKind(payload.targetKind),
-      path: buildReplicationProfileTemplatePath({ ...identity, fwCloudId: options.fwCloudId }),
+      path: buildReplicationProfileTemplatePath(identity),
       category: payload.category ?? null,
       isBuiltin: false,
       isActive: true,
       isDeprecated: false,
       fwCloudId: options.fwCloudId,
+      userId,
       created_by: userId,
       updated_by: userId,
       created_at: now,

@@ -11,21 +11,25 @@ import {
   replicationProfileFixtureTemplate,
   templateExists,
 } from '../../../utils/replication-profile-fixtures';
-import * as fs from 'fs';
+import { createUser } from '../../../utils/utils';
+import { loadReplicationProfileModel } from '../../../../src/models/replication-profile/replication-profile-template';
 import { Like, QueryFailedError, Repository } from 'typeorm';
 
-describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Tests'), () => {
+describe(describeName('Replication Profile Persistence (user scope) Unit Tests'), () => {
   let repository: Repository<ReplicationProfile>;
   let fwCloudRepository: Repository<FwCloud>;
   let fwCloudA: FwCloud;
   let fwCloudB: FwCloud;
   let codePrefix: string;
+  let userId: number;
+  let otherUserId: number;
 
   const makeProfile = (overrides: Partial<ReplicationProfileFixture> = {}): ReplicationProfile =>
     makeReplicationProfileFixture({
       code: `${codePrefix}profile`,
       name: 'Custom profile',
       scope: 'custom',
+      userId: overrides.isBuiltin ? null : userId,
       model: {
         compatibility: { targetKinds: ['firewall'] },
         roleAssignments: { interfaceRoles: ['wan', 'lan'] },
@@ -52,6 +56,8 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     fwCloudRepository = db.getSource().manager.getRepository(FwCloud);
     codePrefix = `rp-persist-${Date.now()}-${Math.round(Math.random() * 100000)}-`;
 
+    userId = (await createUser({ role: 0 })).id;
+    otherUserId = (await createUser({ role: 0 })).id;
     fwCloudA = await newFwCloud();
     fwCloudB = await newFwCloud();
   });
@@ -68,6 +74,7 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     expect(preset).not.to.be.null;
     expect(preset.isBuiltin).to.be.true;
     expect(preset.fwCloudId).to.be.null;
+    expect(preset.userId).to.be.null;
     expect(preset.path).to.be.eq(defaultReplicationProfile.path);
     expect(preset.category).to.be.null;
     expect(preset.created_by).to.be.null;
@@ -85,7 +92,7 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     expect(pathColumn.Null).to.be.eq('NO');
   });
 
-  it('should persist a custom profile scoped to a FWCloud', async () => {
+  it('should persist a custom profile owned by a user, with the FWCloud it was created from', async () => {
     const saved = await repository.save(
       makeProfile({
         code: `${codePrefix}scoped`,
@@ -100,9 +107,33 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
 
     expect(reloaded.isBuiltin).to.be.false;
     expect(reloaded.fwCloudId).to.be.eq(fwCloudA.id);
+    expect(reloaded.userId).to.be.eq(userId);
     expect(reloaded.category).to.be.eq('office');
     expect(reloaded.created_by).to.be.eq(7);
     expect(reloaded.updated_by).to.be.eq(7);
+  });
+
+  it('should not save a custom profile without an owner', async () => {
+    for (const owner of [null, undefined, 0, -1]) {
+      const profile = makeProfile({ code: `${codePrefix}no-owner` });
+      profile.userId = owner;
+
+      await expect(repository.save(profile), String(owner)).to.be.rejectedWith(
+        'Custom replication profiles require an owner.',
+      );
+    }
+
+    expect(await repository.findOne({ where: { code: `${codePrefix}no-owner` } })).to.be.null;
+  });
+
+  it('should not save a built-in profile with an owner', async () => {
+    const profile = makeProfile({ code: `${codePrefix}owned-builtin`, isBuiltin: true });
+    profile.userId = userId;
+
+    await expect(repository.save(profile)).to.be.rejectedWith(
+      'Built-in replication profiles cannot have an owner.',
+    );
+    expect(await repository.findOne({ where: { code: profile.code } })).to.be.null;
   });
 
   it('should reject invalid profile definitions before writing their template', async () => {
@@ -125,31 +156,36 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
       }),
     ).to.throw(ReplicationProfileValidationException);
 
-    expect(templateExists(replicationProfileFixtureTemplate({ code, fwCloudId: fwCloudA.id }))).to
-      .be.false;
+    expect(templateExists(replicationProfileFixtureTemplate({ code, userId }))).to.be.false;
   });
 
-  it('should allow the same code+version in two different FWClouds', async () => {
-    const inA = await repository.save(
+  it('should allow the same code+version to two different users, even in one FWCloud', async () => {
+    const owned = await repository.save(
       makeProfile({ code: `${codePrefix}shared`, version: 1, fwCloudId: fwCloudA.id }),
     );
-    const inB = await repository.save(
-      makeProfile({ code: `${codePrefix}shared`, version: 1, fwCloudId: fwCloudB.id }),
+    const foreign = await repository.save(
+      makeProfile({
+        code: `${codePrefix}shared`,
+        version: 1,
+        fwCloudId: fwCloudA.id,
+        userId: otherUserId,
+      }),
     );
 
-    expect(inA.id).to.be.a('number');
-    expect(inB.id).to.be.a('number');
-    expect(inA.id).not.to.be.eq(inB.id);
+    expect(owned.id).to.be.a('number');
+    expect(foreign.id).to.be.a('number');
+    expect(owned.id).not.to.be.eq(foreign.id);
+    expect(owned.path).not.to.be.eq(foreign.path);
   });
 
-  it('should reject a duplicate code+version within the same FWCloud', async () => {
+  it('should reject a duplicate code+version for the same user, also in another FWCloud', async () => {
     await repository.save(
       makeProfile({ code: `${codePrefix}dup`, version: 1, fwCloudId: fwCloudA.id }),
     );
 
     await expect(
       repository.save(
-        makeProfile({ code: `${codePrefix}dup`, version: 1, fwCloudId: fwCloudA.id }),
+        makeProfile({ code: `${codePrefix}dup`, version: 1, fwCloudId: fwCloudB.id }),
       ),
     ).to.be.rejectedWith(QueryFailedError);
   });
@@ -166,34 +202,37 @@ describe(describeName('Replication Profile Persistence (FWCloud scope) Unit Test
     ).to.be.rejectedWith(QueryFailedError);
   });
 
-  it('should block deleting a FWCloud that still owns custom profiles (ON DELETE RESTRICT)', async () => {
-    const owner = await newFwCloud();
-    await repository.save(makeProfile({ code: `${codePrefix}restrict`, fwCloudId: owner.id }));
+  it('should block deleting a user that still owns custom profiles (ON DELETE RESTRICT)', async () => {
+    await repository.save(makeProfile({ code: `${codePrefix}restrict` }));
 
     await expect(
-      db.getSource().query('DELETE FROM fwcloud WHERE id = ?', [owner.id]),
+      db.getSource().query('DELETE FROM user WHERE id = ?', [userId]),
     ).to.be.rejectedWith(QueryFailedError);
   });
 
-  it('should remove owned custom profiles and preserve built-ins when a FWCloud is removed', async () => {
-    const owner = await newFwCloud();
+  it('should keep custom profiles and their templates when the FWCloud they were created from is removed', async () => {
+    const fwCloud = await newFwCloud();
     const custom = await repository.save(
-      makeProfile({ code: `${codePrefix}removed`, fwCloudId: owner.id }),
+      makeProfile({ code: `${codePrefix}kept`, fwCloudId: fwCloud.id }),
     );
+    const model = loadReplicationProfileModel(custom);
 
-    const managedFwCloud = await FwCloud.findOneOrFail({ where: { id: owner.id } });
-    expect(templateExists(custom)).to.be.true;
+    const managedFwCloud = await FwCloud.findOneOrFail({ where: { id: fwCloud.id } });
     await managedFwCloud.remove();
 
-    expect(await repository.findOne({ where: { id: custom.id } })).to.be.null;
-    expect(fs.existsSync(managedFwCloud.getReplicationProfileTemplatesDirectoryPath())).to.be.false;
+    expect(await fwCloudRepository.findOne({ where: { id: fwCloud.id } })).to.be.null;
+
+    const reloaded = await repository.findOneOrFail({ where: { id: custom.id } });
+    expect(reloaded.fwCloudId).to.be.null;
+    expect(reloaded.userId).to.be.eq(userId);
+    expect(reloaded.path).to.be.eq(custom.path);
+    expect(loadReplicationProfileModel(reloaded)).to.deep.eq(model);
 
     const preset = await repository.findOne({
       where: { code: defaultReplicationProfile.code, version: defaultReplicationProfile.version },
     });
     expect(preset).not.to.be.null;
     expect(preset.fwCloudId).to.be.null;
-
-    expect(await fwCloudRepository.findOne({ where: { id: owner.id } })).to.be.null;
+    expect(preset.userId).to.be.null;
   });
 });
