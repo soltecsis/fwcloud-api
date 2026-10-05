@@ -602,6 +602,7 @@ export class CrowdSecClusterController extends Controller {
     await lapiService.enable(centralLapiNodes);
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     const results: ClusterMachineNodeResult[] = [];
+    const transitionAttempts: ClusterTransitionAttempt[] = [];
 
     channel.emit(
       'message',
@@ -664,6 +665,7 @@ export class CrowdSecClusterController extends Controller {
         progress('Moving CrowdSec Machine node ' + node.name + ' to the new Local API');
         await communication.prepareCrowdSecTransition(transition, channel);
         prepared = true;
+        transitionAttempts.push({ node, transitionId });
         await lapiService.replicateMachineCredentials(
           centralLapiNodes,
           communication,
@@ -691,26 +693,11 @@ export class CrowdSecClusterController extends Controller {
           machineName,
           localRemediation: installation.localRemediation,
         });
-        await communication.finalizeCrowdSecTransition(transitionId);
-
-        let sourceMachineRemoved = false;
-        try {
-          const sourceCentralLapiNodes = await lapiService.getCentralNodes(
-            await lapiService.getCentralFirewall(installation.centralFirewallId),
-          );
-          sourceMachineRemoved = (
-            await lapiService.cleanupMachine(sourceCentralLapiNodes, machineName)
-          ).completed;
-        } catch {
-          sourceMachineRemoved = false;
-        }
         results.push({
           firewall_id: node.id,
           name: node.name,
           machine_name: machineName,
           status: 'completed',
-          source_machine_removed: sourceMachineRemoved,
-          source_bouncer_cleanup_required: installation.localRemediation,
         });
         return true;
       } catch (error) {
@@ -758,9 +745,28 @@ export class CrowdSecClusterController extends Controller {
       return false;
     });
     if (!completedAllNodes) {
+      await this.rollbackClusterTransitions(transitionAttempts, initialNodeStates, results);
       this.appendCancelledNodeResults(nodes, results, initialNodeStates);
     }
-    const completed = results.every((result) => result.status === 'completed');
+    const finalizationCompleted = completedAllNodes
+      ? await this.finalizeClusterTransitions(transitionAttempts, results)
+      : true;
+    if (completedAllNodes && finalizationCompleted) {
+      await this.cleanupSourceMachineRegistrations(results, initialNodeStates, lapiService);
+    }
+    const completed = results.every(
+      (result) => result.status === 'completed' || result.status === 'finalization_failed',
+    );
+    if (!finalizationCompleted) {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec transition is active, but one or more nodes require finalization confirmation',
+        ),
+      );
+    }
     channel.emit(
       'message',
       new ProgressPayload(
@@ -771,7 +777,13 @@ export class CrowdSecClusterController extends Controller {
           : 'CrowdSec Machine central LAPI transition finished with node failures',
       ),
     );
-    return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed,
+        ...(!finalizationCompleted ? { finalization_incomplete: true } : {}),
+        nodes: results,
+      });
   }
 
   @Validate(CrowdSecClusterTransitionDto)
@@ -1339,6 +1351,35 @@ export class CrowdSecClusterController extends Controller {
       ),
     );
     return ResponseBuilder.buildResponse().status(200).body({ completed, nodes: results });
+  }
+
+  private async cleanupSourceMachineRegistrations(
+    results: ClusterMachineNodeResult[],
+    snapshots: Map<number, ClusterCrowdSecNodeSnapshot>,
+    lapiService: CrowdSecLapiSharedService,
+  ): Promise<void> {
+    for (const result of results) {
+      const snapshot = snapshots.get(result.firewall_id)?.installation;
+      if (
+        result.status !== 'completed' ||
+        snapshot?.mode !== CrowdSecInstallationMode.Machine ||
+        snapshot.centralFirewallId === null ||
+        snapshot.machineName === null
+      ) {
+        continue;
+      }
+      try {
+        const sourceNodes = await lapiService.getCentralNodes(
+          await lapiService.getCentralFirewall(snapshot.centralFirewallId),
+        );
+        result.source_machine_removed = (
+          await lapiService.cleanupMachine(sourceNodes, snapshot.machineName)
+        ).completed;
+      } catch {
+        result.source_machine_removed = false;
+      }
+      result.source_bouncer_cleanup_required = snapshot.localRemediation;
+    }
   }
 
   private async restoreInitialNodeState(
