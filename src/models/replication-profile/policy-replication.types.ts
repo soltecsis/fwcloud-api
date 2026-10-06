@@ -21,11 +21,14 @@
 */
 
 import type { ReplicationProfile } from './replication-profile.model';
+import type { ResolvedProfileObjectReference } from './replication-profile-object-reference';
 import {
   asReplicationProfileNonEmptyString,
   asReplicationProfileRecord,
+  isReplicationProfileExternalObjectUsage,
   isReplicationProfileIpVersion,
   isReplicationProfileStringValue,
+  ReplicationProfileExternalObjectUsage,
   REPLICATION_PROFILE_OBJECT_KINDS,
   REPLICATION_PROFILE_RULE_ACTIONS,
   REPLICATION_PROFILE_RULE_CHAINS,
@@ -125,7 +128,9 @@ export interface PolicyReplicationProvisionStandardService {
 }
 
 export type PolicyReplicationProvisionService =
-  PolicyReplicationProvisionPortService | PolicyReplicationProvisionStandardService;
+  | PolicyReplicationProvisionPortService
+  | PolicyReplicationProvisionStandardService
+  | ReplicationProfileExternalObjectUsage;
 
 export function isStandardProvisionService(
   service: PolicyReplicationProvisionService,
@@ -140,7 +145,17 @@ export function isStandardProvisionService(
  */
 export interface PolicyReplicationProvisionObject {
   kind:
-    'address' | 'network' | 'range' | 'host' | 'interfaceRole' | 'std' | 'stdGroup' | 'vpnClient';
+    | 'address'
+    | 'network'
+    | 'range'
+    | 'host'
+    | 'interfaceRole'
+    | 'std'
+    | 'stdGroup'
+    | 'vpnClient'
+    | 'external';
+  /** Object reference of the template, when kind is 'external'. */
+  referenceId?: string;
   /** Address/network/range literal or { param } reference. Unused for the other kinds. */
   value?: PolicyReplicationValueRef;
   /** Interface role, when kind is 'interfaceRole'. */
@@ -264,36 +279,55 @@ export function countProvisionExtras(provision: PolicyReplicationProvision): num
   );
 }
 
-const POLICY_STRUCTURE_FIELDS = [
+/** Spellings of the editor's structure, the block read when `provision` declares nothing. */
+export const POLICY_STRUCTURE_FIELDS = [
   'policyStructure',
   'policy_structure',
   'templateStructure',
   'template_structure',
 ] as const;
 
+/** A block of a profile model describing what to provision, and the model field holding it. */
+export interface ProfileProvisioningSource {
+  field: string;
+  value: Record<string, unknown>;
+}
+
+/**
+ * The block getProfileProvisioning() reads: `provision` when it declares something, otherwise the
+ * editor's structure (`policyStructure` or one of its spellings), otherwise an empty `provision`.
+ */
+export function getProfileProvisioningSource(model: unknown): ProfileProvisioningSource | null {
+  const record = asReplicationProfileRecord(model);
+  const provision = asReplicationProfileRecord(record?.provision);
+
+  if (hasProvisionCollections(provision)) {
+    return { field: 'provision', value: provision };
+  }
+
+  return (
+    getProfileStructure(record) ?? (provision ? { field: 'provision', value: provision } : null)
+  );
+}
+
 /**
  * Extracts and validates the declarative provisioning block from a profile
  * model. Returns null for regular (source-based) profiles.
  */
 export function getProfileProvisioning(model: unknown): PolicyReplicationProvision | null {
-  const record = asReplicationProfileRecord(model);
-  const provisionRaw = asReplicationProfileRecord(record?.provision);
-  const structureRaw = getProfileStructureRecord(record);
-  const provisionSource = hasProvisionCollections(provisionRaw)
-    ? provisionRaw
-    : (structureRaw ?? provisionRaw);
+  const source = getProfileProvisioningSource(model);
 
-  if (!provisionSource) {
+  if (!source) {
     return null;
   }
 
-  const provision = parseProvision(provisionSource);
+  const provision = parseProvision(source.value);
 
   if (
     provision.interfaces.length === 0 &&
     provision.rules.length === 0 &&
     countProvisionExtras(provision) === 0 &&
-    !structureRaw
+    !getProfileStructure(asReplicationProfileRecord(model))
   ) {
     return null;
   }
@@ -301,9 +335,9 @@ export function getProfileProvisioning(model: unknown): PolicyReplicationProvisi
   return provision;
 }
 
-function getProfileStructureRecord(
+function getProfileStructure(
   record: Record<string, unknown> | null,
-): Record<string, unknown> | null {
+): ProfileProvisioningSource | null {
   if (!record) {
     return null;
   }
@@ -312,7 +346,7 @@ function getProfileStructureRecord(
     const structure = asReplicationProfileRecord(record[field]);
 
     if (structure) {
-      return structure;
+      return { field, value: structure };
     }
   }
 
@@ -711,6 +745,10 @@ function parseProvisionObject(
   value: unknown,
   ensureInterface: (role: string) => string,
 ): PolicyReplicationProvisionObject | null {
+  if (isReplicationProfileExternalObjectUsage(value)) {
+    return { kind: 'external', referenceId: value.referenceId };
+  }
+
   if (isReplicationProfileParameterRef(value)) {
     return { kind: 'network', value };
   }
@@ -776,6 +814,10 @@ function parseProvisionServices(value: unknown): PolicyReplicationProvisionServi
 }
 
 function parseProvisionServiceEntry(value: unknown): PolicyReplicationProvisionService | null {
+  if (isReplicationProfileExternalObjectUsage(value)) {
+    return { kind: 'external', referenceId: value.referenceId };
+  }
+
   const record = asReplicationProfileRecord(value);
 
   if (record) {
@@ -878,4 +920,11 @@ export interface PolicyReplicationResult {
     keepalived: number;
     haproxy: number;
   };
+  /** Profiles with external objects: what each of them resolved to (see objectReplacements). */
+  objectReferences?: ResolvedProfileObjectReference[];
+  /**
+   * The external objects the profile uses that no longer exist and were not replaced. Nothing is
+   * written while there is any: apply again with an objectReplacements entry for each of them.
+   */
+  missingObjects?: ResolvedProfileObjectReference[];
 }

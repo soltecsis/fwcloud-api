@@ -3,6 +3,7 @@ import db from '../../../../src/database/database-manager';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
@@ -1777,6 +1778,160 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .set('Cookie', [attachSession(ownerSessionId)])
         .send(applyBody())
         .expect(200);
+    });
+  });
+
+  describe('FWCloud objects created outside the profile', () => {
+    const referenceId = 'selected-ip';
+    const usage = { kind: 'external', referenceId };
+    const modelUsing = (sourceObjectId: number) => ({
+      compatibility: { targetKinds: ['firewall'] },
+      objectReferences: [{ referenceId, objectType: 'address', sourceObjectId }],
+      provision: {
+        interfaces: [],
+        rules: [{ chain: 'forward', source: [usage], destination: [usage] }],
+      },
+    });
+    const policyRuleCount = (firewallId: number): Promise<number> =>
+      db.getSource().manager.getRepository(PolicyRule).countBy({ firewallId });
+
+    it('should store their snapshot, report a deleted one when loading and applying, and take a replacement for one application', async () => {
+      const object = await db.getSource().manager.getRepository(IPObj).save({
+        name: 'Selected external IP',
+        ipObjTypeId: 5,
+        ip_version: 4,
+        address: '198.51.100.10',
+        netmask: '/32',
+        fwCloudId: fwCloud.id,
+      });
+      const target = await db.getSource().manager.getRepository(Firewall).save({
+        name: 'External target',
+        fwCloudId: fwCloud.id,
+      });
+      const created = await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(makeCreatePayload({ code: `${codePrefix}external`, model: modelUsing(object.id) }))
+        .expect(201);
+
+      expect(created.body.data.model.objectReferences[0]).to.include({
+        referenceId,
+        objectType: 'address',
+        sourceName: object.name,
+        resolved: true,
+      });
+      expect(created.body.data.model.objectReferences[0].currentObject).to.include({
+        id: object.id,
+      });
+
+      const profile = await repository.findOneByOrFail({ id: created.body.data.id });
+      const stored = loadReplicationProfileModel(profile) as Record<string, any>;
+
+      // Only the server-captured reference is saved, never what responses add to it.
+      expect(stored.objectReferences).to.deep.eq([
+        {
+          referenceId,
+          objectType: 'address',
+          sourceObjectId: object.id,
+          sourceName: object.name,
+          snapshot: {
+            type: 5,
+            name: object.name,
+            ip_version: 4,
+            address: '198.51.100.10',
+            netmask: '/32',
+          },
+          locations: [
+            'model.provision.rules[0].source[0]',
+            'model.provision.rules[0].destination[0]',
+          ],
+        },
+      ]);
+
+      await db.getSource().manager.getRepository(IPObj).delete(object.id);
+
+      const url = `/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`;
+      const loaded = await request(app.express)
+        .get(url)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+      const listed = await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
+        .query({ search: profile.code })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      expect(loaded.body.data.templateError).to.eq(null);
+      expect(loaded.body.data.model.objectReferences[0]).to.deep.include({
+        resolved: false,
+        currentObject: null,
+        snapshot: stored.objectReferences[0].snapshot,
+        requiredFields: ['address'],
+      });
+      expect(listed.body.data[0].model.objectReferences[0].resolved).to.eq(false);
+
+      const applyBody = { target: { kind: 'firewall', id: target.id }, mode: 'merge' };
+      const missing = await request(app.express)
+        .post(`${url}/apply`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(applyBody)
+        .expect(422);
+
+      expect(missing.body.data.applied).to.eq(false);
+      expect(missing.body.data.missingObjects).to.have.length(1);
+      expect(missing.body.data.missingObjects[0]).to.deep.include({
+        referenceId,
+        objectType: 'address',
+        sourceName: object.name,
+        requiredFields: ['address'],
+        locations: stored.objectReferences[0].locations,
+      });
+      expect(await policyRuleCount(target.id)).to.eq(0);
+
+      const replaced = await request(app.express)
+        .post(`${url}/apply`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({
+          ...applyBody,
+          objectReplacements: { [referenceId]: { data: { address: '203.0.113.20' } } },
+        })
+        .expect(200);
+
+      expect(replaced.body.data.applied).to.eq(true);
+      expect(replaced.body.data.missingObjects).to.deep.eq([]);
+      expect(replaced.body.data.objectReferences[0].currentObject).to.include({
+        address: '203.0.113.20',
+      });
+      expect(await policyRuleCount(target.id)).to.eq(1);
+      expect(loadReplicationProfileModel(profile)).to.deep.eq(stored);
+    });
+
+    it('should report a reference to an object it cannot read as a validation error', async () => {
+      const body = makeCreatePayload({
+        code: `${codePrefix}unavailable`,
+        model: modelUsing(999999999),
+      });
+      const expectedPaths = [
+        'model.objectReferences[0].sourceName',
+        'model.objectReferences[0].snapshot',
+      ];
+
+      const validation = await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/validate`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(body)
+        .expect(200);
+      const creation = await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(body)
+        .expect(422);
+
+      expect(validation.body.data.valid).to.eq(false);
+      expect(validation.body.data.errors.map((error) => error.path)).to.have.members(expectedPaths);
+      expect(creation.body.errors.profile.map((error) => error.path)).to.have.members(
+        expectedPaths,
+      );
     });
   });
 });

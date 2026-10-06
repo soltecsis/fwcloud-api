@@ -28,8 +28,10 @@ import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../po
 import { RulePositionsMap } from '../policy/PolicyPosition';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { Interface } from '../interface/Interface';
+import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Tree } from '../tree/Tree';
 import { ObjectBindingResolver } from './object-binding.resolver';
+import type { ProfileExternalObjectBinding } from './replication-profile-object-reference';
 import {
   dereferenceParameter,
   describeReplicationProfileValue,
@@ -52,6 +54,7 @@ import {
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
   REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
   REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
+  isReplicationProfileExternalObjectUsage,
   ReplicationProfileIpVersion,
   ReplicationProfileObjectKind,
   ReplicationProfileRuleChain,
@@ -107,6 +110,11 @@ export interface ProvisionOptions {
    * these, unlike a plain address/network object.
    */
   vpnConfigIds?: ReadonlyMap<string, ResolvedVpnConfig>;
+  /**
+   * Object reference of the template -> what every usage of it binds to, as
+   * resolveProfileObjectReferences() resolved it. A usage of a reference missing here is an error.
+   */
+  externalObjects?: ReadonlyMap<string, ProfileExternalObjectBinding>;
 }
 
 export interface ProvisionRulePositions {
@@ -175,6 +183,12 @@ const ROUTING_OBJECT_TYPES = [
   REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
 ];
 const NAT_CHAINS: ReadonlyArray<string> = ['snat', 'dnat'];
+/** Object types a rule only takes in its own IP family. */
+const FAMILY_CHECKED_TYPES = [
+  REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
+  REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
+  REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
+];
 
 /** Position ids of one policy (family + chain), undefined for the positions it does not have. */
 export function getProvisionRulePositions(
@@ -462,6 +476,12 @@ export class PolicyReplicationService extends Service {
     const firewallId = await this.resolveProvisionTargetFirewallId(target);
     const isDryRun = mode === 'dry_run';
 
+    result.errors.push(...(await this.validateExternalObjects(provision, options.externalObjects)));
+
+    if (result.errors.length > 0) {
+      return result;
+    }
+
     let parameterValues: Map<string, unknown>;
 
     try {
@@ -494,7 +514,7 @@ export class PolicyReplicationService extends Service {
         )
       : new Map<string, number>();
 
-    const resolver = new ObjectBindingResolver(fwCloudId, !isDryRun);
+    const resolver = new ObjectBindingResolver(fwCloudId, !isDryRun, options.externalObjects);
     const bindings: ProvisionBinding[] = [];
 
     const interfaceIdByRole = await this.provisionInterfaces(
@@ -1035,7 +1055,12 @@ export class PolicyReplicationService extends Service {
       let ref: ProvisionSideRef;
       let type: number;
 
-      if (object.kind === 'interfaceRole') {
+      if (object.kind === 'external') {
+        const external = await resolver.resolveExternal(object.referenceId!);
+
+        ref = external.isGroup ? { ipobjGroupId: external.id } : { ipobjId: external.id };
+        type = external.type;
+      } else if (object.kind === 'interfaceRole') {
         const interfaceId = interfaceIdByRole.get(object.role!);
 
         if (interfaceId === undefined) {
@@ -1191,6 +1216,17 @@ export class PolicyReplicationService extends Service {
     const refs: ProvisionSideRef[] = [];
 
     for (const service of services) {
+      if (isReplicationProfileExternalObjectUsage(service)) {
+        const external = await resolver.resolveExternal(service.referenceId);
+
+        if (!(await this.acceptsObjectType(target, external.type, result))) {
+          return null;
+        }
+
+        refs.push(external.isGroup ? { ipobjGroupId: external.id } : { ipobjId: external.id });
+        continue;
+      }
+
       if (isStandardProvisionService(service)) {
         const standard = await this.resolveStandardReference(
           service.kind,
@@ -1289,6 +1325,152 @@ export class PolicyReplicationService extends Service {
       ref: kind === 'std' ? { ipobjId: row.id } : { ipobjGroupId: row.id },
       type: Number(row.type),
     };
+  }
+
+  /**
+   * Checks every usage of the template's external objects before anything is written (VPNs,
+   * interfaces, rules or objects): its reference must be resolved, to an object whose type the
+   * position takes and that, in a rule, is of the rule's IP family. Returns the errors found.
+   */
+  public async validateExternalObjects(
+    provision: PolicyReplicationProvision,
+    bindings: ReadonlyMap<string, ProfileExternalObjectBinding> = new Map(),
+  ): Promise<string[]> {
+    const result = this.createEmptyResult('dry_run');
+    const check = async (items: unknown[], target: ProvisionObjectTarget): Promise<void> => {
+      for (const item of items) {
+        if (!isReplicationProfileExternalObjectUsage(item)) {
+          continue;
+        }
+
+        const binding = bindings.get(item.referenceId);
+
+        if (!binding) {
+          result.errors.push(
+            `${target.label}: template object "${item.referenceId}" has not been resolved.`,
+          );
+        } else if (
+          (await this.acceptsObjectType(target, binding.type, result)) &&
+          target.ipVersion
+        ) {
+          const mismatch = await this.externalObjectFamilyMismatch(
+            item.referenceId,
+            binding,
+            target.ipVersion,
+          );
+
+          if (mismatch) {
+            result.errors.push(`${target.label}: ${mismatch}`);
+          }
+        }
+      }
+    };
+
+    for (const [index, rule] of provision.rules.entries()) {
+      const positions = getProvisionRulePositions(rule.ipVersion, rule.chain);
+      const sides: [string, unknown[], number | undefined][] = [
+        ['source', rule.source, positions.source],
+        ['destination', rule.destination, positions.destination],
+        ['service', rule.services, positions.service],
+        ['translated source', rule.translatedSource, positions.translatedSource],
+        ['translated destination', rule.translatedDestination, positions.translatedDestination],
+        ['translated service', rule.translatedServices, positions.translatedService],
+      ];
+
+      for (const [side, items, position] of sides) {
+        const label = `Rule ${index + 1} (${side})`;
+
+        if (position === undefined && items.some(isReplicationProfileExternalObjectUsage)) {
+          result.errors.push(`${label}: chain "${rule.chain}" has no ${side} position.`);
+        } else {
+          await check(items, { label, position, ipVersion: rule.ipVersion });
+        }
+      }
+    }
+
+    for (const table of provision.routing.tables) {
+      for (const [index, route] of table.routes.entries()) {
+        const label = `Routing table "${table.name}", route ${index + 1}`;
+
+        await check(route.destination, {
+          label: `${label} (destination)`,
+          allowedTypes: ROUTING_OBJECT_TYPES,
+        });
+        await check([route.gateway], { label: `${label} (gateway)`, allowedTypes: ADDRESS_TYPES });
+      }
+    }
+
+    for (const [index, rule] of provision.routing.rules.entries()) {
+      await check(rule.from, {
+        label: `Routing rule ${index + 1} (from)`,
+        allowedTypes: ROUTING_OBJECT_TYPES,
+      });
+    }
+
+    for (const [index, entry] of provision.system.dhcp.entries()) {
+      const label = `DHCP ${index + 1}`;
+
+      await check([entry.network], {
+        label: `${label} network`,
+        allowedTypes: [REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK],
+      });
+      await check([entry.range], {
+        label: `${label} range`,
+        allowedTypes: [REPLICATION_PROFILE_IPOBJ_TYPE_RANGE],
+      });
+      await check([entry.router], { label: `${label} router`, allowedTypes: ADDRESS_TYPES });
+      await check(entry.dns, { label: `${label} DNS`, allowedTypes: ADDRESS_TYPES });
+    }
+
+    for (const [index, entry] of provision.system.keepalived.entries()) {
+      await check(entry.virtualIps, {
+        label: `Keepalived ${index + 1} virtual IPs`,
+        allowedTypes: ADDRESS_TYPES,
+      });
+    }
+
+    for (const [index, entry] of provision.system.haproxy.entries()) {
+      const label = `HAProxy ${index + 1}`;
+
+      await check([entry.frontendIp], {
+        label: `${label} frontend IP`,
+        allowedTypes: ADDRESS_TYPES,
+      });
+      await check(entry.backendIps, { label: `${label} backend IPs`, allowedTypes: ADDRESS_TYPES });
+      await check([entry.frontendService, entry.backendService], {
+        label: `${label} ports`,
+        allowedTypes: PORT_SERVICE_TYPES,
+      });
+    }
+
+    return result.errors;
+  }
+
+  /**
+   * Why an external object does not fit a rule of the given IP family, or null when it does. The
+   * same rules as the policy editor applies (PolicyRuleToIPObj.checkIpVersion()), which can only
+   * check rules that already exist: addresses, ranges and networks must be of the rule's family
+   * and an object group must hold something of it; any other object fits every family.
+   */
+  private async externalObjectFamilyMismatch(
+    referenceId: string,
+    binding: ProfileExternalObjectBinding,
+    ipVersion: ReplicationProfileIpVersion,
+  ): Promise<string | null> {
+    if (binding.type === REPLICATION_PROFILE_IPOBJ_TYPE_GROUP) {
+      // Groups are only ever bound to an existing group, so they have an id.
+      const families = await IPObjGroup.groupIPVersion(db.getQuery(), binding.id);
+
+      return families[`ipv${ipVersion}`]
+        ? null
+        : `group "${referenceId}" holds nothing of IPv${ipVersion}.`;
+    }
+
+    const family = Number(binding.data.ip_version);
+
+    return FAMILY_CHECKED_TYPES.includes(binding.type) && family !== ipVersion
+      ? `template object "${referenceId}" is IPv${family} and cannot be used in an IPv${ipVersion} rule.`
+      : null;
   }
 
   private positionTypesCache: Map<number, Set<number>> | null = null;

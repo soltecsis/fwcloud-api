@@ -14,6 +14,7 @@ import {
   registerDecorator,
 } from 'class-validator';
 import { POLICY_REPLICATION_MODES } from '../../../models/replication-profile/policy-replication.types';
+import type { ProfileObjectReplacement } from '../../../models/replication-profile/replication-profile-object-reference';
 import {
   asReplicationProfileNonEmptyString,
   asReplicationProfileRecord,
@@ -147,6 +148,15 @@ export class ReplicationProfileApplyDto {
   @IsOptional()
   @IsObject()
   parameters?: Record<string, unknown>;
+
+  /**
+   * Replacements of the profile's external objects for this application only, keyed by
+   * referenceId: `{ sourceObjectId }` of an existing object or `{ data }` of a new one. The ones
+   * that no longer exist (missingObjects of a previous answer) need one. Checked when applying.
+   */
+  @IsOptional()
+  @IsObject()
+  objectReplacements?: Record<string, ProfileObjectReplacement>;
 
   @IsOptional()
   @IsString()

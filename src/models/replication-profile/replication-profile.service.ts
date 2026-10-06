@@ -27,6 +27,7 @@ import {
   type ReplicationProfileModel,
   type ReplicationProfileTemplateRead,
 } from './replication-profile-template';
+import { captureProfileObjectReferences } from './replication-profile-object-reference.service';
 import { AuditLogService } from '../audit/AuditLog.service';
 
 export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
@@ -277,6 +278,10 @@ export class ReplicationProfileService extends Service {
 
     try {
       const userId = this.requireOwnerUserId(options);
+      payload = {
+        ...payload,
+        model: await captureProfileObjectReferences(payload.model, options.fwCloudId),
+      };
       this.assertPayloadDefinitionIsValid(payload);
 
       await this.assertCustomProfileIdentityIsAvailable(code, version, userId);
@@ -415,6 +420,10 @@ export class ReplicationProfileService extends Service {
         );
       }
 
+      payload = {
+        ...payload,
+        model: await captureProfileObjectReferences(payload.model, options.fwCloudId),
+      };
       this.assertPayloadDefinitionIsValid(payload);
 
       nextVersion = latestCustomProfile.version + 1;

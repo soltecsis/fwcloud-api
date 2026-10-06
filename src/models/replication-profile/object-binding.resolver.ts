@@ -24,13 +24,22 @@ import db from '../../database/database-manager';
 import { IPObj } from '../ipobj/IPObj';
 import { Tree } from '../tree/Tree';
 import { dbQuery } from './replication-sql.helpers';
+import { ProfileExternalObjectBinding } from './replication-profile-object-reference';
+import { PROFILE_OBJECT_DATA_FIELDS } from './replication-profile-object-reference.service';
 import {
+  REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
+  REPLICATION_PROFILE_IPOBJ_TYPE_DNS,
+  REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
+  REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
+  REPLICATION_PROFILE_IPOBJ_TYPE_IP,
+  REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
   REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
   REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
   ReplicationProfileIpVersion,
   ReplicationProfileObjectKind,
+  ReplicationProfileRecord,
   ReplicationProfileRuleProtocol,
 } from './replication-profile.constants';
 
@@ -69,13 +78,17 @@ export interface ObjectBindingResult {
   name: string;
 }
 
-const TREE_FOLDER_BY_KIND: Record<string, { name: string; nodeType: string }> = {
-  address: { name: 'Addresses', nodeType: 'OIA' },
-  network: { name: 'Networks', nodeType: 'OIN' },
-  range: { name: 'Address Ranges', nodeType: 'OIR' },
-  host: { name: 'Hosts', nodeType: 'OIH' },
-  tcp: { name: 'TCP', nodeType: 'SOT' },
-  udp: { name: 'UDP', nodeType: 'SOU' },
+/** Objects tree folder each object type is placed in. */
+const TREE_FOLDER_BY_TYPE: Record<number, { name: string; nodeType: string }> = {
+  [REPLICATION_PROFILE_IPOBJ_TYPE_IP]: { name: 'IP', nodeType: 'SOI' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_TCP]: { name: 'TCP', nodeType: 'SOT' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_ICMP]: { name: 'ICMP', nodeType: 'SOM' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_UDP]: { name: 'UDP', nodeType: 'SOU' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS]: { name: 'Addresses', nodeType: 'OIA' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_RANGE]: { name: 'Address Ranges', nodeType: 'OIR' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK]: { name: 'Networks', nodeType: 'OIN' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_HOST]: { name: 'Hosts', nodeType: 'OIH' },
+  [REPLICATION_PROFILE_IPOBJ_TYPE_DNS]: { name: 'DNS', nodeType: 'ONS' },
 };
 
 /**
@@ -93,6 +106,8 @@ export class ObjectBindingResolver {
     private readonly fwCloudId: number,
     /** When false, nothing is written: used by dry runs. */
     private readonly allowCreate: boolean = true,
+    /** Template object references of the profile -> what their usages bind to. */
+    private readonly externalObjects: ReadonlyMap<string, ProfileExternalObjectBinding> = new Map(),
   ) {}
 
   /** Objects created during this run, in creation order. */
@@ -116,6 +131,73 @@ export class ObjectBindingResolver {
     }
 
     return result;
+  }
+
+  /**
+   * What every usage of a template's external object binds to, so one reference always means one
+   * object: the existing object it resolved to or, for replacement data, an identical object of
+   * the FWCloud (all of its data compared, so a service with other flags or source ports is not
+   * taken for it) or else a new one.
+   */
+  async resolveExternal(
+    referenceId: string,
+  ): Promise<{ id: number; type: number; isGroup: boolean }> {
+    const binding = this.externalObjects.get(referenceId);
+
+    if (!binding) {
+      throw new Error(`Template object reference "${referenceId}" has not been resolved.`);
+    }
+
+    if (binding.id !== undefined) {
+      return { id: binding.id, type: binding.type, isGroup: binding.isGroup };
+    }
+
+    const key = `external:${referenceId}`;
+    let result = this.cache.get(key);
+
+    if (!result) {
+      result =
+        (await this.findIdenticalObject(binding.data)) ?? (await this.createObject(binding.data));
+      this.cache.set(key, result);
+
+      if (result.created) {
+        this.created.push(result);
+      }
+    }
+
+    return { id: result.id, type: binding.type, isGroup: false };
+  }
+
+  private async findIdenticalObject(
+    data: ReplicationProfileRecord,
+  ): Promise<ObjectBindingResult | null> {
+    // Columns the data leaves out are NULL in a created object, so they must be NULL here too.
+    const rows = await dbQuery<{ id: number; name: string }>(
+      `SELECT id, name FROM ipobj
+       WHERE fwcloud = ? AND interface IS NULL AND ${PROFILE_OBJECT_DATA_FIELDS.map((field) => `${field} <=> ?`).join(' AND ')}
+       ORDER BY id LIMIT 1`,
+      [this.fwCloudId, ...PROFILE_OBJECT_DATA_FIELDS.map((field) => data[field] ?? null)],
+    );
+
+    return rows.length ? { id: rows[0].id, created: false, name: rows[0].name } : null;
+  }
+
+  private async createObject(data: ReplicationProfileRecord): Promise<ObjectBindingResult> {
+    const name = data.name as string;
+
+    if (!this.allowCreate) {
+      return { id: 0, created: true, name };
+    }
+
+    const { type, ...columns } = data;
+    const created = await db
+      .getSource()
+      .manager.getRepository(IPObj)
+      .save({ ...columns, ipObjTypeId: Number(type), fwCloudId: this.fwCloudId });
+
+    await this.placeInTree(created.id, Number(type), name);
+
+    return { id: created.id, created: true, name };
   }
 
   private cacheKey(request: ObjectBindingRequest): string {
@@ -215,7 +297,7 @@ export class ObjectBindingResolver {
         fwCloudId: this.fwCloudId,
       });
 
-      await this.placeInTree(isTcp ? 'tcp' : 'udp', created.id, created.ipObjTypeId, name);
+      await this.placeInTree(created.id, created.ipObjTypeId, name);
 
       return { id: created.id, created: true, name };
     }
@@ -230,7 +312,7 @@ export class ObjectBindingResolver {
         fwCloudId: this.fwCloudId,
       });
 
-      await this.placeInTree('range', created.id, REPLICATION_PROFILE_IPOBJ_TYPE_RANGE, name);
+      await this.placeInTree(created.id, REPLICATION_PROFILE_IPOBJ_TYPE_RANGE, name);
 
       return { id: created.id, created: true, name };
     }
@@ -249,7 +331,7 @@ export class ObjectBindingResolver {
     // Addresses owned by an interface hang from the interface node, not from
     // the standard objects folder, so they are only placed when unbound.
     if (request.interfaceId === undefined) {
-      await this.placeInTree(request.kind, created.id, ipObjTypeId, name);
+      await this.placeInTree(created.id, ipObjTypeId, name);
     }
 
     return { id: created.id, created: true, name };
@@ -265,13 +347,8 @@ export class ObjectBindingResolver {
       : `${request.address}${request.netmask === '/32' || request.netmask === '/128' ? '' : request.netmask}`;
   }
 
-  private async placeInTree(
-    folderKey: string,
-    objectId: number,
-    objectType: number,
-    name: string,
-  ): Promise<void> {
-    const folder = TREE_FOLDER_BY_KIND[folderKey];
+  private async placeInTree(objectId: number, objectType: number, name: string): Promise<void> {
+    const folder = TREE_FOLDER_BY_TYPE[objectType];
 
     if (!folder) {
       return;

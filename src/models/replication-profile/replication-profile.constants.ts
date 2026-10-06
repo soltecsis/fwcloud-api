@@ -58,6 +58,29 @@ export type ReplicationProfileObjectKind = (typeof REPLICATION_PROFILE_OBJECT_KI
 export const REPLICATION_PROFILE_STANDARD_OBJECT_KIND = 'std';
 export const REPLICATION_PROFILE_STANDARD_GROUP_KIND = 'stdGroup';
 
+/**
+ * Use of a FWCloud object created outside the template, `{ kind: 'external', referenceId }`. The
+ * object itself is declared once in `model.objectReferences` (see
+ * replication-profile-object-reference.ts), however many rules use it.
+ */
+export const REPLICATION_PROFILE_EXTERNAL_OBJECT_KIND = 'external';
+
+export interface ReplicationProfileExternalObjectUsage {
+  kind: typeof REPLICATION_PROFILE_EXTERNAL_OBJECT_KIND;
+  referenceId: string;
+}
+
+export function isReplicationProfileExternalObjectUsage(
+  value: unknown,
+): value is ReplicationProfileExternalObjectUsage {
+  const record = asReplicationProfileRecord(value);
+
+  return (
+    record?.kind === REPLICATION_PROFILE_EXTERNAL_OBJECT_KIND &&
+    asReplicationProfileNonEmptyString(record.referenceId) !== null
+  );
+}
+
 /** ipobj.type ids the profile vocabulary creates or references. */
 export const REPLICATION_PROFILE_IPOBJ_TYPE_IP = 1;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_TCP = 2;
@@ -67,6 +90,7 @@ export const REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS = 5;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_RANGE = 6;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK = 7;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_HOST = 8;
+export const REPLICATION_PROFILE_IPOBJ_TYPE_DNS = 9;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_INTERFACE = 10;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_GROUP = 20;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP = 21;
