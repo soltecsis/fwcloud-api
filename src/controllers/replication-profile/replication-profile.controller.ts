@@ -20,7 +20,6 @@ import type {
   ReplicationProfileTargetKind,
 } from '../../models/replication-profile/replication-profile.constants';
 import {
-  DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
   ReplicationProfileService,
   type ReplicationProfileCatalogFilters,
   type CreateCustomReplicationProfileOptions,
@@ -54,10 +53,7 @@ import {
   ReplicationProfileSnapshotService,
   type ReplicationProfileSnapshotSource,
 } from '../../models/replication-profile/replication-profile-snapshot.service';
-import {
-  captureProfileObjectReferences,
-  resolveProfileObjectReferences,
-} from '../../models/replication-profile/replication-profile-object-reference.service';
+import { resolveProfileObjectReferences } from '../../models/replication-profile/replication-profile-object-reference.service';
 
 export class ReplicationProfileController extends Controller {
   protected _fwCloud: FwCloud;
@@ -206,11 +202,10 @@ export class ReplicationProfileController extends Controller {
     const replicationProfileService = await this.replicationProfileService();
     const body = request.body as ReplicationProfileStoreDto;
 
-    // Validated as it would be saved, its object references captured from this FWCloud.
-    const validationErrors = replicationProfileService.validateDefinition({
-      targetKind: body.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
-      model: await captureProfileObjectReferences(body.model, this._fwCloud.id),
-    });
+    const validationErrors = await replicationProfileService.validatePayloadToSave(
+      body,
+      this._fwCloud.id,
+    );
 
     return ResponseBuilder.buildResponse()
       .status(200)

@@ -32,6 +32,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { User } from '../user/User';
 import { PolicyReplicationService } from './policy-replication.service';
 import {
+  createPolicyReplicationResult,
   getProfileProvisioning,
   PolicyReplicationProvision,
   PolicyReplicationRequest,
@@ -537,18 +538,7 @@ export class ProfileApplicationService extends Service {
     errors: string[],
     mode: PolicyReplicationResult['mode'] = 'replace_defaults',
   ): PolicyReplicationResult {
-    return {
-      mode,
-      applied: errors.length === 0,
-      createdRules: [],
-      createdGroups: [],
-      resolvedReferences: [],
-      removedDefaultRules: [],
-      skippedRules: [],
-      conflicts: [],
-      warnings: [],
-      errors,
-    };
+    return { ...createPolicyReplicationResult(mode, errors), applied: errors.length === 0 };
   }
 
   /**

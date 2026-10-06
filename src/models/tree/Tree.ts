@@ -48,7 +48,7 @@ type StandardTreeFolderSpec = {
   standard?: StandardTreeFolderType;
 };
 
-const OBJECT_TREE_FOLDERS: StandardTreeFolderSpec[] = [
+export const OBJECT_TREE_FOLDERS: StandardTreeFolderSpec[] = [
   { key: 'Addresses', name: 'Addresses', nodeType: 'OIA', objType: 5, standard: 'objects' },
   {
     key: 'AddressesRanges',
@@ -64,7 +64,7 @@ const OBJECT_TREE_FOLDERS: StandardTreeFolderSpec[] = [
   { key: 'Groups', name: 'Groups', nodeType: 'OIG', objType: 20, standard: 'groups' },
 ];
 
-const SERVICE_TREE_FOLDERS: StandardTreeFolderSpec[] = [
+export const SERVICE_TREE_FOLDERS: StandardTreeFolderSpec[] = [
   { key: 'IP', name: 'IP', nodeType: 'SOI', objType: 1, standard: 'objects' },
   { key: 'ICMP', name: 'ICMP', nodeType: 'SOM', objType: 3, standard: 'objects' },
   { key: 'TCP', name: 'TCP', nodeType: 'SOT', objType: 2, standard: 'objects' },

@@ -25,8 +25,8 @@ import type { ResolvedProfileObjectReference } from './replication-profile-objec
 import {
   asReplicationProfileNonEmptyString,
   asReplicationProfileRecord,
+  getReplicationProfileRuleIpVersion,
   isReplicationProfileExternalObjectUsage,
-  isReplicationProfileIpVersion,
   isReplicationProfileStringValue,
   ReplicationProfileExternalObjectUsage,
   REPLICATION_PROFILE_OBJECT_KINDS,
@@ -644,10 +644,9 @@ function parseProvisionRule(
     return null;
   }
 
-  const ipVersionRaw = record.ipVersion ?? record.ip_version ?? 4;
-  const ipVersion = isReplicationProfileIpVersion(ipVersionRaw) ? ipVersionRaw : null;
+  const ipVersion = getReplicationProfileRuleIpVersion(record);
 
-  if (ipVersion === null) {
+  if (ipVersion === undefined) {
     return null;
   }
 
@@ -927,4 +926,23 @@ export interface PolicyReplicationResult {
    * written while there is any: apply again with an objectReplacements entry for each of them.
    */
   missingObjects?: ResolvedProfileObjectReference[];
+}
+
+/** A result with nothing done yet, or with nothing but the errors that prevented it. */
+export function createPolicyReplicationResult(
+  mode: PolicyReplicationMode,
+  errors: string[] = [],
+): PolicyReplicationResult {
+  return {
+    mode,
+    applied: false,
+    createdRules: [],
+    createdGroups: [],
+    resolvedReferences: [],
+    removedDefaultRules: [],
+    skippedRules: [],
+    conflicts: [],
+    warnings: [],
+    errors,
+  };
 }

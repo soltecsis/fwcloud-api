@@ -25,9 +25,11 @@ import { parseReplicationProfileRange } from './replication-profile-parameters';
 import {
   getProfileObjectReferenceLocations,
   getProfileObjectReferences,
+  getProfileReferenceDataFields,
   getProfileReferenceIpObjType,
   getProfileReferenceRequiredFields,
   isProfileReferenceGroupType,
+  PROFILE_OBJECT_DATA_FIELDS,
   ProfileExternalObjectBinding,
   ProfileObjectReplacement,
   ReplicationProfileObjectReference,
@@ -35,53 +37,24 @@ import {
 } from './replication-profile-object-reference';
 import {
   asReplicationProfileRecord,
+  isReplicationProfilePositiveInteger,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL,
   REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
-  REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
-  REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
+  REPLICATION_PROFILE_PROTOCOL_BY_IPOBJ_TYPE,
   type ReplicationProfileRecord,
   type ReplicationProfileVpnProtocol,
 } from './replication-profile.constants';
-import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
+import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 
 /** Validator of the FWCloud objects API, the one its object forms go through. */
 const ipobjSchema = require('../../middleware/joi_schemas/ipobj');
 
-/**
- * The ipobj columns an object is made of, named as the FWCloud objects API (/ipobj) names them.
- * Owner (fwcloud, interface) and audit columns are left out.
- */
-export const PROFILE_OBJECT_DATA_FIELDS = [
-  'type',
-  'name',
-  'protocol',
-  'address',
-  'netmask',
-  'diff_serv',
-  'ip_version',
-  'icmp_type',
-  'icmp_code',
-  'tcp_flags_mask',
-  'tcp_flags_settings',
-  'range_start',
-  'range_end',
-  'source_port_start',
-  'source_port_end',
-  'destination_port_start',
-  'destination_port_end',
-  'options',
-  'comment',
-] as const;
-
-/** Protocol of the service types whose protocol their type fixes. */
-const FIXED_PROTOCOLS: Readonly<Record<number, number>> = {
-  [REPLICATION_PROFILE_IPOBJ_TYPE_TCP]: 6,
-  [REPLICATION_PROFILE_IPOBJ_TYPE_UDP]: 17,
-  [REPLICATION_PROFILE_IPOBJ_TYPE_ICMP]: 1,
-};
+/** The id and data columns of an ipobj row aliased as O. */
+const OBJECT_COLUMNS = ['id', ...PROFILE_OBJECT_DATA_FIELDS]
+  .map((field) => `O.${field}`)
+  .join(', ');
 
 /** ipobj types of the VPN prefixes, the other VPN members a group can hold besides clients. */
 const VPN_PREFIX_TYPES: Readonly<Record<ReplicationProfileVpnProtocol, number>> = {
@@ -103,9 +76,20 @@ const VPN_GROUP_MEMBER_QUERIES = (['openvpn', 'wireguard', 'ipsec'] as const).fl
   ],
 );
 
-interface ProfileObjectKey {
-  id: number;
+/** An object read from the FWCloud, with its snapshot. */
+interface LoadedObject {
   type: number;
+  id: number;
+  data: ReplicationProfileRecord;
+}
+
+/** The snapshot of the object of a type and id, among the ones read from the FWCloud. */
+type ProfileObjectLookup = (type: number, id: unknown) => ReplicationProfileRecord | undefined;
+
+interface HostInterfaceSnapshot {
+  id: number;
+  name: unknown;
+  addresses: ReplicationProfileRecord[];
 }
 
 export interface ProfileObjectResolution {
@@ -134,44 +118,28 @@ export async function captureProfileObjectReferences<T>(model: T, fwCloudId: num
     return model;
   }
 
-  const references = record.objectReferences.map(asReplicationProfileRecord);
-  const objects = await loadProfileObjects(
-    references.flatMap((reference) => {
-      const type = getProfileReferenceIpObjType(reference?.objectType);
+  const references = record.objectReferences.map((value) => {
+    const reference = asReplicationProfileRecord(value);
 
-      return type !== undefined && isPositiveInteger(reference.sourceObjectId)
-        ? [{ id: reference.sourceObjectId, type }]
-        : [];
-    }),
+    return { value, reference, type: getProfileReferenceIpObjType(reference?.objectType) };
+  });
+  const findObject = await loadProfileObjects(
+    references.map(({ reference, type }) => ({ type, id: reference?.sourceObjectId })),
     fwCloudId,
   );
   const locations = getProfileObjectReferenceLocations(record);
 
   return {
     ...record,
-    objectReferences: record.objectReferences.map((value, index) => {
-      const reference = references[index];
-      const type = getProfileReferenceIpObjType(reference?.objectType);
-
-      if (!reference || type === undefined || typeof reference.referenceId !== 'string') {
-        return value;
-      }
-
-      const object = isPositiveInteger(reference.sourceObjectId)
-        ? objects.get(objectKey(type, reference.sourceObjectId))
-        : undefined;
-
-      return {
-        referenceId: reference.referenceId,
-        objectType: reference.objectType,
-        ...(reference.sourceObjectId === undefined
-          ? {}
-          : { sourceObjectId: reference.sourceObjectId }),
-        sourceName: object ? object.name : reference.sourceName,
-        snapshot: object ?? reference.snapshot,
-        locations: locations.get(reference.referenceId) ?? [],
-      };
-    }),
+    objectReferences: references.map(({ value, reference, type }) =>
+      reference && type !== undefined && typeof reference.referenceId === 'string'
+        ? storedReference(
+            reference as unknown as ReplicationProfileObjectReference,
+            locations,
+            findObject(type, reference.sourceObjectId),
+          )
+        : value,
+    ),
   } as T;
 }
 
@@ -185,22 +153,23 @@ export async function captureProfileObjectReferences<T>(model: T, fwCloudId: num
 export async function resolveProfileObjectReferences(
   model: unknown,
   fwCloudId: number,
-  replacements: Record<string, ProfileObjectReplacement> = {},
+  replacements?: Record<string, ProfileObjectReplacement>,
 ): Promise<ProfileObjectResolution> {
-  const references = getProfileObjectReferences(model);
-  const locations = getProfileObjectReferenceLocations(model);
-  const requested = replacements ?? {};
+  const requested: ReplicationProfileRecord = replacements ?? {};
+  const references = getProfileObjectReferences(model).map((reference) => ({
+    reference,
+    type: getProfileReferenceIpObjType(reference.objectType)!,
+    replacement: Object.prototype.hasOwnProperty.call(requested, reference.referenceId)
+      ? requested[reference.referenceId]
+      : undefined,
+  }));
   const resolution: ProfileObjectResolution = {
     objectReferences: [],
     missingObjects: [],
     bindings: new Map(),
     errors: [],
   };
-  const replacementOf = (referenceId: string): unknown =>
-    Object.prototype.hasOwnProperty.call(requested, referenceId)
-      ? requested[referenceId]
-      : undefined;
-  const declared = new Set(references.map((reference) => reference.referenceId));
+  const declared = new Set(references.map(({ reference }) => reference.referenceId));
 
   for (const referenceId of Object.keys(requested)) {
     if (!declared.has(referenceId)) {
@@ -210,48 +179,40 @@ export async function resolveProfileObjectReferences(
     }
   }
 
+  if (references.length === 0) {
+    return resolution;
+  }
+
+  const locations = getProfileObjectReferenceLocations(model);
   // A single read covers the original objects and the existing ones chosen as replacements.
-  const objects = await loadProfileObjects(
-    references.flatMap((reference) => {
-      const replacement = replacementOf(reference.referenceId);
-      const id =
+  const findObject = await loadProfileObjects(
+    references.map(({ reference, type, replacement }) => ({
+      type,
+      id:
         replacement === undefined
           ? reference.sourceObjectId
-          : asReplicationProfileRecord(replacement)?.sourceObjectId;
-
-      return isPositiveInteger(id)
-        ? [{ id, type: getProfileReferenceIpObjType(reference.objectType)! }]
-        : [];
-    }),
+          : asReplicationProfileRecord(replacement)?.sourceObjectId,
+    })),
     fwCloudId,
   );
 
-  for (const reference of references) {
-    const type = getProfileReferenceIpObjType(reference.objectType)!;
-    const replacement = replacementOf(reference.referenceId);
+  for (const { reference, type, replacement } of references) {
     let binding: ProfileExternalObjectBinding | null = null;
 
-    if (replacement !== undefined) {
-      const replaced = await bindReplacement(reference, type, replacement, objects, fwCloudId);
+    if (replacement === undefined) {
+      binding = bindExistingObject(type, reference.sourceObjectId, findObject);
+    } else {
+      const replaced = await bindReplacement(reference, type, replacement, findObject, fwCloudId);
 
       if (typeof replaced === 'string') {
         resolution.errors.push(`objectReplacements.${reference.referenceId}: ${replaced}`);
       } else {
         binding = replaced;
       }
-    } else if (reference.sourceObjectId !== undefined) {
-      binding = bindExistingObject(reference.sourceObjectId, type, objects);
     }
 
     const resolved: ResolvedProfileObjectReference = {
-      referenceId: reference.referenceId,
-      objectType: reference.objectType,
-      ...(reference.sourceObjectId === undefined
-        ? {}
-        : { sourceObjectId: reference.sourceObjectId }),
-      sourceName: reference.sourceName,
-      snapshot: reference.snapshot,
-      locations: locations.get(reference.referenceId) ?? [],
+      ...storedReference(reference, locations),
       resolved: binding !== null,
       currentObject: binding
         ? { ...(binding.id === undefined ? {} : { id: binding.id }), ...binding.data }
@@ -272,14 +233,33 @@ export async function resolveProfileObjectReferences(
   return resolution;
 }
 
-function bindExistingObject(
-  id: number,
-  type: number,
-  objects: Map<string, ReplicationProfileRecord>,
-): ProfileExternalObjectBinding | null {
-  const data = objects.get(objectKey(type, id));
+/**
+ * A reference as templates store it: nothing else is kept of what it came with. Its name and
+ * snapshot are those of the given object, when the FWCloud has it, and its own otherwise.
+ */
+function storedReference(
+  reference: ReplicationProfileObjectReference,
+  locations: Map<string, string[]>,
+  object?: ReplicationProfileRecord,
+): ReplicationProfileObjectReference {
+  return {
+    referenceId: reference.referenceId,
+    objectType: reference.objectType,
+    ...(reference.sourceObjectId === undefined ? {} : { sourceObjectId: reference.sourceObjectId }),
+    sourceName: object ? (object.name as string) : reference.sourceName,
+    snapshot: object ?? reference.snapshot,
+    locations: locations.get(reference.referenceId) ?? [],
+  };
+}
 
-  return data ? { id, type, isGroup: isProfileReferenceGroupType(type), data } : null;
+function bindExistingObject(
+  type: number,
+  id: unknown,
+  findObject: ProfileObjectLookup,
+): ProfileExternalObjectBinding | null {
+  const data = findObject(type, id);
+
+  return data ? { id: id as number, type, data } : null;
 }
 
 /** The binding of a replacement, or why it cannot be used. */
@@ -287,7 +267,7 @@ async function bindReplacement(
   reference: ReplicationProfileObjectReference,
   type: number,
   replacement: unknown,
-  objects: Map<string, ReplicationProfileRecord>,
+  findObject: ProfileObjectLookup,
   fwCloudId: number,
 ): Promise<ProfileExternalObjectBinding | string> {
   const input = asReplicationProfileRecord(replacement);
@@ -304,12 +284,12 @@ async function bindReplacement(
     return bindReplacementData(reference, type, input.data, fwCloudId);
   }
 
-  if (!isPositiveInteger(input.sourceObjectId)) {
+  if (!isReplicationProfilePositiveInteger(input.sourceObjectId)) {
     return 'sourceObjectId must be a positive integer.';
   }
 
   return (
-    bindExistingObject(input.sourceObjectId, type, objects) ??
+    bindExistingObject(type, input.sourceObjectId, findObject) ??
     `object ${input.sourceObjectId} does not exist in this FWCloud or is not of type "${reference.objectType}".`
   );
 }
@@ -320,12 +300,13 @@ async function bindReplacementData(
   value: unknown,
   fwCloudId: number,
 ): Promise<ProfileExternalObjectBinding | string> {
-  const requiredFields = getProfileReferenceRequiredFields(type);
-  const data = asReplicationProfileRecord(value);
+  const dataFields = getProfileReferenceDataFields(type);
 
-  if (requiredFields.includes('sourceObjectId')) {
+  if (!dataFields) {
     return `objects of type "${reference.objectType}" can only be replaced by an existing one: send its sourceObjectId.`;
   }
+
+  const data = asReplicationProfileRecord(value);
 
   if (!data) {
     return 'data must be an object.';
@@ -334,7 +315,7 @@ async function bindReplacementData(
   const unknownFields = Object.keys(data).filter(
     (field) => !(PROFILE_OBJECT_DATA_FIELDS as readonly string[]).includes(field),
   );
-  const missingFields = requiredFields.filter(
+  const missingFields = dataFields.filter(
     (field) => data[field] === undefined || data[field] === null || data[field] === '',
   );
 
@@ -368,7 +349,7 @@ async function bindReplacementData(
     return 'range_start must not be greater than range_end.';
   }
 
-  return { type, isGroup: false, data: object };
+  return { type, data: object };
 }
 
 /**
@@ -384,13 +365,15 @@ function completeReplacementData(
   const object: ReplicationProfileRecord = { name, ...data, type };
   const address =
     type === REPLICATION_PROFILE_IPOBJ_TYPE_RANGE ? object.range_start : object.address;
+  const protocol = REPLICATION_PROFILE_PROTOCOL_BY_IPOBJ_TYPE[type];
+  const ipVersion = typeof address === 'string' ? isIP(address) : 0;
 
-  if (object.protocol === undefined && FIXED_PROTOCOLS[type] !== undefined) {
-    object.protocol = FIXED_PROTOCOLS[type];
+  if (object.protocol === undefined && protocol !== undefined) {
+    object.protocol = protocol;
   }
 
-  if (object.ip_version === undefined && typeof address === 'string' && isIP(address) !== 0) {
-    object.ip_version = isIP(address);
+  if (object.ip_version === undefined && ipVersion !== 0) {
+    object.ip_version = ipVersion;
   }
 
   if (
@@ -430,78 +413,97 @@ async function validateObjectData(
 /**
  * Reads, as snapshots, the given objects the FWCloud sees: its own ones and the predefined ones
  * (NULL fwcloud). An object that was deleted, belongs to another FWCloud or is not of the type
- * asked for is left out. Keyed by objectKey().
+ * asked for is not found; neither is a type or an id that is not one.
  */
 async function loadProfileObjects(
-  keys: ProfileObjectKey[],
+  keys: { type: number | undefined; id: unknown }[],
   fwCloudId: number,
-): Promise<Map<string, ReplicationProfileRecord>> {
-  const objects = new Map<string, ReplicationProfileRecord>();
-  const idsOf = (groups: boolean) => [
+): Promise<ProfileObjectLookup> {
+  const idsOf = (groups: boolean): number[] => [
     ...new Set(
-      keys.filter((key) => isProfileReferenceGroupType(key.type) === groups).map((key) => key.id),
+      keys
+        .filter(({ type }) => type !== undefined && isProfileReferenceGroupType(type) === groups)
+        .map(({ id }) => id)
+        .filter(isReplicationProfilePositiveInteger),
     ),
   ];
-  const objectIds = idsOf(false);
-  const groupIds = idsOf(true);
+  const loaded = await Promise.all([
+    loadObjects(idsOf(false), fwCloudId),
+    loadGroups(idsOf(true), fwCloudId),
+  ]);
+  // ipobj and ipobj_g ids overlap: the type tells which table an id belongs to.
+  const key = (type: number, id: number) => `${type}:${id}`;
+  const found = new Map(loaded.flat().map(({ type, id, data }) => [key(type, id), data]));
 
-  if (objectIds.length > 0) {
-    const rows = await dbQuery<ReplicationProfileRecord>(
-      `SELECT id, ${PROFILE_OBJECT_DATA_FIELDS.join(', ')} FROM ipobj
-       WHERE id IN (${sqlPlaceholders(objectIds.length)}) AND (fwcloud = ? OR fwcloud IS NULL)`,
-      [...objectIds, fwCloudId],
-    );
-    const interfaces = await loadHostInterfaces(
-      rows
-        .filter((row) => Number(row.type) === REPLICATION_PROFILE_IPOBJ_TYPE_HOST)
-        .map((row) => Number(row.id)),
-    );
+  return (type, id) =>
+    isReplicationProfilePositiveInteger(id) ? found.get(key(type, id)) : undefined;
+}
 
-    for (const row of rows) {
-      const data = objectData(row);
-
-      if (data.type === REPLICATION_PROFILE_IPOBJ_TYPE_HOST) {
-        data.interfaces = interfaces.get(Number(row.id)) ?? [];
-      }
-
-      objects.set(objectKey(Number(data.type), Number(row.id)), data);
-    }
+/** ipobj rows among the ids, hosts with their interfaces. */
+async function loadObjects(ids: number[], fwCloudId: number): Promise<LoadedObject[]> {
+  if (ids.length === 0) {
+    return [];
   }
 
-  if (groupIds.length > 0) {
-    const rows = await dbQuery<ReplicationProfileRecord>(
-      `SELECT id, type, name, comment FROM ipobj_g
-       WHERE id IN (${sqlPlaceholders(groupIds.length)}) AND (fwcloud = ? OR fwcloud IS NULL)`,
-      [...groupIds, fwCloudId],
-    );
-    const members = await loadGroupMembers(rows.map((row) => Number(row.id)));
+  const rows = await dbQuery<ReplicationProfileRecord>(
+    `SELECT ${OBJECT_COLUMNS} FROM ipobj O
+     WHERE O.id IN (${sqlPlaceholders(ids.length)}) AND (O.fwcloud = ? OR O.fwcloud IS NULL)`,
+    [...ids, fwCloudId],
+  );
+  const interfaces = await loadHostInterfaces(
+    rows
+      .filter((row) => Number(row.type) === REPLICATION_PROFILE_IPOBJ_TYPE_HOST)
+      .map((row) => Number(row.id)),
+  );
 
-    for (const row of rows) {
-      objects.set(objectKey(Number(row.type), Number(row.id)), {
-        type: Number(row.type),
-        name: row.name,
-        ...(row.comment ? { comment: row.comment } : {}),
-        members: members.get(Number(row.id)) ?? [],
-      });
+  return rows.map((row) => {
+    const data = objectData(row);
+
+    if (data.type === REPLICATION_PROFILE_IPOBJ_TYPE_HOST) {
+      data.interfaces = interfaces.get(Number(row.id)) ?? [];
     }
+
+    return { type: data.type as number, id: Number(row.id), data };
+  });
+}
+
+/** ipobj_g rows among the ids, with their members. */
+async function loadGroups(ids: number[], fwCloudId: number): Promise<LoadedObject[]> {
+  if (ids.length === 0) {
+    return [];
   }
 
-  return objects;
+  const rows = await dbQuery<ReplicationProfileRecord>(
+    `SELECT id, type, name, comment FROM ipobj_g
+     WHERE id IN (${sqlPlaceholders(ids.length)}) AND (fwcloud = ? OR fwcloud IS NULL)`,
+    [...ids, fwCloudId],
+  );
+  const members = await loadGroupMembers(rows.map((row) => Number(row.id)));
+
+  return rows.map((row) => ({
+    type: Number(row.type),
+    id: Number(row.id),
+    data: {
+      type: Number(row.type),
+      name: row.name,
+      ...(row.comment ? { comment: row.comment } : {}),
+      members: members.get(Number(row.id)) ?? [],
+    },
+  }));
 }
 
 /** Interfaces of each host, with their addresses. */
 async function loadHostInterfaces(
   hostIds: number[],
-): Promise<Map<number, ReplicationProfileRecord[]>> {
-  const interfaces = new Map<number, ReplicationProfileRecord[]>();
+): Promise<Map<number, HostInterfaceSnapshot[]>> {
+  const interfaces = new Map<number, HostInterfaceSnapshot[]>();
 
   if (hostIds.length === 0) {
     return interfaces;
   }
 
   const rows = await dbQuery<ReplicationProfileRecord>(
-    `SELECT H.ipobj AS host_id, I.id AS interface_id, I.name AS interface_name,
-            O.id, ${PROFILE_OBJECT_DATA_FIELDS.map((field) => `O.${field}`).join(', ')}
+    `SELECT H.ipobj AS host_id, I.id AS interface_id, I.name AS interface_name, ${OBJECT_COLUMNS}
      FROM interface__ipobj H
      INNER JOIN interface I ON I.id = H.interface
      LEFT JOIN ipobj O ON O.interface = I.id
@@ -511,20 +513,17 @@ async function loadHostInterfaces(
   );
 
   for (const row of rows) {
-    const hostInterfaces = interfaces.get(Number(row.host_id)) ?? [];
-    let hostInterface = hostInterfaces.find((item) => item.id === Number(row.interface_id));
+    const hostId = Number(row.host_id);
+    const interfaceId = Number(row.interface_id);
+    let hostInterface = interfaces.get(hostId)?.find((item) => item.id === interfaceId);
 
     if (!hostInterface) {
-      hostInterface = { id: Number(row.interface_id), name: row.interface_name, addresses: [] };
-      hostInterfaces.push(hostInterface);
-      interfaces.set(Number(row.host_id), hostInterfaces);
+      hostInterface = { id: interfaceId, name: row.interface_name, addresses: [] };
+      addToList(interfaces, hostId, hostInterface);
     }
 
     if (row.id !== null) {
-      (hostInterface.addresses as ReplicationProfileRecord[]).push({
-        id: Number(row.id),
-        ...objectData(row),
-      });
+      hostInterface.addresses.push({ id: Number(row.id), ...objectData(row) });
     }
   }
 
@@ -542,25 +541,31 @@ async function loadGroupMembers(
   }
 
   const placeholders = sqlPlaceholders(groupIds.length);
-  const objectRows = await dbQuery<ReplicationProfileRecord>(
-    `SELECT R.ipobj_g AS group_id, O.id, ${PROFILE_OBJECT_DATA_FIELDS.map((field) => `O.${field}`).join(', ')}
-     FROM ipobj__ipobjg R
-     INNER JOIN ipobj O ON O.id = R.ipobj
-     WHERE R.ipobj_g IN (${placeholders})
-     ORDER BY R.id_gi`,
-    groupIds,
-  );
-  const vpnRows = await dbQuery<ReplicationProfileRecord>(
-    `${VPN_GROUP_MEMBER_QUERIES.map((query) => `${query} WHERE R.ipobj_g IN (${placeholders})`).join(' UNION ALL ')}
-     ORDER BY type, id`,
-    VPN_GROUP_MEMBER_QUERIES.flatMap(() => groupIds),
-  );
-  const add = (row: ReplicationProfileRecord, member: ReplicationProfileRecord) =>
-    members.set(Number(row.group_id), [...(members.get(Number(row.group_id)) ?? []), member]);
+  const [objectRows, vpnRows] = await Promise.all([
+    dbQuery<ReplicationProfileRecord>(
+      `SELECT R.ipobj_g AS group_id, ${OBJECT_COLUMNS}
+       FROM ipobj__ipobjg R
+       INNER JOIN ipobj O ON O.id = R.ipobj
+       WHERE R.ipobj_g IN (${placeholders})
+       ORDER BY R.id_gi`,
+      groupIds,
+    ),
+    dbQuery<ReplicationProfileRecord>(
+      `${VPN_GROUP_MEMBER_QUERIES.map((query) => `${query} WHERE R.ipobj_g IN (${placeholders})`).join(' UNION ALL ')}
+       ORDER BY type, id`,
+      VPN_GROUP_MEMBER_QUERIES.flatMap(() => groupIds),
+    ),
+  ]);
 
-  objectRows.forEach((row) => add(row, { id: Number(row.id), ...objectData(row) }));
+  objectRows.forEach((row) =>
+    addToList(members, Number(row.group_id), { id: Number(row.id), ...objectData(row) }),
+  );
   vpnRows.forEach((row) =>
-    add(row, { id: Number(row.id), type: Number(row.type), name: row.name }),
+    addToList(members, Number(row.group_id), {
+      id: Number(row.id),
+      type: Number(row.type),
+      name: row.name,
+    }),
   );
 
   return members;
@@ -577,13 +582,4 @@ function objectData(row: ReplicationProfileRecord): ReplicationProfileRecord {
   }
 
   return data;
-}
-
-/** ipobj and ipobj_g ids overlap: the type tells which table an id belongs to. */
-function objectKey(type: number, id: number): string {
-  return `${type}:${id}`;
-}
-
-function isPositiveInteger(value: unknown): value is number {
-  return Number.isSafeInteger(value) && Number(value) > 0;
 }

@@ -8,6 +8,7 @@ import { getProfileProvisioning } from './policy-replication.types';
 import {
   asReplicationProfileRecord,
   asReplicationProfileNonEmptyString,
+  getReplicationProfileRuleIpVersion,
   isReplicationProfileExternalObjectUsage,
   isReplicationProfileIpVersion,
   isReplicationProfilePort,
@@ -34,7 +35,10 @@ import {
   parseReplicationProfileRange,
   parseReplicationProfileService,
 } from './replication-profile-parameters';
-import { validateProfileObjectReferences } from './replication-profile-object-reference';
+import {
+  RULE_OBJECT_FIELDS,
+  validateProfileObjectReferences,
+} from './replication-profile-object-reference';
 
 type ValidationSeverity = 'error' | 'warning';
 type ValidationRecord = Record<string, unknown>;
@@ -1023,27 +1027,9 @@ class ReplicationProfileDefinitionValidator {
       this.validateRuleChain(record, rulePath, errors);
       this.validateRuleInterfaceRoles(record, rulePath, interfaceRoles, errors);
       this.validatePortsAndProtocols(record, rulePath, parameterNames, errors);
-      const ipVersion = record.ipVersion ?? record.ip_version ?? 4;
-      const family = isReplicationProfileIpVersion(ipVersion) ? ipVersion : undefined;
+      const family = getReplicationProfileRuleIpVersion(record);
 
-      this.validateRuleSide(
-        record.source,
-        `${rulePath}.source`,
-        interfaceRoles,
-        parameterNames,
-        errors,
-        family,
-      );
-      this.validateRuleSide(
-        record.destination,
-        `${rulePath}.destination`,
-        interfaceRoles,
-        parameterNames,
-        errors,
-        family,
-      );
-
-      for (const field of ['translatedSource', 'translatedDestination']) {
+      for (const field of RULE_OBJECT_FIELDS) {
         this.validateRuleSide(
           record[field],
           `${rulePath}.${field}`,

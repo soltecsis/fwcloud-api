@@ -1,9 +1,14 @@
 export const REPLICATION_PROFILE_TARGET_KINDS = ['firewall', 'cluster'] as const;
 export type ReplicationProfileTargetKind = (typeof REPLICATION_PROFILE_TARGET_KINDS)[number];
 
+/** Ids of database rows are positive, safely representable integers. */
+export function isReplicationProfilePositiveInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) > 0;
+}
+
 /** Custom profile owners must be positive, safely representable integer IDs. */
 export function isReplicationProfileOwnerId(userId: number | null | undefined): userId is number {
-  return Number.isSafeInteger(userId) && userId > 0;
+  return isReplicationProfilePositiveInteger(userId);
 }
 
 /** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
@@ -97,6 +102,29 @@ export const REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP = 21;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT = 23;
 export const REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY = 24;
 
+/** Object groups, service groups and continents are ipobj_g rows; every other type is an ipobj. */
+export const REPLICATION_PROFILE_IPOBJ_GROUP_TYPES: readonly number[] = [
+  REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
+  REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
+  REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT,
+];
+
+/** ipobj.type of the port services of each rule protocol. */
+export const REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL: Record<
+  ReplicationProfileRuleProtocol,
+  number
+> = {
+  tcp: REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
+  udp: REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
+};
+
+/** IP protocol number of the service types whose type fixes it. */
+export const REPLICATION_PROFILE_PROTOCOL_BY_IPOBJ_TYPE: Readonly<Record<number, number>> = {
+  [REPLICATION_PROFILE_IPOBJ_TYPE_TCP]: 6,
+  [REPLICATION_PROFILE_IPOBJ_TYPE_UDP]: 17,
+  [REPLICATION_PROFILE_IPOBJ_TYPE_ICMP]: 1,
+};
+
 /** ipobj.type of each object kind a rule side can create. */
 export const REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND: Record<ReplicationProfileObjectKind, number> =
   {
@@ -136,6 +164,15 @@ export function isReplicationProfileIpVersion(
   value: unknown,
 ): value is ReplicationProfileIpVersion {
   return value === 4 || value === 6;
+}
+
+/** IP family of a rule record: its `ipVersion` (or `ip_version`), 4 by default, if it is valid. */
+export function getReplicationProfileRuleIpVersion(
+  rule: ReplicationProfileRecord,
+): ReplicationProfileIpVersion | undefined {
+  const ipVersion = rule.ipVersion ?? rule.ip_version ?? 4;
+
+  return isReplicationProfileIpVersion(ipVersion) ? ipVersion : undefined;
 }
 
 export const REPLICATION_PROFILE_MIN_PORT = 1;

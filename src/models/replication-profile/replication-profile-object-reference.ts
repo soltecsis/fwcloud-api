@@ -24,9 +24,13 @@ import { getProfileProvisioningSource, POLICY_STRUCTURE_FIELDS } from './policy-
 import {
   asReplicationProfileNonEmptyString,
   asReplicationProfileRecord,
+  getReplicationProfileRuleIpVersion,
   isReplicationProfileExternalObjectUsage,
   isReplicationProfileIpVersion,
+  isReplicationProfilePositiveInteger,
+  isReplicationProfileStringValue,
   REPLICATION_PROFILE_EXTERNAL_OBJECT_KIND,
+  REPLICATION_PROFILE_IPOBJ_GROUP_TYPES,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT,
   REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY,
@@ -89,19 +93,42 @@ export const PROFILE_REFERENCE_OBJECT_TYPES = {
 
 export type ProfileReferenceObjectType = keyof typeof PROFILE_REFERENCE_OBJECT_TYPES;
 
+const OBJECT_TYPE_NAMES = Object.keys(
+  PROFILE_REFERENCE_OBJECT_TYPES,
+) as ProfileReferenceObjectType[];
+
+/**
+ * The ipobj columns an object is made of, named as the FWCloud objects API (/ipobj) names them.
+ * Owner (fwcloud, interface) and audit columns are left out.
+ */
+export const PROFILE_OBJECT_DATA_FIELDS = [
+  'type',
+  'name',
+  'protocol',
+  'address',
+  'netmask',
+  'diff_serv',
+  'ip_version',
+  'icmp_type',
+  'icmp_code',
+  'tcp_flags_mask',
+  'tcp_flags_settings',
+  'range_start',
+  'range_end',
+  'source_port_start',
+  'source_port_end',
+  'destination_port_start',
+  'destination_port_end',
+  'options',
+  'comment',
+] as const;
+
 const SERVICE_TYPES: readonly number[] = [
   REPLICATION_PROFILE_IPOBJ_TYPE_IP,
   REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
   REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
   REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
   REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
-];
-
-/** Kept in ipobj_g; every other type is an ipobj row. */
-const GROUP_TYPES: readonly number[] = [
-  REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT,
 ];
 
 const PORT_FIELDS = [
@@ -131,7 +158,13 @@ const REPLACEMENT_DATA_FIELDS: Readonly<Record<number, readonly string[]>> = {
 /** Template-local identifiers: the charset of profile codes, so they are safe as JSON keys. */
 const REFERENCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-const RULE_OBJECT_FIELDS = ['source', 'destination', 'translatedSource', 'translatedDestination'];
+/** Rule fields that take address objects; the service ones follow. */
+export const RULE_OBJECT_FIELDS = [
+  'source',
+  'destination',
+  'translatedSource',
+  'translatedDestination',
+];
 const RULE_SERVICE_FIELDS = ['service', 'services', 'translatedService', 'translatedServices'];
 
 /** What a template keeps of an external object. Only the server writes it. */
@@ -182,7 +215,6 @@ export interface ProfileExternalObjectBinding {
   /** The existing object or group. Unset for replacement data, matched or created on apply. */
   id?: number;
   type: number;
-  isGroup: boolean;
   data: ReplicationProfileRecord;
 }
 
@@ -198,19 +230,23 @@ interface ProfileExternalObjectUsageSite {
 
 /** ipobj type of a reference objectType, undefined when it is not one. */
 export function getProfileReferenceIpObjType(objectType: unknown): number | undefined {
-  return typeof objectType === 'string' &&
-    Object.prototype.hasOwnProperty.call(PROFILE_REFERENCE_OBJECT_TYPES, objectType)
-    ? PROFILE_REFERENCE_OBJECT_TYPES[objectType as ProfileReferenceObjectType]
+  return isReplicationProfileStringValue(objectType, OBJECT_TYPE_NAMES)
+    ? PROFILE_REFERENCE_OBJECT_TYPES[objectType]
     : undefined;
 }
 
 export function isProfileReferenceGroupType(type: number): boolean {
-  return GROUP_TYPES.includes(type);
+  return REPLICATION_PROFILE_IPOBJ_GROUP_TYPES.includes(type);
+}
+
+/** Fields the `data` of a replacement must hold; undefined when only an existing object will do. */
+export function getProfileReferenceDataFields(type: number): readonly string[] | undefined {
+  return REPLACEMENT_DATA_FIELDS[type];
 }
 
 /** See ResolvedProfileObjectReference.requiredFields. */
 export function getProfileReferenceRequiredFields(type: number): string[] {
-  return [...(REPLACEMENT_DATA_FIELDS[type] ?? ['sourceObjectId'])];
+  return [...(getProfileReferenceDataFields(type) ?? ['sourceObjectId'])];
 }
 
 /** The references of a validated model. */
@@ -285,15 +321,12 @@ export function validateProfileObjectReferences(
     const type = getProfileReferenceIpObjType(reference.objectType);
 
     if (type === undefined) {
-      addError(
-        `${path}.objectType`,
-        `objectType must be one of: ${Object.keys(PROFILE_REFERENCE_OBJECT_TYPES).join(', ')}.`,
-      );
+      addError(`${path}.objectType`, `objectType must be one of: ${OBJECT_TYPE_NAMES.join(', ')}.`);
     }
 
     if (
       reference.sourceObjectId !== undefined &&
-      !(Number.isSafeInteger(reference.sourceObjectId) && Number(reference.sourceObjectId) > 0)
+      !isReplicationProfilePositiveInteger(reference.sourceObjectId)
     ) {
       addError(`${path}.sourceObjectId`, 'sourceObjectId must be a positive integer.');
     }
@@ -328,6 +361,7 @@ export function validateProfileObjectReferences(
   for (const site of sites) {
     const reference = references.get(site.referenceId);
     const type = getProfileReferenceIpObjType(reference?.objectType);
+    const ipVersion = asReplicationProfileRecord(reference?.snapshot)?.ip_version;
 
     if (!reference) {
       addError(site.path, `"${site.referenceId}" is not declared in model.objectReferences.`);
@@ -338,19 +372,15 @@ export function validateProfileObjectReferences(
           ? `"${site.referenceId}" (${reference.objectType as string}) is not a service.`
           : `"${site.referenceId}" (${reference.objectType as string}) is a service: only service positions take it.`,
       );
-    } else {
-      const ipVersion = asReplicationProfileRecord(reference.snapshot)?.ip_version;
-
-      if (
-        site.ipVersion &&
-        isReplicationProfileIpVersion(ipVersion) &&
-        ipVersion !== site.ipVersion
-      ) {
-        addError(
-          site.path,
-          `"${site.referenceId}" is an IPv${ipVersion} object and cannot be used in an IPv${site.ipVersion} rule.`,
-        );
-      }
+    } else if (
+      site.ipVersion &&
+      isReplicationProfileIpVersion(ipVersion) &&
+      ipVersion !== site.ipVersion
+    ) {
+      addError(
+        site.path,
+        `"${site.referenceId}" is an IPv${ipVersion} object and cannot be used in an IPv${site.ipVersion} rule.`,
+      );
     }
   }
 
@@ -398,15 +428,10 @@ function collectUsageSites(block: unknown, path: string): ProfileExternalObjectU
     });
 
   forEachRecord(record?.rules, `${path}.rules`, (rule, rulePath) => {
-    const ipVersion = rule.ipVersion ?? rule.ip_version ?? 4;
+    const ipVersion = getReplicationProfileRuleIpVersion(rule);
 
     RULE_OBJECT_FIELDS.forEach((name) =>
-      field(
-        rule[name],
-        `${rulePath}.${name}`,
-        false,
-        isReplicationProfileIpVersion(ipVersion) ? ipVersion : undefined,
-      ),
+      field(rule[name], `${rulePath}.${name}`, false, ipVersion),
     );
     RULE_SERVICE_FIELDS.forEach((name) => field(rule[name], `${rulePath}.${name}`, true));
   });
