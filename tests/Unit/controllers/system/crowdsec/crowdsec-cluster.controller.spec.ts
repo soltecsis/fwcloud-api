@@ -631,12 +631,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
+          central_machine_cleanup_required: true,
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
           machine_name: 'fwcloud-cluster-slave',
           status: 'rollback_failed',
+          central_machine_cleanup_required: true,
           error: 'CrowdSec node rollback failed and requires manual recovery',
         },
       ],
@@ -722,6 +724,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
           central_machine_cleanup_required: true,
+          error: 'Machine replication failed',
         },
         {
           firewall_id: secondNode.id,
@@ -765,6 +768,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
           central_machine_cleanup_required: true,
+          error: 'Persistence failed',
         },
       ],
     });
@@ -834,6 +838,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           status: 'rolled_back',
           central_machine_cleanup_required: true,
           central_bouncer_cleanup_required: true,
+          error: 'Bouncer replication failed',
         },
       ],
     });
