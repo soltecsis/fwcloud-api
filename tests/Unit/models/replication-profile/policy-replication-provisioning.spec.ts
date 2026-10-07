@@ -5,6 +5,7 @@ import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { Tree, TreeNode } from '../../../../src/models/tree/Tree';
 import StringHelper from '../../../../src/utils/string.helper';
 import { PolicyReplicationService } from '../../../../src/models/replication-profile/policy-replication.service';
 import {
@@ -504,5 +505,134 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     expect(result.errors).to.be.empty;
     // 61 is IPv6:INPUT in PolicyTypesMap.
     expect(result.createdRules[0].policyTypeId).to.be.eq(61);
+  });
+
+  describe('interface addresses in the firewalls tree', () => {
+    // The tree the UI loads: without a node of its own an address exists but is not shown.
+    async function createFirewallTree(): Promise<void> {
+      const rootId = await Tree.newNode(
+        db.getQuery(),
+        fwc.fwcloud.id,
+        'FIREWALLS',
+        null,
+        'FDF',
+        null,
+        null,
+      );
+
+      await Tree.insertFwc_Tree_New_firewall(fwc.fwcloud.id, rootId, targetFirewall.id);
+    }
+
+    /** The address nodes each interface shows, as the tree is dumped for the UI. */
+    async function shownAddresses(): Promise<Record<string, string[]>> {
+      const find = (node: TreeNode, type: string): TreeNode[] =>
+        node.node_type === type ? [node] : node.children.flatMap((child) => find(child, type));
+      const tree = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwc.fwcloud.id);
+
+      return Object.fromEntries(
+        find(tree, 'IFF').map((node) => [
+          node.text,
+          node.children.filter((child) => child.node_type === 'OIA').map((child) => child.text),
+        ]),
+      );
+    }
+
+    const apply = (
+      applied: PolicyReplicationProvision = provision,
+      options: Record<string, unknown> = {},
+      mode: 'replace_defaults' | 'dry_run' = 'replace_defaults',
+    ) =>
+      service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        applied,
+        fwc.fwcloud.id,
+        mode,
+        { ...applyOptions(values), ...options },
+      );
+
+    it('should show the address of each created interface without repairing the tree', async () => {
+      await createFirewallTree();
+
+      const result = await apply();
+
+      expect(result.applied).to.be.true;
+      expect(await shownAddresses()).to.deep.eq({
+        WAN: ['WAN-ip (198.51.100.10)'],
+        LAN: ['LAN-ip (192.168.50.1)'],
+      });
+
+      // Each node points at the address it shows.
+      const nodes = await db.getSource().query(
+        `SELECT O.address FROM fwc_tree T INNER JOIN ipobj O ON O.id = T.id_obj
+          WHERE T.fwcloud = ? AND T.node_type = 'OIA' AND T.obj_type = 5 ORDER BY T.id`,
+        [fwc.fwcloud.id],
+      );
+      expect(nodes.map((row: { address: string }) => row.address)).to.deep.eq([
+        '198.51.100.10',
+        '192.168.50.1',
+      ]);
+    });
+
+    it('should show every address of an interface that declares several', async () => {
+      await createFirewallTree();
+
+      await apply(
+        getProfileProvisioning({
+          provision: {
+            interfaces: [
+              {
+                name: 'WAN',
+                role: 'wan',
+                addresses: [{ value: '198.51.100.10/24' }, { value: '198.51.100.11/24' }],
+              },
+            ],
+            rules: [],
+          },
+        }),
+      );
+
+      expect(await shownAddresses()).to.deep.eq({
+        WAN: ['WAN-ip (198.51.100.10)', 'WAN-ip2 (198.51.100.11)'],
+      });
+    });
+
+    it('should show the address given to an interface that already was on the target', async () => {
+      await db.getSource().manager.getRepository(Interface).save({
+        name: 'eth1',
+        type: '10',
+        interface_type: '10',
+        firewallId: targetFirewall.id,
+      });
+      await createFirewallTree();
+
+      await apply(provision, { interfaceNameMapping: { lan: 'eth1' } });
+
+      expect(await shownAddresses()).to.deep.eq({
+        WAN: ['WAN-ip (198.51.100.10)'],
+        eth1: ['LAN-ip (192.168.50.1)'],
+      });
+    });
+
+    it('should not show an address twice when the profile is applied again', async () => {
+      await createFirewallTree();
+
+      await apply();
+      await apply();
+
+      expect(await shownAddresses()).to.deep.eq({
+        WAN: ['WAN-ip (198.51.100.10)'],
+        LAN: ['LAN-ip (192.168.50.1)'],
+      });
+    });
+
+    it('should not show addresses that a dry run or a rejected apply did not create', async () => {
+      await createFirewallTree();
+
+      await apply(provision, {}, 'dry_run');
+      const rejected = await apply(provision, { interfaceNameMapping: { lan: 'eth9' } });
+
+      expect(rejected.applied).to.be.false;
+      expect(await shownAddresses()).to.deep.eq({});
+    });
   });
 });
