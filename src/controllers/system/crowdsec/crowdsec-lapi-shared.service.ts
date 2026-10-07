@@ -48,6 +48,15 @@ export type CentralLapiCleanup = {
   }>;
 };
 
+export class CentralLapiReplicationError extends Error {
+  constructor(
+    error: unknown,
+    public readonly replicatedNodeIds: number[],
+  ) {
+    super(error instanceof Error ? error.message : 'CrowdSec central LAPI replication failed');
+  }
+}
+
 export class CrowdSecLapiSharedService {
   private installationRepository: CrowdSecInstallationRepository;
 
@@ -203,22 +212,27 @@ export class CrowdSecLapiSharedService {
     }
 
     const replicatedNodes: Record<string, unknown>[] = [];
-    for (const node of nodes) {
-      progress?.(
-        "Replicating CrowdSec Machine credentials on central LAPI node '" +
-          node.firewall.name +
-          "'",
-      );
-      replicatedNodes.push({
-        firewall_id: node.firewall.id,
-        name: node.firewall.name,
-        replication: await node.communication.replicateCrowdSecLapiMachine(
-          credentials.login,
-          credentials.password,
-        ),
-      });
-      progress?.(
-        "CrowdSec Machine credentials replicated on central LAPI node '" + node.firewall.name + "'",
+    try {
+      for (const node of nodes) {
+        progress?.(
+          `Replicating CrowdSec Machine credentials on central LAPI node ${node.firewall.name}`,
+        );
+        replicatedNodes.push({
+          firewall_id: node.firewall.id,
+          name: node.firewall.name,
+          replication: await node.communication.replicateCrowdSecLapiMachine(
+            credentials.login,
+            credentials.password,
+          ),
+        });
+        progress?.(
+          `CrowdSec Machine credentials replicated on central LAPI node ${node.firewall.name}`,
+        );
+      }
+    } catch (error) {
+      throw new CentralLapiReplicationError(
+        error,
+        replicatedNodes.map((node) => node.firewall_id as number),
       );
     }
     return replicatedNodes;
@@ -231,14 +245,21 @@ export class CrowdSecLapiSharedService {
     progress?: CentralLapiProgress,
   ): Promise<Record<string, unknown>[]> {
     const replicatedNodes: Record<string, unknown>[] = [];
-    for (const node of nodes) {
-      progress?.("Replicating CrowdSec Bouncer on central LAPI node '" + node.firewall.name + "'");
-      replicatedNodes.push({
-        firewall_id: node.firewall.id,
-        name: node.firewall.name,
-        replication: await node.communication.replicateCrowdSecLapiBouncer(name, apiKey),
-      });
-      progress?.("CrowdSec Bouncer replicated on central LAPI node '" + node.firewall.name + "'");
+    try {
+      for (const node of nodes) {
+        progress?.(`Replicating CrowdSec Bouncer on central LAPI node ${node.firewall.name}`);
+        replicatedNodes.push({
+          firewall_id: node.firewall.id,
+          name: node.firewall.name,
+          replication: await node.communication.replicateCrowdSecLapiBouncer(name, apiKey),
+        });
+        progress?.(`CrowdSec Bouncer replicated on central LAPI node ${node.firewall.name}`);
+      }
+    } catch (error) {
+      throw new CentralLapiReplicationError(
+        error,
+        replicatedNodes.map((node) => node.firewall_id as number),
+      );
     }
     return replicatedNodes;
   }

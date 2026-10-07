@@ -614,7 +614,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon
       .stub(secondCommunication, 'recoverCrowdSecTransition')
       .rejects(new Error('Recovery failed'));
-    sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
 
     const response = await controller.transitionRole(
       request({
@@ -623,6 +625,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       }),
     );
 
+    expect(removeMachine.calledTwice).to.be.true;
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       nodes: [
@@ -631,14 +634,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
-          central_machine_cleanup_required: true,
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
           machine_name: 'fwcloud-cluster-slave',
           status: 'rollback_failed',
-          central_machine_cleanup_required: true,
           error: 'CrowdSec node rollback failed and requires manual recovery',
         },
       ],
@@ -723,7 +724,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
-          central_machine_cleanup_required: true,
           error: 'Machine replication failed',
         },
         {
@@ -748,11 +748,15 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
     saveMachineInstallationStub.rejects(new Error('Persistence failed'));
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
 
     const response = await controller.transitionRole(
       request({ confirm: true, mode: CrowdSecInstallationMode.Machine }),
     );
 
+    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
     expect(
       restoreInstallationStub.calledWithMatch({
         firewallId: firstNode.id,
@@ -767,7 +771,6 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
-          central_machine_cleanup_required: true,
           error: 'Persistence failed',
         },
       ],
@@ -809,7 +812,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should retain central Bouncer replicas for manual cleanup after replication fails', async () => {
+  it('should remove central Bouncer replicas when a cluster transition fails', async () => {
     (controller as any)._cluster.firewalls = [firstNode];
     findByFirewallIdStub.callsFake(async (firewallId: number) =>
       firewallId === centralFirewall.id || firewallId === firstNode.id
@@ -817,8 +820,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         : null,
     );
     sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon
+      .stub(firstCommunication, 'activateCrowdSecTransition')
+      .rejects(new Error('Activation failed'));
     sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
-    replicateBouncerStub.rejects(new Error('Bouncer replication failed'));
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const removeBouncer = sinon.stub(centralCommunication, 'removeCrowdSecBouncer').resolves({});
 
     const response = await controller.transitionRole(
       request({
@@ -828,6 +837,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       }),
     );
 
+    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(removeBouncer.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       nodes: [
@@ -836,9 +847,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
-          central_machine_cleanup_required: true,
-          central_bouncer_cleanup_required: true,
-          error: 'Bouncer replication failed',
+          error: 'Activation failed',
         },
       ],
     });
