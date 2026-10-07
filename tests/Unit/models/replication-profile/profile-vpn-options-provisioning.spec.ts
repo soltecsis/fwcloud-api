@@ -495,4 +495,80 @@ describe(describeName('VPN template options provisioning'), () => {
       expect(options).to.not.have.any.keys('esp', 'rekey', 'leftfirewall');
     });
   });
+
+  describe('objects in the tree', () => {
+    /** Objects that exist but that no tree shows: they only turn up after repairing the tree. */
+    const outOfTheTree = async (): Promise<string[]> =>
+      (
+        await rows(
+          `SELECT O.name FROM ipobj O
+            LEFT JOIN fwc_tree T ON T.id_obj = O.id AND T.obj_type = O.type AND T.fwcloud = O.fwcloud
+            WHERE O.fwcloud = ? AND T.id IS NULL ORDER BY O.name`,
+          [fwc.fwcloud.id],
+        )
+      ).map((row) => row.name);
+
+    it('shows every object the VPN of a template creates', async () => {
+      const before = await outOfTheTree();
+
+      await provision(
+        [
+          connection({}),
+          connection({
+            id: 'cli',
+            name: 'Laptop',
+            role: 'client',
+            serverId: 'srv',
+            certificateId: 'clicert',
+          }),
+          connection({ id: 'wgs', name: 'WG Office', kind: 'wireguard', port: 51820 }),
+          connection({
+            id: 'wgc',
+            name: 'WG Laptop',
+            kind: 'wireguard',
+            role: 'client',
+            serverId: 'wgs',
+            certificateId: 'clicert',
+          }),
+          connection({ id: 'ips', name: 'IPsec Office', kind: 'ipsec', port: 500 }),
+          connection({
+            id: 'ipc',
+            name: 'IPsec Laptop',
+            kind: 'ipsec',
+            role: 'client',
+            serverId: 'ips',
+            certificateId: 'clicert',
+          }),
+        ],
+        {
+          srv: { network: '10.8.0.0/24', endpoint: 'vpn.example.com' },
+          cli: { network: '10.8.0.2/24' },
+          wgs: { network: '10.50.0.1/24', endpoint: 'wg.example.com' },
+          wgc: { network: '10.50.0.2/24', remoteNetwork: '192.168.1.0/24' },
+          ips: { localNetwork: '10.20.0.0/24', endpoint: 'ips.example.com' },
+          ipc: { network: '10.20.0.5/24' },
+        },
+      );
+
+      expect(errors).to.be.empty;
+      expect(await outOfTheTree()).to.deep.equal(before);
+
+      // Each one is in the folder of its type, where the interactive panels put theirs.
+      const folders = await rows(
+        `SELECT O.name, P.name AS folder FROM fwc_tree T
+          INNER JOIN fwc_tree P ON P.id = T.id_parent
+          INNER JOIN ipobj O ON O.id = T.id_obj AND O.type = T.obj_type
+          WHERE T.fwcloud = ? AND P.name IN ('Addresses', 'Networks') AND P.id_obj IS NULL
+          ORDER BY O.name`,
+        [fwc.fwcloud.id],
+      );
+      expect(folders.map((row) => `${row.folder}/${row.name}`)).to.deep.equal([
+        'Networks/LAN-VPN-Opt-Server',
+        'Networks/LAN-VPN-WG Office',
+        'Networks/Office network',
+        'Addresses/Opt-Client',
+        'Addresses/VPN-WG Laptop',
+      ]);
+    });
+  });
 });

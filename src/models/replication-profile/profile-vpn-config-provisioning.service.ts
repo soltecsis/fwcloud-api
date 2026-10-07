@@ -30,6 +30,7 @@ import { IpUtils } from '../../utils/ip-utils';
 import { Interface } from '../interface/Interface';
 import { IPObj } from '../ipobj/IPObj';
 import { Tree } from '../tree/Tree';
+import { placeObjectInTreeFolder } from './object-binding.resolver';
 import { queryRows } from './replication-sql.helpers';
 import {
   dereferenceParameter,
@@ -1186,6 +1187,9 @@ async function insertVpnIpobj(
     destination_port_end: 0,
     options: null,
   })) as number;
+
+  // As the interactive panel does when it creates the object: without its node the tree hides it.
+  await placeObjectInTreeFolder(fwCloudId, id, type, name);
 
   rollback.add(`VPN object ${id}`, async () => {
     await IPObj.deleteIpobj(dbCon, fwCloudId, id);

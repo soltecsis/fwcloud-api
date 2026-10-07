@@ -23,7 +23,7 @@
 import { QueryRunner } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
-import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
+import { dbQuery, findTreeNodeId, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import { RulePositionsMap } from '../policy/PolicyPosition';
 import { PolicyTypesMap } from '../policy/PolicyType';
@@ -635,14 +635,9 @@ export class PolicyReplicationService extends Service {
 
     const manager = db.getSource().manager;
     const dbCon = isDryRun ? null : db.getQuery();
-    const fdiNode = isDryRun
+    const fdiNodeId = isDryRun
       ? null
-      : (
-          await dbQuery<{ id: number }>(
-            "SELECT id FROM fwc_tree WHERE id_obj = ? AND node_type = 'FDI' AND fwcloud = ?",
-            [firewallId, fwCloudId],
-          )
-        )[0];
+      : await findTreeNodeId(fwCloudId, 'FDI', 'id_obj', firewallId);
 
     for (const iface of provision.interfaces) {
       const bindingKey = `interface:${iface.role}`;
@@ -672,8 +667,8 @@ export class PolicyReplicationService extends Service {
 
         interfaceId = created.id;
 
-        if (fdiNode && dbCon) {
-          await Tree.newNode(dbCon, fwCloudId, iface.name, fdiNode.id, 'IFF', created.id, 10);
+        if (fdiNodeId !== null && dbCon) {
+          await Tree.newNode(dbCon, fwCloudId, iface.name, fdiNodeId, 'IFF', created.id, 10);
         }
       }
 

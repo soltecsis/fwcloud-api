@@ -43,6 +43,21 @@ export function dbQuery<T = any>(sql: string, params: any[] = []): Promise<T[]> 
   return db.getSource().query(sql, params);
 }
 
+/** Id of the node of that type a FWCloud's tree has for an object (`id_obj`) or under a name. */
+export async function findTreeNodeId(
+  fwCloudId: number,
+  nodeType: string,
+  column: 'id_obj' | 'name',
+  value: number | string,
+): Promise<number | null> {
+  const [node] = await dbQuery<{ id: number }>(
+    `SELECT id FROM fwc_tree WHERE fwcloud = ? AND node_type = ? AND ${column} = ? LIMIT 1`,
+    [fwCloudId, nodeType, value],
+  );
+
+  return node?.id ?? null;
+}
+
 /** Promisified `dbCon.query(sql, params, callback)`, for the callback-style connection object the legacy VPN model methods take as `req.dbCon`. */
 export function queryRows<T = any>(dbCon: any, sql: string, params: unknown[]): Promise<T[]> {
   return new Promise((resolve, reject) => {
