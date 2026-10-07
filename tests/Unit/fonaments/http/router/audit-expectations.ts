@@ -138,6 +138,15 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/machines/install': {
     audited: true,
   },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/install': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/remove': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/update': {
+    audited: true,
+  },
   'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/transitions/address': {
     audited: true,
   },

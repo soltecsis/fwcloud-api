@@ -42,6 +42,7 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.dto';
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
+import { CrowdSecCollectionDto } from './dto/collection.dto';
 import { CentralLapiNode, CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 
 type ClusterCrowdSecInstallationSnapshot = Pick<
@@ -86,6 +87,21 @@ type ClusterMachineNodeResult = {
   central_machine_cleanup_required?: boolean;
   source_machine_removed?: boolean;
   source_bouncer_cleanup_required?: boolean;
+};
+
+type ClusterCollectionOperation = 'install' | 'remove' | 'update';
+
+type ClusterCollectionNodeResult = {
+  firewall_id: number;
+  name: string;
+  status: 'completed' | 'skipped' | 'failed' | 'rolled_back' | 'rollback_failed' | 'cancelled';
+  error?: string;
+};
+
+type ClusterCollectionNode = {
+  firewall: Firewall;
+  communication: AgentCommunication;
+  installed: boolean;
 };
 
 export class CrowdSecClusterController extends Controller {
@@ -1241,6 +1257,196 @@ export class CrowdSecClusterController extends Controller {
     );
 
     return ResponseBuilder.buildResponse().status(200).body({ nodes: collections });
+  }
+
+  @Validate(CrowdSecCollectionDto)
+  public async installCollection(req: Request): Promise<ResponseBuilder> {
+    return this.mutateClusterCollections(req, 'install', req.body.name);
+  }
+
+  @Validate(CrowdSecCollectionDto)
+  public async removeCollection(req: Request): Promise<ResponseBuilder> {
+    return this.mutateClusterCollections(req, 'remove', req.body.name);
+  }
+
+  @Validate()
+  public async updateCollections(req: Request): Promise<ResponseBuilder> {
+    return this.mutateClusterCollections(req, 'update');
+  }
+
+  private async mutateClusterCollections(
+    req: Request,
+    operation: ClusterCollectionOperation,
+    name?: string,
+  ): Promise<ResponseBuilder> {
+    const nodes = await this.getAuthorizedNodes(req, false);
+    for (const node of nodes) {
+      (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
+    }
+
+    const collectionNodes = await this.loadClusterCollectionNodes(nodes, name);
+    const results: ClusterCollectionNodeResult[] = [];
+    const changedNodes: ClusterCollectionNode[] = [];
+
+    for (const node of collectionNodes) {
+      if (
+        (operation === 'install' && node.installed) ||
+        (operation === 'remove' && !node.installed)
+      ) {
+        results.push({
+          firewall_id: node.firewall.id,
+          name: node.firewall.name,
+          status: 'skipped',
+        });
+        continue;
+      }
+
+      try {
+        await this.runClusterCollectionOperation(node.communication, operation, name);
+        results.push({
+          firewall_id: node.firewall.id,
+          name: node.firewall.name,
+          status: 'completed',
+        });
+        if (operation !== 'update') {
+          changedNodes.push(node);
+        }
+      } catch (error) {
+        results.push({
+          firewall_id: node.firewall.id,
+          name: node.firewall.name,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'CrowdSec collection operation failed',
+        });
+
+        if (operation === 'update') {
+          this.appendCancelledCollectionResults(collectionNodes, results);
+          return ResponseBuilder.buildResponse().status(200).body({
+            completed: false,
+            operation,
+            manual_reconciliation_required: true,
+            nodes: results,
+          });
+        }
+
+        const rollbackCompleted = await this.rollbackClusterCollectionOperation(
+          changedNodes,
+          operation,
+          name!,
+          results,
+        );
+        this.appendCancelledCollectionResults(collectionNodes, results);
+        return ResponseBuilder.buildResponse().status(200).body({
+          completed: false,
+          operation,
+          rollback_completed: rollbackCompleted,
+          nodes: results,
+        });
+      }
+    }
+
+    return ResponseBuilder.buildResponse().status(200).body({
+      completed: true,
+      operation,
+      nodes: results,
+    });
+  }
+
+  private async loadClusterCollectionNodes(
+    nodes: Firewall[],
+    name?: string,
+  ): Promise<ClusterCollectionNode[]> {
+    const collectionNodes: ClusterCollectionNode[] = [];
+    for (const firewall of nodes) {
+      const communication = await CrowdSecLapiSharedService.agentCommunication(firewall, false);
+      const collections = await communication.getCrowdSecCollections();
+      collectionNodes.push({
+        firewall,
+        communication,
+        installed: name === undefined ? false : this.isCollectionInstalled(collections, name),
+      });
+    }
+    return collectionNodes;
+  }
+
+  private isCollectionInstalled(collections: Record<string, unknown>, name: string): boolean {
+    const entries = collections.collections;
+    return (
+      Array.isArray(entries) &&
+      entries.some((entry) => {
+        if (typeof entry !== 'object' || entry === null) {
+          return false;
+        }
+        const collection = entry as Record<string, unknown>;
+        return collection.name === name && collection.state === 'installed';
+      })
+    );
+  }
+
+  private async runClusterCollectionOperation(
+    communication: AgentCommunication,
+    operation: ClusterCollectionOperation,
+    name?: string,
+  ): Promise<void> {
+    if (operation === 'update') {
+      await communication.updateCrowdSecCollections();
+      return;
+    }
+    if (name === undefined) {
+      throw new HttpException('CrowdSec collection name is required', 422);
+    }
+    if (operation === 'install') {
+      await communication.installCrowdSecCollection(name);
+      return;
+    }
+    await communication.removeCrowdSecCollection(name);
+  }
+
+  private async rollbackClusterCollectionOperation(
+    nodes: ClusterCollectionNode[],
+    operation: Exclude<ClusterCollectionOperation, 'update'>,
+    name: string,
+    results: ClusterCollectionNodeResult[],
+  ): Promise<boolean> {
+    let completed = true;
+    const rollbackOperation = operation === 'install' ? 'remove' : 'install';
+    for (const node of [...nodes].reverse()) {
+      const result = results.find((candidate) => candidate.firewall_id === node.firewall.id);
+      if (!result) {
+        completed = false;
+        continue;
+      }
+      try {
+        await this.runClusterCollectionOperation(node.communication, rollbackOperation, name);
+        result.status = 'rolled_back';
+      } catch (error) {
+        completed = false;
+        result.status = 'rollback_failed';
+        result.error =
+          error instanceof Error
+            ? error.message
+            : 'CrowdSec collection rollback failed and requires manual recovery';
+      }
+    }
+    return completed;
+  }
+
+  private appendCancelledCollectionResults(
+    nodes: ClusterCollectionNode[],
+    results: ClusterCollectionNodeResult[],
+  ): void {
+    const processedNodeIds = new Set(results.map((result) => result.firewall_id));
+    for (const node of nodes) {
+      if (processedNodeIds.has(node.firewall.id)) {
+        continue;
+      }
+      results.push({
+        firewall_id: node.firewall.id,
+        name: node.firewall.name,
+        status: 'cancelled',
+        error: 'CrowdSec cluster collection operation was cancelled after a previous node failed',
+      });
+    }
   }
 
   private async optionalBouncerApiKey(req: Request, value: unknown): Promise<string | undefined> {

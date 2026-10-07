@@ -844,6 +844,80 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should coordinate collection installation across every cluster node', async () => {
+    sinon.stub(firstCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecCollection').resolves({});
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecCollection').resolves({});
+
+    const response = await controller.installCollection(request({ name: 'crowdsecurity/nginx' }));
+
+    expect(firstInstall.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(secondInstall.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      operation: 'install',
+      nodes: [
+        { firewall_id: firstNode.id, name: firstNode.name, status: 'completed' },
+        { firewall_id: secondNode.id, name: secondNode.name, status: 'completed' },
+      ],
+    });
+  });
+
+  it('should roll back completed collection installations after a later node fails', async () => {
+    sinon.stub(firstCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(firstCommunication, 'installCrowdSecCollection').resolves({});
+    sinon
+      .stub(secondCommunication, 'installCrowdSecCollection')
+      .rejects(new Error('Collection installation failed'));
+    const rollback = sinon.stub(firstCommunication, 'removeCrowdSecCollection').resolves({});
+
+    const response = await controller.installCollection(request({ name: 'crowdsecurity/nginx' }));
+
+    expect(rollback.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      operation: 'install',
+      rollback_completed: true,
+      nodes: [
+        { firewall_id: firstNode.id, name: firstNode.name, status: 'rolled_back' },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          status: 'failed',
+          error: 'Collection installation failed',
+        },
+      ],
+    });
+  });
+
+  it('should report manual reconciliation when a cluster collection update fails', async () => {
+    sinon.stub(firstCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(firstCommunication, 'updateCrowdSecCollections').resolves({});
+    sinon
+      .stub(secondCommunication, 'updateCrowdSecCollections')
+      .rejects(new Error('Collection update failed'));
+
+    const response = await controller.updateCollections(request());
+
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      operation: 'update',
+      manual_reconciliation_required: true,
+      nodes: [
+        { firewall_id: firstNode.id, name: firstNode.name, status: 'completed' },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          status: 'failed',
+          error: 'Collection update failed',
+        },
+      ],
+    });
+  });
+
   it('should authorize cluster role transitions before contacting agents', async () => {
     managePolicyStub.resolves(Authorization.revoke());
 
