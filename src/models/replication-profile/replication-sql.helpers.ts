@@ -27,6 +27,17 @@ export function sqlPlaceholders(count: number): string {
   return new Array(count).fill('?').join(', ');
 }
 
+/** Adds a value to the list a map keeps for its key: how rows are grouped by one of their ids. */
+export function addToList<K, V>(lists: Map<K, V[]>, key: K, value: V): void {
+  const list = lists.get(key);
+
+  if (list) {
+    list.push(value);
+  } else {
+    lists.set(key, [value]);
+  }
+}
+
 /** Raw parameterized query against the default TypeORM data source. */
 export function dbQuery<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   return db.getSource().query(sql, params);

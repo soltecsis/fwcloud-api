@@ -21,19 +21,17 @@
 */
 
 import {
+  REPLICATION_PROFILE_IPOBJ_GROUP_TYPES,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
-  REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT,
   REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY,
-  REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
   REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
   REPLICATION_PROFILE_IPOBJ_TYPE_IP,
   REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
-  REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
   REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
   REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
 } from './replication-profile.constants';
-import { dbQuery } from './replication-sql.helpers';
+import { addToList, dbQuery } from './replication-sql.helpers';
 
 /**
  * FWCloud's predefined objects (the "Standard" folders of the objects and
@@ -83,11 +81,6 @@ const STANDARD_OBJECT_TYPES = [
   REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
   REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY,
 ];
-const STANDARD_GROUP_TYPES = [
-  REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT,
-];
 
 export async function loadReplicationProfileStandardCatalog(): Promise<ReplicationProfileStandardCatalog> {
   const [objects, groups, members] = await Promise.all([
@@ -101,7 +94,7 @@ export async function loadReplicationProfileStandardCatalog(): Promise<Replicati
     ),
     dbQuery<{ id: number; name: string; type: number }>(
       `SELECT id, name, type FROM ipobj_g
-       WHERE fwcloud IS NULL AND type IN (${STANDARD_GROUP_TYPES.join(', ')})
+       WHERE fwcloud IS NULL AND type IN (${REPLICATION_PROFILE_IPOBJ_GROUP_TYPES.join(', ')})
        ORDER BY type, name`,
     ),
     dbQuery<{ ipobj_g: number; ipobj: number }>(
@@ -114,8 +107,7 @@ export async function loadReplicationProfileStandardCatalog(): Promise<Replicati
   const membersByGroup = new Map<number, number[]>();
 
   for (const member of members) {
-    const groupId = Number(member.ipobj_g);
-    membersByGroup.set(groupId, [...(membersByGroup.get(groupId) ?? []), Number(member.ipobj)]);
+    addToList(membersByGroup, Number(member.ipobj_g), Number(member.ipobj));
   }
 
   return {

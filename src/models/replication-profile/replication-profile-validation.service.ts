@@ -8,6 +8,8 @@ import { getProfileProvisioning } from './policy-replication.types';
 import {
   asReplicationProfileRecord,
   asReplicationProfileNonEmptyString,
+  getReplicationProfileRuleIpVersion,
+  isReplicationProfileExternalObjectUsage,
   isReplicationProfileIpVersion,
   isReplicationProfilePort,
   isReplicationProfileStringValue,
@@ -33,6 +35,10 @@ import {
   parseReplicationProfileRange,
   parseReplicationProfileService,
 } from './replication-profile-parameters';
+import {
+  RULE_OBJECT_FIELDS,
+  validateProfileObjectReferences,
+} from './replication-profile-object-reference';
 
 type ValidationSeverity = 'error' | 'warning';
 type ValidationRecord = Record<string, unknown>;
@@ -225,6 +231,7 @@ class ReplicationProfileDefinitionValidator {
     }
 
     this.validateCompatibility(model, rootTargetKind, errors);
+    errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
     if (model.vpnTemplate !== undefined) {
@@ -1020,27 +1027,9 @@ class ReplicationProfileDefinitionValidator {
       this.validateRuleChain(record, rulePath, errors);
       this.validateRuleInterfaceRoles(record, rulePath, interfaceRoles, errors);
       this.validatePortsAndProtocols(record, rulePath, parameterNames, errors);
-      const ipVersion = record.ipVersion ?? record.ip_version ?? 4;
-      const family = isReplicationProfileIpVersion(ipVersion) ? ipVersion : undefined;
+      const family = getReplicationProfileRuleIpVersion(record);
 
-      this.validateRuleSide(
-        record.source,
-        `${rulePath}.source`,
-        interfaceRoles,
-        parameterNames,
-        errors,
-        family,
-      );
-      this.validateRuleSide(
-        record.destination,
-        `${rulePath}.destination`,
-        interfaceRoles,
-        parameterNames,
-        errors,
-        family,
-      );
-
-      for (const field of ['translatedSource', 'translatedDestination']) {
+      for (const field of RULE_OBJECT_FIELDS) {
         this.validateRuleSide(
           record[field],
           `${rulePath}.${field}`,
@@ -1157,6 +1146,11 @@ class ReplicationProfileDefinitionValidator {
 
     items.forEach((item, index) => {
       const itemPath = Array.isArray(value) ? `${path}[${index}]` : path;
+
+      // Checked with the reference it names, by validateProfileObjectReferences().
+      if (isReplicationProfileExternalObjectUsage(item)) {
+        return;
+      }
 
       if (this.validateParameterReference(item, itemPath, parameterNames, errors)) {
         return;

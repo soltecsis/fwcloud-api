@@ -55,6 +55,7 @@ import {
 import {
   asReplicationProfileNonEmptyString,
   asReplicationProfileRecord,
+  isReplicationProfileExternalObjectUsage,
   isReplicationProfilePort,
   isReplicationProfileStringValue,
   REPLICATION_PROFILE_CODE_PATTERN,
@@ -109,6 +110,11 @@ function isProvisionService(value: unknown): boolean {
 
   // Predefined FWCloud service or service group, referenced by its fixed id.
   if ((record.kind === 'std' || record.kind === 'stdGroup') && Number.isInteger(record.id)) {
+    return true;
+  }
+
+  // A FWCloud service created outside the template, declared in model.objectReferences.
+  if (isReplicationProfileExternalObjectUsage(record)) {
     return true;
   }
 
@@ -294,6 +300,16 @@ const IsSecretFree = profileValidator('isSecretFree', IsSecretFreeConstraint);
 export class ReplicationProfileStoreModelDto {
   @IsProfileCompatibility()
   compatibility: Record<string, unknown>;
+
+  /**
+   * FWCloud objects created outside the template that it uses. Clients send referenceId,
+   * objectType and sourceObjectId; the server captures the rest. Checked by
+   * ReplicationProfileValidationService.
+   */
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  objectReferences?: Record<string, unknown>[];
 
   /** Names and values are checked by ReplicationProfileValidationService. */
   @IsOptional()

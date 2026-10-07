@@ -20,7 +20,6 @@ import type {
   ReplicationProfileTargetKind,
 } from '../../models/replication-profile/replication-profile.constants';
 import {
-  DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
   ReplicationProfileService,
   type ReplicationProfileCatalogFilters,
   type CreateCustomReplicationProfileOptions,
@@ -54,6 +53,7 @@ import {
   ReplicationProfileSnapshotService,
   type ReplicationProfileSnapshotSource,
 } from '../../models/replication-profile/replication-profile-snapshot.service';
+import { resolveProfileObjectReferences } from '../../models/replication-profile/replication-profile-object-reference.service';
 
 export class ReplicationProfileController extends Controller {
   protected _fwCloud: FwCloud;
@@ -80,7 +80,11 @@ export class ReplicationProfileController extends Controller {
 
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body(profiles.map(({ profile, template }) => this.toResponse(profile, template)));
+      .body(
+        await Promise.all(
+          profiles.map(({ profile, template }) => this.toResponse(profile, template)),
+        ),
+      );
   }
 
   /** Predefined FWCloud objects and services a profile can reference by id. */
@@ -110,7 +114,9 @@ export class ReplicationProfileController extends Controller {
       throw new NotFoundException('Replication profile not found');
     }
 
-    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile));
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(await this.toResponse(profile));
   }
 
   @Validate(ReplicationProfileStoreDto)
@@ -138,7 +144,9 @@ export class ReplicationProfileController extends Controller {
       this.profileMutationOptions(request),
     );
 
-    return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+    return ResponseBuilder.buildResponse()
+      .status(201)
+      .body(await this.toResponse(profile));
   }
 
   /**
@@ -183,7 +191,7 @@ export class ReplicationProfileController extends Controller {
     return ResponseBuilder.buildResponse()
       .status(201)
       .body({
-        ...this.toResponse(profile),
+        ...(await this.toResponse(profile)),
         warnings,
       });
   }
@@ -194,10 +202,10 @@ export class ReplicationProfileController extends Controller {
     const replicationProfileService = await this.replicationProfileService();
     const body = request.body as ReplicationProfileStoreDto;
 
-    const validationErrors = replicationProfileService.validateDefinition({
-      targetKind: body.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
-      model: body.model,
-    });
+    const validationErrors = await replicationProfileService.validatePayloadToSave(
+      body,
+      this._fwCloud.id,
+    );
 
     return ResponseBuilder.buildResponse()
       .status(200)
@@ -235,7 +243,9 @@ export class ReplicationProfileController extends Controller {
       this.profileMutationOptions(request),
     );
 
-    return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+    return ResponseBuilder.buildResponse()
+      .status(201)
+      .body(await this.toResponse(profile));
   }
 
   @Validate(ReplicationProfileVersionStoreDto)
@@ -264,7 +274,9 @@ export class ReplicationProfileController extends Controller {
       this.profileMutationOptions(request),
     );
 
-    return ResponseBuilder.buildResponse().status(201).body(this.toResponse(profile));
+    return ResponseBuilder.buildResponse()
+      .status(201)
+      .body(await this.toResponse(profile));
   }
 
   @Validate()
@@ -290,7 +302,9 @@ export class ReplicationProfileController extends Controller {
       this.profileMutationOptions(request),
     );
 
-    return ResponseBuilder.buildResponse().status(200).body(this.toResponse(profile, template));
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(await this.toResponse(profile, template));
   }
 
   @Validate(ReplicationProfileApplyDto)
@@ -313,6 +327,7 @@ export class ReplicationProfileController extends Controller {
         expectedScope: body.scope,
         replication,
         parameters: body.parameters,
+        objectReplacements: body.objectReplacements,
         interfaceNameMapping: body.interfaceNameMapping,
         credentials: body.credentials,
         vpnConnectionIds: body.vpnConnectionIds,
@@ -350,6 +365,7 @@ export class ReplicationProfileController extends Controller {
           mode: 'replace_defaults',
         },
         parameters: body.parameters,
+        objectReplacements: body.objectReplacements,
       },
     );
 
@@ -599,14 +615,22 @@ export class ReplicationProfileController extends Controller {
   }
 
   /** Without an already read template, an unreadable one fails the request. */
-  private toResponse(
+  private async toResponse(
     profile: ReplicationProfile,
     template: ReplicationProfileTemplateRead = {
       model: loadReplicationProfileModel(profile),
       error: null,
     },
-  ): ReplicationProfileResponseDto {
+  ): Promise<ReplicationProfileResponseDto> {
     const isCustom = !profile.isBuiltin;
+    const model = normalizeProfileVpnRuleParameters(template.model);
+
+    // Each external object also tells what it resolves to in this FWCloud, or that it is missing.
+    if (Array.isArray(model?.objectReferences)) {
+      model.objectReferences = (
+        await resolveProfileObjectReferences(model, this._fwCloud.id)
+      ).objectReferences;
+    }
 
     return {
       id: profile.id,
@@ -617,7 +641,7 @@ export class ReplicationProfileController extends Controller {
       scope: profile.scope,
       category: profile.category,
       targetKind: profile.targetKind,
-      model: normalizeProfileVpnRuleParameters(template.model),
+      model,
       templateError: template.error
         ? { reason: template.error.reason, message: template.error.message }
         : null,

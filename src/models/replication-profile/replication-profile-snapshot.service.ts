@@ -27,7 +27,7 @@ import { Service } from '../../fonaments/services/service';
 import { DefaultPolicyRuleComments } from '../policy/PolicyRule';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replication.service';
-import { dbQuery, sqlPlaceholders } from './replication-sql.helpers';
+import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
 import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
 import {
@@ -1574,15 +1574,7 @@ export class ReplicationProfileSnapshotService extends Service {
   private groupByRule<T extends { rule: number }>(rows: T[]): Map<number, T[]> {
     const grouped = new Map<number, T[]>();
 
-    for (const row of rows) {
-      const group = grouped.get(row.rule);
-
-      if (group) {
-        group.push(row);
-      } else {
-        grouped.set(row.rule, [row]);
-      }
-    }
+    rows.forEach((row) => addToList(grouped, row.rule, row));
 
     return grouped;
   }

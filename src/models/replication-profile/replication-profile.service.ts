@@ -27,6 +27,7 @@ import {
   type ReplicationProfileModel,
   type ReplicationProfileTemplateRead,
 } from './replication-profile-template';
+import { captureProfileObjectReferences } from './replication-profile-object-reference.service';
 import { AuditLogService } from '../audit/AuditLog.service';
 
 export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
@@ -131,6 +132,12 @@ export type CreateCustomReplicationProfileVersionPayload = Omit<
   'code' | 'version'
 >;
 
+/** What a payload defines: the part of it the validation checks. */
+type ProfileDefinitionPayload = Pick<
+  CreateCustomReplicationProfileVersionPayload,
+  'targetKind' | 'model'
+>;
+
 interface CustomReplicationProfileIdentity {
   code: string;
   version: number;
@@ -159,6 +166,16 @@ export class ReplicationProfileService extends Service {
 
   public assertDefinitionIsValid(payload: unknown): void {
     this._validationService.assertValid(payload);
+  }
+
+  /** Errors of a payload validated as it would be saved from the given FWCloud. */
+  public async validatePayloadToSave(
+    payload: ProfileDefinitionPayload,
+    fwCloudId: number,
+  ): Promise<ReplicationProfileValidationError[]> {
+    return this.validateDefinition(
+      this.payloadDefinition(await this.captureObjectReferences(payload, fwCloudId)),
+    );
   }
 
   private get repository(): Repository<ReplicationProfile> {
@@ -277,6 +294,7 @@ export class ReplicationProfileService extends Service {
 
     try {
       const userId = this.requireOwnerUserId(options);
+      payload = await this.captureObjectReferences(payload, options.fwCloudId);
       this.assertPayloadDefinitionIsValid(payload);
 
       await this.assertCustomProfileIdentityIsAvailable(code, version, userId);
@@ -415,6 +433,7 @@ export class ReplicationProfileService extends Service {
         );
       }
 
+      payload = await this.captureObjectReferences(payload, options.fwCloudId);
       this.assertPayloadDefinitionIsValid(payload);
 
       nextVersion = latestCustomProfile.version + 1;
@@ -911,13 +930,26 @@ export class ReplicationProfileService extends Service {
     );
   }
 
-  private assertPayloadDefinitionIsValid(
-    payload: CreateCustomReplicationProfileVersionPayload,
-  ): void {
-    this.assertDefinitionIsValid({
+  private assertPayloadDefinitionIsValid(payload: ProfileDefinitionPayload): void {
+    this.assertDefinitionIsValid(this.payloadDefinition(payload));
+  }
+
+  private payloadDefinition(payload: ProfileDefinitionPayload): ProfileDefinitionPayload {
+    return {
       targetKind: payload.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
       model: payload.model,
-    });
+    };
+  }
+
+  /**
+   * The payload as it is saved: the object references of its model captured from the FWCloud,
+   * without which its definition is not valid.
+   */
+  private async captureObjectReferences<T extends ProfileDefinitionPayload>(
+    payload: T,
+    fwCloudId: number,
+  ): Promise<T> {
+    return { ...payload, model: await captureProfileObjectReferences(payload.model, fwCloudId) };
   }
 
   private persistCustomProfile(

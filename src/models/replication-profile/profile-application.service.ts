@@ -32,7 +32,9 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { User } from '../user/User';
 import { PolicyReplicationService } from './policy-replication.service';
 import {
+  createPolicyReplicationResult,
   getProfileProvisioning,
+  PolicyReplicationProvision,
   PolicyReplicationRequest,
   PolicyReplicationResult,
 } from './policy-replication.types';
@@ -64,6 +66,14 @@ import {
   resolveVpnConnectionValues,
 } from './profile-vpn-config-provisioning.service';
 import { ResolvedVpnConfig } from './replication-profile.constants';
+import type {
+  ProfileObjectReplacement,
+  ResolvedProfileObjectReference,
+} from './replication-profile-object-reference';
+import {
+  ProfileObjectResolution,
+  resolveProfileObjectReferences,
+} from './replication-profile-object-reference.service';
 
 export const PROFILE_APPLICATION_AUDIT_CALL = 'profiles.apply';
 
@@ -94,6 +104,11 @@ export interface ProfileApplicationRequest {
   replication: PolicyReplicationRequest;
   /** Values for the profile's declared parameters, keyed by parameter name. */
   parameters?: ReplicationProfileParameterValues;
+  /**
+   * Replacements of the profile's external objects for this application only, keyed by
+   * referenceId: the objects that no longer exist (missingObjects) need one.
+   */
+  objectReplacements?: Record<string, ProfileObjectReplacement>;
   /** Provisioning only: role → name of an existing target interface to bind to it. */
   interfaceNameMapping?: Record<string, string>;
   /**
@@ -121,6 +136,8 @@ export interface ProfileVpnProvisionResult {
   /** Template connection id -> the real config id just created for it. */
   connectionIds: Record<string, number>;
   errors: string[];
+  /** As in an application: nothing is created while an external object is missing. */
+  missingObjects?: ResolvedProfileObjectReference[];
 }
 
 /**
@@ -176,7 +193,19 @@ export class ProfileApplicationService extends Service {
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
       const provision = getProfileProvisioning(model);
+      const objects = await this.resolveObjectReferences(model, provision, request);
       let result: PolicyReplicationResult;
+
+      if (objects.errors.length > 0) {
+        result = {
+          ...this.emptyPolicyReplicationResult(objects.errors, request.replication.mode),
+          objectReferences: objects.objectReferences,
+          missingObjects: objects.missingObjects,
+        };
+        await this.auditAttempt(actor, request, profile, target, startedAt, result);
+
+        return result;
+      }
 
       if (provision) {
         // The template's CAs/certificates have no keys of their own; a real firewall generates its
@@ -202,6 +231,7 @@ export class ProfileApplicationService extends Service {
               interfaceNameMapping: request.interfaceNameMapping,
               nodeRoleMapping: request.replication.nodeRoleMapping,
               vpnConfigIds: resourced.vpnConfigIds,
+              externalObjects: objects.bindings,
             },
           );
           result.errors.push(...resourced.errors);
@@ -212,6 +242,11 @@ export class ProfileApplicationService extends Service {
           ...request.replication,
           sourceProfile: { ...request.replication.sourceProfile!, profile },
         });
+      }
+
+      if (objects.objectReferences.length > 0) {
+        result.objectReferences = objects.objectReferences;
+        result.missingObjects = [];
       }
 
       if (result.errors.length || (request.replication.mode !== 'dry_run' && !result.applied)) {
@@ -255,6 +290,30 @@ export class ProfileApplicationService extends Service {
       target = await this.validateTarget(request);
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
+      // The VPN is created for an application of the profile, which could not use it without them.
+      const objects = await this.resolveObjectReferences(
+        model,
+        getProfileProvisioning(model),
+        request,
+      );
+
+      if (objects.errors.length > 0) {
+        await this.auditAttempt(
+          actor,
+          request,
+          profile,
+          target,
+          startedAt,
+          this.emptyPolicyReplicationResult(objects.errors),
+        );
+
+        return {
+          connectionIds: {},
+          errors: objects.errors,
+          missingObjects: objects.missingObjects,
+        };
+      }
+
       const { vpnConfigIds, errors } = await this.provisionVpnResources(
         request,
         model,
@@ -287,6 +346,42 @@ export class ProfileApplicationService extends Service {
 
       throw failure;
     }
+  }
+
+  /**
+   * Resolves the profile's external objects before anything is written. Each used object that is
+   * not available and has no replacement, each replacement that cannot be used and, once all of
+   * them are resolved, each object that does not fit where the profile uses it is an error: the
+   * application stops there, and the caller can supply what is missing and retry.
+   */
+  private async resolveObjectReferences(
+    model: unknown,
+    provision: PolicyReplicationProvision | null,
+    request: ProfileApplicationRequest,
+  ): Promise<ProfileObjectResolution> {
+    const resolution = await resolveProfileObjectReferences(
+      model,
+      request.fwCloudId,
+      request.objectReplacements,
+    );
+
+    resolution.errors.push(
+      ...resolution.missingObjects.map(
+        (reference) =>
+          `Object "${reference.sourceName}" (${reference.objectType}) is not available in this FWCloud: send a replacement for "${reference.referenceId}" in objectReplacements.`,
+      ),
+    );
+
+    if (provision && resolution.errors.length === 0 && resolution.bindings.size > 0) {
+      resolution.errors.push(
+        ...(await this._policyReplicationService.validateExternalObjects(
+          provision,
+          resolution.bindings,
+        )),
+      );
+    }
+
+    return resolution;
   }
 
   private async authorizeApplication(
@@ -443,18 +538,7 @@ export class ProfileApplicationService extends Service {
     errors: string[],
     mode: PolicyReplicationResult['mode'] = 'replace_defaults',
   ): PolicyReplicationResult {
-    return {
-      mode,
-      applied: errors.length === 0,
-      createdRules: [],
-      createdGroups: [],
-      resolvedReferences: [],
-      removedDefaultRules: [],
-      skippedRules: [],
-      conflicts: [],
-      warnings: [],
-      errors,
-    };
+    return { ...createPolicyReplicationResult(mode, errors), applied: errors.length === 0 };
   }
 
   /**
