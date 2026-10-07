@@ -278,9 +278,10 @@ export class ObjectBindingResolver {
     }
 
     // Addresses owned by an interface hang from the interface node, not from
-    // the standard objects folder, so they are only placed when unbound.
-    return this.saveObject(
-      REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[request.kind],
+    // the standard objects folder.
+    const ipObjTypeId = REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[request.kind];
+    const saved = await this.saveObject(
+      ipObjTypeId,
       name,
       {
         address: request.address,
@@ -290,6 +291,17 @@ export class ObjectBindingResolver {
       },
       request.interfaceId === undefined,
     );
+
+    if (request.interfaceId !== undefined) {
+      await this.placeUnderInterface(
+        saved.id,
+        ipObjTypeId,
+        `${name} (${request.address})`,
+        request.interfaceId,
+      );
+    }
+
+    return saved;
   }
 
   /** The object the replacement data of a template's external object describes. */
@@ -329,5 +341,31 @@ export class ObjectBindingResolver {
     return request.kind === 'service'
       ? `${request.protocol.toUpperCase()}/${request.port}`
       : `${request.address}${request.netmask === '/32' || request.netmask === '/128' ? '' : request.netmask}`;
+  }
+
+  /**
+   * Hangs the address of a firewall interface from that interface's node, named as the tree names
+   * it. Without the node the address exists but stays out of the tree until the tree is repaired.
+   */
+  private async placeUnderInterface(
+    objectId: number,
+    objectType: number,
+    name: string,
+    interfaceId: number,
+  ): Promise<void> {
+    const nodeType = TREE_FOLDER_BY_TYPE.get(objectType)?.nodeType;
+    const interfaceNodeId = await findTreeNodeId(this.fwCloudId, 'IFF', 'id_obj', interfaceId);
+
+    if (nodeType && interfaceNodeId !== null) {
+      await Tree.newNode(
+        db.getQuery(),
+        this.fwCloudId,
+        name,
+        interfaceNodeId,
+        nodeType,
+        objectId,
+        objectType,
+      );
+    }
   }
 }
