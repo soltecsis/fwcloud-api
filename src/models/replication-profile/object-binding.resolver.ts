@@ -23,7 +23,7 @@
 import db from '../../database/database-manager';
 import { IPObj } from '../ipobj/IPObj';
 import { OBJECT_TREE_FOLDERS, SERVICE_TREE_FOLDERS, Tree } from '../tree/Tree';
-import { dbQuery } from './replication-sql.helpers';
+import { dbQuery, findTreeNodeId } from './replication-sql.helpers';
 import {
   PROFILE_OBJECT_DATA_FIELDS,
   ProfileExternalObjectBinding,
@@ -80,6 +80,44 @@ const TREE_FOLDER_BY_TYPE = new Map(
 );
 
 /**
+ * Places an object a profile created in the folder of the objects or services tree its type
+ * belongs to: an object without a node exists but stays out of the tree until the tree is
+ * repaired. `folderIds` remembers the folders already looked up.
+ */
+export async function placeObjectInTreeFolder(
+  fwCloudId: number,
+  objectId: number,
+  objectType: number,
+  name: string,
+  folderIds: Map<number, number | null> = new Map(),
+): Promise<void> {
+  const folder = TREE_FOLDER_BY_TYPE.get(objectType);
+
+  if (!folder) {
+    return;
+  }
+
+  let folderId = folderIds.get(objectType);
+
+  if (folderId === undefined) {
+    folderId = await findTreeNodeId(fwCloudId, folder.nodeType, 'name', folder.name);
+    folderIds.set(objectType, folderId);
+  }
+
+  if (folderId !== null) {
+    await Tree.newNode(
+      db.getQuery(),
+      fwCloudId,
+      name,
+      folderId,
+      folder.nodeType,
+      objectId,
+      objectType,
+    );
+  }
+}
+
+/**
  * Single entry point that turns the declarative object references of a profile
  * into ipobj ids, with resolve-or-create semantics: an equivalent object in the
  * FWCloud is reused, and only a genuinely new one is created (and placed in the
@@ -88,7 +126,7 @@ const TREE_FOLDER_BY_TYPE = new Map(
  */
 export class ObjectBindingResolver {
   private readonly cache = new Map<string, ObjectBindingResult>();
-  private readonly treeFolderCache = new Map<string, number | null>();
+  private readonly treeFolderCache = new Map<number, number | null>();
 
   constructor(
     private readonly fwCloudId: number,
@@ -277,7 +315,7 @@ export class ObjectBindingResolver {
       .save({ ...columns, name, ipObjTypeId, fwCloudId: this.fwCloudId });
 
     if (inTree) {
-      await this.placeInTree(id, ipObjTypeId, name);
+      await placeObjectInTreeFolder(this.fwCloudId, id, ipObjTypeId, name, this.treeFolderCache);
     }
 
     return { id, created: true, name };
@@ -291,47 +329,5 @@ export class ObjectBindingResolver {
     return request.kind === 'service'
       ? `${request.protocol.toUpperCase()}/${request.port}`
       : `${request.address}${request.netmask === '/32' || request.netmask === '/128' ? '' : request.netmask}`;
-  }
-
-  private async placeInTree(objectId: number, objectType: number, name: string): Promise<void> {
-    const folder = TREE_FOLDER_BY_TYPE.get(objectType);
-
-    if (!folder) {
-      return;
-    }
-
-    const parentId = await this.getTreeFolderId(folder.name, folder.nodeType);
-
-    if (parentId === null) {
-      return;
-    }
-
-    await Tree.newNode(
-      db.getQuery(),
-      this.fwCloudId,
-      name,
-      parentId,
-      folder.nodeType,
-      objectId,
-      objectType,
-    );
-  }
-
-  private async getTreeFolderId(name: string, nodeType: string): Promise<number | null> {
-    const key = `${nodeType}:${name}`;
-
-    if (this.treeFolderCache.has(key)) {
-      return this.treeFolderCache.get(key)!;
-    }
-
-    const rows = await dbQuery<{ id: number }>(
-      'SELECT id FROM fwc_tree WHERE fwcloud = ? AND node_type = ? AND name = ? LIMIT 1',
-      [this.fwCloudId, nodeType, name],
-    );
-    const id = rows.length ? rows[0].id : null;
-
-    this.treeFolderCache.set(key, id);
-
-    return id;
   }
 }
