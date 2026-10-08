@@ -53,7 +53,9 @@ export class CentralLapiReplicationError extends Error {
     error: unknown,
     public readonly replicatedNodeIds: number[],
   ) {
-    super(error instanceof Error ? error.message : 'CrowdSec central LAPI replication failed');
+    const message =
+      error instanceof Error ? error.message : 'CrowdSec central LAPI replication failed';
+    super(message + '. The failing CrowdSec central LAPI node may require manual reconciliation.');
   }
 }
 
