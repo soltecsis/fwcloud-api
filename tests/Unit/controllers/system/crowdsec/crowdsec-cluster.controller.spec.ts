@@ -65,6 +65,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let centralPingStub: sinon.SinonStub;
   let findByFirewallIdStub: sinon.SinonStub;
   let findCentralFirewallStub: sinon.SinonStub;
+  let restoreInstallationStub: sinon.SinonStub;
+  let replicateMachineStub: sinon.SinonStub;
+  let replicateBouncerStub: sinon.SinonStub;
 
   beforeEach(async () => {
     app = testSuite.app;
@@ -100,6 +103,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           : null,
       );
     sinon.stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents').resolves(false);
+    restoreInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'restoreInstallation')
+      .resolves(new CrowdSecInstallation());
     setCentralLapiEnabledStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'setCentralLapiEnabled')
       .resolves(new CrowdSecInstallation());
@@ -123,8 +129,12 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon
       .stub(AgentCommunication.prototype, 'exportCrowdSecMachineCredentials')
       .callsFake(async (name: string) => ({ login: name, password: 'machine-password' }));
-    sinon.stub(AgentCommunication.prototype, 'replicateCrowdSecLapiMachine').resolves({});
-    sinon.stub(AgentCommunication.prototype, 'replicateCrowdSecLapiBouncer').resolves({});
+    replicateMachineStub = sinon
+      .stub(AgentCommunication.prototype, 'replicateCrowdSecLapiMachine')
+      .resolves({});
+    replicateBouncerStub = sinon
+      .stub(AgentCommunication.prototype, 'replicateCrowdSecLapiBouncer')
+      .resolves({});
     validateCrowdSecLapiMachineStub = sinon
       .stub(centralCommunication, 'validateCrowdSecLapiMachine')
       .resolves({});
@@ -584,7 +594,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith('CrowdSec cluster transitions must include every cluster node');
   });
 
-  it('should preserve completed nodes and report recovery requirements after a partial failure', async () => {
+  it('should roll back activated nodes after a later cluster transition failure', async () => {
     findByFirewallIdStub.callsFake(async (firewallId: number) => {
       if (firewallId === centralFirewall.id) {
         return lapiInstallation(centralFirewall.id);
@@ -596,6 +606,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
     sinon.stub(secondCommunication, 'prepareCrowdSecTransition').resolves({});
     sinon
       .stub(secondCommunication, 'activateCrowdSecTransition')
@@ -603,6 +614,51 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon
       .stub(secondCommunication, 'recoverCrowdSecTransition')
       .rejects(new Error('Recovery failed'));
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+      }),
+    );
+
+    expect(removeMachine.calledTwice).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'rolled_back',
+        },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'fwcloud-cluster-slave',
+          status: 'rollback_failed',
+          error: 'CrowdSec node rollback failed and requires manual recovery',
+        },
+      ],
+    });
+  });
+
+  it('should cancel untouched cluster nodes after a transition failure', async () => {
+    findByFirewallIdStub.callsFake(async (firewallId: number) => {
+      if (firewallId === centralFirewall.id) {
+        return lapiInstallation(centralFirewall.id);
+      }
+      return firewallId === firstNode.id || firewallId === secondNode.id
+        ? lapiInstallation(firewallId)
+        : null;
+    });
+    sinon
+      .stub(firstCommunication, 'prepareCrowdSecTransition')
+      .rejects(new Error('Preparation failed'));
+    const secondPrepare = sinon.stub(secondCommunication, 'prepareCrowdSecTransition');
     sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
 
     const response = await controller.transitionRole(
@@ -612,6 +668,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       }),
     );
 
+    expect(secondPrepare.called).to.be.false;
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       nodes: [
@@ -619,14 +676,252 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           firewall_id: firstNode.id,
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
-          status: 'completed',
+          status: 'failed',
+          error: 'Preparation failed',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
           machine_name: 'fwcloud-cluster-slave',
-          status: 'recovery_required',
+          status: 'cancelled',
+          error: 'CrowdSec cluster transition was cancelled after a previous node failed',
+        },
+      ],
+    });
+  });
+
+  it('should restore every affected node after Machine credential replication fails', async () => {
+    findByFirewallIdStub.callsFake(async (firewallId: number) => {
+      if (firewallId === centralFirewall.id) {
+        return lapiInstallation(centralFirewall.id);
+      }
+      return firewallId === firstNode.id || firewallId === secondNode.id
+        ? lapiInstallation(firewallId)
+        : null;
+    });
+    sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    const activate = sinon.stub(firstCommunication, 'activateCrowdSecTransition');
+    const recover = sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
+    replicateMachineStub.rejects(new Error('Machine replication failed'));
+
+    const response = await controller.transitionRole(
+      request({ confirm: true, mode: CrowdSecInstallationMode.Machine }),
+    );
+
+    expect(activate.called).to.be.false;
+    expect(recover.called).to.be.true;
+    expect(
+      restoreInstallationStub.calledWithMatch({
+        firewallId: firstNode.id,
+        mode: CrowdSecInstallationMode.Lapi,
+      }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'rolled_back',
+          error: 'Machine replication failed',
+        },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'fwcloud-cluster-slave',
+          status: 'cancelled',
+          error: 'CrowdSec cluster transition was cancelled after a previous node failed',
+        },
+      ],
+    });
+  });
+
+  it('should restore the initial state when Machine persistence fails after activation', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id || firewallId === firstNode.id
+        ? lapiInstallation(firewallId)
+        : null,
+    );
+    sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
+    saveMachineInstallationStub.rejects(new Error('Persistence failed'));
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+
+    const response = await controller.transitionRole(
+      request({ confirm: true, mode: CrowdSecInstallationMode.Machine }),
+    );
+
+    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(
+      restoreInstallationStub.calledWithMatch({
+        firewallId: firstNode.id,
+        mode: CrowdSecInstallationMode.Lapi,
+      }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'rolled_back',
+          error: 'Persistence failed',
+        },
+      ],
+    });
+  });
+
+  it('should report finalization failures without rolling back completed nodes', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id || firewallId === firstNode.id
+        ? lapiInstallation(firewallId)
+        : null,
+    );
+    sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon
+      .stub(firstCommunication, 'finalizeCrowdSecTransition')
+      .rejects(new Error('Finalization failed'));
+    const recover = sinon.stub(firstCommunication, 'recoverCrowdSecTransition');
+
+    const response = await controller.transitionRole(
+      request({ confirm: true, mode: CrowdSecInstallationMode.Machine }),
+    );
+
+    expect(recover.called).to.be.false;
+    expect(restoreInstallationStub.called).to.be.false;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      finalization_incomplete: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'finalization_failed',
+          error: 'Finalization failed',
+        },
+      ],
+    });
+  });
+
+  it('should remove central Bouncer replicas when a cluster transition fails', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id || firewallId === firstNode.id
+        ? lapiInstallation(firewallId)
+        : null,
+    );
+    sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon
+      .stub(firstCommunication, 'activateCrowdSecTransition')
+      .rejects(new Error('Activation failed'));
+    sinon.stub(firstCommunication, 'recoverCrowdSecTransition').resolves({});
+    const removeMachine = sinon
+      .stub(centralCommunication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const removeBouncer = sinon.stub(centralCommunication, 'removeCrowdSecBouncer').resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+        localRemediation: true,
+      }),
+    );
+
+    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(removeBouncer.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'fwcloud-cluster-master',
+          status: 'rolled_back',
           error: 'Activation failed',
+        },
+      ],
+    });
+  });
+
+  it('should coordinate collection installation across every cluster node', async () => {
+    sinon.stub(firstCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecCollection').resolves({});
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecCollection').resolves({});
+
+    const response = await controller.installCollection(request({ name: 'crowdsecurity/nginx' }));
+
+    expect(firstInstall.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(secondInstall.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      operation: 'install',
+      nodes: [
+        { firewall_id: firstNode.id, name: firstNode.name, status: 'completed' },
+        { firewall_id: secondNode.id, name: secondNode.name, status: 'completed' },
+      ],
+    });
+  });
+
+  it('should roll back completed collection installations after a later node fails', async () => {
+    sinon.stub(firstCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(firstCommunication, 'installCrowdSecCollection').resolves({});
+    sinon
+      .stub(secondCommunication, 'installCrowdSecCollection')
+      .rejects(new Error('Collection installation failed'));
+    const rollback = sinon.stub(firstCommunication, 'removeCrowdSecCollection').resolves({});
+
+    const response = await controller.installCollection(request({ name: 'crowdsecurity/nginx' }));
+
+    expect(rollback.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      operation: 'install',
+      rollback_completed: true,
+      nodes: [
+        { firewall_id: firstNode.id, name: firstNode.name, status: 'rolled_back' },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          status: 'failed',
+          error: 'Collection installation failed',
+        },
+      ],
+    });
+  });
+
+  it('should report manual reconciliation when a cluster collection update fails', async () => {
+    sinon.stub(firstCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({ collections: [] });
+    sinon.stub(firstCommunication, 'updateCrowdSecCollections').resolves({});
+    sinon
+      .stub(secondCommunication, 'updateCrowdSecCollections')
+      .rejects(new Error('Collection update failed'));
+
+    const response = await controller.updateCollections(request());
+
+    expect(response.toJSON().data).to.deep.equal({
+      completed: false,
+      operation: 'update',
+      manual_reconciliation_required: true,
+      nodes: [
+        { firewall_id: firstNode.id, name: firstNode.name, status: 'completed' },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          status: 'failed',
+          error: 'Collection update failed',
         },
       ],
     });

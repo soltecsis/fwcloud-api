@@ -805,6 +805,15 @@ export class Routes extends RouteCollection {
               .get('/collections', CrowdSecClusterController, 'collections')
               .name('fwclouds.clusters.system.crowdsec.collections.index');
             router
+              .post('/collections/install', CrowdSecClusterController, 'installCollection')
+              .name('fwclouds.clusters.system.crowdsec.collections.install');
+            router
+              .post('/collections/remove', CrowdSecClusterController, 'removeCollection')
+              .name('fwclouds.clusters.system.crowdsec.collections.remove');
+            router
+              .post('/collections/update', CrowdSecClusterController, 'updateCollections')
+              .name('fwclouds.clusters.system.crowdsec.collections.update');
+            router
               .post('/transitions/role', CrowdSecClusterController, 'transitionRole')
               .name('fwclouds.clusters.system.crowdsec.transitions.role');
             router
