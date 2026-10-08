@@ -710,7 +710,106 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect((validationResponse.toJSON().data as { nodes: unknown[] }).nodes).to.have.length(2);
     expect(replicateCrowdSecLapiBouncerStub.callCount).to.equal(2);
     expect(localBouncerCleanupStub.calledOnceWithExactly('partial-bouncer')).to.be.true;
-    expect(secondBouncerCleanupStub.calledOnceWithExactly('partial-bouncer')).to.be.true;
+    expect(secondBouncerCleanupStub.called).to.be.false;
+  });
+
+  it('should not clean central Bouncer replicas when replication fails on the first node', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    const localBouncerCleanupStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves({});
+    const secondBouncerCleanupStub = sinon
+      .stub(secondCommunication, 'removeCrowdSecBouncer')
+      .resolves({});
+    replicateCrowdSecLapiBouncerStub.onFirstCall().rejects(new Error('replication failed'));
+
+    await expect(
+      controller.registerBouncer({
+        body: { name: 'first-node-bouncer' },
+        session: { user: null, uiPublicKey: 'ui-public-key' },
+      } as unknown as Request),
+    ).to.be.rejectedWith(Error, 'replication failed');
+
+    expect(replicateCrowdSecLapiBouncerStub.calledOnce).to.be.true;
+    expect(localBouncerCleanupStub.called).to.be.false;
+    expect(secondBouncerCleanupStub.called).to.be.false;
+  });
+
+  it('should clean only completed central Bouncer replicas when a later node fails', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const thirdCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.22',
+      port: 33033,
+      apikey: 'third-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    const thirdFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 2,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => thirdCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall, thirdFirewall]);
+    const localBouncerCleanupStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves({});
+    const secondBouncerCleanupStub = sinon
+      .stub(secondCommunication, 'removeCrowdSecBouncer')
+      .resolves({});
+    const thirdBouncerCleanupStub = sinon
+      .stub(thirdCommunication, 'removeCrowdSecBouncer')
+      .resolves({});
+    replicateCrowdSecLapiBouncerStub.onFirstCall().resolves({});
+    replicateCrowdSecLapiBouncerStub.onSecondCall().resolves({});
+    replicateCrowdSecLapiBouncerStub.onThirdCall().rejects(new Error('replication failed'));
+
+    await expect(
+      controller.registerBouncer({
+        body: { name: 'later-node-bouncer' },
+        session: { user: null, uiPublicKey: 'ui-public-key' },
+      } as unknown as Request),
+    ).to.be.rejectedWith(Error, 'replication failed');
+
+    expect(replicateCrowdSecLapiBouncerStub.callCount).to.equal(3);
+    expect(localBouncerCleanupStub.calledOnceWithExactly('later-node-bouncer')).to.be.true;
+    expect(secondBouncerCleanupStub.calledOnceWithExactly('later-node-bouncer')).to.be.true;
+    expect(thirdBouncerCleanupStub.called).to.be.false;
   });
 
   it('should reject invalid or unauthorized CrowdSec LAPI machine operations', async () => {
