@@ -268,6 +268,14 @@ export class CrowdSecLapiSharedService {
     return randomBytes(32).toString('hex');
   }
 
+  static replicatedNodes(nodes: CentralLapiNode[], error: unknown): CentralLapiNode[] {
+    if (!(error instanceof CentralLapiReplicationError)) {
+      return [];
+    }
+    const replicatedNodeIds = new Set(error.replicatedNodeIds);
+    return nodes.filter((node) => replicatedNodeIds.has(node.firewall.id));
+  }
+
   async cleanupMachine(nodes: CentralLapiNode[], name: string): Promise<CentralLapiCleanup> {
     return this.cleanup(nodes, (node) => node.communication.removeCrowdSecLapiMachine(name));
   }
