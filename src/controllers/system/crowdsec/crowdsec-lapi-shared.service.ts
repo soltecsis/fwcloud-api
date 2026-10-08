@@ -53,7 +53,9 @@ export class CentralLapiReplicationError extends Error {
     error: unknown,
     public readonly replicatedNodeIds: number[],
   ) {
-    super(error instanceof Error ? error.message : 'CrowdSec central LAPI replication failed');
+    const message =
+      error instanceof Error ? error.message : 'CrowdSec central LAPI replication failed';
+    super(message + '. The failing CrowdSec central LAPI node may require manual reconciliation.');
   }
 }
 
@@ -266,6 +268,14 @@ export class CrowdSecLapiSharedService {
 
   static generateBouncerApiKey(): string {
     return randomBytes(32).toString('hex');
+  }
+
+  static replicatedNodes(nodes: CentralLapiNode[], error: unknown): CentralLapiNode[] {
+    if (!(error instanceof CentralLapiReplicationError)) {
+      return [];
+    }
+    const replicatedNodeIds = new Set(error.replicatedNodeIds);
+    return nodes.filter((node) => replicatedNodeIds.has(node.firewall.id));
   }
 
   async cleanupMachine(nodes: CentralLapiNode[], name: string): Promise<CentralLapiCleanup> {
