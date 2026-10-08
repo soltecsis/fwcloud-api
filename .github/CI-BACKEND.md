@@ -9,12 +9,12 @@ que la documentación evolucione junto con la configuración.
 | Campo | Valor |
 | --- | --- |
 | Repositorio | `fwcloud-api` |
-| Rama de trabajo actual | `testAuthSecurity` |
+| Rama de trabajo actual | `integrateZapDAST` |
 | Base inicial | `upstream/fixes`, commit `6e6a964c` |
 | Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-10-05 |
+| Última actualización | 2026-10-07 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -53,7 +53,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 3 | Detección de secretos con Gitleaks | Validada en Actions e integrada mediante la PR #1563; revisión histórica pendiente | Alcance inicial e incremental comprobado, redacción de secretos y política de excepciones |
 | 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Publicada y validada en Actions; referencias y evidencias pendientes de registro | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
-| 6 | Laboratorio efímero y DAST con ZAP | Pendiente | Entorno sintético aislado, autenticación y cobertura verificadas, resultados revisados |
+| 6 | ZAP público/autenticado y controles HTTP para ENS Media | Ampliación implementada; cierre en Actions pendiente | Sesión, 2FA opcional, permisos, aislamiento, escritura sintética, auditoría y consultas autenticadas |
 | Posterior | SonarQube | Aplazada | Integración y política de análisis acordadas; sin SAST provisional |
 
 El orden puede ajustarse mediante una decisión registrada aquí. Ninguna fase
@@ -968,7 +968,133 @@ presentan como conteos de la ejecución de Actions. Los límites y requisitos de
 - [ ] Registrar la revisión de las correcciones de gate y propiedad 2FA.
 - [ ] Completar la identificación del responsable y las referencias de evidencia.
 
-## 9. Pendientes transversales
+## 9. Fase 6 — ZAP oficial y controles HTTP para ENS Media
+
+### 9.1. Implementación y alcance explícito
+
+La rama `integrateZapDAST` parte de `fa519dd4`, merge de la fase 5 (PR #1586).
+El job `FWCloud-API ZAP and HTTP Security` utiliza la acción oficial
+`zaproxy/action-api-scan` v0.10.0, fijada al commit
+`5158fe4d9d8fcc75ea204db81317cce7f9e5453d`. No requiere instalar aplicaciones de
+Marketplace ni un servicio externo. La [guía ZAP](../docs/ZAP.md) detalla su uso.
+
+El perfil público importa `.github/zap/login.openapi.yaml`, solo `POST /user/login`,
+antes de poblar cuentas. Después se ejecuta el mismo `zap-api-scan.py` directamente
+en Docker sobre diez consultas autenticadas de manager A, con IDs existentes:
+clouds, firewall, dirección IP, política, routing y auditoría. El alcance se genera
+en `reports/dast/authenticated.openapi.json`; no se importa el OpenAPI completo
+ni se ejecuta spider. La lista y los contratos figuran en la guía.
+
+El script oficial controla esperas, importación, análisis activo/pasivo y política.
+Un hook mínimo añade Origin, acota nodos, exige respuestas 200 con cuerpo en todas
+las consultas importadas y transforma su JSON nativo en evidencia agregada sin
+material de sesión. No se añade un driver de ZAP ni HTML propio.
+
+### 9.2. Entorno de CI
+
+El job prepara Node 22, instala mediante `npm ci` y compila el checkout. Un servicio
+MySQL 8.0 desechable contiene la base `fwcloud_zap`.
+`.github/zap/start.cjs` exige esa base vacía, aplica migraciones y arranca la API
+con los middlewares reales y configuración de CI. Tras finalizar los informes
+públicos se crean cuatro cuentas sintéticas (admin, managers A/B y 2FA activada),
+passwords/tokens/TOTP aleatorios y dos clouds con recursos separados. No se cargan
+cuentas predeterminadas ni datos operativos.
+
+Se generan secretos efímeros de sesión/cifrado, se mantiene CORS y confirmación,
+y se utiliza HTTP limitado a loopback del runner. El script oficial recibe el
+`Origin` permitido para login público; el perfil autenticado recibe una cookie
+del login HTTP real y Origin mediante el hook. Nunca recibe token de confirmación.
+
+El preflight requiere `401 / BAD_LOGIN` ante JSON válido en forma y credenciales
+sintéticas. Un 400 de validación, 503, endpoint inexistente o arranque incompleto
+no satisface ese control. La acción no se ejecuta hasta comprobarlo.
+
+ZAP 2.17.0 y MySQL se fijan por digest. Se usa `-silent` para no actualizar addons
+durante el análisis y un único hilo por host. No se ejecutan operaciones remotas
+ni el worker de comunicaciones del entrypoint normal. Las sesiones, credenciales
+modo 0600 y diagnósticos privados quedan en `RUNNER_TEMP` y se eliminan al terminar.
+
+### 9.3. Controles de aceptación HTTP
+
+- Login exitoso e identidad/rol, cookie, keepalive y contenido protegido de A/B
+  antes y después del escaneo; logout e invalidación de la cookie antigua.
+- Admin permitido y manager rechazado en consultas administrativas.
+- Recursos ajenos existentes rechazados, sustitución de hijo bajo padre propio
+  rechazada y colecciones/auditoría sin recursos del otro manager.
+- PUT de `comment` propio con token válido y lectura directa de persistencia en
+  MySQL; token ausente/incorrecto y escritura ajena no cambian los comentarios.
+  La escritura no se importa en ZAP; solo afecta a tablas sintéticas del CI.
+- Eventos reales de escrituras permitidas/denegadas con identidad, fecha,
+  recurso/evento y resultado; detalle propio/admin permitido, ajeno rechazado,
+  sin passwords, cookies o tokens en el detalle comprobado. No se precarga evidencia.
+- 2FA opcional: solo un `Tfa.secret` verificado exige código en login. Ausencia o
+  código incorrecto rechazan sin sesión útil; código válido permite acceso.
+
+Se corrigió el login: consulta persistencia antes de guardar identidad, acepta
+`x-tfa`/`authCode`, invalida sesiones ante fallos y no devuelve el secreto. La suite
+incluye setup pendiente y fallo de segundo factor con cookie ya autenticada.
+
+### 9.4. Política e informes
+
+`fail_action: true` bloquea códigos 1/2 de hallazgos y la acción también falla ante
+errores operativos. No se utiliza `-I` para aceptar todos los warnings. La regla
+10037 se clasifica como INFO porque muestra solo el nombre del framework Express
+sin versión; sigue visible en reportes. Las demás reglas mantienen el comportamiento
+predeterminado bloqueante. No hay reglas IGNORE ni excepciones para respuestas 500.
+
+La acción publica el artefacto `backend-zap-login-<RUN_ID>-<ATTEMPT>` con reportes
+nativos detallados y no crea issues automáticamente. Se genera sin cuentas en la
+base. El autenticado publica `backend-zap-authenticated-<RUN_ID>-<ATTEMPT>` durante
+90 días: comprobaciones nombradas/booleanos, alcance sin credenciales y agregado
+numérico de reglas/riesgo/instancias/conteos oficiales con commit/run.
+No publica headers, bodies, payloads, evidencia textual, cookies, secretos, claves,
+contextos ZAP ni informes detallados autenticados. Logs privados no se publican.
+
+`backend-ci` exige el éxito de `dast`. La API se detiene mediante `always()` y el
+servicio MySQL se elimina al finalizar el job. No hay comandos npm de DAST local;
+la documentación incluye una invocación opcional de la imagen oficial para un
+entorno de desarrollo desechable.
+
+### 9.5. Hallazgos y validación técnica
+
+El primer escaneo detectó una respuesta 500 ante JSON malformado. Se reprodujo
+directamente y se corrigió únicamente el tratamiento `entity.parse.failed`:
+devuelve 400 con mensaje genérico, sin copiar fragmentos de entrada al response/log.
+La regresión se añadió a las pruebas existentes de autenticación.
+La ampliación detectó `X-Content-Type-Options` ausente; se añadió `nosniff` antes
+del parser, también en errores, con regresiones y comprobación HTTP.
+
+| Verificación | Resultado |
+| --- | --- |
+| Preflight con entrada válida y usuario inexistente | 401 / BAD_LOGIN |
+| Escaneo oficial público tras correcciones | 0 FAIL, 0 WARN, 1 INFO (10037), 112 PASS |
+| Escaneo oficial autenticado tras `nosniff` | 0 FAIL, 0 WARN, 1 INFO (10037), 112 PASS |
+| Controles HTTP reales antes/después, 2026-10-08 | 58 + 27 correctos; contenido protegido, estado preservado y logout |
+| Seguridad/gate, incluida 2FA persistida | 71 pruebas correctas |
+| Alcance/política y hook de privacidad/completitud | 4 Node + 3 Python correctas |
+| Build TypeScript, ESLint, Prettier y Actionlint 1.7.7 | Correctos |
+| Gitleaks 8.30.1 sobre helpers/alcance y nuevas pruebas | Sin hallazgos |
+
+ZAP puede contar nodos padre/servidor en su árbol de URLs importadas: ese número
+no equivale a operaciones de negocio adicionales. Los PASS de reglas sin alertas
+no acreditan que todos sus vectores sean aplicables.
+
+### 9.6. ENS Media, cierre pendiente y límites
+
+- [ ] Publicar la rama y enlazar PR, commit y ejecución de Actions.
+- [ ] Verificar el job oficial y su bloqueo mediante `backend-ci`.
+- [ ] Descargar y revisar informes públicos y evidencia autenticada, visibilidad/retención.
+- [ ] Registrar la revisión de clasificación de 10037 y el responsable.
+
+La guía relaciona evidencia con `mp.sw.2` + R1, `op.acc.1/2/4`, `op.acc.5/6` según
+aplicabilidad y `op.exp.8`. Debe incorporarse al análisis de riesgos y Declaración
+de Aplicabilidad; no acredita por sí sola conformidad ENS categoría Media.
+La 2FA opcional del producto no demuestra configuración del sistema evaluado.
+No se acreditan todas las rutas, TLS público, UI, WebSockets, infraestructura,
+VPN externas, integridad/retención/monitorización de logs o protección del reloj
+de producción. Se conserva la evidencia específica de fase 5.
+
+## 10. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -981,7 +1107,7 @@ presentan como conteos de la ejecución de Actions. Los límites y requisitos de
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 10. Procedimiento de actualización del informe
+## 11. Procedimiento de actualización del informe
 
 En cada entrega:
 
