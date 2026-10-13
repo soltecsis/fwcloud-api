@@ -1,0 +1,3 @@
+# The framework name alone is informational; retain it in reports (not IGNORE).
+# Other rules keep their default WARN/FAIL behavior and fail_action blocks them.
+10037	INFO	Framework banner (X-Powered-By: Express), no version disclosed

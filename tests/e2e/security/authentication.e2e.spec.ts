@@ -51,10 +51,25 @@ describe(describeName('Security: production authentication and session lifecycle
     await agent.get('/profile/tfa/setup').expect(400);
   });
 
+  it('rejects malformed JSON as a client error without exposing request fragments', async () => {
+    const agent = request.agent(testSuite.app.express);
+    const fragment = randomBytes(18).toString('hex');
+    const response = await agent
+      .post('/user/login')
+      .set('Content-Type', 'application/json')
+      .send(`{"password":"${fragment}",`)
+      .expect(400);
+    expect(response.body.message).to.eq('Invalid JSON body');
+    expect(response.headers['x-content-type-options']).to.eq('nosniff');
+    expect(JSON.stringify(response.body).includes(fragment)).to.eq(false);
+    await agent.get('/profile/tfa/setup').expect(400);
+  });
+
   for (const endpoint of ['/profile/tfa/setup', '/config', '/fwcloud/all/get']) {
     it(`rejects an unauthenticated request to ${endpoint}`, async () => {
       const response = await request(testSuite.app.express).get(endpoint).expect(400);
       expect(response.body.fwcErr).to.eq(1010);
+      expect(response.headers['x-content-type-options']).to.eq('nosniff');
     });
   }
 

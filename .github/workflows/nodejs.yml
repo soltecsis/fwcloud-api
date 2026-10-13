@@ -54,6 +54,10 @@ jobs:
         run: node --test scripts/gitleaks-report.test.cjs
       - name: Verify Trivy report collector
         run: node --test scripts/trivy-report.test.cjs scripts/trivy-run.test.cjs
+      - name: Verify ZAP scope and CI policy
+        run: |
+          node --test scripts/zap-scope.test.cjs
+          python3 .github/zap/auth-hook.test.py
 
   secrets:
     name: FWCloud-API Secrets
@@ -217,6 +221,158 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
+  dast:
+    name: FWCloud-API ZAP and HTTP Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: prod
+      TYPEORM_HOST: 127.0.0.1
+      TYPEORM_PORT: '13306'
+      TYPEORM_DATABASE: fwcloud_zap
+      TYPEORM_USERNAME: fwcdbusr
+      TYPEORM_PASSWORD: fwcdbusr
+      APISRV_IP: 127.0.0.1
+      APISRV_PORT: '3131'
+      APISRV_HTTPS: 'false'
+      SESSION_FORCE_HTTPS: 'false'
+      CORS_ENABLED: 'true'
+      CORS_WHITELIST: https://zap.invalid
+      CONFIRMATION_TOKEN: 'true'
+      MAINTENANCE_MODE: 'false'
+      SSH_COMMUNICATION_ENABLED: 'false'
+      SESSION_KEEPALIVE_MS: '1800000'
+    services:
+      mysql:
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        ports:
+          - 13306:3306
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+          MYSQL_DATABASE: fwcloud_zap
+          MYSQL_USER: fwcdbusr
+          MYSQL_PASSWORD: fwcdbusr
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install and build API
+        run: |
+          npm ci --include=dev
+          npm run build
+      - name: Generate ephemeral runtime secrets
+        run: |
+          node -e '
+            const fs = require("node:fs"), crypto = require("node:crypto");
+            fs.appendFileSync(process.env.GITHUB_ENV,
+              "SESSION_SECRET=" + crypto.randomBytes(32).toString("hex") + "\n" +
+              "CRYPT_SECRET=" + crypto.randomBytes(32).toString("hex") + "\n");
+          '
+      - name: Start temporary API
+        id: api
+        run: |
+          node .github/zap/start.cjs > "$RUNNER_TEMP/zap-api.log" 2>&1 &
+          echo "pid=$!" >> "$GITHUB_OUTPUT"
+      - name: Verify login is reachable with valid-shaped input
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const payload = {customer: 1, username: 'zapuser', password: 'zapinvalid', authCode: null, publicKey: 'lab-client'};
+          (async () => {
+            for (let attempt = 0; attempt < 90; attempt++) {
+              try {
+                const response = await fetch('http://127.0.0.1:3131/user/login', {
+                  method: 'POST', headers: {'Content-Type': 'application/json', Origin: 'https://zap.invalid'},
+                  body: JSON.stringify(payload), signal: AbortSignal.timeout(3000)
+                });
+                const result = await response.json();
+                if (response.status !== 401 || result.fwcErr !== 1001) throw new Error('Login did not reach credential verification.');
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'Login DAST preflight: expected 401/BAD_LOGIN confirmed.\n');
+                return;
+              } catch (error) {
+                if (attempt === 89) throw error;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            }
+          })().catch(() => { console.error('ZAP login preflight failed.'); process.exitCode = 1; });
+          NODE
+      - name: Official ZAP API Scan (login only)
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
+        env:
+          ZAP_AUTH_HEADER: Origin
+          ZAP_AUTH_HEADER_VALUE: https://zap.invalid
+          ZAP_AUTH_HEADER_SITE: 127.0.0.1
+        with:
+          target: .github/zap/login.openapi.yaml
+          format: openapi
+          docker_name: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+          allow_issue_writing: false
+          fail_action: true
+          artifact_name: backend-zap-login-${{ github.run_id }}-${{ github.run_attempt }}
+          cmd_options: '-c .github/zap/rules.tsv -s -T 5 -z "-silent -config scanner.threadPerHost=1"'
+      - name: Create synthetic accounts after public reports are finished
+        run: node .github/zap/fixtures.cjs > "$RUNNER_TEMP/zap-fixture.log" 2>&1
+      - name: Verify real HTTP security controls before authenticated scan
+        id: http_before
+        run: node .github/zap/http-check.cjs before
+      - name: Official packaged ZAP API Scan (authenticated queries)
+        id: authenticated_zap
+        env:
+          ZAP_AUTH_HEADER: Cookie
+          ZAP_AUTH_HEADER_SITE: 127.0.0.1
+        run: |
+          chmod a+w reports/dast
+          set +e
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/zap/wrk:rw" \
+            -e CI -e GITHUB_SHA -e GITHUB_RUN_ID \
+            -e ZAP_AUTH_HEADER -e ZAP_AUTH_HEADER_VALUE -e ZAP_AUTH_HEADER_SITE \
+            ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
+            zap-api-scan.py -t reports/dast/authenticated.openapi.json -f openapi \
+            -c .github/zap/rules.tsv --hook /zap/wrk/.github/zap/auth-hook.py \
+            -s -T 5 -z "-silent -config scanner.threadPerHost=1" \
+            > "$RUNNER_TEMP/zap-auth.log" 2>&1
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          test "$STATUS" -eq 0
+      - name: Verify protected content and logout after scan
+        if: ${{ always() && steps.authenticated_zap.outcome != 'skipped' }}
+        run: node .github/zap/http-check.cjs after
+      - name: Publish credential-free HTTP and authenticated ZAP evidence
+        if: ${{ always() && steps.http_before.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-zap-authenticated-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/dast/http-before.json
+            reports/dast/http-after.json
+            reports/dast/authenticated.json
+            reports/dast/authenticated.openapi.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Stop temporary API
+        if: ${{ always() && steps.api.outputs.pid != '' }}
+        env:
+          API_PID: ${{ steps.api.outputs.pid }}
+        run: |
+          if kill -0 "$API_PID" 2>/dev/null; then
+            kill "$API_PID"
+          fi
+      - name: Remove ephemeral credentials and private diagnostics
+        if: ${{ always() }}
+        run: |
+          rm -f "$RUNNER_TEMP/zap-fixture.json" "$RUNNER_TEMP/zap-sessions.json" "$RUNNER_TEMP/zap-auth.log" "$RUNNER_TEMP/zap-api.log" "$RUNNER_TEMP/zap-fixture.log"
+          rm -rf "$RUNNER_TEMP/zap-api-sessions" "$RUNNER_TEMP/zap-api-logs"
+
   test:
     name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
     runs-on: ubuntu-latest
@@ -368,7 +524,7 @@ jobs:
   backend-ci:
     name: backend-ci
     if: ${{ always() }}
-    needs: [quality, test, secrets, sca]
+    needs: [quality, test, secrets, sca, dast]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -378,8 +534,10 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           SECRETS_RESULT: ${{ needs.secrets.result }}
           SCA_RESULT: ${{ needs.sca.result }}
+          DAST_RESULT: ${{ needs.dast.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_RESULT" = success
           test "$SECRETS_RESULT" = success
           test "$SCA_RESULT" = success
+          test "$DAST_RESULT" = success
