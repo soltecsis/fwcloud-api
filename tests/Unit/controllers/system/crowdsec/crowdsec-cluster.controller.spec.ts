@@ -724,7 +724,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: firstNode.name,
           machine_name: 'fwcloud-cluster-master',
           status: 'rolled_back',
-          error: 'Machine replication failed',
+          error:
+            'Machine replication failed. The failing CrowdSec central LAPI node may require manual reconciliation.',
         },
         {
           firewall_id: secondNode.id,
