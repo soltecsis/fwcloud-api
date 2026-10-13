@@ -58,6 +58,7 @@ test('CI runs the pinned official action and blocks scanner findings/errors', ()
   assert.equal(scan.with.fail_action, true);
   assert.equal(scan.with.allow_issue_writing, false);
   assert.equal(scan.with.target, '.github/zap/login.openapi.yaml');
+  assert.match(scan.with.cmd_options, /(?:^|\s)-c\s+\.github\/zap\/rules\.tsv(?:\s|$)/);
   assert.ok(!scan.with.cmd_options.split(/\s+/).includes('-I'));
   assert.ok(workflow.jobs['backend-ci'].needs.includes('dast'));
   const rules = fs.readFileSync('.github/zap/rules.tsv', 'utf8');
