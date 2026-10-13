@@ -9,12 +9,12 @@ que la documentación evolucione junto con la configuración.
 | Campo | Valor |
 | --- | --- |
 | Repositorio | `fwcloud-api` |
-| Rama de trabajo actual | `integrateZapDAST` |
+| Rama de trabajo actual | `integrateSonarQube` |
 | Base inicial | `upstream/fixes`, commit `6e6a964c` |
 | Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | GitHub, con visibilidad y retención por configurar |
-| Última actualización | 2026-10-07 |
+| Última actualización | 2026-10-08 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -36,7 +36,8 @@ anterior no acreditan automáticamente revisiones posteriores.
 - Mantener inicialmente MySQL 5.7, MySQL 8.0 y MariaDB 10.1. Esta continuidad no
   supone aprobar su uso en producción ni definir la política definitiva de soporte.
 - Ejecutar lint y formato una vez, con Node 22.
-- Aplazar SonarQube; no incorporar Semgrep como solución provisional.
+- Incorporar SonarQube Cloud en fase 7 con la acción oficial, LCOV existente y
+  Quality Gate; no incorporar Semgrep como solución provisional.
 - Conservar ESLint y Prettier. No considerar el lint actual una cobertura SAST
   completa: el comando existente excluye archivos JavaScript.
 - Incorporar cambios en entregas pequeñas y verificables.
@@ -54,7 +55,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Publicada y validada en Actions; referencias y evidencias pendientes de registro | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | ZAP público/autenticado y controles HTTP para ENS Media | Ampliación implementada; cierre en Actions pendiente | Sesión, 2FA opcional, permisos, aislamiento, escritura sintética, auditoría y consultas autenticadas |
-| Posterior | SonarQube | Aplazada | Integración y política de análisis acordadas; sin SAST provisional |
+| 7 | SonarQube Cloud, SAST y Quality Gate | Implementada localmente; alta y validación en Actions pendientes | Cobertura/revisión vinculadas, PR desde forks, hallazgos revisados y gate bloqueante |
 
 El orden puede ajustarse mediante una decisión registrada aquí. Ninguna fase
 pendiente debe describirse como implantada por disponer únicamente de un plan.
@@ -1094,7 +1095,72 @@ No se acreditan todas las rutas, TLS público, UI, WebSockets, infraestructura,
 VPN externas, integridad/retención/monitorización de logs o protección del reloj
 de producción. Se conserva la evidencia específica de fase 5.
 
-## 10. Pendientes transversales
+## 10. Fase 7 — SonarQube Cloud y Quality Gate
+
+La rama `integrateSonarQube` parte de `a5e5708f`, entrega de fase 6. La
+[guía de implantación](../docs/SONARQUBE.md) detalla alta, aplicación GitHub,
+trial Team multirrama y configuración del token y claves de proyecto. Cloud UE
+y su procesamiento de código/resultados deben encajar con el sistema evaluado.
+
+### 10.1. Implementación
+
+- `sonar-project.properties`: `src/` TS y JS legacy, `tests/`, LCOV original y
+  espera de Quality Gate de 300 segundos. Temporalmente contiene organización
+  `soltecsis-aortega` y proyecto `soltecsis-aortega_fwcloud-api`; la validación y
+  overrides de variables Actions están comentados en el workflow. `SONAR_TOKEN`
+  está configurado en GitHub según lo indicado por el responsable.
+- `tsconfig.sonar.json`: configuración de análisis compatible, independiente del
+  build TypeScript 6. Precisión y compatibilidad pendientes del primer análisis.
+- `.github/workflows/nodejs.yml`: checkout explícito del SHA head de PR o del
+  evento; todas las fases comparten la revisión. La cobertura Node 22/MySQL 8.0
+  incorpora metadata de ejecución/revisión y SHA-256 del LCOV.
+- `.github/workflows/sonarqube.yml`: `workflow_run` tras CI exitoso, acción oficial
+  v8.3.0 fijada a `d209202bc7d53ff1cc128f7f907dac145c9d6ae9`, Scanner 8.1.0.6389,
+  firma habilitada y token únicamente en el scanner.
+- `scripts/sonar-analysis.cjs`: valida contexto vía API GitHub y cobertura de la
+  ejecución/intento exactos; el scanner oficial realiza análisis y polling.
+- `scripts/sonar-analysis.test.cjs`: casos negativos de revisión/repositorio,
+  intentos obsoletos, inyección de argumentos, LCOV inválido y symlinks/configuración.
+
+No se ejecutan instalación, build, pruebas ni scripts del fork en el workflow con
+secrets. Las utilidades y configuración proceden de la revisión confiable de la
+rama predeterminada. Los artefactos se tratan como datos. Vincular hash/revisión no
+certifica por sí solo la veracidad de una cobertura producida por una PR.
+
+### 10.2. Gate y evidencia
+
+El merge exige `backend-ci` y el check de la GitHub App (`SonarCloud Code Analysis`,
+verificar nombre/proveedor al configurar), con ramas actualizadas. No se introduce
+un `needs` circular entre CI y su workflow posterior. Deben publicarse workflow,
+helpers y configuración en `main` para que `workflow_run` se active.
+
+Sonar way inicialmente, condiciones de código nuevo documentadas y revisión de
+hallazgos existentes. Los umbrales de Sonar no son porcentajes exigidos por ENS.
+No considerar un primer gate no calculado una aceptación definitiva.
+
+Artefacto agregado `backend-sonarqube-<RUN_ID>-<ATTEMPT>`, 90 días: revisión,
+CI productor/intento, LCOV/configuración por hash, revisión confiable, versiones,
+resultado y referencia nativa cuando existe. Sin logs, snippets, `.scannerwork`,
+tokens o código en ese artefacto. Los fallos se etiquetan `FAILED_OR_INCOMPLETE`.
+El análisis y revisiones contribuyen a `mp.sw.1`/`mp.sw.2`, según riesgos y DoA;
+no acreditan por sí solos conformidad ENS Media.
+
+### 10.3. Cierre pendiente
+
+Validación local: 26 pruebas de contexto/LCOV y regresiones de reportes/política
+correctas; Actionlint 1.7.7 y revisión de whitespace sin errores. Gitleaks 8.30.1
+sin hallazgos en el nuevo workflow y helpers/pruebas. No se ha ejecutado todavía
+un análisis real ni comprobado el Quality Gate en SonarQube Cloud.
+
+- [ ] Verificar vinculación del proyecto y acceso del token configurado; trial Team
+  para ramas/PR y claves temporales en el archivo de propiedades.
+- [ ] Publicación en rama predeterminada y ejecución inicial en main/ENS.
+- [ ] Verificar inclusión TS/JS, paths LCOV y precisión del analizador.
+- [ ] PR interna/fork positiva y negativa, gate fallido y fallo de autenticación.
+- [ ] Protección de merge real con ambos checks.
+- [ ] Revisión de hallazgos/hotspots, responsables, excepciones y retención de evidencias.
+
+## 11. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -1107,7 +1173,7 @@ de producción. Se conserva la evidencia específica de fase 5.
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 11. Procedimiento de actualización del informe
+## 12. Procedimiento de actualización del informe
 
 En cada entrega:
 

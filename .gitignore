@@ -43,6 +43,9 @@ tests/.tmp
 # CI test and coverage reports
 /reports/
 
+# SonarScanner analysis cache (may contain source and issue details)
+/.scannerwork/
+
 # NSIS library.
 lib/nsis-3.05/fwcloud-vpn/*.exe
 lib/nsis-3.05/fwcloud-vpn/*.ovpn

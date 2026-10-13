@@ -10,3 +10,10 @@ FWCloud's source code is published under the free software license <a href="http
 GitHub Actions uses official ZAP API Scan profiles for public login and ten authenticated queries,
 plus real HTTP checks for sessions, optional 2FA, permissions, isolation and audit.
 See [ZAP and HTTP security checks](docs/ZAP.md) for coverage, credential-free evidence and ENS mapping.
+
+## SonarQube in CI
+
+SonarQube Cloud analyzes TypeScript and legacy JavaScript with the official scan action,
+reusing the Node 22/MySQL 8.0 LCOV artifact. A separate trusted workflow supports fork PRs
+and waits for the Quality Gate. See [SonarQube setup](docs/SONARQUBE.md) for registration,
+`SONAR_TOKEN`, project identifiers in `sonar-project.properties`, required checks and ENS evidence.
