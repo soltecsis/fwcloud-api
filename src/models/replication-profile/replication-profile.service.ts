@@ -277,7 +277,7 @@ export class ReplicationProfileService extends Service {
     }
 
     if (origin !== 'builtin' && isReplicationProfileOwnerId(userId)) {
-      scopes.push({ ...where, isBuiltin: false, userId });
+      scopes.push(this.ownedCustomProfileWhere(where, userId));
     }
 
     return scopes;
@@ -617,13 +617,17 @@ export class ReplicationProfileService extends Service {
     order?: FindOptionsOrder<ReplicationProfile>,
   ): Promise<ReplicationProfile | null> {
     return this.repository.findOne({
-      where: {
-        ...where,
-        userId,
-        isBuiltin: false,
-      },
+      where: this.ownedCustomProfileWhere(where, userId),
       ...(order ? { order } : {}),
     });
+  }
+
+  /** Narrows a lookup to the custom profiles of one user, never a built-in or somebody else's. */
+  private ownedCustomProfileWhere(
+    where: FindOptionsWhere<ReplicationProfile>,
+    userId: number,
+  ): FindOptionsWhere<ReplicationProfile> {
+    return { ...where, userId, isBuiltin: false };
   }
 
   private canReuseCustomProfileIdentity(profile: ReplicationProfile): boolean {
