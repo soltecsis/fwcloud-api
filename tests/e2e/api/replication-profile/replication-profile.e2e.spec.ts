@@ -1130,6 +1130,170 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     const deleteUrl = (code: string, version: number) =>
       `/fwclouds/${fwCloud.id}/profiles/${code}/${version}`;
 
+    it('should expose the previous version after deleting the latest and save its edits as a new version', async () => {
+      const code = `${codePrefix}remove-latest`;
+      const previousModel = makeCreatePayload().model;
+      const [oldest, previous, latest] = await repository.save([
+        makeProfile({ code, version: 1 }),
+        makeProfile({ code, version: 2, name: 'Previous profile', model: previousModel as any }),
+        makeProfile({ code, version: 3 }),
+      ]);
+
+      await request(app.express)
+        .delete(deleteUrl(code, latest.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      expect(await repository.findOne({ where: { id: latest.id } })).to.be.null;
+      expect(templateExists(latest)).to.be.false;
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/profiles`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          const restored = response.body.data.find((profile) => profile.code === code);
+          expect(restored).to.include({ id: previous.id, version: 2, name: 'Previous profile' });
+          expect(restored.model).to.deep.eq(previousModel);
+        });
+
+      await request(app.express)
+        .get(deleteUrl(code, previous.version))
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.id).to.be.eq(previous.id);
+          expect(response.body.data.model).to.deep.eq(previousModel);
+        });
+
+      const editedPayload = makeCreatePayload({
+        name: 'Edited previous profile',
+        model: {
+          compatibility: { target_kinds: ['firewall'] },
+          provision: { interfaces: [{ name: 'eth0', role: 'wan' }] },
+        },
+      });
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${code}/versions`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(editedPayload)
+        .expect(201)
+        .then(async (response) => {
+          expect(response.body.data).to.include({
+            code,
+            version: 3,
+            name: 'Edited previous profile',
+          });
+          expect(response.body.data.id).not.to.be.eq(latest.id);
+          expect(response.body.data.model).to.deep.eq(editedPayload.model);
+          const saved = await repository.findOneOrFail({ where: { id: response.body.data.id } });
+          expect(loadReplicationProfileModel(saved)).to.deep.eq(editedPayload.model);
+        });
+
+      const reloadedPrevious = await repository.findOneOrFail({ where: { id: previous.id } });
+      expect(reloadedPrevious).to.include({ version: 2, name: 'Previous profile' });
+      expect(loadReplicationProfileModel(reloadedPrevious)).to.deep.eq(previousModel);
+      expect(templateExists(oldest)).to.be.true;
+      expect(templateExists(previous)).to.be.true;
+    });
+
+    it('should permanently remove every owned version and template in one request', async () => {
+      const code = `${codePrefix}remove-all`;
+      const profiles = await repository.save([
+        makeProfile({ code, version: 1, isDeprecated: true }),
+        makeProfile({ code, version: 2, isActive: false }),
+        makeProfile({ code, version: 3 }),
+      ]);
+      const [foreign, builtIn, unrelated] = await repository.save([
+        makeProfile({ code, version: 3, userId: otherUser.id }),
+        makeProfile({ code, version: 3, isBuiltin: true, fwCloudId: null }),
+        makeProfile({ code: `${codePrefix}keep` }),
+      ]);
+
+      await request(app.express)
+        .delete(deleteUrl(code, profiles[2].version))
+        .query({ allVersions: true })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data).to.include({ id: profiles[2].id, code, version: 3 });
+        });
+
+      expect(await repository.find({ where: { code, userId: adminUser.id } })).to.be.empty;
+      for (const profile of profiles) {
+        expect(templateExists(profile)).to.be.false;
+      }
+      for (const profile of [foreign, builtIn, unrelated]) {
+        expect(await repository.findOne({ where: { id: profile.id } })).not.to.be.null;
+        expect(templateExists(profile)).to.be.true;
+      }
+      await request(app.express)
+        .get(`/fwclouds/${fwCloud.id}/profiles?origin=custom`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then((response) => {
+          expect(response.body.data.map((profile) => profile.code)).not.to.include(code);
+        });
+    });
+
+    it('should remove only the requested version when allVersions is false', async () => {
+      const code = `${codePrefix}remove-one-explicit`;
+      const [previous, latest] = await repository.save([
+        makeProfile({ code, version: 1 }),
+        makeProfile({ code, version: 2 }),
+      ]);
+
+      await request(app.express)
+        .delete(deleteUrl(code, latest.version))
+        .query({ allVersions: false })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      expect(await repository.findOne({ where: { id: latest.id } })).to.be.null;
+      expect(templateExists(latest)).to.be.false;
+      expect(await repository.findOne({ where: { id: previous.id } })).not.to.be.null;
+      expect(templateExists(previous)).to.be.true;
+    });
+
+    it('should reject invalid allVersions values without deleting any versions or templates', async () => {
+      const code = `${codePrefix}invalid-remove-mode`;
+      const profiles = await repository.save([
+        makeProfile({ code, version: 1 }),
+        makeProfile({ code, version: 2 }),
+      ]);
+
+      for (const query of [
+        'allVersions=yes',
+        'allVersions=1',
+        'allVersions=TRUE',
+        'allVersions=',
+        'allVersions=true&allVersions=false',
+        'allVersions[value]=true',
+      ]) {
+        await request(app.express)
+          .delete(`${deleteUrl(code, profiles[1].version)}?${query}`)
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(400);
+      }
+
+      expect(await repository.count({ where: { code, userId: adminUser.id } })).to.be.eq(2);
+      for (const profile of profiles) {
+        expect(templateExists(profile)).to.be.true;
+      }
+    });
+
+    it('should not permanently remove a profile when the requested version does not exist', async () => {
+      const profile = await repository.save(makeProfile({ code: `${codePrefix}missing-version` }));
+
+      await request(app.express)
+        .delete(deleteUrl(profile.code, profile.version + 1))
+        .query({ allVersions: true })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+
+      expect(await repository.findOne({ where: { id: profile.id } })).not.to.be.null;
+      expect(templateExists(profile)).to.be.true;
+    });
+
     it('should delete a custom profile, remove it from the catalog, and allow recreation', async () => {
       const profile = await repository.save(
         makeProfile({ code: `${codePrefix}remove`, version: 2, fwCloudId: fwCloud.id }),
@@ -1207,13 +1371,16 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         makeProfile({ code: `${codePrefix}builtin-delete`, isBuiltin: true, fwCloudId: null }),
       );
 
-      await request(app.express)
-        .delete(deleteUrl(builtIn.code, builtIn.version))
-        .set('Cookie', [attachSession(adminUserSessionId)])
-        .expect(403)
-        .then((response) => {
-          expect(response.body.message).to.contain('Built-in profiles cannot be deleted.');
-        });
+      for (const allVersions of [false, true]) {
+        await request(app.express)
+          .delete(deleteUrl(builtIn.code, builtIn.version))
+          .query({ allVersions })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(403)
+          .then((response) => {
+            expect(response.body.message).to.contain('Built-in profiles cannot be deleted.');
+          });
+      }
 
       const persisted = await repository.findOneOrFail({ where: { id: builtIn.id } });
       expect(persisted.isActive).to.be.true;
@@ -1229,10 +1396,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         }),
       );
 
-      await request(app.express)
-        .delete(deleteUrl(foreign.code, foreign.version))
-        .set('Cookie', [attachSession(adminUserSessionId)])
-        .expect(404);
+      for (const allVersions of [false, true]) {
+        await request(app.express)
+          .delete(deleteUrl(foreign.code, foreign.version))
+          .query({ allVersions })
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(404);
+      }
 
       const persisted = await repository.findOneOrFail({ where: { id: foreign.id } });
       expect(persisted.isActive).to.be.true;
@@ -1246,10 +1416,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const regularUser = await createUser({ role: 0 });
       const regularUserSessionId = generateSession(regularUser);
 
-      await request(app.express)
-        .delete(deleteUrl(profile.code, profile.version))
-        .set('Cookie', [attachSession(regularUserSessionId)])
-        .expect(403);
+      for (const allVersions of [false, true]) {
+        await request(app.express)
+          .delete(deleteUrl(profile.code, profile.version))
+          .query({ allVersions })
+          .set('Cookie', [attachSession(regularUserSessionId)])
+          .expect(403);
+      }
 
       const persisted = await repository.findOneOrFail({ where: { id: profile.id } });
       expect(persisted.isActive).to.be.true;
@@ -1284,6 +1457,9 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(data.profileVersion).to.be.eq(profile.version);
       expect(data.operation).to.be.eq('remove');
       expect(data.removed).to.be.true;
+      expect(data.allVersions).to.be.false;
+      expect(data.removedVersions).to.deep.eq([profile.version]);
+      expect(data.removedVersionCount).to.be.eq(1);
       expect(data).not.to.have.property('previous');
       expect(data).not.to.have.property('current');
 
@@ -1291,6 +1467,43 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .getSource()
         .manager.getRepository(AuditLog)
         .delete({ call: PROFILE_REMOVE_AUDIT_CALL });
+    });
+
+    it('should audit permanent removal once with every removed version', async () => {
+      const auditRepository = db.getSource().manager.getRepository(AuditLog);
+      await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
+      const code = `${codePrefix}audited-permanent-delete`;
+      const profiles = await repository.save([
+        makeProfile({ code, version: 5 }),
+        makeProfile({ code, version: 1, isActive: false }),
+        makeProfile({ code, version: 3, isDeprecated: true }),
+      ]);
+
+      await request(app.express)
+        .delete(deleteUrl(code, profiles[0].version))
+        .query({ allVersions: true })
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200);
+
+      const entries = await auditRepository.find({ where: { call: PROFILE_REMOVE_AUDIT_CALL } });
+      expect(entries).to.have.length(1);
+      expect(entries[0].userId).to.be.eq(adminUser.id);
+      expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
+      expect(entries[0].description).to.contain('permanently removed (3 versions)');
+      const data = JSON.parse(entries[0].data);
+      expect(data).to.include({
+        operation: 'remove',
+        result: 'success',
+        profileCode: code,
+        profileVersion: 5,
+        removed: true,
+        allVersions: true,
+        removedVersionCount: 3,
+      });
+      expect(data.removedVersions).to.deep.eq([1, 3, 5]);
+      expect(data).not.to.have.property('model');
+
+      await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
     });
 
     it('should reject applying a profile after it has been removed', async () => {
