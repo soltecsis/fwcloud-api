@@ -61,8 +61,8 @@ jobs:
         run: |
           node --test scripts/zap-scope.test.cjs scripts/zap-diagnostics.test.cjs
           python3 .github/zap/auth-hook.test.py
-      - name: Verify SonarQube revision and coverage boundaries
-        run: node --test scripts/sonar-analysis.test.cjs
+      - name: Verify native coverage scope and SonarQube boundaries
+        run: node --test scripts/c8-scope.test.cjs scripts/sonar-analysis.test.cjs
 
   secrets:
     name: FWCloud-API Secrets

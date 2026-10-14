@@ -49,7 +49,8 @@ function prepare(source, coverage, env = process.env) {
     }
   };
   walk(path.join(source, 'src')); walk(path.join(source, 'tests'));
-  must(files.every(file => fs.lstatSync(path.join(source, file)).isFile()), 'LCOV references a missing original source.');
+  const missing = files.filter(file => !fs.lstatSync(path.join(source, file), { throwIfNoEntry: false })?.isFile());
+  must(missing.length === 0, `LCOV references missing original sources: ${missing.slice(0, 5).join(', ')}. Regenerate coverage before running SonarQube.`);
   fs.mkdirSync(path.join(source, 'reports/coverage'), { recursive: true });
   fs.writeFileSync(path.join(source, 'reports/coverage/lcov.info'), lcov);
   fs.mkdirSync(path.join(source, 'reports/sonar'), { recursive: true });
