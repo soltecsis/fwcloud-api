@@ -544,10 +544,79 @@ jobs:
         retention-days: 90
         if-no-files-found: error
 
+  sonar:
+    name: FWCloud-API SonarQube
+    needs: [quality, test, secrets, sca, dast]
+    # Fork/Dependabot runs do not receive SONAR_TOKEN. Scan after merge on push.
+    if: >-
+      ${{ github.actor != 'dependabot[bot]' &&
+          (github.event_name != 'pull_request' ||
+           (github.event.pull_request.head.repo.full_name == github.repository &&
+            github.event.pull_request.user.login != 'dependabot[bot]')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download reference coverage from this execution
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: backend-coverage-node22-mysql8-${{ github.run_id }}-${{ github.run_attempt }}
+          path: coverage-input
+      - name: Verify revision and coverage
+        id: analysis
+        env:
+          ANALYSIS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const { prepare } = require("./scripts/sonar-analysis.cjs");
+            const { metadata, args } = prepare(".", "coverage-input");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "args=" + args + "\n");
+            fs.writeFileSync("reports/sonar/context.json", JSON.stringify(metadata, null, 2));
+          '
+      - name: Official SonarQube scan and Quality Gate
+        id: scan
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          scannerVersion: 8.1.0.6389
+          skipSignatureVerification: false
+          # Temporarily read identifiers from sonar-project.properties.
+          # Actions variable validation/overrides remain disabled:
+          # -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+          # -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+          args: ${{ steps.analysis.outputs.args }}
+      - name: Record aggregate analysis evidence
+        if: ${{ always() && steps.scan.outcome != 'skipped' }}
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const { recordEvidence } = require("./scripts/sonar-analysis.cjs");
+            recordEvidence(JSON.parse(fs.readFileSync("reports/sonar/context.json", "utf8")), process.env.SCAN_OUTCOME);
+          '
+      - name: Upload aggregate SonarQube evidence
+        if: ${{ always() && steps.scan.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-sonarqube-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/sonar/metadata.json
+          retention-days: 90
+          if-no-files-found: error
+
   backend-ci:
     name: backend-ci
     if: ${{ always() }}
-    needs: [quality, test, secrets, sca, dast]
+    needs: [quality, test, secrets, sca, dast, sonar]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -558,9 +627,21 @@ jobs:
           SECRETS_RESULT: ${{ needs.secrets.result }}
           SCA_RESULT: ${{ needs.sca.result }}
           DAST_RESULT: ${{ needs.dast.result }}
+          SONAR_RESULT: ${{ needs.sonar.result }}
+          SONAR_REQUIRED: >-
+            ${{ github.actor != 'dependabot[bot]' &&
+                (github.event_name != 'pull_request' ||
+                 (github.event.pull_request.head.repo.full_name == github.repository &&
+                  github.event.pull_request.user.login != 'dependabot[bot]')) }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_RESULT" = success
           test "$SECRETS_RESULT" = success
           test "$SCA_RESULT" = success
           test "$DAST_RESULT" = success
+          if [ "$SONAR_REQUIRED" = true ]; then
+            test "$SONAR_RESULT" = success
+          else
+            test "$SONAR_RESULT" = skipped
+            echo 'SonarQube omitted: this fork/Dependabot run has no analysis token.' >> "$GITHUB_STEP_SUMMARY"
+          fi

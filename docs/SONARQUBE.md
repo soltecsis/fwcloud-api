@@ -7,26 +7,38 @@ del push/dispatch. La celda Node 22 + MySQL 8.0 genera el LCOV existente y añad
 `analysis.json` al artefacto de cobertura: metadata de pruebas, revisión,
 ejecución/intento y SHA-256 de `lcov.info`. No se repiten las pruebas para Sonar.
 
-`FWCloud-API SonarQube` se activa por `workflow_run` tras un CI exitoso. Puede
-recibir el secret del repositorio destino aunque la PR proceda de un fork:
+El job **`FWCloud-API SonarQube`** está dentro de `.github/workflows/nodejs.yml` y
+depende de `quality`, `test`, `secrets`, `sca` y `dast`. Se ejecuta después de que
+estos jobs pasen y `backend-ci` comprueba también su resultado:
 
 ```text
-PR/push → CI y LCOV sin SONAR_TOKEN → SonarQube → Quality Gate → decisión de merge
+Push / PR interna → calidad, matriz, secretos, SCA y DAST → SonarQube → backend-ci
+PR externa        → calidad, matriz, secretos, SCA y DAST → sonar omitido → backend-ci
+Merge en ENS      → push a ENS → CI completo, incluido SonarQube
 ```
 
-El workflow usa configuración y utilidades de la revisión de la rama
-predeterminada que ejecuta `workflow_run`, no de la PR. Resuelve revisión/PR y
-artefacto mediante la API autenticada de GitHub; rechaza resultados obsoletos,
-revisiones/repositorios distintos y cobertura ausente, ambigua o expirada.
-Las PR de forks pueden llegar sin `workflow_run.pull_requests`: se consulta la
-asociación de commits en GitHub y se verifica la PR abierta actual. Si hay varias
-PR coincidentes sin una asociación inequívoca, el análisis falla.
+Funciona desde `ENS` sin publicar previamente archivos en `main`. Utiliza la
+configuración, helper y fuentes de la misma revisión analizada. No hay
+`workflow_run`, workflow posterior, consultas a la API de GitHub ni checkout de la
+rama predeterminada. Los argumentos de rama/PR se toman del contexto de esta
+ejecución y la cobertura se descarga por nombre exacto, incluido intento.
 
-El checkout de fuentes es solo dato. No ejecuta npm, compilación, pruebas ni
-scripts de la PR. Sustituye sus propiedades y TSConfig de Sonar por los de la
-revisión confiable y rechaza symlinks en los árboles analizados. El token se
-entrega únicamente a la acción oficial. Los permisos GitHub son `contents: read`,
-`actions: read` y `pull-requests: read`; los checkouts no conservan credenciales.
+| Evento | SonarQube | Resultado exigido por `backend-ci` |
+| --- | --- | --- |
+| Push a `main`, `fixes`, `ENS` | Sí, tras pasar los jobs previos | `success` |
+| PR entre ramas del mismo repositorio | Sí, tras pasar los jobs previos | `success` |
+| Ejecución manual del CI | Sí, salvo actor Dependabot | `success` |
+| PR desde otro repositorio/fork o ejecución de Dependabot | Omitido: GitHub no entrega el token | `skipped`, con motivo en el resumen |
+
+En las PR externas siguen siendo obligatorios todos los controles anteriores.
+El análisis se realiza tras integrar el código y dispararse el push en una rama
+configurada, por ejemplo `ENS`. Esta modalidad no acredita SAST previo al merge
+de una PR externa. Un token ausente en una ejecución elegible falla; no habilita
+la excepción de forks/Dependabot.
+
+El job no reinstala dependencias ni repite build/pruebas. Rechaza symlinks en los
+árboles analizados, usa `contents: read` y no conserva credenciales en su checkout.
+`SONAR_TOKEN` se entrega únicamente al paso de la acción oficial.
 
 El helper valida metadata/hash y archivos de cobertura; **no es un scanner ni un
 driver de SonarQube**. La acción oficial realiza análisis y espera del gate.
@@ -48,7 +60,7 @@ del control de cambios.
 - `tsconfig.sonar.json` no modifica el build del producto. Usa opciones compatibles
   con el compilador incorporado por el analizador; debe comprobarse la precisión
   del primer análisis, especialmente la inferencia de tipos sin dependencias
-  instaladas en el workflow privilegiado. La documentación consultada declara
+  instaladas en el job de análisis. La documentación consultada declara
   TypeScript hasta 5.9.3; el proyecto compila con TypeScript 6.
 
 ## Alta e instalación en SonarQube Cloud
@@ -91,18 +103,19 @@ del control de cambios.
 
    `SONAR_TOKEN` ya está generado y configurado en GitHub según lo indicado por
    el responsable. `SONAR_ORGANIZATION` y `SONAR_PROJECT_KEY` no son necesarias
-   temporalmente: su validación y overrides están comentados en el workflow.
-   El scanner lee las claves del archivo de propiedades confiable que se copia
-   al checkout analizado. Si se vuelve a usar variables de Actions, reactivar
-   conjuntamente la validación y ambos argumentos comentados.
+   temporalmente: los overrides están comentados en el job de SonarQube.
+   El scanner lee las claves del archivo de propiedades del checkout analizado.
+   Si se vuelve a usar variables de Actions, añadir su validación y reactivar
+   ambos argumentos comentados.
 
    No se necesita un PAT de GitHub: Actions proporciona `GITHUB_TOKEN`. No usar
    `sonar.token` en archivos, argumentos, artefactos o logs. La URL Cloud está
    fijada en el workflow; no hace falta crear `SONAR_HOST_URL` en GitHub.
-9. Publicar **workflow, helpers y configuración en la rama predeterminada `main`**
-   para activar `workflow_run`. Mergear únicamente en `ENS` no lo activa. Preparar
-   ese bootstrap antes de exigir el nuevo check. No se hacen commits/push desde
-   el helper ni desde el scanner.
+9. Integrar **CI, helper y configuración en `ENS`** y lanzar un push a esa rama.
+   El job aparecerá dentro de `FWCloud-API CI` tras pasar los jobs previos. No es
+   necesario integrar primero en `main`. Para usar **Run workflow** desde la UI,
+   GitHub puede exigir que el workflow manual ya esté registrado en la rama
+   predeterminada; el push a `ENS` no tiene ese requisito.
 10. Ejecutar el CI actualizado en las ramas base, primero `main` y `ENS`, para
     obtener cobertura/análisis inicial. Configurar como ramas de larga duración
     las bases utilizadas (`main`, `ENS`, `fixes`, `devel`, `auditlogs`) según el
@@ -114,10 +127,9 @@ del control de cambios.
 12. Configurar y validar la protección descrita a continuación.
 
 La falta de claves, secret, LCOV o un resultado operativo no se interpreta como
-análisis exitoso. Una PR cerrada/modificada durante la espera no se analiza como
-si siguiera siendo la revisión actual. Para repetir desde cero, usar **Re-run all
-jobs** del CI: se exige el artefacto de la ejecución/intento seleccionado; un
-rerun parcial sin regenerar la celda de cobertura no satisface esa correspondencia.
+análisis exitoso. Para repetir desde cero, usar **Re-run all jobs** del CI: se
+exige el artefacto de la misma ejecución/intento; un rerun parcial de Sonar sin
+regenerar la celda de cobertura no satisface esa correspondencia.
 
 ## Quality Gate y protección de merge
 
@@ -128,16 +140,20 @@ revisar la definición de código nuevo y efectuar la validación inicial.
 
 En **GitHub → Settings → Rules → Rulesets**, para las ramas protegidas:
 
-1. Exigir PR y los checks **`backend-ci`** y **`SonarCloud Code Analysis`** publicados
-   por la GitHub App. Verificar el nombre y proveedor tras la primera ejecución.
+1. Exigir PR y el check **`backend-ci`**, que ahora incluye el resultado de Sonar.
+   Para aceptar PR externas no exigir globalmente `SonarCloud Code Analysis`
+   ni el job Sonar como checks separados: se omiten en esas PR por falta de token.
+   La integración de la App puede seguir mostrando resultados en las PR internas.
 2. Exigir ramas actualizadas antes del merge. Ahora se prueba el head de la PR,
    no el merge commit sintético: actualizar la rama con la base antes de aceptar.
-3. Validar una PR que pase y otra cuyo gate falle, ambas también desde fork.
+3. Validar una PR interna que pase y otra cuyo gate falle. Comprobar la omisión
+   explícita en PR externa y el análisis completo del push tras integrarla.
 
-No añadir `sonar` a `backend-ci.needs`: es un workflow posterior y crearía una
-dependencia circular. El check del job `workflow_run` se asocia a la rama
-predeterminada; para el merge de una PR se exige el check que la App publica
-sobre su revisión, no asumir que el job posterior sirve como check de esa PR.
+`backend-ci.needs` incluye `sonar` en el mismo DAG, sin dependencia circular.
+Fuera de la excepción explícita de forks/Dependabot, un estado `failure`,
+`cancelled` o `skipped` de Sonar falla el gate agregado. La excepción no permite
+ignorar errores en los demás jobs. El push posterior a `ENS` también tiene que
+pasar Sonar antes de promover el código hacia despliegue.
 
 Sonar way evalúa ratings de seguridad/fiabilidad/mantenibilidad, revisión de
 hotspots, cobertura de código nuevo ≥80% y duplicación ≤3% según sus condiciones
@@ -149,8 +165,8 @@ su tratamiento, aunque el gate de la PR se enfoque en código nuevo.
 ## Evidencia y ENS Media
 
 El artefacto `backend-sonarqube-<RUN_ID>-<ATTEMPT>`, retenido 90 días, contiene
-solo `metadata.json`: commit, PR/rama, CI productor/intento, ID de artefacto,
-hashes de LCOV/configuración, revisión confiable, versiones, resultado del scanner
+solo `metadata.json`: commit, PR/rama, ejecución/intento,
+hashes de LCOV/configuración, versiones, resultado del scanner
 y referencia nativa de tarea/dashboard cuando está disponible. Fallos se registran
 como `FAILED_OR_INCOMPLETE`, nunca como gate pasado. No se suben `.scannerwork`,
 logs de scanner, fragmentos de issues, secretos o código mediante este artefacto.
@@ -166,17 +182,21 @@ ENS ni sustituye Gitleaks, Trivy, pruebas de autorización o ZAP.
 
 ## Verificación y cierre
 
-Validación local del 2026-10-08: 16 pruebas del contexto/LCOV/configuración y
-10 regresiones de reportes/política ZAP correctas (26 en total), Actionlint 1.7.7
-sin errores y Gitleaks 8.30.1 sin hallazgos en el nuevo workflow y helpers/pruebas.
-Implementación pendiente de alta/configuración y ejecución en Actions.
+La arquitectura anterior usaba `workflow_run`, lo que impedía su activación si
+solo se integraba en `ENS`. Se ha sustituido por el job del mismo CI y eliminado
+el workflow separado. Validación local: 10 pruebas Sonar y 12 regresiones de
+reportes/política/diagnósticos ZAP correctas (22 en total). La activación real y el
+Quality Gate requieren validación en Actions con el secret configurado.
+Actionlint 1.7.7 valida el workflow y Gitleaks 8.30.1 no detecta secretos en el
+workflow y los helpers/pruebas modificados.
 La fase se cerrará tras confirmar:
 
 - Ramas base analizadas y TS/JS legacy incluidos sin exclusiones inesperadas.
 - LCOV importado sobre fuentes originales, sin paths sin resolver.
-- PR interna y de fork pasan/fallan correctamente; no se entrega el token al build.
+- PR interna pasa/falla según Sonar; en PR externa el token no se usa y los demás
+  gates siguen siendo obligatorios; al integrar, el push vuelve a exigir Sonar.
 - Token inválido, cobertura ausente o intento antiguo fallan sin falso éxito.
-- Gate y check de la App bloquean realmente el merge de la revisión actual.
+- `backend-ci` bloquea realmente fallos de Sonar en los eventos elegibles.
 - Revisión inicial de hallazgos y evidencia/retención con responsable.
 
 ## Referencias oficiales

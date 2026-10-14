@@ -14,6 +14,7 @@ See [ZAP and HTTP security checks](docs/ZAP.md) for coverage, credential-free ev
 ## SonarQube in CI
 
 SonarQube Cloud analyzes TypeScript and legacy JavaScript with the official scan action,
-reusing the Node 22/MySQL 8.0 LCOV artifact. A separate trusted workflow supports fork PRs
-and waits for the Quality Gate. See [SonarQube setup](docs/SONARQUBE.md) for registration,
+reusing the Node 22/MySQL 8.0 LCOV artifact in the same CI workflow. `backend-ci` requires
+the Quality Gate on pushes and internal PRs; external fork PRs are scanned after merge.
+See [SonarQube setup](docs/SONARQUBE.md) for registration,
 `SONAR_TOKEN`, project identifiers in `sonar-project.properties`, required checks and ENS evidence.
