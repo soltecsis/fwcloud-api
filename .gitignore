@@ -3,6 +3,7 @@ logs/
 
 # Temporary files
 /.tmp
+.omc/
 
 # IDE Settings
 .vscode/*
