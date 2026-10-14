@@ -112,6 +112,13 @@ Los archivos de credenciales tienen modo 0600, las sesiones y logs quedan en
 workflow no publica contextos ZAP ni bases de datos y desactiva creación de issues.
 El enmascarado de logs no sustituye esta selección de campos.
 
+El paso autenticado muestra en el log y el resumen de Actions el código real de
+Docker/ZAP y la evidencia numérica disponible: completitud, conteos FAIL/WARN/PASS
+e IDs/riesgos/instancias de alertas. El `exit code 1` del paso por sí solo no
+identifica la causa: el último `test` devuelve 1 para cualquier código de ZAP
+distinto de cero. Los IDs también incluyen alertas informativas y no indican por
+sí solos qué regla bloqueó el análisis. Los logs privados siguen sin publicarse.
+
 ## Relación con ENS categoría Media
 
 | Medida | Evidencia técnica aportada |
