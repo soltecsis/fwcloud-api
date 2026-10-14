@@ -299,7 +299,10 @@ export class ReplicationProfileController extends Controller {
     const { profile, template } = await replicationProfileService.removeCustomProfile(
       code,
       version,
-      this.profileMutationOptions(request),
+      {
+        ...this.profileMutationOptions(request),
+        allVersions: this.parseAllVersionsQuery(request),
+      },
     );
 
     return ResponseBuilder.buildResponse()
@@ -382,6 +385,24 @@ export class ReplicationProfileController extends Controller {
     }
 
     return version;
+  }
+
+  private parseAllVersionsQuery(request: Request): boolean {
+    const value: unknown = request.query.allVersions;
+
+    if (value === undefined || value === 'false' || value === false) {
+      return false;
+    }
+
+    if (value === 'true' || value === true) {
+      return true;
+    }
+
+    throw new ValidationException(
+      'The given data is invalid.',
+      { allVersions: ['allVersions must be either true or false.'] },
+      400,
+    );
   }
 
   private toPolicyReplicationRequest(body: ReplicationProfileApplyDto): PolicyReplicationRequest {

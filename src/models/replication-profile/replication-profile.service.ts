@@ -74,7 +74,10 @@ export interface ReplicationProfileMutationActor {
   sourceIp?: string | null;
 }
 
-export type RemoveCustomReplicationProfileOptions = CreateCustomReplicationProfileOptions;
+export interface RemoveCustomReplicationProfileOptions extends CreateCustomReplicationProfileOptions {
+  /** Remove every version of this code owned by the requesting user. */
+  allVersions?: boolean;
+}
 
 /**
  * A profile with its template already read. Listings and removals report a
@@ -115,7 +118,8 @@ interface ReplicationProfileManagementSuccessAuditInput {
   actor?: ReplicationProfileMutationActor;
   sourceProfile?: ReplicationProfile | null;
   previousProfile?: ReplicationProfile | null;
-  data?: Record<string, unknown>;
+  /** What a removal took away: the requested version or, with allVersions, every one. */
+  removal?: { allVersions: boolean; versions: number[] };
 }
 
 export interface ReplicationProfileCatalogFilters {
@@ -499,10 +503,11 @@ export class ReplicationProfileService extends Service {
   }
 
   /**
-   * Removes a custom profile and its template so the same code/version can be
-   * created again. Built-in profiles cannot be removed (403) and profiles from
-   * another user are indistinguishable from missing ones (404) so their
-   * existence is never leaked.
+   * Removes a custom profile version or every version of that user's profile,
+   * including inactive/deprecated versions, and their templates so the same
+   * identities can be created again. Built-in profiles cannot be removed (403)
+   * and profiles from another user are indistinguishable from missing ones
+   * (404) so their existence is never leaked.
    */
   public async removeCustomProfile(
     code: string,
@@ -515,7 +520,14 @@ export class ReplicationProfileService extends Service {
 
     try {
       const userId = this.requireOwnerUserId(options);
-      profile = await this.findOwnedCustomProfile({ code, version }, userId);
+      const profilesToRemove = await this.repository.find({
+        where: this.ownedCustomProfileWhere(
+          options.allVersions ? { code } : { code, version },
+          userId,
+        ),
+        order: { version: 'ASC' },
+      });
+      profile = profilesToRemove.find((owned) => owned.version === version) ?? null;
 
       if (!profile) {
         throw await this.resolveMissingCustomProfileError(
@@ -526,9 +538,11 @@ export class ReplicationProfileService extends Service {
 
       // Read before removing it: a broken template must not prevent the removal either.
       const template = readReplicationProfileModel(profile);
+      // TypeORM clears the id of removed entities, which the response and the audit still report.
       const removedProfile = { ...profile } as ReplicationProfile;
-      await this.repository.remove(profile);
-      this.removeProfileTemplate(removedProfile);
+      // An array is removed in a single transaction, avoiding a partially deleted history.
+      await this.repository.remove(profilesToRemove);
+      profilesToRemove.forEach((removed) => this.removeProfileTemplate(removed));
 
       await this.auditProfileManagementSuccess({
         operation: 'remove',
@@ -537,8 +551,9 @@ export class ReplicationProfileService extends Service {
         actor,
         status: 200,
         startedAt,
-        data: {
-          removed: true,
+        removal: {
+          allVersions: options.allVersions === true,
+          versions: profilesToRemove.map((removed) => removed.version),
         },
       });
 
@@ -683,7 +698,7 @@ export class ReplicationProfileService extends Service {
         fwCloudId: input.fwCloudId,
         ...this.sourceProfileAuditData(input.sourceProfile),
         ...this.previousProfileAuditData(input.previousProfile),
-        ...input.data,
+        ...this.removalAuditData(input.removal),
       }),
     });
   }
@@ -716,6 +731,10 @@ export class ReplicationProfileService extends Service {
     }
 
     if (input.operation === 'remove') {
+      if (input.removal?.allVersions) {
+        return `Custom replication profile ${input.profile.code} permanently removed (${input.removal.versions.length} versions).`;
+      }
+
       return `Custom replication profile ${input.profile.code} v${input.profile.version} removed.`;
     }
 
@@ -777,6 +796,19 @@ export class ReplicationProfileService extends Service {
       ? {
           previousProfileId: profile.id,
           previousProfileVersion: profile.version,
+        }
+      : {};
+  }
+
+  private removalAuditData(
+    removal: ReplicationProfileManagementSuccessAuditInput['removal'],
+  ): Record<string, unknown> {
+    return removal
+      ? {
+          removed: true,
+          allVersions: removal.allVersions,
+          removedVersions: removal.versions,
+          removedVersionCount: removal.versions.length,
         }
       : {};
   }
