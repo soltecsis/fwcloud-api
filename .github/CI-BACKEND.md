@@ -297,7 +297,10 @@ La ausencia de un resultado de pruebas conocido no se interpreta como éxito.
 - Se incluyen archivos propios de `src/**/*.ts` y `src/**/*.js`, también los no
   ejecutados, con `all: true`.
 - Se excluyen declaraciones TypeScript, pruebas y dependencias.
-- Se utilizan los source maps existentes y se aplican exclusiones tras remapear.
+- Se aplican las exclusiones antes del remapeo (`exclude-after-remap: false`)
+  para no procesar mapas de dependencias como si fueran fuentes propias.
+- Se incluye `dist/src/**/*.js` como entrada ejecutada y se utilizan sus source
+  maps para atribuir la cobertura a `src/`, conservando los no ejecutados con cero.
 - Se generan LCOV, JSON, HTML y un resumen en consola.
 - No se impone un porcentaje mínimo en esta fase. Sí se exige un informe válido,
   no vacío y con líneas de fuente cuando la combinación requiere cobertura.
@@ -1155,6 +1158,17 @@ El análisis y revisiones contribuyen a `mp.sw.1`/`mp.sw.2`, según riesgos y Do
 no acreditan por sí solos conformidad ENS Media.
 
 ### 10.3. Cierre pendiente
+
+Corrección posterior al fallo `lstat src/container.ts`: el source map distribuido
+por TypeORM apuntaba a `../../src/container.ts`. Al filtrar después del remapeo,
+c8 lo admitía como una fuente propia inexistente. La configuración ahora filtra
+antes de remapear e incluye explícitamente el código compilado de `dist/src/`.
+El helper mantiene el rechazo de fuentes ausentes, con diagnóstico controlado.
+La regresión nativa compila fixtures TS/JS, ejecuta c8 y comprueba cobertura real,
+no ejecutados a cero y exclusión de TypeORM. Validación: 18 pruebas de cobertura,
+Sonar y reportes correctas con Node 22; Actionlint y Gitleaks correctos. Se debe
+regenerar el artefacto con una ejecución completa del CI, no reutilizar el LCOV
+anterior ni omitir sus entradas inexistentes en el consumidor.
 
 Validación local del job integrado: 10 pruebas Sonar y 12 regresiones de
 reportes/política/diagnósticos ZAP correctas (22). Incluyen la ejecución del shell

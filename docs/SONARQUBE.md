@@ -55,6 +55,9 @@ del control de cambios.
 - Fuentes `src/`: TypeScript **y JavaScript legacy**. Declaraciones `.d.ts` excluidas.
 - Pruebas `tests/` identificadas separadamente.
 - `reports/coverage/lcov.info`: rutas relativas a fuentes originales, no `dist/`.
+- c8 filtra antes del remapeo y captura `dist/src/**/*.js` además de las fuentes
+  originales. Sus source maps mantienen la atribución a `src/`; las dependencias
+  quedan excluidas antes de que sus mapas puedan introducir rutas de otras fuentes.
 - Exclusiones SCM deshabilitadas para que una modificación de `.gitignore` no
   oculte fuentes explícitamente incluidas.
 - `tsconfig.sonar.json` no modifica el build del producto. Usa opciones compatibles
@@ -181,6 +184,28 @@ de los artefactos si lo exige el procedimiento. No acredita por sí sola conform
 ENS ni sustituye Gitleaks, Trivy, pruebas de autorización o ZAP.
 
 ## Verificación y cierre
+
+### Corrección de `ENOENT: lstat src/container.ts`
+
+El fallo se reprodujo con Node 22: el mapa de `node_modules/typeorm/container.js`
+apunta a `../../src/container.ts`, que se resuelve en una ruta inexistente del
+proyecto. Con `exclude-after-remap: true`, c8 llegaba a incluirla en el LCOV.
+Se corrige en `.github/c8.json` filtrando antes del remapeo y admitiendo el código
+compilado de `dist/src/` como entrada. No se elimina la validación de fuentes ni
+se descartan silenciosamente registros del LCOV; un archivo ausente ahora se
+identifica con un error controlado y la indicación de regenerar la cobertura.
+
+`scripts/c8-scope.test.cjs` usa TypeScript y c8 reales, junto con el código/mapa
+instalados de TypeORM, y verifica aciertos TS/JS, fuentes no ejecutadas con cero
+y ausencia de rutas fantasma o dependencias. Se ejecuta también en el job de
+calidad. Las 18 pruebas de cobertura, Sonar y reportes pasan con Node 22, y el
+workflow pasa Actionlint. Gitleaks no detecta secretos en los helpers revisados.
+
+Después de integrar esta corrección, ejecutar **todo el CI** para generar un
+nuevo LCOV y su hash. Repetir solo Sonar reutilizaría evidencia anterior o de otro
+intento. Los porcentajes pueden cambiar al corregir el alcance de la cobertura.
+
+### Validación de la integración
 
 La arquitectura anterior usaba `workflow_run`, lo que impedía su activación si
 solo se integraba en `ENS`. Se ha sustituido por el job del mismo CI y eliminado

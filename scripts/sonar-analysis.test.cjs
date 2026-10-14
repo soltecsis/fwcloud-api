@@ -86,6 +86,19 @@ test('rejects compiled, absolute, traversal and incomplete LCOV records', () => 
   }
 });
 
+test('reports a missing mapped source without importing or silently discarding the LCOV', t => {
+  const { source, coverage, env } = checkout(t);
+  const data = Buffer.from(lcov.toString() + 'SF:src/container.ts\nDA:1,1\nend_of_record\n');
+  const metadataPath = path.join(coverage, 'analysis.json');
+  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+  metadata.coverageReportSha256 = digest(data);
+  fs.writeFileSync(path.join(coverage, 'lcov.info'), data);
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata));
+  assert.throws(() => prepare(source, coverage, env), error =>
+    error.code !== 'ENOENT' && /LCOV references missing original sources: src\/container\.ts/.test(error.message));
+  assert.equal(fs.existsSync(path.join(source, 'reports/coverage/lcov.info')), false);
+});
+
 test('rejects symlinked analyzed sources', t => {
   const { source, coverage, env } = checkout(t);
   const directory = path.dirname(source);
