@@ -55,7 +55,7 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 4 | SCA y SBOM con Trivy | Publicada y validada en Actions; referencias y revisión de artefactos pendientes de registro | Dependencias inventariadas, hallazgos revisados, informes y criterios de bloqueo definidos |
 | 5 | Pruebas negativas de autenticación y autorización | Publicada y validada en Actions; referencias y evidencias pendientes de registro | Casos por rol/recurso, denegaciones y aislamiento documentados y ejecutados |
 | 6 | ZAP público/autenticado y controles HTTP para ENS Media | Ampliación implementada; cierre en Actions pendiente | Sesión, 2FA opcional, permisos, aislamiento, escritura sintética, auditoría y consultas autenticadas |
-| 7 | SonarQube Cloud, SAST y Quality Gate | Implementada localmente; alta y validación en Actions pendientes | Cobertura/revisión vinculadas, PR desde forks, hallazgos revisados y gate bloqueante |
+| 7 | SonarQube Cloud, SAST y Quality Gate | Job integrado localmente; validación en Actions pendiente | Cobertura/revisión vinculadas, gate bloqueante en eventos elegibles y análisis del push tras integrar forks |
 
 El orden puede ajustarse mediante una decisión registrada aquí. Ninguna fase
 pendiente debe describirse como implantada por disponer únicamente de un plan.
@@ -1106,40 +1106,49 @@ y su procesamiento de código/resultados deben encajar con el sistema evaluado.
 
 - `sonar-project.properties`: `src/` TS y JS legacy, `tests/`, LCOV original y
   espera de Quality Gate de 300 segundos. Temporalmente contiene organización
-  `soltecsis-aortega` y proyecto `soltecsis-aortega_fwcloud-api`; la validación y
-  overrides de variables Actions están comentados en el workflow. `SONAR_TOKEN`
+  `soltecsis-aortega` y proyecto `soltecsis-aortega_fwcloud-api`; los
+  overrides de variables Actions están comentados en el job. `SONAR_TOKEN`
   está configurado en GitHub según lo indicado por el responsable.
 - `tsconfig.sonar.json`: configuración de análisis compatible, independiente del
   build TypeScript 6. Precisión y compatibilidad pendientes del primer análisis.
 - `.github/workflows/nodejs.yml`: checkout explícito del SHA head de PR o del
   evento; todas las fases comparten la revisión. La cobertura Node 22/MySQL 8.0
-  incorpora metadata de ejecución/revisión y SHA-256 del LCOV.
-- `.github/workflows/sonarqube.yml`: `workflow_run` tras CI exitoso, acción oficial
-  v8.3.0 fijada a `d209202bc7d53ff1cc128f7f907dac145c9d6ae9`, Scanner 8.1.0.6389,
-  firma habilitada y token únicamente en el scanner.
-- `scripts/sonar-analysis.cjs`: valida contexto vía API GitHub y cobertura de la
-  ejecución/intento exactos; el scanner oficial realiza análisis y polling.
+  incorpora metadata de ejecución/revisión y SHA-256 del LCOV. El job `sonar`
+  depende de calidad, matriz, secretos, SCA y DAST. Usa la acción oficial v8.3.0
+  fijada a `d209202bc7d53ff1cc128f7f907dac145c9d6ae9`, Scanner 8.1.0.6389,
+  firma habilitada y token únicamente en el paso del scanner.
+- Eliminado `.github/workflows/sonarqube.yml`: el anterior `workflow_run` requería
+  publicar archivos en la rama predeterminada y no se activaba desde `ENS` sola.
+  Ahora Sonar es un job del mismo CI, ejecutable directamente con push a `ENS`.
+- `scripts/sonar-analysis.cjs`: valida revisión/contexto y cobertura de la misma
+  ejecución/intento. Sin API GitHub, asociación de PR ni copia de configuración
+  de otra rama; el scanner oficial realiza análisis y polling.
 - `scripts/sonar-analysis.test.cjs`: casos negativos de revisión/repositorio,
-  intentos obsoletos, inyección de argumentos, LCOV inválido y symlinks/configuración.
+  intentos obsoletos, inyección de argumentos, LCOV inválido, symlinks y gate/forks.
 
-No se ejecutan instalación, build, pruebas ni scripts del fork en el workflow con
-secrets. Las utilidades y configuración proceden de la revisión confiable de la
-rama predeterminada. Los artefactos se tratan como datos. Vincular hash/revisión no
-certifica por sí solo la veracidad de una cobertura producida por una PR.
+Sonar se ejecuta en pushes, PR internas y dispatch elegibles. En PR externas y
+ejecuciones de Dependabot se omite por falta de secrets: los demás jobs siguen
+siendo obligatorios y el análisis se hace al integrar el código en una rama con
+trigger de push, por ejemplo `ENS`. No se acredita SAST previo al merge de esas
+PR externas. No se repiten instalación/build/pruebas en el job Sonar.
+Los artefactos se tratan como datos. Vincular hash/revisión no certifica por sí
+solo la veracidad de una cobertura producida por una PR.
 
 ### 10.2. Gate y evidencia
 
-El merge exige `backend-ci` y el check de la GitHub App (`SonarCloud Code Analysis`,
-verificar nombre/proveedor al configurar), con ramas actualizadas. No se introduce
-un `needs` circular entre CI y su workflow posterior. Deben publicarse workflow,
-helpers y configuración en `main` para que `workflow_run` se active.
+El merge exige `backend-ci`, con ramas actualizadas. Este job depende también de
+`sonar` y exige `success`, salvo la excepción explícita de fork/Dependabot, donde
+solo admite `skipped` y documenta el motivo. No acepta fallos/cancelaciones ni
+omite los gates anteriores. No exigir globalmente el check separado de la App si
+se quiere aceptar PR externas sin token; el push posterior vuelve a exigir Sonar.
+No hay dependencia circular ni requisito de publicar primero archivos en `main`.
 
 Sonar way inicialmente, condiciones de código nuevo documentadas y revisión de
 hallazgos existentes. Los umbrales de Sonar no son porcentajes exigidos por ENS.
 No considerar un primer gate no calculado una aceptación definitiva.
 
 Artefacto agregado `backend-sonarqube-<RUN_ID>-<ATTEMPT>`, 90 días: revisión,
-CI productor/intento, LCOV/configuración por hash, revisión confiable, versiones,
+ejecución/intento, LCOV/configuración por hash, versiones,
 resultado y referencia nativa cuando existe. Sin logs, snippets, `.scannerwork`,
 tokens o código en ese artefacto. Los fallos se etiquetan `FAILED_OR_INCOMPLETE`.
 El análisis y revisiones contribuyen a `mp.sw.1`/`mp.sw.2`, según riesgos y DoA;
@@ -1147,17 +1156,21 @@ no acreditan por sí solos conformidad ENS Media.
 
 ### 10.3. Cierre pendiente
 
-Validación local: 26 pruebas de contexto/LCOV y regresiones de reportes/política
-correctas; Actionlint 1.7.7 y revisión de whitespace sin errores. Gitleaks 8.30.1
-sin hallazgos en el nuevo workflow y helpers/pruebas. No se ha ejecutado todavía
-un análisis real ni comprobado el Quality Gate en SonarQube Cloud.
+Validación local del job integrado: 10 pruebas Sonar y 12 regresiones de
+reportes/política/diagnósticos ZAP correctas (22). Incluyen la ejecución del shell
+real de `backend-ci` ante éxito, fallo, cancelación y omisión para PR internas,
+externas y Dependabot. No se ha comprobado todavía el análisis real ni el
+Quality Gate en SonarQube Cloud con esta arquitectura.
+Actionlint 1.7.7 y revisión de whitespace correctos; Gitleaks 8.30.1 sin hallazgos
+en el workflow integrado y los helpers/pruebas modificados.
 
 - [ ] Verificar vinculación del proyecto y acceso del token configurado; trial Team
   para ramas/PR y claves temporales en el archivo de propiedades.
-- [ ] Publicación en rama predeterminada y ejecución inicial en main/ENS.
+- [ ] Publicación del CI actualizado y ejecución inicial directamente en ENS.
 - [ ] Verificar inclusión TS/JS, paths LCOV y precisión del analizador.
-- [ ] PR interna/fork positiva y negativa, gate fallido y fallo de autenticación.
-- [ ] Protección de merge real con ambos checks.
+- [ ] PR interna positiva/negativa, omisión en fork y análisis del push tras merge;
+  gate fallido y fallo de autenticación.
+- [ ] Protección de merge real mediante `backend-ci`, incluido Sonar donde corresponde.
 - [ ] Revisión de hallazgos/hotspots, responsables, excepciones y retención de evidencias.
 
 ## 11. Pendientes transversales
