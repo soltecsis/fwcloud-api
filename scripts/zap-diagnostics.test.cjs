@@ -34,3 +34,20 @@ test('missing evidence and incomplete scans retain the actual exit classificatio
   assert.match(diagnostics(NaN), /exit code: unknown/);
   assert.match(diagnostics(0, { completed: true }), /exit code: 0 \(success\)/);
 });
+
+test('timestamp comparison prints only consistent numeric counts', () => {
+  const report = { timestampSessionDiagnostics: {
+    instances: 2, checkedInstances: 2, matchingSessionId: 2, uncheckedInstances: 0,
+    evidence: 'private-session-cookie',
+  } };
+  const output = diagnostics(2, report);
+  assert.match(output, /Timestamp alerts \(10096\): 2; checked: 2; matching sessionId: 2; unchecked: 0/);
+  assert.ok(!output.includes('private-session-cookie'));
+  for (const invalid of [
+    { ...report.timestampSessionDiagnostics, matchingSessionId: 'private-session-cookie' },
+    { ...report.timestampSessionDiagnostics, matchingSessionId: 3 },
+    { ...report.timestampSessionDiagnostics, uncheckedInstances: 1 },
+  ]) {
+    assert.ok(!diagnostics(2, { timestampSessionDiagnostics: invalid }).includes('Timestamp alerts'));
+  }
+});

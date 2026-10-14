@@ -119,6 +119,15 @@ identifica la causa: el último `test` devuelve 1 para cualquier código de ZAP
 distinto de cero. Los IDs también incluyen alertas informativas y no indican por
 sí solos qué regla bloqueó el análisis. Los logs privados siguen sin publicarse.
 
+Para investigar `10096` (Timestamp Disclosure), el hook compara su evidencia con
+los campos numéricos `sessionId` de respuestas JSON del mismo método y URL.
+El agregado y el resumen incluyen solo conteos de instancias, comprobadas,
+coincidentes con `sessionId` y no comprobadas. Por ejemplo,
+`Timestamp alerts (10096): 2; checked: 2; matching sessionId: 2; unchecked: 0`
+respalda la hipótesis de un falso positivo sobre identificadores de auditoría.
+Una instancia no comprobada no descarta esa hipótesis. La comprobación no publica
+valores, URLs ni cuerpos y no cambia la clasificación WARN ni el bloqueo del CI.
+
 ## Relación con ENS categoría Media
 
 | Medida | Evidencia técnica aportada |
