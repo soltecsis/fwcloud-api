@@ -414,11 +414,14 @@ function parseProvision(provisionRaw: Record<string, unknown>): PolicyReplicatio
     .map((rule) => parseProvisionRule(rule, ensureInterface))
     .filter((item): item is PolicyReplicationProvisionRule => item !== null);
 
+  const routing = parseProvisionRouting(provisionRaw.routing, ensureInterface);
+  const system = parseProvisionSystem(provisionRaw.system, ensureInterface);
+
   return {
     interfaces: Array.from(interfacesByRole.values()),
     rules,
-    routing: parseProvisionRouting(provisionRaw.routing, ensureInterface),
-    system: parseProvisionSystem(provisionRaw.system, ensureInterface),
+    routing,
+    system,
   };
 }
 
