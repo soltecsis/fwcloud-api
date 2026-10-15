@@ -36,6 +36,10 @@ import {
   type ProfileExternalObjectBinding,
 } from './replication-profile-object-reference';
 import {
+  profileSnapshotHasIpVersion,
+  validateProfileObjectSnapshotPlan,
+} from './replication-profile-object-snapshot';
+import {
   dereferenceParameter,
   describeReplicationProfileValue,
   parseReplicationProfileAddress,
@@ -47,6 +51,7 @@ import {
   resolveParameterValues,
 } from './replication-profile-parameters';
 import {
+  REPLICATION_PROFILE_FAMILY_TYPES,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL,
@@ -191,12 +196,6 @@ const ROUTING_OBJECT_TYPES = [
   REPLICATION_PROFILE_IPOBJ_TYPE_GROUP,
 ];
 const NAT_CHAINS: ReadonlyArray<string> = ['snat', 'dnat'];
-/** Object types a rule only takes in its own IP family. */
-const FAMILY_CHECKED_TYPES = [
-  REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
-  REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
-  REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
-];
 
 /** Position ids of one policy (family + chain), undefined for the positions it does not have. */
 export function getProvisionRulePositions(
@@ -516,6 +515,12 @@ export class PolicyReplicationService extends Service {
       : new Map<string, number>();
 
     const resolver = new ObjectBindingResolver(fwCloudId, !isDryRun, options.externalObjects);
+    result.errors.push(...(await resolver.prepareExternalObjects()));
+
+    if (result.errors.length > 0) {
+      return result;
+    }
+
     const bindings: ProvisionBinding[] = [];
 
     const interfaceIdByRole = await this.provisionInterfaces(
@@ -1340,7 +1345,7 @@ export class PolicyReplicationService extends Service {
     provision: PolicyReplicationProvision,
     bindings: ReadonlyMap<string, ProfileExternalObjectBinding>,
   ): Promise<string[]> {
-    const result = { errors: [] as string[] };
+    const result = { errors: validateProfileObjectSnapshotPlan(bindings) };
     // What a group holds does not depend on the rule using it, so each group is read once.
     const groupFamilies = new Map<number, ReturnType<typeof IPObjGroup.groupIPVersion>>();
     const check = async (items: unknown[], target: ProvisionObjectTarget): Promise<void> => {
@@ -1460,7 +1465,13 @@ export class PolicyReplicationService extends Service {
     groupFamilies: Map<number, ReturnType<typeof IPObjGroup.groupIPVersion>>,
   ): Promise<string | null> {
     if (binding.type === REPLICATION_PROFILE_IPOBJ_TYPE_GROUP) {
-      // Groups are only ever bound to an existing group, so they have an id.
+      // A missing group has no database relationships yet; its snapshot is the preflight view.
+      if (binding.id === undefined) {
+        return profileSnapshotHasIpVersion(binding.data, ipVersion)
+          ? null
+          : `group "${referenceId}" holds nothing of IPv${ipVersion}.`;
+      }
+
       if (!groupFamilies.has(binding.id)) {
         groupFamilies.set(binding.id, IPObjGroup.groupIPVersion(db.getQuery(), binding.id));
       }
@@ -1472,7 +1483,7 @@ export class PolicyReplicationService extends Service {
 
     const family = Number(binding.data.ip_version);
 
-    return FAMILY_CHECKED_TYPES.includes(binding.type) && family !== ipVersion
+    return REPLICATION_PROFILE_FAMILY_TYPES.includes(binding.type) && family !== ipVersion
       ? `template object "${referenceId}" is IPv${family} and cannot be used in an IPv${ipVersion} rule.`
       : null;
   }

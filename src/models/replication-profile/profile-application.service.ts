@@ -106,7 +106,7 @@ export interface ProfileApplicationRequest {
   parameters?: ReplicationProfileParameterValues;
   /**
    * Replacements of the profile's external objects for this application only, keyed by
-   * referenceId: the objects that no longer exist (missingObjects) need one.
+   * referenceId. Missing objects otherwise use the configuration saved in the template.
    */
   objectReplacements?: Record<string, ProfileObjectReplacement>;
   /** Provisioning only: role → name of an existing target interface to bind to it. */
@@ -136,7 +136,7 @@ export interface ProfileVpnProvisionResult {
   /** Template connection id -> the real config id just created for it. */
   connectionIds: Record<string, number>;
   errors: string[];
-  /** As in an application: nothing is created while an external object is missing. */
+  /** References whose saved configuration cannot be used for an application. */
   missingObjects?: ResolvedProfileObjectReference[];
 }
 
@@ -245,8 +245,19 @@ export class ProfileApplicationService extends Service {
       }
 
       if (objects.objectReferences.length > 0) {
-        result.objectReferences = objects.objectReferences;
-        result.missingObjects = [];
+        result.objectReferences = objects.objectReferences.map((reference) => {
+          const binding = objects.bindings.get(reference.referenceId);
+          return binding?.id === undefined
+            ? reference
+            : {
+                ...reference,
+                resolved: true,
+                currentObject: { ...binding.data, id: binding.id },
+              };
+        });
+        result.missingObjects = result.objectReferences.filter(
+          (reference) => !reference.resolved && reference.locations.length > 0,
+        );
       }
 
       if (result.errors.length || (request.replication.mode !== 'dry_run' && !result.applied)) {
@@ -349,10 +360,8 @@ export class ProfileApplicationService extends Service {
   }
 
   /**
-   * Resolves the profile's external objects before anything is written. Each used object that is
-   * not available and has no replacement, each replacement that cannot be used and, once all of
-   * them are resolved, each object that does not fit where the profile uses it is an error: the
-   * application stops there, and the caller can supply what is missing and retry.
+   * Plans all external objects before writing anything, validating the saved configuration and
+   * dependencies of missing objects. The policy engine creates them only during a real apply.
    */
   private async resolveObjectReferences(
     model: unknown,
@@ -365,12 +374,16 @@ export class ProfileApplicationService extends Service {
       request.objectReplacements,
     );
 
-    resolution.errors.push(
-      ...resolution.missingObjects.map(
-        (reference) =>
-          `Object "${reference.sourceName}" (${reference.objectType}) is not available in this FWCloud: send a replacement for "${reference.referenceId}" in objectReplacements.`,
-      ),
-    );
+    if (resolution.errors.length === 0) {
+      resolution.errors.push(
+        ...resolution.missingObjects
+          .filter((reference) => !resolution.bindings.has(reference.referenceId))
+          .map(
+            (reference) =>
+              `Object reference "${reference.referenceId}" (${reference.sourceName}) has no usable saved configuration.`,
+          ),
+      );
+    }
 
     if (provision && resolution.errors.length === 0 && resolution.bindings.size > 0) {
       resolution.errors.push(

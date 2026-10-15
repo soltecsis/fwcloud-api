@@ -922,8 +922,8 @@ export interface PolicyReplicationResult {
   /** Profiles with external objects: what each of them resolved to (see objectReplacements). */
   objectReferences?: ResolvedProfileObjectReference[];
   /**
-   * The external objects the profile uses that no longer exist and were not replaced. Nothing is
-   * written while there is any: apply again with an objectReplacements entry for each of them.
+   * Used references without real destination objects. During a preview these can have validated
+   * recreation plans; a confirmed application recreates them from the saved snapshots.
    */
   missingObjects?: ResolvedProfileObjectReference[];
 }

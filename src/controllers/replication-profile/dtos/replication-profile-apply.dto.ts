@@ -151,8 +151,9 @@ export class ReplicationProfileApplyDto {
 
   /**
    * Replacements of the profile's external objects for this application only, keyed by
-   * referenceId: `{ sourceObjectId }` of an existing object or `{ data }` of a new one. The ones
-   * that no longer exist (missingObjects of a previous answer) need one. Checked when applying.
+   * referenceId: `{ sourceObjectId }` of an existing object, `{ data }` of a new one, or
+   * `{ useSnapshot: true }` to keep the template configuration under a distinct name when needed. The ones
+   * that no longer exist are otherwise recreated from their saved snapshots. Checked when applying.
    */
   @IsOptional()
   @IsObject()
