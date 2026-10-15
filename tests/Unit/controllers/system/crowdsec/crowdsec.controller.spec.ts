@@ -168,7 +168,10 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should forward CrowdSec status to the agent', async () => {
-    const status = { crowdsec: { installed: true } };
+    const status = {
+      crowdsec: { installed: true },
+      active_decisions: { count: 3, limit: null, truncated: false },
+    };
     const statusStub = sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
 
     const response: ResponseBuilder = await controller.status({
@@ -279,14 +282,17 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should forward CrowdSec decision filters to the agent', async () => {
-    const decisions = { decisions: [] };
+    const decisions = {
+      decisions: [{ id: '1', expires_at: '2026-10-15T10:00:00.000Z' }],
+      total: 3,
+    };
     const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions').resolves(decisions);
 
     const response: ResponseBuilder = await controller.decisions({
       query: {
         limit: '10',
         scope: 'Ip',
-        value: '192.0.2.10',
+        value: '14.',
         decision_type: 'ban',
         origin: 'CAPI',
         scenario: 'http:scan',
@@ -298,7 +304,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       decisionsStub.calledOnceWithExactly({
         limit: 10,
         scope: 'Ip',
-        value: '192.0.2.10',
+        value: '14.',
         decisionType: 'ban',
         origin: 'CAPI',
         scenario: 'http:scan',
@@ -2446,7 +2452,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         {
           limit: 100,
           scope: 'Ip',
-          value: '192.0.2.10',
+          value: '14.',
           decision_type: 'ban',
           origin: 'CAPI',
           scenario: 'http:scan',
