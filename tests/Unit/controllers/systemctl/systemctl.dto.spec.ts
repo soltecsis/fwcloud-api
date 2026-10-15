@@ -18,6 +18,10 @@ describe(SystemCtlDto.name, () => {
     expect(await validate(buildDto('openvpn-server@firewall1'))).to.be.empty;
   });
 
+  it('should accept CrowdSec as a systemctl service name', async () => {
+    expect(await validate(buildDto('crowdsec'))).to.be.empty;
+  });
+
   it('should reject invalid OpenVPN systemctl service names', async () => {
     const errors = await validate(buildDto('openvpn-server'));
 
