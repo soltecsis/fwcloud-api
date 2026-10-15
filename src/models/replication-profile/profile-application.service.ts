@@ -21,6 +21,7 @@
 */
 
 import db from '../../database/database-manager';
+import { Mutex } from 'async-mutex';
 import { Service } from '../../fonaments/services/service';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
@@ -160,6 +161,7 @@ export interface ProfileVpnProvisionResult {
  *   credentials can never leak into persisted data.
  */
 export class ProfileApplicationService extends Service {
+  private static readonly applicationLocks = new Map<number, Mutex>();
   protected _replicationProfileService: ReplicationProfileService;
   protected _policyReplicationService: PolicyReplicationService;
   protected _auditLogService: AuditLogService;
@@ -181,6 +183,25 @@ export class ProfileApplicationService extends Service {
   }
 
   public async apply(
+    actor: ProfileApplicationActor,
+    request: ProfileApplicationRequest,
+  ): Promise<PolicyReplicationResult> {
+    const locks = ProfileApplicationService.applicationLocks;
+    let lock = locks.get(request.fwCloudId);
+    if (!lock) {
+      lock = new Mutex();
+      locks.set(request.fwCloudId, lock);
+    }
+    try {
+      return await lock.runExclusive(() => this.applyProfile(actor, request));
+    } finally {
+      if (!lock.isLocked()) {
+        locks.delete(request.fwCloudId);
+      }
+    }
+  }
+
+  private async applyProfile(
     actor: ProfileApplicationActor,
     request: ProfileApplicationRequest,
   ): Promise<PolicyReplicationResult> {

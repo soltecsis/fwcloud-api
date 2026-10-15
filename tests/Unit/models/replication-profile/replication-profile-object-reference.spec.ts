@@ -943,6 +943,24 @@ describe(describeName('Replication profile external object references'), () => {
       expect(await objectsNamed(address.name)).to.have.length(1);
     });
 
+    it('creates one object when the same confirmed application is submitted concurrently', async () => {
+      const object = await createObject('range', VALUE_OBJECTS[2].data);
+      const profile = await createProfile(twoRuleModel('range', object.id));
+      await db.getSource().manager.getRepository(IPObj).delete(object.id);
+      const creation = sinon.spy(IPObj, 'insertIpobj');
+
+      const results = await Promise.all([apply(profile), apply(profile)]);
+
+      results.forEach((result) => {
+        expect(result.errors).to.be.empty;
+        expect(result.applied).to.eq(true);
+      });
+      expect(await objectsNamed(object.name)).to.have.length(1);
+      expect(creation.calledOnce).to.eq(true);
+      const ids = results.map((result) => result.objectReferences[0].currentObject.id);
+      expect(ids[0]).to.eq(ids[1]);
+    });
+
     it('rejects an object group with nothing of the IP family of the rule', async () => {
       const member = await createObject('address', {
         ip_version: 6,
