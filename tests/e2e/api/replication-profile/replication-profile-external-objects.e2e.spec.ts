@@ -63,6 +63,12 @@ describe(describeName('Replication profile external object automatic recreation 
   });
   const objectsNamed = (name: string, fwCloudId = fwCloud.id) =>
     db.getSource().manager.getRepository(IPObj).findBy({ name, fwCloudId });
+  const unlockFwCloud = (fwCloudId: number) =>
+    db.getSource().manager.getRepository(FwCloud).update(fwCloudId, {
+      locked: false,
+      locked_by: null,
+      locked_at: null,
+    });
   const ruleReferences = async (firewallId = target.id, group = false): Promise<number[]> => {
     const rows = await db.getSource().query(
       `SELECT O.${group ? 'ipobj_g' : 'ipobj'} AS object_id FROM policy_r__ipobj O
@@ -294,6 +300,8 @@ describe(describeName('Replication profile external object automatic recreation 
       ]);
 
       for (let application = 0; application < 2; application++) {
+        // Test authentication starts a new HTTP session for each request.
+        await unlockFwCloud(destinationTarget.fwCloudId);
         const applied = await request(app.express)
           .post(`${profileUrl(profile, destinationTarget.fwCloudId)}/apply`)
           .set('Cookie', [attachSession(sessionId)])
@@ -405,6 +413,8 @@ describe(describeName('Replication profile external object automatic recreation 
     expect(await ruleReferences(destinationTarget.id, true)).to.be.empty;
 
     for (let application = 0; application < 2; application++) {
+      // Test authentication starts a new HTTP session for each request.
+      await unlockFwCloud(destinationTarget.fwCloudId);
       const applied = await request(app.express)
         .post(`${profileUrl(profile, destinationTarget.fwCloudId)}/apply`)
         .set('Cookie', [attachSession(sessionId)])
@@ -616,9 +626,7 @@ describe(describeName('Replication profile external object automatic recreation 
       .manager.getRepository(IPObj)
       .findOneByOrFail({ id: object.id });
 
-    await db
-      .getSource()
-      .query('UPDATE fwcloud SET locked = 0, locked_by = NULL WHERE id = ?', [fwCloud.id]);
+    await unlockFwCloud(fwCloud.id);
 
     await request(app.express)
       .post(`${profileUrl(profile)}/apply`)

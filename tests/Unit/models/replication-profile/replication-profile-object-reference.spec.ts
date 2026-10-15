@@ -523,27 +523,23 @@ describe(describeName('Replication profile external object references'), () => {
   });
 
   describe('loading a template', () => {
-    it('resolves a reference to the current object and marks it unresolved once deleted', async () => {
+    it('resolves an unchanged object and marks it unresolved once deleted', async () => {
       const object = await createObject('address', VALUE_OBJECTS[0].data);
       const profile = await createProfile(twoRuleModel('address', object.id));
       const templateFile = resolveReplicationProfileTemplatePath(profile);
       const template = fs.readFileSync(templateFile, 'utf8');
-
-      await db
-        .getSource()
-        .manager.getRepository(IPObj)
-        .update(object.id, { address: '198.51.100.5' });
 
       const live = await resolveProfileObjectReferences(
         loadReplicationProfileModel(profile),
         fwc.fwcloud.id,
       );
 
+      expect(live.errors).to.be.empty;
       expect(live.missingObjects).to.be.empty;
       expect(live.objectReferences[0]).to.include({ resolved: true, sourceName: object.name });
       expect(live.objectReferences[0].currentObject).to.include({
         id: object.id,
-        address: '198.51.100.5',
+        address: '198.51.100.4',
       });
       expect(live.objectReferences[0].snapshot).to.include({ address: '198.51.100.4' });
 
@@ -553,6 +549,7 @@ describe(describeName('Replication profile external object references'), () => {
       const missing = await resolveProfileObjectReferences(model, fwc.fwcloud.id);
 
       expect(fs.readFileSync(templateFile, 'utf8')).to.eq(template);
+      expect(missing.errors).to.be.empty;
       expect(missing.missingObjects).to.have.length(1);
       expect(missing.objectReferences[0]).to.deep.eq({
         referenceId: REFERENCE_ID,
@@ -565,6 +562,40 @@ describe(describeName('Replication profile external object references'), () => {
         currentObject: null,
         requiredFields: ['address'],
       });
+      expect(missing.bindings.get(REFERENCE_ID)).to.deep.eq({
+        type: 5,
+        data: { type: 5, name: object.name, ...VALUE_OBJECTS[0].data },
+      });
+    });
+
+    it('reports a conflict when the original object no longer matches its saved snapshot', async () => {
+      const object = await createObject('address', VALUE_OBJECTS[0].data);
+      const profile = await createProfile(twoRuleModel('address', object.id));
+      const templateFile = resolveReplicationProfileTemplatePath(profile);
+      const template = fs.readFileSync(templateFile, 'utf8');
+
+      await db
+        .getSource()
+        .manager.getRepository(IPObj)
+        .update(object.id, { address: '198.51.100.5' });
+
+      const result = await resolveProfileObjectReferences(
+        loadReplicationProfileModel(profile),
+        fwc.fwcloud.id,
+      );
+
+      expect(result.errors).to.have.length(1);
+      expect(result.errors[0]).to.include('conflict').and.include(object.name);
+      expect(result.missingObjects).to.have.length(1);
+      expect(result.objectReferences[0]).to.include({ resolved: false, currentObject: null });
+      expect(result.objectReferences[0].snapshot).to.include({ address: '198.51.100.4' });
+      expect(result.objectReferences[0].conflictingObjects).to.have.length(1);
+      expect(result.objectReferences[0].conflictingObjects[0]).to.include({
+        id: object.id,
+        address: '198.51.100.5',
+      });
+      expect(result.bindings.has(REFERENCE_ID)).to.eq(false);
+      expect(fs.readFileSync(templateFile, 'utf8')).to.eq(template);
     });
 
     it('does not resolve an object of another FWCloud, nor an id now holding another type', async () => {
