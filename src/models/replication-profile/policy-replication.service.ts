@@ -42,6 +42,7 @@ import {
 import {
   dereferenceParameter,
   describeReplicationProfileValue,
+  isReplicationProfileParameterRef,
   parseReplicationProfileAddress,
   parseReplicationProfileNetwork,
   parseReplicationProfilePort,
@@ -780,8 +781,22 @@ export class PolicyReplicationService extends Service {
         address: parsed.address,
         netmask: parsed.netmask,
         name: declared.name ?? `${iface.name}-${index === 0 ? 'ip' : `ip${index + 1}`}`,
+        comment: declared.comment,
+        useSelectedConfiguration: declared.useSelectedConfiguration,
         interfaceId: isDryRun ? undefined : interfaceId,
       });
+
+      const parameter =
+        declared.sourceParameter ??
+        (isReplicationProfileParameterRef(declared.value) ? declared.value.param : undefined);
+      if (parameter) {
+        resolver.registerParameterAddress(
+          parameter,
+          `${iface.role}:address:${index}`,
+          binding,
+          parsed.ipVersion,
+        );
+      }
 
       bindings.push({
         kind: 'ipobj',
@@ -1092,13 +1107,41 @@ export class PolicyReplicationService extends Service {
         ref = standard.ref;
         type = standard.type;
       } else {
-        const raw = dereferenceParameter(object.value, parameterValues);
-
-        if (raw === undefined) {
-          continue;
+        const addressParameter =
+          object.kind === 'address' && isReplicationProfileParameterRef(object.value)
+            ? object.value.param
+            : undefined;
+        const parameterAddress = addressParameter
+          ? resolver.resolveParameterAddress(addressParameter, object.name)
+          : undefined;
+        if (parameterAddress === null) {
+          result.errors.push(
+            `${target.label}: address parameter "${addressParameter}" refers to multiple interface IPs.`,
+          );
+          return null;
+        }
+        if (
+          parameterAddress &&
+          target.ipVersion &&
+          parameterAddress.ipVersion !== target.ipVersion
+        ) {
+          result.errors.push(
+            `${target.label}: interface IP "${parameterAddress.name}" is not an IPv${target.ipVersion} address.`,
+          );
+          return null;
         }
 
-        const resolved = await this.resolveLiteralObject(object, raw, target, resolver, result);
+        let resolved: number | null;
+        if (parameterAddress) {
+          resolved = parameterAddress.id;
+        } else {
+          const raw = dereferenceParameter(object.value, parameterValues);
+          if (raw === undefined) {
+            continue;
+          }
+
+          resolved = await this.resolveLiteralObject(object, raw, target, resolver, result);
+        }
 
         // A dry run resolves to id 0, so only null means failure.
         if (resolved === null) {

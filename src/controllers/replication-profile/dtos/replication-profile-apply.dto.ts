@@ -14,6 +14,7 @@ import {
   registerDecorator,
 } from 'class-validator';
 import { POLICY_REPLICATION_MODES } from '../../../models/replication-profile/policy-replication.types';
+import type { PolicyReplicationInterfaceAddressOverrides } from '../../../models/replication-profile/policy-replication.types';
 import type { ProfileObjectReplacement } from '../../../models/replication-profile/replication-profile-object-reference';
 import {
   asReplicationProfileNonEmptyString,
@@ -137,6 +138,11 @@ export class ReplicationProfileApplyDto {
   @IsOptional()
   @IsRoleNameMap()
   interfaceNameMapping?: Record<string, string>;
+
+  /** Application-local IP names, addresses and comments, by interface role. */
+  @IsOptional()
+  @IsObject()
+  interfaceAddressOverrides?: PolicyReplicationInterfaceAddressOverrides;
 
   @IsIn(POLICY_REPLICATION_MODES)
   mode: string;

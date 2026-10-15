@@ -332,6 +332,7 @@ export class ReplicationProfileController extends Controller {
         parameters: body.parameters,
         objectReplacements: body.objectReplacements,
         interfaceNameMapping: body.interfaceNameMapping,
+        interfaceAddressOverrides: body.interfaceAddressOverrides,
         credentials: body.credentials,
         vpnConnectionIds: body.vpnConnectionIds,
       },

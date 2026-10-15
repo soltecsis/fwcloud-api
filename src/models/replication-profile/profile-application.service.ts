@@ -35,11 +35,13 @@ import {
   createPolicyReplicationResult,
   getProfileProvisioning,
   PolicyReplicationProvision,
+  PolicyReplicationInterfaceAddressOverrides,
   PolicyReplicationRequest,
   PolicyReplicationResult,
 } from './policy-replication.types';
 import {
   getProfileParameters,
+  parseReplicationProfileAddress,
   resolveParameterValues,
   ReplicationProfileParameterValues,
 } from './replication-profile-parameters';
@@ -66,6 +68,7 @@ import {
   resolveVpnConnectionValues,
 } from './profile-vpn-config-provisioning.service';
 import { ResolvedVpnConfig } from './replication-profile.constants';
+import { applyInterfaceAddressOverrides } from './replication-profile-interface-addresses';
 import type {
   ProfileObjectReplacement,
   ResolvedProfileObjectReference,
@@ -111,6 +114,8 @@ export interface ProfileApplicationRequest {
   objectReplacements?: Record<string, ProfileObjectReplacement>;
   /** Provisioning only: role → name of an existing target interface to bind to it. */
   interfaceNameMapping?: Record<string, string>;
+  /** Application-local IP names, addresses and comments, by interface role. */
+  interfaceAddressOverrides?: PolicyReplicationInterfaceAddressOverrides;
   /**
    * Provisioning only, VPN templates: template connection id -> the real VPN config the caller has
    * already created for it (for instance through POST .../vpn). Each id is checked to be a config of
@@ -193,6 +198,21 @@ export class ProfileApplicationService extends Service {
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
       const provision = getProfileProvisioning(model);
+      const parameters = getProfileParameters(model);
+      const addressErrors = await applyInterfaceAddressOverrides(
+        provision,
+        request.interfaceAddressOverrides,
+        parameters,
+        request.parameters,
+        request.fwCloudId,
+      );
+
+      if (addressErrors.length > 0) {
+        const result = this.emptyPolicyReplicationResult(addressErrors, request.replication.mode);
+        await this.auditAttempt(actor, request, profile, target, startedAt, result);
+        return result;
+      }
+
       const objects = await this.resolveObjectReferences(model, provision, request);
       let result: PolicyReplicationResult;
 
@@ -211,7 +231,13 @@ export class ProfileApplicationService extends Service {
         // The template's CAs/certificates have no keys of their own; a real firewall generates its
         // own when the profile is applied. A dry run must not create them (or anything else) for
         // real: it only stands in for the VPN clients rules may reference.
-        const resourced = await this.provisionVpnResources(request, model, target, vpnRollback);
+        const resourced = await this.provisionVpnResources(
+          request,
+          model,
+          target,
+          vpnRollback,
+          provision,
+        );
 
         if (resourced.errors.length > 0 && request.replication.mode !== 'dry_run') {
           // No VPN, no policy: rules that depend on it must not be written without it.
@@ -224,7 +250,7 @@ export class ProfileApplicationService extends Service {
             request.fwCloudId,
             request.replication.mode,
             {
-              parameters: getProfileParameters(model),
+              parameters,
               parameterValues: request.parameters,
               profileCode: profile.code,
               profileVersion: profile.version,
@@ -430,6 +456,7 @@ export class ProfileApplicationService extends Service {
     model: unknown,
     target: TargetInfo | null,
     vpnRollback: ProfileVpnRollback,
+    provision?: PolicyReplicationProvision,
   ): Promise<{ vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined; errors: string[] }> {
     const errors: string[] = [];
     const vpnTemplate = (
@@ -499,10 +526,21 @@ export class ProfileApplicationService extends Service {
       ? await loadInterfaceRoleAddresses(
           dbQuery,
           vpnFirewallId,
-          getProfileProvisioning(model)?.interfaces ?? [],
+          (provision ?? getProfileProvisioning(model))?.interfaces ?? [],
           request.interfaceNameMapping,
         )
       : new Map<string, string>();
+    for (const iface of provision?.interfaces ?? []) {
+      const selectedAddresses = iface.addresses
+        .filter((address) => address.useSelectedConfiguration)
+        .map((address) => parseReplicationProfileAddress(address.value))
+        .filter((address) => address !== null);
+      const selected =
+        selectedAddresses.find((address) => address.ipVersion === 4) ?? selectedAddresses[0];
+      if (selected) {
+        interfaceAddresses.set(iface.role, selected.address);
+      }
+    }
     const connections = bindVpnOptionParameters(
       vpnTemplate.connections,
       parameterValues,

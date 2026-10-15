@@ -104,7 +104,19 @@ export interface PolicyReplicationProvisionAddress {
   value: PolicyReplicationValueRef;
   /** Optional object name; defaults to the address itself. */
   name?: string;
+  /** Comment supplied for the interface address. */
+  comment?: string;
+  /** Application-local selection: retain the chosen name/comment when resolving it. */
+  useSelectedConfiguration?: boolean;
+  /** Original parameter identity retained when application-local choices replace its value. */
+  sourceParameter?: string;
 }
+
+/** Interface role -> addresses chosen for this application, in template declaration order. */
+export type PolicyReplicationInterfaceAddressOverrides = Record<
+  string,
+  { name: string; value: string; comment?: string }[]
+>;
 
 export interface PolicyReplicationProvisionInterface {
   /** Interface name created on the target (e.g. "WAN"). */
@@ -600,7 +612,11 @@ function parseProvisionAddresses(value: unknown): PolicyReplicationProvisionAddr
 
       return inner === null
         ? null
-        : { value: inner, name: firstNonEmptyString(record, ['name']) ?? undefined };
+        : {
+            value: inner,
+            name: firstNonEmptyString(record, ['name']) ?? undefined,
+            comment: typeof record.comment === 'string' ? record.comment : undefined,
+          };
     })
     .filter((item): item is PolicyReplicationProvisionAddress => item !== null);
 }

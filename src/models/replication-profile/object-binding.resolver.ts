@@ -64,6 +64,9 @@ export type ObjectBindingRequest =
       address: string;
       netmask: string;
       name?: string;
+      comment?: string;
+      /** Keep the application-selected IP name and comment when matching an interface address. */
+      useSelectedConfiguration?: boolean;
       /** Binds the address to a firewall interface (used for provisioned IPs). */
       interfaceId?: number;
     }
@@ -86,6 +89,10 @@ export interface ObjectBindingResult {
   /** False when an equivalent object already existed and was reused. */
   created: boolean;
   name: string;
+}
+
+interface ProvisionedParameterAddress extends ObjectBindingResult {
+  ipVersion: ReplicationProfileIpVersion;
 }
 
 /** Folder of the objects or services tree each object type is placed in. */
@@ -143,6 +150,7 @@ export class ObjectBindingResolver {
   private readonly treeFolderCache = new Map<number, number | null>();
   private readonly snapshotObjects = new Map<string, Promise<ObjectBindingResult>>();
   private readonly selectedSnapshotObjects = new Map<string, ProfileExternalObjectBinding>();
+  private readonly parameterAddresses = new Map<string, Map<string, ProvisionedParameterAddress>>();
 
   constructor(
     private readonly fwCloudId: number,
@@ -162,6 +170,42 @@ export class ObjectBindingResolver {
       () => this.findExisting(request),
       () => this.create(request),
     );
+  }
+
+  /** Preserve the selected interface IP for usages of its original template parameter. */
+  registerParameterAddress(
+    parameter: string,
+    declarationKey: string,
+    binding: ObjectBindingResult,
+    ipVersion: ReplicationProfileIpVersion,
+  ): void {
+    let addresses = this.parameterAddresses.get(parameter);
+    if (!addresses) {
+      addresses = new Map();
+      this.parameterAddresses.set(parameter, addresses);
+    }
+
+    // Real IDs identify reused IPs; previews keep distinct declarations instead of merging id 0.
+    addresses.set(binding.id > 0 ? `id:${binding.id}` : declarationKey, { ...binding, ipVersion });
+  }
+
+  /** Undefined means an ordinary parameter; null means multiple interface IPs are ambiguous. */
+  resolveParameterAddress(
+    parameter: string,
+    name?: string,
+  ): ProvisionedParameterAddress | null | undefined {
+    const addresses = this.parameterAddresses.get(parameter);
+    if (!addresses) {
+      return undefined;
+    }
+
+    const candidates = Array.from(addresses.values());
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+
+    const named = name ? candidates.filter((candidate) => candidate.name === name) : [];
+    return named.length === 1 ? named[0] : null;
   }
 
   /**
@@ -361,7 +405,10 @@ export class ObjectBindingResolver {
       return `range:${request.ipVersion}:${request.start}:${request.end}`;
     }
 
-    return `${request.kind}:${request.ipVersion}:${request.address}:${request.netmask}:${request.interfaceId ?? 0}`;
+    const selected = request.useSelectedConfiguration
+      ? `:${JSON.stringify([request.name, request.comment ?? ''])}`
+      : '';
+    return `${request.kind}:${request.ipVersion}:${request.address}:${request.netmask}:${request.interfaceId ?? 0}${selected}`;
   }
 
   private findExisting(request: ObjectBindingRequest): Promise<ObjectBindingResult | null> {
@@ -384,13 +431,14 @@ export class ObjectBindingResolver {
     // An address bound to an interface must match that interface: the same
     // literal IP under a different interface is a different object.
     return this.findObject(
-      'type = ? AND ip_version = ? AND address = ? AND netmask = ? AND interface <=> ?',
+      `type = ? AND ip_version = ? AND address = ? AND netmask = ? AND interface <=> ?${request.useSelectedConfiguration ? " AND name = ? AND COALESCE(comment, '') = ?" : ''}`,
       [
         REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[request.kind],
         request.ipVersion,
         request.address,
         request.netmask,
         request.interfaceId ?? null,
+        ...(request.useSelectedConfiguration ? [request.name, request.comment ?? ''] : []),
       ],
     );
   }
@@ -447,6 +495,7 @@ export class ObjectBindingResolver {
         netmask: request.netmask,
         ip_version: request.ipVersion,
         interfaceId: request.interfaceId ?? null,
+        ...(request.comment === undefined ? {} : { comment: request.comment }),
       },
       request.interfaceId === undefined,
     );
