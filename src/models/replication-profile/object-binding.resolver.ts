@@ -22,16 +22,30 @@
 
 import db from '../../database/database-manager';
 import { IPObj } from '../ipobj/IPObj';
+import { IPObjGroup } from '../ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../ipobj/IPObjToIPObjGroup';
+import { Interface } from '../interface/Interface';
+import { InterfaceIPObj } from '../interface/InterfaceIPObj';
 import { OBJECT_TREE_FOLDERS, SERVICE_TREE_FOLDERS, Tree } from '../tree/Tree';
 import { dbQuery, findTreeNodeId } from './replication-sql.helpers';
 import {
   PROFILE_OBJECT_DATA_FIELDS,
   ProfileExternalObjectBinding,
+  isProfileReferenceGroupType,
 } from './replication-profile-object-reference';
+import {
+  findExistingProfileSnapshot,
+  pickProfileFields,
+  PROFILE_HOST_INTERFACE_COLUMNS,
+  profileObjectSnapshotKey,
+  validateProfileObjectSnapshot,
+  validateProfileObjectSnapshotPlan,
+} from './replication-profile-object-snapshot';
 import {
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
+  REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
   REPLICATION_PROFILE_PROTOCOL_BY_IPOBJ_TYPE,
   ReplicationProfileIpVersion,
   ReplicationProfileObjectKind,
@@ -50,6 +64,9 @@ export type ObjectBindingRequest =
       address: string;
       netmask: string;
       name?: string;
+      comment?: string;
+      /** Keep the application-selected IP name and comment when matching an interface address. */
+      useSelectedConfiguration?: boolean;
       /** Binds the address to a firewall interface (used for provisioned IPs). */
       interfaceId?: number;
     }
@@ -72,6 +89,10 @@ export interface ObjectBindingResult {
   /** False when an equivalent object already existed and was reused. */
   created: boolean;
   name: string;
+}
+
+interface ProvisionedParameterAddress extends ObjectBindingResult {
+  ipVersion: ReplicationProfileIpVersion;
 }
 
 /** Folder of the objects or services tree each object type is placed in. */
@@ -127,6 +148,9 @@ export async function placeObjectInTreeFolder(
 export class ObjectBindingResolver {
   private readonly cache = new Map<string, ObjectBindingResult>();
   private readonly treeFolderCache = new Map<number, number | null>();
+  private readonly snapshotObjects = new Map<string, Promise<ObjectBindingResult>>();
+  private readonly selectedSnapshotObjects = new Map<string, ProfileExternalObjectBinding>();
+  private readonly parameterAddresses = new Map<string, Map<string, ProvisionedParameterAddress>>();
 
   constructor(
     private readonly fwCloudId: number,
@@ -134,7 +158,11 @@ export class ObjectBindingResolver {
     private readonly allowCreate: boolean = true,
     /** Template object references of the profile -> what their usages bind to. */
     private readonly externalObjects: ReadonlyMap<string, ProfileExternalObjectBinding> = new Map(),
-  ) {}
+  ) {
+    for (const binding of externalObjects.values()) {
+      this.selectedSnapshotObjects.set(profileObjectSnapshotKey(binding.data), binding);
+    }
+  }
 
   resolve(request: ObjectBindingRequest): Promise<ObjectBindingResult> {
     return this.findOrCreate(
@@ -142,6 +170,42 @@ export class ObjectBindingResolver {
       () => this.findExisting(request),
       () => this.create(request),
     );
+  }
+
+  /** Preserve the selected interface IP for usages of its original template parameter. */
+  registerParameterAddress(
+    parameter: string,
+    declarationKey: string,
+    binding: ObjectBindingResult,
+    ipVersion: ReplicationProfileIpVersion,
+  ): void {
+    let addresses = this.parameterAddresses.get(parameter);
+    if (!addresses) {
+      addresses = new Map();
+      this.parameterAddresses.set(parameter, addresses);
+    }
+
+    // Real IDs identify reused IPs; previews keep distinct declarations instead of merging id 0.
+    addresses.set(binding.id > 0 ? `id:${binding.id}` : declarationKey, { ...binding, ipVersion });
+  }
+
+  /** Undefined means an ordinary parameter; null means multiple interface IPs are ambiguous. */
+  resolveParameterAddress(
+    parameter: string,
+    name?: string,
+  ): ProvisionedParameterAddress | null | undefined {
+    const addresses = this.parameterAddresses.get(parameter);
+    if (!addresses) {
+      return undefined;
+    }
+
+    const candidates = Array.from(addresses.values());
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+
+    const named = name ? candidates.filter((candidate) => candidate.name === name) : [];
+    return named.length === 1 ? named[0] : null;
   }
 
   /**
@@ -157,16 +221,163 @@ export class ObjectBindingResolver {
       throw new Error(`Template object reference "${referenceId}" has not been resolved.`);
     }
 
-    const { id } =
-      binding.id === undefined
-        ? await this.findOrCreate(
-            `external:${referenceId}`,
-            () => this.findIdenticalObject(binding.data),
-            () => this.createObject(binding.data),
-          )
-        : binding;
+    const { id } = binding.id === undefined ? await this.resolveSnapshot(binding.data) : binding;
+
+    // Application-local bindings carry the actual destination IDs back to the caller. Saved
+    // template JSON is never changed; dry runs do not bind stand-in IDs as real objects.
+    if (this.allowCreate && id > 0) {
+      binding.id = id;
+    }
 
     return { id, type: binding.type };
+  }
+
+  /** Validates every pending snapshot and dependency before any provisioning writes occur. */
+  async prepareExternalObjects(): Promise<string[]> {
+    const errors = validateProfileObjectSnapshotPlan(this.externalObjects);
+
+    for (const [referenceId, binding] of this.externalObjects) {
+      if (binding.id !== undefined) {
+        continue;
+      }
+
+      const invalid = await validateProfileObjectSnapshot(
+        binding.data,
+        binding.type,
+        this.fwCloudId,
+      );
+
+      if (invalid) {
+        errors.push(`Template object reference "${referenceId}": ${invalid}`);
+      }
+    }
+
+    return errors;
+  }
+
+  /** A shared dependency and its standalone template reference always resolve to one object. */
+  private async resolveSnapshot(data: ReplicationProfileRecord): Promise<ObjectBindingResult> {
+    const key = profileObjectSnapshotKey(data);
+    const selected = this.selectedSnapshotObjects.get(key);
+    if (selected?.id !== undefined) {
+      return { id: selected.id, created: false, name: selected.data.name as string };
+    }
+    let result = this.snapshotObjects.get(key);
+
+    if (!result) {
+      result = (async () => {
+        const existing = await findExistingProfileSnapshot(data, Number(data.type), this.fwCloudId);
+
+        return existing
+          ? { id: existing.id, created: false, name: data.name as string }
+          : this.createSnapshot(data);
+      })();
+      this.snapshotObjects.set(key, result);
+    }
+
+    return result;
+  }
+
+  /** Recreates a validated snapshot through the same model APIs used by the object forms. */
+  private async createSnapshot(data: ReplicationProfileRecord): Promise<ObjectBindingResult> {
+    const type = Number(data.type);
+    const name = data.name as string;
+
+    if (!this.allowCreate) {
+      return { id: 0, created: true, name };
+    }
+
+    if (isProfileReferenceGroupType(type)) {
+      // All member IDs exist before the group receives its relationships.
+      const members: ObjectBindingResult[] = [];
+
+      for (const member of data.members as ReplicationProfileRecord[]) {
+        members.push(await this.resolveSnapshot(member));
+      }
+
+      const id = await new Promise<number>((resolve, reject) => {
+        IPObjGroup.insertIpobj_g(
+          { name, type, fwcloud: this.fwCloudId, comment: data.comment ?? null },
+          (error, result) =>
+            error
+              ? reject(error)
+              : result?.insertId
+                ? resolve(Number(result.insertId))
+                : reject(new Error(`Could not recreate group "${name}".`)),
+        );
+      });
+
+      for (const member of members) {
+        await IPObjToIPObjGroup.insertIpobj__ipobjg({
+          dbCon: db.getQuery(),
+          body: { ipobj_g: id, ipobj: member.id },
+        });
+      }
+
+      await placeObjectInTreeFolder(this.fwCloudId, id, type, name, this.treeFolderCache);
+      return { id, created: true, name };
+    }
+
+    const columns = pickProfileFields(data, PROFILE_OBJECT_DATA_FIELDS);
+    const id = Number(
+      await IPObj.insertIpobj(db.getQuery(), { ...columns, fwcloud: this.fwCloudId }),
+    );
+    await placeObjectInTreeFolder(this.fwCloudId, id, type, name, this.treeFolderCache);
+
+    if (type === REPLICATION_PROFILE_IPOBJ_TYPE_HOST) {
+      const hostNodeId = await findTreeNodeId(this.fwCloudId, 'OIH', 'id_obj', id);
+
+      for (const hostInterface of data.interfaces as ReplicationProfileRecord[]) {
+        const interfaceData = pickProfileFields(hostInterface, PROFILE_HOST_INTERFACE_COLUMNS);
+        const interfaceId = Number(await Interface.insertInterface(db.getQuery(), interfaceData));
+        await InterfaceIPObj.insertInterface__ipobj(db.getQuery(), {
+          interface: interfaceId,
+          ipobj: id,
+          interface_order: hostInterface.interface_order ?? 1,
+        });
+
+        if (hostNodeId !== null) {
+          await Tree.newNode(
+            db.getQuery(),
+            this.fwCloudId,
+            hostInterface.name,
+            hostNodeId,
+            'IFH',
+            interfaceId,
+            hostInterface.interface_type,
+          );
+        }
+
+        let interfaceNodeId: number | null | undefined;
+        for (const address of hostInterface.addresses as ReplicationProfileRecord[]) {
+          const addressColumns = pickProfileFields(address, PROFILE_OBJECT_DATA_FIELDS);
+          const addressId = Number(
+            await IPObj.insertIpobj(db.getQuery(), {
+              ...addressColumns,
+              fwcloud: this.fwCloudId,
+              interface: interfaceId,
+            }),
+          );
+          if (interfaceNodeId === undefined) {
+            interfaceNodeId = await findTreeNodeId(this.fwCloudId, 'IFH', 'id_obj', interfaceId);
+          }
+
+          if (interfaceNodeId !== null) {
+            await Tree.newNode(
+              db.getQuery(),
+              this.fwCloudId,
+              address.name,
+              interfaceNodeId,
+              'OIA',
+              addressId,
+              address.type,
+            );
+          }
+        }
+      }
+    }
+
+    return { id, created: true, name };
   }
 
   /** One lookup per key and run: the object found for it or else the one created. */
@@ -194,7 +405,10 @@ export class ObjectBindingResolver {
       return `range:${request.ipVersion}:${request.start}:${request.end}`;
     }
 
-    return `${request.kind}:${request.ipVersion}:${request.address}:${request.netmask}:${request.interfaceId ?? 0}`;
+    const selected = request.useSelectedConfiguration
+      ? `:${JSON.stringify([request.name, request.comment ?? ''])}`
+      : '';
+    return `${request.kind}:${request.ipVersion}:${request.address}:${request.netmask}:${request.interfaceId ?? 0}${selected}`;
   }
 
   private findExisting(request: ObjectBindingRequest): Promise<ObjectBindingResult | null> {
@@ -217,22 +431,15 @@ export class ObjectBindingResolver {
     // An address bound to an interface must match that interface: the same
     // literal IP under a different interface is a different object.
     return this.findObject(
-      'type = ? AND ip_version = ? AND address = ? AND netmask = ? AND interface <=> ?',
+      `type = ? AND ip_version = ? AND address = ? AND netmask = ? AND interface <=> ?${request.useSelectedConfiguration ? " AND name = ? AND COALESCE(comment, '') = ?" : ''}`,
       [
         REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[request.kind],
         request.ipVersion,
         request.address,
         request.netmask,
         request.interfaceId ?? null,
+        ...(request.useSelectedConfiguration ? [request.name, request.comment ?? ''] : []),
       ],
-    );
-  }
-
-  private findIdenticalObject(data: ReplicationProfileRecord): Promise<ObjectBindingResult | null> {
-    // Columns the data leaves out are NULL in a created object, so they must be NULL here too.
-    return this.findObject(
-      `interface IS NULL AND ${PROFILE_OBJECT_DATA_FIELDS.map((field) => `${field} <=> ?`).join(' AND ')}`,
-      PROFILE_OBJECT_DATA_FIELDS.map((field) => data[field] ?? null),
     );
   }
 
@@ -288,6 +495,7 @@ export class ObjectBindingResolver {
         netmask: request.netmask,
         ip_version: request.ipVersion,
         interfaceId: request.interfaceId ?? null,
+        ...(request.comment === undefined ? {} : { comment: request.comment }),
       },
       request.interfaceId === undefined,
     );
@@ -302,16 +510,6 @@ export class ObjectBindingResolver {
     }
 
     return saved;
-  }
-
-  /** The object the replacement data of a template's external object describes. */
-  private async createObject(data: ReplicationProfileRecord): Promise<ObjectBindingResult> {
-    const { type, ...columns } = data;
-    const name = data.name as string;
-
-    return this.allowCreate
-      ? this.saveObject(Number(type), name, columns)
-      : { id: 0, created: true, name };
   }
 
   /** Saves a new object of the FWCloud and, unless told otherwise, places it in the objects tree. */

@@ -9,10 +9,10 @@ import { User } from '../../../../src/models/user/User';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
+import { Interface } from '../../../../src/models/interface/Interface';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import { ReplicationProfileService } from '../../../../src/models/replication-profile/replication-profile.service';
 import { ProfileApplicationService } from '../../../../src/models/replication-profile/profile-application.service';
-import { PolicyReplicationService } from '../../../../src/models/replication-profile/policy-replication.service';
 import type {
   PolicyReplicationMode,
   PolicyReplicationResult,
@@ -22,7 +22,6 @@ import {
   validateReplicationProfilePayload,
 } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import {
-  getProfileReferenceRequiredFields,
   PROFILE_REFERENCE_OBJECT_TYPES,
   ProfileObjectReplacement,
   ProfileReferenceObjectType,
@@ -35,6 +34,7 @@ import {
 import {
   loadReplicationProfileModel,
   resolveReplicationProfileTemplatePath,
+  writeReplicationProfileModel,
 } from '../../../../src/models/replication-profile/replication-profile-template';
 
 type Model = Record<string, any>;
@@ -120,7 +120,7 @@ const VALUE_OBJECTS: {
   },
   {
     objectType: 'ipProtocol',
-    data: { protocol: 47 },
+    data: { protocol: 253 },
     replacement: { protocol: 50 },
     created: { protocol: 50 },
   },
@@ -132,7 +132,6 @@ describe(describeName('Replication profile external object references'), () => {
   let target: Firewall;
   let profiles: ReplicationProfileService;
   let application: ProfileApplicationService;
-  let engine: PolicyReplicationService;
 
   before(async () => {
     await testSuite.resetDatabaseData();
@@ -141,9 +140,6 @@ describe(describeName('Replication profile external object references'), () => {
     );
     application = await testSuite.app.getService<ProfileApplicationService>(
       ProfileApplicationService.name,
-    );
-    engine = await testSuite.app.getService<PolicyReplicationService>(
-      PolicyReplicationService.name,
     );
   });
 
@@ -527,27 +523,23 @@ describe(describeName('Replication profile external object references'), () => {
   });
 
   describe('loading a template', () => {
-    it('resolves a reference to the current object and marks it unresolved once deleted', async () => {
+    it('resolves an unchanged object and marks it unresolved once deleted', async () => {
       const object = await createObject('address', VALUE_OBJECTS[0].data);
       const profile = await createProfile(twoRuleModel('address', object.id));
       const templateFile = resolveReplicationProfileTemplatePath(profile);
       const template = fs.readFileSync(templateFile, 'utf8');
-
-      await db
-        .getSource()
-        .manager.getRepository(IPObj)
-        .update(object.id, { address: '198.51.100.5' });
 
       const live = await resolveProfileObjectReferences(
         loadReplicationProfileModel(profile),
         fwc.fwcloud.id,
       );
 
+      expect(live.errors).to.be.empty;
       expect(live.missingObjects).to.be.empty;
       expect(live.objectReferences[0]).to.include({ resolved: true, sourceName: object.name });
       expect(live.objectReferences[0].currentObject).to.include({
         id: object.id,
-        address: '198.51.100.5',
+        address: '198.51.100.4',
       });
       expect(live.objectReferences[0].snapshot).to.include({ address: '198.51.100.4' });
 
@@ -557,6 +549,7 @@ describe(describeName('Replication profile external object references'), () => {
       const missing = await resolveProfileObjectReferences(model, fwc.fwcloud.id);
 
       expect(fs.readFileSync(templateFile, 'utf8')).to.eq(template);
+      expect(missing.errors).to.be.empty;
       expect(missing.missingObjects).to.have.length(1);
       expect(missing.objectReferences[0]).to.deep.eq({
         referenceId: REFERENCE_ID,
@@ -569,6 +562,40 @@ describe(describeName('Replication profile external object references'), () => {
         currentObject: null,
         requiredFields: ['address'],
       });
+      expect(missing.bindings.get(REFERENCE_ID)).to.deep.eq({
+        type: 5,
+        data: { type: 5, name: object.name, ...VALUE_OBJECTS[0].data },
+      });
+    });
+
+    it('reports a conflict when the original object no longer matches its saved snapshot', async () => {
+      const object = await createObject('address', VALUE_OBJECTS[0].data);
+      const profile = await createProfile(twoRuleModel('address', object.id));
+      const templateFile = resolveReplicationProfileTemplatePath(profile);
+      const template = fs.readFileSync(templateFile, 'utf8');
+
+      await db
+        .getSource()
+        .manager.getRepository(IPObj)
+        .update(object.id, { address: '198.51.100.5' });
+
+      const result = await resolveProfileObjectReferences(
+        loadReplicationProfileModel(profile),
+        fwc.fwcloud.id,
+      );
+
+      expect(result.errors).to.have.length(1);
+      expect(result.errors[0]).to.include('conflict').and.include(object.name);
+      expect(result.missingObjects).to.have.length(1);
+      expect(result.objectReferences[0]).to.include({ resolved: false, currentObject: null });
+      expect(result.objectReferences[0].snapshot).to.include({ address: '198.51.100.4' });
+      expect(result.objectReferences[0].conflictingObjects).to.have.length(1);
+      expect(result.objectReferences[0].conflictingObjects[0]).to.include({
+        id: object.id,
+        address: '198.51.100.5',
+      });
+      expect(result.bindings.has(REFERENCE_ID)).to.eq(false);
+      expect(fs.readFileSync(templateFile, 'utf8')).to.eq(template);
     });
 
     it('does not resolve an object of another FWCloud, nor an id now holding another type', async () => {
@@ -586,6 +613,32 @@ describe(describeName('Replication profile external object references'), () => {
       expect(
         (await resolveProfileObjectReferences(model, fwc.fwcloud.id)).missingObjects,
       ).to.have.length(1);
+    });
+
+    it('does not reuse a deleted object ID that now belongs to an unrelated object of the same type', async () => {
+      const original = await createObject('address', VALUE_OBJECTS[0].data);
+      const profile = await createProfile(twoRuleModel('address', original.id));
+      await db.getSource().manager.getRepository(IPObj).delete(original.id);
+      const unrelated = await createObject('address', {
+        id: original.id,
+        name: 'Unrelated address',
+        address: '192.0.2.91',
+        netmask: '/32',
+        ip_version: 4,
+      });
+      const loaded = await resolveProfileObjectReferences(
+        loadReplicationProfileModel(profile),
+        fwc.fwcloud.id,
+      );
+      expect(loaded.missingObjects).to.have.length(1);
+
+      const applied = await apply(profile);
+      expect(applied.errors).to.be.empty;
+      const [recreated] = await objectsNamed(original.name);
+      expect(recreated.id).not.to.eq(unrelated.id);
+      expect(recreated.address).to.eq(original.address);
+      expect(await ruleObjects()).to.deep.eq([recreated.id, recreated.id]);
+      expect((await objectsNamed(unrelated.name))[0].address).to.eq(unrelated.address);
     });
   });
 
@@ -614,53 +667,44 @@ describe(describeName('Replication profile external object references'), () => {
       });
     }
 
-    for (const { objectType, data, replacement, created } of VALUE_OBJECTS) {
-      it(`asks once for a deleted ${objectType} and writes nothing until it is replaced`, async () => {
+    for (const { objectType, data } of VALUE_OBJECTS) {
+      it(`automatically recreates a deleted ${objectType} once from its snapshot after preview`, async () => {
         const object = await createObject(objectType, data);
         const profile = await createProfile(twoRuleModel(objectType, object.id));
         const templateFile = resolveReplicationProfileTemplatePath(profile);
         const template = fs.readFileSync(templateFile, 'utf8');
 
+        // The creation API may recycle the highest deleted ID. Keep a later row to exercise
+        // real reference remapping rather than accidentally retaining the same numeric ID.
+        await createObject('address', {
+          name: 'Later object',
+          ip_version: 4,
+          address: '192.0.2.250',
+          netmask: '/32',
+        });
+
         await db.getSource().manager.getRepository(IPObj).delete(object.id);
 
-        const vpn = sinon.spy(application as any, 'provisionVpnResources');
-        const provision = sinon.spy(engine, 'provisionPolicyFromProfile');
-
-        for (const mode of ['dry_run', 'merge', 'replace_defaults'] as const) {
-          const result = await apply(profile, mode);
-
-          expect(result.applied).to.eq(false);
-          expect(result.errors).to.have.length(1);
-          expect(result.missingObjects).to.have.length(1);
-          expect(result.missingObjects[0]).to.deep.include({
-            referenceId: REFERENCE_ID,
-            objectType,
-            sourceName: object.name,
-            locations: twoRuleLocations(objectType),
-            resolved: false,
-            currentObject: null,
-            requiredFields: getProfileReferenceRequiredFields(
-              PROFILE_REFERENCE_OBJECT_TYPES[objectType],
-            ),
-          });
-          expect(result.missingObjects[0].snapshot).to.include(data);
-        }
-
-        expect(vpn.called).to.eq(false);
-        expect(provision.called).to.eq(false);
-        await expectTargetUntouched();
-
-        const preview = await apply(profile, 'dry_run', { [REFERENCE_ID]: { data: replacement } });
+        const creation = sinon.spy(IPObj, 'insertIpobj');
+        const preview = await apply(profile, 'dry_run');
 
         expect(preview.errors).to.be.empty;
-        expect(preview.missingObjects).to.be.empty;
+        expect(preview.applied).to.eq(false);
+        expect(preview.missingObjects).to.have.length(1);
+        expect(preview.missingObjects[0].snapshot).to.include(data);
         expect(await objectsNamed(object.name)).to.be.empty;
+        expect(creation.called).to.eq(false);
+        await expectTargetUntouched();
 
-        const result = await apply(profile, 'merge', { [REFERENCE_ID]: { data: replacement } });
+        const result = await apply(profile);
         const [replacementId, ...others] = await ruleObjects();
 
         expect(result.errors).to.be.empty;
         expect(result.applied).to.eq(true);
+        expect(result.missingObjects).to.be.empty;
+        expect(result.objectReferences[0].currentObject).to.include({ id: replacementId });
+        expect(replacementId).not.to.eq(object.id);
+        expect(creation.calledOnce).to.eq(true);
         expect(others).to.deep.eq([replacementId]);
         expect(
           await db
@@ -670,9 +714,8 @@ describe(describeName('Replication profile external object references'), () => {
         ).to.include({
           name: object.name,
           ipObjTypeId: PROFILE_REFERENCE_OBJECT_TYPES[objectType],
-          ...created,
+          ...data,
         });
-        // The replacement was input of that application only.
         expect(fs.readFileSync(templateFile, 'utf8')).to.eq(template);
         expect(
           (
@@ -681,11 +724,15 @@ describe(describeName('Replication profile external object references'), () => {
               fwc.fwcloud.id,
             )
           ).missingObjects,
-        ).to.have.length(1);
+        ).to.be.empty;
+        const repeated = await apply(profile, 'replace_defaults');
+        expect(repeated.errors).to.be.empty;
+        expect(await objectsNamed(object.name)).to.have.length(1);
+        expect(creation.calledOnce).to.eq(true);
       });
     }
 
-    it('asks once for an object used by rules and routing, and binds all of them to one replacement', async () => {
+    it('recreates an object used by rules and routing once and binds every occurrence to it', async () => {
       const object = await createObject('address', VALUE_OBJECTS[0].data);
       const model = twoRuleModel('address', object.id);
       model.provision.routing = {
@@ -698,7 +745,7 @@ describe(describeName('Replication profile external object references'), () => {
 
       await db.getSource().manager.getRepository(IPObj).delete(object.id);
 
-      const missing = await apply(profile);
+      const missing = await apply(profile, 'dry_run');
 
       expect(missing.missingObjects).to.have.length(1);
       expect(missing.missingObjects[0].locations).to.deep.eq([
@@ -708,9 +755,7 @@ describe(describeName('Replication profile external object references'), () => {
       ]);
       await expectTargetUntouched();
 
-      const result = await apply(profile, 'merge', {
-        [REFERENCE_ID]: { data: { address: '203.0.113.9' } },
-      });
+      const result = await apply(profile);
       const [replacementId] = await ruleObjects();
       const [route] = await db
         .getSource()
@@ -748,24 +793,23 @@ describe(describeName('Replication profile external object references'), () => {
       ]);
     });
 
-    it('reuses the object created for a replacement when it is applied again, but not one with other flags', async () => {
+    it('rejects a replacement conflicting with the flags of an existing object of the same name', async () => {
       const original = await createObject('tcp', VALUE_OBJECTS[3].data);
       const profile = await createProfile(twoRuleModel('tcp', original.id));
       const { tcp_flags_mask, tcp_flags_settings, ...unflagged } = VALUE_OBJECTS[3].data;
       const replacement = { [REFERENCE_ID]: { data: { name: original.name, ...unflagged } } };
 
       const first = await apply(profile, 'merge', replacement);
-      const [replacementId] = await ruleObjects();
-
-      expect(first.errors).to.be.empty;
-      expect(replacementId).not.to.eq(original.id);
+      expect(first.applied).to.eq(false);
+      expect(first.errors.join(' ')).to.contain('conflict');
+      await expectTargetUntouched();
 
       const second = await apply(profile, 'replace_defaults', replacement);
 
-      expect(second.errors).to.be.empty;
-      expect((await objectsNamed(original.name)).map((object) => object.id)).to.have.members([
+      expect(second.applied).to.eq(false);
+      expect(second.errors.join(' ')).to.contain('conflict');
+      expect((await objectsNamed(original.name)).map((object) => object.id)).to.deep.eq([
         original.id,
-        replacementId,
       ]);
     });
 
@@ -798,7 +842,7 @@ describe(describeName('Replication profile external object references'), () => {
     });
 
     for (const objectType of ['group', 'serviceGroup'] as const) {
-      it(`keeps the members of a deleted ${objectType} and only takes an existing group in its place`, async () => {
+      it(`recreates a deleted ${objectType} after recreating its missing members`, async () => {
         const memberType = objectType === 'group' ? VALUE_OBJECTS[0] : VALUE_OBJECTS[3];
         const member = await createObject(memberType.objectType, memberType.data);
         const group = await createGroup(objectType, [member]);
@@ -810,28 +854,143 @@ describe(describeName('Replication profile external object references'), () => {
         ]);
         expect((await apply(profile, 'dry_run')).errors).to.be.empty;
 
+        await createObject('address', {
+          name: 'Later object',
+          ip_version: 4,
+          address: '192.0.2.250',
+          netmask: '/32',
+        });
+        await createGroup(objectType, [], 'Later group');
+
         await db.getSource().query('DELETE FROM ipobj__ipobjg WHERE ipobj_g = ?', [group.id]);
         await db.getSource().manager.getRepository(IPObjGroup).delete(group.id);
+        await db.getSource().manager.getRepository(IPObj).delete(member.id);
 
-        const missing = await apply(profile);
+        const missing = await apply(profile, 'dry_run');
 
         expect(missing.missingObjects).to.have.length(1);
         expect(missing.missingObjects[0].snapshot).to.deep.eq(snapshot);
-        expect(missing.missingObjects[0].requiredFields).to.deep.eq(['sourceObjectId']);
+        expect(missing.errors).to.be.empty;
+        expect(await objectsNamed(member.name)).to.be.empty;
+        await expectTargetUntouched();
 
         const byData = await apply(profile, 'merge', { [REFERENCE_ID]: { data: memberType.data } });
 
         expect(byData.errors.join(' ')).to.contain('can only be replaced by an existing one');
 
-        const replacement = await createGroup(objectType, [member], 'Replacement group');
-        const result = await apply(profile, 'merge', {
-          [REFERENCE_ID]: { sourceObjectId: replacement.id },
+        const result = await apply(profile);
+        const recreated = await db.getSource().manager.getRepository(IPObjGroup).findOneBy({
+          name: group.name,
+          fwCloudId: fwc.fwcloud.id,
         });
+        const [recreatedMember] = await objectsNamed(member.name);
+        const relations = await db
+          .getSource()
+          .query('SELECT ipobj FROM ipobj__ipobjg WHERE ipobj_g = ?', [recreated.id]);
 
         expect(result.errors).to.be.empty;
-        expect(await ruleObjects()).to.deep.eq([`g${replacement.id}`, `g${replacement.id}`]);
+        expect(recreated.id).not.to.eq(group.id);
+        expect(recreatedMember.id).not.to.eq(member.id);
+        expect(recreatedMember).to.include(memberType.data);
+        expect(relations.map((relation) => relation.ipobj)).to.deep.eq([recreatedMember.id]);
+        expect(await ruleObjects()).to.deep.eq([`g${recreated.id}`, `g${recreated.id}`]);
+        expect((await apply(profile, 'replace_defaults')).errors).to.be.empty;
+        expect(await objectsNamed(member.name)).to.have.length(1);
       });
     }
+
+    it('recreates a host dependency with its interface metadata and addresses', async () => {
+      const host = await createObject('host', { name: 'Host dependency' });
+      const hostInterface = await db.getSource().manager.getRepository(Interface).save({
+        name: 'eth0',
+        type: '11',
+        interface_type: '11',
+        labelName: 'Original LAN',
+        comment: 'Preserved metadata',
+        mac: '02:00:5e:00:53:01',
+      });
+      await db
+        .getSource()
+        .query(
+          'INSERT INTO interface__ipobj (interface, ipobj, interface_order) VALUES (?, ?, ?)',
+          [hostInterface.id, host.id, 2],
+        );
+      const address = await createObject('address', {
+        name: 'Host address',
+        address: '192.0.2.77',
+        netmask: '/32',
+        ip_version: 4,
+        interfaceId: hostInterface.id,
+      });
+      const group = await createGroup('group', [host], 'Group with a host');
+      const profile = await createProfile(twoRuleModel('group', group.id));
+      const snapshot = storedReferences(profile)[0].snapshot;
+      expect((snapshot.members as any[])[0].interfaces[0]).to.include({
+        name: 'eth0',
+        type: 11,
+        interface_type: 11,
+        labelName: 'Original LAN',
+        comment: 'Preserved metadata',
+        mac: hostInterface.mac,
+        interface_order: 2,
+      });
+
+      await db.getSource().query('DELETE FROM ipobj__ipobjg WHERE ipobj_g = ?', [group.id]);
+      await db.getSource().manager.getRepository(IPObjGroup).delete(group.id);
+      await db.getSource().manager.getRepository(IPObj).delete(address.id);
+      await db.getSource().query('DELETE FROM interface__ipobj WHERE ipobj = ?', [host.id]);
+      await db.getSource().manager.getRepository(Interface).delete(hostInterface.id);
+      await db.getSource().manager.getRepository(IPObj).delete(host.id);
+      expect((await apply(profile, 'dry_run')).errors).to.be.empty;
+      await expectTargetUntouched();
+
+      const result = await apply(profile);
+      expect(result.errors).to.be.empty;
+      const [recreatedHost] = await objectsNamed(host.name);
+      const [recreatedAddress] = await objectsNamed(address.name);
+      const [recreatedInterface] = await db
+        .getSource()
+        .query(
+          'SELECT I.*, H.interface_order FROM interface I INNER JOIN interface__ipobj H ON H.interface = I.id WHERE H.ipobj = ?',
+          [recreatedHost.id],
+        );
+      expect(recreatedInterface).to.include({
+        name: 'eth0',
+        labelName: 'Original LAN',
+        comment: 'Preserved metadata',
+        mac: hostInterface.mac,
+      });
+      expect(Number(recreatedInterface.type)).to.eq(11);
+      expect(Number(recreatedInterface.interface_type)).to.eq(11);
+      expect(Number(recreatedInterface.interface_order)).to.eq(2);
+      expect(recreatedAddress).to.include({
+        address: address.address,
+        netmask: address.netmask,
+        ip_version: 4,
+        interfaceId: recreatedInterface.id,
+      });
+      expect((await apply(profile, 'replace_defaults')).errors).to.be.empty;
+      expect(await objectsNamed(host.name)).to.have.length(1);
+      expect(await objectsNamed(address.name)).to.have.length(1);
+    });
+
+    it('creates one object when the same confirmed application is submitted concurrently', async () => {
+      const object = await createObject('range', VALUE_OBJECTS[2].data);
+      const profile = await createProfile(twoRuleModel('range', object.id));
+      await db.getSource().manager.getRepository(IPObj).delete(object.id);
+      const creation = sinon.spy(IPObj, 'insertIpobj');
+
+      const results = await Promise.all([apply(profile), apply(profile)]);
+
+      results.forEach((result) => {
+        expect(result.errors).to.be.empty;
+        expect(result.applied).to.eq(true);
+      });
+      expect(await objectsNamed(object.name)).to.have.length(1);
+      expect(creation.calledOnce).to.eq(true);
+      const ids = results.map((result) => result.objectReferences[0].currentObject.id);
+      expect(ids[0]).to.eq(ids[1]);
+    });
 
     it('rejects an object group with nothing of the IP family of the rule', async () => {
       const member = await createObject('address', {
@@ -937,6 +1096,9 @@ describe(describeName('Replication profile external object references'), () => {
       });
       model.provision.rules[1].destination = [usage('range')];
       const profile = await createProfile(model);
+      const saved = loadReplicationProfileModel(profile) as Model;
+      delete saved.objectReferences[1].snapshot.range_start;
+      writeReplicationProfileModel(profile, saved);
       const replacements = {
         [REFERENCE_ID]: { data: { name: 'Not created yet', address: '203.0.113.7' } },
       };

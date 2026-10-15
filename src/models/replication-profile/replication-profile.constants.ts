@@ -109,6 +109,13 @@ export const REPLICATION_PROFILE_IPOBJ_GROUP_TYPES: readonly number[] = [
   REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT,
 ];
 
+/** Address objects that belong to one IP family, the only ones a rule checks against its own. */
+export const REPLICATION_PROFILE_FAMILY_TYPES: readonly number[] = [
+  REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
+  REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
+  REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
+];
+
 /** ipobj.type of the port services of each rule protocol. */
 export const REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL: Record<
   ReplicationProfileRuleProtocol,
@@ -197,6 +204,11 @@ export function asReplicationProfileRecord(value: unknown): ReplicationProfileRe
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as ReplicationProfileRecord)
     : null;
+}
+
+/** What went wrong: Joi and Error objects carry a message, FWCloud's error_table entries a msg. */
+export function describeReplicationProfileError(error: any): string {
+  return error?.message ?? error?.msg ?? String(error);
 }
 
 export function isReplicationProfileStringValue<T extends string>(

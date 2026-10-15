@@ -21,6 +21,7 @@
 */
 
 import db from '../../database/database-manager';
+import { Mutex } from 'async-mutex';
 import { Service } from '../../fonaments/services/service';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
@@ -35,11 +36,13 @@ import {
   createPolicyReplicationResult,
   getProfileProvisioning,
   PolicyReplicationProvision,
+  PolicyReplicationInterfaceAddressOverrides,
   PolicyReplicationRequest,
   PolicyReplicationResult,
 } from './policy-replication.types';
 import {
   getProfileParameters,
+  parseReplicationProfileAddress,
   resolveParameterValues,
   ReplicationProfileParameterValues,
 } from './replication-profile-parameters';
@@ -66,6 +69,7 @@ import {
   resolveVpnConnectionValues,
 } from './profile-vpn-config-provisioning.service';
 import { ResolvedVpnConfig } from './replication-profile.constants';
+import { applyInterfaceAddressOverrides } from './replication-profile-interface-addresses';
 import type {
   ProfileObjectReplacement,
   ResolvedProfileObjectReference,
@@ -106,11 +110,13 @@ export interface ProfileApplicationRequest {
   parameters?: ReplicationProfileParameterValues;
   /**
    * Replacements of the profile's external objects for this application only, keyed by
-   * referenceId: the objects that no longer exist (missingObjects) need one.
+   * referenceId. Missing objects otherwise use the configuration saved in the template.
    */
   objectReplacements?: Record<string, ProfileObjectReplacement>;
   /** Provisioning only: role → name of an existing target interface to bind to it. */
   interfaceNameMapping?: Record<string, string>;
+  /** Application-local IP names, addresses and comments, by interface role. */
+  interfaceAddressOverrides?: PolicyReplicationInterfaceAddressOverrides;
   /**
    * Provisioning only, VPN templates: template connection id -> the real VPN config the caller has
    * already created for it (for instance through POST .../vpn). Each id is checked to be a config of
@@ -136,7 +142,7 @@ export interface ProfileVpnProvisionResult {
   /** Template connection id -> the real config id just created for it. */
   connectionIds: Record<string, number>;
   errors: string[];
-  /** As in an application: nothing is created while an external object is missing. */
+  /** References whose saved configuration cannot be used for an application. */
   missingObjects?: ResolvedProfileObjectReference[];
 }
 
@@ -155,6 +161,7 @@ export interface ProfileVpnProvisionResult {
  *   credentials can never leak into persisted data.
  */
 export class ProfileApplicationService extends Service {
+  private static readonly applicationLocks = new Map<number, Mutex>();
   protected _replicationProfileService: ReplicationProfileService;
   protected _policyReplicationService: PolicyReplicationService;
   protected _auditLogService: AuditLogService;
@@ -179,6 +186,25 @@ export class ProfileApplicationService extends Service {
     actor: ProfileApplicationActor,
     request: ProfileApplicationRequest,
   ): Promise<PolicyReplicationResult> {
+    const locks = ProfileApplicationService.applicationLocks;
+    let lock = locks.get(request.fwCloudId);
+    if (!lock) {
+      lock = new Mutex();
+      locks.set(request.fwCloudId, lock);
+    }
+    try {
+      return await lock.runExclusive(() => this.applyProfile(actor, request));
+    } finally {
+      if (!lock.isLocked()) {
+        locks.delete(request.fwCloudId);
+      }
+    }
+  }
+
+  private async applyProfile(
+    actor: ProfileApplicationActor,
+    request: ProfileApplicationRequest,
+  ): Promise<PolicyReplicationResult> {
     const startedAt = new Date();
     let profile: ReplicationProfile | null = null;
     let target: TargetInfo | null = null;
@@ -193,6 +219,21 @@ export class ProfileApplicationService extends Service {
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
       const provision = getProfileProvisioning(model);
+      const parameters = getProfileParameters(model);
+      const addressErrors = await applyInterfaceAddressOverrides(
+        provision,
+        request.interfaceAddressOverrides,
+        parameters,
+        request.parameters,
+        request.fwCloudId,
+      );
+
+      if (addressErrors.length > 0) {
+        const result = this.emptyPolicyReplicationResult(addressErrors, request.replication.mode);
+        await this.auditAttempt(actor, request, profile, target, startedAt, result);
+        return result;
+      }
+
       const objects = await this.resolveObjectReferences(model, provision, request);
       let result: PolicyReplicationResult;
 
@@ -211,7 +252,13 @@ export class ProfileApplicationService extends Service {
         // The template's CAs/certificates have no keys of their own; a real firewall generates its
         // own when the profile is applied. A dry run must not create them (or anything else) for
         // real: it only stands in for the VPN clients rules may reference.
-        const resourced = await this.provisionVpnResources(request, model, target, vpnRollback);
+        const resourced = await this.provisionVpnResources(
+          request,
+          model,
+          target,
+          vpnRollback,
+          provision,
+        );
 
         if (resourced.errors.length > 0 && request.replication.mode !== 'dry_run') {
           // No VPN, no policy: rules that depend on it must not be written without it.
@@ -224,7 +271,7 @@ export class ProfileApplicationService extends Service {
             request.fwCloudId,
             request.replication.mode,
             {
-              parameters: getProfileParameters(model),
+              parameters,
               parameterValues: request.parameters,
               profileCode: profile.code,
               profileVersion: profile.version,
@@ -245,8 +292,19 @@ export class ProfileApplicationService extends Service {
       }
 
       if (objects.objectReferences.length > 0) {
-        result.objectReferences = objects.objectReferences;
-        result.missingObjects = [];
+        result.objectReferences = objects.objectReferences.map((reference) => {
+          const binding = objects.bindings.get(reference.referenceId);
+          return binding?.id === undefined
+            ? reference
+            : {
+                ...reference,
+                resolved: true,
+                currentObject: { ...binding.data, id: binding.id },
+              };
+        });
+        result.missingObjects = result.objectReferences.filter(
+          (reference) => !reference.resolved && reference.locations.length > 0,
+        );
       }
 
       if (result.errors.length || (request.replication.mode !== 'dry_run' && !result.applied)) {
@@ -349,10 +407,8 @@ export class ProfileApplicationService extends Service {
   }
 
   /**
-   * Resolves the profile's external objects before anything is written. Each used object that is
-   * not available and has no replacement, each replacement that cannot be used and, once all of
-   * them are resolved, each object that does not fit where the profile uses it is an error: the
-   * application stops there, and the caller can supply what is missing and retry.
+   * Plans all external objects before writing anything, validating the saved configuration and
+   * dependencies of missing objects. The policy engine creates them only during a real apply.
    */
   private async resolveObjectReferences(
     model: unknown,
@@ -365,12 +421,16 @@ export class ProfileApplicationService extends Service {
       request.objectReplacements,
     );
 
-    resolution.errors.push(
-      ...resolution.missingObjects.map(
-        (reference) =>
-          `Object "${reference.sourceName}" (${reference.objectType}) is not available in this FWCloud: send a replacement for "${reference.referenceId}" in objectReplacements.`,
-      ),
-    );
+    if (resolution.errors.length === 0) {
+      resolution.errors.push(
+        ...resolution.missingObjects
+          .filter((reference) => !resolution.bindings.has(reference.referenceId))
+          .map(
+            (reference) =>
+              `Object reference "${reference.referenceId}" (${reference.sourceName}) has no usable saved configuration.`,
+          ),
+      );
+    }
 
     if (provision && resolution.errors.length === 0 && resolution.bindings.size > 0) {
       resolution.errors.push(
@@ -417,6 +477,7 @@ export class ProfileApplicationService extends Service {
     model: unknown,
     target: TargetInfo | null,
     vpnRollback: ProfileVpnRollback,
+    provision?: PolicyReplicationProvision,
   ): Promise<{ vpnConfigIds: Map<string, ResolvedVpnConfig> | undefined; errors: string[] }> {
     const errors: string[] = [];
     const vpnTemplate = (
@@ -486,10 +547,21 @@ export class ProfileApplicationService extends Service {
       ? await loadInterfaceRoleAddresses(
           dbQuery,
           vpnFirewallId,
-          getProfileProvisioning(model)?.interfaces ?? [],
+          (provision ?? getProfileProvisioning(model))?.interfaces ?? [],
           request.interfaceNameMapping,
         )
       : new Map<string, string>();
+    for (const iface of provision?.interfaces ?? []) {
+      const selectedAddresses = iface.addresses
+        .filter((address) => address.useSelectedConfiguration)
+        .map((address) => parseReplicationProfileAddress(address.value))
+        .filter((address) => address !== null);
+      const selected =
+        selectedAddresses.find((address) => address.ipVersion === 4) ?? selectedAddresses[0];
+      if (selected) {
+        interfaceAddresses.set(iface.role, selected.address);
+      }
+    }
     const connections = bindVpnOptionParameters(
       vpnTemplate.connections,
       parameterValues,

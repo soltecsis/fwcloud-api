@@ -104,7 +104,19 @@ export interface PolicyReplicationProvisionAddress {
   value: PolicyReplicationValueRef;
   /** Optional object name; defaults to the address itself. */
   name?: string;
+  /** Comment supplied for the interface address. */
+  comment?: string;
+  /** Application-local selection: retain the chosen name/comment when resolving it. */
+  useSelectedConfiguration?: boolean;
+  /** Original parameter identity retained when application-local choices replace its value. */
+  sourceParameter?: string;
 }
+
+/** Interface role -> addresses chosen for this application, in template declaration order. */
+export type PolicyReplicationInterfaceAddressOverrides = Record<
+  string,
+  { name: string; value: string; comment?: string }[]
+>;
 
 export interface PolicyReplicationProvisionInterface {
   /** Interface name created on the target (e.g. "WAN"). */
@@ -402,11 +414,14 @@ function parseProvision(provisionRaw: Record<string, unknown>): PolicyReplicatio
     .map((rule) => parseProvisionRule(rule, ensureInterface))
     .filter((item): item is PolicyReplicationProvisionRule => item !== null);
 
+  const routing = parseProvisionRouting(provisionRaw.routing, ensureInterface);
+  const system = parseProvisionSystem(provisionRaw.system, ensureInterface);
+
   return {
     interfaces: Array.from(interfacesByRole.values()),
     rules,
-    routing: parseProvisionRouting(provisionRaw.routing, ensureInterface),
-    system: parseProvisionSystem(provisionRaw.system, ensureInterface),
+    routing,
+    system,
   };
 }
 
@@ -600,7 +615,11 @@ function parseProvisionAddresses(value: unknown): PolicyReplicationProvisionAddr
 
       return inner === null
         ? null
-        : { value: inner, name: firstNonEmptyString(record, ['name']) ?? undefined };
+        : {
+            value: inner,
+            name: firstNonEmptyString(record, ['name']) ?? undefined,
+            comment: typeof record.comment === 'string' ? record.comment : undefined,
+          };
     })
     .filter((item): item is PolicyReplicationProvisionAddress => item !== null);
 }
@@ -922,8 +941,8 @@ export interface PolicyReplicationResult {
   /** Profiles with external objects: what each of them resolved to (see objectReplacements). */
   objectReferences?: ResolvedProfileObjectReference[];
   /**
-   * The external objects the profile uses that no longer exist and were not replaced. Nothing is
-   * written while there is any: apply again with an objectReplacements entry for each of them.
+   * Used references without real destination objects. During a preview these can have validated
+   * recreation plans; a confirmed application recreates them from the saved snapshots.
    */
   missingObjects?: ResolvedProfileObjectReference[];
 }

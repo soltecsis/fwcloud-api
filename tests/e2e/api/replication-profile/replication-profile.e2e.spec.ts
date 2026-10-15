@@ -2008,7 +2008,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     const policyRuleCount = (firewallId: number): Promise<number> =>
       db.getSource().manager.getRepository(PolicyRule).countBy({ firewallId });
 
-    it('should store their snapshot, report a deleted one when loading and applying, and take a replacement for one application', async () => {
+    it('should store their snapshot, load it after deletion and automatically recreate it for every usage during apply', async () => {
       const object = await db.getSource().manager.getRepository(IPObj).save({
         name: 'Selected external IP',
         ipObjTypeId: 5,
@@ -2084,38 +2084,66 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(listed.body.data[0].model.objectReferences[0].resolved).to.eq(false);
 
       const applyBody = { target: { kind: 'firewall', id: target.id }, mode: 'merge' };
-      const missing = await request(app.express)
+      const preview = await request(app.express)
+        .post(`${url}/apply`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send({ ...applyBody, mode: 'dry_run' })
+        .expect(200);
+
+      expect(preview.body.data.applied).to.eq(false);
+      expect(preview.body.data.errors).to.deep.eq([]);
+      expect(
+        await db.getSource().manager.getRepository(IPObj).countBy({
+          name: object.name,
+          fwCloudId: fwCloud.id,
+        }),
+      ).to.eq(0);
+      expect(await policyRuleCount(target.id)).to.eq(0);
+
+      const applied = await request(app.express)
         .post(`${url}/apply`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(applyBody)
-        .expect(422);
-
-      expect(missing.body.data.applied).to.eq(false);
-      expect(missing.body.data.missingObjects).to.have.length(1);
-      expect(missing.body.data.missingObjects[0]).to.deep.include({
-        referenceId,
-        objectType: 'address',
-        sourceName: object.name,
-        requiredFields: ['address'],
-        locations: stored.objectReferences[0].locations,
-      });
-      expect(await policyRuleCount(target.id)).to.eq(0);
-
-      const replaced = await request(app.express)
-        .post(`${url}/apply`)
-        .set('Cookie', [attachSession(adminUserSessionId)])
-        .send({
-          ...applyBody,
-          objectReplacements: { [referenceId]: { data: { address: '203.0.113.20' } } },
-        })
         .expect(200);
 
-      expect(replaced.body.data.applied).to.eq(true);
-      expect(replaced.body.data.missingObjects).to.deep.eq([]);
-      expect(replaced.body.data.objectReferences[0].currentObject).to.include({
-        address: '203.0.113.20',
+      const recreated = await db.getSource().manager.getRepository(IPObj).findOneByOrFail({
+        name: object.name,
+        fwCloudId: fwCloud.id,
       });
+      expect(recreated.id).to.be.greaterThan(0);
+      expect(recreated.id).not.to.eq(object.id);
+      expect(recreated).to.include({
+        address: '198.51.100.10',
+        netmask: '/32',
+        ip_version: 4,
+        ipObjTypeId: 5,
+      });
+      expect(applied.body.data.applied).to.eq(true);
+      expect(applied.body.data.missingObjects).to.deep.eq([]);
+      expect(applied.body.data.objectReferences[0].currentObject).to.include({
+        id: recreated.id,
+        address: '198.51.100.10',
+      });
+      const usages = await db.getSource().query(
+        `SELECT O.ipobj FROM policy_r__ipobj O
+         INNER JOIN policy_r R ON R.id = O.rule WHERE R.firewall = ? ORDER BY O.id_pi`,
+        [target.id],
+      );
+      expect(usages.map((item) => Number(item.ipobj))).to.deep.eq([recreated.id, recreated.id]);
       expect(await policyRuleCount(target.id)).to.eq(1);
+      expect(loadReplicationProfileModel(profile)).to.deep.eq(stored);
+
+      await request(app.express)
+        .post(`${url}/apply`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(applyBody)
+        .expect(200);
+      expect(
+        await db.getSource().manager.getRepository(IPObj).countBy({
+          name: object.name,
+          fwCloudId: fwCloud.id,
+        }),
+      ).to.eq(1);
       expect(loadReplicationProfileModel(profile)).to.deep.eq(stored);
     });
 

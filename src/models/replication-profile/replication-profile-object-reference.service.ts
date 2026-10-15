@@ -28,7 +28,6 @@ import {
   getProfileReferenceDataFields,
   getProfileReferenceIpObjType,
   getProfileReferenceRequiredFields,
-  isProfileReferenceGroupType,
   PROFILE_OBJECT_DATA_FIELDS,
   ProfileExternalObjectBinding,
   ProfileObjectReplacement,
@@ -37,69 +36,34 @@ import {
 } from './replication-profile-object-reference';
 import {
   asReplicationProfileRecord,
+  describeReplicationProfileError,
   isReplicationProfilePositiveInteger,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
-  REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL,
-  REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
   REPLICATION_PROFILE_PROTOCOL_BY_IPOBJ_TYPE,
   type ReplicationProfileRecord,
-  type ReplicationProfileVpnProtocol,
 } from './replication-profile.constants';
-import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
+import {
+  findExistingProfileSnapshot,
+  loadProfileObjects,
+  type ProfileObjectLookup,
+  ProfileSnapshotConflict,
+  ProfileSnapshotSelectionPlan,
+  profileObjectSnapshotKey,
+  validateProfileObjectSnapshot,
+} from './replication-profile-object-snapshot';
 
 /** Validator of the FWCloud objects API, the one its object forms go through. */
 const ipobjSchema = require('../../middleware/joi_schemas/ipobj');
 
-/** The id and data columns of an ipobj row aliased as O. */
-const OBJECT_COLUMNS = ['id', ...PROFILE_OBJECT_DATA_FIELDS]
-  .map((field) => `O.${field}`)
-  .join(', ');
-
-/** ipobj types of the VPN prefixes, the other VPN members a group can hold besides clients. */
-const VPN_PREFIX_TYPES: Readonly<Record<ReplicationProfileVpnProtocol, number>> = {
-  openvpn: 401,
-  wireguard: 402,
-  ipsec: 403,
-};
-
-/** VPN members of groups as FWCloud lists them: clients by certificate, prefixes by name. */
-const VPN_GROUP_MEMBER_QUERIES = (['openvpn', 'wireguard', 'ipsec'] as const).flatMap(
-  (protocol) => [
-    `SELECT R.ipobj_g AS group_id, V.id, C.cn AS name, ${REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL[protocol]} AS type
-     FROM ${protocol}__ipobj_g R
-     INNER JOIN ${protocol} V ON V.id = R.${protocol}
-     INNER JOIN crt C ON C.id = V.crt`,
-    `SELECT R.ipobj_g AS group_id, P.id, P.name, ${VPN_PREFIX_TYPES[protocol]} AS type
-     FROM ${protocol}_prefix__ipobj_g R
-     INNER JOIN ${protocol}_prefix P ON P.id = R.prefix`,
-  ],
-);
-
-/** An object read from the FWCloud, with its snapshot. */
-interface LoadedObject {
-  type: number;
-  id: number;
-  data: ReplicationProfileRecord;
-}
-
-/** The snapshot of the object of a type and id, among the ones read from the FWCloud. */
-type ProfileObjectLookup = (type: number, id: unknown) => ReplicationProfileRecord | undefined;
-
-interface HostInterfaceSnapshot {
-  id: number;
-  name: unknown;
-  addresses: ReplicationProfileRecord[];
-}
-
 export interface ProfileObjectResolution {
   /** Every reference of the template, resolved or not. */
   objectReferences: ResolvedProfileObjectReference[];
-  /** References the template uses whose object is gone and that have no usable replacement. */
+  /** Used references without a real object yet, including objects planned for recreation. */
   missingObjects: ResolvedProfileObjectReference[];
   /** referenceId -> what every usage of that reference binds to. */
   bindings: Map<string, ProfileExternalObjectBinding>;
-  /** Replacements that cannot be used, each one naming its reference. */
+  /** Invalid replacements or recreation snapshots, each one naming its reference. */
   errors: string[];
 }
 
@@ -144,11 +108,10 @@ export async function captureProfileObjectReferences<T>(model: T, fwCloudId: num
 }
 
 /**
- * Resolves the references of a template against the FWCloud it is loaded or applied in, writing
- * nothing. A reference resolves to its original object while the FWCloud sees it with the same
- * type, or to the replacement the caller gives: an existing object of that type, or the data of a
- * new one, checked by the validator of the FWCloud objects API. Replacements are input of one
- * application: they never change the template.
+ * Resolves references without writes. Equivalent destination objects are reused; incompatible
+ * configurations expose their candidates for an explicit choice. `useSnapshot` keeps the saved
+ * configuration with distinct descriptive names where needed. Every choice also applies to shared
+ * group dependencies. The bindings are application-local and never change the template.
  */
 export async function resolveProfileObjectReferences(
   model: unknown,
@@ -156,13 +119,18 @@ export async function resolveProfileObjectReferences(
   replacements?: Record<string, ProfileObjectReplacement>,
 ): Promise<ProfileObjectResolution> {
   const requested: ReplicationProfileRecord = replacements ?? {};
-  const references = getProfileObjectReferences(model).map((reference) => ({
-    reference,
-    type: getProfileReferenceIpObjType(reference.objectType)!,
-    replacement: Object.prototype.hasOwnProperty.call(requested, reference.referenceId)
+  const references = getProfileObjectReferences(model).map((reference) => {
+    const replacement = Object.prototype.hasOwnProperty.call(requested, reference.referenceId)
       ? requested[reference.referenceId]
-      : undefined,
-  }));
+      : undefined;
+
+    return {
+      reference,
+      type: getProfileReferenceIpObjType(reference.objectType)!,
+      replacement,
+      useSnapshot: asReplicationProfileRecord(replacement)?.useSnapshot === true,
+    };
+  });
   const resolution: ProfileObjectResolution = {
     objectReferences: [],
     missingObjects: [],
@@ -196,13 +164,113 @@ export async function resolveProfileObjectReferences(
     fwCloudId,
   );
 
+  const selectionPlan = new ProfileSnapshotSelectionPlan(fwCloudId);
+  const replacementBindings = new Map<string, ProfileExternalObjectBinding | string>();
+  // Record all explicit existing/data choices before planning groups, independent of reference order.
+  for (const { reference, type, replacement, useSnapshot } of references) {
+    if (replacement === undefined || useSnapshot) {
+      continue;
+    }
+    const binding = await bindReplacement(
+      reference,
+      type,
+      replacement,
+      findObject,
+      fwCloudId,
+      selectionPlan,
+    );
+    replacementBindings.set(reference.referenceId, binding);
+    if (typeof binding !== 'string') {
+      try {
+        selectionPlan.setChoice(
+          reference.snapshot,
+          binding.id === undefined
+            ? `data:${profileObjectSnapshotKey(binding.data)}`
+            : `existing:${binding.id}`,
+          binding,
+        );
+      } catch (error) {
+        replacementBindings.set(reference.referenceId, error.message);
+      }
+    }
+  }
+  // Mark every template choice before planning any dependencies, detecting contradictory choices.
+  for (const { reference, useSnapshot } of references) {
+    if (!useSnapshot) {
+      continue;
+    }
+    try {
+      selectionPlan.setChoice(reference.snapshot, 'snapshot');
+    } catch (error) {
+      replacementBindings.set(reference.referenceId, error.message);
+    }
+  }
+  for (const { reference, type, replacement, useSnapshot } of references) {
+    if (!useSnapshot || replacementBindings.has(reference.referenceId)) {
+      continue;
+    }
+    replacementBindings.set(
+      reference.referenceId,
+      await bindReplacement(reference, type, replacement, findObject, fwCloudId, selectionPlan),
+    );
+  }
+
   for (const { reference, type, replacement } of references) {
     let binding: ProfileExternalObjectBinding | null = null;
+    let conflictingObjects: ReplicationProfileRecord[] | undefined;
+    let snapshotConflict: string | undefined;
+    const used = (locations.get(reference.referenceId)?.length ?? 0) > 0;
+
+    let original = bindExistingObject(type, reference.sourceObjectId, findObject);
+    // Recycled IDs and objects edited since capture cannot silently replace the template version.
+    if (
+      original &&
+      (original.data.name !== reference.sourceName ||
+        profileObjectSnapshotKey(original.data) !== profileObjectSnapshotKey(reference.snapshot))
+    ) {
+      original = null;
+    }
+    if (!original && typeof reference.snapshot?.name === 'string' && used) {
+      try {
+        const existing = await findExistingProfileSnapshot(reference.snapshot, type, fwCloudId);
+        original = existing ? { id: existing.id, type, data: existing.data } : null;
+      } catch (error) {
+        if (!(error instanceof ProfileSnapshotConflict)) {
+          throw error;
+        }
+        snapshotConflict = error.message;
+        conflictingObjects = error.objects.map(({ id, data }) => ({ ...data, id }));
+      }
+    }
 
     if (replacement === undefined) {
-      binding = bindExistingObject(type, reference.sourceObjectId, findObject);
+      binding = selectionPlan.get(reference.snapshot) ?? null;
+      if (!binding && used && selectionPlan.hasSelectedDependency(reference.snapshot)) {
+        try {
+          binding = await selectionPlan.select(reference.snapshot, type);
+        } catch (error) {
+          resolution.errors.push(
+            `objectReferences.${reference.referenceId}.snapshot: ${error.message}`,
+          );
+        }
+      }
+      binding ??= original;
+      if (!binding && used) {
+        const invalid =
+          snapshotConflict ??
+          (await validateProfileObjectSnapshot(reference.snapshot, type, fwCloudId));
+
+        if (!invalid) {
+          binding = { type, data: JSON.parse(JSON.stringify(reference.snapshot)) };
+        } else {
+          if (invalid.includes('conflict')) {
+            snapshotConflict = invalid;
+          }
+          resolution.errors.push(`objectReferences.${reference.referenceId}.snapshot: ${invalid}`);
+        }
+      }
     } else {
-      const replaced = await bindReplacement(reference, type, replacement, findObject, fwCloudId);
+      const replaced = replacementBindings.get(reference.referenceId)!;
 
       if (typeof replaced === 'string') {
         resolution.errors.push(`objectReplacements.${reference.referenceId}: ${replaced}`);
@@ -211,20 +279,25 @@ export async function resolveProfileObjectReferences(
       }
     }
 
+    // A snapshot to recreate is bound but not resolved: no object holds it yet.
+    const confirmed = binding !== null && (replacement !== undefined || binding.id !== undefined);
     const resolved: ResolvedProfileObjectReference = {
       ...storedReference(reference, locations),
-      resolved: binding !== null,
-      currentObject: binding
+      resolved: confirmed,
+      currentObject: confirmed
         ? { ...(binding.id === undefined ? {} : { id: binding.id }), ...binding.data }
         : null,
       requiredFields: getProfileReferenceRequiredFields(type),
+      ...(conflictingObjects ? { conflictingObjects } : {}),
+      ...(snapshotConflict ? { snapshotConflict } : {}),
     };
 
     resolution.objectReferences.push(resolved);
 
     if (binding) {
       resolution.bindings.set(reference.referenceId, binding);
-    } else if (resolved.locations.length > 0) {
+    }
+    if (!resolved.resolved && resolved.locations.length > 0) {
       // A reference no usage is left for is listed, but nothing has to replace it.
       resolution.missingObjects.push(resolved);
     }
@@ -269,15 +342,26 @@ async function bindReplacement(
   replacement: unknown,
   findObject: ProfileObjectLookup,
   fwCloudId: number,
+  selectionPlan: ProfileSnapshotSelectionPlan,
 ): Promise<ProfileExternalObjectBinding | string> {
   const input = asReplicationProfileRecord(replacement);
 
   if (
     !input ||
-    Object.keys(input).some((key) => key !== 'sourceObjectId' && key !== 'data') ||
-    (input.sourceObjectId === undefined) === (input.data === undefined)
+    Object.keys(input).some((key) => !['sourceObjectId', 'data', 'useSnapshot'].includes(key)) ||
+    [input.sourceObjectId, input.data, input.useSnapshot].filter((value) => value !== undefined)
+      .length !== 1 ||
+    (input.useSnapshot !== undefined && input.useSnapshot !== true)
   ) {
-    return 'send either the sourceObjectId of an existing object or the data of a new one.';
+    return 'send either the sourceObjectId of an existing object, the data of a new one, or useSnapshot: true.';
+  }
+
+  if (input.useSnapshot === true) {
+    try {
+      return await selectionPlan.select(reference.snapshot, type);
+    } catch (error) {
+      return describeReplicationProfileError(error);
+    }
   }
 
   if (input.data !== undefined) {
@@ -349,6 +433,11 @@ async function bindReplacementData(
     return 'range_start must not be greater than range_end.';
   }
 
+  const snapshotError = await validateProfileObjectSnapshot(object, type, fwCloudId);
+  if (snapshotError) {
+    return snapshotError;
+  }
+
   return { type, data: object };
 }
 
@@ -406,180 +495,6 @@ async function validateObjectData(
     return null;
   } catch (error) {
     // Joi errors carry a message; the semantic checks reject with an error_table entry.
-    return error?.message ?? error?.msg ?? String(error);
+    return describeReplicationProfileError(error);
   }
-}
-
-/**
- * Reads, as snapshots, the given objects the FWCloud sees: its own ones and the predefined ones
- * (NULL fwcloud). An object that was deleted, belongs to another FWCloud or is not of the type
- * asked for is not found; neither is a type or an id that is not one.
- */
-async function loadProfileObjects(
-  keys: { type: number | undefined; id: unknown }[],
-  fwCloudId: number,
-): Promise<ProfileObjectLookup> {
-  const idsOf = (groups: boolean): number[] => [
-    ...new Set(
-      keys
-        .filter(({ type }) => type !== undefined && isProfileReferenceGroupType(type) === groups)
-        .map(({ id }) => id)
-        .filter(isReplicationProfilePositiveInteger),
-    ),
-  ];
-  const loaded = await Promise.all([
-    loadObjects(idsOf(false), fwCloudId),
-    loadGroups(idsOf(true), fwCloudId),
-  ]);
-  // ipobj and ipobj_g ids overlap: the type tells which table an id belongs to.
-  const key = (type: number, id: number) => `${type}:${id}`;
-  const found = new Map(loaded.flat().map(({ type, id, data }) => [key(type, id), data]));
-
-  return (type, id) =>
-    isReplicationProfilePositiveInteger(id) ? found.get(key(type, id)) : undefined;
-}
-
-/** ipobj rows among the ids, hosts with their interfaces. */
-async function loadObjects(ids: number[], fwCloudId: number): Promise<LoadedObject[]> {
-  if (ids.length === 0) {
-    return [];
-  }
-
-  const rows = await dbQuery<ReplicationProfileRecord>(
-    `SELECT ${OBJECT_COLUMNS} FROM ipobj O
-     WHERE O.id IN (${sqlPlaceholders(ids.length)}) AND (O.fwcloud = ? OR O.fwcloud IS NULL)`,
-    [...ids, fwCloudId],
-  );
-  const interfaces = await loadHostInterfaces(
-    rows
-      .filter((row) => Number(row.type) === REPLICATION_PROFILE_IPOBJ_TYPE_HOST)
-      .map((row) => Number(row.id)),
-  );
-
-  return rows.map((row) => {
-    const data = objectData(row);
-
-    if (data.type === REPLICATION_PROFILE_IPOBJ_TYPE_HOST) {
-      data.interfaces = interfaces.get(Number(row.id)) ?? [];
-    }
-
-    return { type: data.type as number, id: Number(row.id), data };
-  });
-}
-
-/** ipobj_g rows among the ids, with their members. */
-async function loadGroups(ids: number[], fwCloudId: number): Promise<LoadedObject[]> {
-  if (ids.length === 0) {
-    return [];
-  }
-
-  const rows = await dbQuery<ReplicationProfileRecord>(
-    `SELECT id, type, name, comment FROM ipobj_g
-     WHERE id IN (${sqlPlaceholders(ids.length)}) AND (fwcloud = ? OR fwcloud IS NULL)`,
-    [...ids, fwCloudId],
-  );
-  const members = await loadGroupMembers(rows.map((row) => Number(row.id)));
-
-  return rows.map((row) => ({
-    type: Number(row.type),
-    id: Number(row.id),
-    data: {
-      type: Number(row.type),
-      name: row.name,
-      ...(row.comment ? { comment: row.comment } : {}),
-      members: members.get(Number(row.id)) ?? [],
-    },
-  }));
-}
-
-/** Interfaces of each host, with their addresses. */
-async function loadHostInterfaces(
-  hostIds: number[],
-): Promise<Map<number, HostInterfaceSnapshot[]>> {
-  const interfaces = new Map<number, HostInterfaceSnapshot[]>();
-
-  if (hostIds.length === 0) {
-    return interfaces;
-  }
-
-  const rows = await dbQuery<ReplicationProfileRecord>(
-    `SELECT H.ipobj AS host_id, I.id AS interface_id, I.name AS interface_name, ${OBJECT_COLUMNS}
-     FROM interface__ipobj H
-     INNER JOIN interface I ON I.id = H.interface
-     LEFT JOIN ipobj O ON O.interface = I.id
-     WHERE H.ipobj IN (${sqlPlaceholders(hostIds.length)})
-     ORDER BY H.ipobj, I.id, O.id`,
-    hostIds,
-  );
-
-  for (const row of rows) {
-    const hostId = Number(row.host_id);
-    const interfaceId = Number(row.interface_id);
-    let hostInterface = interfaces.get(hostId)?.find((item) => item.id === interfaceId);
-
-    if (!hostInterface) {
-      hostInterface = { id: interfaceId, name: row.interface_name, addresses: [] };
-      addToList(interfaces, hostId, hostInterface);
-    }
-
-    if (row.id !== null) {
-      hostInterface.addresses.push({ id: Number(row.id), ...objectData(row) });
-    }
-  }
-
-  return interfaces;
-}
-
-/** Members of each group: objects with their data, then VPN clients and prefixes. */
-async function loadGroupMembers(
-  groupIds: number[],
-): Promise<Map<number, ReplicationProfileRecord[]>> {
-  const members = new Map<number, ReplicationProfileRecord[]>();
-
-  if (groupIds.length === 0) {
-    return members;
-  }
-
-  const placeholders = sqlPlaceholders(groupIds.length);
-  const [objectRows, vpnRows] = await Promise.all([
-    dbQuery<ReplicationProfileRecord>(
-      `SELECT R.ipobj_g AS group_id, ${OBJECT_COLUMNS}
-       FROM ipobj__ipobjg R
-       INNER JOIN ipobj O ON O.id = R.ipobj
-       WHERE R.ipobj_g IN (${placeholders})
-       ORDER BY R.id_gi`,
-      groupIds,
-    ),
-    dbQuery<ReplicationProfileRecord>(
-      `${VPN_GROUP_MEMBER_QUERIES.map((query) => `${query} WHERE R.ipobj_g IN (${placeholders})`).join(' UNION ALL ')}
-       ORDER BY type, id`,
-      VPN_GROUP_MEMBER_QUERIES.flatMap(() => groupIds),
-    ),
-  ]);
-
-  objectRows.forEach((row) =>
-    addToList(members, Number(row.group_id), { id: Number(row.id), ...objectData(row) }),
-  );
-  vpnRows.forEach((row) =>
-    addToList(members, Number(row.group_id), {
-      id: Number(row.id),
-      type: Number(row.type),
-      name: row.name,
-    }),
-  );
-
-  return members;
-}
-
-/** The data fields of an ipobj row that hold a value. */
-function objectData(row: ReplicationProfileRecord): ReplicationProfileRecord {
-  const data: ReplicationProfileRecord = {};
-
-  for (const field of PROFILE_OBJECT_DATA_FIELDS) {
-    if (row[field] !== null && row[field] !== undefined) {
-      data[field] = field === 'type' ? Number(row[field]) : row[field];
-    }
-  }
-
-  return data;
 }

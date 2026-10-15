@@ -195,8 +195,12 @@ export interface ResolvedProfileObjectReference extends ReplicationProfileObject
   resolved: boolean;
   /** Data of that object, with its id when it exists already. Null when unresolved. */
   currentObject: ReplicationProfileRecord | null;
-  /** What a replacement must send: the fields of its `data`, or `sourceObjectId` alone. */
+  /** Fields of an optional manual replacement, when the caller wants to override the snapshot. */
   requiredFields: string[];
+  /** Same-name destination objects whose configuration differs from the saved snapshot. */
+  conflictingObjects?: ReplicationProfileRecord[];
+  /** Conflict in the saved object or one of its dependencies, requiring an explicit choice. */
+  snapshotConflict?: string;
 }
 
 /**
@@ -208,11 +212,13 @@ export interface ProfileObjectReplacement {
   sourceObjectId?: number;
   /** A new object, as the FWCloud objects API takes it (see requiredFields). */
   data?: ReplicationProfileRecord;
+  /** Keep the saved configuration, creating a distinct named object if necessary. */
+  useSnapshot?: true;
 }
 
 /** What every usage of a reference binds to when the profile is applied. */
 export interface ProfileExternalObjectBinding {
-  /** The existing object or group. Unset for replacement data, matched or created on apply. */
+  /** The existing object or group. Unset for snapshot/replacement data until confirmed apply. */
   id?: number;
   type: number;
   data: ReplicationProfileRecord;
