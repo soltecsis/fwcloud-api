@@ -31,6 +31,7 @@ import {
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
+  CrowdSecLapiMachines,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
   CrowdSecTransitionPrepare,
@@ -1332,9 +1333,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+  async getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines> {
     try {
-      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/machines');
+      return (await this.runCrowdSecGetOperation(
+        '/api/v1/crowdsec/lapi/machines',
+      )) as CrowdSecLapiMachines;
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }
