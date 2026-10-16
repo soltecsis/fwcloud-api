@@ -11,8 +11,10 @@ export function isReplicationProfileOwnerId(userId: number | null | undefined): 
   return isReplicationProfilePositiveInteger(userId);
 }
 
-/** Codes are used verbatim as URL path segments (`/profiles/:code/:version`). */
-export const REPLICATION_PROFILE_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+/** Codes are used verbatim as URL path segments (`/profiles/:code/:profileVersion`). */
+export const REPLICATION_PROFILE_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+export const REPLICATION_PROFILE_CODE_MESSAGE =
+  'code must start with a letter or digit and use only letters, digits, "_" or "-"';
 
 export const REPLICATION_PROFILE_CATALOG_ORIGINS = ['builtin', 'custom', 'all'] as const;
 export type ReplicationProfileCatalogOrigin = (typeof REPLICATION_PROFILE_CATALOG_ORIGINS)[number];
