@@ -5,5 +5,5 @@
   "description": "Default predefined replication profile for standard firewall provisioning.",
   "scope": "generic",
   "target_kind": "firewall",
-  "path": "default.v1.json"
+  "path": "default.latest.json"
 }

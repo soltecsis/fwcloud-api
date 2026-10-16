@@ -1,7 +1,12 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../Model';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
-import { resolveReplicationProfileTemplatePath } from './replication-profile-template';
+import {
+  REPLICATION_PROFILE_VERSION_SLOTS,
+  resolveReplicationProfileTemplatePath,
+} from './replication-profile-template';
+import type { ReplicationProfileVersionSlot } from './replication-profile-template';
+import { assertReplicationProfileName } from './replication-profile-name';
 import {
   isReplicationProfileOwnerId,
   isReplicationProfileStringValue,
@@ -40,6 +45,15 @@ export class ReplicationProfile extends Model {
 
   @Column()
   version: number;
+
+  /** Public version; the numeric version above is an internal revision for bindings. */
+  @Column({
+    name: 'version_slot',
+    type: 'enum',
+    enum: [...REPLICATION_PROFILE_VERSION_SLOTS],
+    default: 'latest',
+  })
+  versionSlot: ReplicationProfileVersionSlot;
 
   @Column()
   name: string;
@@ -119,6 +133,7 @@ export class ReplicationProfile extends Model {
   @BeforeInsert()
   @BeforeUpdate()
   rejectUnsafeTemplatePath(): void {
+    assertReplicationProfileName(this.name);
     resolveReplicationProfileTemplatePath(this);
   }
 

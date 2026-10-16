@@ -40,19 +40,22 @@ const DEFAULT_FIXTURE_OWNER_ID = 1;
 export function replicationProfileFixtureTemplate({
   code,
   version = 1,
+  versionSlot = 'latest',
   userId = DEFAULT_FIXTURE_OWNER_ID,
   targetKind = 'firewall',
 }: {
   code: string;
   version?: number;
+  versionSlot?: 'latest' | 'previous';
   userId?: number | null;
   targetKind?: string;
 }): ReplicationProfileTemplateReference {
-  const templatePath = buildReplicationProfileTemplatePath({ code, version, userId });
+  const templatePath = buildReplicationProfileTemplatePath({ code, versionSlot, userId });
 
   return {
     code,
     version,
+    versionSlot,
     targetKind,
     path: typeof userId === 'number' ? templatePath : `custom/fixtures/${templatePath}`,
   };
@@ -68,6 +71,7 @@ export function makeReplicationProfileFixture({
     .manager.getRepository(ReplicationProfile)
     .create({
       version: 1,
+      versionSlot: 'latest',
       name: 'Test replication profile',
       description: null,
       scope: 'generic',
@@ -114,7 +118,7 @@ export function makeCustomReplicationProfilePayload(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
   return {
-    name: `${codePrefix}Basic LAN/WAN profile`,
+    name: `${codePrefix}Basic LAN-WAN profile`,
     description: 'Creates WAN/LAN interfaces and allows LAN to WAN traffic.',
     targetKind: 'firewall',
     scope: 'generic',
