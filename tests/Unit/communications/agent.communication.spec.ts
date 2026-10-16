@@ -613,6 +613,7 @@ describe(AgentCommunication.name, () => {
       await agent.getCrowdSecDecisions({
         limit: 10,
         decisionType: 'ban',
+        value: '14.',
         origin: 'CAPI',
       });
       await agent.getCrowdSecAlerts({ decisionType: 'ban', scenario: 'http:scan' });
@@ -621,6 +622,7 @@ describe(AgentCommunication.name, () => {
       expect(getStub.firstCall.args[1].params).to.include({
         limit: 10,
         decision_type: 'ban',
+        value: '14.',
         origin: 'CAPI',
       });
       expect(getStub.secondCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/alerts');
