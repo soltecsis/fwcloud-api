@@ -161,14 +161,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       saveMachineInstallationStub.calledWithMatch({
         firewallId: firstNode.id,
         centralFirewallId: centralFirewall.id,
-        machineName: 'fwcloud-cluster-master',
+        machineName: 'cluster-master',
       }),
     ).to.be.true;
     expect(
       saveMachineInstallationStub.calledWithMatch({
         firewallId: secondNode.id,
         centralFirewallId: centralFirewall.id,
-        machineName: 'fwcloud-cluster-slave',
+        machineName: 'cluster-slave',
       }),
     ).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
@@ -184,13 +184,13 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'completed',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave',
+          machine_name: 'cluster-slave',
           status: 'completed',
         },
       ],
@@ -223,7 +223,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'connectivity_confirmation_required',
         },
       ],
@@ -246,7 +246,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'connectivity_confirmation_required',
         },
       ],
@@ -271,7 +271,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           firewallId: firstNode.id,
         }),
     ).to.be.true;
-    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-slave')).to.be.true;
+    expect(removeMachine.calledOnceWithExactly('cluster-slave')).to.be.true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
@@ -285,13 +285,13 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'completed',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave',
+          machine_name: 'cluster-slave',
           status: 'failed',
           error: 'Node unavailable',
         },
@@ -324,7 +324,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave',
+          machine_name: 'cluster-slave',
           status: 'completed',
         },
       ],
@@ -361,7 +361,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         saveMachineInstallationStub.calledWithMatch({
           firewallId: firstNode.id,
           centralFirewallId: centralFirewall.id,
-          machineName: 'fwcloud-cluster-master',
+          machineName: 'cluster-master',
           localRemediation: false,
         }),
     ).to.be.true;
@@ -371,7 +371,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'completed',
         },
       ],
@@ -384,7 +384,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       firewallId === centralFirewall.id
         ? lapiInstallation(centralFirewall.id)
         : firewallId === firstNode.id
-          ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', true)
+          ? machineInstallation(firstNode.id, 'cluster-master', true)
           : null,
     );
     const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
@@ -409,7 +409,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
 
     expect(prepare.calledOnce).to.be.true;
     expect(saveLapiInstallation.calledOnceWithExactly(firstNode.id)).to.be.true;
-    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(removeMachine.calledOnceWithExactly('cluster-master')).to.be.true;
     expect(setCrowdSecCompatibilityStub.calledWith(firstNode, true)).to.be.true;
     expect(response.toJSON().data).to.deep.equal({
       completed: true,
@@ -417,7 +417,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'completed',
           source_machine_removed: true,
           source_bouncer_cleanup_required: true,
@@ -439,7 +439,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         return lapiInstallation(firewallId);
       }
       return firewallId === firstNode.id
-        ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', false)
+        ? machineInstallation(firstNode.id, 'cluster-master', false)
         : null;
     });
     sinon.stub(targetCommunication, 'configureCrowdSecCentralLapi').resolves({});
@@ -476,7 +476,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       firewallId === centralFirewall.id
         ? lapiInstallation(centralFirewall.id)
         : firewallId === firstNode.id
-          ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', false)
+          ? machineInstallation(firstNode.id, 'cluster-master', false)
           : null,
     );
     sinon
@@ -512,7 +512,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       firewallId === centralFirewall.id
         ? lapiInstallation(centralFirewall.id)
         : firewallId === firstNode.id
-          ? machineInstallation(firstNode.id, 'fwcloud-cluster-master', false)
+          ? machineInstallation(firstNode.id, 'cluster-master', false)
           : null,
     );
     const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
@@ -632,13 +632,13 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'rolled_back',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave',
+          machine_name: 'cluster-slave',
           status: 'rollback_failed',
           error: 'CrowdSec node rollback failed and requires manual recovery',
         },
@@ -675,14 +675,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'failed',
           error: 'Preparation failed',
         },
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave',
+          machine_name: 'cluster-slave',
           status: 'cancelled',
           error: 'CrowdSec cluster transition was cancelled after a previous node failed',
         },
@@ -722,7 +722,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'rolled_back',
           error:
             'Machine replication failed. The failing CrowdSec central LAPI node may require manual reconciliation.',
@@ -730,7 +730,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: secondNode.id,
           name: secondNode.name,
-          machine_name: 'fwcloud-cluster-slave',
+          machine_name: 'cluster-slave',
           status: 'cancelled',
           error: 'CrowdSec cluster transition was cancelled after a previous node failed',
         },
@@ -757,7 +757,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       request({ confirm: true, mode: CrowdSecInstallationMode.Machine }),
     );
 
-    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(removeMachine.calledOnceWithExactly('cluster-master')).to.be.true;
     expect(
       restoreInstallationStub.calledWithMatch({
         firewallId: firstNode.id,
@@ -770,7 +770,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'rolled_back',
           error: 'Persistence failed',
         },
@@ -805,7 +805,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'finalization_failed',
           error: 'Finalization failed',
         },
@@ -838,15 +838,15 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       }),
     );
 
-    expect(removeMachine.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
-    expect(removeBouncer.calledOnceWithExactly('fwcloud-cluster-master')).to.be.true;
+    expect(removeMachine.calledOnceWithExactly('cluster-master')).to.be.true;
+    expect(removeBouncer.calledOnceWithExactly('cluster-master')).to.be.true;
     expect(response.toJSON().data).to.deep.equal({
       completed: false,
       nodes: [
         {
           firewall_id: firstNode.id,
           name: firstNode.name,
-          machine_name: 'fwcloud-cluster-master',
+          machine_name: 'cluster-master',
           status: 'rolled_back',
           error: 'Activation failed',
         },

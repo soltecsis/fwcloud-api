@@ -2254,8 +2254,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(enrollStub.calledOnceWithExactly({ enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] }))
-      .to.be.true;
+    expect(
+      enrollStub.calledOnceWithExactly({
+        enrollmentKey,
+        name: fwcProduct.firewall.name,
+        tags: ['fwcloud'],
+      }),
+    ).to.be.true;
     expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, false))
       .to.be.true;
     expect(result.toJSON().data).to.deep.equal(response);
@@ -2739,7 +2744,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(
       enrollStub.calledOnceWithExactly({
         enrollmentKey: 'crowdsec-enrollment-key',
-        name: 'fwcloud-' + fwcProduct.firewall.name,
+        name: fwcProduct.firewall.name,
       }),
     ).to.be.true;
     expect(messages).to.deep.equal([

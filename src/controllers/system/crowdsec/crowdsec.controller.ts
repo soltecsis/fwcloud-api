@@ -1485,6 +1485,7 @@ export class CrowdSecController extends Controller {
     ).enrollCrowdSecConsole({
       ...req.body,
       enrollmentKey,
+      name: this.consoleInstanceName(),
     });
     const installationRepository = this.getCrowdSecInstallationRepository();
     if (await installationRepository.findByFirewallId(this._firewall.id)) {
@@ -1779,9 +1780,9 @@ export class CrowdSecController extends Controller {
   private consoleInstanceName(): string {
     const name = this._firewall.name?.trim();
     if (name && !/[^A-Za-z0-9._-]/.test(name)) {
-      return 'fwcloud-' + name;
+      return name;
     }
-    return 'fwcloud-' + this._firewall.fwCloudId + '-' + this._firewall.id;
+    return this._firewall.fwCloudId + '-' + this._firewall.id;
   }
 
   private async enrollmentKey(req: Request, value: unknown): Promise<string> {
