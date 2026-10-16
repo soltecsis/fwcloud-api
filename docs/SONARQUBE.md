@@ -1,5 +1,13 @@
 # Fase 7 — SonarQube Cloud en GitHub Actions
 
+## Estado actual
+
+Última actualización: 2026-10-16. El responsable confirma que los últimos cambios
+están desplegados en CI y conectan con SonarQube Cloud. La importación del LCOV,
+el resultado del Quality Gate, la protección efectiva del merge y el rerun parcial
+siguen pendientes de verificar y documentar. El registro de entregas, evidencias
+y cierre se mantiene en el apartado 10.4 de [CI-BACKEND.md](../.github/CI-BACKEND.md).
+
 ## Integración
 
 El CI `FWCloud-API CI` instala, compila y prueba el SHA de la PR (`head.sha`) o
@@ -21,12 +29,15 @@ Funciona desde `ENS` sin publicar previamente archivos en `main`. Utiliza la
 configuración, helper y fuentes de la misma revisión analizada. No hay
 `workflow_run`, workflow posterior, consultas a la API de GitHub ni checkout de la
 rama predeterminada. Los argumentos de rama/PR se toman del contexto de esta
-ejecución y la cobertura se descarga por nombre exacto, incluido intento.
+ejecución y la cobertura se descarga por nombre exacto estable por `run_id`:
+`backend-coverage-node22-mysql8-<RUN_ID>`. La publicación usa `overwrite: true`:
+si se repite la celda de cobertura, reemplaza el artefacto de esa misma ejecución;
+si solo se repite otro job, se conserva el artefacto ya publicado.
 
 | Evento | SonarQube | Resultado exigido por `backend-ci` |
 | --- | --- | --- |
-| Push a `main`, `fixes`, `ENS` | Sí, tras pasar los jobs previos | `success` |
-| PR entre ramas del mismo repositorio | Sí, tras pasar los jobs previos | `success` |
+| Push a `main`, `fixes`, `ENS`, salvo actor Dependabot | Sí, tras pasar los jobs previos | `success` |
+| PR internas hacia `main`, `devel`, `fixes`, `auditlogs`, `ENS`, salvo autor o actor Dependabot | Sí, tras pasar los jobs previos | `success` |
 | Ejecución manual del CI | Sí, salvo actor Dependabot | `success` |
 | PR desde otro repositorio/fork o ejecución de Dependabot | Omitido: GitHub no entrega el token | `skipped`, con motivo en el resumen |
 
@@ -60,18 +71,23 @@ del control de cambios.
   quedan excluidas antes de que sus mapas puedan introducir rutas de otras fuentes.
 - Exclusiones SCM deshabilitadas para que una modificación de `.gitignore` no
   oculte fuentes explícitamente incluidas.
-- `tsconfig.sonar.json` no modifica el build del producto. Usa opciones compatibles
-  con el compilador incorporado por el analizador; debe comprobarse la precisión
-  del primer análisis, especialmente la inferencia de tipos sin dependencias
-  instaladas en el job de análisis. La documentación consultada declara
+- `tsconfig.sonar.json` no modifica el build del producto. La precisión y
+  compatibilidad siguen pendientes de revisar en los resultados del analizador,
+  especialmente la inferencia de tipos sin dependencias instaladas en el job de
+  análisis. La documentación consultada durante la implantación declara
   TypeScript hasta 5.9.3; el proyecto compila con TypeScript 6.
 
 ## Alta e instalación en SonarQube Cloud
 
+Este procedimiento describe cómo reproducir o migrar la configuración. El
+despliegue y la conexión ya están confirmados; el estado de aceptación figura
+en «Estado actual» y en el registro de CI-BACKEND.md.
+
 1. Entrar en [sonarcloud.io](https://sonarcloud.io/) mediante GitHub. No se instala
    un servidor, base de datos o Java en el equipo de desarrollo.
-2. Importar la organización GitHub que recibirá las PR. Para la implantación
-   formal es `soltecsis`; analizar un fork requiere un proyecto y claves propios.
+2. Configurar la integración con la organización GitHub que recibirá las PR.
+   Para el repositorio principal es `soltecsis`. La vinculación efectiva del
+   proyecto y la decoración de PR siguen pendientes de verificar.
 3. Instalar la [GitHub App SonarQube Cloud](https://github.com/marketplace/sonarcloud)
    y autorizar únicamente los repositorios necesarios, inicialmente `fwcloud-api`.
    La instalación en una organización puede necesitar su propietario.
@@ -90,7 +106,10 @@ del control de cambios.
    ```
 
    Estas claves corresponden al proyecto de la cuenta/fork `soltecsis-aortega`.
-   Para vincular el repositorio de la organización, usar las claves de su proyecto.
+   El CI del repositorio principal puede analizar ese proyecto si el token tiene
+   permisos sobre él. Guardar el secret en otro repositorio no cambia las claves
+   ni vincula automáticamente la App. Si se migra a un proyecto de la organización,
+   actualizar las claves y verificar su vinculación con el repositorio principal.
 6. En **Administration → Analysis Method**, elegir GitHub Actions y desactivar
    **Automatic Analysis**. No combinar ambos métodos para este proyecto. El
    análisis automático no importa LCOV ni analiza ramas independientes.
@@ -98,14 +117,18 @@ del control de cambios.
    el plan lo ofrece. Si se usa token personal, emplear una cuenta con permisos
    mínimos de análisis. Desde **My Account → Access Tokens**, asignar nombre,
    caducidad y responsable de renovación; copiar el valor al generarlo.
-8. En el **repositorio destino**, abrir **Settings → Secrets and variables → Actions**:
+8. En el **repositorio que ejecuta el workflow**, abrir
+   **Settings → Secrets and variables → Actions → Repository secrets**:
 
    | Tipo | Nombre | Valor |
    | --- | --- | --- |
    | Secret | `SONAR_TOKEN` | Token de SonarQube, equivalente funcionalmente a una API key |
 
-   `SONAR_TOKEN` ya está generado y configurado en GitHub según lo indicado por
-   el responsable. `SONAR_ORGANIZATION` y `SONAR_PROJECT_KEY` no son necesarias
+   Los secrets del fork no se heredan en el principal. También puede utilizarse
+   un secret de organización con acceso concedido al repositorio que ejecuta el CI.
+   El token debe tener permisos de análisis sobre el proyecto configurado. Según
+   la confirmación del responsable, el CI desplegado ya conecta con SonarQube.
+   `SONAR_ORGANIZATION` y `SONAR_PROJECT_KEY` no son necesarias
    temporalmente: los overrides están comentados en el job de SonarQube.
    El scanner lee las claves del archivo de propiedades del checkout analizado.
    Si se vuelve a usar variables de Actions, añadir su validación y reactivar
@@ -130,9 +153,17 @@ del control de cambios.
 12. Configurar y validar la protección descrita a continuación.
 
 La falta de claves, secret, LCOV o un resultado operativo no se interpreta como
-análisis exitoso. Para repetir desde cero, usar **Re-run all jobs** del CI: se
-exige el artefacto de la misma ejecución/intento; un rerun parcial de Sonar sin
-regenerar la celda de cobertura no satisface esa correspondencia.
+análisis exitoso. Se admiten reruns parciales: la cobertura puede proceder de un
+intento anterior de la **misma ejecución y commit**, con intento productor entero
+positivo y no posterior al análisis. Se mantienen repositorio/evento, pruebas
+correctas de Node 22/MySQL 8.0 y SHA-256 exacto del LCOV. No se buscan artefactos
+de otras ejecuciones ni se acepta un intento futuro o inválido.
+
+Para regenerar la cobertura, usar **Re-run all jobs** o repetir la celda productora.
+Si se cambia el código, iniciar una ejecución sobre el nuevo commit. Un rerun
+conserva la revisión y workflow originales: la primera ejecución con este ajuste
+debe iniciarse con el CI actualizado. Las ejecuciones anteriores con nombres
+terminados en `-<ATTEMPT>` siguen necesitando su procedimiento anterior.
 
 ## Quality Gate y protección de merge
 
@@ -141,7 +172,9 @@ errores o timeout fallan el workflow. No hace falta otra acción de polling. La
 espera no convierte un primer análisis sin gate calculado en aceptación definitiva:
 revisar la definición de código nuevo y efectuar la validación inicial.
 
-En **GitHub → Settings → Rules → Rulesets**, para las ramas protegidas:
+La configuración efectiva y su comportamiento bloqueante siguen pendientes de
+verificar. En **GitHub → Settings → Rules → Rulesets**, para las ramas protegidas,
+debe exigirse lo siguiente:
 
 1. Exigir PR y el check **`backend-ci`**, que ahora incluye el resultado de Sonar.
    Para aceptar PR externas no exigir globalmente `SonarCloud Code Analysis`
@@ -158,6 +191,8 @@ Fuera de la excepción explícita de forks/Dependabot, un estado `failure`,
 ignorar errores en los demás jobs. El push posterior a `ENS` también tiene que
 pasar Sonar antes de promover el código hacia despliegue.
 
+**Sonar way** es el gate inicial recomendado; el perfil, gate y definición de
+código nuevo efectivos deben registrarse y verificarse en SonarQube Cloud.
 Sonar way evalúa ratings de seguridad/fiabilidad/mantenibilidad, revisión de
 hotspots, cobertura de código nuevo ≥80% y duplicación ≤3% según sus condiciones
 efectivas. Sus porcentajes y excepción predeterminada para cambios de menos de
@@ -167,13 +202,18 @@ su tratamiento, aunque el gate de la PR se enfoque en código nuevo.
 
 ## Evidencia y ENS Media
 
-El artefacto `backend-sonarqube-<RUN_ID>-<ATTEMPT>`, retenido 90 días, contiene
-solo `metadata.json`: commit, PR/rama, ejecución/intento,
+El artefacto `backend-sonarqube-<RUN_ID>-<ATTEMPT>`, con retención solicitada de
+90 días y retención efectiva pendiente de verificar, contiene
+solo `metadata.json`: commit, PR/rama, ejecución, intento de análisis (`runAttempt`)
+e intento productor de cobertura (`coverageRunAttempt`),
 hashes de LCOV/configuración, versiones, resultado del scanner
 y referencia nativa de tarea/dashboard cuando está disponible. Fallos se registran
 como `FAILED_OR_INCOMPLETE`, nunca como gate pasado. No se suben `.scannerwork`,
 logs de scanner, fragmentos de issues, secretos o código mediante este artefacto.
 Los hallazgos detallados se revisan en SonarQube Cloud.
+Este artefacto se genera si llega a intentarse el paso del scanner. Un fallo
+previo, por ejemplo al descargar o validar cobertura, falla el job sin generar
+ese artefacto de Sonar.
 
 La evidencia contribuye a `mp.sw.1` (desarrollo seguro) y `mp.sw.2` (aceptación y
 puesta en servicio), según el análisis de riesgos y Declaración de Aplicabilidad
@@ -198,29 +238,61 @@ identifica con un error controlado y la indicación de regenerar la cobertura.
 `scripts/c8-scope.test.cjs` usa TypeScript y c8 reales, junto con el código/mapa
 instalados de TypeORM, y verifica aciertos TS/JS, fuentes no ejecutadas con cero
 y ausencia de rutas fantasma o dependencias. Se ejecuta también en el job de
-calidad. Las 18 pruebas de cobertura, Sonar y reportes pasan con Node 22, y el
-workflow pasa Actionlint. Gitleaks no detecta secretos en los helpers revisados.
+calidad. En la validación local de esta corrección pasaron 18 pruebas de cobertura,
+Sonar y reportes con Node 22, además de Actionlint y Gitleaks sobre los helpers
+revisados. Es un resultado histórico, distinto del ajuste posterior de reruns
+validado con 20 pruebas.
 
-Después de integrar esta corrección, ejecutar **todo el CI** para generar un
-nuevo LCOV y su hash. Repetir solo Sonar reutilizaría evidencia anterior o de otro
-intento. Los porcentajes pueden cambiar al corregir el alcance de la cobertura.
+La corrección requiere generar un nuevo LCOV y su hash con el CI actualizado,
+repitiendo el productor o todo el CI. Repetir solo Sonar sobre el mismo commit
+reutiliza la cobertura disponible y no corrige un LCOV que ya fuera inválido.
+La importación efectiva sigue pendiente de revisar en el análisis desplegado;
+los porcentajes pueden cambiar al corregir el alcance de la cobertura.
+
+### Corrección de artefactos ausentes en reruns parciales
+
+En la ejecución `38576086191` existía cobertura del intento 1, pero Sonar buscaba
+un nombre terminado en `-2` tras repetirse solo otro job de la matriz. El nombre
+estable por ejecución evita esa búsqueda de un artefacto que no se regeneró.
+El productor conserva su intento original dentro de `analysis.json`; los informes
+Sonar y de pruebas siguen separados por intento. Solo se reemplaza el archivo de
+cobertura de esa ejecución cuando el job productor vuelve a publicar.
+
+Las regresiones verifican reutilización de intento 1 en análisis 2, trazabilidad
+de ambos intentos y rechazo de otra ejecución/revisión, intentos inválidos/futuros,
+pruebas fallidas y hashes alterados. La prueba de política comprueba publicación
+y descarga con el mismo nombre y `overwrite: true` únicamente en la cobertura.
+Validación local: 20 pruebas de cobertura nativa, Sonar y reportes correctas con
+Node 22, Actionlint sin errores y Gitleaks sin hallazgos en los helpers/pruebas.
+El CI actualizado ya está desplegado según la confirmación del responsable.
+La reutilización real de cobertura en un rerun parcial sigue pendiente de
+comprobar en Actions.
 
 ### Validación de la integración
 
 La arquitectura anterior usaba `workflow_run`, lo que impedía su activación si
 solo se integraba en `ENS`. Se ha sustituido por el job del mismo CI y eliminado
 el workflow separado. Validación local: 10 pruebas Sonar y 12 regresiones de
-reportes/política/diagnósticos ZAP correctas (22 en total). La activación real y el
-Quality Gate requieren validación en Actions con el secret configurado.
+reportes/política/diagnósticos ZAP correctas (22 en total). Son verificaciones
+históricas de la implantación local: el despliegue y la conexión con SonarQube
+ya están confirmados, mientras que el Quality Gate sigue pendiente de verificar.
 Actionlint 1.7.7 valida el workflow y Gitleaks 8.30.1 no detecta secretos en el
 workflow y los helpers/pruebas modificados.
-La fase se cerrará tras confirmar:
+Los pendientes de aceptación, alineados con el apartado 10.4 de CI-BACKEND.md, son:
 
+- Enlazar commit/PR exactos, ejecución de Actions y análisis de SonarQube desplegados.
+- Vinculación del proyecto con el repositorio y decoración de PR; claves definitivas
+  y continuidad del análisis multirrama tras el trial Team.
 - Ramas base analizadas y TS/JS legacy incluidos sin exclusiones inesperadas.
 - LCOV importado sobre fuentes originales, sin paths sin resolver.
+- Precisión y compatibilidad del analizador con TypeScript 6 y el alcance configurado.
+- Rerun parcial que reutilice cobertura de un intento anterior válido de la misma
+  ejecución y revisión, con trazabilidad de productor y consumidor.
 - PR interna pasa/falla según Sonar; en PR externa el token no se usa y los demás
   gates siguen siendo obligatorios; al integrar, el push vuelve a exigir Sonar.
-- Token inválido, cobertura ausente o intento antiguo fallan sin falso éxito.
+- Token inválido, cobertura ausente/alterada, contexto de otra ejecución/revisión
+  o intento inválido/futuro fallan sin falso éxito. Un intento productor anterior
+  válido de la misma ejecución y revisión sí se acepta.
 - `backend-ci` bloquea realmente fallos de Sonar en los eventos elegibles.
 - Revisión inicial de hallazgos y evidencia/retención con responsable.
 
