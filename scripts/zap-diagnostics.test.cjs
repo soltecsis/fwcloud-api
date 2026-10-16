@@ -19,7 +19,7 @@ test('ZAP diagnostics never copy sensitive fields or invalid numeric values', ()
   assert.match(output, /Scan completed: true/);
   assert.match(output, /FAIL=0, WARN=1, PASS=112/);
   assert.match(output, /pluginId=10021, riskCode=1, instances=2/);
-  assert.equal(output.split('\n').filter(line => line.startsWith('Alert:')).length, 1);
+  assert.equal(output.split('\n').filter((line) => line.startsWith('Alert:')).length, 1);
   assert.ok(!output.includes(canary));
 });
 

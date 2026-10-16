@@ -1,20 +1,14 @@
 // Summarize only aggregate results; test names, errors and source stay in artifacts.
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
+const { context, writeJson, summary: publishSummary } = require('./ci-context.cjs');
 
 const env = process.env;
 const expectedCoverage = env.COVERAGE_EXPECTED === 'true';
 const testOutcome = env.TEST_OUTCOME || 'unknown';
 const errors = [];
 const metadata = {
-  schemaVersion: 1,
-  collectedAt: new Date().toISOString(),
-  repository: env.GITHUB_REPOSITORY || null,
-  commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  event: env.GITHUB_EVENT_NAME || null,
-  ref: env.GITHUB_REF || null,
-  runId: env.GITHUB_RUN_ID || null,
-  runAttempt: env.GITHUB_RUN_ATTEMPT || null,
+  ...context(),
   node: process.version,
   npm: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
   database: env.TEST_DATABASE || null,
@@ -42,7 +36,7 @@ try {
     }
   }
   metadata.tests = Object.fromEntries(
-    ['tests', 'passes', 'failures', 'pending', 'duration'].map(key => [key, stats[key]]),
+    ['tests', 'passes', 'failures', 'pending', 'duration'].map((key) => [key, stats[key]]),
   );
   if (stats.tests === 0) errors.push('No tests executed.');
   if (stats.failures > 0) errors.push('Test failures reported.');
@@ -69,8 +63,7 @@ if (expectedCoverage) {
 }
 
 if (testOutcome !== 'success') errors.push(`Test step outcome: ${testOutcome}`);
-fs.mkdirSync('reports', { recursive: true });
-fs.writeFileSync('reports/metadata.json', `${JSON.stringify(metadata, null, 2)}\n`);
+writeJson('reports/metadata.json', metadata);
 
 const summary = [
   '## Backend test evidence',
@@ -80,8 +73,12 @@ const summary = [
   `Reports: **${errors.length ? 'FAILED / INCOMPLETE' : 'COMPLETE'}**`,
 ];
 if (metadata.tests) {
-  summary.push('', '| Tests | Passed | Failed | Pending | Duration (ms) |', '| --- | --- | --- | --- | --- |',
-    `| ${metadata.tests.tests} | ${metadata.tests.passes} | ${metadata.tests.failures} | ${metadata.tests.pending} | ${metadata.tests.duration} |`);
+  summary.push(
+    '',
+    '| Tests | Passed | Failed | Pending | Duration (ms) |',
+    '| --- | --- | --- | --- | --- |',
+    `| ${metadata.tests.tests} | ${metadata.tests.passes} | ${metadata.tests.failures} | ${metadata.tests.pending} | ${metadata.tests.duration} |`,
+  );
 }
 if (metadata.coverage) {
   summary.push('', '| Coverage | % |', '| --- | --- |');
@@ -90,6 +87,5 @@ if (metadata.coverage) {
   }
 }
 if (errors.length) summary.push('', 'See the test step and metadata artifact for failure details.');
-if (env.GITHUB_STEP_SUMMARY) fs.appendFileSync(env.GITHUB_STEP_SUMMARY, `${summary.join('\n')}\n`);
-console.log(summary.join('\n'));
+publishSummary(summary);
 if (errors.length) process.exitCode = 1;

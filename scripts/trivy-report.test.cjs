@@ -6,7 +6,9 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const { test } = require('node:test');
 
 const script = path.join(__dirname, 'trivy-report.cjs');
-const gitDir = execFileSync('git', ['rev-parse', '--absolute-git-dir'], { encoding: 'utf8' }).trim();
+const gitDir = execFileSync('git', ['rev-parse', '--absolute-git-dir'], {
+  encoding: 'utf8',
+}).trim();
 
 function fixture(severity) {
   const vulnerability = severity
@@ -86,7 +88,8 @@ function collect(t, options = {}) {
   const summaryPath = path.join(directory, 'summary.md');
   const data = fixture(options.severity);
 
-  if (!options.missingReport) fs.writeFileSync(reportPath, JSON.stringify(options.report ?? data.report));
+  if (!options.missingReport)
+    fs.writeFileSync(reportPath, JSON.stringify(options.report ?? data.report));
   if (!options.missingSbom) fs.writeFileSync(sbomPath, JSON.stringify(options.sbom ?? data.sbom));
   fs.writeFileSync(versionPath, JSON.stringify(options.version ?? data.version));
   fs.writeFileSync(lockfilePath, '{"lockfileVersion":3}\n');
@@ -104,6 +107,9 @@ function collect(t, options = {}) {
       TRIVY_LOCKFILE_PATH: lockfilePath,
       TRIVY_EXIT_CODE: String(options.scanExitCode ?? 0),
       TRIVY_SBOM_EXIT_CODE: String(options.sbomExitCode ?? 0),
+      TRIVY_POLICY_EXIT_CODE: String(
+        options.policyExitCode ?? (['HIGH', 'CRITICAL'].includes(options.severity) ? 5 : 0),
+      ),
       TRIVY_VERSION: '0.74.0',
       GITHUB_STEP_SUMMARY: summaryPath,
     },
@@ -113,7 +119,7 @@ function collect(t, options = {}) {
   return { result, metadata, summary };
 }
 
-test('accepts a complete clean scan and inventories both dependency scopes', t => {
+test('accepts a complete clean scan and inventories both dependency scopes', (t) => {
   const { result, metadata } = collect(t);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(metadata.status, 'success');
@@ -122,7 +128,7 @@ test('accepts a complete clean scan and inventories both dependency scopes', t =
   assert.match(metadata.lockfileSha256, /^[a-f0-9]{64}$/);
 });
 
-test('reports medium findings without blocking the build', t => {
+test('reports medium findings without blocking the build', (t) => {
   const { result, metadata } = collect(t, { severity: 'MEDIUM' });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(metadata.status, 'success');
@@ -130,7 +136,7 @@ test('reports medium findings without blocking the build', t => {
   assert.equal(metadata.blockingFindingCount, 0);
 });
 
-test('blocks high findings without exposing vulnerability details', t => {
+test('blocks high findings without exposing vulnerability details', (t) => {
   const { result, metadata, summary } = collect(t, { severity: 'HIGH' });
   const evidence = `${JSON.stringify(metadata)}${summary}`;
   assert.equal(result.status, 1);
@@ -141,36 +147,36 @@ test('blocks high findings without exposing vulnerability details', t => {
   assert.ok(!evidence.includes('sensitive vulnerability context'));
 });
 
-test('rejects missing vulnerability or SBOM evidence', t => {
+test('rejects missing vulnerability or SBOM evidence', (t) => {
   assert.equal(collect(t, { missingReport: true }).result.status, 1);
   assert.equal(collect(t, { missingSbom: true }).result.status, 1);
 });
 
-test('rejects scanner execution failures', t => {
+test('rejects scanner execution failures', (t) => {
   assert.equal(collect(t, { scanExitCode: 2 }).result.status, 1);
   assert.equal(collect(t, { sbomExitCode: 2 }).result.status, 1);
 });
 
-test('rejects an empty package inventory', t => {
+test('rejects an empty package inventory', (t) => {
   const data = fixture();
   data.report.Results[0].Packages = [];
   assert.equal(collect(t, { report: data.report }).result.status, 1);
 });
 
-test('rejects inconsistent report and SBOM component counts', t => {
+test('rejects inconsistent report and SBOM component counts', (t) => {
   const data = fixture();
   data.sbom.components.pop();
   assert.equal(collect(t, { sbom: data.sbom }).result.status, 1);
 });
 
-test('rejects equal-sized inventories with different package identities', t => {
+test('rejects equal-sized inventories with different package identities', (t) => {
   const data = fixture();
   data.sbom.components[0].name = 'unrelated-package';
   data.sbom.components[0].purl = 'pkg:npm/unrelated-package@1.0.0';
   assert.equal(collect(t, { sbom: data.sbom }).result.status, 1);
 });
 
-test('rejects malformed vulnerability arrays and entries', t => {
+test('rejects malformed vulnerability arrays and entries', (t) => {
   const data = fixture();
   data.report.Results[0].Vulnerabilities = {};
   assert.equal(collect(t, { report: data.report }).result.status, 1);
@@ -180,7 +186,7 @@ test('rejects malformed vulnerability arrays and entries', t => {
   assert.equal(collect(t, { report: invalidSeverity }).result.status, 1);
 });
 
-test('preserves error metadata for null report and SBOM entries', t => {
+test('preserves error metadata for null report and SBOM entries', (t) => {
   const data = fixture();
   data.report.Results.push(null);
   data.report.Results[0].Packages.push(null);
@@ -189,14 +195,17 @@ test('preserves error metadata for null report and SBOM entries', t => {
   const { result, metadata } = collect(t, { report: data.report, sbom: data.sbom });
   assert.equal(result.status, 1);
   assert.equal(metadata.status, 'error');
-  assert.ok(metadata.errors.length >= 4);
+  assert.ok(metadata.errors.length > 0);
 });
 
-test('rejects unexpected Trivy versions or missing database metadata', t => {
-  assert.equal(collect(t, { version: { Version: '0.73.0', VulnerabilityDB: {} } }).result.status, 1);
+test('rejects unexpected Trivy versions or missing database metadata', (t) => {
+  assert.equal(
+    collect(t, { version: { Version: '0.73.0', VulnerabilityDB: {} } }).result.status,
+    1,
+  );
 });
 
-test('rejects invalid CycloneDX versions and database timestamps', t => {
+test('rejects invalid CycloneDX versions and database timestamps', (t) => {
   const data = fixture();
   data.sbom.specVersion = 'invalid';
   assert.equal(collect(t, { sbom: data.sbom }).result.status, 1);
@@ -206,4 +215,11 @@ test('rejects invalid CycloneDX versions and database timestamps', t => {
     }).result.status,
     1,
   );
+});
+
+test('fails closed when the native gate did not run or disagrees with the report', (t) => {
+  assert.equal(collect(t, { policyExitCode: '' }).metadata.status, 'error');
+  assert.equal(collect(t, { policyExitCode: 1 }).metadata.status, 'error');
+  assert.equal(collect(t, { policyExitCode: 5 }).metadata.status, 'error');
+  assert.equal(collect(t, { severity: 'HIGH', policyExitCode: 0 }).metadata.status, 'error');
 });

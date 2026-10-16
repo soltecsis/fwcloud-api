@@ -25,6 +25,7 @@ concurrency:
 env:
   CI: true
   HUSKY: '0'
+  ANALYSIS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   quality:
@@ -51,18 +52,8 @@ jobs:
         run: npm run lint:check
       - name: Run Prettier
         run: npm run format:check
-      - name: Verify CI report collector
-        run: node --test scripts/ci-reports.test.cjs
-      - name: Verify Gitleaks report collector
-        run: node --test scripts/gitleaks-report.test.cjs
-      - name: Verify Trivy report collector
-        run: node --test scripts/trivy-report.test.cjs scripts/trivy-run.test.cjs
-      - name: Verify ZAP scope and CI policy
-        run: |
-          node --test scripts/zap-scope.test.cjs scripts/zap-diagnostics.test.cjs
-          python3 .github/zap/auth-hook.test.py
-      - name: Verify native coverage scope and SonarQube boundaries
-        run: node --test scripts/c8-scope.test.cjs scripts/sonar-analysis.test.cjs
+      - name: Verify CI tooling and policy
+        run: npm run test:ci-tools
 
   secrets:
     name: FWCloud-API Secrets
@@ -190,6 +181,8 @@ jobs:
             | sha256sum --check --strict
           tar -xzf "$RUNNER_TEMP/$TRIVY_ARCHIVE" -C "$RUNNER_TEMP" trivy
           "$RUNNER_TEMP/trivy" --version
+      - name: Verify native Trivy policy
+        run: node --test scripts/trivy-run.test.cjs
       - name: Scan dependency vulnerabilities
         id: trivy
         run: |
@@ -209,11 +202,22 @@ jobs:
       - name: Record Trivy and database versions
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
         run: node scripts/trivy-run.cjs version
+      - name: Enforce native Trivy severity policy
+        id: trivy_policy
+        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        run: |
+          set +e
+          node scripts/trivy-run.cjs check
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          test "$STATUS" -eq 0
       - name: Verify and summarize dependency scan
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
         env:
           TRIVY_EXIT_CODE: ${{ steps.trivy.outputs.exit_code }}
           TRIVY_SBOM_EXIT_CODE: ${{ steps.sbom.outputs.exit_code }}
+          TRIVY_POLICY_EXIT_CODE: ${{ steps.trivy_policy.outputs.exit_code }}
         run: node scripts/trivy-report.cjs
       - name: Remove detailed vulnerability report
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
@@ -282,9 +286,11 @@ jobs:
         run: |
           node -e '
             const fs = require("node:fs"), crypto = require("node:crypto");
-            fs.appendFileSync(process.env.GITHUB_ENV,
-              "SESSION_SECRET=" + crypto.randomBytes(32).toString("hex") + "\n" +
-              "CRYPT_SECRET=" + crypto.randomBytes(32).toString("hex") + "\n");
+            for (const name of ["SESSION_SECRET", "CRYPT_SECRET"]) {
+              const value = crypto.randomBytes(32).toString("hex");
+              console.log("::add-mask::" + value);
+              fs.appendFileSync(process.env.GITHUB_ENV, name + "=" + value + "\n");
+            }
           '
       - name: Start temporary API
         id: api
@@ -343,7 +349,8 @@ jobs:
           set +e
           docker run --rm --network host \
             -v "$GITHUB_WORKSPACE:/zap/wrk:rw" \
-            -e CI -e GITHUB_SHA -e GITHUB_RUN_ID \
+            -e CI -e ANALYSIS_COMMIT -e GITHUB_RUN_ID -e GITHUB_RUN_ATTEMPT \
+            -e ZAP_AUDIT_SESSION_ID \
             -e ZAP_AUTH_HEADER -e ZAP_AUTH_HEADER_VALUE -e ZAP_AUTH_HEADER_SITE \
             ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
             zap-api-scan.py -t reports/dast/authenticated.openapi.json -f openapi \
