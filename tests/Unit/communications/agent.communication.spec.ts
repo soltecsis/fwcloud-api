@@ -254,6 +254,13 @@ describe(AgentCommunication.name, () => {
       expect(consoleError.message).to.equal('CrowdSec Console enrollment request is invalid');
     });
 
+    it('should map protected local Machine errors to a conflict', () => {
+      const error = crowdSecAgentErrorToHttpException('CROWDSEC_MACHINE_PROTECTED');
+
+      expect(error.status).to.equal(409);
+      expect(error.message).to.equal('The local CrowdSec LAPI Machine cannot be removed');
+    });
+
     it('should map firewall integration errors without exposing agent details', () => {
       const error = crowdSecAgentErrorToHttpException('CROWDSEC_FIREWALL_INTEGRATION_INVALID');
 
@@ -372,13 +379,24 @@ describe(AgentCommunication.name, () => {
 
   describe('CrowdSec LAPI machines', () => {
     it('should request the central LAPI machine inventory', async () => {
-      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: { machines: [] } });
+      const machines = {
+        machines: [
+          {
+            name: 'local-machine',
+            state: 'validated',
+            ip_address: '127.0.0.1',
+            os: 'linux',
+            last_heartbeat: '2026-10-16T10:00:00Z',
+          },
+        ],
+      };
+      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: machines });
 
       const response = await agent.getCrowdSecLapiMachines();
 
       expect(stub.calledOnce).to.be.true;
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/lapi/machines');
-      expect(response).to.deep.equal({ machines: [] });
+      expect(response).to.deep.equal(machines);
     });
 
     it('should forward central LAPI machine operations using the agent contract', async () => {

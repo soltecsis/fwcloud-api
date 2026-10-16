@@ -410,7 +410,17 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should list CrowdSec LAPI machines through the agent', async () => {
-    const machines = { machines: [] };
+    const machines = {
+      machines: [
+        {
+          name: 'local-machine',
+          state: 'validated' as const,
+          ip_address: '127.0.0.1',
+          os: 'linux',
+          last_heartbeat: '2026-10-16T10:00:00Z',
+        },
+      ],
+    };
     const machinesStub = sinon.stub(communication, 'getCrowdSecLapiMachines').resolves(machines);
 
     const response = await controller.machines({
@@ -579,6 +589,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const validateStub = sinon
       .stub(communication, 'validateCrowdSecLapiMachine')
       .resolves(validation);
+    const machinesStub = sinon
+      .stub(communication, 'getCrowdSecLapiMachines')
+      .resolves({ machines: [] });
     const removeStub = sinon.stub(communication, 'removeCrowdSecLapiMachine').resolves(removal);
 
     const validationResponse = await controller.validateMachine({
@@ -591,10 +604,35 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(machinesStub.calledOnce).to.be.true;
     expect(removeStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(removeMachineInstallationStub.called).to.be.false;
     expect(validationResponse.toJSON()).to.include({ status: 200, data: validation });
     expect(removalResponse.toJSON()).to.include({ status: 200, data: removal });
+  });
+
+  it('should reject removal of a local LAPI Machine before calling the agent', async () => {
+    sinon.stub(communication, 'getCrowdSecLapiMachines').resolves({
+      machines: [
+        {
+          name: 'local-machine',
+          state: 'validated',
+          ip_address: '127.0.0.1',
+          os: 'linux',
+          last_heartbeat: null,
+        },
+      ],
+    });
+    const removeStub = sinon.stub(communication, 'removeCrowdSecLapiMachine');
+
+    await expect(
+      controller.removeMachine({
+        params: { machine: 'local-machine' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'The local CrowdSec LAPI Machine cannot be removed');
+
+    expect(removeStub.called).to.be.false;
   });
 
   it('should replicate manual Machine and Bouncer actions across local LAPI cluster nodes', async () => {
@@ -625,6 +663,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const secondValidateStub = sinon
       .stub(secondCommunication, 'validateCrowdSecLapiMachine')
       .resolves({ state: 'validated' });
+    sinon.stub(communication, 'getCrowdSecLapiMachines').resolves({ machines: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecLapiMachines').resolves({ machines: [] });
     const localMachineRemoveStub = sinon
       .stub(communication, 'removeCrowdSecLapiMachine')
       .resolves({});

@@ -38,6 +38,7 @@ import {
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
+  CrowdSecLapiMachines,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
   CrowdSecTransitionPrepare,
@@ -841,7 +842,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
-  getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+  getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines> {
     throw new Error('Method not implemented.');
   }
 
