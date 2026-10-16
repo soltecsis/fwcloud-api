@@ -137,8 +137,8 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
           expect(result).to.include({
             code: expectedCode,
-            version: 1,
-            name: `${codePrefix}Basic LAN/WAN profile`,
+            version: 'latest',
+            name: `${codePrefix}Basic LAN-WAN profile`,
             description: 'Creates WAN/LAN interfaces and allows LAN to WAN traffic.',
             targetKind: 'firewall',
             scope: 'generic',
@@ -174,16 +174,16 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
-    it('should preserve explicit code and version from a valid payload', async () => {
+    it('should preserve explicit code and create the latest version', async () => {
       await request(app.express)
         .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
-        .send(makeCreatePayload({ code: `${codePrefix}explicit`, version: 3 }))
+        .send(makeCreatePayload({ code: `${codePrefix}explicit`, version: 'latest' }))
         .expect(201)
         .then((response) => {
           expect(response.body.data).to.include({
             code: `${codePrefix}explicit`,
-            version: 3,
+            version: 'latest',
             is_built_in: false,
             fwcloud_id: fwCloud.id,
           });
@@ -297,7 +297,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
           expect(result).to.include({
             code,
-            version: 1,
+            version: 'latest',
             name: 'Edge firewall snapshot',
             targetKind: 'firewall',
             scope: 'fwcloud',
@@ -506,7 +506,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
   });
 
   describe('POST /fwclouds/:fwcloud/profiles/:code/:version/clone', () => {
-    const cloneUrl = (code: string, version: number) =>
+    const cloneUrl = (code: string, version: string) =>
       `/fwclouds/${fwCloud.id}/profiles/${code}/${version}/clone`;
 
     it('should clone a built-in profile into a custom FWCloud profile and audit the operation', async () => {
@@ -525,7 +525,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(cloneUrl(builtIn.code, builtIn.version))
+        .post(cloneUrl(builtIn.code, builtIn.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send({ code: `${codePrefix}builtin-clone-copy`, name: 'Built-in clone copy' })
         .expect(201)
@@ -534,7 +534,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
           expect(result).to.include({
             code: `${codePrefix}builtin-clone-copy`,
-            version: 1,
+            version: 'latest',
             name: 'Built-in clone copy',
             is_built_in: false,
             fwcloud_id: fwCloud.id,
@@ -578,7 +578,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const regularUserSessionId = generateSession(regularUser);
 
       await request(app.express)
-        .post(cloneUrl(profile.code, profile.version))
+        .post(cloneUrl(profile.code, profile.versionSlot))
         .set('Cookie', [attachSession(regularUserSessionId)])
         .send({ code: `${codePrefix}forbidden-clone-copy` })
         .expect(403);
@@ -595,7 +595,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         result: 'failure',
         profileCode: `${codePrefix}forbidden-clone-copy`,
         sourceProfileCode: profile.code,
-        sourceProfileVersion: profile.version,
+        sourceProfileVersion: profile.versionSlot,
         fwCloudId: fwCloud.id,
       });
 
@@ -612,7 +612,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(cloneUrl(foreign.code, foreign.version))
+        .post(cloneUrl(foreign.code, foreign.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send({ code: `${codePrefix}foreign-clone-copy` })
         .expect(404);
@@ -625,60 +625,31 @@ describe(describeName('Replication Profile E2E Tests'), () => {
   });
 
   describe('POST /fwclouds/:fwcloud/profiles/:code/versions', () => {
-    it('should create the next custom profile version without mutating the previous version', async () => {
+    it('should rotate latest and preserve the complete previous model', async () => {
       const original = await repository.save(
-        makeProfile({
-          code: `${codePrefix}versioned`,
-          version: 1,
-          name: 'Original profile',
-          fwCloudId: fwCloud.id,
-        }),
+        makeProfile({ code: `${codePrefix}versioned`, name: 'Original profile' }),
       );
-
+      const previousModel = loadReplicationProfileModel(original);
       await request(app.express)
         .post(`/fwclouds/${fwCloud.id}/profiles/${original.code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
-        .send(
-          makeCreatePayload({
-            name: `${codePrefix}Updated profile`,
-            description: 'Updated immutable version.',
-          }),
-        )
+        .send(makeCreatePayload({ name: 'Updated template' }))
         .expect(201)
-        .then(async (response) => {
-          const result = response.body.data;
-
-          expect(result).to.include({
-            code: original.code,
-            version: 2,
-            name: `${codePrefix}Updated profile`,
-            description: 'Updated immutable version.',
-            is_built_in: false,
-            is_active: true,
-            is_deprecated: false,
-            fwcloud_id: fwCloud.id,
-          });
-
-          const previous = await repository.findOneOrFail({ where: { id: original.id } });
-          expect(previous).to.include({
-            version: 1,
-            name: 'Original profile',
-            isActive: true,
-            isDeprecated: false,
+        .then(({ body }) => {
+          expect(body.data).to.include({
+            id: original.id,
+            version: 'latest',
+            hasPrevious: true,
+            name: 'Updated template',
           });
         });
-
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles/${original.code}/1`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${original.code}/previous`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
-        .then((response) => {
-          expect(response.body.data).to.include({
-            id: original.id,
-            code: original.code,
-            version: 1,
-            name: 'Original profile',
-          });
+        .then(({ body }) => {
+          expect(body.data).to.include({ version: 'previous', name: 'Original profile' });
+          expect(body.data.model).to.deep.eq(previousModel);
         });
     });
 
@@ -798,7 +769,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           expect(result).to.include({
             id: profile.id,
             code: profile.code,
-            version: profile.version,
+            version: profile.versionSlot,
             name: profile.name,
             description: profile.description,
             scope: profile.scope,
@@ -843,7 +814,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           expect(listed(broken.code).model).to.be.null;
           expect(listed(broken.code).templateError).to.deep.eq({
             reason: 'not_found',
-            message: `Template "${broken.path}" of replication profile ${broken.code} v1 does not exist.`,
+            message: `Template "${broken.path}" of replication profile ${broken.code} (latest) does not exist.`,
           });
           expect(listed('default').templateError).to.be.null;
         });
@@ -1010,7 +981,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     it('should return the latest active custom profile version by default', async () => {
       const code = `${codePrefix}catalog-latest`;
       await repository.save([
-        makeProfile({ code, version: 1, fwCloudId: fwCloud.id }),
+        makeProfile({ code, version: 1, versionSlot: 'previous', fwCloudId: fwCloud.id }),
         makeProfile({
           code,
           version: 2,
@@ -1029,7 +1000,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           expect(matches).to.have.length(1);
           expect(matches[0]).to.include({
             code,
-            version: 2,
+            version: 'latest',
             name: 'Preferred catalog version',
           });
         });
@@ -1070,14 +1041,14 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const profile = await repository.save(makeProfile({ code: `${codePrefix}detail` }));
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
           expect(response.body.data).to.include({
             id: profile.id,
             code: profile.code,
-            version: profile.version,
+            version: profile.versionSlot,
             targetKind: profile.targetKind,
           });
           expect(response.body.data.model).to.deep.equal(loadReplicationProfileModel(profile));
@@ -1089,12 +1060,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       removeReplicationProfileModel(profile);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(500)
         .then((response) => {
           expect(response.body.message).to.be.eq(
-            `Template "${profile.path}" of replication profile ${profile.code} v1 does not exist.`,
+            `Template "${profile.path}" of replication profile ${profile.code} (latest) does not exist.`,
           );
         });
     });
@@ -1105,7 +1076,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const regularUserSessionId = generateSession(regularUser);
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`)
         .set('Cookie', [attachSession(regularUserSessionId)])
         .expect(401);
     });
@@ -1120,87 +1091,129 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
     });
   });
 
+  describe('POST /fwclouds/:fwcloud/profiles/:code/rollback', () => {
+    it('restores previous and exposes both logical versions with full models', async () => {
+      const profile = await repository.save(makeProfile());
+      const originalModel = loadReplicationProfileModel(profile);
+      const url = `/fwclouds/${fwCloud.id}/profiles/${profile.code}`;
+      await request(app.express)
+        .post(`${url}/versions`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .send(makeCreatePayload({ name: 'Updated template' }))
+        .expect(201);
+      await request(app.express)
+        .post(`${url}/rollback`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then(({ body }) => {
+          expect(body.data).to.include({
+            version: 'latest',
+            hasPrevious: true,
+            name: 'Updated template',
+          });
+          expect(body.data.model).to.deep.eq(originalModel);
+        });
+      await request(app.express)
+        .get(`${url}/previous`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(200)
+        .then(({ body }) =>
+          expect(body.data).to.include({ version: 'previous', name: 'Updated template' }),
+        );
+      await request(app.express)
+        .get(`${url}/1`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+    });
+
+    it('rejects rollback without previous and protects built-ins and other owners', async () => {
+      const profile = await repository.save(makeProfile());
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/rollback`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(409);
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/default/rollback`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(403);
+      const foreign = await repository.save(
+        makeProfile({ code: `${codePrefix}foreign`, userId: otherUser.id }),
+      );
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${foreign.code}/rollback`)
+        .set('Cookie', [attachSession(adminUserSessionId)])
+        .expect(404);
+      await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/rollback`)
+        .set('Cookie', [attachSession(generateSession(otherUser))])
+        .expect(403);
+    });
+
+    it('rejects dotted names for create, edit, clone, validation and capture', async () => {
+      const profile = await repository.save(makeProfile());
+      for (const [endpoint, body] of [
+        ['', makeCreatePayload({ name: 'Bad.Template' })],
+        ['/validate', makeCreatePayload({ name: 'Bad.Template' })],
+        [`/${profile.code}/versions`, makeCreatePayload({ name: 'Bad.Template' })],
+        [`/${profile.code}/latest/clone`, { name: 'Bad.Template' }],
+        ['/from-source', { name: 'Bad.Template', source: { kind: 'firewall', id: 1 } }],
+      ] as const) {
+        await request(app.express)
+          .post(`/fwclouds/${fwCloud.id}/profiles${endpoint}`)
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(body)
+          .expect(422)
+          .then(({ body }) => expect(body.errors.name.join(' ')).to.contain('dots'));
+      }
+      expect(await repository.count({ where: { code: profile.code } })).to.eq(1);
+    });
+  });
+
   describe('DELETE /fwclouds/:fwcloud/profiles/:code/:version', () => {
-    const deleteUrl = (code: string, version: number) =>
+    const deleteUrl = (code: string, version: string) =>
       `/fwclouds/${fwCloud.id}/profiles/${code}/${version}`;
 
-    it('should expose the previous version after deleting the latest and save its edits as a new version', async () => {
+    it('should promote previous with the current name when latest is deleted and allow editing it', async () => {
       const code = `${codePrefix}remove-latest`;
-      const previousModel = makeCreatePayload().model;
-      const [oldest, previous, latest] = await repository.save([
-        makeProfile({ code, version: 1 }),
-        makeProfile({ code, version: 2, name: 'Previous profile', model: previousModel as any }),
-        makeProfile({ code, version: 3 }),
+      const [previous, latest] = await repository.save([
+        makeProfile({ code, version: 1, versionSlot: 'previous', name: 'Previous profile' }),
+        makeProfile({ code, version: 2 }),
       ]);
-
       await request(app.express)
-        .delete(deleteUrl(code, latest.version))
+        .delete(deleteUrl(code, 'latest'))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
-
       expect(await repository.findOne({ where: { id: latest.id } })).to.be.null;
-      expect(templateExists(latest)).to.be.false;
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles`)
+        .get(deleteUrl(code, 'latest'))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
-        .then((response) => {
-          const restored = response.body.data.find((profile) => profile.code === code);
-          expect(restored).to.include({ id: previous.id, version: 2, name: 'Previous profile' });
-          expect(restored.model).to.deep.eq(previousModel);
-        });
-
-      await request(app.express)
-        .get(deleteUrl(code, previous.version))
-        .set('Cookie', [attachSession(adminUserSessionId)])
-        .expect(200)
-        .then((response) => {
-          expect(response.body.data.id).to.be.eq(previous.id);
-          expect(response.body.data.model).to.deep.eq(previousModel);
-        });
-
-      const editedPayload = makeCreatePayload({
-        name: 'Edited previous profile',
-        model: {
-          compatibility: { target_kinds: ['firewall'] },
-          provision: { interfaces: [{ name: 'eth0', role: 'wan' }] },
-        },
-      });
+        .then(({ body }) =>
+          expect(body.data).to.include({
+            id: previous.id,
+            version: 'latest',
+            hasPrevious: false,
+            name: latest.name,
+          }),
+        );
       await request(app.express)
         .post(`/fwclouds/${fwCloud.id}/profiles/${code}/versions`)
         .set('Cookie', [attachSession(adminUserSessionId)])
-        .send(editedPayload)
-        .expect(201)
-        .then(async (response) => {
-          expect(response.body.data).to.include({
-            code,
-            version: 3,
-            name: 'Edited previous profile',
-          });
-          expect(response.body.data.id).not.to.be.eq(latest.id);
-          expect(response.body.data.model).to.deep.eq(editedPayload.model);
-          const saved = await repository.findOneOrFail({ where: { id: response.body.data.id } });
-          expect(loadReplicationProfileModel(saved)).to.deep.eq(editedPayload.model);
-        });
-
-      const reloadedPrevious = await repository.findOneOrFail({ where: { id: previous.id } });
-      expect(reloadedPrevious).to.include({ version: 2, name: 'Previous profile' });
-      expect(loadReplicationProfileModel(reloadedPrevious)).to.deep.eq(previousModel);
-      expect(templateExists(oldest)).to.be.true;
-      expect(templateExists(previous)).to.be.true;
+        .send(makeCreatePayload({ name: 'Edited template' }))
+        .expect(201);
+      expect(await repository.count({ where: { code, userId: adminUser.id } })).to.eq(2);
     });
 
     it('should permanently remove every owned version and template in one request', async () => {
       const code = `${codePrefix}remove-all`;
       const profiles = await repository.save([
-        makeProfile({ code, version: 1, isDeprecated: true }),
-        makeProfile({ code, version: 2, isActive: false }),
+        makeProfile({ code, version: 2, versionSlot: 'previous', isActive: false }),
         makeProfile({ code, version: 3 }),
       ]);
       const [foreign, builtIn, unrelated] = await repository.save([
@@ -1210,12 +1223,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ]);
 
       await request(app.express)
-        .delete(deleteUrl(code, profiles[2].version))
+        .delete(deleteUrl(code, profiles[1].versionSlot))
         .query({ allVersions: true })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
-          expect(response.body.data).to.include({ id: profiles[2].id, code, version: 3 });
+          expect(response.body.data).to.include({ id: profiles[1].id, code, version: 'latest' });
         });
 
       expect(await repository.find({ where: { code, userId: adminUser.id } })).to.be.empty;
@@ -1238,26 +1251,27 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     it('should remove only the requested version when allVersions is false', async () => {
       const code = `${codePrefix}remove-one-explicit`;
       const [previous, latest] = await repository.save([
-        makeProfile({ code, version: 1 }),
+        makeProfile({ code, version: 1, versionSlot: 'previous' }),
         makeProfile({ code, version: 2 }),
       ]);
 
       await request(app.express)
-        .delete(deleteUrl(code, latest.version))
+        .delete(deleteUrl(code, latest.versionSlot))
         .query({ allVersions: false })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
 
       expect(await repository.findOne({ where: { id: latest.id } })).to.be.null;
-      expect(templateExists(latest)).to.be.false;
+      expect(templateExists(latest)).to.be.true;
       expect(await repository.findOne({ where: { id: previous.id } })).not.to.be.null;
-      expect(templateExists(previous)).to.be.true;
+      expect(templateExists(await repository.findOneOrFail({ where: { id: previous.id } }))).to.be
+        .true;
     });
 
     it('should reject invalid allVersions values without deleting any versions or templates', async () => {
       const code = `${codePrefix}invalid-remove-mode`;
       const profiles = await repository.save([
-        makeProfile({ code, version: 1 }),
+        makeProfile({ code, version: 1, versionSlot: 'previous' }),
         makeProfile({ code, version: 2 }),
       ]);
 
@@ -1270,7 +1284,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         'allVersions[value]=true',
       ]) {
         await request(app.express)
-          .delete(`${deleteUrl(code, profiles[1].version)}?${query}`)
+          .delete(`${deleteUrl(code, profiles[1].versionSlot)}?${query}`)
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(400);
       }
@@ -1285,7 +1299,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const profile = await repository.save(makeProfile({ code: `${codePrefix}missing-version` }));
 
       await request(app.express)
-        .delete(deleteUrl(profile.code, profile.version + 1))
+        .delete(deleteUrl(profile.code, 'previous'))
         .query({ allVersions: true })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
@@ -1300,14 +1314,14 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .delete(deleteUrl(profile.code, profile.version))
+        .delete(deleteUrl(profile.code, profile.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
           expect(response.body.data).to.include({
             id: profile.id,
             code: profile.code,
-            version: profile.version,
+            version: profile.versionSlot,
             is_built_in: false,
             fwcloud_id: fwCloud.id,
           });
@@ -1328,19 +1342,19 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
 
       await request(app.express)
-        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`)
+        .get(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(404);
 
       await request(app.express)
         .post(`/fwclouds/${fwCloud.id}/profiles`)
         .set('Cookie', [attachSession(adminUserSessionId)])
-        .send(makeCreatePayload({ code: profile.code, version: profile.version }))
+        .send(makeCreatePayload({ code: profile.code, version: 'latest' }))
         .expect(201)
         .then((response) => {
           expect(response.body.data).to.include({
             code: profile.code,
-            version: profile.version,
+            version: profile.versionSlot,
             is_built_in: false,
             fwcloud_id: fwCloud.id,
           });
@@ -1354,7 +1368,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       removeReplicationProfileModel(profile);
 
       await request(app.express)
-        .delete(deleteUrl(profile.code, profile.version))
+        .delete(deleteUrl(profile.code, profile.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .then((response) => {
@@ -1373,7 +1387,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
       for (const allVersions of [false, true]) {
         await request(app.express)
-          .delete(deleteUrl(builtIn.code, builtIn.version))
+          .delete(deleteUrl(builtIn.code, builtIn.versionSlot))
           .query({ allVersions })
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(403)
@@ -1398,7 +1412,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
       for (const allVersions of [false, true]) {
         await request(app.express)
-          .delete(deleteUrl(foreign.code, foreign.version))
+          .delete(deleteUrl(foreign.code, foreign.versionSlot))
           .query({ allVersions })
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(404);
@@ -1418,7 +1432,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
       for (const allVersions of [false, true]) {
         await request(app.express)
-          .delete(deleteUrl(profile.code, profile.version))
+          .delete(deleteUrl(profile.code, profile.versionSlot))
           .query({ allVersions })
           .set('Cookie', [attachSession(regularUserSessionId)])
           .expect(403);
@@ -1438,7 +1452,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .delete(deleteUrl(profile.code, profile.version))
+        .delete(deleteUrl(profile.code, profile.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
 
@@ -1475,12 +1489,11 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const code = `${codePrefix}audited-permanent-delete`;
       const profiles = await repository.save([
         makeProfile({ code, version: 5 }),
-        makeProfile({ code, version: 1, isActive: false }),
-        makeProfile({ code, version: 3, isDeprecated: true }),
+        makeProfile({ code, version: 3, versionSlot: 'previous', isDeprecated: true }),
       ]);
 
       await request(app.express)
-        .delete(deleteUrl(code, profiles[0].version))
+        .delete(deleteUrl(code, profiles[0].versionSlot))
         .query({ allVersions: true })
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
@@ -1489,7 +1502,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(entries).to.have.length(1);
       expect(entries[0].userId).to.be.eq(adminUser.id);
       expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
-      expect(entries[0].description).to.contain('permanently removed (3 versions)');
+      expect(entries[0].description).to.contain('permanently removed (2 versions)');
       const data = JSON.parse(entries[0].data);
       expect(data).to.include({
         operation: 'remove',
@@ -1498,9 +1511,9 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         profileVersion: 5,
         removed: true,
         allVersions: true,
-        removedVersionCount: 3,
+        removedVersionCount: 2,
       });
-      expect(data.removedVersions).to.deep.eq([1, 3, 5]);
+      expect(data.removedVersions).to.deep.eq([3, 5]);
       expect(data).not.to.have.property('model');
 
       await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
@@ -1521,12 +1534,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       });
 
       await request(app.express)
-        .delete(deleteUrl(profile.code, profile.version))
+        .delete(deleteUrl(profile.code, profile.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
 
       await request(app.express)
-        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}/apply`)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}/apply`)
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send({
           sourceProfile: { firewallId: sourceFirewall.id, interfaceRoles: {} },
@@ -1553,7 +1566,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       mode: 'dry_run',
     });
 
-    const applyUrl = (code: string = profile.code, version: number = profile.version) =>
+    const applyUrl = (code: string = profile.code, version: string = profile.versionSlot) =>
       `/fwclouds/${fwCloud.id}/profiles/${code}/${version}/apply`;
 
     beforeEach(async () => {
@@ -1600,7 +1613,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(applyUrl(ownedProfile.code, ownedProfile.version))
+        .post(applyUrl(ownedProfile.code, ownedProfile.versionSlot))
         .set('Cookie', [attachSession(regularUserSessionId)])
         .send(applyBody())
         .expect(200)
@@ -1662,7 +1675,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
     it('should return 404 for unknown profiles', async () => {
       await request(app.express)
-        .post(applyUrl(`${codePrefix}missing`, 9))
+        .post(applyUrl(`${codePrefix}missing`, 'latest'))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(applyBody())
         .expect(404);
@@ -1674,7 +1687,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
 
       await request(app.express)
-        .post(applyUrl(disabledProfile.code, disabledProfile.version))
+        .post(applyUrl(disabledProfile.code, disabledProfile.versionSlot))
         .set('Cookie', [attachSession(adminUserSessionId)])
         .send(applyBody())
         .expect(422);
@@ -1693,7 +1706,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     const catalogUrl = (cloud: FwCloud): string => `/fwclouds/${cloud.id}/profiles`;
 
     const profileUrl = (cloud: FwCloud): string =>
-      `${catalogUrl(cloud)}/${profile.code}/${profile.version}`;
+      `${catalogUrl(cloud)}/${profile.code}/${profile.versionSlot}`;
 
     const applyBody = (
       overrides: { sourceFirewallId?: number; targetFirewallId?: number } = {},
@@ -1760,7 +1773,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
     it('should belong to the user who creates it, whatever the FWCloud it is created from', async () => {
       expect(profile.userId).to.be.eq(owner.id);
       expect(profile.fwCloudId).to.be.eq(fwCloud.id);
-      expect(profile.path).to.be.eq(`custom/users/${owner.id}/${profile.code}.v1.json`);
+      expect(profile.path).to.be.eq(`custom/users/${owner.id}/${profile.code}.latest.json`);
     });
 
     it('should list the profile to its owner from every FWCloud, with the built-in ones', async () => {
@@ -1828,13 +1841,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .send(makeCreatePayload())
         .expect(201)
         .then((response) => {
-          expect(response.body.data.version).to.be.eq(2);
+          expect(response.body.data.version).to.be.eq('latest');
           expect(response.body.data.userId).to.be.eq(owner.id);
         });
 
       await releaseFwCloudLocks();
       await request(app.express)
-        .delete(profileUrl(otherFwCloud))
+        .delete(`${profileUrl(otherFwCloud)}?allVersions=true`)
         .set('Cookie', [attachSession(ownerSessionId)])
         .expect(200);
 
@@ -1962,7 +1975,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       ] as Array<[string, ReturnType<typeof applyBody>]>) {
         await releaseFwCloudLocks();
         await request(app.express)
-          .post(`${catalogUrl(otherFwCloud)}/${code}/1/apply`)
+          .post(`${catalogUrl(otherFwCloud)}/${code}/latest/apply`)
           .set('Cookie', [attachSession(ownerSessionId)])
           .send(body)
           .expect(422)
@@ -2063,7 +2076,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
       await db.getSource().manager.getRepository(IPObj).delete(object.id);
 
-      const url = `/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.version}`;
+      const url = `/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`;
       const loaded = await request(app.express)
         .get(url)
         .set('Cookie', [attachSession(adminUserSessionId)])

@@ -131,7 +131,7 @@ describe('Controller route audit expectations coverage', () => {
     expect(paths.some((path) => /\/assistant\//.test(path))).to.equal(false);
     expect(paths.some((path) => /drafts/.test(path))).to.equal(false);
     expect(paths).to.include('/fwclouds/:fwcloud/profiles');
-    expect(paths).to.include('/fwclouds/:fwcloud/profiles/:code/:version/apply');
+    expect(paths).to.include('/fwclouds/:fwcloud/profiles/:code/:profileVersion/apply');
   });
 
   it('builds a deterministic controller route index', async () => {

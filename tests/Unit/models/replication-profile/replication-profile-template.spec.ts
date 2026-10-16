@@ -62,10 +62,31 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
     it('should name the template after the profile code and version', () => {
       expect(
         buildReplicationProfileTemplatePath({ code: 'default', version: 1, userId: null }),
-      ).to.be.eq('default.v1.json');
+      ).to.be.eq('default.latest.json');
       expect(
-        buildReplicationProfileTemplatePath({ code: 'office-lan', version: 3, userId: 12 }),
-      ).to.be.eq('custom/users/12/office-lan.v3.json');
+        buildReplicationProfileTemplatePath({
+          code: 'office-lan',
+          versionSlot: 'previous',
+          userId: 12,
+        }),
+      ).to.be.eq('custom/users/12/office-lan.previous.json');
+    });
+
+    it('should not let a code ending in a slot name read as the slot of another code', () => {
+      // "Office - previous" becomes the code office-previous, never the previous slot of office.
+      const files = [
+        buildReplicationProfileTemplatePath({
+          code: 'office',
+          versionSlot: 'previous',
+          userId: 12,
+        }),
+        buildReplicationProfileTemplatePath({ code: 'office-previous', userId: 12 }),
+      ].map((file) => path.basename(file, '.json').split('.'));
+
+      expect(files).to.deep.eq([
+        ['office', 'previous'],
+        ['office-previous', 'latest'],
+      ]);
     });
   });
 
@@ -135,9 +156,9 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
         where: { code: defaultReplicationProfile.code, version: defaultReplicationProfile.version },
       });
 
-      expect(profile.path).to.be.eq('default.v1.json');
+      expect(profile.path).to.be.eq('default.latest.json');
       expect(loadReplicationProfileModel(profile)).to.deep.eq(
-        readVersionedReplicationProfileTemplate('default.v1.json'),
+        readVersionedReplicationProfileTemplate('default.latest.json'),
       );
     });
 
@@ -159,7 +180,7 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
       expect(error.reason).to.be.eq('not_found');
       expect(error.status).to.be.eq(500);
       expect(error.message).to.be.eq(
-        `Template "${profile.path}" of replication profile ${profile.code} v1 does not exist.`,
+        `Template "${profile.path}" of replication profile ${profile.code} (latest) does not exist.`,
       );
     });
 
@@ -175,7 +196,7 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
         expect(error.reason).to.be.eq('unreadable');
         expect(error.status).to.be.eq(500);
         expect(error.message).to.be.eq(
-          `Template "${profile.path}" of replication profile ${profile.code} v1 could not be read (EISDIR).`,
+          `Template "${profile.path}" of replication profile ${profile.code} (latest) could not be read (EISDIR).`,
         );
       } finally {
         fs.rmdirSync(file);
