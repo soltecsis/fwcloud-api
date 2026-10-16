@@ -47,6 +47,7 @@ for (const event of ['push', 'pull_request', 'workflow_dispatch']) {
     const { metadata, args } = prepare(source, coverage, env);
     assert.equal(metadata.commit, env.ANALYSIS_COMMIT);
     assert.equal(metadata.coverageReportSha256, digest(lcov));
+    assert.equal(metadata.coverageRunAttempt, 2);
     assert.equal(fs.readFileSync(path.join(source, 'reports/coverage/lcov.info'), 'utf8'), lcov.toString());
     assert.ok(args.includes(`-Dsonar.scm.revision=${metadata.commit}`));
     if (event === 'pull_request') {
@@ -57,9 +58,9 @@ for (const event of ['push', 'pull_request', 'workflow_dispatch']) {
   });
 }
 
-test('rejects stale revision, old attempts, missing coverage and argument injection before scanning', t => {
+test('rejects stale revision, future producer attempts, missing coverage and argument injection before scanning', t => {
   const { source, coverage, env } = checkout(t);
-  for (const override of [{ ANALYSIS_COMMIT: sha }, { GITHUB_RUN_ATTEMPT: '3' },
+  for (const override of [{ ANALYSIS_COMMIT: sha }, { GITHUB_RUN_ATTEMPT: '1' },
     { GITHUB_REF_NAME: 'ENS -Dsonar.host.url=https://other.invalid' }, { GITHUB_EVENT_NAME: 'pull_request_target' }]) {
     assert.throws(() => prepare(source, coverage, { ...env, ...override }));
   }
@@ -69,10 +70,50 @@ test('rejects stale revision, old attempts, missing coverage and argument inject
 
 test('requires the tested SHA, execution, successful reference tests and exact LCOV bytes', () => {
   assert.deepEqual(verifyCoverage(evidence(), lcov, reference), ['src/a.ts']);
-  for (const changed of [{ commit: 'b'.repeat(40) }, { runAttempt: 1 }, { repository: 'other/api' },
+  for (const changed of [{ commit: 'b'.repeat(40) }, { runId: 11 }, { runAttempt: 3 }, { repository: 'other/api' },
     { node: 'v20.1.0' }, { testOutcome: 'failure' }, { tests: { tests: 0, failures: 0 } },
     { errors: ['incomplete'] }, { coverageReportSha256: 'b'.repeat(64) }]) {
     assert.throws(() => verifyCoverage({ ...evidence(), ...changed }, lcov, reference));
+  }
+});
+
+test('accepts earlier producer attempts from the same run and records both attempts in evidence', t => {
+  const { source, coverage, env } = checkout(t);
+  const metadataPath = path.join(coverage, 'analysis.json');
+  const producer = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+  producer.runAttempt = '1';
+  fs.writeFileSync(metadataPath, JSON.stringify(producer));
+  const { metadata } = prepare(source, coverage, env);
+  assert.equal(metadata.coverageRunAttempt, 1);
+  assert.equal(metadata.runAttempt, '2');
+  const original = process.cwd(), originalSummary = process.env.GITHUB_STEP_SUMMARY;
+  process.env.GITHUB_STEP_SUMMARY = path.join(source, 'summary.md');
+  process.chdir(source);
+  try {
+    recordEvidence(metadata, 'success');
+    const output = JSON.parse(fs.readFileSync('reports/sonar/metadata.json', 'utf8'));
+    assert.equal(output.coverageRunAttempt, 1);
+    assert.equal(output.runAttempt, '2');
+    const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+    assert.match(summary, /CI: 10\/2/);
+    assert.match(summary, /Coverage producer attempt: 1/);
+  } finally {
+    process.chdir(original);
+    if (originalSummary === undefined) delete process.env.GITHUB_STEP_SUMMARY;
+    else process.env.GITHUB_STEP_SUMMARY = originalSummary;
+  }
+});
+
+test('rejects missing, malformed and future attempt numbers instead of accepting an arbitrary older artifact', () => {
+  assert.deepEqual(verifyCoverage({ ...evidence(), runAttempt: 1 }, lcov, reference), ['src/a.ts']);
+  for (const attempt of [undefined, null, false, [], [1], {}, '', '01', '1junk', 0, -1, 1.5, '1.5', '1e0', Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => verifyCoverage({ ...evidence(), runAttempt: attempt }, lcov, reference), /producer attempt/);
+    assert.throws(() => verifyCoverage(evidence(), lcov, { ...reference, runAttempt: attempt }), /producer attempt/);
+  }
+  assert.throws(() => verifyCoverage({ ...evidence(), runAttempt: 3 }, lcov, reference), /producer attempt/);
+  for (const changed of [{ repository: 'other/api' }, { runId: 11 }, { commit: 'b'.repeat(40) },
+    { event: 'push' }, { testOutcome: 'failure' }, { coverageReportSha256: 'b'.repeat(64) }]) {
+    assert.throws(() => verifyCoverage({ ...evidence(), runAttempt: 1, ...changed }, lcov, reference));
   }
 });
 
@@ -149,7 +190,11 @@ test('same-workflow scan downloads only this execution coverage and exposes the 
   const upload = steps.find(s => s.uses?.startsWith('actions/upload-artifact'));
   assert.equal(upload.with.path, 'reports/sonar/metadata.json');
   const download = steps.find(s => s.uses?.startsWith('actions/download-artifact'));
-  assert.equal(download.with.name, 'backend-coverage-node22-mysql8-${{ github.run_id }}-${{ github.run_attempt }}');
+  assert.equal(download.with.name, 'backend-coverage-node22-mysql8-${{ github.run_id }}');
+  const producer = ci.jobs.test.steps.find(s => s.name === 'Upload coverage evidence');
+  assert.equal(producer.with.name, download.with.name);
+  assert.equal(producer.with.overwrite, true);
+  assert.equal(producer.with.path, 'reports/coverage/');
   assert.equal(download.with['run-id'], undefined);
   assert.equal(download.with['github-token'], undefined);
   assert.equal(download.with['artifact-ids'], undefined);

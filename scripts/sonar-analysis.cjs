@@ -7,10 +7,14 @@ const { execFileSync } = require('node:child_process');
 const must = (condition, message) => { if (!condition) throw new Error(message); };
 const sha256 = data => createHash('sha256').update(data).digest('hex');
 const branch = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9/_.-]{0,199}$/.test(value);
+const validAttempt = value => ['number', 'string'].includes(typeof value) &&
+  /^[1-9]\d*$/.test(String(value)) && Number.isSafeInteger(Number(value));
 
 function verifyCoverage(metadata, lcov, run) {
   must(metadata.repository === run.repository && metadata.commit === run.commit && metadata.event === run.event &&
-    String(metadata.runId) === String(run.runId) && String(metadata.runAttempt) === String(run.runAttempt), 'Coverage does not belong to the selected CI revision/execution.');
+    String(metadata.runId) === String(run.runId), 'Coverage does not belong to the selected CI revision/execution.');
+  must(validAttempt(metadata.runAttempt) && validAttempt(run.runAttempt) &&
+    Number(metadata.runAttempt) <= Number(run.runAttempt), 'Coverage producer attempt must be valid and not newer than the analysis attempt.');
   must(metadata.testOutcome === 'success' && metadata.coverageExpected === true && metadata.database === 'mysql8' &&
     /^v22\./.test(metadata.node) && metadata.tests?.tests > 0 && metadata.tests.failures === 0 &&
     Array.isArray(metadata.errors) && metadata.errors.length === 0, 'Reference test evidence is incomplete or failed.');
@@ -54,7 +58,7 @@ function prepare(source, coverage, env = process.env) {
   fs.mkdirSync(path.join(source, 'reports/coverage'), { recursive: true });
   fs.writeFileSync(path.join(source, 'reports/coverage/lcov.info'), lcov);
   fs.mkdirSync(path.join(source, 'reports/sonar'), { recursive: true });
-  return { metadata: { ...run, coverageReportSha256: sha256(lcov),
+  return { metadata: { ...run, coverageRunAttempt: Number(metadata.runAttempt), coverageReportSha256: sha256(lcov),
     scannerSettingsSha256: sha256(fs.readFileSync(path.join(source, 'sonar-project.properties'))) }, args: args.join(' ') };
 }
 
@@ -77,7 +81,7 @@ function recordEvidence(run, outcome) {
   }
   fs.writeFileSync('reports/sonar/metadata.json', JSON.stringify(result, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `## SonarQube analysis\n\nRevision: \`${run.commit}\`\n\nCI: ${run.runId}/${run.runAttempt}\n\nQuality Gate: **${result.qualityGate}**\n`);
+    `## SonarQube analysis\n\nRevision: \`${run.commit}\`\n\nCI: ${run.runId}/${run.runAttempt}\n\nCoverage producer attempt: ${run.coverageRunAttempt}\n\nQuality Gate: **${result.qualityGate}**\n`);
 }
 
 module.exports = { verifyCoverage, prepare, recordEvidence };
