@@ -352,8 +352,7 @@ export class CrowdSecLapiSharedService {
       .replace(/[^A-Za-z0-9_.-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
-    const prefix = 'fwcloud-';
-    return `${prefix}${(name || 'node').slice(0, 128 - prefix.length)}`;
+    return (name || 'node').slice(0, 128);
   }
 
   static machineInstallationState(machine: Record<string, unknown>): string | undefined {
