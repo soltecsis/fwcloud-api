@@ -62,6 +62,9 @@ anterior no acreditan automáticamente revisiones posteriores.
 | 6 | ZAP público/autenticado y controles HTTP para ENS Media | Integrada mediante PR #1595 y #1598; evidencias de Actions y cierre pendientes de completar | Sesión, 2FA opcional, permisos, aislamiento, escritura sintética, auditoría y consultas autenticadas |
 | 7 | SonarQube Cloud, SAST y Quality Gate | Desplegada en CI; conexión con SonarQube confirmada por el responsable; aceptación y evidencias pendientes de completar | Cobertura/revisión vinculadas, gate bloqueante en eventos elegibles y análisis del push tras integrar forks |
 
+La simplificación posterior de helpers (punto 1.2) está implementada y validada
+localmente en el apartado 11; su despliegue en Actions queda pendiente.
+
 El orden puede ajustarse mediante una decisión registrada aquí. Ninguna fase
 pendiente debe describirse como implantada por disponer únicamente de un plan.
 Las verificaciones locales y las listas de cierre iniciales se conservan como
@@ -658,6 +661,14 @@ la forma de agrupar cadenas afectadas son diferentes.
 | Lockfile no detectado o inventario npm vacío | Bloqueo |
 | Versión de Trivy distinta de la configurada | Bloqueo |
 
+El bloqueo por severidad se ejecuta ahora con `trivy convert` sobre el JSON completo,
+sin repetir el escaneo ni perder los hallazgos informativos. Usa
+`--severity HIGH,CRITICAL` y `--exit-code 5`; el paso falla ante cualquier código
+distinto de 0. El recolector registra `policyExitCode` y comprueba su coherencia
+con el informe, además de rechazar evidencia incompleta. El modo local
+`security:check` utiliza la misma política de `scripts/trivy-config.json`.
+Ver la validación del apartado 11.
+
 No se utiliza `--ignore-unfixed`. También se deshabilita la carga implícita de
 `.trivyignore` y `trivy.yaml` para impedir que una configuración futura silencie
 hallazgos o incorpore vulnerabilidades al SBOM sin pasar por el recolector. Una
@@ -675,7 +686,8 @@ El nuevo job `FWCloud-API SCA and SBOM` realiza:
 3. escaneo `vuln` del árbol npm, incluyendo dependencias de desarrollo;
 4. generación independiente del SBOM CycloneDX;
 5. registro de versión de Trivy y base de vulnerabilidades;
-6. validación cerrada mediante `scripts/trivy-report.cjs`;
+6. bloqueo nativo con `trivy convert` y validación del inventario/evidencia mediante
+   `scripts/trivy-report.cjs`;
 7. eliminación del informe detallado de vulnerabilidades;
 8. subida de evidencia agregada y del SBOM.
 
@@ -709,7 +721,8 @@ ramas.
 
 `scripts/trivy-report.cjs` falla ante análisis incompletos, evidencia inválida o
 hallazgos bloqueantes y genera evidencia incluso cuando el resultado no es
-aceptable. `scripts/trivy-report.test.cjs` cubre doce escenarios:
+aceptable. La batería inicial de `scripts/trivy-report.test.cjs` cubría doce
+escenarios; se conserva y amplía con la verificación del gate nativo del apartado 11:
 
 - análisis limpio con dependencias de ejecución y desarrollo;
 - vulnerabilidad media informativa;
@@ -1067,8 +1080,11 @@ incluye setup pendiente y fallo de segundo factor con cookie ya autenticada.
 `fail_action: true` bloquea códigos 1/2 de hallazgos y la acción también falla ante
 errores operativos. No se utiliza `-I` para aceptar todos los warnings. La regla
 10037 se clasifica como INFO porque muestra solo el nombre del framework Express
-sin versión; sigue visible en reportes. Las demás reglas mantienen el comportamiento
-predeterminado bloqueante. No hay reglas IGNORE ni excepciones para respuestas 500.
+sin versión; sigue visible en reportes. El ajuste posterior del apartado 11 añade
+un filtro oficial de alertas para el falso positivo 10096 del `sessionId` numérico
+en las dos lecturas de auditoría. Las demás instancias de 10096 y reglas mantienen
+el comportamiento predeterminado bloqueante. No hay reglas IGNORE ni excepciones
+para respuestas 500.
 
 La acción publica el artefacto `backend-zap-login-<RUN_ID>-<ATTEMPT>` con reportes
 nativos detallados y no crea issues automáticamente. Se genera sin cuentas en la
@@ -1282,7 +1298,79 @@ sus 20 pruebas locales se describen en 10.3.
 - [ ] Registrar perfil, Quality Gate y definición de código nuevo efectivos.
 - [ ] Revisión de hallazgos/hotspots, responsables, excepciones y retención de evidencias.
 
-## 11. Pendientes transversales
+## 11. Simplificación de la automatización — Punto 1.2
+
+### 11.1. Implementación local
+
+Entrega del 2026-10-16 sobre la base `07e0cacc`. Los cambios de este apartado están
+validados localmente; todavía no se atribuyen a una ejecución desplegada de Actions.
+
+- `scripts/ci-context.cjs` centraliza contexto, JSON y resúmenes de evidencia.
+  Pruebas, Gitleaks, Trivy, Sonar y comprobaciones HTTP identifican el checkout
+  real mediante Git y verifican `ANALYSIS_COMMIT`. El hook Python recibe ese SHA
+  verificado, junto con ejecución e intento, en lugar del merge sintético de
+  `GITHUB_SHA` en PR. El hash del lockfile/LCOV sigue vinculando los bytes analizados.
+- Trivy aplica el bloqueo HIGH/CRITICAL con su CLI oficial. El recolector se reduce
+  conservando las comprobaciones de inventario npm, correspondencia JSON/SBOM,
+  referencias, versiones y evidencia completa. La salida detallada del gate no se
+  imprime; las severidades completas siguen disponibles para el agregado.
+- Se mantienen dos generaciones nativas separadas: JSON de vulnerabilidades y
+  SBOM CycloneDX sin ellas. No se añade otro validador ni se convierte directamente
+  el JSON con vulnerabilidades en el SBOM publicado, para conservar su contenido.
+  El modo local `sbom` delega la serialización en Trivy; `check`/CI revisan inventario.
+- `tests/utils/security-data.ts` comparte creación de cuentas/recursos y payload de
+  login entre utilidades de pruebas y laboratorio.
+  No importa Mocha ni el reinicio de BD; ambos entornos conservan sus ciclos de vida.
+- `npm run test:ci-tools` reúne las regresiones de automatización. El job SCA
+  ejecuta además la prueba nativa del Trivy instalado; en calidad se omite esa
+  prueba si no hay binario o modo Docker explícito. Los demás casos siguen activos.
+- `lint:check` y `format:check` incluyen ahora los `.cjs` de `scripts/` y
+  `.github/zap/`, con normalización inicial de formato. `js-yaml@4.3.2`, utilizado
+  por las pruebas de política, se declara directamente sin cambiar su versión resuelta.
+- Los secretos efímeros de sesión/cifrado del laboratorio se enmascaran antes de
+  exportarse a `GITHUB_ENV`. Los informes autenticados mantienen la lista positiva
+  de campos publicados y el resto de gates permanece obligatorio.
+
+### 11.2. Falso positivo intermitente de ZAP 10096
+
+El análisis autenticado comunicado terminó con código 2, 0 FAIL y 1 WARN.
+La regla 10096 busca números con forma de fecha Unix. Se reprodujo que las dos
+instancias pertenecían al campo `sessionId` de las respuestas de listado/detalle
+de auditoría: es el identificador de correlación numérico derivado de la sesión,
+no un timestamp. Según el valor aleatorio del hash, podía activarse la heurística.
+
+El preflight obtiene ese identificador del evento realmente persistido. El hook
+configura el filtro oficial de ZAP únicamente para la regla 10096, el valor exacto,
+GET, cuerpo de respuesta y las dos URLs de auditoría del alcance sintético. Estas
+instancias se conservan como informativas; 10096 no se rebaja globalmente ni se
+ignora. Otro valor, una cabecera u otra URL conservan su clasificación original.
+El número de consultas alcanzadas se calcula desde el alcance/importación,
+eliminando la constante duplicada de diez en Python.
+
+### 11.3. Verificación y cierre
+
+| Comprobación | Resultado local |
+| --- | --- |
+| Automatización con Node 22 | 50 pruebas correctas y 1 prueba nativa Trivy omitida en ese job; 5 Python correctas |
+| Trivy, incluidos casos contra la imagen oficial 0.74.0 | 19 pruebas correctas; MEDIUM aceptado, HIGH/CRITICAL bloqueados y entrada inválida rechazada |
+| Trivy completo sobre el lockfile del árbol de trabajo | 619 paquetes, 0 vulnerabilidades, gate nativo 0 y evidencia coherente |
+| Build TypeScript y suites de seguridad con Node 22/MySQL 8 desechable | 71 pruebas correctas |
+| ZAP 2.17.0 con un `sessionId` que activa 10096 | Código 0; 0 FAIL, 0 WARN, 112 PASS; dos instancias 10096 con riesgo informativo |
+| Timestamp adicional inyectado solo en el laboratorio local | Código 2 y WARN de 10096 en cabeceras; demuestra que el filtro no desactiva la regla |
+| Controles HTTP antes/después en ambas pruebas ZAP | Completos, incluidas persistencia y logout |
+| ESLint/Prettier, incluidos helpers, y Actionlint 1.7.7 | Correctos |
+| Gitleaks 8.30.1 sobre scripts, `.github/` y nuevas primitivas compartidas | Sin hallazgos |
+
+Las pruebas utilizan BD, build y directorios temporales aislados. Los resultados
+se refieren al árbol de trabajo, no acreditan aún las nueve celdas de la matriz
+ni la ejecución de este ajuste en GitHub. Los conteos de vulnerabilidades dependen
+de la base consultada en cada ejecución y no son una garantía para revisiones futuras.
+
+- [x] Implementar y verificar localmente la simplificación y la corrección de 10096.
+- [ ] Publicar y enlazar commit/PR y ejecución de Actions del ajuste.
+- [ ] Comprobar matriz, gate SCA, ZAP y Sonar con los artefactos de esa ejecución.
+
+## 12. Pendientes transversales
 
 1. Concretar versiones soportadas de Node y bases de datos frente a las usadas en
    producción.
@@ -1295,7 +1383,7 @@ sus 20 pruebas locales se describen en 10.3.
    esta fase no modifica `pack.yml` ni `docker.yml`.
 5. Registrar revisiones manuales y excepciones con responsable, motivo y caducidad.
 
-## 12. Procedimiento de actualización del informe
+## 13. Procedimiento de actualización del informe
 
 En cada entrega:
 

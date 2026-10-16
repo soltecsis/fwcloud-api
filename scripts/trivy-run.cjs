@@ -12,6 +12,22 @@ const outputs = {
 
 function argumentsFor(mode) {
   if (mode === 'version') return ['version', '--format', 'json'];
+  if (mode === 'check')
+    return [
+      'convert',
+      '--config',
+      '/dev/null',
+      '--ignorefile',
+      '/dev/null',
+      '--quiet',
+      '--format',
+      'json',
+      '--severity',
+      config.blockingSeverities.join(','),
+      '--exit-code',
+      String(config.findingsExitCode),
+      'reports/dependencies/trivy.json',
+    ];
   if (!['table', 'json', 'sbom'].includes(mode)) throw new Error(`Unknown Trivy mode: ${mode}`);
   return [
     'fs',
@@ -31,11 +47,16 @@ function commandFor(mode, binary, repositoryRoot = root) {
   return {
     command: 'docker',
     args: [
-      'run', '--rm',
-      '--mount', `type=bind,source=${repositoryRoot},target=/project,readonly`,
-      '--mount', `type=volume,source=${config.cacheVolume},target=/cache`,
-      '--env', 'TRIVY_CACHE_DIR=/cache',
-      '--workdir', '/project',
+      'run',
+      '--rm',
+      '--mount',
+      `type=bind,source=${repositoryRoot},target=/project,readonly`,
+      '--mount',
+      `type=volume,source=${config.cacheVolume},target=/cache`,
+      '--env',
+      'TRIVY_CACHE_DIR=/cache',
+      '--workdir',
+      '/project',
       config.image,
       ...args,
     ],
@@ -56,7 +77,8 @@ function run(mode, options = {}) {
     }
     const result = (options.spawn || spawnSync)(invocation.command, invocation.args, {
       cwd: repositoryRoot,
-      stdio: ['ignore', outputFd ?? 'inherit', 'inherit'],
+      // The native policy check must not print detailed vulnerability records.
+      stdio: ['ignore', mode === 'check' ? 'ignore' : (outputFd ?? 'inherit'), 'inherit'],
     });
     if (result.error) {
       console.error(`Unable to execute ${invocation.command}: ${result.error.message}`);

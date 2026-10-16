@@ -8,6 +8,11 @@ el resultado del Quality Gate, la protección efectiva del merge y el rerun parc
 siguen pendientes de verificar y documentar. El registro de entregas, evidencias
 y cierre se mantiene en el apartado 10.4 de [CI-BACKEND.md](../.github/CI-BACKEND.md).
 
+El ajuste posterior de simplificación de helpers (apartado 11 del registro) está
+implementado y validado localmente, pendiente de despliegue en Actions. Incluye
+`scripts/ci-context.cjs` para compartir contexto y publicación de evidencia;
+conserva las validaciones de cobertura y la política de reruns descritas aquí.
+
 ## Integración
 
 El CI `FWCloud-API CI` instala, compila y prueba el SHA de la PR (`head.sha`) o
@@ -53,6 +58,10 @@ El job no reinstala dependencias ni repite build/pruebas. Rechaza symlinks en lo
 
 El helper valida metadata/hash y archivos de cobertura; **no es un scanner ni un
 driver de SonarQube**. La acción oficial realiza análisis y espera del gate.
+El contexto compartido obtiene el SHA del checkout con Git y lo contrasta con
+`ANALYSIS_COMMIT`; no utiliza el merge sintético de `GITHUB_SHA` para etiquetar
+las evidencias. La suite `npm run test:ci-tools` conserva las regresiones de Sonar
+y c8 y los `.cjs` quedan incluidos en los checks de ESLint/Prettier del CI.
 El hash vincula los bytes del artefacto, no certifica por sí mismo la veracidad de
 pruebas o cobertura generadas por código de una PR: su revisión sigue siendo parte
 del control de cambios.

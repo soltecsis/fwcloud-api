@@ -1,15 +1,15 @@
-import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import bcrypt = require('bcryptjs');
 import request = require('supertest');
 import { User } from '../../src/models/user/User';
 import { FwCloud } from '../../src/models/fwcloud/FwCloud';
-import { Firewall } from '../../src/models/firewall/Firewall';
-import { RoutingTable } from '../../src/models/routing/routing-table/routing-table.model';
-import { Route } from '../../src/models/routing/route/route.model';
 import db from '../../src/database/database-manager';
 import { expect, testSuite } from '../mocha/global-setup';
+import {
+  createSecurityAccount,
+  createSecurityResource,
+  securityLoginPayload,
+} from './security-data';
 
 export interface SecurityAccount {
   user: User;
@@ -23,29 +23,15 @@ export interface SecuritySession {
 }
 
 export async function securityAccount(role: 1 | 2): Promise<SecurityAccount> {
-  const username = `sec${randomBytes(8).toString('hex')}`;
-  const password = randomBytes(18).toString('base64url');
-  const user = await User.create({
-    username,
-    name: 'Synthetic security account',
-    email: `${username}@fwcloud.test`,
-    customerId: 1,
-    password: await bcrypt.hash(`1${username}${password}`, 10),
-    enabled: 1,
-    role,
-    confirmation_token: randomBytes(24).toString('hex'),
-  }).save();
-  return { user, password };
+  return createSecurityAccount(1, role);
 }
 
 export function loginPayload(account: SecurityAccount) {
-  return {
+  return securityLoginPayload({
     customer: account.user.customerId,
     username: account.user.username,
     password: account.password,
-    authCode: null,
-    publicKey: 'synthetic-client-public-key',
-  };
+  });
 }
 
 export async function securityLogin(account: SecurityAccount): Promise<SecuritySession> {
@@ -80,25 +66,7 @@ export function changeSession(session: SecuritySession, change: (data: any) => v
 }
 
 export async function securityResource(name: string) {
-  const fwcloud = await FwCloud.create({ name, locked: false }).save();
-  const firewall = await Firewall.create({
-    name: `firewall-${name}`,
-    fwCloudId: fwcloud.id,
-  }).save();
-  const table = await RoutingTable.create({
-    firewallId: firewall.id,
-    name: `table-${name}`,
-    number: 100,
-    comment: 'original',
-  }).save();
-  const route = await Route.create({
-    routingTableId: table.id,
-    active: true,
-    comment: 'original',
-    style: 'original',
-    route_order: 1,
-  }).save();
-  return { fwcloud, firewall, table, route };
+  return createSecurityResource(name);
 }
 
 export async function assignClouds(account: SecurityAccount, clouds: FwCloud[]): Promise<void> {

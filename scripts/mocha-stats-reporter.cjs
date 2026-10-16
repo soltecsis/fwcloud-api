@@ -5,7 +5,10 @@ module.exports = class StatsReporter {
   constructor(runner) {
     runner.once('end', () => {
       fs.mkdirSync('reports/tests', { recursive: true });
-      fs.writeFileSync('reports/tests/results.json', `${JSON.stringify({ stats: runner.stats }, null, 2)}\n`);
+      fs.writeFileSync(
+        'reports/tests/results.json',
+        `${JSON.stringify({ stats: runner.stats }, null, 2)}\n`,
+      );
     });
   }
 };

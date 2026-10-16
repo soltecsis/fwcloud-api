@@ -10,11 +10,14 @@ from urllib.parse import urlparse
 
 ROOT = '/zap/wrk/reports/dast/'
 BASE = 'http://127.0.0.1:3131'
+reached_queries = 0
 
 
 def zap_started(zap, target):
     if os.environ.get('CI') != 'true' or not os.environ.get('ZAP_AUTH_HEADER_VALUE'):
         raise RuntimeError('Authenticated scan requires disposable CI credentials')
+    if not re.fullmatch(r'[a-f0-9]{40}', os.environ.get('ANALYSIS_COMMIT', '')):
+        raise RuntimeError('Authenticated scan requires the verified checkout revision')
     with open(ROOT + 'authenticated.openapi.json') as source:
         spec = json.load(source)
     paths = '|'.join(re.escape(BASE + path) for path in spec['paths'])
@@ -22,9 +25,23 @@ def zap_started(zap, target):
     zap.ascan.exclude_from_scan(r'^(?!(?:' + paths + r')(?:\?.*)?$).*')
     zap.replacer.add_rule('Synthetic CI Origin', True, 'REQ_HEADER', False,
                          'Origin', 'https://zap.invalid', url=allowed)
+    # Audit sessionId is an opaque numeric correlation hash, not Unix time.
+    # Keep 10096 enabled: only this exact, persisted fixture value on the two
+    # authorized audit reads is a false positive. Other timestamps still block.
+    session_id = os.environ.get('ZAP_AUDIT_SESSION_ID', '')
+    if not re.fullmatch(r'\d{1,10}', session_id) or int(session_id) > 2147483647:
+        raise RuntimeError('Missing verified audit correlation identifier')
+    for path, operations in spec['paths'].items():
+        if (operations.get('get', {}).get('operationId') in ('audit', 'audit-list')
+                and re.fullmatch(r'/auditlogs(?:/\d+)?', path)):
+            zap.alertFilter.add_global_alert_filter(
+                '10096', '0', url='^' + re.escape(BASE + path) + r'(?:\?.*)?$', urlisregex=True,
+                parameter=r'^$', parameterisregex=True, enabled=True, methods='GET',
+                evidence='^' + session_id + '$', evidenceisregex=True)
 
 
 def zap_active_scan(zap, target, policy):
+    global reached_queries
     # Import must reach authorized content inside ZAP, not just see 401/403 pages.
     with open(ROOT + 'authenticated.openapi.json') as source:
         spec = json.load(source)
@@ -38,6 +55,7 @@ def zap_active_scan(zap, target, policy):
                 reached.add(key)
     if reached != expected:
         raise RuntimeError('ZAP import did not reach every authenticated query')
+    reached_queries = len(reached)
 
 
 def session_ids(value):
@@ -106,10 +124,10 @@ def zap_pre_shutdown(zap):
                'instances': len(alert.get('instances', []))}
               for site in report.get('site', []) for alert in site.get('alerts', [])]
     output = {'completed': True, 'zapVersion': zap.core.version, 'alerts': alerts,
-              'timestampSessionDiagnostics': timestamp_session_diagnostics(zap, report),
-              'authenticatedQueriesReached': 10, 'passiveQueueRemaining': 0,
+              'authenticatedQueriesReached': reached_queries, 'passiveQueueRemaining': 0,
               'generatedAt': datetime.now(timezone.utc).isoformat(),
-              'commit': os.environ.get('GITHUB_SHA'), 'runId': os.environ.get('GITHUB_RUN_ID')}
+              'commit': os.environ.get('ANALYSIS_COMMIT'), 'runId': os.environ.get('GITHUB_RUN_ID'),
+              'runAttempt': os.environ.get('GITHUB_RUN_ATTEMPT')}
     with open(ROOT + 'authenticated.json', 'w') as destination:
         json.dump(output, destination, indent=2)
 

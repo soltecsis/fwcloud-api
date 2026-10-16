@@ -19,7 +19,7 @@ test('ZAP diagnostics never copy sensitive fields or invalid numeric values', ()
   assert.match(output, /Scan completed: true/);
   assert.match(output, /FAIL=0, WARN=1, PASS=112/);
   assert.match(output, /pluginId=10021, riskCode=1, instances=2/);
-  assert.equal(output.split('\n').filter(line => line.startsWith('Alert:')).length, 1);
+  assert.equal(output.split('\n').filter((line) => line.startsWith('Alert:')).length, 1);
   assert.ok(!output.includes(canary));
 });
 
@@ -36,18 +36,28 @@ test('missing evidence and incomplete scans retain the actual exit classificatio
 });
 
 test('timestamp comparison prints only consistent numeric counts', () => {
-  const report = { timestampSessionDiagnostics: {
-    instances: 2, checkedInstances: 2, matchingSessionId: 2, uncheckedInstances: 0,
-    evidence: 'private-session-cookie',
-  } };
+  const report = {
+    timestampSessionDiagnostics: {
+      instances: 2,
+      checkedInstances: 2,
+      matchingSessionId: 2,
+      uncheckedInstances: 0,
+      evidence: 'private-session-cookie',
+    },
+  };
   const output = diagnostics(2, report);
-  assert.match(output, /Timestamp alerts \(10096\): 2; checked: 2; matching sessionId: 2; unchecked: 0/);
+  assert.match(
+    output,
+    /Timestamp alerts \(10096\): 2; checked: 2; matching sessionId: 2; unchecked: 0/,
+  );
   assert.ok(!output.includes('private-session-cookie'));
   for (const invalid of [
     { ...report.timestampSessionDiagnostics, matchingSessionId: 'private-session-cookie' },
     { ...report.timestampSessionDiagnostics, matchingSessionId: 3 },
     { ...report.timestampSessionDiagnostics, uncheckedInstances: 1 },
   ]) {
-    assert.ok(!diagnostics(2, { timestampSessionDiagnostics: invalid }).includes('Timestamp alerts'));
+    assert.ok(
+      !diagnostics(2, { timestampSessionDiagnostics: invalid }).includes('Timestamp alerts'),
+    );
   }
 });

@@ -18,6 +18,8 @@ Después, `fixtures.cjs` crea un administrador, dos managers y una cuenta con 2F
 verificada, con passwords, tokens y secreto TOTP aleatorios; dos clouds con
 firewall, dirección IP, regla de política, tabla y ruta de routing separadas.
 No se cargan seeds de cuentas predeterminadas ni datos operativos.
+Las primitivas de cuentas/recursos y el payload de login se comparten con Mocha
+mediante `tests/utils/security-data.ts`, sin importar su runner ni reinicio de BD.
 
 Los helpers comprueban contratos HTTP y crean fixtures; el script oficial dirige
 las esperas, importación, escaneo activo/pasivo y clasificación de reglas.
@@ -91,6 +93,10 @@ estados y el fallo de 2FA al reutilizar una cookie autenticada.
 - Códigos oficiales: 0 éxito, 1 FAIL, 2 WARN, 3 error operativo. Todos salvo 0 bloquean.
 - Sin `-I`, reglas IGNORE ni excepción de errores 500 (`100000`).
 - `10037` (banner Express sin versión) se clasifica INFO y sigue visible.
+- `10096` conserva su comportamiento bloqueante. Solo se clasifican como
+  informativas las coincidencias del identificador numérico de sesión de auditoría
+  verificado en MySQL: filtro oficial por regla, valor exacto, GET, cuerpo y las
+  dos URLs sintéticas de auditoría. No hay una rebaja global de timestamps.
 - El archivo de reglas activa la política predeterminada del packaged scan;
   los PASS indican reglas sin alertas, no cobertura completa de sus vectores.
 - `backend-ci` exige el éxito del job completo, incluidos controles antes/después.
@@ -102,7 +108,9 @@ Artefactos:
 2. `backend-zap-authenticated-<RUN_ID>-<ATTEMPT>` (90 días): controles nombrados
    y resultados booleanos, alcance OpenAPI sin credenciales, y agregado ZAP con
    IDs numéricos de reglas, riesgo, número de instancias y conteos oficiales.
-   Incluye commit/run cuando se ejecuta en Actions.
+   Incluye SHA real del checkout, ejecución e intento cuando se ejecuta en Actions.
+   El hook recibe `ANALYSIS_COMMIT` verificado; no etiqueta el análisis con el merge
+   sintético de PR de `GITHUB_SHA`. El número de consultas alcanzadas se calcula.
 
 El agregado autenticado se obtiene del JSON nativo mediante una allowlist de
 campos: no copia URLs de ataques, headers, bodies, evidencia, nombres dinámicos,
@@ -159,8 +167,18 @@ El 2026-10-08 pasaron 58 controles HTTP previos y 27 posteriores, con estado
 preservado y logout. Ambos perfiles ZAP terminaron con 0 FAIL, 0 WARN, 1 INFO
 (10037) y 112 PASS. El agregado conserva también los diagnósticos informativos
 nativos: sus instancias no equivalen al conteo de reglas del resumen bloqueante.
-La ejecución definitiva del workflow y la revisión de sus artefactos en Actions
-siguen pendientes de publicación de la rama.
+La entrega original y sus diagnósticos están integrados mediante las PR #1595
+y #1598; las referencias figuran en el apartado 9.6 de
+[CI-BACKEND.md](../.github/CI-BACKEND.md). Los resultados anteriores son históricos.
+
+El 2026-10-16 se reprodujo el WARN intermitente 10096: el hash numérico de `sessionId`
+de auditoría puede parecer una fecha Unix. Con el filtro acotado, un escaneo real
+con dos coincidencias terminó con código 0, 0 FAIL, 0 WARN y 112 PASS; las dos
+instancias permanecen en el agregado con `riskCode: 0`. Al inyectar otra fecha Unix
+en una cabecera del laboratorio temporal, el scanner devolvió código 2/WARN.
+Los controles HTTP anteriores/posteriores y la suite de 71 pruebas de seguridad
+pasaron con Node 22 y MySQL 8 desechable. El ajuste está validado localmente y su
+despliegue y revisión de artefactos en Actions siguen pendientes (apartado 11).
 
 ## Opcional: Docker contra un entorno de desarrollo desechable
 
