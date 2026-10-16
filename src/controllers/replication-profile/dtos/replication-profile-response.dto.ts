@@ -1,3 +1,5 @@
+import type { ReplicationProfileVersionSlot } from '../../../models/replication-profile/replication-profile-template';
+
 export interface ReplicationProfileTemplateErrorDto {
   reason: string;
   message: string;
@@ -6,7 +8,8 @@ export interface ReplicationProfileTemplateErrorDto {
 export interface ReplicationProfileResponseDto {
   id: number;
   code: string;
-  version: number;
+  version: ReplicationProfileVersionSlot;
+  hasPrevious: boolean;
   name: string;
   description: string | null;
   scope: string;

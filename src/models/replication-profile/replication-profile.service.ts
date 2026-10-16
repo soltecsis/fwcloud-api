@@ -1,9 +1,8 @@
 import db from '../../database/database-manager';
-import { logger } from '../../fonaments/abstract-application';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
-import { FindOptionsOrder, FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import { ReplicationProfile } from './replication-profile.model';
 import {
   type ReplicationProfileCatalogOrigin,
@@ -22,27 +21,36 @@ import {
   buildReplicationProfileTemplatePath,
   loadReplicationProfileModel,
   readReplicationProfileModel,
-  removeReplicationProfileModel,
-  writeReplicationProfileModel,
   type ReplicationProfileModel,
   type ReplicationProfileTemplateRead,
+  type ReplicationProfileVersionSlot,
 } from './replication-profile-template';
 import { captureProfileObjectReferences } from './replication-profile-object-reference.service';
 import { AuditLogService } from '../audit/AuditLog.service';
+import {
+  assertReplicationProfileCode,
+  assertReplicationProfileName,
+  firstFreeReplicationProfileValue,
+  replicationProfileNameKey,
+  replicationProfileNameTakenException,
+} from './replication-profile-name';
+import { replicationProfileTransaction } from './replication-profile-transaction';
 
 export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
 export const PROFILE_CLONE_AUDIT_CALL = 'profiles.clone';
 export const PROFILE_VERSION_AUDIT_CALL = 'profiles.version';
+export const PROFILE_ROLLBACK_AUDIT_CALL = 'profiles.rollback';
 export const PROFILE_REMOVE_AUDIT_CALL = 'profiles.remove';
 export const DEFAULT_CUSTOM_PROFILE_TARGET_KIND: ReplicationProfileTargetKind = 'firewall';
 
-export type ReplicationProfileManagementOperation = 'create' | 'clone' | 'update' | 'remove';
+export type ReplicationProfileManagementOperation =
+  'create' | 'clone' | 'update' | 'remove' | 'rollback';
 
 export interface CreateCustomReplicationProfilePayload {
   name: string;
   description?: string | null;
   code?: string;
-  version?: number;
+  version?: number | 'latest';
   scope: string;
   targetKind?: string;
   category?: string | null;
@@ -94,11 +102,11 @@ export interface ReplicationProfileManagementFailureAuditInput {
   actor?: ReplicationProfileMutationActor;
   profileId?: number | null;
   profileCode?: string | null;
-  profileVersion?: number | null;
+  profileVersion?: number | ReplicationProfileVersionSlot | null;
   profileName?: string | null;
   sourceProfileId?: number | null;
   sourceProfileCode?: string | null;
-  sourceProfileVersion?: number | null;
+  sourceProfileVersion?: number | ReplicationProfileVersionSlot | null;
   sourceProfileIsBuiltin?: boolean | null;
   targetKind?: string | null;
   scope?: string | null;
@@ -196,6 +204,7 @@ export class ReplicationProfileService extends Service {
   ): Promise<ReplicationProfileWithTemplate[]> {
     const where: FindOptionsWhere<ReplicationProfile> = {
       isActive: true,
+      versionSlot: 'latest',
     };
 
     if (!filters.includeDeprecated) {
@@ -217,18 +226,22 @@ export class ReplicationProfileService extends Service {
       },
     });
 
-    return this.filterCatalogProfiles(this.preferLatestCatalogProfiles(profiles), filters);
+    // Only the latest slot is read, which is unique per owner and code.
+    return this.filterCatalogProfiles(
+      profiles.sort((left, right) => this.compareCatalogProfiles(left, right)),
+      filters,
+    );
   }
 
   public async findByCodeAndVersion(
     code: string,
-    version: number,
+    version: number | ReplicationProfileVersionSlot,
     userId?: number | null,
   ): Promise<ReplicationProfile | null> {
     return this.findOneInUserScope(
       {
         code,
-        version,
+        ...this.versionWhere(version),
         isActive: true,
         isDeprecated: false,
       },
@@ -238,13 +251,13 @@ export class ReplicationProfileService extends Service {
 
   public async findAnyByCodeAndVersion(
     code: string,
-    version: number,
+    version: number | ReplicationProfileVersionSlot,
     userId?: number | null,
   ): Promise<ReplicationProfile | null> {
     return this.findOneInUserScope(
       {
         code,
-        version,
+        ...this.versionWhere(version),
       },
       userId,
     );
@@ -293,17 +306,22 @@ export class ReplicationProfileService extends Service {
   ): Promise<ReplicationProfile> {
     const startedAt = new Date();
     const code = payload.code ?? this.slugFromName(payload.name);
-    const version = payload.version ?? DEFAULT_CUSTOM_PROFILE_VERSION;
+    const version = DEFAULT_CUSTOM_PROFILE_VERSION;
     const actor = this.actorFromMutationOptions(options);
 
     try {
       const userId = this.requireOwnerUserId(options);
+      assertReplicationProfileName(payload.name);
+      assertReplicationProfileCode(code);
       payload = await this.captureObjectReferences(payload, options.fwCloudId);
       this.assertPayloadDefinitionIsValid(payload);
 
-      await this.assertCustomProfileIdentityIsAvailable(code, version, userId);
-
-      const profile = await this.persistCustomProfile(payload, options, { code, version, userId });
+      const profile = await this.persistCustomProfile(
+        payload,
+        options,
+        { code, version, userId },
+        { code: !payload.code },
+      );
       await this.auditProfileManagementSuccess({
         operation: 'create',
         fwCloudId: options.fwCloudId,
@@ -336,7 +354,7 @@ export class ReplicationProfileService extends Service {
 
   public async cloneCustomProfile(
     code: string,
-    version: number,
+    version: number | ReplicationProfileVersionSlot,
     payload: CloneCustomReplicationProfilePayload,
     options: CreateCustomReplicationProfileOptions,
   ): Promise<ReplicationProfile> {
@@ -357,20 +375,23 @@ export class ReplicationProfileService extends Service {
         throw new HttpException('Inactive or deprecated profiles cannot be cloned.', 422);
       }
 
-      const cloneCode = payload.code ?? `${sourceProfile.code}-copy`;
+      const cloneCode =
+        payload.code ?? `${sourceProfile.code.replace(/\./g, '-').slice(0, 250)}-copy`;
       const cloneVersion = DEFAULT_CUSTOM_PROFILE_VERSION;
 
-      await this.assertCustomProfileIdentityIsAvailable(cloneCode, cloneVersion, userId);
+      assertReplicationProfileCode(cloneCode);
 
       targetPayload = this.buildClonePayload(sourceProfile, payload, cloneCode, cloneVersion);
 
+      assertReplicationProfileName(targetPayload.name);
       this.assertPayloadDefinitionIsValid(targetPayload);
 
-      const profile = await this.persistCustomProfile(targetPayload, options, {
-        code: cloneCode,
-        version: cloneVersion,
-        userId,
-      });
+      const profile = await this.persistCustomProfile(
+        targetPayload,
+        options,
+        { code: cloneCode, version: cloneVersion, userId },
+        { code: !payload.code, name: !payload.name },
+      );
 
       await this.auditProfileManagementSuccess({
         operation: 'clone',
@@ -414,47 +435,24 @@ export class ReplicationProfileService extends Service {
   ): Promise<ReplicationProfile> {
     const startedAt = new Date();
     const actor = this.actorFromMutationOptions(options);
-    let latestCustomProfile: ReplicationProfile | null = null;
     let nextVersion: number | null = null;
 
     try {
-      const userId = this.requireOwnerUserId(options);
-      latestCustomProfile = await this.findOwnedCustomProfile({ code }, userId, {
-        version: 'DESC',
-      });
-
-      if (!latestCustomProfile) {
-        throw await this.resolveMissingCustomProfileError(
-          { code },
-          'Built-in profiles cannot be modified through this endpoint.',
-        );
-      }
-
-      if (!latestCustomProfile.isActive || latestCustomProfile.isDeprecated) {
-        throw new HttpException(
-          'Inactive or deprecated profiles cannot be modified through this endpoint.',
-          422,
-        );
-      }
-
+      this.requireOwnerUserId(options);
+      assertReplicationProfileName(payload.name);
       payload = await this.captureObjectReferences(payload, options.fwCloudId);
       this.assertPayloadDefinitionIsValid(payload);
-
-      nextVersion = latestCustomProfile.version + 1;
-      const profile = await this.persistCustomProfile(payload, options, {
-        code,
-        version: nextVersion,
-        userId,
-      });
+      const { profile, previousProfile } = await this.rotateCustomProfile(code, options, payload);
+      nextVersion = profile.version;
 
       await this.auditProfileManagementSuccess({
         operation: 'update',
         fwCloudId: options.fwCloudId,
         profile,
+        previousProfile,
         actor,
         status: 201,
         startedAt,
-        previousProfile: latestCustomProfile,
       });
 
       return profile;
@@ -466,10 +464,10 @@ export class ReplicationProfileService extends Service {
         profileCode: code,
         profileVersion: nextVersion,
         profileName: payload.name,
-        sourceProfileId: latestCustomProfile?.id ?? null,
-        sourceProfileCode: latestCustomProfile?.code ?? code,
-        sourceProfileVersion: latestCustomProfile?.version ?? null,
-        sourceProfileIsBuiltin: latestCustomProfile?.isBuiltin ?? null,
+        sourceProfileId: null,
+        sourceProfileCode: code,
+        sourceProfileVersion: null,
+        sourceProfileIsBuiltin: false,
         targetKind: payload.targetKind,
         scope: payload.scope,
         category: payload.category,
@@ -480,6 +478,137 @@ export class ReplicationProfileService extends Service {
 
       throw error;
     }
+  }
+
+  public async rollbackCustomProfile(
+    code: string,
+    options: CreateCustomReplicationProfileOptions,
+  ): Promise<ReplicationProfile> {
+    const startedAt = new Date();
+    const actor = this.actorFromMutationOptions(options);
+    try {
+      const { profile, previousProfile } = await this.rotateCustomProfile(code, options);
+      await this.auditProfileManagementSuccess({
+        operation: 'rollback',
+        fwCloudId: options.fwCloudId,
+        profile,
+        previousProfile,
+        actor,
+        status: 200,
+        startedAt,
+      });
+      return profile;
+    } catch (error) {
+      await this.auditProfileManagementFailure({
+        operation: 'rollback',
+        fwCloudId: options.fwCloudId,
+        actor,
+        profileCode: code,
+        reason: this.errorReason(error),
+        status: this.statusFromError(error),
+        startedAt,
+      });
+      throw error;
+    }
+  }
+
+  public async hasPreviousVersion(profile: ReplicationProfile): Promise<boolean> {
+    const [hasPrevious] = await this.hasPreviousVersions([profile]);
+
+    return hasPrevious;
+  }
+
+  /** Whether each profile keeps a previous version, read with a single query. */
+  public async hasPreviousVersions(profiles: ReplicationProfile[]): Promise<boolean[]> {
+    if (profiles.length === 0) {
+      return [];
+    }
+
+    // Codes are compared case-insensitively, as the database compares them.
+    const key = (profile: ReplicationProfile): string =>
+      `${profile.isBuiltin ? 1 : 0}:${profile.userId ?? 0}:${profile.code.toLowerCase()}`;
+    const previous = await this.repository.find({
+      select: { code: true, userId: true, isBuiltin: true },
+      where: { versionSlot: 'previous', code: In([...new Set(profiles.map(({ code }) => code))]) },
+    });
+    const keys = new Set(previous.map(key));
+
+    return profiles.map((profile) => keys.has(key(profile)));
+  }
+
+  private versionWhere(
+    version: number | ReplicationProfileVersionSlot,
+  ): FindOptionsWhere<ReplicationProfile> {
+    return typeof version === 'number' ? { version } : { versionSlot: version };
+  }
+
+  /** Saves `payload` as the new latest version or, without one, restores the previous version. */
+  private async rotateCustomProfile(
+    code: string,
+    options: CreateCustomReplicationProfileOptions,
+    payload?: CreateCustomReplicationProfileVersionPayload,
+  ): Promise<{ profile: ReplicationProfile; previousProfile: ReplicationProfile }> {
+    const userId = this.requireOwnerUserId(options);
+    return replicationProfileTransaction(userId, async (manager, files) => {
+      const repository = manager.getRepository(ReplicationProfile);
+      const profiles = await repository.find({
+        where: this.ownedCustomProfileWhere({ code }, userId),
+      });
+      const latest = profiles.find((profile) => profile.versionSlot === 'latest');
+      const previous = profiles.find((profile) => profile.versionSlot === 'previous');
+      if (!latest)
+        throw await this.resolveMissingCustomProfileError(
+          { code },
+          'Built-in profiles cannot be modified through this endpoint.',
+          repository,
+        );
+      if (!latest.isActive || latest.isDeprecated)
+        throw new HttpException(
+          'Inactive or deprecated profiles cannot be modified through this endpoint.',
+          422,
+        );
+      if (!payload && !previous)
+        throw new HttpException('No previous template version exists.', 409);
+      const latestModel = loadReplicationProfileModel(latest);
+      const model = payload ? payload.model : loadReplicationProfileModel(previous!);
+      const metadata = payload ?? previous!;
+      // A restored version takes the current name: the name belongs to the template.
+      const name = payload ? payload.name : latest.name;
+      assertReplicationProfileName(name);
+      if (
+        replicationProfileNameKey(name) !== replicationProfileNameKey(latest.name) &&
+        this.currentNameKeys(
+          await repository.find({ where: this.ownedCustomProfileWhere({}, userId) }),
+          latest.code,
+        ).has(replicationProfileNameKey(name))
+      )
+        throw replicationProfileNameTakenException();
+      this.assertDefinitionIsValid({ targetKind: metadata.targetKind ?? latest.targetKind, model });
+      const formerLatest = { ...latest };
+      // Advance the internal revision before reusing its value on the previous row.
+      // Applied object bindings still refer to their original numeric revision.
+      Object.assign(latest, {
+        name,
+        description: metadata.description ?? null,
+        scope: metadata.scope,
+        category: metadata.category ?? null,
+        targetKind: metadata.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
+        version: Math.max(...profiles.map((profile) => profile.version)) + 1,
+        updated_at: new Date(),
+        updated_by: userId,
+      });
+      latest.path = buildReplicationProfileTemplatePath(latest);
+      const saved = await repository.save(latest);
+      const preceding = repository.create({
+        ...formerLatest,
+        id: previous?.id,
+        versionSlot: 'previous',
+        path: buildReplicationProfileTemplatePath({ ...formerLatest, versionSlot: 'previous' }),
+      });
+      await repository.save(preceding);
+      files.rotate(saved, model, preceding, latestModel);
+      return { profile: saved, previousProfile: formerLatest as ReplicationProfile };
+    });
   }
 
   public async auditProfileManagementFailure(
@@ -511,7 +640,7 @@ export class ReplicationProfileService extends Service {
    */
   public async removeCustomProfile(
     code: string,
-    version: number,
+    version: number | ReplicationProfileVersionSlot,
     options: RemoveCustomReplicationProfileOptions,
   ): Promise<ReplicationProfileWithTemplate> {
     const startedAt = new Date();
@@ -520,29 +649,46 @@ export class ReplicationProfileService extends Service {
 
     try {
       const userId = this.requireOwnerUserId(options);
-      const profilesToRemove = await this.repository.find({
-        where: this.ownedCustomProfileWhere(
-          options.allVersions ? { code } : { code, version },
-          userId,
-        ),
-        order: { version: 'ASC' },
-      });
-      profile = profilesToRemove.find((owned) => owned.version === version) ?? null;
-
-      if (!profile) {
-        throw await this.resolveMissingCustomProfileError(
-          { code, version },
-          'Built-in profiles cannot be deleted.',
-        );
-      }
-
-      // Read before removing it: a broken template must not prevent the removal either.
-      const template = readReplicationProfileModel(profile);
-      // TypeORM clears the id of removed entities, which the response and the audit still report.
-      const removedProfile = { ...profile } as ReplicationProfile;
-      // An array is removed in a single transaction, avoiding a partially deleted history.
-      await this.repository.remove(profilesToRemove);
-      profilesToRemove.forEach((removed) => this.removeProfileTemplate(removed));
+      const { removedProfile, template, profilesToRemove } = await replicationProfileTransaction(
+        userId,
+        async (manager, files) => {
+          const repository = manager.getRepository(ReplicationProfile);
+          const owned = await repository.find({
+            where: this.ownedCustomProfileWhere({ code }, userId),
+            order: { version: 'ASC' },
+          });
+          profile =
+            owned.find((entry) =>
+              typeof version === 'number'
+                ? entry.version === version
+                : entry.versionSlot === version,
+            ) ?? null;
+          if (!profile)
+            throw await this.resolveMissingCustomProfileError(
+              { code, ...this.versionWhere(version) },
+              'Built-in profiles cannot be deleted.',
+              repository,
+            );
+          const profilesToRemove = options.allVersions ? owned : [profile];
+          const template = readReplicationProfileModel(profile);
+          const removedProfile = { ...profile } as ReplicationProfile;
+          await repository.remove(profilesToRemove);
+          for (const removed of profilesToRemove) files.remove(removed);
+          const previous = owned.find((entry) => entry.versionSlot === 'previous');
+          if (!options.allVersions && removedProfile.versionSlot === 'latest' && previous) {
+            const model = loadReplicationProfileModel(previous);
+            const oldPath = { ...previous };
+            previous.versionSlot = 'latest';
+            // As in a rollback, the promoted version takes the current name.
+            previous.name = removedProfile.name;
+            previous.path = buildReplicationProfileTemplatePath(previous);
+            await repository.save(previous);
+            files.write(previous, model);
+            files.remove(oldPath);
+          }
+          return { removedProfile, template, profilesToRemove };
+        },
+      );
 
       await this.auditProfileManagementSuccess({
         operation: 'remove',
@@ -586,11 +732,13 @@ export class ReplicationProfileService extends Service {
    * owned by another user -- yields the generic 404 so their existence is
    * never leaked.
    */
+  /** Inside a transaction, `repository` keeps the lookup on its connection. */
   private async resolveMissingCustomProfileError(
     builtInIdentity: FindOptionsWhere<ReplicationProfile>,
     builtInMessage: string,
+    repository: Repository<ReplicationProfile> = this.repository,
   ): Promise<HttpException> {
-    const builtInExists = await this.repository.exists({
+    const builtInExists = await repository.exists({
       where: {
         ...builtInIdentity,
         userId: IsNull(),
@@ -603,50 +751,12 @@ export class ReplicationProfileService extends Service {
       : new NotFoundException('Replication profile not found');
   }
 
-  private async assertCustomProfileIdentityIsAvailable(
-    code: string,
-    version: number,
-    userId: number,
-  ): Promise<void> {
-    const existingProfile = await this.findOwnedCustomProfile({ code, version }, userId);
-
-    if (!existingProfile) {
-      return;
-    }
-
-    if (this.canReuseCustomProfileIdentity(existingProfile)) {
-      await this.repository.remove(existingProfile);
-      this.removeProfileTemplate(existingProfile);
-      return;
-    }
-
-    throw new HttpException(
-      `Replication profile "${code}" (version ${version}) already exists for this user.`,
-      409,
-    );
-  }
-
-  private findOwnedCustomProfile(
-    where: FindOptionsWhere<ReplicationProfile>,
-    userId: number,
-    order?: FindOptionsOrder<ReplicationProfile>,
-  ): Promise<ReplicationProfile | null> {
-    return this.repository.findOne({
-      where: this.ownedCustomProfileWhere(where, userId),
-      ...(order ? { order } : {}),
-    });
-  }
-
   /** Narrows a lookup to the custom profiles of one user, never a built-in or somebody else's. */
   private ownedCustomProfileWhere(
     where: FindOptionsWhere<ReplicationProfile>,
     userId: number,
   ): FindOptionsWhere<ReplicationProfile> {
     return { ...where, userId, isBuiltin: false };
-  }
-
-  private canReuseCustomProfileIdentity(profile: ReplicationProfile): boolean {
-    return !profile.isBuiltin && (!profile.isActive || profile.isDeprecated);
   }
 
   private buildClonePayload(
@@ -665,15 +775,6 @@ export class ReplicationProfileService extends Service {
       category: payload.category ?? sourceProfile.category,
       model: loadReplicationProfileModel(sourceProfile),
     };
-  }
-
-  /** The row is already gone, so a template left behind is only unused disk data. */
-  private removeProfileTemplate(profile: ReplicationProfile): void {
-    try {
-      removeReplicationProfileModel(profile);
-    } catch (error) {
-      logger().warn(error.message);
-    }
   }
 
   private async auditProfileManagementSuccess(
@@ -713,21 +814,25 @@ export class ReplicationProfileService extends Service {
         return PROFILE_VERSION_AUDIT_CALL;
       case 'remove':
         return PROFILE_REMOVE_AUDIT_CALL;
+      case 'rollback':
+        return PROFILE_ROLLBACK_AUDIT_CALL;
     }
   }
 
   private successAuditDescription(input: ReplicationProfileManagementSuccessAuditInput): string {
+    if (input.operation === 'rollback')
+      return `Custom replication profile ${input.profile.code} restored from previous.`;
     if (input.operation === 'create') {
-      return `Custom replication profile ${input.profile.code} v${input.profile.version} created.`;
+      return `Custom replication profile ${input.profile.code} latest created.`;
     }
 
     if (input.operation === 'clone') {
       const source = input.sourceProfile;
       const sourceLabel = source
-        ? `${source.code} v${source.version}`
+        ? `${source.code} (${source.versionSlot})`
         : 'selected replication profile';
 
-      return `Replication profile ${sourceLabel} cloned as custom profile ${input.profile.code} v${input.profile.version}.`;
+      return `Replication profile ${sourceLabel} cloned as custom profile ${input.profile.code} latest.`;
     }
 
     if (input.operation === 'remove') {
@@ -735,10 +840,10 @@ export class ReplicationProfileService extends Service {
         return `Custom replication profile ${input.profile.code} permanently removed (${input.removal.versions.length} versions).`;
       }
 
-      return `Custom replication profile ${input.profile.code} v${input.profile.version} removed.`;
+      return `Custom replication profile ${input.profile.code} ${input.profile.versionSlot} removed.`;
     }
 
-    return `Custom replication profile ${input.profile.code} updated by creating version ${input.profile.version}.`;
+    return `Custom replication profile ${input.profile.code} updated by rotating latest and previous.`;
   }
 
   private failureAuditData(
@@ -827,17 +932,22 @@ export class ReplicationProfileService extends Service {
         return `Failed to clone replication profile ${sourceLabel}: ${reason}.`;
       case 'update':
         return `Failed to update custom replication profile ${profileLabel}: ${reason}.`;
+      case 'rollback':
+        return `Failed to restore custom replication profile ${profileLabel}: ${reason}.`;
       case 'remove':
         return `Failed to remove custom replication profile ${profileLabel}: ${reason}.`;
     }
   }
 
-  private profileAuditLabel(code?: string | null, version?: number | null): string {
+  private profileAuditLabel(
+    code?: string | null,
+    version?: number | ReplicationProfileVersionSlot | null,
+  ): string {
     if (!code) {
       return 'profile';
     }
 
-    return version ? `${code} v${version}` : code;
+    return version ? `${code} (${typeof version === 'number' ? 'latest' : version})` : code;
   }
 
   private actorFromMutationOptions(
@@ -900,24 +1010,6 @@ export class ReplicationProfileService extends Service {
     return (
       normalizeReplicationProfileTargetKinds(profile.targetKind).includes(targetKind) ||
       getReplicationProfileModelTargetKinds(model).includes(targetKind)
-    );
-  }
-
-  /** Keeps the latest version of each code, separately for built-ins and each user. */
-  private preferLatestCatalogProfiles(profiles: ReplicationProfile[]): ReplicationProfile[] {
-    const latestProfiles = new Map<string, ReplicationProfile>();
-
-    for (const profile of profiles) {
-      const key = `${profile.isBuiltin ? 'builtin' : `custom:${profile.userId}`}:${profile.code}`;
-      const current = latestProfiles.get(key);
-
-      if (!current || profile.version > current.version) {
-        latestProfiles.set(key, profile);
-      }
-    }
-
-    return Array.from(latestProfiles.values()).sort((left, right) =>
-      this.compareCatalogProfiles(left, right),
     );
   }
 
@@ -988,42 +1080,87 @@ export class ReplicationProfileService extends Service {
     return { ...payload, model: await captureProfileObjectReferences(payload.model, fwCloudId) };
   }
 
+  /**
+   * `free` marks the code or name the API derived itself, not the client:
+   * when taken, its first free variant is used, since a renamed template
+   * keeps the code of its former name.
+   */
   private persistCustomProfile(
     payload: CreateCustomReplicationProfileVersionPayload,
     options: CreateCustomReplicationProfileOptions,
     identity: CustomReplicationProfileIdentity,
+    free: { code?: boolean; name?: boolean } = {},
   ): Promise<ReplicationProfile> {
     const { userId } = identity;
     const now = new Date();
-    const profile = this.repository.create({
-      code: identity.code,
-      version: identity.version,
-      name: payload.name,
-      description: payload.description ?? null,
-      scope: payload.scope,
-      targetKind: this.effectiveProfileTargetKind(payload.targetKind),
-      path: buildReplicationProfileTemplatePath(identity),
-      category: payload.category ?? null,
-      isBuiltin: false,
-      isActive: true,
-      isDeprecated: false,
-      fwCloudId: options.fwCloudId,
-      userId,
-      created_by: userId,
-      updated_by: userId,
-      created_at: now,
-      updated_at: now,
-    });
 
-    // Inserting first makes a concurrent create of the same code and version fail on the unique
-    // index before it can overwrite this template, and writing the template before the commit
-    // keeps every reader from seeing the profile without it.
-    return db.getSource().transaction(async (manager) => {
-      const savedProfile = await manager.save(profile);
-      writeReplicationProfileModel(savedProfile, payload.model);
-
+    return replicationProfileTransaction(userId, async (manager, files) => {
+      const repository = manager.getRepository(ReplicationProfile);
+      const owned = await repository.find({ where: this.ownedCustomProfileWhere({}, userId) });
+      const codes = new Set(
+        owned
+          .filter((profile) => profile.isActive && !profile.isDeprecated)
+          .map((profile) => profile.code.toLowerCase()),
+      );
+      const code = free.code
+        ? firstFreeReplicationProfileValue(identity.code, '-', (candidate) =>
+            codes.has(candidate.toLowerCase()),
+          )
+        : identity.code;
+      if (codes.has(code.toLowerCase())) {
+        throw new HttpException(`Replication profile "${code}" already exists for this user.`, 409);
+      }
+      const names = this.currentNameKeys(owned);
+      const name = free.name
+        ? firstFreeReplicationProfileValue(payload.name, ' ', (candidate) =>
+            names.has(replicationProfileNameKey(candidate)),
+          )
+        : payload.name;
+      if (names.has(replicationProfileNameKey(name))) throw replicationProfileNameTakenException();
+      // Only inactive or deprecated rows can be left with this code; they are replaced.
+      const existing = owned.filter((profile) => profile.code.toLowerCase() === code.toLowerCase());
+      for (const old of existing) files.remove(old);
+      if (existing.length) await repository.remove(existing);
+      const savedProfile = await repository.save(
+        repository.create({
+          code,
+          version: identity.version,
+          versionSlot: 'latest',
+          name,
+          description: payload.description ?? null,
+          scope: payload.scope,
+          targetKind: this.effectiveProfileTargetKind(payload.targetKind),
+          path: buildReplicationProfileTemplatePath({ ...identity, code }),
+          category: payload.category ?? null,
+          isBuiltin: false,
+          isActive: true,
+          isDeprecated: false,
+          fwCloudId: options.fwCloudId,
+          userId,
+          created_by: userId,
+          updated_by: userId,
+          created_at: now,
+          updated_at: now,
+        }),
+      );
+      files.write(savedProfile, payload.model);
       return savedProfile;
     });
+  }
+
+  /** Name keys of the current templates of an owner, except those of `exceptCode`. */
+  private currentNameKeys(owned: ReplicationProfile[], exceptCode?: string): Set<string> {
+    return new Set(
+      owned
+        .filter(
+          (profile) =>
+            profile.versionSlot === 'latest' &&
+            profile.isActive &&
+            !profile.isDeprecated &&
+            profile.code.toLowerCase() !== exceptCode?.toLowerCase(),
+        )
+        .map((profile) => replicationProfileNameKey(profile.name)),
+    );
   }
 
   private effectiveProfileTargetKind(targetKind: string | undefined): ReplicationProfileTargetKind {

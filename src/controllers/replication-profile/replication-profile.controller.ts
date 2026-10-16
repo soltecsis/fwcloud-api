@@ -12,6 +12,7 @@ import { ReplicationProfile } from '../../models/replication-profile/replication
 import {
   REPLICATION_PROFILE_CATALOG_ORIGINS,
   REPLICATION_PROFILE_TARGET_KINDS,
+  isReplicationProfileStringValue,
   normalizeReplicationProfileCatalogOrigin,
   normalizeReplicationProfileTargetKind,
 } from '../../models/replication-profile/replication-profile.constants';
@@ -30,7 +31,9 @@ import type { ReplicationProfileValidationError } from '../../models/replication
 import { ProfileApplicationService } from '../../models/replication-profile/profile-application.service';
 import {
   loadReplicationProfileModel,
+  REPLICATION_PROFILE_VERSION_SLOTS,
   type ReplicationProfileTemplateRead,
+  type ReplicationProfileVersionSlot,
 } from '../../models/replication-profile/replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from '../../models/replication-profile/replication-profile-vpn-parameters';
 import type {
@@ -77,12 +80,17 @@ export class ReplicationProfileController extends Controller {
     const replicationProfileService = await this.replicationProfileService();
 
     const profiles = await replicationProfileService.findCatalog(this.parseCatalogQuery(request));
+    const hasPrevious = await replicationProfileService.hasPreviousVersions(
+      profiles.map(({ profile }) => profile),
+    );
 
     return ResponseBuilder.buildResponse()
       .status(200)
       .body(
         await Promise.all(
-          profiles.map(({ profile, template }) => this.toResponse(profile, template)),
+          profiles.map(({ profile, template }, index) =>
+            this.toResponse(profile, template, hasPrevious[index]),
+          ),
         ),
       );
   }
@@ -131,7 +139,8 @@ export class ReplicationProfileController extends Controller {
       {
         operation: 'create',
         profileCode: this.requestProfileCode(body, replicationProfileService),
-        profileVersion: typeof body.version === 'number' ? body.version : 1,
+        // New templates always start at revision 1.
+        profileVersion: 1,
         profileName: body.name,
         targetKind: body.targetKind,
         scope: body.scope,
@@ -280,6 +289,22 @@ export class ReplicationProfileController extends Controller {
   }
 
   @Validate()
+  public async rollback(request: Request): Promise<ResponseBuilder> {
+    const code = String(request.params.code);
+    const service = await this.replicationProfileService();
+    await this.assertCanManageProfile(
+      request,
+      await ReplicationProfilePolicy.update(request.session.user, this._fwCloud),
+      service,
+      { operation: 'rollback', profileCode: code },
+    );
+    const profile = await service.rollbackCustomProfile(code, this.profileMutationOptions(request));
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(await this.toResponse(profile));
+  }
+
+  @Validate()
   public async destroy(request: Request): Promise<ResponseBuilder> {
     const code = String(request.params.code);
     const replicationProfileService = await this.replicationProfileService();
@@ -378,13 +403,11 @@ export class ReplicationProfileController extends Controller {
       .body(result);
   }
 
-  private parseVersionParam(request: Request): number {
-    const version = parseInt(String(request.params.version), 10);
-
-    if (Number.isNaN(version)) {
-      throw new NotFoundException('Replication profile not found');
+  private parseVersionParam(request: Request): ReplicationProfileVersionSlot {
+    const version = String(request.params.profileVersion);
+    if (!isReplicationProfileStringValue(version, REPLICATION_PROFILE_VERSION_SLOTS)) {
+      throw new NotFoundException('Replication profile version must be latest or previous.');
     }
-
     return version;
   }
 
@@ -643,6 +666,8 @@ export class ReplicationProfileController extends Controller {
       model: loadReplicationProfileModel(profile),
       error: null,
     },
+    /** Given by listings, which read it for all their profiles at once. */
+    hasPrevious?: boolean,
   ): Promise<ReplicationProfileResponseDto> {
     const isCustom = !profile.isBuiltin;
     const model = normalizeProfileVpnRuleParameters(template.model);
@@ -657,7 +682,9 @@ export class ReplicationProfileController extends Controller {
     return {
       id: profile.id,
       code: profile.code,
-      version: profile.version,
+      version: profile.versionSlot,
+      hasPrevious:
+        hasPrevious ?? (await (await this.replicationProfileService()).hasPreviousVersion(profile)),
       name: profile.name,
       description: profile.description,
       scope: profile.scope,

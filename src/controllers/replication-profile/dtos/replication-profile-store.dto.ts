@@ -33,15 +33,17 @@
  *   of the request, who can use them from every FWCloud they have access to.
  */
 
+import {
+  REPLICATION_PROFILE_NAME_PATTERN,
+  REPLICATION_PROFILE_NAME_MESSAGE,
+} from '../../../models/replication-profile/replication-profile-name';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
-  IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
-  IsPositive,
   IsString,
   Matches,
   MaxLength,
@@ -58,6 +60,7 @@ import {
   isReplicationProfileExternalObjectUsage,
   isReplicationProfilePort,
   isReplicationProfileStringValue,
+  REPLICATION_PROFILE_CODE_MESSAGE,
   REPLICATION_PROFILE_CODE_PATTERN,
   REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
   REPLICATION_PROFILE_RULE_ACTIONS,
@@ -373,6 +376,7 @@ export class ReplicationProfileVersionStoreDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
+  @Matches(REPLICATION_PROFILE_NAME_PATTERN, { message: REPLICATION_PROFILE_NAME_MESSAGE })
   name: string;
 
   @IsOptional()
@@ -407,15 +411,14 @@ export class ReplicationProfileStoreDto extends ReplicationProfileVersionStoreDt
   @IsNotEmpty()
   @MaxLength(255)
   @Matches(REPLICATION_PROFILE_CODE_PATTERN, {
-    message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
+    message: REPLICATION_PROFILE_CODE_MESSAGE,
   })
   code?: string;
 
-  /** Defaults to version 1 when omitted. */
+  /** New templates always start with latest. */
   @IsOptional()
-  @IsInt()
-  @IsPositive()
-  version?: number;
+  @IsIn(['latest'])
+  version?: 'latest';
 }
 
 export class ReplicationProfileCloneDto {
@@ -425,7 +428,7 @@ export class ReplicationProfileCloneDto {
   @IsNotEmpty()
   @MaxLength(255)
   @Matches(REPLICATION_PROFILE_CODE_PATTERN, {
-    message: 'code must start with a letter or digit and use only letters, digits, ".", "_" or "-"',
+    message: REPLICATION_PROFILE_CODE_MESSAGE,
   })
   code?: string;
 
@@ -434,6 +437,7 @@ export class ReplicationProfileCloneDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
+  @Matches(REPLICATION_PROFILE_NAME_PATTERN, { message: REPLICATION_PROFILE_NAME_MESSAGE })
   name?: string;
 
   @IsOptional()

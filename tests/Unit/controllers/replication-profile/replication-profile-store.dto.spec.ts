@@ -29,7 +29,7 @@ function fullPayload(): Record<string, unknown> {
     name: 'Basic office firewall',
     description: 'Reusable profile for a basic office firewall.',
     code: 'basic-office-firewall',
-    version: 2,
+    version: 'latest',
     scope: 'custom',
     targetKind: 'firewall',
     category: 'office',
@@ -189,7 +189,7 @@ describe(ReplicationProfileStoreDto.name, () => {
       );
     });
 
-    it('should reject a non-positive version', async () => {
+    it('should reject a numeric version', async () => {
       expect(await validatePayload({ ...minimalPayload(), version: 0 })).to.include('version');
     });
   });
@@ -512,5 +512,28 @@ for (const dto of [ReplicationProfileStoreDto, ReplicationProfileVersionStoreDto
       };
       expect(await validatePayload(payload, dto)).to.include('model');
     });
+  });
+}
+
+for (const dto of [ReplicationProfileStoreDto, ReplicationProfileVersionStoreDto]) {
+  describe(`${dto.name} template names`, () => {
+    for (const name of [
+      'My.Template',
+      'Template.v2',
+      '../template',
+      'foo/bar',
+      'foo\\bar',
+      'bad:name',
+      'bad*name',
+    ]) {
+      it(`rejects ${JSON.stringify(name)}`, async () => {
+        expect(await validatePayload({ ...minimalPayload(), name }, dto)).to.include('name');
+      });
+    }
+    for (const name of ['MyTemplate', 'My_Template', 'My-Template', 'My Template']) {
+      it(`accepts ${name}`, async () => {
+        expect(await validatePayload({ ...minimalPayload(), name }, dto)).not.to.include('name');
+      });
+    }
   });
 }

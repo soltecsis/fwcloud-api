@@ -51,6 +51,7 @@ import { ReplicationProfileService } from './replication-profile.service';
 import {
   loadReplicationProfileModel,
   type ReplicationProfileModel,
+  type ReplicationProfileVersionSlot,
 } from './replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-parameters';
 import {
@@ -102,7 +103,7 @@ export interface ProfileApplicationRequest {
    */
   fwCloudId: number;
   profileCode: string;
-  profileVersion: number;
+  profileVersion: number | ReplicationProfileVersionSlot;
   /** Expected catalog scope; when set, the profile scope must match it. */
   expectedScope?: string;
   replication: PolicyReplicationRequest;
@@ -754,8 +755,8 @@ export class ProfileApplicationService extends Service {
           : 422;
     const status = error === null ? 'success' : 'failed';
     const profileLabel = profile
-      ? `"${profile.name}" (${profile.code} v${profile.version})`
-      : `"${request.profileCode}" (v${request.profileVersion})`;
+      ? `"${profile.name}" (${profile.code} ${profile.versionSlot})`
+      : `"${request.profileCode}" (${request.profileVersion})`;
     const targetLabel = target
       ? `${target.kind} "${target.name}"`
       : `${request.replication.target.kind} ${request.replication.target.id}`;

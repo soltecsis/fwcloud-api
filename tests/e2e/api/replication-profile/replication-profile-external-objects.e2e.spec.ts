@@ -56,7 +56,7 @@ describe(describeName('Replication profile external object automatic recreation 
   });
 
   const profileUrl = (profile: ReplicationProfile, fwCloudId = fwCloud.id) =>
-    `/fwclouds/${fwCloudId}/profiles/${profile.code}/${profile.version}`;
+    `/fwclouds/${fwCloudId}/profiles/${profile.code}/${profile.versionSlot}`;
   const applyPayload = (firewall = target, mode = 'merge') => ({
     target: { kind: 'firewall', id: firewall.id },
     mode,

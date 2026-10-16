@@ -284,9 +284,22 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       const code = `${codePrefix}shared-code`;
 
       await repository.save([
-        makeProfile({ code, version: 1, isBuiltin: true, fwCloudId: null, name: 'Built-in v1' }),
+        makeProfile({
+          code,
+          version: 1,
+          versionSlot: 'previous',
+          isBuiltin: true,
+          fwCloudId: null,
+          name: 'Built-in v1',
+        }),
         makeProfile({ code, version: 2, isBuiltin: true, fwCloudId: null, name: 'Built-in v2' }),
-        makeProfile({ code, version: 1, fwCloudId: fwCloud.id, name: 'Custom v1' }),
+        makeProfile({
+          code,
+          version: 1,
+          versionSlot: 'previous',
+          fwCloudId: fwCloud.id,
+          name: 'Custom v1',
+        }),
         makeProfile({ code, version: 2, fwCloudId: fwCloud.id, name: 'Custom v2' }),
       ]);
 
@@ -301,7 +314,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
   describe('findByCodeAndVersion()', () => {
     it('should return only active non-deprecated profiles for the requested code and version', async () => {
       const active = await repository.save(
-        makeProfile({ code: `${codePrefix}lookup`, version: 3 }),
+        makeProfile({ code: `${codePrefix}lookup`, version: 3, versionSlot: 'previous' }),
       );
 
       await repository.save([
@@ -330,7 +343,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(profile.description).to.be.deep.eq(defaultReplicationProfile.description);
       expect(profile.scope).to.be.deep.eq(defaultReplicationProfile.scope);
       expect(profile.targetKind).to.be.deep.eq(defaultReplicationProfile.target_kind);
-      expect(profile.path).to.be.eq('default.v1.json');
+      expect(profile.path).to.be.eq('default.latest.json');
       expect(loadReplicationProfileModel(profile)).to.be.deep.eq(
         readVersionedReplicationProfileTemplate(defaultReplicationProfile.path),
       );
@@ -441,11 +454,11 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       });
       const reloaded = await repository.findOneOrFail({ where: { id: saved.id } });
 
-      expect(reloaded.path).to.be.eq(`custom/users/${userId}/${codePrefix}templated.v2.json`);
+      expect(reloaded.path).to.be.eq(`custom/users/${userId}/${codePrefix}templated.latest.json`);
       expect(resolveReplicationProfileTemplatePath(reloaded)).to.be.eq(
         path.join(
           getUserReplicationProfileTemplatesDirectory(userId),
-          `${codePrefix}templated.v2.json`,
+          `${codePrefix}templated.latest.json`,
         ),
       );
       expect(loadReplicationProfileModel(reloaded)).to.deep.eq(payload.model);
@@ -474,7 +487,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(await repository.findOne({ where: { code, fwCloudId: fwCloud.id } })).to.be.null;
     });
 
-    it('should preserve explicit code and version when provided', async () => {
+    it('should preserve explicit code and start at the first internal revision', async () => {
       const fwCloud = await makeFwCloud();
       const payload = makeCreatePayload({
         code: `${codePrefix}explicit`,
@@ -487,7 +500,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       });
 
       expect(saved.code).to.be.eq(`${codePrefix}explicit`);
-      expect(saved.version).to.be.eq(3);
+      expect(saved.version).to.be.eq(1);
     });
 
     it('should create structure profiles without requiring a targetKind in the payload', async () => {
@@ -625,7 +638,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(entries[0].userId).to.be.eq(userId);
       expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
       expect(entries[0].description).to.contain(
-        `Custom replication profile ${saved.code} v1 created`,
+        `Custom replication profile ${saved.code} latest created`,
       );
       expect(entries[0].data).not.to.contain(marker);
 
@@ -715,7 +728,9 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         created_by: userId,
         updated_by: userId,
       });
-      expect(saved.path).to.be.eq(`custom/users/${userId}/${codePrefix}builtin-clone-copy.v1.json`);
+      expect(saved.path).to.be.eq(
+        `custom/users/${userId}/${codePrefix}builtin-clone-copy.latest.json`,
+      );
       expect(loadReplicationProfileModel(saved)).to.deep.eq(loadReplicationProfileModel(builtIn));
       expect(reloadedSource.isBuiltin).to.be.true;
       expect(reloadedSource.fwCloudId).to.be.null;
@@ -806,58 +821,42 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
   });
 
   describe('createCustomProfileVersion()', () => {
-    it('should create the next immutable custom profile version, also from another FWCloud', async () => {
+    it('should rotate a user-owned template from another FWCloud while preserving identity', async () => {
       const fwCloud = await makeFwCloud();
       const otherFwCloud = await makeFwCloud();
       const original = await repository.save(
         makeProfile({
           code: `${codePrefix}versioned`,
-          version: 1,
           fwCloudId: otherFwCloud.id,
           created_by: 3,
           updated_by: 3,
         }),
       );
-      const payload = makeCreatePayload({
-        name: `${codePrefix}Versioned profile update`,
-        description: 'Updated profile definition.',
-        scope: 'generic',
-        targetKind: 'firewall',
-      });
-
+      const payload = makeCreatePayload({ name: 'Updated template' });
       const saved = await service.createCustomProfileVersion(original.code, payload as any, {
         fwCloudId: fwCloud.id,
         userId,
       });
-      const reloadedOriginal = await repository.findOneOrFail({ where: { id: original.id } });
-
+      const previous = await service.findByCodeAndVersion(original.code, 'previous', userId);
       expect(saved).to.include({
-        code: original.code,
-        version: 2,
-        name: `${codePrefix}Versioned profile update`,
-        isBuiltin: false,
-        isActive: true,
-        isDeprecated: false,
-        fwCloudId: fwCloud.id,
-        created_by: userId,
+        id: original.id,
+        versionSlot: 'latest',
+        name: 'Updated template',
+        fwCloudId: otherFwCloud.id,
+        created_by: 3,
         updated_by: userId,
       });
-      expect(reloadedOriginal.version).to.be.eq(1);
-      expect(reloadedOriginal.isActive).to.be.true;
-      expect(reloadedOriginal.isDeprecated).to.be.false;
-      expect(saved.path).not.to.be.eq(reloadedOriginal.path);
+      expect(previous.version).to.eq(1);
+      expect(previous.path).not.to.eq(saved.path);
       expect(loadReplicationProfileModel(saved)).to.deep.eq(payload.model);
-      expect(loadReplicationProfileModel(reloadedOriginal)).to.deep.eq({
-        replicate: {},
-        options: {},
-      });
+      expect(loadReplicationProfileModel(previous)).to.deep.eq({ replicate: {}, options: {} });
     });
 
     it('should increment from the highest existing custom version', async () => {
       const fwCloud = await makeFwCloud();
       const code = `${codePrefix}highest`;
       await repository.save([
-        makeProfile({ code, version: 1, fwCloudId: fwCloud.id }),
+        makeProfile({ code, version: 1, versionSlot: 'previous', fwCloudId: fwCloud.id }),
         makeProfile({ code, version: 4, fwCloudId: fwCloud.id }),
       ]);
 
@@ -971,56 +970,30 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
   });
 
   describe('removeCustomProfile()', () => {
-    it('should expose the previous version after removing the latest and allow editing it', async () => {
+    it('should promote previous with the current name when latest is deleted, then allow another update', async () => {
       const fwCloud = await makeFwCloud();
       const code = `${codePrefix}remove-latest`;
-      const previousModel = makeCreatePayload().model;
-      const [oldest, previous, latest] = await repository.save([
-        makeProfile({ code, version: 1, fwCloudId: fwCloud.id }),
+      const [previous, latest] = await repository.save([
         makeProfile({
           code,
-          version: 2,
-          name: 'Previous profile',
+          version: 1,
+          versionSlot: 'previous',
           fwCloudId: fwCloud.id,
-          model: previousModel as any,
+          name: 'Previous profile',
         }),
-        makeProfile({ code, version: 3, fwCloudId: fwCloud.id }),
+        makeProfile({ code, version: 2, fwCloudId: fwCloud.id }),
       ]);
-      const findCatalogEntry = async () =>
-        (await service.findCatalog({ userId })).find(({ profile }) => profile.code === code);
-
-      await service.removeCustomProfile(code, latest.version, { fwCloudId: fwCloud.id, userId });
-
+      await service.removeCustomProfile(code, 'latest', { fwCloudId: fwCloud.id, userId });
+      const promoted = await service.findByCodeAndVersion(code, 'latest', userId);
+      expect(promoted).to.include({ id: previous.id, name: latest.name });
       expect(await repository.findOne({ where: { id: latest.id } })).to.be.null;
-      expect(templateExists(latest)).to.be.false;
-      const catalogEntry = await findCatalogEntry();
-      expect(catalogEntry.profile.id).to.be.eq(previous.id);
-      expect(catalogEntry.template.model).to.deep.eq(previousModel);
-      expect((await service.findByCodeAndVersion(code, previous.version, userId)).id).to.be.eq(
-        previous.id,
+      const saved = await service.createCustomProfileVersion(
+        code,
+        makeCreatePayload({ name: 'Edited template' }) as any,
+        { fwCloudId: fwCloud.id, userId },
       );
-
-      const editedPayload = makeCreatePayload({
-        name: 'Edited previous profile',
-        model: {
-          compatibility: { target_kinds: ['firewall'] },
-          provision: { interfaces: [{ name: 'eth0', role: 'wan' }] },
-        },
-      });
-      const saved = await service.createCustomProfileVersion(code, editedPayload as any, {
-        fwCloudId: fwCloud.id,
-        userId,
-      });
-
-      expect(saved).to.include({ code, version: 3, name: 'Edited previous profile' });
-      expect(saved.id).not.to.be.eq(latest.id);
-      expect(loadReplicationProfileModel(saved)).to.deep.eq(editedPayload.model);
-      const reloadedPrevious = await repository.findOneOrFail({ where: { id: previous.id } });
-      expect(reloadedPrevious).to.include({ version: 2, name: 'Previous profile' });
-      expect(loadReplicationProfileModel(reloadedPrevious)).to.deep.eq(previousModel);
-      expect(templateExists(oldest)).to.be.true;
-      expect(templateExists(previous)).to.be.true;
-      expect((await findCatalogEntry()).profile.id).to.be.eq(saved.id);
+      expect(saved.id).to.eq(previous.id);
+      expect(await repository.count({ where: { code, userId } })).to.eq(2);
     });
 
     it('should permanently remove all owned versions and templates while preserving other owners and built-ins', async () => {
@@ -1028,8 +1001,13 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       const otherFwCloud = await makeFwCloud();
       const code = `${codePrefix}remove-all`;
       const profiles = await repository.save([
-        makeProfile({ code, version: 1, fwCloudId: otherFwCloud.id, isDeprecated: true }),
-        makeProfile({ code, version: 2, fwCloudId: null, isActive: false }),
+        makeProfile({
+          code,
+          version: 2,
+          versionSlot: 'previous',
+          fwCloudId: null,
+          isActive: false,
+        }),
         makeProfile({ code, version: 3, fwCloudId: fwCloud.id }),
       ]);
       writeRawReplicationProfileTemplate(profiles[0], '{ broken');
@@ -1039,13 +1017,13 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         makeProfile({ code: `${codePrefix}keep`, fwCloudId: fwCloud.id }),
       ]);
 
-      const result = await service.removeCustomProfile(code, profiles[2].version, {
+      const result = await service.removeCustomProfile(code, profiles[1].version, {
         fwCloudId: fwCloud.id,
         userId,
         allVersions: true,
       });
 
-      expect(result.profile.id).to.be.eq(profiles[2].id);
+      expect(result.profile.id).to.be.eq(profiles[1].id);
       expect(await repository.find({ where: { code, userId } })).to.be.empty;
       for (const profile of profiles) {
         expect(templateExists(profile)).to.be.false;
@@ -1245,8 +1223,13 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       const code = `${codePrefix}audited-permanent-remove`;
       const profiles = await repository.save([
         makeProfile({ code, version: 5, fwCloudId: fwCloud.id }),
-        makeProfile({ code, version: 1, fwCloudId: fwCloud.id, isActive: false }),
-        makeProfile({ code, version: 3, fwCloudId: fwCloud.id, isDeprecated: true }),
+        makeProfile({
+          code,
+          version: 3,
+          versionSlot: 'previous',
+          fwCloudId: fwCloud.id,
+          isDeprecated: true,
+        }),
       ]);
 
       await service.removeCustomProfile(code, profiles[0].version, {
@@ -1260,7 +1243,7 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
       expect(entries).to.have.length(1);
       expect(entries[0].userId).to.be.eq(userId);
       expect(entries[0].fwCloudId).to.be.eq(fwCloud.id);
-      expect(entries[0].description).to.contain('permanently removed (3 versions)');
+      expect(entries[0].description).to.contain('permanently removed (2 versions)');
       const data = JSON.parse(entries[0].data);
       expect(data).to.include({
         operation: 'remove',
@@ -1269,9 +1252,9 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
         profileVersion: 5,
         removed: true,
         allVersions: true,
-        removedVersionCount: 3,
+        removedVersionCount: 2,
       });
-      expect(data.removedVersions).to.deep.eq([1, 3, 5]);
+      expect(data.removedVersions).to.deep.eq([3, 5]);
       expect(data).not.to.have.property('model');
 
       await auditRepository.delete({ call: PROFILE_REMOVE_AUDIT_CALL });
