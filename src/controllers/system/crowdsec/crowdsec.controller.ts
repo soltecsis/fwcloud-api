@@ -320,6 +320,9 @@ export class CrowdSecController extends Controller {
     const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
     const localLapiNodes = await this.getLocalLapiNodes();
     if (localLapiNodes) {
+      for (const node of localLapiNodes) {
+        await this.assertMachineRemovalAllowed(node.communication, machineName);
+      }
       const cleanup = await this.lapiService().cleanupMachine(localLapiNodes, machineName);
       return ResponseBuilder.buildResponse().status(200).body({
         name: machineName,
@@ -328,9 +331,9 @@ export class CrowdSecController extends Controller {
       });
     }
 
-    const machine = await (
-      await this.getAgentCommunication()
-    ).removeCrowdSecLapiMachine(machineName);
+    const communication = await this.getAgentCommunication();
+    await this.assertMachineRemovalAllowed(communication, machineName);
+    const machine = await communication.removeCrowdSecLapiMachine(machineName);
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
@@ -1691,6 +1694,18 @@ export class CrowdSecController extends Controller {
         ...(centralBouncerCleanupRequired ? { central_bouncer_cleanup_required: true } : {}),
         ...(centralMachineCleanupRequired ? { central_machine_cleanup_required: true } : {}),
       });
+  }
+
+  private async assertMachineRemovalAllowed(
+    communication: AgentCommunication,
+    machineName: string,
+  ): Promise<void> {
+    const machine = (await communication.getCrowdSecLapiMachines()).machines.find(
+      (item) => item.name === machineName,
+    );
+    if (machine && CrowdSecLapiSharedService.isLoopbackMachineAddress(machine.ip_address)) {
+      throw new HttpException('The local CrowdSec LAPI Machine cannot be removed', 409);
+    }
   }
 
   private async getLocalLapiNodes() {

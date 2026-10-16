@@ -115,6 +115,10 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec machine was not found',
     status: 404,
   },
+  CROWDSEC_MACHINE_PROTECTED: {
+    message: 'The local CrowdSec LAPI Machine cannot be removed',
+    status: 409,
+  },
   CROWDSEC_MACHINE_REAUTHENTICATION_REQUIRED: {
     message: 'CrowdSec machine must be registered and validated again',
     status: 409,
