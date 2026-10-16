@@ -28,6 +28,13 @@ function diagnostics(status, report) {
       );
     }
   }
+  const timestamps = report.timestampSessionDiagnostics;
+  if (timestamps && ['instances', 'checkedInstances', 'matchingSessionId', 'uncheckedInstances']
+    .every(key => integer(timestamps[key])) &&
+    timestamps.matchingSessionId <= timestamps.checkedInstances &&
+    timestamps.checkedInstances + timestamps.uncheckedInstances === timestamps.instances) {
+    lines.push(`Timestamp alerts (10096): ${timestamps.instances}; checked: ${timestamps.checkedInstances}; matching sessionId: ${timestamps.matchingSessionId}; unchecked: ${timestamps.uncheckedInstances}.`);
+  }
   return lines.join('\n');
 }
 
