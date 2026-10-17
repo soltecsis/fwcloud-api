@@ -48,6 +48,7 @@ export class CrowdSecMachineInstallDto {
   @IsBoolean()
   continueWithoutLapiConnectivity?: boolean;
 
+  /** PGP-encrypted CrowdSec Firewall Bouncer API key. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)

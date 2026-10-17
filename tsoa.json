@@ -6,6 +6,8 @@
     "src/controllers/ping/ping.controller.ts",
     "src/controllers/fwclouds/fwcloud.controller.ts",
     "src/controllers/firewalls/firewall.controller.ts",
+    "src/controllers/system/crowdsec/crowdsec.controller.ts",
+    "src/controllers/system/crowdsec/crowdsec-cluster.controller.ts",
     "src/controllers/legacy/*.controller.ts"
   ],
   "spec": {
@@ -31,7 +33,6 @@
     "specMerging": "recursive",
     "spec": {
       "tags": [
-
         {
           "name": "user",
           "description": "Legacy endpoints under src/routes/user"
@@ -59,40 +60,36 @@
         {
           "name": "ping",
           "description": "Non-legacy ping endpoint"
+        },
+        {
+          "name": "crowdsec",
+          "description": "CrowdSec endpoints for firewall and cluster system management"
         }
       ],
       "x-tagGroups": [
         {
           "name": "user",
-          "tags": [
-            "user",
-            "customer"
-          ]
+          "tags": ["user", "customer"]
         },
         {
           "name": "firewall",
-          "tags": [
-            "firewall",
-            "cluster"
-          ]
+          "tags": ["firewall", "cluster"]
         },
         {
           "name": "fwclouds",
-          "tags": [
-            "fwclouds"
-          ]
+          "tags": ["fwclouds"]
         },
         {
           "name": "fwcloud",
-          "tags": [
-            "fwcloud"
-          ]
+          "tags": ["fwcloud"]
         },
         {
           "name": "ping",
-          "tags": [
-            "ping"
-          ]
+          "tags": ["ping"]
+        },
+        {
+          "name": "system",
+          "tags": ["crowdsec"]
         }
       ]
     }
