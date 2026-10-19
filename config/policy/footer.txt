@@ -6,17 +6,22 @@ ACTION="$1"
 test -z "$ACTION" && ACTION="start"
 
 case "$ACTION" in
-  start)
+  start|policy)
     POLICY_LOAD_START_TIME_MS=`policy_load_timestamp_ms`
     greeting_msg
     policy_apply
-    if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then
-      routing_apply
-    fi
-    if [ $DOCKER_COMPATIBILITY ]; then
-      check_docker_iptables_disabled
+    FWC_POLICY_APPLY_STATUS=$?
+    if [ "$ACTION" = "start" ]; then
+      if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then
+        routing_apply
+      fi
+      if [ $DOCKER_COMPATIBILITY ]; then
+        check_docker_iptables_disabled
+      fi
     fi
     policy_load_elapsed_msg
+    # Report a failed policy load to the installer (or systemd).
+    exit $FWC_POLICY_APPLY_STATUS
     ;;
 
   stop)
@@ -26,19 +31,12 @@ case "$ACTION" in
 
   restart|reload)
     $0 stop
-    $0 start
+    $0 start || exit 1
     ;;
 
   block)
     policy_empty
     iptables_default_filter_policy DROP
-    ;;
-
-  policy)
-    POLICY_LOAD_START_TIME_MS=`policy_load_timestamp_ms`
-    greeting_msg
-    policy_apply
-    policy_load_elapsed_msg
     ;;
 
   routing)
@@ -60,14 +58,9 @@ case "$ACTION" in
     test "$FWC_DNS_CHECK_STATUS" = "0" || exit 1
     chmod 700 "$0"
 
-    if [ -f "/etc/issue" ]; then
-      if [ "`cat /etc/issue | grep EdgeOS`" ]; then
-        chown root:vyattacfg "$0"
-        INSTALL_DIR="/config/scripts/post-config.d"
-      else
-        chown root:root "$0"
-        INSTALL_DIR="/etc/fwcloud"
-      fi
+    if [ -f "/etc/issue" ] && [ "`cat /etc/issue | grep EdgeOS`" ]; then
+      chown root:vyattacfg "$0"
+      INSTALL_DIR="/config/scripts/post-config.d"
     else
       chown root:root "$0"
       INSTALL_DIR="/etc/fwcloud"
