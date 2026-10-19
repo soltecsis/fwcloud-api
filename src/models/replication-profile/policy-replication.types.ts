@@ -915,7 +915,19 @@ export interface PolicyReplicationResolvedReference {
   targetId: number;
 }
 
+/** Authoritative VPN-to-IP plan returned by the application and its dry run. */
+export interface PolicyReplicationVpnConversion {
+  vpnId: string;
+  sourceName?: string;
+  targetType: 'address';
+  address?: string;
+  netmask?: string;
+  ipVersion?: 4 | 6;
+  error?: string;
+}
+
 export interface PolicyReplicationResult {
+  vpnConversions?: PolicyReplicationVpnConversion[];
   mode: PolicyReplicationMode;
   /** True only when changes were committed to the database. */
   applied: boolean;

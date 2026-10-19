@@ -74,6 +74,91 @@ describe('Profile application: VPN references', () => {
 
   const optionsOf = () => provision.firstCall.args[4];
 
+  describe('IP conversion requested by the template apply wizard', () => {
+    beforeEach(() => {
+      service.loadUsableProfile.callsFake(async () => ({
+        profile: { code: 'template', version: 1 },
+        model: {
+          provision: {
+            interfaces: [],
+            rules: [
+              {
+                chain: 'forward',
+                ipVersion: 4,
+                source: [{ kind: 'vpnClient', vpnId: 'office', name: 'Office VPN' }],
+              },
+            ],
+          },
+          vpnTemplate: {
+            cas: [],
+            certificates: [],
+            connections: [
+              { ...connection('office', 'openvpn'), name: 'Office VPN', network: '192.0.2.55/32' },
+            ],
+          },
+        },
+      }));
+      provision.callsFake(async (_target, _provision, _cloud, mode) => ({
+        mode,
+        applied: mode !== 'dry_run',
+        errors: [],
+        warnings: [],
+      }));
+    });
+
+    for (const kind of ['firewall', 'cluster'] as const) {
+      for (const mode of ['dry_run', 'replace_defaults']) {
+        it(`${kind} ${mode} resolves policy references as IPs and never provisions VPN or PKI`, async () => {
+          target = { kind, id: 12 };
+          const result = await service.apply(
+            { user: {} },
+            request(mode, { convertVpnReferencesToIp: true }),
+          );
+          assert.deepEqual(result.errors, []);
+          assert.equal(result.applied, mode !== 'dry_run');
+          assert.equal(result.vpnConversions[0].address, '192.0.2.55');
+          assert.equal(result.vpnConversions[0].targetType, 'address');
+          assert.equal(provision.firstCall.args[1].rules[0].source[0].kind, 'address');
+          assert.equal(provision.firstCall.args[1].rules[0].source[0].name, 'Office VPN');
+          assert.equal(optionsOf().vpnConfigIds, undefined);
+          assert.equal(pki.callCount, 0);
+          assert.equal(configs.callCount, 0);
+        });
+      }
+    }
+
+    it('blocks invalid conversion data before the policy engine or VPN provisioners can write', async () => {
+      const result = await service.apply(
+        { user: {} },
+        request('replace_defaults', {
+          convertVpnReferencesToIp: true,
+          parameters: { vpn_office_network: '999.1.2.3' },
+        }),
+      );
+      assert.equal(result.applied, false);
+      assert.ok(result.errors.some((error: string) => error.includes('Office VPN')));
+      assert.ok(result.vpnConversions[0].error);
+      assert.equal(provision.callCount, 0);
+      assert.equal(pki.callCount, 0);
+      assert.equal(configs.callCount, 0);
+    });
+
+    it('refuses existing VPN ids in an IP-only application', async () => {
+      const result = await service.apply(
+        { user: {} },
+        request('replace_defaults', {
+          convertVpnReferencesToIp: true,
+          vpnConnectionIds: { office: 88 },
+        }),
+      );
+      assert.equal(result.applied, false);
+      assert.ok(result.errors.length);
+      assert.equal(provision.callCount, 0);
+      assert.equal(pki.callCount, 0);
+      assert.equal(configs.callCount, 0);
+    });
+  });
+
   describe('preview (dry run)', () => {
     it('lets rules reference the VPN clients a real apply would create, without creating anything', async () => {
       connections = [connection('office', 'openvpn'), connection('branch', 'wireguard')];

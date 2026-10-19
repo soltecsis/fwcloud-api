@@ -360,6 +360,7 @@ export class ReplicationProfileController extends Controller {
         interfaceAddressOverrides: body.interfaceAddressOverrides,
         credentials: body.credentials,
         vpnConnectionIds: body.vpnConnectionIds,
+        convertVpnReferencesToIp: body.convertVpnReferencesToIp,
       },
     );
 

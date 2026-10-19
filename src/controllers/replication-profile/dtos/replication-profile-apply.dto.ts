@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsIn,
+  IsBoolean,
   IsInt,
   IsObject,
   IsOptional,
@@ -113,6 +114,11 @@ export class ReplicationProfileApplySourceProfileDto {
 }
 
 export class ReplicationProfileApplyDto {
+  /** Convert referenced VPN clients into IP objects instead of recreating VPN configurations. */
+  @IsOptional()
+  @IsBoolean()
+  convertVpnReferencesToIp?: boolean;
+
   // Optional: provisioning profiles are applied with just the target (no source).
   @IsOptional()
   @ValidateNested()

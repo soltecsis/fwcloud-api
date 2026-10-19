@@ -28,13 +28,12 @@ export function normalizeProfileVpnRuleParameters<T>(model: T): T {
     const kind = value.kind ?? value.type;
     const reference = record(value.value) ? value.value.param : value.value;
     const client = ['vpnClient', 'network'].includes(kind)
-      ? clients.find(
-          (c) =>
-            c.id === value.vpnId ||
-            c.id === reference ||
-            c.name === reference ||
-            (value.type === 'vpnClient' && c.name === value.name),
-        )
+      ? typeof value.vpnId === 'string' && value.vpnId
+        ? clients.find((c) => c.id === value.vpnId)
+        : (clients.find((c) => typeof c.id === 'string' && c.id === reference) ??
+          clients.find(
+            (c) => typeof c.name === 'string' && (c.name === reference || c.name === value.name),
+          ))
       : undefined;
     if (client) {
       referenced.add(client.id);

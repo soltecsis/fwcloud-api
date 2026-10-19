@@ -54,6 +54,7 @@ import {
   type ReplicationProfileVersionSlot,
 } from './replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-parameters';
+import { convertProfileVpnReferencesToIp } from './profile-vpn-ip-conversion';
 import {
   ProfileVpnCaTemplate,
   ProfileVpnCertificateTemplate,
@@ -97,6 +98,8 @@ export interface ProfileApplicationActor {
 }
 
 export interface ProfileApplicationRequest {
+  /** Resolve VPN policy references to IP objects, without creating VPN/PKI resources. */
+  convertVpnReferencesToIp?: boolean;
   /**
    * FWCloud the wizard is operating on. The profile may have been created from
    * another one, but its target and everything it uses must belong to this one.
@@ -219,7 +222,7 @@ export class ProfileApplicationService extends Service {
       target = await this.validateTarget(request);
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
-      const provision = getProfileProvisioning(model);
+      let provision = getProfileProvisioning(model);
       const parameters = getProfileParameters(model);
       const addressErrors = await applyInterfaceAddressOverrides(
         provision,
@@ -235,6 +238,23 @@ export class ProfileApplicationService extends Service {
         return result;
       }
 
+      const conversion = request.convertVpnReferencesToIp
+        ? convertProfileVpnReferencesToIp(model, provision, request.parameters)
+        : undefined;
+      if (conversion) {
+        provision = conversion.provision;
+        if (request.vpnConnectionIds)
+          conversion.errors.push('VPN-to-IP conversion cannot use existing VPN configuration ids.');
+        if (conversion.errors.length) {
+          const result = {
+            ...this.emptyPolicyReplicationResult(conversion.errors, request.replication.mode),
+            vpnConversions: conversion.vpnConversions,
+          };
+          await this.auditAttempt(actor, request, profile, target, startedAt, result);
+          return result;
+        }
+      }
+
       const objects = await this.resolveObjectReferences(model, provision, request);
       let result: PolicyReplicationResult;
 
@@ -243,6 +263,7 @@ export class ProfileApplicationService extends Service {
           ...this.emptyPolicyReplicationResult(objects.errors, request.replication.mode),
           objectReferences: objects.objectReferences,
           missingObjects: objects.missingObjects,
+          ...(conversion ? { vpnConversions: conversion.vpnConversions } : {}),
         };
         await this.auditAttempt(actor, request, profile, target, startedAt, result);
 
@@ -253,13 +274,9 @@ export class ProfileApplicationService extends Service {
         // The template's CAs/certificates have no keys of their own; a real firewall generates its
         // own when the profile is applied. A dry run must not create them (or anything else) for
         // real: it only stands in for the VPN clients rules may reference.
-        const resourced = await this.provisionVpnResources(
-          request,
-          model,
-          target,
-          vpnRollback,
-          provision,
-        );
+        const resourced = conversion
+          ? { vpnConfigIds: undefined, errors: [] }
+          : await this.provisionVpnResources(request, model, target, vpnRollback, provision);
 
         if (resourced.errors.length > 0 && request.replication.mode !== 'dry_run') {
           // No VPN, no policy: rules that depend on it must not be written without it.
@@ -291,6 +308,8 @@ export class ProfileApplicationService extends Service {
           sourceProfile: { ...request.replication.sourceProfile!, profile },
         });
       }
+
+      if (conversion) result.vpnConversions = conversion.vpnConversions;
 
       if (objects.objectReferences.length > 0) {
         result.objectReferences = objects.objectReferences.map((reference) => {
