@@ -830,6 +830,10 @@ export class PolicyReplicationService extends Service {
       mode === 'merge' || isDryRun
         ? await this.loadProvisionRuleSignatures(firewallId)
         : new Set<string>();
+    // Capture the target's defaults before inserting any profile rules. Profile
+    // rules can have the same comments as FWCloud defaults and must survive cleanup.
+    const defaultRuleIds =
+      mode === 'merge' ? [] : await this.getProvisionDefaultRuleIds(provision, firewallId);
 
     const plannedByType = new Map<number, number>();
 
@@ -919,11 +923,7 @@ export class PolicyReplicationService extends Service {
     // rules there are dropped (merge mode keeps everything). Skipped on errors so a
     // failed apply never leaves a policy without its defaults.
     if (mode !== 'merge' && result.errors.length === 0) {
-      result.removedDefaultRules = await this.removeProvisionDefaultRules(
-        provision,
-        firewallId,
-        isDryRun,
-      );
+      result.removedDefaultRules = await this.removeProvisionDefaultRules(defaultRuleIds, isDryRun);
     }
 
     if (!isDryRun) {
@@ -1727,15 +1727,13 @@ export class PolicyReplicationService extends Service {
   }
 
   /**
-   * Drops FWCloud's default rules (catch-all plus the commented self-host and
-   * ICMP ones) from every policy the profile puts rules in. The stateful rule is
-   * kept: without it the replies of the allowed connections would be discarded.
-   * Returns the ids of the rules removed (or that would be, in dry-run mode).
+   * Identifies existing FWCloud defaults in policies supplied by the profile.
+   * Called before insertion so profile rules with default comments are excluded.
+   * The stateful rule is kept so replies to allowed connections remain accepted.
    */
-  private async removeProvisionDefaultRules(
+  private async getProvisionDefaultRuleIds(
     provision: PolicyReplicationProvision,
     firewallId: number,
-    isDryRun: boolean,
   ): Promise<number[]> {
     const policyTypeIds = new Set<number>();
 
@@ -1756,13 +1754,19 @@ export class PolicyReplicationService extends Service {
       `SELECT id, special, comment FROM policy_r WHERE firewall = ? AND type IN (${sqlPlaceholders(types.length)})`,
       [firewallId, ...types],
     );
-    const ruleIds = rules
+    return rules
       .filter(
         (rule) =>
           rule.special === SPECIAL_CATCHALL || DEFAULT_RULE_COMMENTS.includes(rule.comment ?? ''),
       )
       .map((rule) => rule.id);
+  }
 
+  /** Removes only the defaults captured before inserting the profile rules. */
+  private async removeProvisionDefaultRules(
+    ruleIds: number[],
+    isDryRun: boolean,
+  ): Promise<number[]> {
     if (isDryRun || ruleIds.length === 0) {
       return ruleIds;
     }
