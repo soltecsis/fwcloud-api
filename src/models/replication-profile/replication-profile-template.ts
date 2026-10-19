@@ -20,13 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from '../../fonaments/abstract-application';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import type { ErrorPayload } from '../../fonaments/http/response-builder';
 import { assertProfileDefinitionHasNoSecrets } from './replication-profile-secret.guard';
+import {
+  isReplicationProfileOwnerId,
+  isReplicationProfileStringValue,
+} from './replication-profile.constants';
 import {
   assertReplicationProfilePayloadIsValid,
   validateReplicationProfilePayload,
@@ -45,11 +49,15 @@ import {
  */
 
 export type ReplicationProfileModel = Record<string, unknown>;
+/** Retained versions of a template: the current one and the one it replaced. */
+export const REPLICATION_PROFILE_VERSION_SLOTS = ['latest', 'previous'] as const;
+export type ReplicationProfileVersionSlot = (typeof REPLICATION_PROFILE_VERSION_SLOTS)[number];
 
 /** The profile fields a template is located and validated with. */
 export interface ReplicationProfileTemplateReference {
   code: string;
   version: number;
+  versionSlot?: ReplicationProfileVersionSlot;
   targetKind: string;
   path: string;
 }
@@ -62,7 +70,7 @@ const CUSTOM_TEMPLATES_SEGMENT = 'custom';
 const USER_TEMPLATES_SEGMENT = 'users';
 const TEMPLATE_EXTENSION = '.json';
 /**
- * No segment can be empty, `.` or `..`. Profile codes use the same charset, but
+ * No segment can be empty, `.` or `..`. Dots remain supported in legacy paths;
  * this guard on file paths is kept apart from REPLICATION_PROFILE_CODE_PATTERN
  * on purpose, so widening what a code accepts can never widen what a path does.
  */
@@ -115,16 +123,31 @@ export function getUserReplicationProfileTemplatesDirectory(userId: number): str
 
 /**
  * Deterministic template path of a profile, derived from the same
- * (owner, code, version) key the database keeps unique: built-in profiles
- * (no owner) use `<code>.v<version>.json` and custom ones
- * `custom/users/<user>/<code>.v<version>.json`.
+ * (owner, code, slot) key. Legacy codes containing dots are encoded without
+ * changing their identity, so the dot before the slot is never part of a code:
+ * `office-previous.latest.json` cannot read as the previous slot of `office`.
+ * Display names never become filesystem paths.
  */
 export function buildReplicationProfileTemplatePath(identity: {
   code: string;
-  version: number;
+  version?: number;
+  versionSlot?: ReplicationProfileVersionSlot;
   userId: number | null;
 }): string {
-  const fileName = `${identity.code}.v${identity.version}${TEMPLATE_EXTENSION}`;
+  if (
+    !TEMPLATE_PATH_SEGMENT.test(identity.code) ||
+    (identity.userId !== null && !isReplicationProfileOwnerId(identity.userId)) ||
+    (identity.versionSlot !== undefined &&
+      !isReplicationProfileStringValue(identity.versionSlot, REPLICATION_PROFILE_VERSION_SLOTS))
+  ) {
+    throw new HttpException('Invalid replication profile template identity.', 422);
+  }
+  // A reserved prefix plus the full digest also avoids collisions with ordinary codes.
+  const code =
+    identity.code.length > 230 || identity.code.includes('.') || identity.code.startsWith('legacy-')
+      ? `legacy-${createHash('sha256').update(identity.code).digest('hex')}`
+      : identity.code;
+  const fileName = `${code}.${identity.versionSlot ?? 'latest'}${TEMPLATE_EXTENSION}`;
 
   return typeof identity.userId === 'number'
     ? `${CUSTOM_TEMPLATES_SEGMENT}/${USER_TEMPLATES_SEGMENT}/${identity.userId}/${fileName}`
@@ -215,6 +238,21 @@ export function writeReplicationProfileModel(
   profile: ReplicationProfileTemplateReference,
   model: unknown,
 ): void {
+  const temporaryFile = stageReplicationProfileModel(profile, model);
+  try {
+    fs.renameSync(temporaryFile, resolveReplicationProfileTemplatePath(profile));
+  } catch (error) {
+    throw templateError('unwritable', profile, `could not be written (${errorCode(error)}).`);
+  } finally {
+    if (fs.existsSync(temporaryFile)) fs.rmSync(temporaryFile);
+  }
+}
+
+/** Fully persist new content before either retained slot is replaced. */
+function stageReplicationProfileModel(
+  profile: ReplicationProfileTemplateReference,
+  model: unknown,
+): string {
   assertProfileDefinitionHasNoSecrets(model);
   assertReplicationProfilePayloadIsValid(
     {
@@ -230,11 +268,16 @@ export function writeReplicationProfileModel(
   const temporaryFile = `${file}.${randomUUID()}.tmp`;
 
   try {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    assertRealPathInside(directory, path.dirname(file), profile);
+    prepareTemplateDirectory(directory, file, profile);
     // Written aside and renamed, so a template is never read half written.
-    fs.writeFileSync(temporaryFile, `${JSON.stringify(model, null, 2)}\n`);
-    fs.renameSync(temporaryFile, file);
+    const descriptor = fs.openSync(temporaryFile, 'wx');
+    try {
+      fs.writeFileSync(descriptor, `${JSON.stringify(model, null, 2)}\n`);
+      fs.fsyncSync(descriptor);
+    } finally {
+      fs.closeSync(descriptor);
+    }
+    return temporaryFile;
   } catch (error) {
     // Checked first: removing it throws when its directory could not be created.
     if (fs.existsSync(temporaryFile)) {
@@ -251,9 +294,12 @@ export function writeReplicationProfileModel(
 
 /** Removes the template of a profile; a template already gone is not an error. */
 export function removeReplicationProfileModel(profile: ReplicationProfileTemplateReference): void {
-  const { file } = resolveTemplate(profile);
+  const { directory, file } = resolveTemplate(profile);
 
   try {
+    if (fs.existsSync(path.dirname(file))) {
+      assertRealPathInside(directory, path.dirname(file), profile);
+    }
     fs.rmSync(file, { force: true });
   } catch (error) {
     throw templateError('unwritable', profile, `could not be removed (${errorCode(error)}).`);
@@ -299,6 +345,20 @@ function assertRealPathInside(
   }
 }
 
+/** Check existing ancestors before mkdir can follow a symlink out of the data directory. */
+function prepareTemplateDirectory(
+  directory: string,
+  file: string,
+  profile: ReplicationProfileTemplateReference,
+): void {
+  fs.mkdirSync(directory, { recursive: true });
+  let ancestor = path.dirname(file);
+  while (!fs.existsSync(ancestor)) ancestor = path.dirname(ancestor);
+  assertRealPathInside(directory, ancestor, profile);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  assertRealPathInside(directory, path.dirname(file), profile);
+}
+
 /** Every message names the template and its profile the same way. */
 function templateError(
   reason: ReplicationProfileTemplateErrorReason,
@@ -308,9 +368,99 @@ function templateError(
 ): ReplicationProfileTemplateException {
   return new ReplicationProfileTemplateException(
     reason,
-    `Template "${profile.path}" of replication profile ${profile.code} v${profile.version} ${detail}`,
+    `Template "${profile.path}" of replication profile ${profile.code} (${profile.versionSlot ?? 'latest'}) ${detail}`,
     validationErrors,
   );
+}
+
+/** Compensates filesystem changes if writing, SQL, or the transaction commit fails. */
+export class ReplicationProfileTemplateChanges {
+  private readonly changed = new Set<string>();
+  private readonly originals = new Map<
+    string,
+    { profile: ReplicationProfileTemplateReference; content: Buffer | null }
+  >();
+
+  /** Captures the current content of a template once, and returns its file. */
+  public remember(profile: ReplicationProfileTemplateReference): string {
+    const { directory, file } = resolveTemplate(profile);
+    if (this.originals.has(file)) return file;
+    let content: Buffer | null = null;
+    if (fs.existsSync(file)) {
+      assertRealPathInside(directory, file, profile);
+      content = fs.readFileSync(file);
+    }
+    this.originals.set(file, { profile: { ...profile }, content });
+    return file;
+  }
+
+  public write(profile: ReplicationProfileTemplateReference, model: unknown): void {
+    const file = this.remember(profile);
+    writeReplicationProfileModel(profile, model);
+    this.changed.add(file);
+  }
+
+  public rotate(
+    latest: ReplicationProfileTemplateReference,
+    model: unknown,
+    previous: ReplicationProfileTemplateReference,
+    formerLatest: unknown,
+  ): void {
+    // Both originals are captured before either slot is changed.
+    const file = this.remember(latest);
+    this.remember(previous);
+    const temporaryFile = stageReplicationProfileModel(latest, model);
+    try {
+      this.write(previous, formerLatest);
+      fs.renameSync(temporaryFile, file);
+      this.changed.add(file);
+    } catch (error) {
+      if (error instanceof ReplicationProfileTemplateException) throw error;
+      throw templateError('unwritable', latest, `could not be written (${errorCode(error)}).`);
+    } finally {
+      if (fs.existsSync(temporaryFile)) fs.rmSync(temporaryFile);
+    }
+  }
+
+  public remove(profile: ReplicationProfileTemplateReference): void {
+    const file = this.remember(profile);
+    removeReplicationProfileModel(profile);
+    this.changed.add(file);
+  }
+
+  /** Used by migration to preserve the exact JSON bytes, including extension fields. */
+  public copy(
+    source: ReplicationProfileTemplateReference,
+    target: ReplicationProfileTemplateReference,
+  ): void {
+    const { directory, file } = resolveTemplate(source);
+    assertRealPathInside(directory, file, source);
+    const content = fs.readFileSync(file);
+    JSON.parse(content.toString('utf8'));
+    const targetFile = this.remember(target);
+    this.replace(target, content);
+    this.changed.add(targetFile);
+  }
+
+  public restore(): void {
+    for (const [file, { profile, content }] of [...this.originals].reverse()) {
+      if (!this.changed.has(file)) continue;
+      if (content === null) removeReplicationProfileModel(profile);
+      else this.replace(profile, content);
+    }
+  }
+
+  private replace(profile: ReplicationProfileTemplateReference, content: Buffer): void {
+    const { directory, file } = resolveTemplate(profile);
+    const temporaryFile = `${file}.${randomUUID()}.tmp`;
+    try {
+      prepareTemplateDirectory(directory, file, profile);
+      fs.writeFileSync(temporaryFile, content, { flag: 'wx' });
+      fs.renameSync(temporaryFile, file);
+    } finally {
+      fs.rmSync(temporaryFile, { force: true });
+    }
+  }
 }
 
 function errorCode(error: any): string {

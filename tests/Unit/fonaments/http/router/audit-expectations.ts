@@ -36,7 +36,7 @@ export const INTERNAL_MUTATING_ROUTE_EXCEPTIONS = new Set<string>(['PUT /ping'])
 export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'DELETE /aiassistant': { audited: true },
   'DELETE /backups/:backup': { audited: true },
-  'DELETE /fwclouds/:fwcloud/profiles/:code/:version': { audited: true },
+  'DELETE /fwclouds/:fwcloud/profiles/:code/:profileVersion': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/routeGroups/:routeGroup': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/routingGroups/:routingGroup': { audited: true },
   'DELETE /fwclouds/:fwcloud/firewalls/:firewall/routingRules/:routingRule': { audited: true },
@@ -78,10 +78,11 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',
   },
+  'POST /fwclouds/:fwcloud/profiles/:code/rollback': { audited: true },
   'POST /fwclouds/:fwcloud/profiles/:code/versions': { audited: true },
-  'POST /fwclouds/:fwcloud/profiles/:code/:version/clone': { audited: true },
-  'POST /fwclouds/:fwcloud/profiles/:code/:version/apply': { audited: true },
-  'POST /fwclouds/:fwcloud/profiles/:code/:version/vpn': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/:profileVersion/clone': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/:profileVersion/apply': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/:code/:profileVersion/vpn': { audited: true },
   'POST /fwclouds/:fwcloud/export': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/AIassistant': {
     audited: false,

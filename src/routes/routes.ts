@@ -257,22 +257,29 @@ export class Routes extends RouteCollection {
             .post('/profiles/from-source', ReplicationProfileController, 'storeFromSource')
             .name('fwclouds.profiles.fromSource');
           router
+            .post('/profiles/:code/rollback', ReplicationProfileController, 'rollback')
+            .name('fwclouds.profiles.rollback');
+          router
             .post('/profiles/:code/versions', ReplicationProfileController, 'storeVersion')
             .name('fwclouds.profiles.versions.store');
           router
-            .post('/profiles/:code/:version/clone', ReplicationProfileController, 'clone')
+            .post('/profiles/:code/:profileVersion/clone', ReplicationProfileController, 'clone')
             .name('fwclouds.profiles.clone');
           router
-            .get('/profiles/:code/:version', ReplicationProfileController, 'show')
+            .get('/profiles/:code/:profileVersion', ReplicationProfileController, 'show')
             .name('fwclouds.profiles.show');
           router
-            .delete('/profiles/:code/:version', ReplicationProfileController, 'destroy')
+            .delete('/profiles/:code/:profileVersion', ReplicationProfileController, 'destroy')
             .name('fwclouds.profiles.destroy');
           router
-            .post('/profiles/:code/:version/apply', ReplicationProfileController, 'apply')
+            .post('/profiles/:code/:profileVersion/apply', ReplicationProfileController, 'apply')
             .name('fwclouds.profiles.apply');
           router
-            .post('/profiles/:code/:version/vpn', ReplicationProfileController, 'provisionVpn')
+            .post(
+              '/profiles/:code/:profileVersion/vpn',
+              ReplicationProfileController,
+              'provisionVpn',
+            )
             .name('fwclouds.profiles.provisionVpn');
           router.prefix('/cas', (router: RouterParser) => {
             router.prefix('/:ca', (router: RouterParser) => {

@@ -201,7 +201,8 @@ export class DatabaseService extends Service {
   public async runMigrations(dataSource: DataSource = null): Promise<Migration[]> {
     dataSource = dataSource ? dataSource : this._dataSource;
 
-    return await dataSource.runMigrations();
+    // MySQL schema changes commit implicitly. Data/files migrations manage their own transaction.
+    return await dataSource.runMigrations({ transaction: 'each' });
   }
 
   public async getExecutedMigrations(dataSource?: DataSource): Promise<Migration[]> {
