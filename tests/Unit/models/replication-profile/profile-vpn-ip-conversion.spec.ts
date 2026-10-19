@@ -168,6 +168,52 @@ describe('VPN policy references converted to IP objects', () => {
     assert.equal(result.vpnConversions[0].ipVersion, 6);
   });
 
+  it('keeps the first matching client when duplicate ids also belong to servers or later clients', () => {
+    const model = template();
+    const first = model.vpnTemplate.connections[0];
+    model.vpnTemplate.connections.unshift({ ...first, role: 'server', network: '203.0.113.1/32' });
+    model.vpnTemplate.connections.push({ ...first, network: '203.0.113.2/32' });
+    delete model.vpnRuntime.office;
+    const result = convertProfileVpnReferencesToIp(model, getProfileProvisioning(model), undefined);
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.vpnConversions[0].address, '192.0.2.10');
+  });
+
+  it('checks every rule family even when multiple rules reference the same VPN', () => {
+    const model = template();
+    model.provision.rules[1].ipVersion = 6;
+    const result = convertProfileVpnReferencesToIp(model, getProfileProvisioning(model), undefined);
+    assert.ok(
+      result.vpnConversions.find((entry) => entry.vpnId === 'office')!.error!.includes('IPv6'),
+    );
+    assert.equal(result.provision!.rules[0].source[0].kind, 'vpnClient');
+  });
+
+  for (const conflicting of [false, true]) {
+    it(`shared interface parameter overrides ${conflicting ? 'reject different destination IPs' : 'accept identical destination IPs'}`, () => {
+      const model = template();
+      const provision = getProfileProvisioning(model)!;
+      provision.interfaces = ['wan', 'lan'].map((role, index) => ({
+        name: role,
+        role,
+        addresses: [
+          {
+            value: conflicting && index === 1 ? '198.51.100.100/24' : '198.51.100.99/24',
+            sourceParameter: model.vpnRuntime.office.network.param,
+          },
+        ],
+      }));
+      const result = convertProfileVpnReferencesToIp(model, provision, undefined);
+      if (conflicting) {
+        assert.ok(result.errors.some((error) => error.includes('multiple destination IP values')));
+        assert.equal(result.provision!.rules[0].source[0].kind, 'vpnClient');
+      } else {
+        assert.deepEqual(result.errors, []);
+        assert.equal(result.vpnConversions[0].address, '198.51.100.99');
+      }
+    });
+  }
+
   it('leaves templates without VPN references unchanged', () => {
     const model = template();
     model.provision.rules = [

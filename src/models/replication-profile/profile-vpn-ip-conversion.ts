@@ -1,6 +1,7 @@
 import {
   asReplicationProfileNonEmptyString as text,
   asReplicationProfileRecord as record,
+  type ReplicationProfileRecord,
 } from './replication-profile.constants';
 import {
   dereferenceParameter,
@@ -12,6 +13,7 @@ import {
 import {
   getProfileProvisioningSource,
   type PolicyReplicationProvision,
+  type PolicyReplicationProvisionAddress,
   type PolicyReplicationVpnConversion,
 } from './policy-replication.types';
 
@@ -30,9 +32,24 @@ export function convertProfileVpnReferencesToIp(
 } {
   const source = record(model);
   const template = record(source?.vpnTemplate);
-  const connections = Array.isArray(template?.connections)
-    ? template.connections.map(record).filter(Boolean)
-    : [];
+  // Preserve the first matching client when legacy templates contain duplicate ids.
+  const clients = new Map<unknown, ReplicationProfileRecord>();
+  for (const value of Array.isArray(template?.connections) ? template.connections : []) {
+    const connection = record(value);
+    if (connection?.role === 'client' && !clients.has(connection.id)) {
+      clients.set(connection.id, connection);
+    }
+  }
+  const interfaceValues = new Map<string, PolicyReplicationProvisionAddress['value'][]>();
+  for (const iface of provision?.interfaces ?? []) {
+    for (const address of iface.addresses) {
+      if (address.sourceParameter) {
+        const overrides = interfaceValues.get(address.sourceParameter) ?? [];
+        overrides.push(address.value);
+        interfaceValues.set(address.sourceParameter, overrides);
+      }
+    }
+  }
   const runtime = record(source?.vpnRuntime);
   const conversions = new Map<string, PolicyReplicationVpnConversion>();
   let values: Map<string, unknown>;
@@ -61,9 +78,7 @@ export function convertProfileVpnReferencesToIp(
       return;
     }
     const vpnId = text(item.vpnId) ?? text(item.vpnid) ?? path;
-    const connection = connections.find(
-      (client) => client.id === vpnId && client.role === 'client',
-    );
+    const connection = clients.get(vpnId);
     const sourceName = text(connection?.name) ?? text(item.name) ?? vpnId;
     const conversion = conversions.get(vpnId) ?? {
       vpnId,
@@ -86,12 +101,7 @@ export function convertProfileVpnReferencesToIp(
     let raw = binding === undefined ? connection.network : dereferenceParameter(binding, values);
     // An interface address override is authoritative when the VPN uses that same parameter.
     const parameter = text(record(binding)?.param);
-    const overrides = parameter
-      ? (provision?.interfaces ?? [])
-          .flatMap((iface) => iface.addresses)
-          .filter((address) => address.sourceParameter === parameter)
-          .map((address) => address.value)
-      : [];
+    const overrides = (parameter && interfaceValues.get(parameter)) || [];
     if (overrides.length) {
       const distinct = new Set(overrides.map((value) => JSON.stringify(value)));
       if (distinct.size !== 1) {

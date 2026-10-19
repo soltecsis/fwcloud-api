@@ -15,7 +15,7 @@ export function normalizeProfileVpnRuleParameters<T>(model: T): T {
   const parameters: RecordValue[] = (normalized.parameters ?? normalized.params ?? []).filter(
     record,
   );
-  const byName = new Map(parameters.map((p) => [p.name, p]));
+  const parameterNames = new Set(parameters.map((parameter) => parameter.name));
   const obsolete = new Set<string>();
   const clients = connections.filter((c) => c.role === 'client');
   const referenced = new Set<string>();
@@ -91,13 +91,14 @@ export function normalizeProfileVpnRuleParameters<T>(model: T): T {
     }
     for (const [field, type, label] of requirements) {
       const previous = fields[field]?.param;
-      let name = typeof previous === 'string' && byName.has(previous) ? previous : undefined;
+      let name =
+        typeof previous === 'string' && parameterNames.has(previous) ? previous : undefined;
       if (!name) {
         const base = `vpn_${String(connection.id)
           .replace(/[^A-Za-z0-9_]/g, '_')
           .slice(0, 36)}_${field}`;
         name = base;
-        for (let suffix = 2; byName.has(name); suffix++) name = `${base}_${suffix}`;
+        for (let suffix = 2; parameterNames.has(name); suffix++) name = `${base}_${suffix}`;
         const parameter: RecordValue = {
           name,
           type,
@@ -107,13 +108,17 @@ export function normalizeProfileVpnRuleParameters<T>(model: T): T {
           ...(connection[field] ? { default: connection[field] } : {}),
         };
         parameters.push(parameter);
-        byName.set(name, parameter);
+        parameterNames.add(name);
       }
       fields[field] = { param: name };
     }
     runtime[connection.id] = fields;
   }
   normalized.vpnRuntime = runtime;
+  if (obsolete.size === 0) {
+    normalized.parameters = parameters;
+    return normalized as T;
+  }
   // Remove the network substitutions produced by older versions only if no real object still uses them.
   const used = new Set<string>();
   const collect = (v: unknown): void => {
