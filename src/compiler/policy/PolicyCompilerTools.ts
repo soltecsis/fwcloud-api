@@ -46,6 +46,14 @@ POLICY_TYPE[65] = 'PREROUTING'; // IPv6
 
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
+export function crowdSecBlockingIptablesChain(family: string, chain: string): string {
+  return `FWC_CROWDSEC_${family === 'ip6' ? 'V6' : 'V4'}_${chain}`;
+}
+
+export function crowdSecBlockingNftCounter(family: string, chain: string): string {
+  return `fwcloud_crowdsec_${family === 'ip6' ? 'v6' : 'v4'}_${chain.toLowerCase()}`;
+}
+
 const CompilerDir = new Map<string, string>([
   ['IPTables:IN', '-i'],
   ['NFTables:IN', 'iifname'],
@@ -181,7 +189,16 @@ export abstract class PolicyCompilerTools {
 
         const setName = `crowdsec${this._family === 'ip6' ? '6' : ''}-blacklists`;
         const sourceAddress = this._family === 'ip6' ? 'ip6 saddr' : 'ip saddr';
-        this._csEnd = `${this._compiler == 'IPTables' ? `-m set --match-set ${setName} src -j` : `${sourceAddress} @${setName}`} ${this._action}\n`;
+        const chain = POLICY_TYPE[this._policyType];
+
+        if (this._ruleData.action === RuleActionsMap.get('DROP')) {
+          this._csEnd =
+            this._compiler === 'IPTables'
+              ? `-j ${crowdSecBlockingIptablesChain(this._family, chain)}\n`
+              : `${sourceAddress} @${setName} counter name ${crowdSecBlockingNftCounter(this._family, chain)} drop\n`;
+        } else {
+          this._csEnd = `${this._compiler == 'IPTables' ? `-m set --match-set ${setName} src -j` : `${sourceAddress} @${setName}`} ${this._action}\n`;
+        }
         break;
       }
       case SpecialPolicyRules.FAIL2BAN:
