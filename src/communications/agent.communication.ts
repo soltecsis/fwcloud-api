@@ -31,6 +31,7 @@ import {
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
+  CrowdSecLapiMachines,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
   CrowdSecTransitionPrepare,
@@ -113,6 +114,10 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   CROWDSEC_MACHINE_NOT_FOUND: {
     message: 'CrowdSec machine was not found',
     status: 404,
+  },
+  CROWDSEC_MACHINE_PROTECTED: {
+    message: 'The local CrowdSec LAPI Machine cannot be removed',
+    status: 409,
   },
   CROWDSEC_MACHINE_REAUTHENTICATION_REQUIRED: {
     message: 'CrowdSec machine must be registered and validated again',
@@ -1332,9 +1337,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+  async getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines> {
     try {
-      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/machines');
+      return (await this.runCrowdSecGetOperation(
+        '/api/v1/crowdsec/lapi/machines',
+      )) as CrowdSecLapiMachines;
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }

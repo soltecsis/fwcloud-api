@@ -109,6 +109,18 @@ export type CrowdSecMachineCredentials = {
   password: string;
 };
 
+export type CrowdSecLapiMachine = {
+  name: string;
+  state: 'pending' | 'validated' | 'unknown';
+  ip_address?: string | null;
+  os?: string | null;
+  last_heartbeat?: string | null;
+};
+
+export type CrowdSecLapiMachines = {
+  machines: CrowdSecLapiMachine[];
+};
+
 export type CrowdSecMachineActivation = {
   machineName: string;
   localRemediation: boolean;
@@ -293,7 +305,7 @@ export abstract class Communication<ConnectionData> {
     name: string,
     apiKey: string,
   ): Promise<Record<string, unknown>>;
-  abstract getCrowdSecLapiMachines(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines>;
   abstract validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract installCrowdSecMachine(
