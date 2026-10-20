@@ -122,13 +122,18 @@ const collectControllerRoutes = async (): Promise<ControllerRouteIndexEntry[]> =
 };
 
 describe('Controller route audit expectations coverage', () => {
-  it('exposes profile management without assisted-profile endpoints', async () => {
+  it('exposes profile management and template transfers without assisted-generation endpoints', async () => {
     const routes = await collectControllerRoutes();
     const paths = routes.map((route) => route.path);
 
-    // The assisted-profile (fwcloud-ai-agent) surface is gone. The pre-existing
-    // OpenAI assistant under /aiassistant is unrelated and stays.
-    expect(paths.some((path) => /\/assistant\//.test(path))).to.equal(false);
+    // Only template transfers use /assistant; the fwcloud-ai-agent generation surface stays absent.
+    // The pre-existing OpenAI assistant under /aiassistant is unrelated and stays.
+    expect(
+      routes.filter((route) => /\/assistant\//.test(route.path)).map((route) => route.key),
+    ).to.have.members([
+      'GET /fwclouds/:fwcloud/assistant/profiles/:code/export',
+      'POST /fwclouds/:fwcloud/assistant/profiles/import',
+    ]);
     expect(paths.some((path) => /drafts/.test(path))).to.equal(false);
     expect(paths).to.include('/fwclouds/:fwcloud/profiles');
     expect(paths).to.include('/fwclouds/:fwcloud/profiles/:code/:profileVersion/apply');

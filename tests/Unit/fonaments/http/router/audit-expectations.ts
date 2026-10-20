@@ -72,8 +72,10 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /backups/:backup/restore': { audited: true },
   'POST /backups/import': { audited: true },
   'POST /fwclouds': { audited: true },
+  'POST /fwclouds/:fwcloud/assistant/profiles/import': { audited: true },
   'POST /fwclouds/:fwcloud/profiles': { audited: true },
   'POST /fwclouds/:fwcloud/profiles/from-source': { audited: true },
+  'POST /fwclouds/:fwcloud/profiles/import': { audited: true },
   'POST /fwclouds/:fwcloud/profiles/validate': {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',
