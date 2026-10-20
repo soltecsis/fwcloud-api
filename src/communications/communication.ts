@@ -98,6 +98,41 @@ export type CrowdSecConsoleEnrollment = {
 
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
+export type CrowdSecFirewallBouncerStatisticsState = 'available' | 'unavailable';
+
+export type CrowdSecFirewallBouncerStatisticsSamplingConfig = {
+  enabled: boolean;
+  samplingInterval: number;
+  requestMaxSamples: number;
+  cacheMaxSize: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsCounter = {
+  packets: number;
+  bytes: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsAddressCounter = {
+  address: string;
+  packets: number;
+  bytes: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsSample = {
+  collectedAt: string;
+  policyGeneration: number;
+  ipv4Input: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv4Forward: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv6Input: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv6Forward: CrowdSecFirewallBouncerStatisticsCounter;
+  addresses: CrowdSecFirewallBouncerStatisticsAddressCounter[];
+};
+
+export type CrowdSecFirewallBouncerStatisticsSamples = {
+  state: CrowdSecFirewallBouncerStatisticsState;
+  samples: CrowdSecFirewallBouncerStatisticsSample[];
+};
+
 export type CrowdSecMachineInstall = {
   machineName: string;
   lapiUrl: string;
