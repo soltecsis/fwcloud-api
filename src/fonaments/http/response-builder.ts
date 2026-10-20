@@ -54,6 +54,7 @@ interface FileAttached {
 interface ContentAttached {
   content: string;
   filename?: string;
+  contentType?: string;
 }
 
 interface DataPayload {
@@ -119,10 +120,15 @@ export class ResponseBuilder {
     return this;
   }
 
-  public downloadContent(content: string, filename?: string): ResponseBuilder {
+  public downloadContent(
+    content: string,
+    filename?: string,
+    contentType?: string,
+  ): ResponseBuilder {
     this._attachment = {
       content,
       filename,
+      contentType,
     };
     return this;
   }
@@ -182,7 +188,7 @@ export class ResponseBuilder {
         'Content-disposition',
         'attachment; filename=' + (this._attachment.filename ?? 'file.text'),
       );
-      this._response.set('Content-Type', 'text/plain');
+      this._response.set('Content-Type', this._attachment.contentType ?? 'text/plain');
 
       redStream.pipe(this._response);
 
