@@ -35,6 +35,8 @@ import {
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
+  CrowdSecFirewallBouncerStatisticsSamples,
+  CrowdSecFirewallBouncerStatisticsSamplingConfig,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
@@ -804,6 +806,24 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   }
 
   getCrowdSecBouncers(): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    throw new Error('Method not implemented.');
+  }
+
+  takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig> {
+    throw new Error('Method not implemented.');
+  }
+
+  updateCrowdSecFirewallBouncerStatisticsSampling(
+    _config: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void> {
     throw new Error('Method not implemented.');
   }
 

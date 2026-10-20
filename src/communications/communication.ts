@@ -323,6 +323,12 @@ export abstract class Communication<ConnectionData> {
   abstract flushCrowdSecDecisions(confirm: boolean): Promise<Record<string, unknown>>;
   abstract getCrowdSecAlerts(query?: CrowdSecAlertsQuery): Promise<Record<string, unknown>>;
   abstract getCrowdSecBouncers(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
+  abstract takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
+  abstract getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig>;
+  abstract updateCrowdSecFirewallBouncerStatisticsSampling(
+    config: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void>;
   abstract registerCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract uninstallCrowdSecBouncer(

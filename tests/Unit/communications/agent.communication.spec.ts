@@ -568,6 +568,90 @@ describe(AgentCommunication.name, () => {
     });
   });
 
+  describe('CrowdSec Firewall Bouncer statistics', () => {
+    const sample = {
+      collected_at: '2026-10-20T10:00:00.000Z',
+      policy_generation: 2,
+      ipv4_input: { packets: 10, bytes: 1000 },
+      ipv4_forward: { packets: 20, bytes: 2000 },
+      ipv6_input: { packets: 30, bytes: 3000 },
+      ipv6_forward: { packets: 40, bytes: 4000 },
+      addresses: [{ address: '192.0.2.1', packets: 50, bytes: 5000 }],
+    };
+
+    it('should retrieve and consume cached samples from the agent', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: { state: 'available', samples: [sample] },
+      });
+      const putStub = sinon.stub(axios, 'put').resolves({
+        status: 200,
+        data: { state: 'available', samples: [sample] },
+      });
+
+      const statistics = await agent.getCrowdSecFirewallBouncerStatistics();
+      const consumedStatistics = await agent.takeCrowdSecFirewallBouncerStatistics();
+
+      expect(getStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics',
+      );
+      expect(putStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics/samples',
+      );
+      expect(putStub.firstCall.args[1]).to.deep.equal({});
+      expect(statistics).to.deep.equal({
+        state: 'available',
+        samples: [
+          {
+            collectedAt: sample.collected_at,
+            policyGeneration: sample.policy_generation,
+            ipv4Input: sample.ipv4_input,
+            ipv4Forward: sample.ipv4_forward,
+            ipv6Input: sample.ipv6_input,
+            ipv6Forward: sample.ipv6_forward,
+            addresses: sample.addresses,
+          },
+        ],
+      });
+      expect(consumedStatistics).to.deep.equal(statistics);
+    });
+
+    it('should read and update sampling configuration through the agent', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: {
+          enabled: true,
+          sampling_interval: 30,
+          request_max_samples: 1000,
+          cache_max_size: 10485760,
+        },
+      });
+      const putStub = sinon.stub(axios, 'put').resolves({ status: 200 });
+
+      const sampling = await agent.getCrowdSecFirewallBouncerStatisticsSampling();
+      await agent.updateCrowdSecFirewallBouncerStatisticsSampling(sampling);
+
+      expect(getStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics/sampling',
+      );
+      expect(sampling).to.deep.equal({
+        enabled: true,
+        samplingInterval: 30,
+        requestMaxSamples: 1000,
+        cacheMaxSize: 10485760,
+      });
+      expect(putStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics/sampling',
+      );
+      expect(putStub.firstCall.args[1]).to.deep.equal({
+        enabled: true,
+        sampling_interval: 30,
+        request_max_samples: 1000,
+        cache_max_size: 10485760,
+      });
+    });
+  });
+
   describe('Firewall policy installation', () => {
     it('should forward the CrowdSec backend in the agent upload form', async () => {
       const append = sinon.spy(FormData.prototype, 'append');
