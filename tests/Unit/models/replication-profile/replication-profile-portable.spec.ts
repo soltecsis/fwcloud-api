@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { ValidationException } from '../../../../src/fonaments/exceptions/validation-exception';
 import {
   parseReplicationProfileDocument,
   portableProfileModel,
@@ -216,5 +217,98 @@ describe('Replication profile portable format', () => {
       ip_version: 4,
     });
     expect(original.objectReferences[0].snapshot.members[0].id).to.eq(456);
+  });
+
+  it('removes ids throughout host snapshots without touching other model ids or sharing input data', () => {
+    const original = {
+      id: 1,
+      options: { id: 2 },
+      objectReferences: [
+        {
+          referenceId: 'host',
+          objectType: 'host',
+          sourceName: 'Host',
+          snapshot: {
+            id: 3,
+            type: 8,
+            name: 'Host',
+            interfaces: [
+              {
+                id: 4,
+                name: 'eth0',
+                addresses: [{ id: 5, name: 'Address', address: '192.0.2.5' }],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const before = JSON.stringify(original);
+    const portable = portableProfileModel(original) as typeof original;
+    const snapshot = portable.objectReferences[0].snapshot;
+    expect(portable.id).to.eq(1);
+    expect(portable.options.id).to.eq(2);
+    expect(snapshot).not.to.have.property('id');
+    expect(snapshot.interfaces[0]).not.to.have.property('id');
+    expect(snapshot.interfaces[0].addresses[0]).not.to.have.property('id');
+    snapshot.interfaces[0].addresses[0].name = 'Changed';
+    portable.options.id = 9;
+    expect(JSON.stringify(original)).to.eq(before);
+  });
+
+  for (const [key, value, message] of [
+    ['description', 1, 'description must be a string or null.'],
+    ['category', [], 'category must be a string or null.'],
+    ['scope', null, 'scope must be a nonempty string of at most 255 characters.'],
+    ['targetKind', 'router', 'targetKind must be firewall or cluster.'],
+  ] as const) {
+    it(`preserves the validation response for invalid ${key}`, () => {
+      const input = document();
+      try {
+        parseReplicationProfileDocument({ ...input, profile: { ...input.profile, [key]: value } });
+        expect.fail('Expected an invalid metadata error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ValidationException);
+        expect(error.status).to.eq(422);
+        expect(error.message).to.eq('Invalid replication profile import.');
+        expect(error.toResponse().errors).to.deep.eq({ [`profile.${key}`]: [message] });
+      }
+    });
+  }
+
+  it('validates unknown metadata fields before invalid known fields', () => {
+    const input = document();
+    try {
+      parseReplicationProfileDocument({
+        ...input,
+        profile: { ...input.profile, name: '../unsafe', isBuiltin: true },
+      });
+      expect.fail('Expected an unsupported field error');
+    } catch (error) {
+      expect(error).to.be.instanceOf(ValidationException);
+      expect(error.toResponse().errors).to.deep.eq({ 'profile.isBuiltin': ['Unsupported field.'] });
+    }
+  });
+
+  it('preserves independently normalized metadata for the previous version', () => {
+    const input = document();
+    const metadata = {
+      ...input.profile,
+      name: 'Previous Template',
+      scope: 'previous-scope',
+      targetKind: 'cluster',
+      description: null,
+      category: null,
+    };
+    const model = {
+      compatibility: { target_kinds: ['cluster'] },
+      topologyPreset: { nodes: [{ role: 'primary' }, { role: 'secondary' }] },
+    };
+    const parsed = parseReplicationProfileDocument({
+      ...input,
+      versions: { ...input.versions, previous: { metadata, model } },
+    });
+    expect(parsed.versions.previous).to.deep.eq({ metadata, model });
+    expect(parsed.profile.targetKind).to.eq('firewall');
   });
 });

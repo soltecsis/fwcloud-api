@@ -172,6 +172,13 @@ interface CustomReplicationProfileIdentity {
   userId: number;
 }
 
+interface CustomReplicationProfilePersistenceOptions {
+  freeCode?: boolean;
+  freeName?: boolean;
+  rejectExisting?: boolean;
+  previous?: CreateCustomReplicationProfileVersionPayload;
+}
+
 const DEFAULT_CUSTOM_PROFILE_VERSION = 1;
 
 export class ReplicationProfileService extends Service {
@@ -234,15 +241,9 @@ export class ReplicationProfileService extends Service {
       return [];
     }
 
-    const profiles = await this.repository.find({
-      where: scopes,
-      order: {
-        code: 'ASC',
-        version: 'DESC',
-      },
-    });
+    const profiles = await this.repository.find({ where: scopes });
 
-    // Only the latest slot is read, which is unique per owner and code.
+    // Sort once, including the built-in/custom precedence that SQL ordering did not cover.
     return this.filterCatalogProfiles(
       profiles.sort((left, right) => this.compareCatalogProfiles(left, right)),
       filters,
@@ -385,22 +386,21 @@ export class ReplicationProfileService extends Service {
       },
     });
     try {
-      return {
+      const document: ReplicationProfilePortableDocument = {
         format: REPLICATION_PROFILE_FORMAT,
         formatVersion: REPLICATION_PROFILE_FORMAT_VERSION,
         profile: portableProfileMetadata(latest),
         versions: {
           latest: { model: portableProfileModel(loadReplicationProfileModel(latest)) },
-          ...(previous
-            ? {
-                previous: {
-                  metadata: portableProfileMetadata(previous),
-                  model: portableProfileModel(loadReplicationProfileModel(previous)),
-                },
-              }
-            : {}),
         },
       };
+      if (previous) {
+        document.versions.previous = {
+          metadata: portableProfileMetadata(previous),
+          model: portableProfileModel(loadReplicationProfileModel(previous)),
+        };
+      }
+      return document;
     } catch (error) {
       // Loader diagnostics may contain paths or JSON parser excerpts from a damaged file.
       if (error instanceof ReplicationProfileTemplateException)
@@ -444,9 +444,9 @@ export class ReplicationProfileService extends Service {
       { code: document.profile.code, version: previous ? 2 : 1, userId },
       {
         rejectExisting: true,
-        ...(previous
-          ? { previous: { ...(previous.metadata ?? document.profile), model: previous.model } }
-          : {}),
+        previous: previous
+          ? { ...(previous.metadata ?? document.profile), model: previous.model }
+          : undefined,
       },
     );
   }
@@ -674,12 +674,13 @@ export class ReplicationProfileService extends Service {
       // A restored version takes the current name: the name belongs to the template.
       const name = payload ? payload.name : latest.name;
       assertReplicationProfileName(name);
+      const nameKey = replicationProfileNameKey(name);
       if (
-        replicationProfileNameKey(name) !== replicationProfileNameKey(latest.name) &&
+        nameKey !== replicationProfileNameKey(latest.name) &&
         this.currentNameKeys(
           await repository.find({ where: this.ownedCustomProfileWhere({}, userId) }),
           latest.code,
-        ).has(replicationProfileNameKey(name))
+        ).has(nameKey)
       )
         throw replicationProfileNameTakenException();
       this.assertDefinitionIsValid({ targetKind: metadata.targetKind ?? latest.targetKind, model });
@@ -687,11 +688,7 @@ export class ReplicationProfileService extends Service {
       // Advance the internal revision before reusing its value on the previous row.
       // Applied object bindings still refer to their original numeric revision.
       Object.assign(latest, {
-        name,
-        description: metadata.description ?? null,
-        scope: metadata.scope,
-        category: metadata.category ?? null,
-        targetKind: metadata.targetKind ?? DEFAULT_CUSTOM_PROFILE_TARGET_KIND,
+        ...this.profileMetadata(metadata, name),
         version: Math.max(...profiles.map((profile) => profile.version)) + 1,
         updated_at: new Date(),
         updated_by: userId,
@@ -1188,12 +1185,7 @@ export class ReplicationProfileService extends Service {
     payload: CreateCustomReplicationProfileVersionPayload,
     options: CreateCustomReplicationProfileOptions,
     identity: CustomReplicationProfileIdentity,
-    persistence: {
-      freeCode?: boolean;
-      freeName?: boolean;
-      rejectExisting?: boolean;
-      previous?: CreateCustomReplicationProfileVersionPayload;
-    } = {},
+    persistence: CustomReplicationProfilePersistenceOptions = {},
   ): Promise<ReplicationProfile> {
     const { userId } = identity;
     const now = new Date();
@@ -1201,50 +1193,54 @@ export class ReplicationProfileService extends Service {
     return replicationProfileTransaction(userId, async (manager, files) => {
       const repository = manager.getRepository(ReplicationProfile);
       const owned = await repository.find({ where: this.ownedCustomProfileWhere({}, userId) });
+      let code = identity.code;
+      let name = payload.name;
       if (persistence.rejectExisting) {
+        const codeKey = code.toLowerCase();
+        const nameKey = replicationProfileNameKey(name);
         const conflicts = owned.filter(
           (profile) =>
-            profile.code.toLowerCase() === identity.code.toLowerCase() ||
+            profile.code.toLowerCase() === codeKey ||
             (profile.versionSlot === 'latest' &&
-              replicationProfileNameKey(profile.name) === replicationProfileNameKey(payload.name)),
+              replicationProfileNameKey(profile.name) === nameKey),
         );
         if (conflicts.length) throw new ReplicationProfileImportConflictException(conflicts);
-      }
-      const codes = new Set(
-        owned
-          .filter((profile) => profile.isActive && !profile.isDeprecated)
-          .map((profile) => profile.code.toLowerCase()),
-      );
-      const code = persistence.freeCode
-        ? firstFreeReplicationProfileValue(identity.code, '-', (candidate) =>
+      } else {
+        const codes = new Set(
+          owned
+            .filter((profile) => profile.isActive && !profile.isDeprecated)
+            .map((profile) => profile.code.toLowerCase()),
+        );
+        if (persistence.freeCode)
+          code = firstFreeReplicationProfileValue(code, '-', (candidate) =>
             codes.has(candidate.toLowerCase()),
-          )
-        : identity.code;
-      if (codes.has(code.toLowerCase())) {
-        throw new HttpException(`Replication profile "${code}" already exists for this user.`, 409);
-      }
-      const names = this.currentNameKeys(owned);
-      const name = persistence.freeName
-        ? firstFreeReplicationProfileValue(payload.name, ' ', (candidate) =>
+          );
+        const codeKey = code.toLowerCase();
+        if (codes.has(codeKey)) {
+          throw new HttpException(
+            `Replication profile "${code}" already exists for this user.`,
+            409,
+          );
+        }
+        const names = this.currentNameKeys(owned);
+        if (persistence.freeName)
+          name = firstFreeReplicationProfileValue(name, ' ', (candidate) =>
             names.has(replicationProfileNameKey(candidate)),
-          )
-        : payload.name;
-      if (names.has(replicationProfileNameKey(name))) throw replicationProfileNameTakenException();
-      // Only inactive or deprecated rows can be left with this code; they are replaced.
-      const existing = owned.filter((profile) => profile.code.toLowerCase() === code.toLowerCase());
-      for (const old of existing) files.remove(old);
-      if (existing.length) await repository.remove(existing);
+          );
+        if (names.has(replicationProfileNameKey(name)))
+          throw replicationProfileNameTakenException();
+        // Creation and cloning replace inactive/deprecated rows; import never replaces them.
+        const existing = owned.filter((profile) => profile.code.toLowerCase() === codeKey);
+        for (const old of existing) files.remove(old);
+        if (existing.length) await repository.remove(existing);
+      }
       const savedProfile = await repository.save(
         repository.create({
+          ...this.profileMetadata(payload, name),
           code,
           version: identity.version,
           versionSlot: 'latest',
-          name,
-          description: payload.description ?? null,
-          scope: payload.scope,
-          targetKind: this.effectiveProfileTargetKind(payload.targetKind),
           path: buildReplicationProfileTemplatePath({ ...identity, code }),
-          category: payload.category ?? null,
           isBuiltin: false,
           isActive: true,
           isDeprecated: false,
@@ -1261,13 +1257,8 @@ export class ReplicationProfileService extends Service {
       if (persistence.previous) {
         const previous = repository.create({
           ...savedProfile,
-          ...portableProfileMetadata({
-            ...savedProfile,
-            ...persistence.previous,
-            targetKind: this.effectiveProfileTargetKind(persistence.previous.targetKind),
-          }),
+          ...this.profileMetadata(persistence.previous),
           id: undefined,
-          code,
           version: 1,
           versionSlot: 'previous',
           path: buildReplicationProfileTemplatePath({ ...identity, code, versionSlot: 'previous' }),
@@ -1279,8 +1270,23 @@ export class ReplicationProfileService extends Service {
     });
   }
 
+  /** Metadata shared by creation, import and version rotation. Identity and audit fields stay separate. */
+  private profileMetadata(
+    payload: Omit<CreateCustomReplicationProfileVersionPayload, 'model'>,
+    name = payload.name,
+  ): Pick<ReplicationProfile, 'name' | 'description' | 'scope' | 'targetKind' | 'category'> {
+    return {
+      name,
+      description: payload.description ?? null,
+      scope: payload.scope,
+      targetKind: this.effectiveProfileTargetKind(payload.targetKind),
+      category: payload.category ?? null,
+    };
+  }
+
   /** Name keys of the current templates of an owner, except those of `exceptCode`. */
   private currentNameKeys(owned: ReplicationProfile[], exceptCode?: string): Set<string> {
+    const exceptCodeKey = exceptCode?.toLowerCase();
     return new Set(
       owned
         .filter(
@@ -1288,7 +1294,7 @@ export class ReplicationProfileService extends Service {
             profile.versionSlot === 'latest' &&
             profile.isActive &&
             !profile.isDeprecated &&
-            profile.code.toLowerCase() !== exceptCode?.toLowerCase(),
+            profile.code.toLowerCase() !== exceptCodeKey,
         )
         .map((profile) => replicationProfileNameKey(profile.name)),
     );

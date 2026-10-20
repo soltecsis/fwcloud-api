@@ -1,12 +1,19 @@
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { ValidationException } from '../../fonaments/exceptions/validation-exception';
-import { asReplicationProfileRecord } from './replication-profile.constants';
+import {
+  asReplicationProfileRecord,
+  isReplicationProfileStringValue,
+  REPLICATION_PROFILE_TARGET_KINDS,
+} from './replication-profile.constants';
 import type { ReplicationProfileTargetKind } from './replication-profile.constants';
 import {
   assertReplicationProfileCode,
   assertReplicationProfileName,
 } from './replication-profile-name';
-import type { ReplicationProfileModel } from './replication-profile-template';
+import type {
+  ReplicationProfileModel,
+  ReplicationProfileVersionSlot,
+} from './replication-profile-template';
 import { assertReplicationProfilePayloadIsValid } from './replication-profile-validation.service';
 
 export const REPLICATION_PROFILE_FORMAT = 'fwcloud-replication-profile';
@@ -70,15 +77,17 @@ export function portableProfileModel(model: ReplicationProfileModel): Replicatio
 }
 
 function withoutSnapshotIds(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(withoutSnapshotIds);
-  const record = asReplicationProfileRecord(value);
-  return record
-    ? Object.fromEntries(
-        Object.entries(record)
-          .filter(([key]) => key !== 'id')
-          .map(([key, item]) => [key, withoutSnapshotIds(item)]),
-      )
-    : value;
+  // The model was already cloned. Prune that copy without rebuilding every snapshot again.
+  if (Array.isArray(value)) {
+    value.forEach(withoutSnapshotIds);
+  } else {
+    const record = asReplicationProfileRecord(value);
+    if (record) {
+      delete record.id;
+      Object.values(record).forEach(withoutSnapshotIds);
+    }
+  }
+  return value;
 }
 
 /** Checks the transport contract and delegates all model validation to the domain validator. */
@@ -95,37 +104,41 @@ export function parseReplicationProfileDocument(
     invalid('formatVersion', 'Unsupported template format version.');
   const profile = parseMetadata(root.profile, 'profile');
   const versions = recordWithKeys(root.versions, ['latest', 'previous'], 'versions');
-  const parseVersion = (value: unknown, slot: string): ReplicationProfilePortableVersion => {
-    const version = recordWithKeys(
-      value,
-      slot === 'previous' ? ['model', 'metadata'] : ['model'],
-      `versions.${slot}`,
-    );
-    const metadata =
-      version.metadata === undefined
-        ? profile
-        : parseMetadata(version.metadata, `versions.${slot}.metadata`);
-    if (metadata.code !== profile.code)
-      invalid(`versions.${slot}.metadata.code`, 'Version codes must match.');
-    const model = asReplicationProfileRecord(version.model);
-    if (!model || Object.keys(model).length === 0)
-      invalid(`versions.${slot}.model`, 'A complete template model is required.');
-    assertReplicationProfilePayloadIsValid({ ...metadata, model });
-    return {
-      model: portableProfileModel(model),
-      ...(version.metadata === undefined ? {} : { metadata }),
-    };
-  };
-  return {
+  const document: ReplicationProfilePortableDocument = {
     format: REPLICATION_PROFILE_FORMAT,
     formatVersion: REPLICATION_PROFILE_FORMAT_VERSION,
     profile,
     versions: {
-      latest: parseVersion(versions.latest, 'latest'),
-      ...(versions.previous == null
-        ? {}
-        : { previous: parseVersion(versions.previous, 'previous') }),
+      latest: parseVersion(versions.latest, 'latest', profile),
     },
+  };
+  if (versions.previous != null)
+    document.versions.previous = parseVersion(versions.previous, 'previous', profile);
+  return document;
+}
+
+function parseVersion(
+  value: unknown,
+  slot: ReplicationProfileVersionSlot,
+  profile: ReplicationProfilePortableMetadata,
+): ReplicationProfilePortableVersion {
+  const field = `versions.${slot}`;
+  const version = recordWithKeys(
+    value,
+    slot === 'previous' ? ['model', 'metadata'] : ['model'],
+    field,
+  );
+  const metadata =
+    version.metadata === undefined ? profile : parseMetadata(version.metadata, `${field}.metadata`);
+  if (metadata.code !== profile.code)
+    invalid(`${field}.metadata.code`, 'Version codes must match.');
+  const model = asReplicationProfileRecord(version.model);
+  if (!model || Object.keys(model).length === 0)
+    invalid(`${field}.model`, 'A complete template model is required.');
+  assertReplicationProfilePayloadIsValid({ ...metadata, model });
+  return {
+    model: portableProfileModel(model),
+    ...(version.metadata === undefined ? {} : { metadata }),
   };
 }
 
@@ -135,33 +148,30 @@ function parseMetadata(value: unknown, field: string): ReplicationProfilePortabl
     ['code', 'name', 'description', 'scope', 'category', 'targetKind'],
     field,
   );
-  assertReplicationProfileName(metadata.name);
-  assertReplicationProfileCode(metadata.code);
-  for (const key of ['description', 'category']) {
-    if (
-      metadata[key] != null &&
-      (typeof metadata[key] !== 'string' || (key === 'category' && metadata[key].length > 255))
-    )
-      invalid(`${field}.${key}`, `${key} must be a string or null.`);
-  }
-  if (
-    metadata.scope !== undefined &&
-    (typeof metadata.scope !== 'string' || !metadata.scope.trim() || metadata.scope.length > 255)
-  )
+  const { code, name, scope = 'generic', targetKind } = metadata;
+  assertReplicationProfileName(name);
+  assertReplicationProfileCode(code);
+  const description = parseNullableMetadataString(metadata.description, field, 'description');
+  const category = parseNullableMetadataString(metadata.category, field, 'category');
+  if (typeof scope !== 'string' || !scope.trim() || scope.length > 255)
     invalid(`${field}.scope`, 'scope must be a nonempty string of at most 255 characters.');
-  if (metadata.targetKind !== 'firewall' && metadata.targetKind !== 'cluster')
+  if (!isReplicationProfileStringValue(targetKind, REPLICATION_PROFILE_TARGET_KINDS))
     invalid(`${field}.targetKind`, 'targetKind must be firewall or cluster.');
-  return {
-    code: metadata.code as string,
-    name: metadata.name as string,
-    description: (metadata.description as string) ?? null,
-    scope: (metadata.scope as string) ?? 'generic',
-    category: (metadata.category as string) ?? null,
-    targetKind: metadata.targetKind,
-  };
+  return { code, name, description, scope, category, targetKind };
 }
 
-function recordWithKeys(value: unknown, keys: string[], field: string): Record<string, any> {
+function parseNullableMetadataString(
+  value: unknown,
+  field: string,
+  key: 'description' | 'category',
+): string | null {
+  if (value == null) return null;
+  if (typeof value !== 'string' || (key === 'category' && value.length > 255))
+    invalid(`${field}.${key}`, `${key} must be a string or null.`);
+  return value;
+}
+
+function recordWithKeys(value: unknown, keys: string[], field: string): Record<string, unknown> {
   const record = asReplicationProfileRecord(value);
   if (!record) invalid(field, `${field} must be an object.`);
   for (const key of Object.keys(record)) {
