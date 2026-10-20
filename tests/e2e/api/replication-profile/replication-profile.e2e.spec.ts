@@ -2076,6 +2076,18 @@ describe(describeName('Replication Profile E2E Tests'), () => {
 
       await db.getSource().manager.getRepository(IPObj).delete(object.id);
 
+      // A source id may be recycled in this or another installation. Its new object must
+      // neither replace the stored snapshot nor be changed when that snapshot is recreated.
+      const recycled = await db.getSource().manager.getRepository(IPObj).save({
+        id: object.id,
+        name: 'Unrelated object with recycled id',
+        ipObjTypeId: 5,
+        ip_version: 4,
+        address: '203.0.113.99',
+        netmask: '/32',
+        fwCloudId: fwCloud.id,
+      });
+
       const url = `/fwclouds/${fwCloud.id}/profiles/${profile.code}/${profile.versionSlot}`;
       const loaded = await request(app.express)
         .get(url)
@@ -2125,6 +2137,9 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       });
       expect(recreated.id).to.be.greaterThan(0);
       expect(recreated.id).not.to.eq(object.id);
+      expect(
+        await db.getSource().manager.getRepository(IPObj).findOneByOrFail({ id: recycled.id }),
+      ).to.include({ name: recycled.name, address: '203.0.113.99' });
       expect(recreated).to.include({
         address: '198.51.100.10',
         netmask: '/32',

@@ -257,6 +257,18 @@ export class Routes extends RouteCollection {
             .post('/profiles/from-source', ReplicationProfileController, 'storeFromSource')
             .name('fwclouds.profiles.fromSource');
           router
+            .post('/assistant/profiles/import', ReplicationProfileController, 'import')
+            .name('fwclouds.assistant.profiles.import');
+          router
+            .get('/assistant/profiles/:code/export', ReplicationProfileController, 'export')
+            .name('fwclouds.assistant.profiles.export');
+          router
+            .post('/profiles/import', ReplicationProfileController, 'import')
+            .name('fwclouds.profiles.import');
+          router
+            .get('/profiles/:code/export', ReplicationProfileController, 'export')
+            .name('fwclouds.profiles.export');
+          router
             .post('/profiles/:code/rollback', ReplicationProfileController, 'rollback')
             .name('fwclouds.profiles.rollback');
           router

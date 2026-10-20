@@ -6,6 +6,46 @@ https://fwcloud.net
 
 FWCloud's source code is published under the free software license <a href="http://www.gnu.org/licenses/agpl-3.0.en.html">GNU AGPL, v3</a> and thus is freely available for download, use and share.<br>
 
+## Replication profile import and export
+
+`GET /fwclouds/:fwcloud/assistant/profiles/:code/export` downloads a portable JSON template with `Content-Type: application/json` and an attachment filename. `POST /fwclouds/:fwcloud/assistant/profiles/import` accepts that document as an `application/json` request body and returns the created profile with HTTP `201`. Both routes also accept the existing `/fwclouds/:fwcloud/profiles/` prefix. Normal authentication, FWCloud access and mutation confirmation rules apply.
+
+The version 1 document format is:
+
+```json
+{
+  "format": "fwcloud-replication-profile",
+  "formatVersion": 1,
+  "profile": {
+    "code": "office-template",
+    "name": "Office Template",
+    "description": "Office firewall configuration",
+    "scope": "generic",
+    "category": "Custom",
+    "targetKind": "firewall"
+  },
+  "versions": {
+    "latest": {
+      "model": {
+        "compatibility": { "target_kinds": ["firewall"] },
+        "provision": {
+          "interfaces": [{ "name": "eth0", "role": "wan" }],
+          "rules": []
+        }
+      }
+    }
+  }
+}
+```
+
+`profile.code`, `profile.name`, `profile.targetKind` and `versions.latest.model` are required. `targetKind` supports `firewall` and `cluster`. Omitted scope defaults to `generic`; description and category default to `null`. `versions.previous` may be absent or `null`, or contain another complete `model`. Export includes `previous.metadata` with the same portable fields as `profile` to preserve that revision's deployment settings; when omitted on import, the previous version inherits `profile`. Its code must match the profile code. Only `latest` and `previous` are supported. Models retain their full configuration and extension fields and pass the existing profile validator. Unknown document, version and metadata fields are rejected.
+
+Export includes stored external object snapshots and stable `referenceId` relationships. Source database IDs and response-only object resolution data are removed. Import validates snapshots through the existing object validators without querying or creating destination objects. Missing objects are resolved or recreated through the normal confirmed apply operation. Credentials and secret fields are rejected by the profile validator.
+
+Imported templates are always custom templates owned by the authenticated user, including copies of built-in templates. They are available from every FWCloud their owner can access and are private to that owner. Paths are generated under `config/templates/custom/users/<user>/` by default, using the existing configurable custom template directory. Both versions are persisted in one transaction with filesystem compensation on failure. Existing records and files are never overwritten by import.
+
+Names must be nonempty, at most 255 characters, and cannot contain dots, path separators, control characters or unsafe filesystem characters. A duplicate code or name in the owner's namespace returns HTTP `409` with portable conflicting metadata in `errors.conflicts`; edit `profile.code` or `profile.name` before retrying. Unsupported formats, unsupported versions and invalid definitions return `422`; malformed JSON returns `400`. Imports exceeding `REPLICATION_PROFILES_IMPORT_MAX_SIZE` (default `2097152` uncompressed bytes, config key `replication_profiles.import_max_size`) return `413`. The size limit applies while reading the request body, including compressed requests.
+
 ## Assisted Profile agent transport
 
 `AgentHttpClient` is the single production transport for Assisted Profile generation. It connects directly to the configured agent's `POST /generate` endpoint and authenticates every request with `X-API-Key`. Agent traffic does not use application intermediaries, and proxy environment variables such as `HTTP_PROXY` and `HTTPS_PROXY` are ignored for this connection.

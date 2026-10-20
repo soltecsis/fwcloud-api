@@ -22,11 +22,28 @@
 
 import { Middleware } from '../fonaments/http/middleware/Middleware';
 import { json, Request, Response, NextFunction } from 'express';
+import { HttpException } from '../fonaments/exceptions/http/http-exception';
 
 export class BodyParser extends Middleware {
   private readonly parser = json({ limit: '2mb' });
 
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    this.parser(req, res, next);
+    const profileImport =
+      req.method === 'POST' &&
+      /^\/(?:api\/)?fwclouds\/[^/]+\/(?:assistant\/)?profiles\/import\/?$/.test(req.path);
+    if (!profileImport) {
+      this.parser(req, res, next);
+      return;
+    }
+    const parser = json({ limit: this.app.config.get('replication_profiles').import_max_size });
+    parser(req, res, (error) => {
+      if (error?.type === 'entity.too.large')
+        return next(
+          new HttpException('Replication profile import exceeds the configured size limit.', 413),
+        );
+      if (error?.type === 'entity.parse.failed')
+        return next(new HttpException('Replication profile import must contain valid JSON.', 400));
+      next(error);
+    });
   }
 }
