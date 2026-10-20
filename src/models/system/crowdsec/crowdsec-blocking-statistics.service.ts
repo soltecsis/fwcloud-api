@@ -21,6 +21,7 @@
 */
 
 import { CrowdSecFirewallBouncerStatisticsSample } from '../../../communications/communication';
+import { Repository } from 'typeorm';
 import db from '../../../database/database-manager';
 import { Service } from '../../../fonaments/services/service';
 import { CrowdSecBlockingStatisticsAddress } from './crowdsec-blocking-statistics-address.model';
@@ -105,16 +106,16 @@ export class CrowdSecBlockingStatisticsService extends Service {
     firewallId: number,
     range: CrowdSecBlockingStatisticsHistoryRange = {},
   ): Promise<CrowdSecBlockingStatisticsHistorySample[]> {
-    const query = db
-      .getSource()
-      .manager.getRepository(CrowdSecBlockingStatistics)
+    const repository = db.getSource().manager.getRepository(CrowdSecBlockingStatistics);
+    const previous = await this.previousStatistics(repository, firewallId, range.startsAt);
+    const query = repository
       .createQueryBuilder('statistics')
       .where('statistics.firewall = :firewallId', { firewallId })
       .orderBy('statistics.collected_at', 'ASC')
       .addOrderBy('statistics.id', 'ASC');
     this.applyRange(query, 'statistics.collected_at', range);
 
-    let previous: CrowdSecBlockingStatistics | null = null;
+    let previousSample = previous;
     return (await query.getMany()).map((statistics) => {
       const sample: CrowdSecBlockingStatisticsHistorySample = {
         collectedAt: statistics.collectedAt,
@@ -122,45 +123,45 @@ export class CrowdSecBlockingStatisticsService extends Service {
         ipv4Input: this.delta(
           statistics.ipv4InputPackets,
           statistics.ipv4InputBytes,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv4InputPackets
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv4InputPackets
             : null,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv4InputBytes
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv4InputBytes
             : null,
         ),
         ipv4Forward: this.delta(
           statistics.ipv4ForwardPackets,
           statistics.ipv4ForwardBytes,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv4ForwardPackets
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv4ForwardPackets
             : null,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv4ForwardBytes
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv4ForwardBytes
             : null,
         ),
         ipv6Input: this.delta(
           statistics.ipv6InputPackets,
           statistics.ipv6InputBytes,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv6InputPackets
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv6InputPackets
             : null,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv6InputBytes
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv6InputBytes
             : null,
         ),
         ipv6Forward: this.delta(
           statistics.ipv6ForwardPackets,
           statistics.ipv6ForwardBytes,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv6ForwardPackets
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv6ForwardPackets
             : null,
-          previous?.policyGeneration === statistics.policyGeneration
-            ? previous.ipv6ForwardBytes
+          previousSample?.policyGeneration === statistics.policyGeneration
+            ? previousSample.ipv6ForwardBytes
             : null,
         ),
       };
-      previous = statistics;
+      previousSample = statistics;
       return sample;
     });
   }
@@ -174,9 +175,14 @@ export class CrowdSecBlockingStatisticsService extends Service {
       return [];
     }
 
-    const query = db
-      .getSource()
-      .manager.getRepository(CrowdSecBlockingStatisticsAddress)
+    const repository = db.getSource().manager.getRepository(CrowdSecBlockingStatisticsAddress);
+    const previous = await this.previousAddresses(
+      repository,
+      firewallId,
+      addresses,
+      range.startsAt,
+    );
+    const query = repository
       .createQueryBuilder('address')
       .innerJoinAndSelect('address.statistics', 'statistics')
       .where('statistics.firewall = :firewallId', { firewallId })
@@ -186,7 +192,6 @@ export class CrowdSecBlockingStatisticsService extends Service {
       .addOrderBy('statistics.id', 'ASC');
     this.applyRange(query, 'statistics.collected_at', range);
 
-    const previous = new Map<string, CrowdSecBlockingStatisticsAddress>();
     return (await query.getMany()).map((address) => {
       const key = `${address.address}\u0000${address.statistics.policyGeneration}`;
       const currentPrevious = previous.get(key);
@@ -234,14 +239,74 @@ export class CrowdSecBlockingStatisticsService extends Service {
       packets: Number(
         previousPacketCounter !== null && currentPackets >= previousPacketCounter
           ? currentPackets - previousPacketCounter
-          : currentPackets,
+          : 0n,
       ),
       bytes: Number(
         previousByteCounter !== null && currentBytes >= previousByteCounter
           ? currentBytes - previousByteCounter
-          : currentBytes,
+          : 0n,
       ),
     };
+  }
+
+  private async previousStatistics(
+    repository: Repository<CrowdSecBlockingStatistics>,
+    firewallId: number,
+    startsAt?: Date,
+  ): Promise<CrowdSecBlockingStatistics | null> {
+    if (!startsAt) {
+      return null;
+    }
+    return repository
+      .createQueryBuilder('statistics')
+      .where('statistics.firewall = :firewallId', { firewallId })
+      .andWhere('statistics.collected_at < :startsAt', { startsAt })
+      .orderBy('statistics.collected_at', 'DESC')
+      .addOrderBy('statistics.id', 'DESC')
+      .getOne();
+  }
+
+  private async previousAddresses(
+    repository: Repository<CrowdSecBlockingStatisticsAddress>,
+    firewallId: number,
+    addresses: string[],
+    startsAt?: Date,
+  ): Promise<Map<string, CrowdSecBlockingStatisticsAddress>> {
+    const previous = new Map<string, CrowdSecBlockingStatisticsAddress>();
+    if (!startsAt) {
+      return previous;
+    }
+
+    const results = await repository
+      .createQueryBuilder('address')
+      .innerJoinAndSelect('address.statistics', 'statistics')
+      .where('statistics.firewall = :firewallId', { firewallId })
+      .andWhere('address.address IN (:...addresses)', { addresses })
+      .andWhere('statistics.collected_at < :startsAt', { startsAt })
+      .andWhere(
+        `NOT EXISTS (
+          SELECT 1
+          FROM crowdsec_blocking_statistics_address previous_address
+          INNER JOIN crowdsec_blocking_statistics previous_statistics
+            ON previous_statistics.id = previous_address.crowdsec_blocking_statistics
+          WHERE previous_address.address = address.address
+            AND previous_statistics.firewall = :firewallId
+            AND previous_statistics.policy_generation = statistics.policy_generation
+            AND previous_statistics.collected_at < :startsAt
+            AND (
+              previous_statistics.collected_at > statistics.collected_at
+              OR (
+                previous_statistics.collected_at = statistics.collected_at
+                AND previous_statistics.id > statistics.id
+              )
+            )
+        )`,
+      )
+      .getMany();
+    for (const address of results) {
+      previous.set(`${address.address}\u0000${address.statistics.policyGeneration}`, address);
+    }
+    return previous;
   }
 
   private collectedAt(value: string): Date {
