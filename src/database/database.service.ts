@@ -1,5 +1,5 @@
 /*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2026 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -106,6 +106,9 @@ import { AICredentials } from '../models/ai-assistant/ai-assistant-credentials.m
 import { AI } from '../models/ai-assistant/ai-assistant.model';
 import { AuditLog } from '../models/audit/AuditLog';
 import { CrowdSecInstallation } from '../models/system/crowdsec/crowdsec-installation.model';
+import { CrowdSecBlockingStatisticsSampling } from '../models/system/crowdsec/crowdsec-blocking-statistics-sampling.model';
+import { CrowdSecBlockingStatistics } from '../models/system/crowdsec/crowdsec-blocking-statistics.model';
+import { CrowdSecBlockingStatisticsAddress } from '../models/system/crowdsec/crowdsec-blocking-statistics-address.model';
 
 export interface DatabaseConfig {
   host: string;
@@ -385,6 +388,9 @@ export class DatabaseService extends Service {
         AIModel,
         AI,
         CrowdSecInstallation,
+        CrowdSecBlockingStatisticsSampling,
+        CrowdSecBlockingStatistics,
+        CrowdSecBlockingStatisticsAddress,
       ],
     };
   }
