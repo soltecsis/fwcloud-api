@@ -417,6 +417,30 @@ export class Routes extends RouteCollection {
                     .get('/bouncers', CrowdSecController, 'bouncers')
                     .name('fwclouds.firewalls.system.crowdsec.bouncers.index');
                   router
+                    .get(
+                      '/blocking-statistics/sampling',
+                      CrowdSecController,
+                      'blockingStatisticsSampling',
+                    )
+                    .name('fwclouds.firewalls.system.crowdsec.blockingStatistics.sampling.show');
+                  router
+                    .put(
+                      '/blocking-statistics/sampling',
+                      CrowdSecController,
+                      'updateBlockingStatisticsSampling',
+                    )
+                    .name('fwclouds.firewalls.system.crowdsec.blockingStatistics.sampling.update');
+                  router
+                    .get(
+                      '/blocking-statistics/addresses',
+                      CrowdSecController,
+                      'blockingStatisticsAddresses',
+                    )
+                    .name('fwclouds.firewalls.system.crowdsec.blockingStatistics.addresses.index');
+                  router
+                    .get('/blocking-statistics', CrowdSecController, 'blockingStatistics')
+                    .name('fwclouds.firewalls.system.crowdsec.blockingStatistics.index');
+                  router
                     .get('/machines', CrowdSecController, 'machines')
                     .name('fwclouds.firewalls.system.crowdsec.machines.index');
                   router
@@ -798,6 +822,30 @@ export class Routes extends RouteCollection {
           });
 
           router.prefix('/clusters/:cluster/system/crowdsec', (router: RouterParser) => {
+            router
+              .get(
+                '/blocking-statistics/sampling',
+                CrowdSecClusterController,
+                'blockingStatisticsSampling',
+              )
+              .name('fwclouds.clusters.system.crowdsec.blockingStatistics.sampling.show');
+            router
+              .put(
+                '/blocking-statistics/sampling',
+                CrowdSecClusterController,
+                'updateBlockingStatisticsSampling',
+              )
+              .name('fwclouds.clusters.system.crowdsec.blockingStatistics.sampling.update');
+            router
+              .get(
+                '/blocking-statistics/addresses',
+                CrowdSecClusterController,
+                'blockingStatisticsAddresses',
+              )
+              .name('fwclouds.clusters.system.crowdsec.blockingStatistics.addresses.index');
+            router
+              .get('/blocking-statistics', CrowdSecClusterController, 'blockingStatistics')
+              .name('fwclouds.clusters.system.crowdsec.blockingStatistics.index');
             router
               .post('/machines/install', CrowdSecClusterController, 'installMachine')
               .name('fwclouds.clusters.system.crowdsec.machines.install');
