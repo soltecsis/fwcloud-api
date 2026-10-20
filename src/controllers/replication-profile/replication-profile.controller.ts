@@ -158,6 +158,30 @@ export class ReplicationProfileController extends Controller {
       .body(await this.toResponse(profile));
   }
 
+  @Validate()
+  public async export(request: Request): Promise<ResponseBuilder> {
+    (await ReplicationProfilePolicy.show(request.session.user, this._fwCloud)).authorize();
+    const service = await this.replicationProfileService();
+    const document = await service.exportProfile(
+      String(request.params.code),
+      this.resolveUserId(request),
+    );
+    const filename = `${service.slugFromName(document.profile.code).slice(0, 120)}.replication-profile.json`;
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .downloadContent(`${JSON.stringify(document, null, 2)}\n`, filename, 'application/json');
+  }
+
+  @Validate()
+  public async import(request: Request): Promise<ResponseBuilder> {
+    (await ReplicationProfilePolicy.create(request.session.user, this._fwCloud)).authorize();
+    const service = await this.replicationProfileService();
+    const profile = await service.importProfile(request.body, this.profileMutationOptions(request));
+    return ResponseBuilder.buildResponse()
+      .status(201)
+      .body(await this.toResponse(profile));
+  }
+
   /**
    * Creates a custom profile by capturing the interfaces and IPv4 FORWARD
    * policy of an existing firewall or cluster of this FWCloud. Responds with

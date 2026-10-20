@@ -14,6 +14,7 @@ import {
 } from './replication-profile.constants';
 import type { ReplicationProfileTargetKind } from './replication-profile.constants';
 import {
+  ReplicationProfileValidationException,
   ReplicationProfileValidationError,
   ReplicationProfileValidationService,
 } from './replication-profile-validation.service';
@@ -21,6 +22,7 @@ import {
   buildReplicationProfileTemplatePath,
   loadReplicationProfileModel,
   readReplicationProfileModel,
+  ReplicationProfileTemplateException,
   type ReplicationProfileModel,
   type ReplicationProfileTemplateRead,
   type ReplicationProfileVersionSlot,
@@ -35,6 +37,20 @@ import {
   replicationProfileNameTakenException,
 } from './replication-profile-name';
 import { replicationProfileTransaction } from './replication-profile-transaction';
+import {
+  parseReplicationProfileDocument,
+  portableProfileMetadata,
+  portableProfileModel,
+  REPLICATION_PROFILE_FORMAT,
+  REPLICATION_PROFILE_FORMAT_VERSION,
+  ReplicationProfileImportConflictException,
+  type ReplicationProfilePortableDocument,
+} from './replication-profile-portable';
+import {
+  getProfileObjectReferences,
+  getProfileReferenceIpObjType,
+} from './replication-profile-object-reference';
+import { validateProfileObjectSnapshot } from './replication-profile-object-snapshot';
 
 export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
 export const PROFILE_CLONE_AUDIT_CALL = 'profiles.clone';
@@ -320,7 +336,7 @@ export class ReplicationProfileService extends Service {
         payload,
         options,
         { code, version, userId },
-        { code: !payload.code },
+        { freeCode: !payload.code },
       );
       await this.auditProfileManagementSuccess({
         operation: 'create',
@@ -350,6 +366,89 @@ export class ReplicationProfileService extends Service {
 
       throw error;
     }
+  }
+
+  /** Load the stored models, without the destination-specific object resolution used by show(). */
+  public async exportProfile(
+    code: string,
+    userId: number | null,
+  ): Promise<ReplicationProfilePortableDocument> {
+    const latest = await this.findAnyByCodeAndVersion(code, 'latest', userId);
+    if (!latest) throw new NotFoundException('Replication profile not found');
+    // Match the owner and origin of latest, never a same-code version of a different template.
+    const previous = await this.repository.findOne({
+      where: {
+        code: latest.code,
+        userId: latest.userId ?? IsNull(),
+        isBuiltin: latest.isBuiltin,
+        versionSlot: 'previous',
+      },
+    });
+    try {
+      return {
+        format: REPLICATION_PROFILE_FORMAT,
+        formatVersion: REPLICATION_PROFILE_FORMAT_VERSION,
+        profile: portableProfileMetadata(latest),
+        versions: {
+          latest: { model: portableProfileModel(loadReplicationProfileModel(latest)) },
+          ...(previous
+            ? {
+                previous: {
+                  metadata: portableProfileMetadata(previous),
+                  model: portableProfileModel(loadReplicationProfileModel(previous)),
+                },
+              }
+            : {}),
+        },
+      };
+    } catch (error) {
+      // Loader diagnostics may contain paths or JSON parser excerpts from a damaged file.
+      if (error instanceof ReplicationProfileTemplateException)
+        throw new HttpException('Replication profile template could not be exported.', 500);
+      throw error;
+    }
+  }
+
+  public async importProfile(
+    input: unknown,
+    options: CreateCustomReplicationProfileOptions,
+  ): Promise<ReplicationProfile> {
+    const userId = this.requireOwnerUserId(options);
+    const document = parseReplicationProfileDocument(input);
+    // Snapshot checks reuse the object APIs' validators, with destination lookups disabled.
+    // Unlike create/edit, importing must never recapture snapshots through source database ids.
+    for (const version of [document.versions.latest, document.versions.previous]) {
+      if (!version) continue;
+      for (const [index, reference] of getProfileObjectReferences(version.model).entries()) {
+        const error = await validateProfileObjectSnapshot(
+          reference.snapshot,
+          getProfileReferenceIpObjType(reference.objectType),
+          options.fwCloudId,
+          { checkDestination: false },
+        );
+        if (error)
+          throw new ReplicationProfileValidationException([
+            {
+              code: 'invalid_object_reference',
+              message: error,
+              path: `model.objectReferences[${index}].snapshot`,
+              severity: 'error',
+            },
+          ]);
+      }
+    }
+    const previous = document.versions.previous;
+    return this.persistCustomProfile(
+      { ...document.profile, model: document.versions.latest.model },
+      options,
+      { code: document.profile.code, version: previous ? 2 : 1, userId },
+      {
+        rejectExisting: true,
+        ...(previous
+          ? { previous: { ...(previous.metadata ?? document.profile), model: previous.model } }
+          : {}),
+      },
+    );
   }
 
   public async cloneCustomProfile(
@@ -390,7 +489,7 @@ export class ReplicationProfileService extends Service {
         targetPayload,
         options,
         { code: cloneCode, version: cloneVersion, userId },
-        { code: !payload.code, name: !payload.name },
+        { freeCode: !payload.code, freeName: !payload.name },
       );
 
       await this.auditProfileManagementSuccess({
@@ -1081,7 +1180,7 @@ export class ReplicationProfileService extends Service {
   }
 
   /**
-   * `free` marks the code or name the API derived itself, not the client:
+   * `freeCode` and `freeName` mark values derived by the API:
    * when taken, its first free variant is used, since a renamed template
    * keeps the code of its former name.
    */
@@ -1089,7 +1188,12 @@ export class ReplicationProfileService extends Service {
     payload: CreateCustomReplicationProfileVersionPayload,
     options: CreateCustomReplicationProfileOptions,
     identity: CustomReplicationProfileIdentity,
-    free: { code?: boolean; name?: boolean } = {},
+    persistence: {
+      freeCode?: boolean;
+      freeName?: boolean;
+      rejectExisting?: boolean;
+      previous?: CreateCustomReplicationProfileVersionPayload;
+    } = {},
   ): Promise<ReplicationProfile> {
     const { userId } = identity;
     const now = new Date();
@@ -1097,12 +1201,21 @@ export class ReplicationProfileService extends Service {
     return replicationProfileTransaction(userId, async (manager, files) => {
       const repository = manager.getRepository(ReplicationProfile);
       const owned = await repository.find({ where: this.ownedCustomProfileWhere({}, userId) });
+      if (persistence.rejectExisting) {
+        const conflicts = owned.filter(
+          (profile) =>
+            profile.code.toLowerCase() === identity.code.toLowerCase() ||
+            (profile.versionSlot === 'latest' &&
+              replicationProfileNameKey(profile.name) === replicationProfileNameKey(payload.name)),
+        );
+        if (conflicts.length) throw new ReplicationProfileImportConflictException(conflicts);
+      }
       const codes = new Set(
         owned
           .filter((profile) => profile.isActive && !profile.isDeprecated)
           .map((profile) => profile.code.toLowerCase()),
       );
-      const code = free.code
+      const code = persistence.freeCode
         ? firstFreeReplicationProfileValue(identity.code, '-', (candidate) =>
             codes.has(candidate.toLowerCase()),
           )
@@ -1111,7 +1224,7 @@ export class ReplicationProfileService extends Service {
         throw new HttpException(`Replication profile "${code}" already exists for this user.`, 409);
       }
       const names = this.currentNameKeys(owned);
-      const name = free.name
+      const name = persistence.freeName
         ? firstFreeReplicationProfileValue(payload.name, ' ', (candidate) =>
             names.has(replicationProfileNameKey(candidate)),
           )
@@ -1143,7 +1256,25 @@ export class ReplicationProfileService extends Service {
           updated_at: now,
         }),
       );
-      files.write(savedProfile, payload.model);
+      if (persistence.rejectExisting) files.create(savedProfile, payload.model);
+      else files.write(savedProfile, payload.model);
+      if (persistence.previous) {
+        const previous = repository.create({
+          ...savedProfile,
+          ...portableProfileMetadata({
+            ...savedProfile,
+            ...persistence.previous,
+            targetKind: this.effectiveProfileTargetKind(persistence.previous.targetKind),
+          }),
+          id: undefined,
+          code,
+          version: 1,
+          versionSlot: 'previous',
+          path: buildReplicationProfileTemplatePath({ ...identity, code, versionSlot: 'previous' }),
+        });
+        files.create(previous, persistence.previous.model);
+        await repository.save(previous);
+      }
       return savedProfile;
     });
   }

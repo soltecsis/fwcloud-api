@@ -418,6 +418,12 @@ const config = convict({
   },
   // Replication profiles configuration.
   replication_profiles: {
+    import_max_size: {
+      doc: 'Maximum uncompressed replication profile import size in bytes.',
+      format: 'positive-integer',
+      default: 2097152,
+      env: 'REPLICATION_PROFILES_IMPORT_MAX_SIZE'
+    },
     data_dir: {
       doc: 'Directory for the JSON templates of the custom replication profiles of each user.',
       format: String,
