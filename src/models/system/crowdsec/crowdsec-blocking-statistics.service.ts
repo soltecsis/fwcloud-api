@@ -66,6 +66,13 @@ export type CrowdSecBlockingStatisticsAddressHistorySample = {
   bytes: number;
 };
 
+export type CrowdSecBlockingStatisticsAddressHistoryPage = {
+  samples: CrowdSecBlockingStatisticsAddressHistorySample[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export type CrowdSecBlockingStatisticsAddressOptions = CrowdSecBlockingStatisticsHistoryRange &
   CrowdSecBlockingStatisticsHistoryPagination & {
     search?: string;
@@ -205,45 +212,64 @@ export class CrowdSecBlockingStatisticsService extends Service {
     firewallId: number,
     addresses: string[],
     range: CrowdSecBlockingStatisticsHistoryRange = {},
-  ): Promise<CrowdSecBlockingStatisticsAddressHistorySample[]> {
+    pagination: CrowdSecBlockingStatisticsHistoryPagination,
+  ): Promise<CrowdSecBlockingStatisticsAddressHistoryPage> {
     if (addresses.length === 0) {
-      return [];
+      return { samples: [], total: 0, ...pagination };
+    }
+
+    const statisticsRepository = db.getSource().manager.getRepository(CrowdSecBlockingStatistics);
+    const statisticsQuery = statisticsRepository
+      .createQueryBuilder('statistics')
+      .where('statistics.firewall = :firewallId', { firewallId })
+      .orderBy('statistics.collected_at', 'ASC')
+      .addOrderBy('statistics.id', 'ASC');
+    this.applyRange(statisticsQuery, 'statistics.collected_at', range);
+
+    const total = await statisticsQuery.getCount();
+    const statistics = await statisticsQuery
+      .skip((pagination.page - 1) * pagination.limit)
+      .take(pagination.limit)
+      .getMany();
+    if (statistics.length === 0) {
+      return { samples: [], total, ...pagination };
     }
 
     const repository = db.getSource().manager.getRepository(CrowdSecBlockingStatisticsAddress);
-    const previous = await this.previousAddresses(
-      repository,
-      firewallId,
-      addresses,
-      range.startsAt,
-    );
+    const previous = await this.previousAddresses(repository, firewallId, addresses, statistics[0]);
     const query = repository
       .createQueryBuilder('address')
       .innerJoinAndSelect('address.statistics', 'statistics')
       .where('statistics.firewall = :firewallId', { firewallId })
       .andWhere('address.address IN (:...addresses)', { addresses })
+      .andWhere('statistics.id IN (:...statisticsIds)', {
+        statisticsIds: statistics.map((sample) => sample.id),
+      })
       .orderBy('address.address', 'ASC')
       .addOrderBy('statistics.collected_at', 'ASC')
       .addOrderBy('statistics.id', 'ASC');
-    this.applyRange(query, 'statistics.collected_at', range);
 
-    return (await query.getMany()).map((address) => {
-      const key = `${address.address}\u0000${address.statistics.policyGeneration}`;
-      const currentPrevious = previous.get(key);
-      const sample: CrowdSecBlockingStatisticsAddressHistorySample = {
-        address: address.address,
-        collectedAt: address.statistics.collectedAt,
-        policyGeneration: address.statistics.policyGeneration,
-        ...this.delta(
-          address.packets,
-          address.bytes,
-          currentPrevious?.packets ?? null,
-          currentPrevious?.bytes ?? null,
-        ),
-      };
-      previous.set(key, address);
-      return sample;
-    });
+    return {
+      total,
+      ...pagination,
+      samples: (await query.getMany()).map((address) => {
+        const key = `${address.address}\u0000${address.statistics.policyGeneration}`;
+        const currentPrevious = previous.get(key);
+        const sample: CrowdSecBlockingStatisticsAddressHistorySample = {
+          address: address.address,
+          collectedAt: address.statistics.collectedAt,
+          policyGeneration: address.statistics.policyGeneration,
+          ...this.delta(
+            address.packets,
+            address.bytes,
+            currentPrevious?.packets ?? null,
+            currentPrevious?.bytes ?? null,
+          ),
+        };
+        previous.set(key, address);
+        return sample;
+      }),
+    };
   }
 
   async addressOptions(
@@ -350,10 +376,10 @@ export class CrowdSecBlockingStatisticsService extends Service {
     repository: Repository<CrowdSecBlockingStatisticsAddress>,
     firewallId: number,
     addresses: string[],
-    startsAt?: Date,
+    before?: CrowdSecBlockingStatistics,
   ): Promise<Map<string, CrowdSecBlockingStatisticsAddress>> {
     const previous = new Map<string, CrowdSecBlockingStatisticsAddress>();
-    if (!startsAt) {
+    if (!before) {
       return previous;
     }
 
@@ -362,7 +388,12 @@ export class CrowdSecBlockingStatisticsService extends Service {
       .innerJoinAndSelect('address.statistics', 'statistics')
       .where('statistics.firewall = :firewallId', { firewallId })
       .andWhere('address.address IN (:...addresses)', { addresses })
-      .andWhere('statistics.collected_at < :startsAt', { startsAt })
+      .andWhere(
+        `(statistics.collected_at < :collectedAt OR (
+          statistics.collected_at = :collectedAt AND statistics.id < :statisticsId
+        ))`,
+        { collectedAt: before.collectedAt, statisticsId: before.id },
+      )
       .andWhere(
         `NOT EXISTS (
           SELECT 1
@@ -372,7 +403,13 @@ export class CrowdSecBlockingStatisticsService extends Service {
           WHERE previous_address.address = address.address
             AND previous_statistics.firewall = :firewallId
             AND previous_statistics.policy_generation = statistics.policy_generation
-            AND previous_statistics.collected_at < :startsAt
+            AND (
+              previous_statistics.collected_at < :collectedAt
+              OR (
+                previous_statistics.collected_at = :collectedAt
+                AND previous_statistics.id < :statisticsId
+              )
+            )
             AND (
               previous_statistics.collected_at > statistics.collected_at
               OR (

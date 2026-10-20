@@ -253,19 +253,21 @@ export class CrowdSecController extends Controller {
   public async blockingStatisticsAddresses(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
-    const samples = await (
+    const history = await (
       await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
     ).addressHistory(
       this._firewall.id,
       CrowdSecBlockingStatisticsSharedService.addresses(req.query.addresses),
       CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
     );
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
-        samples: samples.map((sample) =>
+        samples: history.samples.map((sample) =>
           CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
         ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
       });
   }
 

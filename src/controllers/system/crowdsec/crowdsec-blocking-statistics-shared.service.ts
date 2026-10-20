@@ -26,7 +26,6 @@ import db from '../../../database/database-manager';
 import { AbstractApplication } from '../../../fonaments/abstract-application';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import {
-  CrowdSecBlockingStatisticsHistoryPage,
   CrowdSecBlockingStatisticsHistoryRange,
   CrowdSecBlockingStatisticsHistorySample,
   CrowdSecBlockingStatisticsService,
@@ -84,9 +83,11 @@ export class CrowdSecBlockingStatisticsSharedService {
     };
   }
 
-  static paginationResponse(
-    history: CrowdSecBlockingStatisticsHistoryPage,
-  ): Record<string, number> {
+  static paginationResponse(history: {
+    page: number;
+    limit: number;
+    total: number;
+  }): Record<string, number> {
     return {
       page: history.page,
       limit: history.limit,

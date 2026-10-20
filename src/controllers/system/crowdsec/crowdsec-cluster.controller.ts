@@ -1330,19 +1330,21 @@ export class CrowdSecClusterController extends Controller {
   @ValidateQuery(CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto)
   public async blockingStatisticsAddresses(req: Request): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
-    const samples = await (
+    const history = await (
       await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
     ).addressHistory(
       node.id,
       CrowdSecBlockingStatisticsSharedService.addresses(req.query.addresses),
       CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
     );
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
-        samples: samples.map((sample) =>
+        samples: history.samples.map((sample) =>
           CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
         ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
       });
   }
 

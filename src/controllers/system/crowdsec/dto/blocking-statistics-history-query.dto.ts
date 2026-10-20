@@ -47,7 +47,7 @@ export class CrowdSecBlockingStatisticsHistoryQueryDto extends CrowdSecBlockingS
   limit?: number;
 }
 
-export class CrowdSecBlockingStatisticsAddressHistoryQueryDto extends CrowdSecBlockingStatisticsHistoryRangeQueryDto {
+export class CrowdSecBlockingStatisticsAddressHistoryQueryDto extends CrowdSecBlockingStatisticsHistoryQueryDto {
   @IsString()
   @Length(1, 8192)
   @Matches(/^[^\x00-\x1F\x7F]+$/, { message: 'Invalid CrowdSec statistics addresses' })
