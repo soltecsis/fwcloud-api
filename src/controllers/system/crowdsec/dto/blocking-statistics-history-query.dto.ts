@@ -54,6 +54,14 @@ export class CrowdSecBlockingStatisticsAddressHistoryQueryDto extends CrowdSecBl
   addresses: string;
 }
 
+export class CrowdSecBlockingStatisticsAddressOptionsQueryDto extends CrowdSecBlockingStatisticsHistoryQueryDto {
+  @IsOptional()
+  @IsString()
+  @Length(1, 255)
+  @Matches(/^[^\x00-\x1F\x7F]+$/, { message: 'Invalid CrowdSec statistics address search' })
+  search?: string;
+}
+
 export class CrowdSecBlockingStatisticsClusterHistoryQueryDto extends CrowdSecBlockingStatisticsHistoryQueryDto {
   @IsInt()
   @Min(1)
@@ -61,6 +69,12 @@ export class CrowdSecBlockingStatisticsClusterHistoryQueryDto extends CrowdSecBl
 }
 
 export class CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto extends CrowdSecBlockingStatisticsAddressHistoryQueryDto {
+  @IsInt()
+  @Min(1)
+  node_id: number;
+}
+
+export class CrowdSecBlockingStatisticsClusterAddressOptionsQueryDto extends CrowdSecBlockingStatisticsAddressOptionsQueryDto {
   @IsInt()
   @Min(1)
   node_id: number;

@@ -95,6 +95,23 @@ export class CrowdSecBlockingStatisticsSharedService {
     };
   }
 
+  static addressOptionsResponse(page: {
+    addresses: string[];
+    page: number;
+    limit: number;
+    total: number;
+  }): Record<string, unknown> {
+    return {
+      addresses: page.addresses,
+      pagination: {
+        page: page.page,
+        limit: page.limit,
+        total: page.total,
+        pages: Math.ceil(page.total / page.limit),
+      },
+    };
+  }
+
   static samplingResponse(
     configuration: CrowdSecFirewallBouncerStatisticsSamplingConfig,
   ): Record<string, unknown> {

@@ -51,6 +51,7 @@ import {
 import { CrowdSecBlockingStatisticsSamplingDto } from './dto/blocking-statistics-sampling.dto';
 import {
   CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto,
+  CrowdSecBlockingStatisticsClusterAddressOptionsQueryDto,
   CrowdSecBlockingStatisticsClusterHistoryQueryDto,
 } from './dto/blocking-statistics-history-query.dto';
 import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
@@ -1343,6 +1344,22 @@ export class CrowdSecClusterController extends Controller {
           CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
         ),
       });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsClusterAddressOptionsQueryDto)
+  public async blockingStatisticsAddressOptions(req: Request): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    const page = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressOptions(node.id, {
+      ...CrowdSecBlockingStatisticsSharedService.range(req),
+      ...CrowdSecBlockingStatisticsSharedService.pagination(req),
+      search: req.query.search as string | undefined,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.addressOptionsResponse(page));
   }
 
   @Validate(CrowdSecCollectionDto)

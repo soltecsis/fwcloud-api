@@ -432,6 +432,15 @@ export class Routes extends RouteCollection {
                     .name('fwclouds.firewalls.system.crowdsec.blockingStatistics.sampling.update');
                   router
                     .get(
+                      '/blocking-statistics/addresses/options',
+                      CrowdSecController,
+                      'blockingStatisticsAddressOptions',
+                    )
+                    .name(
+                      'fwclouds.firewalls.system.crowdsec.blockingStatistics.addresses.options',
+                    );
+                  router
+                    .get(
                       '/blocking-statistics/addresses',
                       CrowdSecController,
                       'blockingStatisticsAddresses',
@@ -836,6 +845,13 @@ export class Routes extends RouteCollection {
                 'updateBlockingStatisticsSampling',
               )
               .name('fwclouds.clusters.system.crowdsec.blockingStatistics.sampling.update');
+            router
+              .get(
+                '/blocking-statistics/addresses/options',
+                CrowdSecClusterController,
+                'blockingStatisticsAddressOptions',
+              )
+              .name('fwclouds.clusters.system.crowdsec.blockingStatistics.addresses.options');
             router
               .get(
                 '/blocking-statistics/addresses',

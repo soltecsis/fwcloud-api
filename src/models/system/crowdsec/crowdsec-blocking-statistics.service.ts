@@ -66,6 +66,18 @@ export type CrowdSecBlockingStatisticsAddressHistorySample = {
   bytes: number;
 };
 
+export type CrowdSecBlockingStatisticsAddressOptions = CrowdSecBlockingStatisticsHistoryRange &
+  CrowdSecBlockingStatisticsHistoryPagination & {
+    search?: string;
+  };
+
+export type CrowdSecBlockingStatisticsAddressPage = {
+  addresses: string[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export class CrowdSecBlockingStatisticsService extends Service {
   async create(
     firewallId: number,
@@ -234,6 +246,42 @@ export class CrowdSecBlockingStatisticsService extends Service {
     });
   }
 
+  async addressOptions(
+    firewallId: number,
+    options: CrowdSecBlockingStatisticsAddressOptions,
+  ): Promise<CrowdSecBlockingStatisticsAddressPage> {
+    const query = db
+      .getSource()
+      .manager.getRepository(CrowdSecBlockingStatisticsAddress)
+      .createQueryBuilder('address')
+      .innerJoin('address.statistics', 'statistics')
+      .where('statistics.firewall = :firewallId', { firewallId });
+    this.applyRange(query, 'statistics.collected_at', options);
+    if (options.search) {
+      query.andWhere('address.address LIKE :search', {
+        search: `%${this.escapeLike(options.search)}%`,
+      });
+    }
+
+    const totalResult = await query
+      .clone()
+      .select('COUNT(DISTINCT address.address)', 'total')
+      .getRawOne<{ total: string }>();
+    const addresses = await query
+      .select('DISTINCT address.address', 'address')
+      .orderBy('address.address', 'ASC')
+      .skip((options.page - 1) * options.limit)
+      .take(options.limit)
+      .getRawMany<{ address: string }>();
+
+    return {
+      addresses: addresses.map((entry) => entry.address),
+      total: Number(totalResult?.total ?? 0),
+      page: options.page,
+      limit: options.limit,
+    };
+  }
+
   private applyRange(
     query: { andWhere: (query: string, parameters: Record<string, Date>) => unknown },
     column: string,
@@ -270,6 +318,10 @@ export class CrowdSecBlockingStatisticsService extends Service {
           : 0n,
       ),
     };
+  }
+
+  private escapeLike(value: string): string {
+    return value.replace(/[\\%_]/g, '\\$&');
   }
 
   private async previousStatistics(

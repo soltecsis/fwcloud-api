@@ -53,6 +53,7 @@ import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowds
 import { CrowdSecBlockingStatisticsSamplingDto } from './dto/blocking-statistics-sampling.dto';
 import {
   CrowdSecBlockingStatisticsAddressHistoryQueryDto,
+  CrowdSecBlockingStatisticsAddressOptionsQueryDto,
   CrowdSecBlockingStatisticsHistoryQueryDto,
 } from './dto/blocking-statistics-history-query.dto';
 import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
@@ -266,6 +267,23 @@ export class CrowdSecController extends Controller {
           CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
         ),
       });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsAddressOptionsQueryDto)
+  public async blockingStatisticsAddressOptions(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const page = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressOptions(this._firewall.id, {
+      ...CrowdSecBlockingStatisticsSharedService.range(req),
+      ...CrowdSecBlockingStatisticsSharedService.pagination(req),
+      search: req.query.search as string | undefined,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.addressOptionsResponse(page));
   }
 
   @Validate()
