@@ -400,6 +400,27 @@ export class ReplicationProfileTemplateChanges {
     this.changed.add(file);
   }
 
+  /** Publish a new template exclusively; even an untracked existing file cannot be overwritten. */
+  public create(profile: ReplicationProfileTemplateReference, model: unknown): void {
+    const file = this.remember(profile);
+    if (this.originals.get(file)!.content !== null)
+      throw new HttpException('A template file with this code already exists for this user.', 409);
+    const temporaryFile = stageReplicationProfileModel(profile, model);
+    try {
+      fs.linkSync(temporaryFile, file);
+      this.changed.add(file);
+    } catch (error) {
+      if (error?.code === 'EEXIST')
+        throw new HttpException(
+          'A template file with this code already exists for this user.',
+          409,
+        );
+      throw templateError('unwritable', profile, `could not be created (${errorCode(error)}).`);
+    } finally {
+      fs.rmSync(temporaryFile, { force: true });
+    }
+  }
+
   public rotate(
     latest: ReplicationProfileTemplateReference,
     model: unknown,
