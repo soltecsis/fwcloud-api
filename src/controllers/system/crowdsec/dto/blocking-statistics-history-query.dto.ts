@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsInt, IsNumber, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
 
-export class CrowdSecBlockingStatisticsHistoryQueryDto {
+export class CrowdSecBlockingStatisticsHistoryRangeQueryDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -34,7 +34,20 @@ export class CrowdSecBlockingStatisticsHistoryQueryDto {
   ends_at?: number;
 }
 
-export class CrowdSecBlockingStatisticsAddressHistoryQueryDto extends CrowdSecBlockingStatisticsHistoryQueryDto {
+export class CrowdSecBlockingStatisticsHistoryQueryDto extends CrowdSecBlockingStatisticsHistoryRangeQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  limit?: number;
+}
+
+export class CrowdSecBlockingStatisticsAddressHistoryQueryDto extends CrowdSecBlockingStatisticsHistoryRangeQueryDto {
   @IsString()
   @Length(1, 8192)
   @Matches(/^[^\x00-\x1F\x7F]+$/, { message: 'Invalid CrowdSec statistics addresses' })

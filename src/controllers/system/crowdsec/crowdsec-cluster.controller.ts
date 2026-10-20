@@ -53,11 +53,7 @@ import {
   CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto,
   CrowdSecBlockingStatisticsClusterHistoryQueryDto,
 } from './dto/blocking-statistics-history-query.dto';
-import {
-  CrowdSecBlockingStatisticsHistoryRange,
-  CrowdSecBlockingStatisticsService,
-} from '../../../models/system/crowdsec/crowdsec-blocking-statistics.service';
-import { CrowdSecBlockingStatisticsSamplingService } from '../../../models/system/crowdsec/crowdsec-blocking-statistics-sampling.service';
+import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
 
 type ClusterCrowdSecInstallationSnapshot = Pick<
   CrowdSecInstallation,
@@ -1278,11 +1274,12 @@ export class CrowdSecClusterController extends Controller {
   @Validate()
   public async blockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
     const nodes = await this.getViewNodes(req);
-    const configuration = await this.blockingStatisticsSamplingService().configuration(nodes[0].id);
+    const configuration =
+      await CrowdSecBlockingStatisticsSharedService.samplingService().configuration(nodes[0].id);
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
-        ...this.blockingStatisticsSamplingResponse(configuration),
+        ...CrowdSecBlockingStatisticsSharedService.samplingResponse(configuration),
         nodes: nodes.map((node) => ({ firewall_id: node.id, name: node.name })),
       });
   }
@@ -1290,7 +1287,7 @@ export class CrowdSecClusterController extends Controller {
   @Validate(CrowdSecBlockingStatisticsSamplingDto)
   public async updateBlockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req, false);
-    const service = this.blockingStatisticsSamplingService();
+    const service = CrowdSecBlockingStatisticsSharedService.samplingService();
     const current = await service.configuration(nodes[0].id);
     const result = await service.update(nodes, {
       enabled: req.body.enabled,
@@ -1302,7 +1299,7 @@ export class CrowdSecClusterController extends Controller {
       .status(200)
       .body({
         completed: result.completed,
-        ...this.blockingStatisticsSamplingResponse(result.configuration),
+        ...CrowdSecBlockingStatisticsSharedService.samplingResponse(result.configuration),
         nodes: result.nodes,
       });
   }
@@ -1311,12 +1308,21 @@ export class CrowdSecClusterController extends Controller {
   @ValidateQuery(CrowdSecBlockingStatisticsClusterHistoryQueryDto)
   public async blockingStatistics(req: Request): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
-    const samples = await (
-      await this.blockingStatisticsService()
-    ).history(node.id, this.blockingStatisticsRange(req));
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).history(
+      node.id,
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body({ samples: samples.map((sample) => this.blockingStatisticsSampleResponse(sample)) });
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.sampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
   }
 
   @Validate()
@@ -1324,22 +1330,18 @@ export class CrowdSecClusterController extends Controller {
   public async blockingStatisticsAddresses(req: Request): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     const samples = await (
-      await this.blockingStatisticsService()
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
     ).addressHistory(
       node.id,
-      this.selectedBlockingStatisticsAddresses(req.query.addresses),
-      this.blockingStatisticsRange(req),
+      CrowdSecBlockingStatisticsSharedService.addresses(req.query.addresses),
+      CrowdSecBlockingStatisticsSharedService.range(req),
     );
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
-        samples: samples.map((sample) => ({
-          address: sample.address,
-          collected_at: sample.collectedAt.toISOString(),
-          policy_generation: sample.policyGeneration,
-          packets: sample.packets,
-          bytes: sample.bytes,
-        })),
+        samples: samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
+        ),
       });
   }
 
@@ -2063,79 +2065,6 @@ export class CrowdSecClusterController extends Controller {
     }
     (await CrowdSecPolicy.view(node, req.session.user)).authorize();
     return node;
-  }
-
-  private async blockingStatisticsService(): Promise<CrowdSecBlockingStatisticsService> {
-    return this._app.getService<CrowdSecBlockingStatisticsService>(
-      CrowdSecBlockingStatisticsService.name,
-    );
-  }
-
-  private blockingStatisticsSamplingService(): CrowdSecBlockingStatisticsSamplingService {
-    return new CrowdSecBlockingStatisticsSamplingService(db.getSource().manager);
-  }
-
-  private blockingStatisticsRange(req: Request): CrowdSecBlockingStatisticsHistoryRange {
-    const startsAt =
-      req.query.starts_at === undefined ? undefined : new Date(Number(req.query.starts_at));
-    const endsAt =
-      req.query.ends_at === undefined ? undefined : new Date(Number(req.query.ends_at));
-    if (
-      (startsAt && Number.isNaN(startsAt.getTime())) ||
-      (endsAt && Number.isNaN(endsAt.getTime()))
-    ) {
-      throw new HttpException('Invalid CrowdSec blocking statistics time range', 400);
-    }
-    if (startsAt && endsAt && startsAt > endsAt) {
-      throw new HttpException('Invalid CrowdSec blocking statistics time range', 400);
-    }
-    return { startsAt, endsAt };
-  }
-
-  private selectedBlockingStatisticsAddresses(value: unknown): string[] {
-    if (typeof value !== 'string') {
-      throw new HttpException('Invalid CrowdSec blocking statistics addresses', 400);
-    }
-    const addresses = value
-      .split(',')
-      .map((address) => address.trim())
-      .filter((address) => address.length > 0);
-    if (addresses.length === 0 || addresses.some((address) => address.length > 255)) {
-      throw new HttpException('Invalid CrowdSec blocking statistics addresses', 400);
-    }
-    return [...new Set(addresses)];
-  }
-
-  private blockingStatisticsSamplingResponse(configuration: {
-    enabled: boolean;
-    samplingInterval: number;
-    requestMaxSamples: number;
-    cacheMaxSize: number;
-  }): Record<string, unknown> {
-    return {
-      enabled: configuration.enabled,
-      sampling_interval: configuration.samplingInterval,
-      request_max_samples: configuration.requestMaxSamples,
-      cache_max_size: configuration.cacheMaxSize,
-    };
-  }
-
-  private blockingStatisticsSampleResponse(sample: {
-    collectedAt: Date;
-    policyGeneration: string;
-    ipv4Input: { packets: number; bytes: number };
-    ipv4Forward: { packets: number; bytes: number };
-    ipv6Input: { packets: number; bytes: number };
-    ipv6Forward: { packets: number; bytes: number };
-  }): Record<string, unknown> {
-    return {
-      collected_at: sample.collectedAt.toISOString(),
-      policy_generation: sample.policyGeneration,
-      ipv4_input: sample.ipv4Input,
-      ipv4_forward: sample.ipv4Forward,
-      ipv6_input: sample.ipv6Input,
-      ipv6_forward: sample.ipv6Forward,
-    };
   }
 
   private lapiService(): CrowdSecLapiSharedService {

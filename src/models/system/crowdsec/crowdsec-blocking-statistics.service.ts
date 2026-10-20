@@ -32,6 +32,11 @@ export type CrowdSecBlockingStatisticsHistoryRange = {
   endsAt?: Date;
 };
 
+export type CrowdSecBlockingStatisticsHistoryPagination = {
+  page: number;
+  limit: number;
+};
+
 export type CrowdSecBlockingStatisticsCounter = {
   packets: number;
   bytes: number;
@@ -44,6 +49,13 @@ export type CrowdSecBlockingStatisticsHistorySample = {
   ipv4Forward: CrowdSecBlockingStatisticsCounter;
   ipv6Input: CrowdSecBlockingStatisticsCounter;
   ipv6Forward: CrowdSecBlockingStatisticsCounter;
+};
+
+export type CrowdSecBlockingStatisticsHistoryPage = {
+  samples: CrowdSecBlockingStatisticsHistorySample[];
+  total: number;
+  page: number;
+  limit: number;
 };
 
 export type CrowdSecBlockingStatisticsAddressHistorySample = {
@@ -105,9 +117,9 @@ export class CrowdSecBlockingStatisticsService extends Service {
   async history(
     firewallId: number,
     range: CrowdSecBlockingStatisticsHistoryRange = {},
-  ): Promise<CrowdSecBlockingStatisticsHistorySample[]> {
+    pagination: CrowdSecBlockingStatisticsHistoryPagination,
+  ): Promise<CrowdSecBlockingStatisticsHistoryPage> {
     const repository = db.getSource().manager.getRepository(CrowdSecBlockingStatistics);
-    const previous = await this.previousStatistics(repository, firewallId, range.startsAt);
     const query = repository
       .createQueryBuilder('statistics')
       .where('statistics.firewall = :firewallId', { firewallId })
@@ -115,55 +127,66 @@ export class CrowdSecBlockingStatisticsService extends Service {
       .addOrderBy('statistics.id', 'ASC');
     this.applyRange(query, 'statistics.collected_at', range);
 
+    const total = await query.getCount();
+    const statistics = await query
+      .skip((pagination.page - 1) * pagination.limit)
+      .take(pagination.limit)
+      .getMany();
+    const previous = await this.previousStatistics(repository, firewallId, statistics[0]);
     let previousSample = previous;
-    return (await query.getMany()).map((statistics) => {
-      const sample: CrowdSecBlockingStatisticsHistorySample = {
-        collectedAt: statistics.collectedAt,
-        policyGeneration: statistics.policyGeneration,
-        ipv4Input: this.delta(
-          statistics.ipv4InputPackets,
-          statistics.ipv4InputBytes,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv4InputPackets
-            : null,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv4InputBytes
-            : null,
-        ),
-        ipv4Forward: this.delta(
-          statistics.ipv4ForwardPackets,
-          statistics.ipv4ForwardBytes,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv4ForwardPackets
-            : null,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv4ForwardBytes
-            : null,
-        ),
-        ipv6Input: this.delta(
-          statistics.ipv6InputPackets,
-          statistics.ipv6InputBytes,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv6InputPackets
-            : null,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv6InputBytes
-            : null,
-        ),
-        ipv6Forward: this.delta(
-          statistics.ipv6ForwardPackets,
-          statistics.ipv6ForwardBytes,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv6ForwardPackets
-            : null,
-          previousSample?.policyGeneration === statistics.policyGeneration
-            ? previousSample.ipv6ForwardBytes
-            : null,
-        ),
-      };
-      previousSample = statistics;
-      return sample;
-    });
+    return {
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+      samples: statistics.map((statistics) => {
+        const sample: CrowdSecBlockingStatisticsHistorySample = {
+          collectedAt: statistics.collectedAt,
+          policyGeneration: statistics.policyGeneration,
+          ipv4Input: this.delta(
+            statistics.ipv4InputPackets,
+            statistics.ipv4InputBytes,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv4InputPackets
+              : null,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv4InputBytes
+              : null,
+          ),
+          ipv4Forward: this.delta(
+            statistics.ipv4ForwardPackets,
+            statistics.ipv4ForwardBytes,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv4ForwardPackets
+              : null,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv4ForwardBytes
+              : null,
+          ),
+          ipv6Input: this.delta(
+            statistics.ipv6InputPackets,
+            statistics.ipv6InputBytes,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv6InputPackets
+              : null,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv6InputBytes
+              : null,
+          ),
+          ipv6Forward: this.delta(
+            statistics.ipv6ForwardPackets,
+            statistics.ipv6ForwardBytes,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv6ForwardPackets
+              : null,
+            previousSample?.policyGeneration === statistics.policyGeneration
+              ? previousSample.ipv6ForwardBytes
+              : null,
+          ),
+        };
+        previousSample = statistics;
+        return sample;
+      }),
+    };
   }
 
   async addressHistory(
@@ -252,15 +275,20 @@ export class CrowdSecBlockingStatisticsService extends Service {
   private async previousStatistics(
     repository: Repository<CrowdSecBlockingStatistics>,
     firewallId: number,
-    startsAt?: Date,
+    before?: CrowdSecBlockingStatistics,
   ): Promise<CrowdSecBlockingStatistics | null> {
-    if (!startsAt) {
+    if (!before) {
       return null;
     }
     return repository
       .createQueryBuilder('statistics')
       .where('statistics.firewall = :firewallId', { firewallId })
-      .andWhere('statistics.collected_at < :startsAt', { startsAt })
+      .andWhere(
+        `(statistics.collected_at < :collectedAt OR (
+          statistics.collected_at = :collectedAt AND statistics.id < :statisticsId
+        ))`,
+        { collectedAt: before.collectedAt, statisticsId: before.id },
+      )
       .orderBy('statistics.collected_at', 'DESC')
       .addOrderBy('statistics.id', 'DESC')
       .getOne();
