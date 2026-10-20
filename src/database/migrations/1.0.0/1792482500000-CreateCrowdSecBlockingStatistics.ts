@@ -68,6 +68,7 @@ export class CreateCrowdSecBlockingStatistics1792482500000 implements MigrationI
         '`bytes` bigint unsigned NOT NULL, ' +
         'PRIMARY KEY (`id`), ' +
         'KEY `IDX_crowdsec_blocking_statistics_address_lookup` (`address`, `crowdsec_blocking_statistics`), ' +
+        'KEY `IDX_crowdsec_blocking_statistics_address_statistics_address` (`crowdsec_blocking_statistics`, `address`), ' +
         'CONSTRAINT `FK_crowdsec_blocking_statistics_address_statistics` FOREIGN KEY (`crowdsec_blocking_statistics`) REFERENCES `crowdsec_blocking_statistics` (`id`) ON DELETE CASCADE' +
         ') ENGINE=InnoDB',
     );

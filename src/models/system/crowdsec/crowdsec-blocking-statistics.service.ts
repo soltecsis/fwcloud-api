@@ -285,7 +285,7 @@ export class CrowdSecBlockingStatisticsService extends Service {
     this.applyRange(query, 'statistics.collected_at', options);
     if (options.search) {
       query.andWhere('address.address LIKE :search', {
-        search: `%${this.escapeLike(options.search)}%`,
+        search: `${this.escapeLike(options.search)}%`,
       });
     }
 

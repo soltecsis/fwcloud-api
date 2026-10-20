@@ -28,6 +28,7 @@ const tableName = 'crowdsec_blocking_statistics_address';
 
 @Entity({ name: tableName })
 @Index(['address', 'statisticsId'])
+@Index(['statisticsId', 'address'])
 export class CrowdSecBlockingStatisticsAddress extends Model {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: string;
