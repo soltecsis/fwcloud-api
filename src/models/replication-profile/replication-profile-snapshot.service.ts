@@ -61,8 +61,6 @@ const CAPTURED_POLICIES = (['IPv4', 'IPv6'] as const).flatMap((family) =>
 type SnapshotChain = 'input' | 'output' | 'forward' | 'snat' | 'dnat';
 type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 
-const CAPTURED_POLICY_BY_TYPE = new Map(CAPTURED_POLICIES.map((policy) => [policy.typeId, policy]));
-
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
@@ -130,6 +128,7 @@ interface SnapshotInterfaceRow {
 
 interface SnapshotRuleRow {
   id: number;
+  type: number;
   rule_order: number;
   action: number;
   active: number;
@@ -619,12 +618,16 @@ export class ReplicationProfileSnapshotService extends Service {
     vpnObjects: Map<string, SnapshotProvisionObject>,
   ): Promise<SnapshotProvisionRule[]> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
-    const rules = await dbQuery<SnapshotRuleRow & { type: number }>(
+    const rules = await dbQuery<SnapshotRuleRow>(
       `SELECT id, type, rule_order, action, active, special, comment, negate, options FROM policy_r
        WHERE firewall = ? AND type IN (${sqlPlaceholders(typeIds.length)}) ORDER BY rule_order`,
       [firewallId, ...typeIds],
     );
     const nonSpecialRules = rules.filter((rule) => rule.special === 0);
+    const rulesByType = new Map<number, SnapshotRuleRow[]>();
+    for (const rule of nonSpecialRules) {
+      addToList(rulesByType, Number(rule.type), rule);
+    }
     const ruleIds = nonSpecialRules.map((rule) => rule.id);
     const [interfaceRefs, ipObjRefs, vpnRefs] = await Promise.all([
       this.loadRuleInterfaceRefs(ruleIds),
@@ -641,19 +644,15 @@ export class ReplicationProfileSnapshotService extends Service {
     // policy is captured whole, defaults included, once it holds anything else: a rule of its own or
     // a default rule the user changed. Policies left with their untouched defaults are skipped, as
     // the target generates those itself.
-    const customizedTypes = new Set(
-      nonSpecialRules
-        .filter(
+    const customizedPolicies = CAPTURED_POLICIES.filter((policy) =>
+      rulesByType
+        .get(policy.typeId)
+        ?.some(
           (rule) =>
-            !this.isUntouchedDefaultRule(
-              rule,
-              CAPTURED_POLICY_BY_TYPE.get(Number(rule.type)),
-              refsOf(rule.id),
-              loopbackInterfaceIds,
-            ),
-        )
-        .map((rule) => Number(rule.type)),
+            !this.isUntouchedDefaultRule(rule, policy, refsOf(rule.id), loopbackInterfaceIds),
+        ),
     );
+    const customizedTypes = new Set(customizedPolicies.map((policy) => policy.typeId));
     const candidateRules = nonSpecialRules.filter((rule) => customizedTypes.has(Number(rule.type)));
     const lookup = await this.loadObjectLookup(
       candidateRules.flatMap((rule) => ipObjRefs.get(rule.id) ?? []),
@@ -661,8 +660,8 @@ export class ReplicationProfileSnapshotService extends Service {
 
     const captured: SnapshotProvisionRule[] = [];
 
-    for (const policy of CAPTURED_POLICIES) {
-      for (const rule of candidateRules.filter((item) => Number(item.type) === policy.typeId)) {
+    for (const policy of customizedPolicies) {
+      for (const rule of rulesByType.get(policy.typeId)!) {
         const label = this.ruleLabel(rule, policy.label);
 
         if (rule.active !== 1) {
@@ -699,12 +698,12 @@ export class ReplicationProfileSnapshotService extends Service {
    */
   private isUntouchedDefaultRule(
     rule: SnapshotRuleRow,
-    policy: CapturedPolicy | undefined,
+    policy: CapturedPolicy,
     { interfaces, ipObjs, vpns }: SnapshotRuleRefs,
     loopbackInterfaceIds: Set<number>,
   ): boolean {
     if (
-      policy?.chain !== 'input' ||
+      policy.chain !== 'input' ||
       rule.action !== RULE_ACTION_ACCEPT ||
       rule.active !== 1 ||
       rule.options !== 0 ||
@@ -793,15 +792,19 @@ export class ReplicationProfileSnapshotService extends Service {
       ].filter((position) => position !== undefined),
     );
 
-    if (ipObjRefs.some((ref) => !known.has(ref.position))) {
-      warnings.push(
-        `${label} was not captured: it references objects in positions the vocabulary cannot express.`,
-      );
-      return null;
+    const refsByPosition = new Map<number, SnapshotObjectRef[]>();
+    for (const ref of ipObjRefs) {
+      if (!known.has(ref.position)) {
+        warnings.push(
+          `${label} was not captured: it references objects in positions the vocabulary cannot express.`,
+        );
+        return null;
+      }
+      addToList(refsByPosition, ref.position, ref);
     }
 
     const at = (position: number | undefined) =>
-      ipObjRefs.filter((ref) => position !== undefined && ref.position === position);
+      position === undefined ? [] : (refsByPosition.get(position) ?? []);
     const objects = (position: number | undefined) =>
       this.captureObjects(at(position), roleByInterfaceId, lookup, parameters);
     // Checked above: every VPN reference is a captured client in the source or destination.
@@ -832,7 +835,7 @@ export class ReplicationProfileSnapshotService extends Service {
     const inRoles = inRefs.map((ref) => roleByInterfaceId.get(ref.interface));
     const outRoles = outRefs.map((ref) => roleByInterfaceId.get(ref.interface));
 
-    if ([...inRoles, ...outRoles].some((role) => !role)) {
+    if (inRoles.some((role) => !role) || outRoles.some((role) => !role)) {
       warnings.push(`${label} was not captured: it references an interface of another firewall.`);
       return null;
     }

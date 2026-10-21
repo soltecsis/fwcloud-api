@@ -1031,8 +1031,7 @@ class ReplicationProfileDefinitionValidator {
 
       this.validateRuleAction(record, rulePath, errors);
       this.validateRuleChain(record, rulePath, errors);
-      this.validateRuleNegation(record, rulePath, errors);
-      this.validateRuleOptions(record, rulePath, errors);
+      this.validateRuleSettings(record, rulePath, errors);
       this.validateRuleInterfaceRoles(record, rulePath, interfaceRoles, errors);
       this.validatePortsAndProtocols(record, rulePath, parameterNames, errors);
       const family = getReplicationProfileRuleIpVersion(record);
@@ -1098,46 +1097,25 @@ class ReplicationProfileDefinitionValidator {
     source.value.rules.forEach((value, index) => {
       const rule = asReplicationProfileRecord(value);
       if (rule) {
-        this.validateRuleNegation(rule, `model.${source.field}.rules[${index}]`, errors);
-        this.validateRuleOptions(rule, `model.${source.field}.rules[${index}]`, errors);
+        this.validateRuleSettings(rule, `model.${source.field}.rules[${index}]`, errors);
       }
     });
   }
 
-  private validateRuleOptions(
+  private validateRuleSettings(
     rule: ValidationRecord,
     rulePath: string,
     errors: ReplicationProfileValidationError[],
   ): void {
-    if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
-      this.addError(
-        errors,
-        'invalid_rule_options',
-        'Rule options must be an integer between 0 and 65535.',
-        `${rulePath}.options`,
-      );
-    }
-  }
-
-  private validateRuleNegation(
-    rule: ValidationRecord,
-    rulePath: string,
-    errors: ReplicationProfileValidationError[],
-  ): void {
-    if (rule.negate === undefined) {
-      return;
-    }
-
     let message: string | null = null;
     try {
-      const normalized = normalizeRuleNegation(rule.negate);
-      // Use the same aliases and legacy interface shorthand as the application parser. A negated
-      // rule it cannot parse must be rejected instead of disappearing from the applied policy.
-      const parsed = getProfileProvisioning({ policyStructure: { rules: [rule] } })?.rules[0];
-      if (parsed) {
-        message = getProvisionRuleNegationError(parsed);
-      } else if (normalized) {
-        message = 'Rule negate cannot be applied because its chain or IP version is invalid.';
+      if (normalizeRuleNegation(rule.negate)) {
+        // Use the application parser's aliases and legacy interface shorthand. Empty negation
+        // needs no rule parsing; an unparseable rule with a restriction must still be rejected.
+        const parsed = getProfileProvisioning({ policyStructure: { rules: [rule] } })?.rules[0];
+        message = parsed
+          ? getProvisionRuleNegationError(parsed)
+          : 'Rule negate cannot be applied because its chain or IP version is invalid.';
       }
     } catch (error) {
       message = (error as Error).message;
@@ -1145,6 +1123,15 @@ class ReplicationProfileDefinitionValidator {
 
     if (message) {
       this.addError(errors, 'invalid_rule_negation', message, `${rulePath}.negate`);
+    }
+
+    if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
+      this.addError(
+        errors,
+        'invalid_rule_options',
+        'Rule options must be an integer between 0 and 65535.',
+        `${rulePath}.options`,
+      );
     }
   }
 
