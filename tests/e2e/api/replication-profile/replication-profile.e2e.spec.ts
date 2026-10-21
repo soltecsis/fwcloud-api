@@ -319,6 +319,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
               chain: 'forward',
               ipVersion: 4,
               action: 'accept',
+              options: 0,
               inRole: 'wan',
               comment: 'Allow forwarded traffic from WAN.',
             },
@@ -331,14 +332,18 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
-    it('should preserve captured negation through detail, template editing and application to another firewall', async () => {
+    it('should preserve captured negation, LOG and stateless through detail, template editing and application to another firewall', async () => {
       const source = await makeSourceFirewall();
       const manager = db.getSource().manager;
       const [sourceRule] = await manager.query(
         'SELECT id FROM policy_r WHERE firewall = ? AND type = 3 AND special = 0',
         [source.id],
       );
-      await manager.query('UPDATE policy_r SET negate = ? WHERE id = ?', ['22', sourceRule.id]);
+      await manager.query('UPDATE policy_r SET negate = ?, options = ? WHERE id = ?', [
+        '22',
+        6,
+        sourceRule.id,
+      ]);
       await manager.query(
         'INSERT INTO policy_r__ipobj (rule, ipobj_g, position, position_order) VALUES (?, 5, 9, 1)',
         [sourceRule.id],
@@ -362,6 +367,8 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(captured.body.data.warnings).to.deep.eq([]);
       expect(captured.body.data.model.provision.rules[0].negate).to.eq('22');
       expect(captured.body.data.model.policyStructure.rules[0].negate).to.eq('22');
+      expect(captured.body.data.model.provision.rules[0].options).to.eq(6);
+      expect(captured.body.data.model.policyStructure.rules[0].options).to.eq(6);
 
       const detail = await request(app.express)
         .get(`${profileUrl}/latest`)
@@ -369,6 +376,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .expect(200);
       const editedModel = detail.body.data.model;
       expect(editedModel.provision.rules[0].negate).to.eq('22');
+      expect(editedModel.provision.rules[0].options).to.eq(6);
 
       // Editing the template removes interface negation and negates its existing service instead.
       editedModel.provision.rules[0].negate = '9';
@@ -390,6 +398,8 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         .expect(200);
       expect(saved.body.data.model.provision.rules[0].negate).to.eq('9');
       expect(saved.body.data.model.policyStructure.rules[0].negate).to.eq('9');
+      expect(saved.body.data.model.provision.rules[0].options).to.eq(6);
+      expect(saved.body.data.model.policyStructure.rules[0].options).to.eq(6);
 
       const applied = await request(app.express)
         .post(`${profileUrl}/latest/apply`)
@@ -401,11 +411,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(applied.body.data.createdRules).to.have.length(1);
 
       const rules = await manager.query(
-        'SELECT id, negate FROM policy_r WHERE firewall = ? AND type = 3 AND special = 0',
+        'SELECT id, negate, options FROM policy_r WHERE firewall = ? AND type = 3 AND special = 0',
         [target.id],
       );
       expect(rules).to.have.length(1);
       expect(rules[0].negate).to.eq('9');
+      expect(rules[0].options).to.eq(6);
       expect(Number(rules[0].id)).not.to.eq(Number(sourceRule.id));
       const interfaces = await manager.query(
         `SELECT I.firewall, RI.position FROM policy_r__interface RI
@@ -418,10 +429,12 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         [rules[0].id],
       );
       expect(services).to.deep.eq([{ ipobj_g: 5, position: 9 }]);
-      const [unchangedSource] = await manager.query('SELECT negate FROM policy_r WHERE id = ?', [
-        sourceRule.id,
-      ]);
+      const [unchangedSource] = await manager.query(
+        'SELECT negate, options FROM policy_r WHERE id = ?',
+        [sourceRule.id],
+      );
       expect(unchangedSource.negate).to.eq('22');
+      expect(unchangedSource.options).to.eq(6);
     });
 
     it('should return and persist VPN definitions and their policy references from the source', async () => {

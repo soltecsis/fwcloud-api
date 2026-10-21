@@ -104,6 +104,78 @@ function pathsFor(payload: unknown): Array<string | undefined> {
   return errorsFor(payload).map((error) => error.path);
 }
 
+describe('Native replication profile rule options validation', () => {
+  for (const field of ['provision', 'policyStructure', 'policy_structure']) {
+    it(`accepts missing options and every independent LOG/stateless setting in ${field}`, () => {
+      expect(
+        errorsFor({
+          targetKind: 'firewall',
+          model: {
+            [field]: {
+              rules: [
+                ...[0, 2, 4, 6, 1, 5, 0xffff].map((options) => ({ chain: 'forward', options })),
+                { chain: 'forward' },
+              ],
+            },
+          },
+        }),
+      ).to.be.empty;
+    });
+
+    it(`rejects malformed masks in ${field} instead of silently altering rule behavior`, () => {
+      for (const options of [null, false, true, '6', -1, 1.5, 0x10000, {}, []]) {
+        const errors = errorsFor({
+          targetKind: 'firewall',
+          model: { [field]: { rules: [{ chain: 'forward', options }] } },
+        });
+        expect(errors.map((error) => error.code)).to.include('invalid_rule_options');
+        expect(errors.map((error) => error.path)).to.include(`model.${field}.rules[0].options`);
+      }
+    });
+
+    it(`preserves both validation errors and their order in ${field}`, () => {
+      expect(
+        errorsFor({
+          targetKind: 'firewall',
+          model: {
+            [field]: {
+              rules: [{ chain: 'forward', negate: 'invalid', options: false }],
+            },
+          },
+        }),
+      ).to.deep.eq([
+        {
+          code: 'invalid_rule_negation',
+          message:
+            'Rule negate must be null or a string of positive position IDs separated by spaces.',
+          path: `model.${field}.rules[0].negate`,
+          severity: 'error',
+        },
+        {
+          code: 'invalid_rule_options',
+          message: 'Rule options must be an integer between 0 and 65535.',
+          path: `model.${field}.rules[0].options`,
+          severity: 'error',
+        },
+      ]);
+    });
+
+    it(`still validates options when negation is absent or empty in ${field}`, () => {
+      for (const negate of [undefined, null, '', ' \t\n ']) {
+        const errors = errorsFor({
+          targetKind: 'firewall',
+          model: {
+            [field]: {
+              rules: [{ chain: 'forward', negate, options: false }],
+            },
+          },
+        });
+        expect(errors.map((error) => error.code)).to.deep.eq(['invalid_rule_options']);
+      }
+    });
+  }
+});
+
 describe(describeName('Replication Profile Validation Service Unit Tests'), () => {
   it('should accept valid built-in, firewall and cluster profiles', () => {
     expect(
