@@ -4,7 +4,11 @@ import { Service } from '../../fonaments/services/service';
 import { IsRoutingTableNumberConstraint } from '../../fonaments/validation/rules/is-routing-table-number.validation';
 import { findSecretLikePaths } from './replication-profile-secret.guard';
 import { validateProfileVpnTemplate } from './replication-profile-vpn.validation';
-import { getProfileProvisioning } from './policy-replication.types';
+import { getProfileProvisioning, getProfileProvisioningSource } from './policy-replication.types';
+import {
+  getProvisionRuleNegationError,
+  normalizeRuleNegation,
+} from './replication-profile-rule-negation';
 import {
   asReplicationProfileRecord,
   asReplicationProfileNonEmptyString,
@@ -234,6 +238,7 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
+    this.validateStructureRuleNegations(model, errors);
     if (model.vpnTemplate !== undefined) {
       for (const issue of validateProfileVpnTemplate(model.vpnTemplate)) {
         this.addError(
@@ -1025,6 +1030,7 @@ class ReplicationProfileDefinitionValidator {
 
       this.validateRuleAction(record, rulePath, errors);
       this.validateRuleChain(record, rulePath, errors);
+      this.validateRuleNegation(record, rulePath, errors);
       this.validateRuleInterfaceRoles(record, rulePath, interfaceRoles, errors);
       this.validatePortsAndProtocols(record, rulePath, parameterNames, errors);
       const family = getReplicationProfileRuleIpVersion(record);
@@ -1075,6 +1081,53 @@ class ReplicationProfileDefinitionValidator {
         );
       }
     });
+  }
+
+  /** Structure-only templates use the same negation checks before they can be saved or applied. */
+  private validateStructureRuleNegations(
+    model: ValidationRecord,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    const source = getProfileProvisioningSource(model);
+    if (!source || source.field === 'provision' || !Array.isArray(source.value.rules)) {
+      return;
+    }
+
+    source.value.rules.forEach((value, index) => {
+      const rule = asReplicationProfileRecord(value);
+      if (rule) {
+        this.validateRuleNegation(rule, `model.${source.field}.rules[${index}]`, errors);
+      }
+    });
+  }
+
+  private validateRuleNegation(
+    rule: ValidationRecord,
+    rulePath: string,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    if (rule.negate === undefined) {
+      return;
+    }
+
+    let message: string | null = null;
+    try {
+      const normalized = normalizeRuleNegation(rule.negate);
+      // Use the same aliases and legacy interface shorthand as the application parser. A negated
+      // rule it cannot parse must be rejected instead of disappearing from the applied policy.
+      const parsed = getProfileProvisioning({ policyStructure: { rules: [rule] } })?.rules[0];
+      if (parsed) {
+        message = getProvisionRuleNegationError(parsed);
+      } else if (normalized) {
+        message = 'Rule negate cannot be applied because its chain or IP version is invalid.';
+      }
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    if (message) {
+      this.addError(errors, 'invalid_rule_negation', message, `${rulePath}.negate`);
+    }
   }
 
   private validateRuleAction(

@@ -7,6 +7,7 @@ import {
   validateReplicationProfilePayload,
 } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import { readVersionedReplicationProfileTemplate } from '../../../utils/replication-profile-fixtures';
+import { POLICY_STRUCTURE_FIELDS } from '../../../../src/models/replication-profile/policy-replication.types';
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -323,6 +324,178 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
 
     expect(codes).to.include('invalid_rule_chain');
     expect(codes).to.include('invalid_rule_ip_version');
+  });
+
+  it('should accept populated native negation positions in every chain and IP family', () => {
+    const policies = [
+      [4, 'input', '1 2 3 20'],
+      [4, 'output', '4 5 6 21'],
+      [4, 'forward', '7 8 9 22 25'],
+      [4, 'snat', '11 12 13 24'],
+      [4, 'dnat', '30 31 32 36'],
+      [6, 'input', '37 38 39 51'],
+      [6, 'output', '40 41 42 52'],
+      [6, 'forward', '43 44 45 53 55'],
+      [6, 'snat', '46 47 48 54'],
+      [6, 'dnat', '56 57 58 61'],
+    ];
+    const payload = firewallProfile();
+    provision(payload).rules = policies.map(([ipVersion, chain, negate]) => ({
+      ipVersion,
+      chain,
+      negate,
+      inRoles: ['lan'],
+      outRoles: ['wan'],
+      source: [{ kind: 'std', id: 1 }],
+      destination: [{ kind: 'std', id: 1 }],
+      services: [{ protocol: 'tcp', port: 443 }],
+    }));
+
+    expect(errorsFor(payload)).to.be.empty;
+  });
+
+  it('should report malformed negation at its template field', () => {
+    const payload = firewallProfile();
+    const invalidValues = [true, 7, ['7'], {}, '7,8', '7 invalid', '7.5', '0'];
+    provision(payload).rules = invalidValues.map((negate) => ({ negate }));
+
+    const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+    expect(errors).to.have.length(invalidValues.length);
+    expect(errors.map((error) => error.path)).to.deep.equal(
+      invalidValues.map((_, index) => `model.provision.rules[${index}].negate`),
+    );
+    expect(errors.every((error) => error.message.includes('positive position IDs'))).to.be.true;
+  });
+
+  it('should reject positions belonging to another chain or IP family', () => {
+    const payload = firewallProfile();
+    provision(payload).rules = [
+      { chain: 'forward', ipVersion: 4, negate: '1' },
+      { chain: 'forward', ipVersion: 6, negate: '7' },
+      { chain: 'input', ipVersion: 4, negate: '25' },
+      { chain: 'forward', ipVersion: 4, negate: '999' },
+    ];
+
+    const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+    expect(errors).to.have.length(4);
+    expect(errors.every((error) => error.message.includes('does not belong'))).to.be.true;
+  });
+
+  it('should reject every translated NAT negation position in both IP families', () => {
+    const payload = firewallProfile();
+    provision(payload).rules = [
+      [4, 'snat', '14'],
+      [4, 'snat', '16'],
+      [4, 'dnat', '34'],
+      [4, 'dnat', '35'],
+      [6, 'snat', '49'],
+      [6, 'snat', '50'],
+      [6, 'dnat', '59'],
+      [6, 'dnat', '60'],
+    ].map(([ipVersion, chain, negate]) => ({ ipVersion, chain, negate }));
+
+    const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+    expect(errors).to.have.length(8);
+    expect(errors.every((error) => error.message.includes('Translated NAT'))).to.be.true;
+  });
+
+  it('should reject each empty negated position', () => {
+    const payload = firewallProfile();
+    const populated = {
+      chain: 'forward',
+      inRoles: ['lan'],
+      outRoles: ['wan'],
+      source: [{ kind: 'std', id: 1 }],
+      destination: [{ kind: 'std', id: 1 }],
+      services: [{ protocol: 'tcp', port: 443 }],
+    };
+    provision(payload).rules = [
+      ['inRoles', '22'],
+      ['outRoles', '25'],
+      ['source', '7'],
+      ['destination', '8'],
+      ['services', '9'],
+    ].map(([field, negate]) => ({ ...populated, [field]: [], negate }));
+
+    const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+    expect(errors).to.have.length(5);
+    expect(errors.every((error) => error.message.includes('Empty rule positions'))).to.be.true;
+  });
+
+  it('should validate negation against the parsed legacy interface shorthand', () => {
+    const payload = firewallProfile();
+    provision(payload).rules = [
+      { source: [{ type: 'interface', value: 'lan' }], negate: '22' },
+      { source: [{ type: 'interface', value: 'lan' }], negate: '7' },
+    ];
+
+    const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+    expect(errors).to.have.length(1);
+    expect(errors[0].path).to.equal('model.provision.rules[1].negate');
+    expect(errors[0].message).to.include('Empty rule positions');
+  });
+
+  it('should allow negated explicit source and destination interface address references', () => {
+    const payload = firewallProfile();
+    provision(payload).rules = ['kind', 'type', 'objectType'].map((field) => ({
+      source: [{ [field]: 'interfaceRole', role: 'lan' }],
+      destination: [{ [field]: 'interfaceRole', role: 'wan' }],
+      negate: '7 8',
+    }));
+
+    expect(errorsFor(payload)).to.be.empty;
+  });
+
+  it('should accept absent, null and empty negation in legacy templates', () => {
+    const payload = firewallProfile();
+    provision(payload).rules = [{}, { negate: null }, { negate: '' }];
+
+    expect(errorsFor(payload)).to.be.empty;
+  });
+
+  it('should validate negation in every structure-only template spelling', () => {
+    for (const field of POLICY_STRUCTURE_FIELDS) {
+      const payload = firewallProfile();
+      delete model(payload).provision;
+      model(payload)[field] = { rules: [{ negate: '7', source: [] }] };
+
+      const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+      expect(errors).to.have.length(1);
+      expect(errors[0].path).to.equal(`model.${field}.rules[0].negate`);
+      expect(errors[0].message).to.include('Empty rule positions');
+    }
+  });
+
+  it('should check structure negation when an empty provision block falls back to it', () => {
+    const payload = firewallProfile();
+    model(payload).provision = {};
+    model(payload).policyStructure = { rules: [{ negate: ['7'] }] };
+
+    const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+    expect(errors).to.have.length(1);
+    expect(errors[0].path).to.equal('model.policyStructure.rules[0].negate');
+  });
+
+  it('should reject negated structure rules whose chain or IP family cannot be parsed', () => {
+    for (const field of POLICY_STRUCTURE_FIELDS) {
+      const payload = firewallProfile();
+      delete model(payload).provision;
+      model(payload)[field] = {
+        rules: [
+          { chain: 'mangle', negate: '7' },
+          { ipVersion: 5, negate: '7' },
+        ],
+      };
+
+      const errors = errorsFor(payload).filter((error) => error.code === 'invalid_rule_negation');
+      expect(errors).to.have.length(2);
+      expect(errors.map((error) => error.path)).to.deep.equal([
+        `model.${field}.rules[0].negate`,
+        `model.${field}.rules[1].negate`,
+      ]);
+      expect(errors.every((error) => error.message.includes('chain or IP version is invalid'))).to
+        .be.true;
+    }
   });
 
   it('should reject credential-like keys anywhere in the payload', () => {
