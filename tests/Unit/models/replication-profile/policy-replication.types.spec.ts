@@ -10,6 +10,34 @@ const EMPTY_BLOCKS = {
 const NO_TRANSLATION = { translatedSource: [], translatedDestination: [], translatedServices: [] };
 
 describe(describeName('Policy Replication Types Unit Tests'), () => {
+  for (const field of ['provision', 'policyStructure', 'policy_structure']) {
+    it(`should retain the native options mask, explicit zero and missing values in ${field}`, () => {
+      const values = [0, 2, 4, 6, 1, 5, 0xffff];
+      const parsed = getProfileProvisioning(
+        JSON.parse(
+          JSON.stringify({
+            [field]: {
+              rules: [
+                ...values.map((options) => ({ chain: 'forward', options })),
+                { chain: 'forward' },
+              ],
+            },
+          }),
+        ),
+      );
+      expect(parsed.rules.slice(0, -1).map((rule) => rule.options)).to.deep.eq(values);
+      expect(parsed.rules[parsed.rules.length - 1]).not.to.have.property('options');
+    });
+  }
+
+  it('should retain invalid options for validation instead of replacing them with defaults', () => {
+    const values = [null, false, true, '6', -1, 1.5, 0x10000, {}, []];
+    const parsed = getProfileProvisioning({
+      provision: { rules: values.map((options) => ({ options })) },
+    });
+    expect(parsed.rules.map((rule) => rule.options)).to.deep.eq(values);
+  });
+
   it('should preserve native negation only when the template declares it', () => {
     const rules = getProfileProvisioning({
       provision: {

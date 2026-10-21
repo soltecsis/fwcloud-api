@@ -192,6 +192,8 @@ export interface PolicyReplicationProvisionRule {
   ipVersion: ReplicationProfileIpVersion;
   /** Defaults to 'accept'. */
   action?: 'accept' | 'deny';
+  /** Native policy_r.options bitmask. Omitted in legacy templates means 0. */
+  options?: number;
   /** Native policy_r.negate: negated position IDs separated by spaces. */
   negate?: string | null;
   /** Roles of the inbound interfaces (match provisioned interface roles). A rule may have several. */
@@ -721,6 +723,8 @@ function parseProvisionRule(
     // Keep the native value unchanged, including malformed runtime values, so neither HTTP
     // validation nor a direct application can silently discard a requested negation.
     ...(record.negate !== undefined ? { negate: record.negate as string | null } : {}),
+    // Preserve explicit zero and malformed values for validation, rather than silently defaulting.
+    ...(record.options !== undefined ? { options: record.options as number } : {}),
     comment,
   };
 }

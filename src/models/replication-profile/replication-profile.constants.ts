@@ -275,6 +275,11 @@ export function isReplicationProfilePort(value: unknown): value is number {
   );
 }
 
+/** Same unsigned 16-bit mask accepted by FWCloud's native policy rule API. */
+export function isReplicationProfileRuleOptions(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xffff;
+}
+
 export function getReplicationProfileModelTargetKinds(
   model: unknown,
 ): ReplicationProfileTargetKind[] {

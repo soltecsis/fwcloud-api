@@ -16,6 +16,7 @@ import {
   isReplicationProfileExternalObjectUsage,
   isReplicationProfileIpVersion,
   isReplicationProfilePort,
+  isReplicationProfileRuleOptions,
   isReplicationProfileStringValue,
   REPLICATION_PROFILE_COMPATIBILITY_TARGET_KIND_FIELDS,
   REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
@@ -238,7 +239,7 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
-    this.validateStructureRuleNegations(model, errors);
+    this.validateStructureRuleSettings(model, errors);
     if (model.vpnTemplate !== undefined) {
       for (const issue of validateProfileVpnTemplate(model.vpnTemplate)) {
         this.addError(
@@ -1031,6 +1032,7 @@ class ReplicationProfileDefinitionValidator {
       this.validateRuleAction(record, rulePath, errors);
       this.validateRuleChain(record, rulePath, errors);
       this.validateRuleNegation(record, rulePath, errors);
+      this.validateRuleOptions(record, rulePath, errors);
       this.validateRuleInterfaceRoles(record, rulePath, interfaceRoles, errors);
       this.validatePortsAndProtocols(record, rulePath, parameterNames, errors);
       const family = getReplicationProfileRuleIpVersion(record);
@@ -1083,8 +1085,8 @@ class ReplicationProfileDefinitionValidator {
     });
   }
 
-  /** Structure-only templates use the same negation checks before they can be saved or applied. */
-  private validateStructureRuleNegations(
+  /** Structure-only templates use the same rule settings checks before saving or applying. */
+  private validateStructureRuleSettings(
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
   ): void {
@@ -1097,8 +1099,24 @@ class ReplicationProfileDefinitionValidator {
       const rule = asReplicationProfileRecord(value);
       if (rule) {
         this.validateRuleNegation(rule, `model.${source.field}.rules[${index}]`, errors);
+        this.validateRuleOptions(rule, `model.${source.field}.rules[${index}]`, errors);
       }
     });
+  }
+
+  private validateRuleOptions(
+    rule: ValidationRecord,
+    rulePath: string,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
+      this.addError(
+        errors,
+        'invalid_rule_options',
+        'Rule options must be an integer between 0 and 65535.',
+        `${rulePath}.options`,
+      );
+    }
   }
 
   private validateRuleNegation(
