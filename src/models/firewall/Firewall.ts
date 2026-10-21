@@ -1558,18 +1558,12 @@ export class Firewall extends Model {
     });
   }
 
-  public static getPolicyCompilationMode(
+  public static async getPolicyCompilationMode(
     fwcloud: number,
     firewall: number,
   ): Promise<PolicyCompilationMode> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const options = await this.getFirewallOptions(fwcloud, firewall);
-        resolve(this.getPolicyCompilationModeFromOptions(options));
-      } catch (error) {
-        reject(error);
-      }
-    });
+    const options = await this.getFirewallOptions(fwcloud, firewall);
+    return this.getPolicyCompilationModeFromOptions(options);
   }
 
   public static getPolicyCompilationModeFromOptions(options: number): PolicyCompilationMode {

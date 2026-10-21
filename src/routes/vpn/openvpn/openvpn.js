@@ -355,7 +355,7 @@ const disableOpenVPNServer2FA = async (req, firewall, crt, clusterName = null) =
 			content: cfgDump.cfg,
 			name: openvpnCfg.install_name
 		}], getOpenVPN2FASilentChannel());
-		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
+		emitOpenVPN2FANodeEnd(channel, targetFirewall);
 	}
 
 	await queryDb(
@@ -428,7 +428,7 @@ const disableOpenVPNClient2FA = async (req, firewall, crt, clusterName = null) =
 			name: getOpenVPN2FAServerUsersFilename(serverCN),
 			content: usersListContent
 		}], getOpenVPN2FASilentChannel());
-		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
+		emitOpenVPN2FANodeEnd(channel, targetFirewall);
 	}
 
 	await removeClient2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
