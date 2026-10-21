@@ -3,6 +3,7 @@ import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
+import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { Tree, TreeNode } from '../../../../src/models/tree/Tree';
@@ -335,6 +336,137 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
 
     expect(merged.createdRules).to.be.empty;
     expect(merged.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
+  });
+
+  describe('position negation', () => {
+    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
+      service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        provision,
+        fwc.fwcloud.id,
+        mode,
+        applyOptions(values),
+      );
+
+    it('should preserve negated positions independently of the other rule positions', async () => {
+      provision.rules[0].negate = '25 9 22 7 7';
+      provision.rules[0].destination = [{ kind: 'address', value: '203.0.113.10' }];
+
+      const result = await apply();
+
+      expect(result.errors).to.be.empty;
+      expect(result.applied).to.be.true;
+      const [rule] = await db
+        .getSource()
+        .query('SELECT negate FROM policy_r WHERE id = ?', [result.createdRules[0].targetRuleId]);
+      expect(rule.negate).to.equal('7 9 22 25');
+      const positions = await db
+        .getSource()
+        .query('SELECT position FROM policy_r__ipobj WHERE rule = ? ORDER BY position', [
+          result.createdRules[0].targetRuleId,
+        ]);
+      // Destination is populated but is deliberately not negated.
+      expect(positions.map((row) => row.position)).to.deep.equal([7, 8, 9]);
+    });
+
+    it('should leave positions unnegated for legacy templates', async () => {
+      const result = await apply();
+
+      expect(result.errors).to.be.empty;
+      const [rule] = await db
+        .getSource()
+        .query('SELECT negate FROM policy_r WHERE id = ?', [result.createdRules[0].targetRuleId]);
+      expect(rule.negate).to.be.null;
+    });
+
+    it('should apply negated rules to the master policy of a target cluster', async () => {
+      const manager = db.getSource().manager;
+      const cluster = await manager.getRepository(Cluster).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwc.fwcloud.id,
+      });
+      targetFirewall.clusterId = cluster.id;
+      targetFirewall.fwmaster = 1;
+      await manager.getRepository(Firewall).save(targetFirewall);
+      const backup = await manager.getRepository(Firewall).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwc.fwcloud.id,
+        clusterId: cluster.id,
+        fwmaster: 0,
+      });
+      provision.rules[0].negate = '7 22';
+
+      const result = await service.provisionPolicyFromProfile(
+        { kind: 'cluster', id: cluster.id },
+        provision,
+        fwc.fwcloud.id,
+        'replace_defaults',
+        applyOptions(values),
+      );
+
+      expect(result.errors).to.be.empty;
+      expect(result.applied).to.be.true;
+      const [rule] = await db
+        .getSource()
+        .query('SELECT firewall, negate FROM policy_r WHERE id = ?', [
+          result.createdRules[0].targetRuleId,
+        ]);
+      expect(rule.firewall).to.equal(targetFirewall.id);
+      expect(rule.negate).to.equal('7 22');
+      expect(await db.getSource().query('SELECT id FROM policy_r WHERE firewall = ?', [backup.id]))
+        .to.be.empty;
+    });
+
+    it('should distinguish negated rules in merge mode and normalize equivalent negation lists', async () => {
+      const original = await apply();
+      expect(original.errors).to.be.empty;
+
+      provision.rules[0].negate = '9 7';
+      const negated = await apply('merge');
+      expect(negated.errors).to.be.empty;
+      expect(negated.createdRules).to.have.length(1);
+      expect(negated.conflicts).to.be.empty;
+
+      // Existing native policies can store the same positions in a different order.
+      await db
+        .getSource()
+        .query('UPDATE policy_r SET negate = ? WHERE id = ?', [
+          '9 7',
+          negated.createdRules[0].targetRuleId,
+        ]);
+      provision.rules[0].negate = ' 7  9 7 ';
+      const duplicate = await apply('merge');
+      expect(duplicate.errors).to.be.empty;
+      expect(duplicate.createdRules).to.be.empty;
+      expect(duplicate.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
+    });
+
+    for (const mode of ['replace_defaults', 'merge', 'dry_run'] as const) {
+      it(`should reject invalid negation before writing interfaces, objects or rules in ${mode}`, async () => {
+        for (const negate of ['invalid', '7 43', '999', '14', true, 7, ['7']]) {
+          // An invalid later rule must also prevent the earlier valid one from being applied.
+          const invalid = { ...provision.rules[0], negate: negate as unknown as string };
+          provision.rules = [provision.rules[0], invalid];
+
+          const result = await apply(mode);
+          expect(result.applied, String(negate)).to.be.false;
+          expect(result.errors, String(negate)).not.to.be.empty;
+          expect(result.createdRules, String(negate)).to.be.empty;
+        }
+
+        expect(
+          await db
+            .getSource()
+            .query('SELECT id FROM interface WHERE firewall = ?', [targetFirewall.id]),
+        ).to.be.empty;
+        expect(
+          await db
+            .getSource()
+            .query('SELECT id FROM policy_r WHERE firewall = ?', [targetFirewall.id]),
+        ).to.be.empty;
+        expect(await countIpObjs('type = 7 AND address = ?', ['192.168.50.0'])).to.equal(0);
+      });
+    }
   });
 
   it('should validate without writing anything in dry-run mode', async () => {

@@ -192,6 +192,8 @@ export interface PolicyReplicationProvisionRule {
   ipVersion: ReplicationProfileIpVersion;
   /** Defaults to 'accept'. */
   action?: 'accept' | 'deny';
+  /** Native policy_r.negate: negated position IDs separated by spaces. */
+  negate?: string | null;
   /** Roles of the inbound interfaces (match provisioned interface roles). A rule may have several. */
   inRoles: string[];
   /** Roles of the outbound interfaces. */
@@ -687,12 +689,15 @@ function parseProvisionRule(
   let effectiveInRoles = inRoles;
   let effectiveOutRoles = outRoles;
 
-  if (effectiveInRoles.length === 0 && isSoleInterfaceRole(source)) {
+  if (effectiveInRoles.length === 0 && isSoleLegacyInterfaceShorthand(record.source, source)) {
     effectiveInRoles = [source[0].role];
     source = [];
   }
 
-  if (effectiveOutRoles.length === 0 && isSoleInterfaceRole(destination)) {
+  if (
+    effectiveOutRoles.length === 0 &&
+    isSoleLegacyInterfaceShorthand(record.destination, destination)
+  ) {
     effectiveOutRoles = [destination[0].role];
     destination = [];
   }
@@ -713,6 +718,9 @@ function parseProvisionRule(
     translatedServices: parseProvisionServices(
       record.translatedService ?? record.translatedServices,
     ),
+    // Keep the native value unchanged, including malformed runtime values, so neither HTTP
+    // validation nor a direct application can silently discard a requested negation.
+    ...(record.negate !== undefined ? { negate: record.negate as string | null } : {}),
     comment,
   };
 }
@@ -738,8 +746,31 @@ function readRoleList(value: unknown): string[] {
     .filter((item): item is string => item !== null);
 }
 
-function isSoleInterfaceRole(side: PolicyReplicationProvisionObject[]): boolean {
-  return side.length === 1 && side[0].kind === 'interfaceRole' && side[0].role !== undefined;
+function isSoleLegacyInterfaceShorthand(
+  value: unknown,
+  side: PolicyReplicationProvisionObject[],
+): boolean {
+  if (side.length !== 1 || side[0].kind !== 'interfaceRole' || side[0].role === undefined) {
+    return false;
+  }
+
+  const items = Array.isArray(value) ? value : [value];
+  if (items.length !== 1) {
+    return false;
+  }
+
+  if (asReplicationProfileNonEmptyString(items[0])) {
+    return true;
+  }
+
+  // An explicit interfaceRole object denotes the interface's addresses in Source/Destination.
+  // Only the old editor's { type: 'interface' } shorthand denotes an In/Out position instead.
+  const record = asReplicationProfileRecord(items[0]);
+  return (
+    record?.kind === undefined &&
+    record?.objectType === undefined &&
+    asReplicationProfileNonEmptyString(record?.type)?.toLowerCase() === 'interface'
+  );
 }
 
 function parseProvisionRuleSide(
