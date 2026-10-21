@@ -29,6 +29,7 @@ import { PolicyTypesMap } from '../policy/PolicyType';
 import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replication.service';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
+import { getProvisionRuleNegationError } from './replication-profile-rule-negation';
 import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
 import {
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
@@ -134,6 +135,7 @@ interface SnapshotRuleRow {
   active: number;
   special: number;
   comment: string | null;
+  negate: string | null;
 }
 
 interface SnapshotRuleInterfaceRow {
@@ -230,6 +232,8 @@ interface SnapshotProvisionRule {
   chain: SnapshotChain;
   ipVersion: number;
   action: 'accept' | 'deny';
+  /** Negated policy_position ids, using policy_r's space-separated representation. */
+  negate?: string | null;
   /** One role, or a list when the rule matches several interfaces. */
   inRole?: string | string[];
   outRole?: string | string[];
@@ -613,7 +617,7 @@ export class ReplicationProfileSnapshotService extends Service {
   ): Promise<SnapshotProvisionRule[]> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow & { type: number }>(
-      `SELECT id, type, rule_order, action, active, special, comment FROM policy_r
+      `SELECT id, type, rule_order, action, active, special, comment, negate FROM policy_r
        WHERE firewall = ? AND type IN (${sqlPlaceholders(typeIds.length)}) ORDER BY rule_order`,
       [firewallId, ...typeIds],
     );
@@ -700,6 +704,7 @@ export class ReplicationProfileSnapshotService extends Service {
       policy?.chain !== 'input' ||
       rule.action !== RULE_ACTION_ACCEPT ||
       rule.active !== 1 ||
+      !!rule.negate ||
       vpns.length > 0
     ) {
       return false;
@@ -861,6 +866,27 @@ export class ReplicationProfileSnapshotService extends Service {
 
     if (rule.comment) {
       captured.comment = rule.comment;
+    }
+
+    if (rule.negate) {
+      captured.negate = rule.negate;
+      const negationError = getProvisionRuleNegationError({
+        ...captured,
+        ipVersion: policy.ipVersion as 4 | 6,
+        inRoles: inRoles as string[],
+        outRoles: outRoles as string[],
+        source: captured.source ?? [],
+        destination: captured.destination ?? [],
+        services: captured.services ?? [],
+        translatedSource: captured.translatedSource ?? [],
+        translatedDestination: captured.translatedDestination ?? [],
+        translatedServices: captured.translatedService ?? [],
+      });
+
+      if (negationError) {
+        warnings.push(`${label} was not captured: ${negationError}`);
+        return null;
+      }
     }
 
     return captured;

@@ -13,6 +13,7 @@ import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { DefaultPolicyRuleComments, PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 import { NotFoundException } from '../../../../src/fonaments/exceptions/not-found-exception';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import {
@@ -35,6 +36,7 @@ import {
 import { validateProfileVpnTemplate } from '../../../../src/models/replication-profile/replication-profile-vpn.validation';
 import { normalizeProfileVpnRuleParameters } from '../../../../src/models/replication-profile/replication-profile-vpn-parameters';
 import { loadReplicationProfileModel } from '../../../../src/models/replication-profile/replication-profile-template';
+import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
 
 interface CapturedObject {
   kind: string;
@@ -48,6 +50,7 @@ interface CapturedRule {
   chain: string;
   ipVersion: number;
   action: string;
+  negate?: string | null;
   inRole?: string;
   outRole?: string;
   source?: CapturedObject[];
@@ -92,6 +95,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       active: number;
       special: number;
       comment: string;
+      negate: string | null;
     }> = {},
   ): Promise<number> {
     return PolicyRule.insertPolicy_r({
@@ -103,6 +107,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       options: 0,
       special: overrides.special ?? 0,
       comment: overrides.comment ?? null,
+      negate: overrides.negate ?? null,
     });
   }
 
@@ -303,6 +308,8 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(denyRule.action).to.be.eq('deny');
       expect(denyRule.inRole).to.be.eq(roleByName.get('ens18'));
       expect(denyRule.services).to.be.undefined;
+      expect(acceptRule).not.to.have.property('negate');
+      expect(denyRule).not.to.have.property('negate');
 
       const model = loadReplicationProfileModel(profile);
       const sourceRef = model.sourceRef as Record<string, unknown>;
@@ -312,6 +319,276 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
 
       const compatibility = model.compatibility as Record<string, unknown>;
       expect(compatibility.target_kinds).to.deep.eq(['firewall', 'cluster']);
+    });
+
+    it('should preserve negation through capture, persisted JSON, application and recapture in every policy', async () => {
+      const tcpService = await makeTcpService(8080);
+      const sourceObjects = new Map<number, IPObj>();
+      const destinationObjects = new Map<number, IPObj>();
+      const expected = new Map<string, string | null>();
+
+      for (const ipVersion of [4, 6] as const) {
+        sourceObjects.set(
+          ipVersion,
+          await db
+            .getSource()
+            .manager.getRepository(IPObj)
+            .save({
+              name: `Source IPv${ipVersion}`,
+              address: ipVersion === 4 ? '192.0.2.10' : '2001:db8:1::10',
+              ipObjTypeId: 5,
+              ip_version: ipVersion,
+              fwCloudId: fwc.fwcloud.id,
+            }),
+        );
+        destinationObjects.set(
+          ipVersion,
+          await db
+            .getSource()
+            .manager.getRepository(IPObj)
+            .save({
+              name: `Destination IPv${ipVersion}`,
+              address: ipVersion === 4 ? '198.51.100.0' : '2001:db8:2::',
+              netmask: ipVersion === 4 ? '/24' : '/64',
+              ipObjTypeId: 7,
+              ip_version: ipVersion,
+              fwCloudId: fwc.fwcloud.id,
+            }),
+        );
+
+        for (const chain of ['input', 'output', 'forward', 'snat', 'dnat'] as const) {
+          const positions = getProvisionRulePositions(ipVersion, chain);
+          const comment = `Negated ${chain} IPv${ipVersion}`;
+          // Reverse order deliberately: snapshot JSON retains policy_r's original representation.
+          const negate = [
+            positions.service,
+            positions.destination,
+            positions.source,
+            positions.out,
+            positions.in,
+          ]
+            .filter((position) => position !== undefined)
+            .join(' ');
+          const ruleId = await PolicyRule.insertPolicy_r({
+            firewall: source.firewall.id,
+            type: PolicyTypesMap.get(`IPv${ipVersion}:${chain.toUpperCase()}`),
+            rule_order: 100,
+            action: 1,
+            active: 1,
+            options: 0,
+            special: 0,
+            comment,
+            negate,
+          });
+          expected.set(comment, negate);
+
+          if (positions.in !== undefined) {
+            await attachInterface(ruleId, source.lanInterface.id, positions.in);
+          }
+          if (positions.out !== undefined) {
+            await attachInterface(ruleId, source.wanInterface.id, positions.out);
+          }
+          await attachIpObj(ruleId, sourceObjects.get(ipVersion).id, positions.source);
+          await attachIpObj(ruleId, destinationObjects.get(ipVersion).id, positions.destination);
+          await attachIpObj(ruleId, tcpService.id, positions.service);
+
+          if (ipVersion === 4 && chain === 'forward') {
+            const range = await db.getSource().manager.getRepository(IPObj).save({
+              name: 'Extra source range',
+              range_start: '192.0.2.20',
+              range_end: '192.0.2.30',
+              ipObjTypeId: 6,
+              ip_version: 4,
+              fwCloudId: fwc.fwcloud.id,
+            });
+            await attachIpObj(ruleId, range.id, positions.source);
+            await db
+              .getSource()
+              .query(
+                'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, 1, -1, ?, 3)',
+                [ruleId, positions.source],
+              );
+          }
+        }
+      }
+
+      const mixedRule = await insertForwardRule(source.firewall.id, 101, {
+        comment: 'Only the source is negated',
+        negate: '7',
+      });
+      await attachIpObj(mixedRule, sourceObjects.get(4).id, 7);
+      await attachIpObj(mixedRule, destinationObjects.get(4).id, 8);
+      await attachIpObj(mixedRule, tcpService.id, 9);
+      expected.set('Only the source is negated', '7');
+      await insertForwardRule(source.firewall.id, 102, { comment: 'Legacy rule without negation' });
+      expected.set('Legacy rule without negation', null);
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Negated policies' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+
+      const reloaded = await db
+        .getSource()
+        .manager.getRepository(ReplicationProfile)
+        .findOneByOrFail({ id: profile.id });
+      const model = loadReplicationProfileModel(reloaded);
+      const captured = getProvision(reloaded).rules;
+      expect(captured).to.have.length(expected.size);
+      for (const rule of captured) {
+        if (expected.get(rule.comment) === null) {
+          expect(rule).not.to.have.property('negate');
+        } else {
+          expect(rule.negate).to.eq(expected.get(rule.comment));
+        }
+      }
+      expect(
+        captured.find((rule) => rule.comment === 'Negated forward IPv4').source,
+      ).to.have.length(3);
+
+      const target = await makeReplicationTargetFirewall(fwc, false);
+      const provisioning = await app.getService<PolicyReplicationService>(
+        PolicyReplicationService.name,
+      );
+      const applied = await provisioning.provisionPolicyFromProfile(
+        { kind: 'firewall', id: target.firewall.id },
+        getProfileProvisioning(model),
+        fwc.fwcloud.id,
+        'replace_defaults',
+        {
+          parameters: getProfileParameters(model),
+          interfaceNameMapping: { ens18: 'ens18', ens19: 'ens19' },
+        },
+      );
+      expect(applied.errors).to.be.empty;
+
+      const targetRules: Array<{ comment: string; negate: string | null }> = await db
+        .getSource()
+        .query('SELECT comment, negate FROM policy_r WHERE firewall = ? AND special = 0', [
+          target.firewall.id,
+        ]);
+      expect(targetRules).to.have.length(expected.size);
+      const negatedPositions = (negate: string | null | undefined) =>
+        negate
+          ? negate
+              .split(' ')
+              .map(Number)
+              .sort((a, b) => a - b)
+          : [];
+      for (const rule of targetRules) {
+        expect(negatedPositions(rule.negate)).to.deep.eq(
+          negatedPositions(expected.get(rule.comment)),
+        );
+      }
+
+      const recaptured = await service.createProfileFromSource(
+        {
+          source: { kind: 'firewall', id: target.firewall.id },
+          name: 'Recaptured negated policies',
+        },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(recaptured.warnings).to.be.empty;
+      for (const rule of getProvision(recaptured.profile).rules) {
+        expect(negatedPositions(rule.negate)).to.deep.eq(
+          negatedPositions(expected.get(rule.comment)),
+        );
+      }
+    });
+
+    it('should warn and omit entire rules whose negation cannot be represented', async () => {
+      const cases = [
+        { negate: '43', comment: 'Wrong IP family' },
+        { negate: '14', comment: 'Translation position' },
+        { negate: '8', comment: 'Empty destination' },
+        { negate: '7 invalid', comment: 'Malformed position list' },
+      ];
+      for (const [index, overrides] of cases.entries()) {
+        const ruleId = await insertForwardRule(source.firewall.id, 120 + index, overrides);
+        await attachIpObj(ruleId, source.wanAddress.id, 7);
+      }
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Invalid rule negation' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(getProvision(profile).rules).to.be.empty;
+      expect(warnings).to.have.length(cases.length);
+      for (const item of cases) {
+        expect(warnings.some((warning) => warning.includes(item.comment))).to.be.true;
+      }
+    });
+
+    it('should retain negated interface addresses as source and destination when applying to another firewall', async () => {
+      const ruleId = await insertForwardRule(source.firewall.id, 100, {
+        comment: 'Negated local interface addresses',
+        negate: '7 8',
+      });
+      await attachIpObj(ruleId, source.wanAddress.id, 7);
+      await attachIpObj(ruleId, source.wanAddress.id, 8);
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Negated own addresses' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+      const reloaded = await db
+        .getSource()
+        .manager.getRepository(ReplicationProfile)
+        .findOneByOrFail({ id: profile.id });
+      const capturedRule = getProvision(reloaded).rules[0];
+      expect(capturedRule.source).to.deep.eq([{ kind: 'interfaceRole', role: 'ens18' }]);
+      expect(capturedRule.destination).to.deep.eq([{ kind: 'interfaceRole', role: 'ens18' }]);
+      expect(capturedRule.negate).to.eq('7 8');
+      expect(capturedRule.inRole).to.be.undefined;
+      expect(capturedRule.outRole).to.be.undefined;
+
+      const model = loadReplicationProfileModel(reloaded);
+      const provision = getProfileProvisioning(model);
+      expect(provision.rules[0].source).to.deep.eq(capturedRule.source);
+      expect(provision.rules[0].destination).to.deep.eq(capturedRule.destination);
+      expect(provision.rules[0].inRoles).to.be.empty;
+      expect(provision.rules[0].outRoles).to.be.empty;
+
+      const target = await makeReplicationTargetFirewall(fwc, false);
+      const provisioning = await app.getService<PolicyReplicationService>(
+        PolicyReplicationService.name,
+      );
+      const applied = await provisioning.provisionPolicyFromProfile(
+        { kind: 'firewall', id: target.firewall.id },
+        provision,
+        fwc.fwcloud.id,
+        'replace_defaults',
+        {
+          parameters: getProfileParameters(model),
+          interfaceNameMapping: { ens18: 'ens18', ens19: 'ens19' },
+        },
+      );
+      expect(applied.errors).to.be.empty;
+      const [targetRule] = await db
+        .getSource()
+        .query('SELECT id, negate FROM policy_r WHERE firewall = ? AND comment = ?', [
+          target.firewall.id,
+          capturedRule.comment,
+        ]);
+      expect(targetRule.negate).to.eq('7 8');
+      expect(
+        await db
+          .getSource()
+          .query('SELECT interface, position FROM policy_r__interface WHERE rule = ?', [
+            targetRule.id,
+          ]),
+      ).to.be.empty;
+      const targetRefs = await db
+        .getSource()
+        .query('SELECT interface, position FROM policy_r__ipobj WHERE rule = ? ORDER BY position', [
+          targetRule.id,
+        ]);
+      expect(targetRefs).to.deep.eq([
+        { interface: target.wanInterface.id, position: 7 },
+        { interface: target.wanInterface.id, position: 8 },
+      ]);
     });
 
     it('should skip the default policy rules generated at firewall creation', async () => {
@@ -418,6 +695,29 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         expect(rules[0]).to.include({ action: 'accept', inRole: 'lo' });
         expect(rules[1].services[0]).to.include({ kind: 'stdGroup', id: 5 });
       });
+
+      for (const [comment, position] of [
+        [SELF_HOST, inputPositions.in],
+        [USEFUL_ICMP, inputPositions.service],
+      ] as const) {
+        it(`should capture the default INPUT policy when ${comment} is negated`, async () => {
+          await addDefaultInputRules();
+          await db
+            .getSource()
+            .query(
+              'UPDATE policy_r SET negate = ? WHERE firewall = ? AND type = 1 AND comment = ?',
+              [String(position), source.firewall.id, comment],
+            );
+
+          const { profile, warnings } = await snapshot();
+
+          expect(warnings).to.be.empty;
+          const rules = getProvision(profile).rules;
+          expect(rules.map((rule) => rule.comment)).to.deep.eq([SELF_HOST, USEFUL_ICMP]);
+          expect(rules.find((rule) => rule.comment === comment).negate).to.eq(String(position));
+          expect(rules.find((rule) => rule.comment !== comment)).not.to.have.property('negate');
+        });
+      }
 
       it('should capture a default rule the user gave a VPN client, and the rest of its policy', async () => {
         await addDefaultInputRules();
@@ -554,6 +854,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
     it('should capture the master policy and the cluster topology', async () => {
       const ruleId = await insertForwardRule(source.firewall.id, 100, {
         comment: 'Cluster forward rule',
+        negate: '22',
       });
       await attachInterface(ruleId, source.lanInterface.id, 22);
 
@@ -568,6 +869,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(warnings).to.be.empty;
       expect(profile.targetKind).to.be.eq('cluster');
       expect(getProvision(profile).rules).to.have.length(1);
+      expect(getProvision(profile).rules[0].negate).to.eq('22');
 
       const model = loadReplicationProfileModel(profile);
       const topologyPreset = model.topologyPreset as {
