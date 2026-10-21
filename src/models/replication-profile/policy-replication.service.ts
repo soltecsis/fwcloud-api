@@ -32,6 +32,10 @@ import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Tree } from '../tree/Tree';
 import { ObjectBindingResolver } from './object-binding.resolver';
 import {
+  getProvisionRuleNegationError,
+  normalizeRuleNegation,
+} from './replication-profile-rule-negation';
+import {
   isProfileReferenceGroupType,
   type ProfileExternalObjectBinding,
 } from './replication-profile-object-reference';
@@ -481,6 +485,19 @@ export class PolicyReplicationService extends Service {
     options: ProvisionOptions = {},
   ): Promise<PolicyReplicationResult> {
     const result = createPolicyReplicationResult(mode);
+
+    // Check every rule before provisioning interfaces or objects: an invalid
+    // negation must never result in a partially applied or broadened policy.
+    for (const [index, rule] of provision.rules.entries()) {
+      const error = getProvisionRuleNegationError(rule);
+      if (error) {
+        result.errors.push(`Rule ${index + 1}: ${error}`);
+      }
+    }
+    if (result.errors.length > 0) {
+      return result;
+    }
+
     const firewallId = await this.resolveProvisionTargetFirewallId(target);
     const isDryRun = mode === 'dry_run';
     let parameterValues: Map<string, unknown>;
@@ -1605,6 +1622,7 @@ export class PolicyReplicationService extends Service {
       rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
       this.concatKey('i', interfaceIds),
       this.concatKey('o', ipobjIds),
+      normalizeRuleNegation(rule.negate) ?? '',
     ].join('|');
   }
 
@@ -1623,22 +1641,26 @@ export class PolicyReplicationService extends Service {
       action: number;
       interfaces: string | null;
       ipobjs: string | null;
+      negate: string | null;
     }>(
-      `SELECT R.id, R.type, R.action,
+      `SELECT R.id, R.type, R.action, R.negate,
               GROUP_CONCAT(DISTINCT CONCAT('i', RI.interface) ORDER BY CONCAT('i', RI.interface)) AS interfaces,
               GROUP_CONCAT(DISTINCT CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj)) ORDER BY CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj))) AS ipobjs
        FROM policy_r R
        LEFT JOIN policy_r__interface RI ON RI.rule = R.id
        LEFT JOIN policy_r__ipobj RO ON RO.rule = R.id
        WHERE R.firewall = ? AND R.special = 0
-       GROUP BY R.id, R.type, R.action`,
+       GROUP BY R.id, R.type, R.action, R.negate`,
       [firewallId],
     );
 
     // Coarse signature: enough to spot an already-provisioned equivalent rule
     // without re-deriving the full positional layout.
     return new Set(
-      rows.map((row) => `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}`),
+      rows.map(
+        (row) =>
+          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${normalizeRuleNegation(row.negate) ?? ''}`,
+      ),
     );
   }
 
@@ -1659,6 +1681,7 @@ export class PolicyReplicationService extends Service {
       active: 1,
       options: 0,
       special: 0,
+      negate: normalizeRuleNegation(rule.negate),
       comment: rule.comment ?? 'Provisioned by replication profile.',
     });
 
