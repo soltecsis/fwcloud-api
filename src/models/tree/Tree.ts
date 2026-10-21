@@ -360,6 +360,15 @@ export class Tree extends Model {
               'ROU',
               'SYS',
             ]);
+            await this.sortChildBy(dbCon, 'NODE_TYPE', fwcloud, ['S05'], childrenArrayMap, [
+              'S06',
+              'S12',
+              'S07',
+              'S08',
+              'S09',
+              'S10',
+              'S11',
+            ]);
           } else if (treeType === 'SERVICES' || treeType === 'OBJECTS') {
             // Include data for advanced search.
             await this.addSearchInfo(dbCon, childrenArrayMap, treeType);
