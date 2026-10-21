@@ -61,6 +61,7 @@ import {
   CrowdSecInstallationMode,
 } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 import { PgpHelper } from '../../../../../src/utils/pgp';
+import { CrowdSecBlockingStatisticsSharedService } from '../../../../../src/controllers/system/crowdsec/crowdsec-blocking-statistics-shared.service';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -3107,6 +3108,84 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(hasMachineDependentsStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(uninstallStub.called).to.be.false;
     expect(removeInstallationStub.called).to.be.false;
+  });
+
+  it('should return paginated CrowdSec blocking statistics history', async () => {
+    const history = sinon.stub().resolves({
+      total: 17,
+      page: 2,
+      limit: 10,
+      samples: [
+        {
+          collectedAt: new Date('2026-10-20T10:00:00.000Z'),
+          policyGeneration: '2',
+          ipv4Input: { packets: 4, bytes: 400 },
+          ipv4Forward: { packets: 3, bytes: 300 },
+          ipv6Input: { packets: 0, bytes: 0 },
+          ipv6Forward: { packets: 0, bytes: 0 },
+        },
+      ],
+    });
+    sinon.stub(CrowdSecBlockingStatisticsSharedService, 'statisticsService').resolves({
+      history,
+    } as never);
+
+    const response = await controller.blockingStatistics({
+      session: { user: null },
+      query: { page: '2', limit: '10' },
+    } as unknown as Request);
+
+    expect(
+      history.calledOnceWithExactly(
+        fwcProduct.firewall.id,
+        { startsAt: undefined, endsAt: undefined },
+        { page: 2, limit: 10 },
+      ),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      samples: [
+        {
+          collected_at: '2026-10-20T10:00:00.000Z',
+          policy_generation: '2',
+          ipv4_input: { packets: 4, bytes: 400 },
+          ipv4_forward: { packets: 3, bytes: 300 },
+          ipv6_input: { packets: 0, bytes: 0 },
+          ipv6_forward: { packets: 0, bytes: 0 },
+        },
+      ],
+      pagination: { page: 2, limit: 10, total: 17, pages: 2 },
+    });
+  });
+
+  it('should list paginated CrowdSec blocking statistics address options', async () => {
+    const addressOptions = sinon.stub().resolves({
+      addresses: ['14.0.0.1', '14.0.0.2'],
+      total: 2,
+      page: 1,
+      limit: 1000,
+    });
+    sinon.stub(CrowdSecBlockingStatisticsSharedService, 'statisticsService').resolves({
+      addressOptions,
+    } as never);
+
+    const response = await controller.blockingStatisticsAddressOptions({
+      session: { user: null },
+      query: { search: '14.0.0.' },
+    } as unknown as Request);
+
+    expect(
+      addressOptions.calledOnceWithExactly(fwcProduct.firewall.id, {
+        startsAt: undefined,
+        endsAt: undefined,
+        page: 1,
+        limit: 1000,
+        search: '14.0.0.',
+      }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      addresses: ['14.0.0.1', '14.0.0.2'],
+      pagination: { page: 1, limit: 1000, total: 2, pages: 1 },
+    });
   });
 
   it('should reject a user without access before contacting the agent', async () => {

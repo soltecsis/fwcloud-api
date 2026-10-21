@@ -46,6 +46,7 @@ import {
   CrowdSecInstallation,
   CrowdSecInstallationMode,
 } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
+import { CrowdSecBlockingStatisticsSharedService } from '../../../../../src/controllers/system/crowdsec/crowdsec-blocking-statistics-shared.service';
 
 describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -942,6 +943,37 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
 
     await expect(controller.installMachine(request())).to.be.rejected;
     expect(configureCentralLapiStub.called).to.be.false;
+  });
+
+  it('should return blocking statistics for the selected cluster node', async () => {
+    const viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
+    const history = sinon.stub().resolves({
+      total: 1,
+      page: 1,
+      limit: 1000,
+      samples: [],
+    });
+    sinon.stub(CrowdSecBlockingStatisticsSharedService, 'statisticsService').resolves({
+      history,
+    } as never);
+
+    const response = await controller.blockingStatistics({
+      session: { user: null },
+      query: { node_id: String(secondNode.id) },
+    } as unknown as Request);
+
+    expect(viewPolicyStub.calledOnceWithExactly(secondNode, null)).to.be.true;
+    expect(
+      history.calledOnceWithExactly(
+        secondNode.id,
+        { startsAt: undefined, endsAt: undefined },
+        { page: 1, limit: 1000 },
+      ),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      samples: [],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    });
   });
 });
 
