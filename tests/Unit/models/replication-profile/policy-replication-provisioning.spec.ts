@@ -338,6 +338,68 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     expect(merged.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
   });
 
+  describe('native rule options', () => {
+    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
+      service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        provision,
+        fwc.fwcloud.id,
+        mode,
+        applyOptions(values),
+      );
+
+    it('should distinguish options in merge mode and skip only rules with the same behavior', async () => {
+      // The original legacy rule has no options field and behaves exactly like explicit zero.
+      const legacy = await apply();
+      expect(legacy.errors).to.be.empty;
+      const [legacyRow] = await db
+        .getSource()
+        .query('SELECT options FROM policy_r WHERE id = ?', [legacy.createdRules[0].targetRuleId]);
+      expect(legacyRow.options).to.equal(0);
+      for (const options of [4, 2, 6, 1, 5]) {
+        provision.rules[0].options = options;
+        const added = await apply('merge');
+        expect(added.errors).to.be.empty;
+        expect(added.createdRules).to.have.length(1);
+        expect(added.conflicts).to.be.empty;
+        const [row] = await db
+          .getSource()
+          .query('SELECT options FROM policy_r WHERE id = ?', [added.createdRules[0].targetRuleId]);
+        expect(row.options).to.equal(options);
+        const duplicate = await apply('merge');
+        expect(duplicate.createdRules).to.be.empty;
+        expect(duplicate.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
+      }
+      provision.rules[0].options = 0;
+      const explicitZero = await apply('merge');
+      expect(explicitZero.createdRules).to.be.empty;
+      expect(explicitZero.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
+    });
+
+    for (const mode of ['replace_defaults', 'merge', 'dry_run'] as const) {
+      it(`should reject malformed options before writing any policy data in ${mode}`, async () => {
+        const before = await db
+          .getSource()
+          .query('SELECT * FROM policy_r WHERE firewall = ?', [targetFirewall.id]);
+        for (const options of [null, false, true, '6', -1, 1.5, 0x10000, {}, []]) {
+          provision.rules = [
+            provision.rules[0],
+            { ...provision.rules[0], options: options as number },
+          ];
+          const result = await apply(mode);
+          expect(result.applied).to.be.false;
+          expect(result.errors.join(' ')).to.include('options must be an integer');
+          expect(result.createdRules).to.be.empty;
+        }
+        expect(
+          await db
+            .getSource()
+            .query('SELECT * FROM policy_r WHERE firewall = ?', [targetFirewall.id]),
+        ).to.deep.eq(before);
+      });
+    }
+  });
+
   describe('position negation', () => {
     const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
       service.provisionPolicyFromProfile(

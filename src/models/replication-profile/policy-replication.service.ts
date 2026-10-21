@@ -57,6 +57,7 @@ import {
 } from './replication-profile-parameters';
 import {
   REPLICATION_PROFILE_FAMILY_TYPES,
+  isReplicationProfileRuleOptions,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL,
@@ -486,9 +487,12 @@ export class PolicyReplicationService extends Service {
   ): Promise<PolicyReplicationResult> {
     const result = createPolicyReplicationResult(mode);
 
-    // Check every rule before provisioning interfaces or objects: an invalid
-    // negation must never result in a partially applied or broadened policy.
+    // Check every rule before provisioning interfaces or objects: invalid rule settings
+    // must never result in a partially applied or broadened policy.
     for (const [index, rule] of provision.rules.entries()) {
+      if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
+        result.errors.push(`Rule ${index + 1}: options must be an integer between 0 and 65535.`);
+      }
       const error = getProvisionRuleNegationError(rule);
       if (error) {
         result.errors.push(`Rule ${index + 1}: ${error}`);
@@ -1623,6 +1627,7 @@ export class PolicyReplicationService extends Service {
       this.concatKey('i', interfaceIds),
       this.concatKey('o', ipobjIds),
       normalizeRuleNegation(rule.negate) ?? '',
+      rule.options ?? 0,
     ].join('|');
   }
 
@@ -1642,15 +1647,16 @@ export class PolicyReplicationService extends Service {
       interfaces: string | null;
       ipobjs: string | null;
       negate: string | null;
+      options: number;
     }>(
-      `SELECT R.id, R.type, R.action, R.negate,
+      `SELECT R.id, R.type, R.action, R.negate, R.options,
               GROUP_CONCAT(DISTINCT CONCAT('i', RI.interface) ORDER BY CONCAT('i', RI.interface)) AS interfaces,
               GROUP_CONCAT(DISTINCT CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj)) ORDER BY CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj))) AS ipobjs
        FROM policy_r R
        LEFT JOIN policy_r__interface RI ON RI.rule = R.id
        LEFT JOIN policy_r__ipobj RO ON RO.rule = R.id
        WHERE R.firewall = ? AND R.special = 0
-       GROUP BY R.id, R.type, R.action, R.negate`,
+       GROUP BY R.id, R.type, R.action, R.negate, R.options`,
       [firewallId],
     );
 
@@ -1659,7 +1665,7 @@ export class PolicyReplicationService extends Service {
     return new Set(
       rows.map(
         (row) =>
-          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${normalizeRuleNegation(row.negate) ?? ''}`,
+          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${normalizeRuleNegation(row.negate) ?? ''}|${row.options ?? 0}`,
       ),
     );
   }
@@ -1679,7 +1685,7 @@ export class PolicyReplicationService extends Service {
       rule_order: ruleOrder,
       action: rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
       active: 1,
-      options: 0,
+      options: rule.options ?? 0,
       special: 0,
       negate: normalizeRuleNegation(rule.negate),
       comment: rule.comment ?? 'Provisioned by replication profile.',
