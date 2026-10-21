@@ -319,6 +319,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
               chain: 'forward',
               ipVersion: 4,
               action: 'accept',
+              options: 0,
               inRole: 'wan',
               comment: 'Allow forwarded traffic from WAN.',
             },

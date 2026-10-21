@@ -136,6 +136,7 @@ interface SnapshotRuleRow {
   special: number;
   comment: string | null;
   negate: string | null;
+  options: number;
 }
 
 interface SnapshotRuleInterfaceRow {
@@ -232,6 +233,8 @@ interface SnapshotProvisionRule {
   chain: SnapshotChain;
   ipVersion: number;
   action: 'accept' | 'deny';
+  /** Native policy_r.options bitmask, including LOG, STATELESS and STATEFUL. */
+  options: number;
   /** Negated policy_position ids, using policy_r's space-separated representation. */
   negate?: string | null;
   /** One role, or a list when the rule matches several interfaces. */
@@ -617,7 +620,7 @@ export class ReplicationProfileSnapshotService extends Service {
   ): Promise<SnapshotProvisionRule[]> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow & { type: number }>(
-      `SELECT id, type, rule_order, action, active, special, comment, negate FROM policy_r
+      `SELECT id, type, rule_order, action, active, special, comment, negate, options FROM policy_r
        WHERE firewall = ? AND type IN (${sqlPlaceholders(typeIds.length)}) ORDER BY rule_order`,
       [firewallId, ...typeIds],
     );
@@ -704,6 +707,7 @@ export class ReplicationProfileSnapshotService extends Service {
       policy?.chain !== 'input' ||
       rule.action !== RULE_ACTION_ACCEPT ||
       rule.active !== 1 ||
+      rule.options !== 0 ||
       !!rule.negate ||
       vpns.length > 0
     ) {
@@ -839,6 +843,7 @@ export class ReplicationProfileSnapshotService extends Service {
       chain: policy.chain,
       ipVersion: policy.ipVersion,
       action: rule.action === RULE_ACTION_DENY ? 'deny' : 'accept',
+      options: rule.options,
     };
 
     if (inRoles.length) {

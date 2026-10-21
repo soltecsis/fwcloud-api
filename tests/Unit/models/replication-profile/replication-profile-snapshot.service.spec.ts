@@ -9,10 +9,15 @@ import {
 import { createUser } from '../../../utils/utils';
 import StringHelper from '../../../../src/utils/string.helper';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
-import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
-import { DefaultPolicyRuleComments, PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import {
+  DefaultPolicyRuleComments,
+  PolicyRule,
+  PolicyRuleOptMask,
+} from '../../../../src/models/policy/PolicyRule';
+import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 import { NotFoundException } from '../../../../src/fonaments/exceptions/not-found-exception';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
@@ -35,7 +40,10 @@ import {
 } from '../../../../src/models/replication-profile/profile-vpn-pki-provisioning.service';
 import { validateProfileVpnTemplate } from '../../../../src/models/replication-profile/replication-profile-vpn.validation';
 import { normalizeProfileVpnRuleParameters } from '../../../../src/models/replication-profile/replication-profile-vpn-parameters';
-import { loadReplicationProfileModel } from '../../../../src/models/replication-profile/replication-profile-template';
+import {
+  loadReplicationProfileModel,
+  writeReplicationProfileModel,
+} from '../../../../src/models/replication-profile/replication-profile-template';
 import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
 
 interface CapturedObject {
@@ -50,6 +58,7 @@ interface CapturedRule {
   chain: string;
   ipVersion: number;
   action: string;
+  options?: number;
   negate?: string | null;
   inRole?: string;
   outRole?: string;
@@ -96,6 +105,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       special: number;
       comment: string;
       negate: string | null;
+      options: number;
     }> = {},
   ): Promise<number> {
     return PolicyRule.insertPolicy_r({
@@ -104,7 +114,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       rule_order: ruleOrder,
       action: overrides.action ?? 1,
       active: overrides.active ?? 1,
-      options: 0,
+      options: overrides.options ?? 0,
       special: overrides.special ?? 0,
       comment: overrides.comment ?? null,
       negate: overrides.negate ?? null,
@@ -719,6 +729,26 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         });
       }
 
+      for (const comment of [SELF_HOST, USEFUL_ICMP]) {
+        for (const options of [1, 2, 4, 6]) {
+          it(`should capture default INPUT rules when only options change to ${options}: ${comment}`, async () => {
+            await addDefaultInputRules();
+            await db
+              .getSource()
+              .query(
+                'UPDATE policy_r SET options = ? WHERE firewall = ? AND type = 1 AND comment = ?',
+                [options, source.firewall.id, comment],
+              );
+            const { profile, warnings } = await snapshot();
+            expect(warnings).to.be.empty;
+            const rules = getProvision(profile).rules;
+            expect(rules).to.have.length(2);
+            expect(rules.find((rule) => rule.comment === comment).options).to.eq(options);
+            expect(rules.find((rule) => rule.comment !== comment).options).to.eq(0);
+          });
+        }
+      }
+
       it('should capture a default rule the user gave a VPN client, and the rest of its policy', async () => {
         await addDefaultInputRules();
         const { clientId } = await makeVpnPair('openvpn');
@@ -824,6 +854,229 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         ),
       ).to.be.rejectedWith(NotFoundException);
     });
+  });
+
+  describe('rule options', () => {
+    it('should save, reload and apply a legacy template without options using the native zero default', async () => {
+      const { profile } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Legacy rule options' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      writeReplicationProfileModel(profile, {
+        provision: {
+          interfaces: [],
+          rules: [{ chain: 'forward', action: 'accept', comment: 'Legacy rule' }],
+        },
+      });
+      const model = loadReplicationProfileModel(profile);
+      const provision = getProfileProvisioning(model);
+      expect(provision.rules[0]).not.to.have.property('options');
+      const target = await makeReplicationTargetFirewall(fwc, false);
+      const provisioning = await app.getService<PolicyReplicationService>(
+        PolicyReplicationService.name,
+      );
+      const result = await provisioning.provisionPolicyFromProfile(
+        { kind: 'firewall', id: target.firewall.id },
+        provision,
+        fwc.fwcloud.id,
+      );
+      expect(result.errors).to.be.empty;
+      expect(result.createdRules).to.have.length(1);
+      const [rule] = await db
+        .getSource()
+        .query('SELECT options FROM policy_r WHERE id = ?', [result.createdRules[0].targetRuleId]);
+      expect(rule.options).to.eq(0);
+      expect(loadReplicationProfileModel(profile)).to.deep.eq(model);
+    });
+
+    async function asCluster(side: ReplicationTargetSide): Promise<number> {
+      const manager = db.getSource().manager;
+      const cluster = await manager.getRepository(Cluster).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwc.fwcloud.id,
+      });
+      await manager
+        .getRepository(Firewall)
+        .update(side.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+      await manager.getRepository(Firewall).save({
+        name: `${cluster.name}-backup`,
+        fwCloudId: fwc.fwcloud.id,
+        clusterId: cluster.id,
+        fwmaster: 0,
+      });
+      return cluster.id;
+    }
+
+    for (const sourceKind of ['firewall', 'cluster'] as const) {
+      for (const targetKind of ['firewall', 'cluster'] as const) {
+        it(`should preserve rule options from ${sourceKind} through saved JSON to another ${targetKind} and compiled policy`, async () => {
+          const sourceId = sourceKind === 'cluster' ? await asCluster(source) : source.firewall.id;
+          await db
+            .getSource()
+            .manager.getRepository(Firewall)
+            .update(source.firewall.id, { options: FireWallOptMask.STATEFUL });
+          const expected = new Map<string, number>();
+          const serviceObject = await makeTcpService(8080);
+          for (const ipVersion of [4, 6] as const) {
+            for (const chain of ['input', 'output', 'forward', 'snat', 'dnat'] as const) {
+              const positions = getProvisionRulePositions(ipVersion, chain);
+              for (const options of [
+                0,
+                PolicyRuleOptMask.LOG,
+                PolicyRuleOptMask.STATELESS,
+                PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATELESS,
+              ]) {
+                const comment = `${chain} IPv${ipVersion} options ${options}`;
+                expected.set(comment, options);
+                const id = await PolicyRule.insertPolicy_r({
+                  firewall: source.firewall.id,
+                  type: PolicyTypesMap.get(`IPv${ipVersion}:${chain.toUpperCase()}`),
+                  rule_order: 100 + options,
+                  action: 1,
+                  active: 1,
+                  special: 0,
+                  options,
+                  comment,
+                  negate: String(positions.service),
+                });
+                await attachIpObj(id, serviceObject.id, positions.service);
+                if (positions.in !== undefined)
+                  await attachInterface(id, source.lanInterface.id, positions.in);
+                if (positions.out !== undefined)
+                  await attachInterface(id, source.wanInterface.id, positions.out);
+                if (chain === 'dnat') {
+                  const address = await db
+                    .getSource()
+                    .manager.getRepository(IPObj)
+                    .save({
+                      name: `DNAT IPv${ipVersion}`,
+                      address: ipVersion === 4 ? '192.0.2.10' : '2001:db8::10',
+                      ipObjTypeId: 5,
+                      ip_version: ipVersion,
+                      fwCloudId: fwc.fwcloud.id,
+                    });
+                  await attachIpObj(id, address.id, positions.translatedDestination);
+                }
+              }
+            }
+          }
+          const captured = await service.createProfileFromSource(
+            {
+              source: { kind: sourceKind, id: sourceId },
+              name: `Options ${sourceKind} to ${targetKind}`,
+            },
+            { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+          );
+          expect(captured.warnings).to.be.empty;
+          const profile = await db
+            .getSource()
+            .manager.getRepository(ReplicationProfile)
+            .findOneByOrFail({ id: captured.profile.id });
+          const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile)));
+          expect(model.provision.rules).to.have.length(expected.size);
+          for (const rule of model.provision.rules)
+            expect(rule.options, rule.comment).to.eq(expected.get(rule.comment));
+          // Exercise a subsequent save/load as well as the initial capture's persistence.
+          writeReplicationProfileModel(profile, model);
+          const reloaded = loadReplicationProfileModel(profile);
+          expect(reloaded).to.deep.eq(model);
+          const target = await makeReplicationTargetFirewall(fwc, false);
+          const targetId = targetKind === 'cluster' ? await asCluster(target) : target.firewall.id;
+          await db
+            .getSource()
+            .manager.getRepository(Firewall)
+            .update(target.firewall.id, { options: FireWallOptMask.STATEFUL });
+          const provisioning = await app.getService<PolicyReplicationService>(
+            PolicyReplicationService.name,
+          );
+          const result = await provisioning.provisionPolicyFromProfile(
+            { kind: targetKind, id: targetId },
+            getProfileProvisioning(reloaded),
+            fwc.fwcloud.id,
+            'replace_defaults',
+            {
+              parameters: getProfileParameters(reloaded),
+              interfaceNameMapping: { ens18: 'ens18', ens19: 'ens19' },
+            },
+          );
+          expect(result.errors).to.be.empty;
+          const rows = await db
+            .getSource()
+            .query('SELECT * FROM policy_r WHERE firewall = ? AND special = 0', [
+              target.firewall.id,
+            ]);
+          expect(rows).to.have.length(expected.size);
+          for (const row of rows) {
+            expect(row.options, row.comment).to.eq(expected.get(row.comment));
+            expect(row.action).to.eq(1);
+            expect(row.negate).to.eq(
+              String(
+                getProvisionRulePositions(row.type <= 5 ? 4 : 6, row.comment.split(' ')[0]).service,
+              ),
+            );
+          }
+          for (const compiler of ['IPTables', 'NFTables'] as const) {
+            const compileRules = async (firewall: number) => {
+              const policies = await Promise.all(
+                [4, 6].flatMap((ipVersion) =>
+                  ['INPUT', 'OUTPUT', 'FORWARD'].map((chain) =>
+                    PolicyRule.getPolicyData(
+                      'compiler',
+                      db.getQuery(),
+                      fwc.fwcloud.id,
+                      firewall,
+                      PolicyTypesMap.get(`IPv${ipVersion}:${chain}`),
+                      null,
+                      null,
+                    ),
+                  ),
+                ),
+              );
+              const data: any[] = policies.flat();
+              // Filter rules are where FWCloud supports logging and connection tracking.
+              return PolicyCompiler.compile(
+                compiler,
+                data.filter(
+                  (rule) =>
+                    expected.has(rule.comment) &&
+                    ['input', 'output', 'forward'].includes(rule.comment.split(' ')[0]),
+                ),
+              );
+            };
+            const original = await compileRules(source.firewall.id);
+            const applied = await compileRules(target.firewall.id);
+            expect(applied).to.have.length(24);
+            for (const rule of applied) {
+              const options = expected.get(rule.comment)!;
+              const sourceRule = original.find((item) => item.comment === rule.comment)!;
+              const hasLog = compiler === 'IPTables' ? /-j LOG/ : /counter log prefix/;
+              const hasTracking = compiler === 'IPTables' ? /--ctstate\s+NEW/ : /ct state new/;
+              expect(hasLog.test(rule.cs), rule.comment).to.eq(!!(options & PolicyRuleOptMask.LOG));
+              expect(hasTracking.test(rule.cs), rule.comment).to.eq(
+                !(options & PolicyRuleOptMask.STATELESS),
+              );
+              expect(hasLog.test(rule.cs)).to.eq(hasLog.test(sourceRule.cs));
+              expect(hasTracking.test(rule.cs)).to.eq(hasTracking.test(sourceRule.cs));
+              const normalizeIds = (script: string) =>
+                script
+                  .replace(/FWCRULE\d+/g, 'FWCRULE<ID>')
+                  .replace(/RULE ID \d+/g, 'RULE ID <ID>');
+              expect(normalizeIds(rule.cs), rule.comment).to.eq(normalizeIds(sourceRule.cs));
+            }
+          }
+          const recaptured = await service.createProfileFromSource(
+            {
+              source: { kind: targetKind, id: targetId },
+              name: `Recaptured ${sourceKind} to ${targetKind}`,
+            },
+            { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+          );
+          expect(recaptured.warnings).to.be.empty;
+          for (const rule of getProvision(recaptured.profile).rules)
+            expect(rule.options, rule.comment).to.eq(expected.get(rule.comment));
+        });
+      }
+    }
   });
 
   describe('cluster snapshots', () => {
