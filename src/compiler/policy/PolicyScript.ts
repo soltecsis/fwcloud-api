@@ -34,6 +34,7 @@ import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { RoutingCompiled, RoutingCompiler } from '../routing/RoutingCompiler';
 import fs from 'fs';
+import { finished } from 'stream/promises';
 import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 import { app } from '../../fonaments/abstract-application';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
@@ -648,6 +649,8 @@ export class PolicyScript {
 
             /* Close stream. */
             this.stream.end();
+            // end() queues the remaining writes; consumers must only see a complete script.
+            await finished(this.stream, { cleanup: true });
 
             // Update firewall status flags.
             await Firewall.updateFirewallStatus(this.fwcloud, this.firewall, '&~1');
