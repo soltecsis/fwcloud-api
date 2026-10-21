@@ -105,16 +105,17 @@ Artefactos:
 
 1. `backend-zap-login-<RUN_ID>-<ATTEMPT>`: HTML/JSON/Markdown nativos del perfil
    público, generado cuando la base todavía no contiene cuentas.
-2. `backend-zap-authenticated-<RUN_ID>-<ATTEMPT>` (90 días): controles nombrados
-   y resultados booleanos, alcance OpenAPI sin credenciales, y agregado ZAP con
-   IDs numéricos de reglas, riesgo, número de instancias y conteos oficiales.
+2. `backend-zap-authenticated-<RUN_ID>-<ATTEMPT>` (90 días solicitados): controles
+   HTTP estructurados, alcance OpenAPI sin credenciales, agregado ZAP por operación
+   y `summary.md`. El mismo Markdown se incorpora al resumen de Actions.
    Incluye SHA real del checkout, ejecución e intento cuando se ejecuta en Actions.
    El hook recibe `ANALYSIS_COMMIT` verificado; no etiqueta el análisis con el merge
    sintético de PR de `GITHUB_SHA`. El número de consultas alcanzadas se calcula.
 
 El agregado autenticado se obtiene del JSON nativo mediante una allowlist de
-campos: no copia URLs de ataques, headers, bodies, evidencia, nombres dinámicos,
-cookies, secretos o claves. No se genera ni publica su HTML/JSON/Markdown detallado.
+campos y rutas canónicas declaradas: no copia URLs de ataques, headers, bodies,
+evidencia, nombres dinámicos de alertas, cookies, secretos o claves. No se genera
+ni publica el HTML/JSON/Markdown nativo completo del perfil autenticado.
 Los archivos de credenciales tienen modo 0600, las sesiones y logs quedan en
 `RUNNER_TEMP`; se eliminan al terminar junto con los diagnósticos privados. El
 workflow no publica contextos ZAP ni bases de datos y desactiva creación de issues.
@@ -127,14 +128,66 @@ identifica la causa: el último `test` devuelve 1 para cualquier código de ZAP
 distinto de cero. Los IDs también incluyen alertas informativas y no indican por
 sí solos qué regla bloqueó el análisis. Los logs privados siguen sin publicarse.
 
-Para investigar `10096` (Timestamp Disclosure), el hook compara su evidencia con
-los campos numéricos `sessionId` de respuestas JSON del mismo método y URL.
-El agregado y el resumen incluyen solo conteos de instancias, comprobadas,
-coincidentes con `sessionId` y no comprobadas. Por ejemplo,
-`Timestamp alerts (10096): 2; checked: 2; matching sessionId: 2; unchecked: 0`
-respalda la hipótesis de un falso positivo sobre identificadores de auditoría.
-Una instancia no comprobada no descarta esa hipótesis. La comprobación no publica
-valores, URLs ni cuerpos y no cambia la clasificación WARN ni el bloqueo del CI.
+### JSON y Markdown por operación
+
+El artefacto autenticado contiene:
+
+```text
+http-before.json
+http-after.json
+authenticated.json
+authenticated.openapi.json
+summary.md
+```
+
+- `authenticated.json` añade `operations`: identificador, método, ruta canónica,
+  HTTP esperado/observados, estado de importación y alertas asociadas. Las alertas
+  globales conservan riesgo, tratamiento del gate, conteos y número de instancias
+  no asociadas a una ruta declarada.
+- `.github/zap/routes.json` es el catálogo de rutas de presentación compartido
+  por Node y Python. Incluye rutas de los controles HTTP, sin ampliar las diez
+  operaciones importadas en ZAP. Los identificadores de recursos y queries no se
+  copian a las rutas del reporte; el OpenAPI sintético conserva los IDs necesarios
+  para ejecutar las consultas.
+- `http-before.json`/`http-after.json` añaden `completed`, `requests` y metadatos
+  de controles: actor del escenario, operación, método/ruta y HTTP esperado y real.
+  Cada petición tiene un ID local para relacionarla con los controles. Los actores
+  son etiquetas (`anonymous`, `admin`, `manager-a`, `manager-b`, `mfa-user`), no
+  usernames ni datos de las cuentas. Persistencia y estado se registran como
+  aserciones, sin inventarles una respuesta HTTP.
+- `summary.md` separa la observación ZAP de los controles específicos de FWCloud.
+  Incluye revisión, ejecución/intento, versión, cola pasiva, tablas por operación,
+  fases anteriores/posteriores y enlaces a las reglas oficiales.
+
+`Alcanzada` significa que se observó HTTP 200 con cuerpo durante la importación.
+No demuestra cobertura de todos los ataques ni autorización completa. Las alertas
+se asocian a la ruta canónica aunque las sondas cambien el método; los conteos son
+los del reporte nativo y pueden estar limitados por ZAP. Riesgo y tratamiento del
+gate se presentan por separado: por ejemplo, 10037 mantiene riesgo bajo y política
+INFO. La ausencia de alertas no se presenta como una ruta segura.
+
+### Resultados parciales
+
+El hook inicializa un informe incompleto al arrancar, reemplazando cualquier éxito
+residual, y guarda el resultado por ruta antes de rechazar una importación fallida.
+Los estados distinguen `not_attempted`, `reached`, `unexpected_response` y
+`not_reached`. La cola pasiva pendiente y los fallos previos a finalizar mantienen
+`completed: false`.
+
+El helper HTTP guarda avances de peticiones y controles. Si no termina una fase,
+el informe no considera ejecutado el resto del flujo. El generador Markdown se
+intenta también tras fallos, cuando se ha intentado la fase HTTP previa; valida
+revisión, ejecución, intento y fase de los JSON recibidos. Los datos ausentes o
+inválidos se muestran como incompletos, no como éxito. Un corte forzoso del runner
+puede impedir la conservación de cualquier evidencia.
+
+El resultado conjunto es `PASSED`, `FAILED` o `INCOMPLETE`; el generador devuelve
+un código no nulo para los dos últimos. Esto complementa los gates existentes;
+no transforma un WARN, error operativo o control fallido en una ejecución correcta.
+
+La investigación temporal de timestamps quedó sustituida por el filtro acotado
+de 10096. Esta ampliación retira aquel diagnóstico sin uso y conserva el filtro;
+los errores y datos de tráfico nativos siguen fuera del artefacto público.
 
 ## Relación con ENS categoría Media
 
@@ -179,6 +232,17 @@ en una cabecera del laboratorio temporal, el scanner devolvió código 2/WARN.
 Los controles HTTP anteriores/posteriores y la suite de 71 pruebas de seguridad
 pasaron con Node 22 y MySQL 8 desechable. El ajuste está validado localmente y su
 despliegue y revisión de artefactos en Actions siguen pendientes (apartado 11).
+
+La ampliación de informes, rama `extendDastReports` desde `a9095555`, se verificó
+localmente el 2026-10-21 con API real, Node 22, MySQL 8 y ZAP 2.17.0 en un entorno
+desechable: diez operaciones alcanzadas, 59 controles previos y 27 posteriores,
+0 FAIL/0 WARN/112 PASS y Markdown `PASSED`. Una segunda ejecución con cookie
+inválida produjo código 3, cero operaciones alcanzadas y Markdown `FAILED`,
+conservando en JSON las respuestas de rechazo por ruta. Se comprobó que los
+secretos efímeros y cookies no aparecieran en los JSON públicos ni en el Markdown.
+Las regresiones automatizadas cubren asociación, privacidad, datos incompletos,
+cancelaciones, contexto y correspondencia entre archivo Markdown y Actions.
+La validación de esta revisión en Actions queda pendiente; ver 11.4 del registro.
 
 ## Opcional: Docker contra un entorno de desarrollo desechable
 

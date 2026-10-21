@@ -9,12 +9,12 @@ que la documentación evolucione junto con la configuración.
 | Campo | Valor |
 | --- | --- |
 | Repositorio | `fwcloud-api` |
-| Rama de trabajo actual | `integrateSonarQube` |
+| Rama de trabajo actual | `extendDastReports` |
 | Base inicial | `upstream/fixes`, commit `6e6a964c` |
 | Destino actual de la PR | `ENS` |
 | Ejecución del CI | GitHub Actions, runners alojados en GitHub |
 | Conservación prevista de evidencias | Artefactos de GitHub Actions; 90 días solicitados para informes propios, con visibilidad y retención efectiva pendientes de verificar |
-| Última actualización | 2026-10-16 |
+| Última actualización | 2026-10-21 |
 
 El informe documenta la implantación técnica. No constituye una Declaración de
 Aplicabilidad completa ni acredita por sí mismo conformidad con el ENS.
@@ -1089,10 +1089,12 @@ para respuestas 500.
 La acción publica el artefacto `backend-zap-login-<RUN_ID>-<ATTEMPT>` con reportes
 nativos detallados y no crea issues automáticamente. Se genera sin cuentas en la
 base. El autenticado publica `backend-zap-authenticated-<RUN_ID>-<ATTEMPT>` durante
-90 días: comprobaciones nombradas/booleanos, alcance sin credenciales y agregado
-numérico de reglas/riesgo/instancias/conteos oficiales con commit/run.
-No publica headers, bodies, payloads, evidencia textual, cookies, secretos, claves,
-contextos ZAP ni informes detallados autenticados. Logs privados no se publican.
+90 días solicitados: comprobaciones estructuradas, alcance sin credenciales,
+agregado por operación/ruta canónica y `summary.md`, también mostrado en Actions.
+Conserva reglas/riesgo/instancias/conteos oficiales con commit/run/intento.
+No publica headers, bodies, payloads, evidencia textual nativa, cookies, secretos,
+claves, contextos ZAP ni informes nativos completos autenticados. Los detalles de
+las rutas y fallos parciales se describen en 11.4. Logs privados no se publican.
 
 `backend-ci` exige el éxito de `dast`. La API se detiene mediante `always()` y el
 servicio MySQL se elimina al finalizar el job. No hay comandos npm de DAST local;
@@ -1369,6 +1371,54 @@ de la base consultada en cada ejecución y no son una garantía para revisiones 
 - [x] Implementar y verificar localmente la simplificación y la corrección de 10096.
 - [ ] Publicar y enlazar commit/PR y ejecución de Actions del ajuste.
 - [ ] Comprobar matriz, gate SCA, ZAP y Sonar con los artefactos de esa ejecución.
+
+### 11.4. Informe DAST ampliado en JSON y Markdown
+
+Entrega local del 2026-10-21, rama `extendDastReports`, desde `ENS` en
+`a9095555`. Amplía el informe autenticado y los controles HTTP manteniendo el
+alcance activo/pasivo y las condiciones de bloqueo existentes.
+
+- `.github/zap/routes.json` declara métodos y rutas canónicas; `scope.cjs`, el
+  hook Python y el generador Markdown lo utilizan para evitar publicar paths
+  arbitrarios procedentes del tráfico. El catálogo incluye controles HTTP fuera
+  de ZAP, pero el OpenAPI autenticado sigue importando diez consultas.
+- El hook añade resultados por operación: importación prevista/alcanzada,
+  HTTP observado y alertas asociadas. Los IDs de reglas enlazan con documentación
+  oficial y el riesgo nativo se distingue de la política de bloqueo. Las instancias
+  fuera de las rutas conocidas permanecen contabilizadas sin publicar sus URLs.
+- Los helpers HTTP conservan sus aserciones y añaden actor del escenario,
+  método/ruta, petición y HTTP esperado/observado. Las aserciones de persistencia
+  y estado se distinguen de las respuestas HTTP. Los avances se guardan antes de
+  finalizar la fase para disponer de evidencia parcial ante fallos.
+- `report.cjs` escribe `summary.md` e incorpora el mismo contenido al resumen de
+  Actions. Comprueba el contexto de los JSON y falla ante resultado `FAILED` o
+  `INCOMPLETE`. La subida mantiene una lista explícita de cinco archivos: los
+  cuatro JSON/alcance existentes más el Markdown.
+- El hook inicializa evidencia incompleta antes de operar y conserva los estados
+  por ruta antes de lanzar errores. Se retira el diagnóstico antiguo de timestamps
+  no invocado, manteniendo el filtro oficial acotado de 10096.
+
+Verificación local:
+
+| Comprobación | Resultado |
+| --- | --- |
+| Automatización con Node 22 | 59 pruebas correctas y 1 integración nativa Trivy omitida por no estar preparada en ese job |
+| Regresiones Python del hook | 9 correctas |
+| API y ZAP 2.17.0 reales con BD/build/directorios desechables | 10 operaciones alcanzadas, 59 controles previos y 27 posteriores; código 0, 0 FAIL/0 WARN/112 PASS; Markdown `PASSED` |
+| Importación real con cookie inválida | Código 3, 0 operaciones alcanzadas, respuestas de rechazo por ruta preservadas y Markdown `FAILED`; controles HTTP previos/posteriores correctos |
+| Confidencialidad del informe real | Secretos efímeros y cookies ausentes de JSON públicos y Markdown |
+| ESLint/Prettier, Actionlint 1.7.7 y whitespace | Correctos |
+| Gitleaks 8.30.1 sobre `.github/` y `scripts/` | Sin hallazgos |
+
+Los resultados se refieren al árbol de trabajo, no a una ejecución de esta entrega
+en GitHub. Alcanzar HTTP 200 con cuerpo acredita la importación, no la aplicación
+de todos los vectores a cada operación ni la seguridad completa de la ruta. Los
+conteos nativos pueden estar limitados por ZAP. El formato añade evidencia para
+aceptación y revisión ENS; no acredita por sí solo conformidad.
+
+- [x] Crear rama y verificar localmente generación, fallos parciales y privacidad.
+- [ ] Publicar y enlazar commit/PR y ejecución de Actions de la ampliación.
+- [ ] Descargar y revisar el artefacto autenticado y el resumen de Actions.
 
 ## 12. Pendientes transversales
 

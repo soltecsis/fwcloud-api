@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { test } = require('node:test');
 const yaml = require('js-yaml');
-const { openapi, queries, tableUrl } = require('../.github/zap/scope.cjs');
+const { openapi, queries, tableUrl, describe } = require('../.github/zap/scope.cjs');
 
 test('ZAP imports only the public login operation with valid-shaped synthetic inputs', () => {
   const scope = yaml.load(fs.readFileSync('.github/zap/login.openapi.yaml', 'utf8'));
@@ -42,6 +42,7 @@ test('authenticated scope imports ten queries and cannot import the controlled w
   for (const query of queries(r)) {
     assert.ok(query.method === 'GET' || (query.method === 'PUT' && query.path.endsWith('/get')));
     assert.equal(Object.keys(scope.paths[query.path])[0], query.method.toLowerCase());
+    assert.equal(describe(query.method, query.path).operationId, query.name);
   }
 });
 
@@ -66,7 +67,22 @@ test('CI publishes an explicit authenticated artifact allowlist and gates both s
     'reports/dast/http-after.json',
     'reports/dast/authenticated.json',
     'reports/dast/authenticated.openapi.json',
+    'reports/dast/summary.md',
   ]);
+});
+
+test('report routes come from the catalog, not resource IDs, queries or attack URLs', () => {
+  assert.deepEqual(describe('GET', '/auditlogs/123?token=private-cookie'), {
+    operationId: 'audit',
+    method: 'GET',
+    route: '/auditlogs/{audit}',
+  });
+  assert.throws(() => describe('GET', '/auditlogs/private-cookie'));
+  assert.throws(() => describe('GET', 'https://other.invalid/auditlogs/123'));
+  assert.equal(
+    describe('PUT', '/fwclouds/1/firewalls/2/routingTables/3').operationId,
+    'table-update',
+  );
 });
 
 test('CI runs the pinned official action and blocks scanner findings/errors', () => {
