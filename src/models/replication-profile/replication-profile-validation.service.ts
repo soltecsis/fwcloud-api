@@ -4,7 +4,11 @@ import { Service } from '../../fonaments/services/service';
 import { IsRoutingTableNumberConstraint } from '../../fonaments/validation/rules/is-routing-table-number.validation';
 import { findSecretLikePaths } from './replication-profile-secret.guard';
 import { validateProfileVpnTemplate } from './replication-profile-vpn.validation';
-import { getProfileProvisioning, getProfileProvisioningSource } from './policy-replication.types';
+import {
+  getProfileProvisioning,
+  getProfileProvisioningSource,
+  POLICY_STRUCTURE_FIELDS,
+} from './policy-replication.types';
 import {
   getProvisionRuleNegationError,
   normalizeRuleNegation,
@@ -44,6 +48,8 @@ import {
   RULE_OBJECT_FIELDS,
   validateProfileObjectReferences,
 } from './replication-profile-object-reference';
+
+import { getPolicyRuleValidityErrors } from '../policy/policy-rule-validity';
 
 type ValidationSeverity = 'error' | 'warning';
 type ValidationRecord = Record<string, unknown>;
@@ -239,6 +245,7 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
+    this.validateRuleValidityPeriods(model, errors);
     this.validateStructureRuleSettings(model, errors);
     if (model.vpnTemplate !== undefined) {
       for (const issue of validateProfileVpnTemplate(model.vpnTemplate)) {
@@ -1100,6 +1107,28 @@ class ReplicationProfileDefinitionValidator {
         this.validateRuleSettings(rule, `model.${source.field}.rules[${index}]`, errors);
       }
     });
+  }
+
+  /** Validate every saved representation, including the structure the editor will reopen. */
+  private validateRuleValidityPeriods(
+    model: ValidationRecord,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+      const structure = asReplicationProfileRecord(model[field]);
+      if (!Array.isArray(structure?.rules)) continue;
+      structure.rules.forEach((value, index) => {
+        const rule = asReplicationProfileRecord(value);
+        if (!rule) return;
+        for (const error of getPolicyRuleValidityErrors(rule))
+          this.addError(
+            errors,
+            'invalid_rule_validity',
+            error.message,
+            `model.${field}.rules[${index}].${error.field}`,
+          );
+      });
+    }
   }
 
   private validateRuleSettings(

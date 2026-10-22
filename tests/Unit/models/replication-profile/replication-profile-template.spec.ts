@@ -58,6 +58,63 @@ describe(describeName('Replication Profile Template Unit Tests'), () => {
     await repository.delete({ code: Like(`${codePrefix}%`) });
   });
 
+  it('should preserve validity strings and offsets verbatim through saving, loading and editing', () => {
+    const periods = [
+      { time_start: '2026-10-01T08:15:30+02:00', time_end: '2026-10-31T19:45:59+01:00' },
+      { time_start: '2026-10-01T08:15:30.000Z' },
+      { time_end: '2026-10-31T19:45:59.000Z' },
+      { time_start: null, time_end: null },
+      {},
+    ];
+    const profile = reference(`custom/fixtures/${codePrefix}validity.v1.json`);
+    const model = {
+      provision: {
+        rules: periods.map((period) => ({
+          chain: 'forward',
+          comment: 'Temporary access',
+          ...period,
+        })),
+      },
+    };
+    writeReplicationProfileModel(profile, model);
+    const loaded = loadReplicationProfileModel(profile);
+    expect(loaded).to.deep.eq(model);
+    const edited = JSON.parse(JSON.stringify(loaded));
+    edited.provision.rules[0].comment = 'Edited access';
+    writeReplicationProfileModel(profile, edited);
+    expect(loadReplicationProfileModel(profile)).to.deep.eq(edited);
+    const json = JSON.parse(
+      fs.readFileSync(resolveReplicationProfileTemplatePath(profile), 'utf8'),
+    );
+    expect(
+      json.provision.rules.map(({ time_start, time_end }) => ({ time_start, time_end })),
+    ).to.deep.eq(
+      model.provision.rules.map(({ time_start, time_end }) => ({ time_start, time_end })),
+    );
+  });
+
+  it('should reject invalid validity periods on both save and load', () => {
+    const model = {
+      provision: {
+        rules: [
+          {
+            chain: 'forward',
+            time_start: '2026-11-01T00:00:00Z',
+            time_end: '2026-10-01T00:00:00Z',
+          },
+        ],
+      },
+    };
+    const profile = reference(`custom/fixtures/${codePrefix}invalid-validity.v1.json`);
+    expect(() => writeReplicationProfileModel(profile, model)).to.throw('definition is invalid');
+    expect(templateExists(profile)).to.be.false;
+    const raw = writeRawTemplate(JSON.stringify(model));
+    const error = catchTemplateError(() => loadReplicationProfileModel(raw));
+    expect(error.reason).to.eq('invalid_model');
+    expect(error.validationErrors.some((error) => error.code === 'invalid_rule_validity')).to.be
+      .true;
+  });
+
   describe('buildReplicationProfileTemplatePath()', () => {
     it('should name the template after the profile code and version', () => {
       expect(
