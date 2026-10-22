@@ -364,7 +364,16 @@ jobs:
           test "$STATUS" -eq 0
       - name: Verify protected content and logout after scan
         if: ${{ always() && steps.authenticated_zap.outcome != 'skipped' }}
+        id: http_after
         run: node .github/zap/http-check.cjs after
+      - name: Generate DAST JSON and Markdown summary
+        if: ${{ always() && steps.http_before.outcome != 'skipped' }}
+        env:
+          ZAP_EXIT_CODE: ${{ steps.authenticated_zap.outputs.exit_code }}
+          ZAP_STEP_OUTCOME: ${{ steps.authenticated_zap.outcome }}
+          HTTP_BEFORE_OUTCOME: ${{ steps.http_before.outcome }}
+          HTTP_AFTER_OUTCOME: ${{ steps.http_after.outcome }}
+        run: node .github/zap/report.cjs
       - name: Publish credential-free HTTP and authenticated ZAP evidence
         if: ${{ always() && steps.http_before.outcome != 'skipped' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -375,6 +384,7 @@ jobs:
             reports/dast/http-after.json
             reports/dast/authenticated.json
             reports/dast/authenticated.openapi.json
+            reports/dast/summary.md
           retention-days: 90
           if-no-files-found: error
       - name: Stop temporary API

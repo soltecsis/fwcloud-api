@@ -22,6 +22,7 @@
 import { describeName, expect } from '../../../mocha/global-setup';
 import sinon from 'sinon';
 import { EventEmitter } from 'events';
+import { Writable } from 'stream';
 import fs from 'fs';
 import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { VyOSCompiler } from '../../../../src/compiler/policy/vyos/vyos-compiler';
@@ -49,17 +50,16 @@ describe(describeName('Policy Compiler VyOS'), () => {
     readFileStub.withArgs(policyConfig.vyos_header_file, 'utf8').returns('');
     readFileStub.withArgs(policyConfig.vyos_footer_file, 'utf8').returns('');
 
-    const fakeStream: any = {
-      write: sinon.stub().returns(true),
-      end: sinon.stub(),
-      on(event: string, handler: () => void | Promise<void>) {
-        if (event === 'open') handler();
-        return this;
+    const fakeStream = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
       },
-    };
+    });
+    const writeSpy = sinon.spy(fakeStream, 'write');
 
-    sinon.stub(fs, 'createWriteStream').returns(fakeStream);
+    sinon.stub(fs, 'createWriteStream').returns(fakeStream as fs.WriteStream);
     sinon.stub(Firewall, 'getFirewallCompiler').resolves('VyOS');
+    sinon.stub(Firewall, 'getPolicyCompilationMode').resolves('normal');
     sinon.stub(Firewall, 'updateFirewallStatus').resolves();
     sinon.stub(Firewall, 'updateFirewallCompileDate').resolves();
     sinon.stub(PolicyRule, 'firewallWithMarkRules').resolves(false);
@@ -67,13 +67,16 @@ describe(describeName('Policy Compiler VyOS'), () => {
     const script = new PolicyScript({}, 1, 1);
     sinon.stub(script as any, 'dumpPolicyTables').resolves([]);
 
-    await script.dump();
+    const compilation = script.dump();
+    process.nextTick(() => fakeStream.emit('open', 1));
+    await compilation;
 
+    expect(fakeStream.writableFinished).to.be.true;
     expect(readFileStub.calledWith(policyConfig.vyos_header_file, 'utf8')).to.be.true;
     expect(readFileStub.calledWith(policyConfig.vyos_footer_file, 'utf8')).to.be.true;
-    const wrotePolicyCompilerLine = fakeStream.write
+    const wrotePolicyCompilerLine = writeSpy
       .getCalls()
-      .some((call: sinon.SinonSpyCall<[string]>) => /POLICY_COMPILER/.test(call.args[0] ?? ''));
+      .some((call) => /POLICY_COMPILER/.test(call.args[0] ?? ''));
     expect(wrotePolicyCompilerLine).to.be.false;
   });
 
