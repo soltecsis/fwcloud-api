@@ -132,6 +132,21 @@ export const PROFILE_OBJECT_DATA_FIELDS = [
   'comment',
 ] as const;
 
+/** Legacy TCP/UDP snapshots with no source endpoints use FWCloud's unrestricted 0/0 ports. */
+export function withProfileServiceSourcePorts(
+  data: ReplicationProfileRecord,
+): ReplicationProfileRecord {
+  const type = Number(data.type);
+  if (
+    (type !== REPLICATION_PROFILE_IPOBJ_TYPE_TCP && type !== REPLICATION_PROFILE_IPOBJ_TYPE_UDP) ||
+    data.source_port_start != null ||
+    data.source_port_end != null
+  ) {
+    return data;
+  }
+  return { ...data, source_port_start: 0, source_port_end: 0 };
+}
+
 const PORT_FIELDS = [
   'source_port_start',
   'source_port_end',

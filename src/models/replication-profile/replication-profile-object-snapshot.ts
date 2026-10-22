@@ -16,6 +16,7 @@ import {
   PROFILE_OBJECT_DATA_FIELDS,
   PROFILE_REFERENCE_OBJECT_TYPES,
   PROFILE_SERVICE_REFERENCE_TYPES,
+  withProfileServiceSourcePorts,
   type ProfileExternalObjectBinding,
 } from './replication-profile-object-reference';
 import {
@@ -170,7 +171,8 @@ function normalizeSnapshotValue(value: unknown, field?: string): unknown {
     }
   }
 
-  const record = asReplicationProfileRecord(value);
+  const rawRecord = asReplicationProfileRecord(value);
+  const record = rawRecord && withProfileServiceSourcePorts(rawRecord);
 
   if (!record) {
     return value;
@@ -587,7 +589,7 @@ async function validateSnapshot(
   }
 
   const columns = Object.fromEntries(
-    Object.entries(data).filter(
+    Object.entries(withProfileServiceSourcePorts(data)).filter(
       ([field, value]) =>
         allowed.includes(field) && field !== 'members' && field !== 'interfaces' && value !== null,
     ),
@@ -974,5 +976,5 @@ function objectData(row: ReplicationProfileRecord): ReplicationProfileRecord {
     }
   }
 
-  return data;
+  return withProfileServiceSourcePorts(data);
 }
