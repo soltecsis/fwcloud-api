@@ -25,6 +25,11 @@ import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { dbQuery, findTreeNodeId, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
+import {
+  getPolicyRuleValidityErrors,
+  parsePolicyRuleDate,
+  policyRuleDateKey,
+} from '../policy/policy-rule-validity';
 import { RulePositionsMap } from '../policy/PolicyPosition';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { Interface } from '../interface/Interface';
@@ -490,6 +495,9 @@ export class PolicyReplicationService extends Service {
     // Check every rule before provisioning interfaces or objects: invalid rule settings
     // must never result in a partially applied or broadened policy.
     for (const [index, rule] of provision.rules.entries()) {
+      for (const error of getPolicyRuleValidityErrors(rule)) {
+        result.errors.push(`Rule ${index + 1}: ${error.message}`);
+      }
       if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
         result.errors.push(`Rule ${index + 1}: options must be an integer between 0 and 65535.`);
       }
@@ -1626,8 +1634,22 @@ export class PolicyReplicationService extends Service {
       rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
       this.concatKey('i', interfaceIds),
       this.concatKey('o', ipobjIds),
+      this.provisionRuleSettingsSignature(rule),
+    ].join('|');
+  }
+
+  /** Template rules and database rows must use identical defaults and date normalization. */
+  private provisionRuleSettingsSignature(rule: {
+    negate?: string | null;
+    options?: number;
+    time_start?: unknown;
+    time_end?: unknown;
+  }): string {
+    return [
       normalizeRuleNegation(rule.negate) ?? '',
       rule.options ?? 0,
+      policyRuleDateKey(rule.time_start),
+      policyRuleDateKey(rule.time_end),
     ].join('|');
   }
 
@@ -1648,15 +1670,17 @@ export class PolicyReplicationService extends Service {
       ipobjs: string | null;
       negate: string | null;
       options: number;
+      time_start: Date | null;
+      time_end: Date | null;
     }>(
-      `SELECT R.id, R.type, R.action, R.negate, R.options,
+      `SELECT R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end,
               GROUP_CONCAT(DISTINCT CONCAT('i', RI.interface) ORDER BY CONCAT('i', RI.interface)) AS interfaces,
               GROUP_CONCAT(DISTINCT CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj)) ORDER BY CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj))) AS ipobjs
        FROM policy_r R
        LEFT JOIN policy_r__interface RI ON RI.rule = R.id
        LEFT JOIN policy_r__ipobj RO ON RO.rule = R.id
        WHERE R.firewall = ? AND R.special = 0
-       GROUP BY R.id, R.type, R.action, R.negate, R.options`,
+       GROUP BY R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end`,
       [firewallId],
     );
 
@@ -1665,7 +1689,7 @@ export class PolicyReplicationService extends Service {
     return new Set(
       rows.map(
         (row) =>
-          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${normalizeRuleNegation(row.negate) ?? ''}|${row.options ?? 0}`,
+          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${this.provisionRuleSettingsSignature(row)}`,
       ),
     );
   }
@@ -1685,6 +1709,8 @@ export class PolicyReplicationService extends Service {
       rule_order: ruleOrder,
       action: rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
       active: 1,
+      time_start: parsePolicyRuleDate(rule.time_start),
+      time_end: parsePolicyRuleDate(rule.time_end),
       options: rule.options ?? 0,
       special: 0,
       negate: normalizeRuleNegation(rule.negate),

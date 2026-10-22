@@ -25,6 +25,7 @@ import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
 import { DefaultPolicyRuleComments } from '../policy/PolicyRule';
+import { PolicyRuleValidityPeriod, policyRuleDateKey } from '../policy/policy-rule-validity';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replication.service';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
@@ -136,6 +137,8 @@ interface SnapshotRuleRow {
   comment: string | null;
   negate: string | null;
   options: number;
+  time_start: Date | null;
+  time_end: Date | null;
 }
 
 interface SnapshotRuleInterfaceRow {
@@ -228,7 +231,7 @@ interface SnapshotParameter {
   default: unknown;
 }
 
-interface SnapshotProvisionRule {
+interface SnapshotProvisionRule extends PolicyRuleValidityPeriod {
   chain: SnapshotChain;
   ipVersion: number;
   action: 'accept' | 'deny';
@@ -619,7 +622,7 @@ export class ReplicationProfileSnapshotService extends Service {
   ): Promise<SnapshotProvisionRule[]> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow>(
-      `SELECT id, type, rule_order, action, active, special, comment, negate, options FROM policy_r
+      `SELECT id, type, rule_order, action, active, special, comment, negate, options, time_start, time_end FROM policy_r
        WHERE firewall = ? AND type IN (${sqlPlaceholders(typeIds.length)}) ORDER BY rule_order`,
       [firewallId, ...typeIds],
     );
@@ -707,6 +710,8 @@ export class ReplicationProfileSnapshotService extends Service {
       rule.action !== RULE_ACTION_ACCEPT ||
       rule.active !== 1 ||
       rule.options !== 0 ||
+      !!rule.time_start ||
+      !!rule.time_end ||
       !!rule.negate ||
       vpns.length > 0
     ) {
@@ -847,6 +852,8 @@ export class ReplicationProfileSnapshotService extends Service {
       ipVersion: policy.ipVersion,
       action: rule.action === RULE_ACTION_DENY ? 'deny' : 'accept',
       options: rule.options,
+      ...(rule.time_start != null ? { time_start: policyRuleDateKey(rule.time_start) } : {}),
+      ...(rule.time_end != null ? { time_end: policyRuleDateKey(rule.time_end) } : {}),
     };
 
     if (inRoles.length) {

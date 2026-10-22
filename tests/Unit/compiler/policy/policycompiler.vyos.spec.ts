@@ -60,6 +60,7 @@ describe(describeName('Policy Compiler VyOS'), () => {
 
     sinon.stub(fs, 'createWriteStream').returns(fakeStream);
     sinon.stub(Firewall, 'getFirewallCompiler').resolves('VyOS');
+    sinon.stub(Firewall, 'getPolicyCompilationMode').resolves('normal');
     sinon.stub(Firewall, 'updateFirewallStatus').resolves();
     sinon.stub(Firewall, 'updateFirewallCompileDate').resolves();
     sinon.stub(PolicyRule, 'firewallWithMarkRules').resolves(false);

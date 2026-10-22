@@ -27,6 +27,7 @@ module.exports = schema;
 const Joi = require('joi');
 const sharedSch = require('../shared');
 const fwcError = require('../../../utils/error_table');
+const { policyRuleDateSchema } = require('../../../models/policy/policy-rule-validity');
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
@@ -40,8 +41,8 @@ schema.validate = req => {
 				idgroup: sharedSch.id.allow(null).optional(),
 				rule_order: sharedSch.id.optional(),
 				action: sharedSch.rule_action.optional(),
-				time_start: Joi.date().allow(null).allow('').optional(),
-				time_end: Joi.date().allow(null).allow('').optional(),
+				time_start: policyRuleDateSchema,
+				time_end: policyRuleDateSchema,
 				active: sharedSch._0_1.optional(),
 				options: sharedSch.u16bits,
 				comment: sharedSch.comment,

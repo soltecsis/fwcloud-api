@@ -63,7 +63,11 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
   let session: string;
 
   function docker(...args: string[]): string {
-    return execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return execFileSync('docker', args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30000,
+    });
   }
 
   function onFirewall(cmd: string): string {
@@ -71,18 +75,20 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
   }
 
   async function waitForSSH(): Promise<void> {
+    const deadline = Date.now() + 30000;
     const connection = {
       host: '127.0.0.1',
       port: sshPort,
       username: 'root',
       password: rootPassword,
+      readyTimeout: 5000,
     };
-    for (let attempt = 0; ; attempt++) {
+    for (;;) {
       try {
         await sshTools.runCommand(connection, 'true');
         return;
       } catch (error) {
-        if (attempt === 60) throw error;
+        if (Date.now() >= deadline) throw error;
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
@@ -147,20 +153,31 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
       .send({ fwcloud: fwc.fwcloud.id, firewall: firewall.id });
   }
 
-  before(async function () {
+  before('build the DNS firewall image', function () {
+    // A cold build downloads Ubuntu packages and must not consume the firewall startup timeout.
+    const buildTimeout = 300000;
+    this.timeout(buildTimeout + 10000);
+
     try {
       docker('info');
     } catch {
       this.skip();
     }
 
-    docker(
-      'build',
-      '-q',
-      '-t',
-      image,
-      path.join(process.cwd(), 'tests', 'fixtures', 'dns-firewall'),
+    execFileSync(
+      'docker',
+      [
+        'build',
+        '--progress=plain',
+        '-t',
+        image,
+        path.join(process.cwd(), 'tests', 'fixtures', 'dns-firewall'),
+      ],
+      { stdio: 'inherit', timeout: buildTimeout },
     );
+  });
+
+  before('start the DNS firewall containers', async function () {
     // Answers only for the test hostnames: an AAAA query for the IPv4 hostname (and vice versa) fails.
     dnsServer = docker(
       'run',

@@ -43,39 +43,22 @@ export class IPTablesCompiler extends PolicyCompilerTools {
     ) {
       // SNAT or DNAT
       const lines = this._cs.split('\n');
+      const action = this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? 'SNAT' : 'DNAT';
       this._cs = '';
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i] === '') continue; // Ignore empty lines.
-        if ((lines[i].match(/ -p tcp /g) || []).length > 1)
-          this._cs += `${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p tcp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p tcp /, ' -j DNAT ')}\n`;
-        else if ((lines[i].match(/ -p udp /g) || []).length > 1)
-          this._cs += `${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p udp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p udp /, ' -j DNAT ')}\n`;
-        else this._cs += `${lines[i]}\n`;
+      for (const line of lines) {
+        if (line === '') continue; // Ignore empty lines.
+        const protocol =
+          (line.match(/ -p tcp /g) || []).length > 1
+            ? 'tcp'
+            : (line.match(/ -p udp /g) || []).length > 1
+              ? 'udp'
+              : null;
+        this._cs += `${protocol ? line.replace(` -j ${action} -p ${protocol} `, ` -j ${action} `) : line}\n`;
       }
     }
   }
 
   public ruleCompile(): string {
-    // Prepare for compilation.
-    this.beforeCompilation();
-
-    // Compile special rules.
-    this.specialRuleCompilation();
-
-    // Compile items of each rule position.
-    this.compileRulePositions();
-
-    // Generate the compilation string.
-    this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
-
-    // If we are using UDP or TCP ports in translated service position for NAT rules,
-    // make sure that we have only one -p flag per line into the compilation string.
-    this.natCheck();
-
-    this.addAccounting();
-    this.addLog();
-    this.addMark();
-
-    return this.afterCompilation();
+    return this.compileRule(() => this.natCheck());
   }
 }

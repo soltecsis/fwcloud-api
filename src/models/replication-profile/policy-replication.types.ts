@@ -21,6 +21,7 @@
 */
 
 import type { ReplicationProfile } from './replication-profile.model';
+import type { PolicyRuleValidityPeriod } from '../policy/policy-rule-validity';
 import type { ResolvedProfileObjectReference } from './replication-profile-object-reference';
 import {
   asReplicationProfileNonEmptyString,
@@ -186,7 +187,7 @@ export interface PolicyReplicationProvisionObject {
   vpnId?: string;
 }
 
-export interface PolicyReplicationProvisionRule {
+export interface PolicyReplicationProvisionRule extends PolicyRuleValidityPeriod {
   chain: ReplicationProfileRuleChain;
   /** IP family of the rule. Defaults to 4. */
   ipVersion: ReplicationProfileIpVersion;
@@ -725,6 +726,8 @@ function parseProvisionRule(
     ...(record.negate !== undefined ? { negate: record.negate as string | null } : {}),
     // Preserve explicit zero and malformed values for validation, rather than silently defaulting.
     ...(record.options !== undefined ? { options: record.options as number } : {}),
+    ...(record.time_start !== undefined ? { time_start: record.time_start as string | null } : {}),
+    ...(record.time_end !== undefined ? { time_end: record.time_end as string | null } : {}),
     comment,
   };
 }

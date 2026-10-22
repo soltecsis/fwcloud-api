@@ -338,6 +338,50 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     expect(merged.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
   });
 
+  describe('rule validity periods', () => {
+    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
+      service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        provision,
+        fwc.fwcloud.id,
+        mode,
+        applyOptions(values),
+      );
+
+    it('should merge rules with different dates and recognize equivalent instants', async () => {
+      expect((await apply()).createdRules).to.have.length(1);
+      for (const period of [
+        { time_start: '2026-10-01T08:15:30+02:00', time_end: '2026-10-31T19:45:59+01:00' },
+        { time_start: '2026-10-01T08:15:30+02:00', time_end: null },
+        { time_start: null, time_end: '2026-10-31T19:45:59+01:00' },
+        { time_start: '2026-10-02T08:15:30+02:00', time_end: '2026-10-31T19:45:59+01:00' },
+      ]) {
+        Object.assign(provision.rules[0], period);
+        const added = await apply('merge');
+        expect(added.errors).to.be.empty;
+        expect(added.createdRules).to.have.length(1);
+        const [row] = await db
+          .getSource()
+          .query('SELECT time_start, time_end FROM policy_r WHERE id = ?', [
+            added.createdRules[0].targetRuleId,
+          ]);
+        for (const field of ['time_start', 'time_end'] as const) {
+          expect(row[field]?.getTime() ?? null).to.eq(
+            period[field] ? Date.parse(period[field]) : null,
+          );
+          provision.rules[0][field] = period[field] ? new Date(period[field]).toISOString() : null;
+        }
+        const duplicate = await apply('merge');
+        expect(duplicate.errors).to.be.empty;
+        expect(duplicate.createdRules).to.be.empty;
+        expect(duplicate.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
+      }
+      provision.rules[0].time_start = null;
+      provision.rules[0].time_end = '';
+      expect((await apply('merge')).createdRules).to.be.empty;
+    });
+  });
+
   describe('native rule options', () => {
     const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
       service.provisionPolicyFromProfile(
