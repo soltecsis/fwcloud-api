@@ -45,6 +45,7 @@ import {
   writeReplicationProfileModel,
 } from '../../../../src/models/replication-profile/replication-profile-template';
 import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
+import { policyRuleDateKey } from '../../../../src/models/policy/policy-rule-validity';
 
 interface CapturedObject {
   kind: string;
@@ -59,6 +60,8 @@ interface CapturedRule {
   ipVersion: number;
   action: string;
   options?: number;
+  time_start?: string | null;
+  time_end?: string | null;
   negate?: string | null;
   inRole?: string;
   outRole?: string;
@@ -730,6 +733,24 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       }
 
       for (const comment of [SELF_HOST, USEFUL_ICMP]) {
+        for (const field of ['time_start', 'time_end'] as const) {
+          it(`should capture default INPUT rules when only ${field} is configured: ${comment}`, async () => {
+            await addDefaultInputRules();
+            const date = new Date('2026-10-01T08:15:30+02:00');
+            await db
+              .getSource()
+              .query(
+                `UPDATE policy_r SET ${field} = ? WHERE firewall = ? AND type = 1 AND comment = ?`,
+                [date, source.firewall.id, comment],
+              );
+            const { profile, warnings } = await snapshot();
+            expect(warnings).to.be.empty;
+            const rules = getProvision(profile).rules;
+            expect(rules).to.have.length(2);
+            expect(rules.find((rule) => rule.comment === comment)[field]).to.eq(date.toISOString());
+            expect(rules.find((rule) => rule.comment !== comment)).not.to.have.property(field);
+          });
+        }
         for (const options of [1, 2, 4, 6]) {
           it(`should capture default INPUT rules when only options change to ${options}: ${comment}`, async () => {
             await addDefaultInputRules();
@@ -856,7 +877,12 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
     });
   });
 
-  describe('rule options', () => {
+  describe('rule options and validity periods', () => {
+    const period = (options: number) => ({
+      time_start:
+        options & PolicyRuleOptMask.STATELESS ? null : new Date('2026-10-01T08:15:30+02:00'),
+      time_end: options & PolicyRuleOptMask.LOG ? null : new Date('2026-10-31T19:45:59+01:00'),
+    });
     it('should save, reload and apply a legacy template without options using the native zero default', async () => {
       const { profile } = await service.createProfileFromSource(
         { source: { kind: 'firewall', id: source.firewall.id }, name: 'Legacy rule options' },
@@ -884,8 +910,12 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(result.createdRules).to.have.length(1);
       const [rule] = await db
         .getSource()
-        .query('SELECT options FROM policy_r WHERE id = ?', [result.createdRules[0].targetRuleId]);
+        .query('SELECT options, time_start, time_end FROM policy_r WHERE id = ?', [
+          result.createdRules[0].targetRuleId,
+        ]);
       expect(rule.options).to.eq(0);
+      expect(rule.time_start).to.eq(null);
+      expect(rule.time_end).to.eq(null);
       expect(loadReplicationProfileModel(profile)).to.deep.eq(model);
     });
 
@@ -936,6 +966,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
                   active: 1,
                   special: 0,
                   options,
+                  ...period(options),
                   comment,
                   negate: String(positions.service),
                 });
@@ -974,8 +1005,15 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             .findOneByOrFail({ id: captured.profile.id });
           const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile)));
           expect(model.provision.rules).to.have.length(expected.size);
-          for (const rule of model.provision.rules)
+          for (const rule of model.provision.rules) {
             expect(rule.options, rule.comment).to.eq(expected.get(rule.comment));
+            const dates = period(expected.get(rule.comment)!);
+            for (const field of ['time_start', 'time_end'] as const) {
+              expect(rule[field] ?? '', `${rule.comment} ${field}`).to.eq(
+                policyRuleDateKey(dates[field]),
+              );
+            }
+          }
           // Exercise a subsequent save/load as well as the initial capture's persistence.
           writeReplicationProfileModel(profile, model);
           const reloaded = loadReplicationProfileModel(profile);
@@ -1008,6 +1046,11 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           expect(rows).to.have.length(expected.size);
           for (const row of rows) {
             expect(row.options, row.comment).to.eq(expected.get(row.comment));
+            const dates = period(expected.get(row.comment)!);
+            for (const field of ['time_start', 'time_end'] as const)
+              expect(policyRuleDateKey(row[field]), `${row.comment} ${field}`).to.eq(
+                policyRuleDateKey(dates[field]),
+              );
             expect(row.action).to.eq(1);
             expect(row.negate).to.eq(
               String(
@@ -1049,6 +1092,29 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             for (const rule of applied) {
               const options = expected.get(rule.comment)!;
               const sourceRule = original.find((item) => item.comment === rule.comment)!;
+              const dates = period(options);
+              if (compiler === 'IPTables') {
+                expect(rule.cs.includes('--datestart'), rule.comment).to.eq(!!dates.time_start);
+                expect(rule.cs.includes('--datestop'), rule.comment).to.eq(!!dates.time_end);
+                if (dates.time_start)
+                  expect(rule.cs).to.include(
+                    `--datestart ${dates.time_start.toISOString().slice(0, 19)}`,
+                  );
+                if (dates.time_end)
+                  expect(rule.cs).to.include(
+                    `--datestop ${dates.time_end.toISOString().slice(0, 19)}`,
+                  );
+              } else {
+                expect(rule.cs.includes('meta time'), rule.comment).to.eq(
+                  !!(dates.time_start || dates.time_end),
+                );
+                if (dates.time_start)
+                  expect(rule.cs).to.include(`meta time \\>= ${dates.time_start.getTime() / 1000}`);
+                if (dates.time_end)
+                  expect(rule.cs).to.include(
+                    `meta time \\< ${dates.time_end.getTime() / 1000 + 1}`,
+                  );
+              }
               const hasLog = compiler === 'IPTables' ? /-j LOG/ : /counter log prefix/;
               const hasTracking = compiler === 'IPTables' ? /--ctstate\s+NEW/ : /ct state new/;
               expect(hasLog.test(rule.cs), rule.comment).to.eq(!!(options & PolicyRuleOptMask.LOG));
@@ -1072,8 +1138,12 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             { fwCloudId: fwc.fwcloud.id, userId: ownerId },
           );
           expect(recaptured.warnings).to.be.empty;
-          for (const rule of getProvision(recaptured.profile).rules)
+          for (const rule of getProvision(recaptured.profile).rules) {
             expect(rule.options, rule.comment).to.eq(expected.get(rule.comment));
+            const dates = period(expected.get(rule.comment)!);
+            for (const field of ['time_start', 'time_end'] as const)
+              expect(rule[field] ?? '').to.eq(policyRuleDateKey(dates[field]));
+          }
         });
       }
     }

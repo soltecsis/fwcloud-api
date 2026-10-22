@@ -332,18 +332,20 @@ describe(describeName('Replication Profile E2E Tests'), () => {
         });
     });
 
-    it('should preserve captured negation, LOG and stateless through detail, template editing and application to another firewall', async () => {
+    it('should preserve captured validity, negation, LOG and stateless through detail, template editing and application to another firewall', async () => {
       const source = await makeSourceFirewall();
       const manager = db.getSource().manager;
+      const time_start = new Date('2026-10-01T08:15:30+02:00');
+      const time_end = new Date('2026-10-31T19:45:59+01:00');
+      const dates = { time_start: time_start.toISOString(), time_end: time_end.toISOString() };
       const [sourceRule] = await manager.query(
         'SELECT id FROM policy_r WHERE firewall = ? AND type = 3 AND special = 0',
         [source.id],
       );
-      await manager.query('UPDATE policy_r SET negate = ?, options = ? WHERE id = ?', [
-        '22',
-        6,
-        sourceRule.id,
-      ]);
+      await manager.query(
+        'UPDATE policy_r SET negate = ?, options = ?, time_start = ?, time_end = ? WHERE id = ?',
+        ['22', 6, time_start, time_end, sourceRule.id],
+      );
       await manager.query(
         'INSERT INTO policy_r__ipobj (rule, ipobj_g, position, position_order) VALUES (?, 5, 9, 1)',
         [sourceRule.id],
@@ -369,6 +371,8 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(captured.body.data.model.policyStructure.rules[0].negate).to.eq('22');
       expect(captured.body.data.model.provision.rules[0].options).to.eq(6);
       expect(captured.body.data.model.policyStructure.rules[0].options).to.eq(6);
+      expect(captured.body.data.model.provision.rules[0]).to.include(dates);
+      expect(captured.body.data.model.policyStructure.rules[0]).to.include(dates);
 
       const detail = await request(app.express)
         .get(`${profileUrl}/latest`)
@@ -377,6 +381,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       const editedModel = detail.body.data.model;
       expect(editedModel.provision.rules[0].negate).to.eq('22');
       expect(editedModel.provision.rules[0].options).to.eq(6);
+      expect(editedModel.provision.rules[0]).to.include(dates);
 
       // Editing the template removes interface negation and negates its existing service instead.
       editedModel.provision.rules[0].negate = '9';
@@ -400,6 +405,8 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(saved.body.data.model.policyStructure.rules[0].negate).to.eq('9');
       expect(saved.body.data.model.provision.rules[0].options).to.eq(6);
       expect(saved.body.data.model.policyStructure.rules[0].options).to.eq(6);
+      expect(saved.body.data.model.provision.rules[0]).to.include(dates);
+      expect(saved.body.data.model.policyStructure.rules[0]).to.include(dates);
 
       const applied = await request(app.express)
         .post(`${profileUrl}/latest/apply`)
@@ -411,7 +418,7 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       expect(applied.body.data.createdRules).to.have.length(1);
 
       const rules = await manager.query(
-        'SELECT id, negate, options FROM policy_r WHERE firewall = ? AND type = 3 AND special = 0',
+        'SELECT id, negate, options, time_start, time_end FROM policy_r WHERE firewall = ? AND type = 3 AND special = 0',
         [target.id],
       );
       expect(rules).to.have.length(1);
@@ -430,11 +437,13 @@ describe(describeName('Replication Profile E2E Tests'), () => {
       );
       expect(services).to.deep.eq([{ ipobj_g: 5, position: 9 }]);
       const [unchangedSource] = await manager.query(
-        'SELECT negate, options FROM policy_r WHERE id = ?',
+        'SELECT negate, options, time_start, time_end FROM policy_r WHERE id = ?',
         [sourceRule.id],
       );
       expect(unchangedSource.negate).to.eq('22');
       expect(unchangedSource.options).to.eq(6);
+      expect(rules[0].time_start).to.deep.eq(unchangedSource.time_start).and.to.deep.eq(time_start);
+      expect(rules[0].time_end).to.deep.eq(unchangedSource.time_end).and.to.deep.eq(time_end);
     });
 
     it('should return and persist VPN definitions and their policy references from the source', async () => {
