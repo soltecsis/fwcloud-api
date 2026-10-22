@@ -173,7 +173,8 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
         image,
         path.join(process.cwd(), 'tests', 'fixtures', 'dns-firewall'),
       ],
-      { stdio: 'inherit', timeout: buildTimeout },
+      // Capture build progress without printing it; failures retain the Docker diagnostics.
+      { stdio: 'pipe', timeout: buildTimeout, maxBuffer: 10 * 1024 * 1024 },
     );
   });
 
