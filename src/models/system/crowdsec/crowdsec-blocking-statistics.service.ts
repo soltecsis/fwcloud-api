@@ -336,12 +336,12 @@ export class CrowdSecBlockingStatisticsService extends Service {
       packets: Number(
         previousPacketCounter !== null && currentPackets >= previousPacketCounter
           ? currentPackets - previousPacketCounter
-          : 0n,
+          : currentPackets,
       ),
       bytes: Number(
         previousByteCounter !== null && currentBytes >= previousByteCounter
           ? currentBytes - previousByteCounter
-          : 0n,
+          : currentBytes,
       ),
     };
   }
