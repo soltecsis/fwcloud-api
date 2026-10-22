@@ -98,6 +98,41 @@ export type CrowdSecConsoleEnrollment = {
 
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
+export type CrowdSecFirewallBouncerStatisticsState = 'available' | 'unavailable';
+
+export type CrowdSecFirewallBouncerStatisticsSamplingConfig = {
+  enabled: boolean;
+  samplingInterval: number;
+  requestMaxSamples: number;
+  cacheMaxSize: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsCounter = {
+  packets: number;
+  bytes: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsAddressCounter = {
+  address: string;
+  packets: number;
+  bytes: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsSample = {
+  collectedAt: string;
+  policyGeneration: number;
+  ipv4Input: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv4Forward: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv6Input: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv6Forward: CrowdSecFirewallBouncerStatisticsCounter;
+  addresses: CrowdSecFirewallBouncerStatisticsAddressCounter[];
+};
+
+export type CrowdSecFirewallBouncerStatisticsSamples = {
+  state: CrowdSecFirewallBouncerStatisticsState;
+  samples: CrowdSecFirewallBouncerStatisticsSample[];
+};
+
 export type CrowdSecMachineInstall = {
   machineName: string;
   lapiUrl: string;
@@ -288,6 +323,12 @@ export abstract class Communication<ConnectionData> {
   abstract flushCrowdSecDecisions(confirm: boolean): Promise<Record<string, unknown>>;
   abstract getCrowdSecAlerts(query?: CrowdSecAlertsQuery): Promise<Record<string, unknown>>;
   abstract getCrowdSecBouncers(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
+  abstract takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
+  abstract getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig>;
+  abstract updateCrowdSecFirewallBouncerStatisticsSampling(
+    config: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void>;
   abstract registerCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract uninstallCrowdSecBouncer(

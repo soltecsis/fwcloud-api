@@ -220,6 +220,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'PUT /fwclouds/:fwcloud': { audited: true },
   'PUT /fwclouds/:fwcloud/cas/:ca': { audited: true },
   'PUT /fwclouds/:fwcloud/cas/:ca/crts/:crt': { audited: true },
+  'PUT /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/sampling': {
+    audited: true,
+  },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routeGroups/:routeGroup': { audited: true },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routingGroups/:routingGroup': { audited: true },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routingRules/:routingRule': { audited: true },
@@ -246,6 +249,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/openvpns/:openvpn/statusSampling': {
+    audited: true,
+  },
+  'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/sampling': {
     audited: true,
   },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpGroups/:dhcpgroup': { audited: true },

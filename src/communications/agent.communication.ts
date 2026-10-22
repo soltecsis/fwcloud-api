@@ -28,6 +28,8 @@ import {
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
+  CrowdSecFirewallBouncerStatisticsSamples,
+  CrowdSecFirewallBouncerStatisticsSamplingConfig,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
@@ -64,6 +66,26 @@ type AgentCommunicationData = {
   host: string;
   port: number;
   apikey: string;
+};
+
+type CrowdSecFirewallBouncerStatisticsSamplingResponse = {
+  enabled: boolean;
+  sampling_interval: number;
+  request_max_samples: number;
+  cache_max_size: number;
+};
+
+type CrowdSecFirewallBouncerStatisticsSamplesResponse = {
+  state: 'available' | 'unavailable';
+  samples: {
+    collected_at: string;
+    policy_generation: number;
+    ipv4_input: { packets: number; bytes: number };
+    ipv4_forward: { packets: number; bytes: number };
+    ipv6_input: { packets: number; bytes: number };
+    ipv6_forward: { packets: number; bytes: number };
+    addresses: { address: string; packets: number; bytes: number }[];
+  }[];
 };
 
 const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: number }> = {
@@ -1202,6 +1224,73 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    try {
+      const response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplesResponse> =
+        await axios.get(this.url + '/api/v1/crowdsec/bouncer/statistics', this.config);
+
+      return this.crowdSecFirewallBouncerStatisticsSamplesResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    try {
+      const response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplesResponse> =
+        await axios.put(this.url + '/api/v1/crowdsec/bouncer/statistics/samples', {}, this.config);
+
+      return this.crowdSecFirewallBouncerStatisticsSamplesResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig> {
+    try {
+      const response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplingResponse> =
+        await axios.get(this.url + '/api/v1/crowdsec/bouncer/statistics/sampling', this.config);
+
+      if (response.status === 200 && response.data) {
+        return {
+          enabled: response.data.enabled,
+          samplingInterval: response.data.sampling_interval,
+          requestMaxSamples: response.data.request_max_samples,
+          cacheMaxSize: response.data.cache_max_size,
+        };
+      }
+
+      throw new Error('Unexpected CrowdSec Firewall Bouncer statistics sampling response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async updateCrowdSecFirewallBouncerStatisticsSampling(
+    sampling: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void> {
+    try {
+      const response = await axios.put(
+        this.url + '/api/v1/crowdsec/bouncer/statistics/sampling',
+        {
+          enabled: sampling.enabled,
+          sampling_interval: sampling.samplingInterval,
+          request_max_samples: sampling.requestMaxSamples,
+          cache_max_size: sampling.cacheMaxSize,
+        },
+        this.config,
+      );
+
+      if (response.status === 200) {
+        return;
+      }
+
+      throw new Error('Unexpected CrowdSec Firewall Bouncer statistics sampling update response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   async registerCrowdSecBouncer(name: string): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/bouncers/register', {
@@ -1598,6 +1687,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     throw new Error('Unexpected CrowdSec operation response');
+  }
+
+  private crowdSecFirewallBouncerStatisticsSamplesResponse(
+    response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplesResponse>,
+  ): CrowdSecFirewallBouncerStatisticsSamples {
+    if (response.status === 200 && response.data && Array.isArray(response.data.samples)) {
+      return {
+        state: response.data.state,
+        samples: response.data.samples.map((sample) => ({
+          collectedAt: sample.collected_at,
+          policyGeneration: sample.policy_generation,
+          ipv4Input: sample.ipv4_input,
+          ipv4Forward: sample.ipv4_forward,
+          ipv6Input: sample.ipv6_input,
+          ipv6Forward: sample.ipv6_forward,
+          addresses: sample.addresses,
+        })),
+      };
+    }
+
+    throw new Error('Unexpected CrowdSec Firewall Bouncer statistics response');
   }
 
   private handleCrowdSecRequestException(error: unknown, eventEmitter?: EventEmitter): never {

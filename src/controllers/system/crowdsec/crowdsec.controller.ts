@@ -50,6 +50,13 @@ import { CrowdSecCentralLapiConfigureDto } from './dto/central-lapi-configure.dt
 import { CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 import { PgpHelper } from '../../../utils/pgp';
 import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
+import { CrowdSecBlockingStatisticsSamplingDto } from './dto/blocking-statistics-sampling.dto';
+import {
+  CrowdSecBlockingStatisticsAddressHistoryQueryDto,
+  CrowdSecBlockingStatisticsAddressOptionsQueryDto,
+  CrowdSecBlockingStatisticsHistoryQueryDto,
+} from './dto/blocking-statistics-history-query.dto';
+import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
 
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
@@ -183,6 +190,102 @@ export class CrowdSecController extends Controller {
 
     const bouncers = await (await this.getAgentCommunication()).getCrowdSecBouncers();
     return ResponseBuilder.buildResponse().status(200).body(bouncers);
+  }
+
+  @Validate()
+  public async blockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const configuration =
+      await CrowdSecBlockingStatisticsSharedService.samplingService().configuration(
+        this._firewall.id,
+      );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.samplingResponse(configuration));
+  }
+
+  @Validate(CrowdSecBlockingStatisticsSamplingDto)
+  public async updateBlockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const service = CrowdSecBlockingStatisticsSharedService.samplingService();
+    const current = await service.configuration(this._firewall.id);
+    const result = await service.update([this._firewall], {
+      enabled: req.body.enabled,
+      samplingInterval: req.body.sampling_interval ?? current.samplingInterval,
+      requestMaxSamples: req.body.request_max_samples ?? current.requestMaxSamples,
+      cacheMaxSize: req.body.cache_max_size ?? current.cacheMaxSize,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed: result.completed,
+        ...CrowdSecBlockingStatisticsSharedService.samplingResponse(result.configuration),
+        nodes: result.nodes,
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsHistoryQueryDto)
+  public async blockingStatistics(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).history(
+      this._firewall.id,
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.sampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsAddressHistoryQueryDto)
+  public async blockingStatisticsAddresses(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressHistory(
+      this._firewall.id,
+      CrowdSecBlockingStatisticsSharedService.addresses(req.query.addresses),
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsAddressOptionsQueryDto)
+  public async blockingStatisticsAddressOptions(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const page = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressOptions(this._firewall.id, {
+      ...CrowdSecBlockingStatisticsSharedService.range(req),
+      ...CrowdSecBlockingStatisticsSharedService.pagination(req),
+      search: req.query.search as string | undefined,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.addressOptionsResponse(page));
   }
 
   @Validate()
