@@ -26,6 +26,7 @@ import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/Polic
 import { FireWallOptMask } from '../../models/firewall/Firewall';
 import { IpUtils } from '../../utils/ip-utils';
 import { DangerousRuleInfo } from '../../config/policy/dangerousRules';
+import { readPolicyRuleValidityPeriod } from '../../models/policy/policy-rule-validity';
 
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -97,6 +98,28 @@ export abstract class PolicyCompilerTools {
   private _action = '';
   protected _comment: string;
   private _compiledPositions: CompiledPosition[];
+  private _validityPeriod = '';
+
+  /** Shared IPTables/NFTables pipeline; NAT normalization runs before accounting and logging. */
+  protected compileRule(checkCompilation?: () => void): string {
+    this.beforeCompilation();
+    this._validityPeriod = this.compileValidityPeriod();
+    this._cs += this._validityPeriod;
+    this.specialRuleCompilation();
+    this.compileRulePositions();
+    this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
+    checkCompilation?.();
+    this.addAccounting();
+    this.addLog();
+    this.addMark();
+    return this.afterCompilation();
+  }
+
+  protected getRuleValidityPeriod() {
+    const { dates, errors } = readPolicyRuleValidityPeriod(this._ruleData);
+    if (errors.length) throw new Error(errors.map((error) => error.message).join(' '));
+    return dates;
+  }
 
   private validPolicyType(): boolean {
     return (
@@ -303,6 +326,20 @@ export abstract class PolicyCompilerTools {
         } else this._afterLogAction = this._compiler == 'IPTables' ? 'RETURN' : 'counter return';
       }
     }
+  }
+
+  /** Conditions go on the entry rule, before any generated helper/log/NAT chains. */
+  protected compileValidityPeriod(): string {
+    const { time_start: start, time_end: end } = this.getRuleValidityPeriod();
+    if (!start && !end) return '';
+
+    if (this._compiler === 'IPTables') {
+      // xt_time uses UTC by default and includes both boundary seconds.
+      return `-m time ${start ? `--datestart ${start.toISOString().slice(0, 19)} ` : ''}${end ? `--datestop ${end.toISOString().slice(0, 19)} ` : ''}`;
+    }
+    // Numeric UNIX timestamps avoid interpreting date strings in the target's timezone.
+    // nft compares nanoseconds: include the whole final second, as xt_time does.
+    return `${start ? `meta time \\>= ${Math.floor(start.getTime() / 1000)} ` : ''}${end ? `meta time \\< ${Math.floor(end.getTime() / 1000) + 1} ` : ''}`;
   }
 
   protected afterCompilation(): string {
@@ -917,6 +954,8 @@ export abstract class PolicyCompilerTools {
         cs2 = `${this._cmd} add rule ${this._family} ${this._table} PREROUTING `;
       }
 
+      cs1 += this._validityPeriod;
+      cs2 += this._validityPeriod;
       this._cs += this.generateCompilationString(`${this._ruleData.id}-M1`, cs1);
       // Add the mark to the PREROUTING chain of the mangle table.
       if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {

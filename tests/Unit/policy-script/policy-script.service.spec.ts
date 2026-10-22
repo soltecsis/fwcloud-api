@@ -46,6 +46,49 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
   });
 
   describe('compile()', () => {
+    for (const compiler of ['IPTables', 'NFTables']) {
+      for (const optimized of [false, true]) {
+        it(`should retain validity matches in ${compiler} ${optimized ? 'optimized' : 'normal'} policy scripts`, async () => {
+          firewall.options =
+            (compiler === 'NFTables' ? 0x1000 : 0) |
+            (optimized ? FireWallOptMask.IPTABLES_OPTIMIZED_COMPILATION : 0);
+          await db.getSource().manager.getRepository(Firewall).save(firewall);
+          await PolicyRule.insertPolicy_r({
+            firewall: firewall.id,
+            type: PolicyTypesMap.get('IPv4:INPUT'),
+            rule_order: 1,
+            action: 1,
+            active: 1,
+            special: 0,
+            options: 0,
+            time_start: new Date('2026-10-01T08:15:30+02:00'),
+            time_end: new Date('2026-10-31T19:45:59+01:00'),
+          });
+          await service.compile(fwcloud.id, firewall.id);
+          const script = fs.readFileSync(filePath, 'utf8');
+          if (compiler === 'IPTables') {
+            expect(script).to.include(
+              '-m time --datestart 2026-10-01T06:15:30 --datestop 2026-10-31T18:45:59',
+            );
+          } else {
+            const escaped = optimized ? '' : '\\';
+            expect(script).to.include(
+              `meta time ${escaped}>= ${Date.parse('2026-10-01T06:15:30Z') / 1000}`,
+            );
+            expect(script).to.include(
+              `meta time ${escaped}< ${Date.parse('2026-10-31T18:45:59Z') / 1000 + 1}`,
+            );
+            if (optimized) {
+              const blocks =
+                script.match(/cat <<'FWC_NFT_RULES' \| \$NFT -f -\n[\s\S]*?\nFWC_NFT_RULES/g) ?? [];
+              expect(blocks.some((block) => block.includes('meta time >='))).to.be.true;
+              expect(blocks.join('\n')).not.to.include('meta time \\');
+            }
+          }
+        });
+      }
+    }
+
     it('should create script', async () => {
       await service.compile(fwcloud.id, firewall.id);
       expect(fs.existsSync(filePath));

@@ -125,6 +125,7 @@ export class VyOSCompiler extends PolicyCompilerTools {
   }
 
   public ruleCompile(): string {
+    const { time_start: start, time_end: end } = this.getRuleValidityPeriod();
     const special = Number.isInteger(this._ruleData.special)
       ? this._ruleData.special
       : parseInt(this._ruleData.special, 10);
@@ -135,6 +136,9 @@ export class VyOSCompiler extends PolicyCompilerTools {
     const base = (opt: string) =>
       `set firewall ${firewallKeyword} ${chain} rule ${this._ruleData.id} ${opt}`;
     const isIPv6Rule = this.isIPv6Policy();
+    // Date matches use UTC, as in xt_time; avoid the obsolete VyOS 'time utc' flag.
+    if (start) this._cs += `${base('time startdate')} '${start.toISOString().slice(0, 19)}'\n`;
+    if (end) this._cs += `${base('time stopdate')} '${end.toISOString().slice(0, 19)}'\n`;
 
     // Interface IN
     const inIfs = this._ruleData.positions?.[0]?.ipobjs || [];

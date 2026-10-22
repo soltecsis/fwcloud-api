@@ -409,7 +409,11 @@ export class PolicyScript {
   }
 
   private normalizeNftablesFileQuotes(command: string): string {
-    return command.replace(/\\"/g, '"').replace(/\\'/g, "'");
+    // Shell comparisons are escaped in per-command scripts, but nft -f reads raw operators.
+    return command
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'")
+      .replace(/\\([<>])/g, '$1');
   }
 
   // iptables-restore block with the rules of a table, for the iptables command ($IPTABLES or $IP6TABLES)

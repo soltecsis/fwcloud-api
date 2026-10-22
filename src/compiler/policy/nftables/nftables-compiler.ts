@@ -35,22 +35,6 @@ export class NFTablesCompiler extends PolicyCompilerTools {
   }
 
   public ruleCompile(): string {
-    // Prepare for compilation.
-    this.beforeCompilation();
-
-    // Compile special rules.
-    this.specialRuleCompilation();
-
-    // Compile items of each rule position.
-    this.compileRulePositions();
-
-    // Generate the compilation string.
-    this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
-
-    this.addAccounting();
-    this.addLog();
-    this.addMark();
-
-    return this.afterCompilation();
+    return this.compileRule();
   }
 }
