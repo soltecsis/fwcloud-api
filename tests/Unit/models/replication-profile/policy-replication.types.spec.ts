@@ -185,4 +185,41 @@ describe(describeName('Policy Replication Types Unit Tests'), () => {
       }),
     ).to.deep.equal({ interfaces: [], rules: [], ...EMPTY_BLOCKS });
   });
+
+  it('should retain both interface IP families and native address settings after a JSON round trip', () => {
+    const addresses = [
+      {
+        name: 'IPv4',
+        value: '192.0.2.10/24',
+        ipVersion: 4,
+        comment: '',
+        diff_serv: 0,
+        options: null,
+      },
+      {
+        name: 'IPv6',
+        value: '2001:0DB8::10/127',
+        ipVersion: 6,
+        comment: 'Primary IPv6',
+        diff_serv: 12,
+        options: '0',
+      },
+      {
+        name: 'IPv6 alias',
+        value: { param: 'ALIAS' },
+        ipVersion: 6,
+        comment: null,
+        diff_serv: null,
+        options: 1,
+      },
+    ];
+    const provision = getProfileProvisioning(
+      JSON.parse(
+        JSON.stringify({
+          provision: { interfaces: [{ name: 'eth0', role: 'lan', addresses }] },
+        }),
+      ),
+    );
+    expect(provision.interfaces[0]).to.deep.equal({ name: 'eth0', role: 'lan', addresses });
+  });
 });

@@ -361,6 +361,50 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
     expect(codes).to.include('invalid_rule_object');
   });
 
+  it('should validate IPv6 syntax, prefixes, family and native settings on interface addresses', () => {
+    for (const address of [
+      { value: '2001:db8:::1/64' },
+      { value: '2001:db8::1/129' },
+      { value: '2001:db8::1/64/128' },
+      { value: '2001:db8::1/64', ipVersion: 4 },
+      { value: { param: 'V6' }, ipVersion: 7 },
+      { value: { param: 'V6' }, diff_serv: -1 },
+      { value: { param: 'V6' }, options: 'unsupported' },
+      { value: { param: 'V6' }, comment: 123 },
+    ]) {
+      const payload = firewallProfile();
+      model(payload).parameters = [
+        { name: 'V6', type: 'address', ipVersion: 6, default: '2001:db8::1/64' },
+      ];
+      provision(payload).interfaces = [{ name: 'eth0', role: 'wan', addresses: [address] }];
+      expect(codesFor(payload), JSON.stringify(address)).to.include('invalid_interface_address');
+      expect(pathsFor(payload)).to.include('model.provision.interfaces[0].addresses[0]');
+    }
+  });
+
+  it('should accept native interface address metadata and legacy IPv4 templates', () => {
+    const payload = firewallProfile();
+    provision(payload).interfaces = [
+      {
+        name: 'eth0',
+        role: 'wan',
+        addresses: [
+          '192.0.2.10/24',
+          {
+            value: '2001:0DB8::10/64',
+            ipVersion: 6,
+            name: 'IPv6 address',
+            comment: null,
+            diff_serv: 12,
+            options: '0',
+          },
+        ],
+      },
+      { name: 'eth1', role: 'lan' },
+    ];
+    expect(validateReplicationProfilePayload(payload)).to.be.empty;
+  });
+
   it('should reject rule objects of the other IP family', () => {
     const payload = firewallProfile();
     (payload.model as Record<string, unknown>).provision = {

@@ -31,6 +31,8 @@ import {
   ReplicationProfileRuleProtocol,
 } from './replication-profile.constants';
 
+const sharedSchema = require('../../middleware/joi_schemas/shared');
+
 /**
  * A profile parameter is the unit that makes a template reusable: the profile
  * declares WHAT it needs ("the LAN network", "the service port"), and the
@@ -229,7 +231,7 @@ export function dereferenceParameter(value: unknown, values: Map<string, unknown
 const IPV4_OCTET = '(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)';
 const IPV4_PATTERN = new RegExp(`^${IPV4_OCTET}(\\.${IPV4_OCTET}){3}$`);
 
-/** Parses "10.0.0.1", "10.0.0.1/24" or "10.0.0.1/255.255.255.0". */
+/** Parses an IPv4/IPv6 interface address without rewriting the address text. */
 export function parseReplicationProfileAddress(
   value: unknown,
   expectedIpVersion?: 4 | 6,
@@ -240,7 +242,12 @@ export function parseReplicationProfileAddress(
     return null;
   }
 
-  const [addressPart, maskPart] = raw.split('/', 2);
+  const parts = raw.split('/');
+  if (parts.length > 2) {
+    return null;
+  }
+
+  const [addressPart, maskPart] = parts;
   const ipVersion = detectIpVersion(addressPart);
 
   if (ipVersion === null || (expectedIpVersion && ipVersion !== expectedIpVersion)) {
@@ -345,9 +352,8 @@ function detectIpVersion(address: string): 4 | 6 | null {
     return 4;
   }
 
-  // Deliberately permissive: the database column accepts any textual IPv6 and
-  // stricter parsing belongs to the validation service.
-  return /^[0-9A-Fa-f:]+$/.test(address) && address.includes(':') ? 6 : null;
+  // Use the same IPv6 validator as the interface object API, including embedded IPv4.
+  return sharedSchema.ipv6.validate(address, sharedSchema.joiValidationOptions).error ? null : 6;
 }
 
 function normalizeNetmask(maskPart: string | undefined, ipVersion: 4 | 6): string | null {
@@ -361,6 +367,10 @@ function normalizeNetmask(maskPart: string | undefined, ipVersion: 4 | 6): strin
     const prefix = dottedMaskToPrefix(trimmed);
 
     return prefix === null ? null : `/${prefix}`;
+  }
+
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
   }
 
   const prefix = Number(trimmed);

@@ -29,6 +29,7 @@ import {
   getReplicationProfileRuleIpVersion,
   isReplicationProfileExternalObjectUsage,
   isReplicationProfileStringValue,
+  pickProfileFields,
   ReplicationProfileExternalObjectUsage,
   REPLICATION_PROFILE_OBJECT_KINDS,
   REPLICATION_PROFILE_RULE_ACTIONS,
@@ -101,12 +102,17 @@ export type PolicyReplicationValueRef = unknown;
 
 /** One IP address configured on a provisioned interface. */
 export interface PolicyReplicationProvisionAddress {
-  /** "10.0.0.1/24", "10.0.0.1/255.255.255.0" or a { param } reference. */
+  /** An IPv4/IPv6 address with an optional mask, or a { param } reference. */
   value: PolicyReplicationValueRef;
   /** Optional object name; defaults to the address itself. */
   name?: string;
   /** Comment supplied for the interface address. */
-  comment?: string;
+  comment?: string | null;
+  /** Captured IP family; absent in legacy templates, where it is inferred from the value. */
+  ipVersion?: ReplicationProfileIpVersion;
+  /** Native ipobj settings, retained for captured interface addresses. */
+  diff_serv?: number | null;
+  options?: string | number | null;
   /** Application-local selection: retain the chosen name/comment when resolving it. */
   useSelectedConfiguration?: boolean;
   /** Original parameter identity retained when application-local choices replace its value. */
@@ -623,7 +629,7 @@ function parseProvisionAddresses(value: unknown): PolicyReplicationProvisionAddr
         : {
             value: inner,
             name: firstNonEmptyString(record, ['name']) ?? undefined,
-            comment: typeof record.comment === 'string' ? record.comment : undefined,
+            ...pickProfileFields(record, ['comment', 'ipVersion', 'diff_serv', 'options']),
           };
     })
     .filter((item): item is PolicyReplicationProvisionAddress => item !== null);

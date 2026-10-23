@@ -147,6 +147,34 @@ describe(describeName('Replication Profile Parameters Unit Tests'), () => {
       });
     });
 
+    it('should preserve IPv6 spelling, embedded IPv4 and boundary prefixes', () => {
+      for (const address of ['2001:0DB8:0001:0000:0000:0000:0000:0010', '::ffff:192.0.2.10']) {
+        for (const prefix of [0, 64, 96, 127, 128]) {
+          expect(parseReplicationProfileAddress(`${address}/${prefix}`, 6)).to.deep.equal({
+            address,
+            netmask: `/${prefix}`,
+            ipVersion: 6,
+          });
+        }
+      }
+    });
+
+    it('should reject malformed IPv6 and masks without accepting a truncated configuration', () => {
+      for (const value of [
+        '2001:db8:::1/64',
+        '2001:db8::1::2/64',
+        '2001:db8:1/64',
+        '2001:db8::1/129',
+        '2001:db8::1/64/96',
+        '2001:db8::1/',
+        '2001:db8::1/0x40',
+        '2001:db8::1/1e2',
+        '192.0.2.1/24/32',
+      ]) {
+        expect(parseReplicationProfileAddress(value), value).to.equal(null);
+      }
+    });
+
     it('should parse ports and services', () => {
       expect(parseReplicationProfilePort(800)).to.be.eq(800);
       expect(parseReplicationProfilePort('800')).to.be.eq(800);
