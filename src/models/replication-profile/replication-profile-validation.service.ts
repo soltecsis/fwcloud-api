@@ -22,6 +22,9 @@ import {
   isReplicationProfilePort,
   isReplicationProfileRuleOptions,
   isReplicationProfileStringValue,
+  normalizeProfileObjectOptions,
+  pickProfileFields,
+  PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS,
   REPLICATION_PROFILE_COMPATIBILITY_TARGET_KIND_FIELDS,
   REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS,
   REPLICATION_PROFILE_OBJECT_KINDS,
@@ -50,6 +53,16 @@ import {
 } from './replication-profile-object-reference';
 
 import { getPolicyRuleValidityErrors } from '../policy/policy-rule-validity';
+
+const Joi = require('joi');
+const sharedSchema = require('../../middleware/joi_schemas/shared');
+const interfaceAddressMetadataSchema = Joi.object({
+  ipVersion: Joi.number().valid(4, 6).optional(),
+  name: sharedSchema.name.optional(),
+  comment: sharedSchema.comment.optional(),
+  diff_serv: Joi.number().port().allow(null).optional(),
+  options: Joi.number().integer().allow(null).optional(),
+});
 
 type ValidationSeverity = 'error' | 'warning';
 type ValidationRecord = Record<string, unknown>;
@@ -959,20 +972,38 @@ class ReplicationProfileDefinitionValidator {
 
     items.forEach((item, index) => {
       const itemPath = Array.isArray(value) ? `${path}[${index}]` : path;
+      const record = asReplicationProfileRecord(item);
+      if (record) {
+        const metadata = pickProfileFields(record, [
+          'ipVersion',
+          'name',
+          ...PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS,
+        ]);
+        if (metadata.options !== undefined) {
+          metadata.options = normalizeProfileObjectOptions(metadata.options);
+        }
+        const { error } = interfaceAddressMetadataSchema.validate(
+          metadata,
+          sharedSchema.joiValidationOptions,
+        );
+        if (error) {
+          this.addError(errors, 'invalid_interface_address', error.message, itemPath);
+          return;
+        }
+      }
 
       // The entry itself may be the reference, or wrap it in a `value` field.
       if (this.validateParameterReference(item, itemPath, parameterNames, errors)) {
         return;
       }
 
-      const record = asReplicationProfileRecord(item);
       const raw = record ? (record.value ?? record.address ?? record.cidr ?? record.ip) : item;
 
       if (this.validateParameterReference(raw, itemPath, parameterNames, errors)) {
         return;
       }
 
-      if (parseReplicationProfileAddress(raw) === null) {
+      if (parseReplicationProfileAddress(raw, record?.ipVersion as 4 | 6 | undefined) === null) {
         this.addError(
           errors,
           'invalid_interface_address',

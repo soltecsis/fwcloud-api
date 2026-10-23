@@ -20,6 +20,7 @@ import {
 import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
 import { NotFoundException } from '../../../../src/fonaments/exceptions/not-found-exception';
+import { HttpException } from '../../../../src/fonaments/exceptions/http/http-exception';
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import {
   ipObjCidr,
@@ -650,6 +651,155 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(defaults).to.include('192.168.1.1/24');
     });
 
+    for (const [description, configured] of [
+      ['IPv4 only', [['192.168.1.10', '/24', 4]]],
+      ['IPv6 only', [['2001:db8:1::10', '/64', 6]]],
+      [
+        'dual stack',
+        [
+          ['192.168.1.10', '/24', 4],
+          ['2001:db8:1::10', '/64', 6],
+        ],
+      ],
+      [
+        'multiple IPv4',
+        [
+          ['192.168.1.10', '/24', 4],
+          ['192.168.2.10', '/25', 4],
+        ],
+      ],
+      [
+        'multiple IPv6',
+        [
+          ['2001:DB8:0001:0000:0000:0000:0000:0010', '/64', 6],
+          ['2001:db8:2::10', '/96', 6],
+          ['::1', '/128', 6],
+          ['2001:db8:3::10', '/0', 6],
+        ],
+      ],
+      [
+        'multiple addresses of both families',
+        [
+          ['192.168.1.10', '/24', 4],
+          ['2001:db8:1::10', '/64', 6],
+          ['192.168.2.10', '/25', 4],
+          ['2001:db8:2::10', '/127', 6],
+        ],
+      ],
+    ] as [string, [string, string, 4 | 6][]][]) {
+      it(`should preserve every interface address and its family through persisted JSON for ${description}`, async () => {
+        const repository = db.getSource().manager.getRepository(IPObj);
+        for (const [index, [address, netmask, ipVersion]] of configured.entries()) {
+          await repository.save({
+            name: `Captured address ${index + 1}`,
+            address,
+            netmask,
+            ip_version: ipVersion,
+            ipObjTypeId: 5,
+            interfaceId: source.lanInterface.id,
+            comment: `Address ${index + 1} comment`,
+            diff_serv: index,
+            options: String(index),
+          });
+        }
+
+        const { profile, warnings } = await service.createProfileFromSource(
+          {
+            source: { kind: 'firewall', id: source.firewall.id },
+            name: `Capture ${description}`,
+          },
+          { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+        );
+        expect(warnings).to.be.empty;
+        const saved = await db
+          .getSource()
+          .manager.getRepository(ReplicationProfile)
+          .findOneByOrFail({ id: profile.id });
+        const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(saved)));
+        const provision = getProfileProvisioning(model);
+        const lan = provision.interfaces.find((iface) => iface.name === 'ens19');
+        const parameters = getProfileParameters(model);
+        expect(lan.role).to.eq('ens19');
+        expect(lan.addresses).to.have.length(configured.length);
+        for (const [index, [address, netmask, ipVersion]] of configured.entries()) {
+          expect(lan.addresses[index]).to.include({
+            name: `Captured address ${index + 1}`,
+            ipVersion,
+            comment: `Address ${index + 1} comment`,
+            diff_serv: index,
+            options: index,
+          });
+          const reference = lan.addresses[index].value as { param: string };
+          expect(parameters.find((parameter) => parameter.name === reference.param)).to.include({
+            default: `${address}${netmask}`,
+            ipVersion,
+          });
+        }
+        const wan = provision.interfaces.find((iface) => iface.name === 'ens18');
+        expect(wan.addresses).to.have.length(1);
+        expect(wan.addresses[0]).to.include({ comment: null, diff_serv: null, options: null });
+        const wanReference = wan.addresses[0].value as { param: string };
+        expect(parameters.find((parameter) => parameter.name === wanReference.param).default).to.eq(
+          source.wanAddress.address,
+        );
+      });
+    }
+
+    for (const [description, configured] of [
+      ['invalid IPv6 syntax', { address: '2001:db8::invalid', netmask: '/64', ip_version: 6 }],
+      ['invalid IPv6 prefix', { address: '2001:db8::10', netmask: '/129', ip_version: 6 }],
+      ['mismatching address family', { address: '2001:db8::10', netmask: '/24', ip_version: 4 }],
+      ['unsupported address family', { address: '2001:db8::10', netmask: '/64', ip_version: 5 }],
+      [
+        'unsupported interface object',
+        { address: '2001:db8::', netmask: '/64', ip_version: 6, ipObjTypeId: 7 },
+      ],
+      [
+        'unsupported address property',
+        { address: '2001:db8::10', netmask: '/64', ip_version: 6, protocol: 17 },
+      ],
+      [
+        'invalid address options',
+        { address: '2001:db8::10', netmask: '/64', ip_version: 6, options: 'invalid' },
+      ],
+    ] as [string, Partial<IPObj>][]) {
+      it(`should reject ${description} with interface and address details before saving a partial template`, async () => {
+        await db
+          .getSource()
+          .manager.getRepository(IPObj)
+          .save({
+            name: 'Uncapturable address',
+            ipObjTypeId: 5,
+            interfaceId: source.lanInterface.id,
+            ...configured,
+          });
+        const error = await service
+          .createProfileFromSource(
+            {
+              source: { kind: 'firewall', id: source.firewall.id },
+              name: 'Incomplete capture must fail',
+            },
+            { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+          )
+          .then(
+            () => null,
+            (error) => error,
+          );
+        expect(error).to.be.instanceOf(HttpException);
+        expect(error.status).to.eq(422);
+        expect(error.message).to.include('Interface "ens19" (role "ens19")');
+        expect(error.message).to.include('Uncapturable address');
+        expect(error.message).to.include(configured.address);
+        expect(error.message).to.include(configured.netmask);
+        expect(
+          await db
+            .getSource()
+            .manager.getRepository(ReplicationProfile)
+            .count({ where: { userId: ownerId } }),
+        ).to.eq(0);
+      });
+    }
+
     describe('default INPUT rules', () => {
       const SELF_HOST = DefaultPolicyRuleComments.SELF_HOST_TRAFFIC;
       const USEFUL_ICMP = DefaultPolicyRuleComments.USEFUL_ICMP;
@@ -1178,6 +1328,43 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         clusterId: cluster.id,
         fwmaster: 0,
       });
+    });
+
+    it('should capture every IPv6 address of the cluster master alongside IPv4', async () => {
+      for (const [index, netmask] of ['/64', '/96'].entries()) {
+        await db
+          .getSource()
+          .manager.getRepository(IPObj)
+          .save({
+            name: `Cluster IPv6 address ${index + 1}`,
+            address: `2001:db8:${index + 1}::10`,
+            netmask,
+            ip_version: 6,
+            ipObjTypeId: 5,
+            interfaceId: source.wanInterface.id,
+          });
+      }
+      const { profile, warnings } = await service.createProfileFromSource(
+        {
+          source: { kind: 'cluster', id: cluster.id },
+          name: 'Cluster dual stack snapshot',
+        },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+      const model = loadReplicationProfileModel(profile);
+      const provision = getProfileProvisioning(model);
+      const addresses = provision.interfaces.find((iface) => iface.name === 'ens18').addresses;
+      const parameters = getProfileParameters(model);
+      expect(addresses).to.have.length(3);
+      expect(
+        addresses.map(
+          (address) =>
+            parameters.find(
+              (parameter) => parameter.name === (address.value as { param: string }).param,
+            ).default,
+        ),
+      ).to.deep.eq([source.wanAddress.address, '2001:db8:1::10/64', '2001:db8:2::10/96']);
     });
 
     it('should capture the master policy and the cluster topology', async () => {

@@ -202,6 +202,29 @@ export const REPLICATION_PROFILE_INTERFACE_ROLE_FIELDS = [
 
 export type ReplicationProfileRecord = Record<string, unknown>;
 
+/** Native optional settings shared by captured and provisioned interface addresses. */
+export const PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS = [
+  'comment',
+  'diff_serv',
+  'options',
+] as const;
+
+/** The requested fields in declaration order, preserving null and omitting undefined. */
+export function pickProfileFields(
+  record: object,
+  fields: readonly string[],
+): ReplicationProfileRecord {
+  const values = record as ReplicationProfileRecord;
+  return Object.fromEntries(
+    fields.filter((field) => values[field] !== undefined).map((field) => [field, values[field]]),
+  );
+}
+
+/** The object API takes integer options; the native database column can return a string. */
+export function normalizeProfileObjectOptions(value: unknown): unknown {
+  return typeof value === 'string' && /^-?\d+$/.test(value) ? Number(value) : value;
+}
+
 export function asReplicationProfileRecord(value: unknown): ReplicationProfileRecord | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as ReplicationProfileRecord)
