@@ -23,6 +23,8 @@ import {
   asReplicationProfileRecord,
   describeReplicationProfileError,
   isReplicationProfilePositiveInteger,
+  normalizeProfileObjectOptions,
+  pickProfileFields,
   REPLICATION_PROFILE_FAMILY_TYPES,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_VPN_PROTOCOL,
@@ -45,20 +47,7 @@ const duplicityCheck = require('../../middleware/duplicity');
 /** Object types a template can reference, as the numbers FWCloud stores. */
 const REFERENCE_TYPES: readonly number[] = Object.values(PROFILE_REFERENCE_OBJECT_TYPES);
 
-/** An integer `options` read from its VARCHAR column, as the object API (an integer) takes it. */
-function integerOptions(value: unknown): unknown {
-  return typeof value === 'string' && /^-?\d+$/.test(value) ? Number(value) : value;
-}
-
-/** The fields of a record that hold a value (undefined ones are left out), in the given order. */
-export function pickProfileFields(
-  record: ReplicationProfileRecord,
-  fields: readonly string[],
-): ReplicationProfileRecord {
-  return Object.fromEntries(
-    fields.filter((field) => record[field] !== undefined).map((field) => [field, record[field]]),
-  );
-}
+export { pickProfileFields } from './replication-profile.constants';
 
 /** The id and data columns of an ipobj row aliased as O. */
 const OBJECT_COLUMNS = ['id', ...PROFILE_OBJECT_DATA_FIELDS]
@@ -167,7 +156,7 @@ function normalizeSnapshotValue(value: unknown, field?: string): unknown {
     }
 
     if (field === 'options') {
-      return integerOptions(value);
+      return normalizeProfileObjectOptions(value);
     }
   }
 
@@ -971,7 +960,7 @@ function objectData(row: ReplicationProfileRecord): ReplicationProfileRecord {
         field === 'type'
           ? Number(row[field])
           : field === 'options'
-            ? integerOptions(row[field])
+            ? normalizeProfileObjectOptions(row[field])
             : row[field];
     }
   }
