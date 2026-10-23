@@ -33,6 +33,7 @@ import {
   Communication,
   CrowdSecAlertsQuery,
   CrowdSecCollectionAcquisition,
+  CrowdSecCollectionAcquisitionParserSelection,
   CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
@@ -777,6 +778,12 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
   updateCrowdSecCollectionAcquisition(
     _acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    throw new Error('Method not implemented.');
+  }
+
+  selectCrowdSecCollectionAcquisitionParser(
+    _selection: CrowdSecCollectionAcquisitionParserSelection,
   ): Promise<CrowdSecCollectionAcquisition> {
     throw new Error('Method not implemented.');
   }

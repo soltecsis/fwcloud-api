@@ -118,6 +118,11 @@ export type CrowdSecCollectionAcquisitionUpdate = {
   logPaths: string[];
 };
 
+export type CrowdSecCollectionAcquisitionParserSelection = {
+  name: string;
+  labelType: string;
+};
+
 export type CrowdSecFirewallBouncerStatisticsState = 'available' | 'unavailable';
 
 export type CrowdSecFirewallBouncerStatisticsSamplingConfig = {
@@ -334,6 +339,9 @@ export abstract class Communication<ConnectionData> {
   abstract getCrowdSecCollectionAcquisition(name: string): Promise<CrowdSecCollectionAcquisition>;
   abstract updateCrowdSecCollectionAcquisition(
     acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition>;
+  abstract selectCrowdSecCollectionAcquisitionParser(
+    selection: CrowdSecCollectionAcquisitionParserSelection,
   ): Promise<CrowdSecCollectionAcquisition>;
   abstract installCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecCollection(name: string): Promise<Record<string, unknown>>;

@@ -42,6 +42,7 @@ import { CrowdSecBouncerDto } from './dto/bouncer.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import {
   CrowdSecCollectionAcquisitionQueryDto,
+  CrowdSecCollectionAcquisitionParserSelectionDto,
   CrowdSecCollectionAcquisitionUpdateDto,
 } from './dto/collection-acquisition.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
@@ -165,6 +166,23 @@ export class CrowdSecController extends Controller {
     const acquisition = await communication.updateCrowdSecCollectionAcquisition({
       name: req.body.name,
       logPaths: req.body.log_paths,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
+  public async selectCollectionAcquisitionParser(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.selectCrowdSecCollectionAcquisitionParser({
+      name: req.body.name,
+      labelType: req.body.label_type,
     });
 
     return ResponseBuilder.buildResponse().status(200).body(acquisition);

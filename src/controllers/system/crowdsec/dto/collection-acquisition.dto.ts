@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ArrayMaxSize, IsArray, IsInt, IsString, Matches, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsInt, IsString, Length, Matches, Min } from 'class-validator';
 import { CROWDSEC_COLLECTION_NAME } from './collection.dto';
 
 export class CrowdSecCollectionAcquisitionQueryDto {
@@ -36,6 +36,16 @@ export class CrowdSecCollectionAcquisitionUpdateDto {
   @ArrayMaxSize(256)
   @IsString({ each: true })
   log_paths: string[];
+}
+
+export class CrowdSecCollectionAcquisitionParserSelectionDto {
+  @Matches(CROWDSEC_COLLECTION_NAME, { message: 'Invalid CrowdSec collection name' })
+  name: string;
+
+  @IsString()
+  @Length(1, 128)
+  @Matches(/^[^\x00-\x1F\x7F]+$/, { message: 'Invalid CrowdSec acquisition parser type' })
+  label_type: string;
 }
 
 export class CrowdSecClusterCollectionAcquisitionQueryDto extends CrowdSecCollectionAcquisitionQueryDto {

@@ -26,6 +26,7 @@ import {
   Communication,
   CrowdSecAlertsQuery,
   CrowdSecCollectionAcquisition,
+  CrowdSecCollectionAcquisitionParserSelection,
   CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
@@ -1146,6 +1147,24 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         {
           name: acquisition.name,
           log_paths: acquisition.logPaths,
+        },
+        this.config,
+      );
+      return this.crowdSecCollectionAcquisitionResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async selectCrowdSecCollectionAcquisitionParser(
+    selection: CrowdSecCollectionAcquisitionParserSelection,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    try {
+      const response = await axios.put<CrowdSecCollectionAcquisitionResponse>(
+        this.url + '/api/v1/crowdsec/collections/acquisition/parser',
+        {
+          name: selection.name,
+          label_type: selection.labelType,
         },
         this.config,
       );
