@@ -97,6 +97,15 @@ const OBJECT_TYPE_NAMES = Object.keys(
   PROFILE_REFERENCE_OBJECT_TYPES,
 ) as ProfileReferenceObjectType[];
 
+/** Service types, including service groups, shared by capture and reference validation. */
+export const PROFILE_SERVICE_REFERENCE_TYPES: ReadonlyMap<number, ProfileReferenceObjectType> =
+  new Map(
+    (['ipProtocol', 'tcp', 'icmp', 'udp', 'serviceGroup'] as const).map((name) => [
+      PROFILE_REFERENCE_OBJECT_TYPES[name],
+      name,
+    ]),
+  );
+
 /**
  * The ipobj columns an object is made of, named as the FWCloud objects API (/ipobj) names them.
  * Owner (fwcloud, interface) and audit columns are left out.
@@ -123,13 +132,20 @@ export const PROFILE_OBJECT_DATA_FIELDS = [
   'comment',
 ] as const;
 
-const SERVICE_TYPES: readonly number[] = [
-  REPLICATION_PROFILE_IPOBJ_TYPE_IP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
-];
+/** Legacy TCP/UDP snapshots with no source endpoints use FWCloud's unrestricted 0/0 ports. */
+export function withProfileServiceSourcePorts(
+  data: ReplicationProfileRecord,
+): ReplicationProfileRecord {
+  const type = Number(data.type);
+  if (
+    (type !== REPLICATION_PROFILE_IPOBJ_TYPE_TCP && type !== REPLICATION_PROFILE_IPOBJ_TYPE_UDP) ||
+    data.source_port_start != null ||
+    data.source_port_end != null
+  ) {
+    return data;
+  }
+  return { ...data, source_port_start: 0, source_port_end: 0 };
+}
 
 const PORT_FIELDS = [
   'source_port_start',
@@ -371,7 +387,10 @@ export function validateProfileObjectReferences(
 
     if (!reference) {
       addError(site.path, `"${site.referenceId}" is not declared in model.objectReferences.`);
-    } else if (type !== undefined && SERVICE_TYPES.includes(type) !== site.takesServices) {
+    } else if (
+      type !== undefined &&
+      PROFILE_SERVICE_REFERENCE_TYPES.has(type) !== site.takesServices
+    ) {
       addError(
         site.path,
         site.takesServices

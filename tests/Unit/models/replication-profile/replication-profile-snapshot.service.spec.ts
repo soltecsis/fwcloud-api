@@ -46,6 +46,7 @@ import {
 } from '../../../../src/models/replication-profile/replication-profile-template';
 import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
 import { policyRuleDateKey } from '../../../../src/models/policy/policy-rule-validity';
+import { resolveProfileObjectReferences } from '../../../../src/models/replication-profile/replication-profile-object-reference.service';
 
 interface CapturedObject {
   kind: string;
@@ -67,7 +68,7 @@ interface CapturedRule {
   outRole?: string;
   source?: CapturedObject[];
   destination?: CapturedObject[];
-  services?: { protocol: string; port: unknown }[];
+  services?: { protocol?: string; port?: unknown; kind?: string; referenceId?: string }[];
   comment?: string;
 }
 
@@ -308,15 +309,17 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(acceptRule.inRole).to.be.eq(roleByName.get('ens19'));
       expect(acceptRule.outRole).to.be.eq(roleByName.get('ens18'));
       expect(acceptRule.services).to.have.length(1);
-      expect(acceptRule.services[0].protocol).to.be.eq('tcp');
-      // The captured port is exposed as a parameter defaulting to the original.
-      const portParamName = (acceptRule.services[0].port as { param: string }).param;
-      const portParameter = getParameters(profile).find(
-        (parameter) => parameter.name === portParamName,
-      );
-      expect(portParameter).to.not.be.undefined;
-      expect(portParameter.type).to.be.eq('port');
-      expect(portParameter.default).to.be.eq(8080);
+      expect(acceptRule.services[0].kind).to.eq('external');
+      const references = loadReplicationProfileModel(profile).objectReferences as any[];
+      expect(references[0].referenceId).to.eq(acceptRule.services[0].referenceId);
+      expect(references[0].snapshot).to.include({
+        name: httpService.name,
+        protocol: 6,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 8080,
+        destination_port_end: 8080,
+      });
       expect(acceptRule.comment).to.be.eq('Allow LAN to WAN web');
       expect(denyRule.action).to.be.eq('deny');
       expect(denyRule.inRole).to.be.eq(roleByName.get('ens18'));
@@ -470,6 +473,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         'replace_defaults',
         {
           parameters: getProfileParameters(model),
+          externalObjects: (await resolveProfileObjectReferences(model, fwc.fwcloud.id)).bindings,
           interfaceNameMapping: { ens18: 'ens18', ens19: 'ens19' },
         },
       );
@@ -1034,6 +1038,8 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             'replace_defaults',
             {
               parameters: getProfileParameters(reloaded),
+              externalObjects: (await resolveProfileObjectReferences(reloaded, fwc.fwcloud.id))
+                .bindings,
               interfaceNameMapping: { ens18: 'ens18', ens19: 'ens19' },
             },
           );

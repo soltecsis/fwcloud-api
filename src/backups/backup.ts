@@ -449,7 +449,8 @@ export class Backup implements Responsable {
           return reject(new RestoreBackupException('Database can not be wiped'));
 
         //console.time("db import");
-        child_process.execSync(this.buildCmd('mysql', databaseService));
+        // Keep successful restores quiet; command failures still include the client diagnostics.
+        child_process.execSync(this.buildCmd('mysql', databaseService), { stdio: 'pipe' });
         //console.timeEnd("db import");
         if (!this._firewallRepository || !this._openvpnRepository) {
           await this.init();

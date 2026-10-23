@@ -32,12 +32,17 @@ import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
 import { getProvisionRuleNegationError } from './replication-profile-rule-negation';
 import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
+import { captureProfileObjectReferences } from './replication-profile-object-reference.service';
+import {
+  getProfileObjectReferenceLocations,
+  PROFILE_SERVICE_REFERENCE_TYPES,
+  type ReplicationProfileObjectReference,
+} from './replication-profile-object-reference';
 import {
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
-  REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
+  type ReplicationProfileExternalObjectUsage,
   type ReplicationProfileTargetKind,
 } from './replication-profile.constants';
 import {
@@ -187,13 +192,12 @@ interface SnapshotIpObjRow {
   fwcloud?: number | null;
   range_start?: string | null;
   range_end?: string | null;
-  destination_port_start?: number | null;
-  destination_port_end?: number | null;
 }
 
 interface SnapshotGroupRow {
   id: number;
   name: string;
+  type: number;
   fwcloud: number | null;
 }
 
@@ -217,15 +221,28 @@ interface SnapshotProvisionObject {
 }
 
 type SnapshotProvisionService =
-  | { protocol: 'tcp' | 'udp'; port: unknown }
-  | { kind: 'std' | 'stdGroup'; id: number; name?: string };
+  ReplicationProfileExternalObjectUsage | { kind: 'std' | 'stdGroup'; id: number; name?: string };
+
+type SnapshotServiceReference = Pick<
+  ReplicationProfileObjectReference,
+  'referenceId' | 'objectType' | 'sourceObjectId'
+>;
 
 /** A captured value, or the reason it cannot be expressed in a profile. */
 type SnapshotCapture<T> = { value: T } | { reason: string };
 
+/** Read a capture after its failure reason has been checked. */
+function capturedValue<T>(capture: SnapshotCapture<T>): T {
+  return (capture as { value: T }).value;
+}
+
+function captureFailure(captures: SnapshotCapture<unknown>[]): { reason: string } | undefined {
+  return captures.find((capture): capture is { reason: string } => 'reason' in capture);
+}
+
 interface SnapshotParameter {
   name: string;
-  type: 'address' | 'network' | 'range' | 'port';
+  type: 'address' | 'network' | 'range';
   label: string;
   required: boolean;
   default: unknown;
@@ -266,16 +283,41 @@ interface SourceSnapshot {
 }
 
 /**
- * Collects the parameters a captured profile exposes. Every concrete value the
- * snapshot finds (an interface IP, a network in a rule, a service port) is
- * turned into a named parameter whose default is the captured value, so the
- * profile applies unchanged on the source and can be re-pointed elsewhere by
- * supplying different values.
+ * Collects reusable profile values: address parameters default to the captured values,
+ * while services retain their complete configuration through external object references.
  */
-class SnapshotParameterCollector {
+class SnapshotValueCollector {
   private readonly parameters: SnapshotParameter[] = [];
   private readonly byLiteral = new Map<string, string>();
   private readonly usedNames = new Set<string>();
+  private readonly serviceReferences = new Map<string, SnapshotServiceReference>();
+
+  defineService(
+    service: Pick<SnapshotIpObjRow, 'type' | 'id'>,
+  ): ReplicationProfileExternalObjectUsage | undefined {
+    const objectType = PROFILE_SERVICE_REFERENCE_TYPES.get(service.type);
+    if (!objectType) {
+      return undefined;
+    }
+
+    const referenceId = `service-${service.type}-${service.id}`;
+    if (!this.serviceReferences.has(referenceId)) {
+      this.serviceReferences.set(referenceId, {
+        referenceId,
+        objectType,
+        sourceObjectId: service.id,
+      });
+    }
+    return { kind: 'external', referenceId };
+  }
+
+  /** Discard references belonging only to skipped rules or system entries. */
+  getObjectReferences(model: Record<string, unknown>): SnapshotServiceReference[] {
+    const locations = getProfileObjectReferenceLocations(model);
+    return Array.from(this.serviceReferences.values()).filter((reference) =>
+      locations.has(reference.referenceId),
+    );
+  }
 
   defineInterfaceAddress(role: string, index: number, literal: string): { param: string } {
     const suffix = index === 0 ? '' : `_${index + 1}`;
@@ -294,10 +336,6 @@ class SnapshotParameterCollector {
     objectName: string,
   ): { param: string } {
     return this.define(this.slug(objectName), kind, objectName, literal);
-  }
-
-  definePort(port: number, label: string): { param: string } {
-    return this.define(`PORT_${port}`, 'port', label, port);
   }
 
   /** Same literal captured twice reuses one parameter instead of duplicating. */
@@ -344,7 +382,7 @@ class SnapshotParameterCollector {
     return /^[A-Z]/.test(slug) ? slug : `P_${slug}`;
   }
 
-  toArray(): SnapshotParameter[] {
+  getParameters(): SnapshotParameter[] {
     return this.parameters;
   }
 }
@@ -357,8 +395,7 @@ class SnapshotParameterCollector {
  * definitions. The captured profile is
  * self-contained, so it can later be applied without the source firewall.
  *
- * Only rules expressible in the MVP profile vocabulary (accept/deny, in/out
- * interface roles and a single TCP/UDP destination port) are captured; every
+ * Only rules expressible in the profile vocabulary are captured; every
  * skipped rule is reported through `warnings` instead of being silently
  * widened or dropped.
  */
@@ -414,7 +451,7 @@ export class ReplicationProfileSnapshotService extends Service {
       [resolved.firewall.id],
     );
     const roleByInterfaceId = this.assignInterfaceRoles(interfaces);
-    const parameters = new SnapshotParameterCollector();
+    const values = new SnapshotValueCollector();
     const addressesByInterface = await this.loadInterfaceAddresses(
       interfaces.map((iface) => iface.id),
     );
@@ -436,7 +473,7 @@ export class ReplicationProfileSnapshotService extends Service {
       resolved.firewall.id,
       roleByInterfaceId,
       loopbackInterfaceIds,
-      parameters,
+      values,
       warnings,
       vpnObjects,
     );
@@ -452,7 +489,7 @@ export class ReplicationProfileSnapshotService extends Service {
         addresses: this.captureInterfaceAddresses(
           role,
           addressesByInterface.get(iface.id) ?? [],
-          parameters,
+          values,
           warnings,
         ),
       };
@@ -460,14 +497,14 @@ export class ReplicationProfileSnapshotService extends Service {
     const routing = await this.captureRouting(
       resolved.firewall.id,
       roleByInterfaceId,
-      parameters,
+      values,
       warnings,
     );
     const system = await this.captureSystem(
       resolved.firewall,
       resolved.topologyNodes,
       roleByInterfaceId,
-      parameters,
+      values,
       warnings,
     );
     const policyStructure = {
@@ -478,7 +515,7 @@ export class ReplicationProfileSnapshotService extends Service {
     };
 
     const model: Record<string, unknown> = {
-      parameters: parameters.toArray(),
+      parameters: values.getParameters(),
       compatibility: {
         target_kinds: ['firewall', 'cluster'],
         supportedRoles: roles,
@@ -508,10 +545,15 @@ export class ReplicationProfileSnapshotService extends Service {
       }
     }
 
+    const objectReferences = values.getObjectReferences(model);
+    if (objectReferences.length > 0) {
+      model.objectReferences = objectReferences;
+    }
+
     return {
       targetKind: source.kind,
       sourceName: resolved.sourceName,
-      model,
+      model: await captureProfileObjectReferences(model, fwCloudId),
       warnings,
     };
   }
@@ -616,7 +658,7 @@ export class ReplicationProfileSnapshotService extends Service {
     firewallId: number,
     roleByInterfaceId: Map<number, string>,
     loopbackInterfaceIds: Set<number>,
-    parameters: SnapshotParameterCollector,
+    values: SnapshotValueCollector,
     warnings: string[],
     vpnObjects: Map<string, SnapshotProvisionObject>,
   ): Promise<SnapshotProvisionRule[]> {
@@ -680,7 +722,7 @@ export class ReplicationProfileSnapshotService extends Service {
           vpnObjects,
           roleByInterfaceId,
           lookup,
-          parameters,
+          values,
           warnings,
         );
 
@@ -753,7 +795,7 @@ export class ReplicationProfileSnapshotService extends Service {
     vpnObjects: Map<string, SnapshotProvisionObject>,
     roleByInterfaceId: Map<number, string>,
     lookup: SnapshotObjectLookup,
-    parameters: SnapshotParameterCollector,
+    values: SnapshotValueCollector,
     warnings: string[],
   ): SnapshotProvisionRule | null {
     const isNat = policy.chain === 'snat' || policy.chain === 'dnat';
@@ -811,14 +853,14 @@ export class ReplicationProfileSnapshotService extends Service {
     const at = (position: number | undefined) =>
       position === undefined ? [] : (refsByPosition.get(position) ?? []);
     const objects = (position: number | undefined) =>
-      this.captureObjects(at(position), roleByInterfaceId, lookup, parameters);
+      this.captureObjects(at(position), roleByInterfaceId, lookup, values);
     // Checked above: every VPN reference is a captured client in the source or destination.
     const vpnClientsAt = (position: number | undefined) =>
       vpnRefs
         .filter((ref) => ref.position === position)
         .map((ref) => vpnObjects.get(ref.connectionKey)!);
     const services = (position: number | undefined) =>
-      this.captureServices(at(position), lookup, parameters, label);
+      this.captureServices(at(position), lookup, values);
 
     const sides = {
       source: objects(positions.source),
@@ -828,15 +870,13 @@ export class ReplicationProfileSnapshotService extends Service {
       translatedDestination: objects(positions.translatedDestination),
       translatedService: services(positions.translatedService),
     };
-    const failed = Object.values(sides).find((side) => 'reason' in side) as
-      { reason: string } | undefined;
+    const failed = captureFailure(Object.values(sides));
 
     if (failed) {
       warnings.push(`${label} was not captured: ${failed.reason}`);
       return null;
     }
 
-    const value = <T>(side: SnapshotCapture<T[]>): T[] => (side as { value: T[] }).value;
     const inRoles = inRefs.map((ref) => roleByInterfaceId.get(ref.interface));
     const outRoles = outRefs.map((ref) => roleByInterfaceId.get(ref.interface));
 
@@ -865,12 +905,15 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     const fields: [keyof SnapshotProvisionRule, unknown[]][] = [
-      ['source', [...value(sides.source), ...vpnClientsAt(positions.source)]],
-      ['destination', [...value(sides.destination), ...vpnClientsAt(positions.destination)]],
-      ['services', value(sides.services)],
-      ['translatedSource', value(sides.translatedSource)],
-      ['translatedDestination', value(sides.translatedDestination)],
-      ['translatedService', value(sides.translatedService)],
+      ['source', [...capturedValue(sides.source), ...vpnClientsAt(positions.source)]],
+      [
+        'destination',
+        [...capturedValue(sides.destination), ...vpnClientsAt(positions.destination)],
+      ],
+      ['services', capturedValue(sides.services)],
+      ['translatedSource', capturedValue(sides.translatedSource)],
+      ['translatedDestination', capturedValue(sides.translatedDestination)],
+      ['translatedService', capturedValue(sides.translatedService)],
     ];
 
     for (const [field, items] of fields) {
@@ -916,7 +959,7 @@ export class ReplicationProfileSnapshotService extends Service {
     refs: SnapshotObjectRef[],
     roleByInterfaceId: Map<number, string>,
     lookup: SnapshotObjectLookup,
-    parameters: SnapshotParameterCollector,
+    values: SnapshotValueCollector,
   ): SnapshotCapture<SnapshotProvisionObject[]> {
     const captured: SnapshotProvisionObject[] = [];
 
@@ -968,7 +1011,7 @@ export class ReplicationProfileSnapshotService extends Service {
       ) {
         captured.push({
           kind: 'range',
-          value: parameters.defineAddress(
+          value: values.defineAddress(
             'range',
             `${ipobj.range_start}-${ipobj.range_end}`,
             ipobj.name,
@@ -989,7 +1032,7 @@ export class ReplicationProfileSnapshotService extends Service {
 
       captured.push({
         kind,
-        value: parameters.defineAddress(kind, ipObjCidr(ipobj.address, ipobj.netmask), ipobj.name),
+        value: values.defineAddress(kind, ipObjCidr(ipobj.address, ipobj.netmask), ipobj.name),
         name: ipobj.name,
       });
     }
@@ -997,56 +1040,28 @@ export class ReplicationProfileSnapshotService extends Service {
     return { value: captured };
   }
 
-  /** Predefined services/groups by id; FWCloud single-port TCP/UDP services as port parameters. */
+  /** Predefined services/groups by id; custom services/groups as complete external snapshots. */
   private captureServices(
     refs: SnapshotObjectRef[],
     lookup: SnapshotObjectLookup,
-    parameters: SnapshotParameterCollector,
-    label: string,
+    values: SnapshotValueCollector,
   ): SnapshotCapture<SnapshotProvisionService[]> {
     const captured: SnapshotProvisionService[] = [];
 
     for (const ref of refs) {
-      if (ref.ipobj_g > 0) {
-        const group = lookup.groups.get(ref.ipobj_g);
-
-        if (!group || group.fwcloud !== null) {
-          return {
-            reason:
-              'service groups of the FWCloud cannot be templated; only predefined groups can.',
-          };
-        }
-
-        captured.push({ kind: 'stdGroup', id: group.id, name: group.name });
-        continue;
-      }
-
-      const service = ref.ipobj > 0 ? lookup.objects.get(ref.ipobj) : undefined;
+      const group = ref.ipobj_g > 0;
+      const service = group ? lookup.groups.get(ref.ipobj_g) : lookup.objects.get(ref.ipobj);
 
       if (service && service.fwcloud === null) {
-        captured.push({ kind: 'std', id: service.id, name: service.name });
+        captured.push({ kind: group ? 'stdGroup' : 'std', id: service.id, name: service.name });
         continue;
       }
 
-      if (
-        !service ||
-        (service.type !== REPLICATION_PROFILE_IPOBJ_TYPE_TCP &&
-          service.type !== REPLICATION_PROFILE_IPOBJ_TYPE_UDP) ||
-        service.destination_port_start !== service.destination_port_end ||
-        service.destination_port_start < 1 ||
-        service.destination_port_start > 65535
-      ) {
-        return {
-          reason: 'only single-port TCP/UDP services and predefined services are supported.',
-        };
+      const reference = service && values.defineService(service);
+      if (!reference) {
+        return { reason: 'the referenced service or service group could not be captured.' };
       }
-
-      // Every captured port becomes a parameter, so the same template can be
-      // applied with a different port without editing the profile.
-      captured.push({
-        protocol: service.type === REPLICATION_PROFILE_IPOBJ_TYPE_TCP ? 'tcp' : 'udp',
-        port: parameters.definePort(service.destination_port_start, `${label} service port`),
-      });
+      captured.push(reference);
     }
 
     return { value: captured };
@@ -1056,7 +1071,7 @@ export class ReplicationProfileSnapshotService extends Service {
   private async captureRouting(
     firewallId: number,
     roleByInterfaceId: Map<number, string>,
-    parameters: SnapshotParameterCollector,
+    values: SnapshotValueCollector,
     warnings: string[],
   ): Promise<Record<string, unknown> | null> {
     const tables = await dbQuery<{
@@ -1142,10 +1157,10 @@ export class ReplicationProfileSnapshotService extends Service {
             routeRefs.refs.get(route.id) ?? [],
             roleByInterfaceId,
             lookup,
-            parameters,
+            values,
           );
           const gateway = route.gateway
-            ? this.captureObjects([{ ipobj: route.gateway }], roleByInterfaceId, lookup, parameters)
+            ? this.captureObjects([{ ipobj: route.gateway }], roleByInterfaceId, lookup, values)
             : { value: [] };
           const interfaceRole = route.interface
             ? roleByInterfaceId.get(route.interface)
@@ -1186,7 +1201,7 @@ export class ReplicationProfileSnapshotService extends Service {
         ruleRefs.refs.get(rule.id) ?? [],
         roleByInterfaceId,
         lookup,
-        parameters,
+        values,
       );
       const reason = !rule.active
         ? 'the rule is disabled.'
@@ -1218,7 +1233,7 @@ export class ReplicationProfileSnapshotService extends Service {
     firewall: SnapshotFirewallRow,
     topologyNodes: SnapshotTopologyNode[] | null,
     roleByInterfaceId: Map<number, string>,
-    parameters: SnapshotParameterCollector,
+    values: SnapshotValueCollector,
     warnings: string[],
   ): Promise<Record<string, unknown> | null> {
     const [dhcp, keepalived, haproxy] = await Promise.all([
@@ -1308,15 +1323,12 @@ export class ReplicationProfileSnapshotService extends Service {
 
     const one = (id: number | null) =>
       id
-        ? this.captureObjects([{ ipobj: id }], roleByInterfaceId, lookup, parameters)
+        ? this.captureObjects([{ ipobj: id }], roleByInterfaceId, lookup, values)
         : { value: [] as SnapshotProvisionObject[] };
-    const port = (id: number | null, label: string) =>
+    const port = (id: number | null) =>
       id
-        ? this.captureServices([{ ipobj: id }], lookup, parameters, label)
+        ? this.captureServices([{ ipobj: id }], lookup, values)
         : { value: [] as SnapshotProvisionService[] };
-    const firstReason = (...captures: SnapshotCapture<unknown[]>[]) =>
-      (captures.find((capture) => 'reason' in capture) as { reason: string } | undefined)?.reason;
-    const values = <T>(capture: SnapshotCapture<T[]>): T[] => (capture as { value: T[] }).value;
     const skip = (label: string, reason: string) => {
       warnings.push(`${label} was not captured: ${reason}`);
       return [];
@@ -1339,20 +1351,20 @@ export class ReplicationProfileSnapshotService extends Service {
             dhcpRefs.refs.get(row.id) ?? [],
             roleByInterfaceId,
             lookup,
-            parameters,
+            values,
           ),
         };
         const reason = !row.active
           ? 'the rule is disabled.'
-          : firstReason(...Object.values(captures));
+          : captureFailure(Object.values(captures))?.reason;
         return reason
           ? skip(label, reason)
           : [
               {
-                network: values(captures.network)[0],
-                range: values(captures.range)[0],
-                router: values(captures.router)[0],
-                dns: values(captures.dns),
+                network: capturedValue(captures.network)[0],
+                range: capturedValue(captures.range)[0],
+                router: capturedValue(captures.router)[0],
+                dns: capturedValue(captures.dns),
                 maxLease: row.max_lease,
                 ...(row.comment ? { comment: row.comment } : {}),
               },
@@ -1364,7 +1376,7 @@ export class ReplicationProfileSnapshotService extends Service {
           keepalivedRefs.refs.get(row.id) ?? [],
           roleByInterfaceId,
           lookup,
-          parameters,
+          values,
         );
         const interfaceRole = row.interface ? roleByInterfaceId.get(row.interface) : undefined;
         // Clusters reference the master by its node role; a firewall is its own master.
@@ -1376,13 +1388,13 @@ export class ReplicationProfileSnapshotService extends Service {
             ? 'it references an interface of another firewall.'
             : nodeIndex < 0 || (topologyNodes && !masterNode)
               ? 'its master node is not a node of the source.'
-              : firstReason(virtualIps);
+              : captureFailure([virtualIps])?.reason;
         return reason
           ? skip(label, reason)
           : [
               {
                 interfaceRole,
-                virtualIps: values(virtualIps),
+                virtualIps: capturedValue(virtualIps),
                 ...(masterNode ? { masterNode } : {}),
                 ...(row.comment ? { comment: row.comment } : {}),
               },
@@ -1392,26 +1404,26 @@ export class ReplicationProfileSnapshotService extends Service {
         const label = `HAProxy rule ${row.rule_order}`;
         const captures = {
           frontendIp: one(row.frontend_ip),
-          frontendService: port(row.frontend_port, label),
+          frontendService: port(row.frontend_port),
           backendIps: this.captureObjects(
             haproxyRefs.refs.get(row.id) ?? [],
             roleByInterfaceId,
             lookup,
-            parameters,
+            values,
           ),
-          backendService: port(row.backend_port, label),
+          backendService: port(row.backend_port),
         };
         const reason = !row.active
           ? 'the rule is disabled.'
-          : firstReason(...Object.values(captures));
+          : captureFailure(Object.values(captures))?.reason;
         return reason
           ? skip(label, reason)
           : [
               {
-                frontendIp: values(captures.frontendIp)[0],
-                frontendService: values(captures.frontendService)[0],
-                backendIps: values(captures.backendIps),
-                backendService: values(captures.backendService)[0],
+                frontendIp: capturedValue(captures.frontendIp)[0],
+                frontendService: capturedValue(captures.frontendService)[0],
+                backendIps: capturedValue(captures.backendIps),
+                backendService: capturedValue(captures.backendService)[0],
                 ...(row.comment ? { comment: row.comment } : {}),
               },
             ];
@@ -1480,15 +1492,14 @@ export class ReplicationProfileSnapshotService extends Service {
     const [objects, groups] = await Promise.all([
       objectIds.length
         ? dbQuery<SnapshotIpObjRow>(
-            `SELECT id, name, type, ip_version, address, netmask, interface, fwcloud, range_start, range_end,
-                    destination_port_start, destination_port_end
+            `SELECT id, name, type, ip_version, address, netmask, interface, fwcloud, range_start, range_end
              FROM ipobj WHERE id IN (${sqlPlaceholders(objectIds.length)})`,
             objectIds,
           )
         : Promise.resolve([] as SnapshotIpObjRow[]),
       groupIds.length
         ? dbQuery<SnapshotGroupRow>(
-            `SELECT id, name, fwcloud FROM ipobj_g WHERE id IN (${sqlPlaceholders(groupIds.length)})`,
+            `SELECT id, name, type, fwcloud FROM ipobj_g WHERE id IN (${sqlPlaceholders(groupIds.length)})`,
             groupIds,
           )
         : Promise.resolve([] as SnapshotGroupRow[]),
@@ -1508,7 +1519,7 @@ export class ReplicationProfileSnapshotService extends Service {
   private captureInterfaceAddresses(
     role: string,
     addresses: SnapshotIpObjRow[],
-    parameters: SnapshotParameterCollector,
+    values: SnapshotValueCollector,
     warnings: string[],
   ): SnapshotProvisionAddress[] {
     const captured: SnapshotProvisionAddress[] = [];
@@ -1522,7 +1533,7 @@ export class ReplicationProfileSnapshotService extends Service {
       }
 
       captured.push({
-        value: parameters.defineInterfaceAddress(
+        value: values.defineInterfaceAddress(
           role,
           captured.length,
           ipObjCidr(address.address, address.netmask),

@@ -5,6 +5,7 @@ import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Interface } from '../../../../src/models/interface/Interface';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { Tree, TreeNode } from '../../../../src/models/tree/Tree';
 import StringHelper from '../../../../src/utils/string.helper';
@@ -101,6 +102,51 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     expect(provision.rules[0].source).to.have.length(1);
     expect(provision.rules[0].services).to.have.length(1);
   });
+
+  for (const protocol of ['tcp', 'udp'] as const) {
+    it(`should keep a legacy ${protocol} port-only template unrestricted instead of reusing a source-restricted service`, async () => {
+      const restricted = await db
+        .getSource()
+        .manager.getRepository(IPObj)
+        .save({
+          name: `Restricted ${protocol}`,
+          fwCloudId: fwc.fwcloud.id,
+          ipObjTypeId: protocol === 'tcp' ? 2 : 4,
+          protocol: protocol === 'tcp' ? 6 : 17,
+          source_port_start: 1024,
+          source_port_end: 65535,
+          destination_port_start: 443,
+          destination_port_end: 443,
+        });
+      const result = await service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        getProfileProvisioning({
+          provision: {
+            rules: [{ chain: 'forward', action: 'accept', services: [{ protocol, port: 443 }] }],
+          },
+        }),
+        fwc.fwcloud.id,
+        'merge',
+      );
+      expect(result.errors).to.be.empty;
+      const [row] = await db
+        .getSource()
+        .query(
+          'SELECT O.* FROM policy_r__ipobj R INNER JOIN ipobj O ON O.id = R.ipobj WHERE R.rule = ? AND R.position = 9',
+          [result.createdRules[0].targetRuleId],
+        );
+      expect(Number(row.id)).not.to.eq(restricted.id);
+      expect(row).to.include({
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 443,
+        destination_port_end: 443,
+      });
+      expect(
+        await db.getSource().manager.getRepository(IPObj).findOneByOrFail({ id: restricted.id }),
+      ).to.include({ source_port_start: 1024, source_port_end: 65535 });
+    });
+  }
 
   it('should create interfaces with their addresses and wire the rule objects', async () => {
     const result = await service.provisionPolicyFromProfile(

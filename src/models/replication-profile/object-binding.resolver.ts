@@ -30,6 +30,7 @@ import { OBJECT_TREE_FOLDERS, SERVICE_TREE_FOLDERS, Tree } from '../tree/Tree';
 import { dbQuery, findTreeNodeId } from './replication-sql.helpers';
 import {
   PROFILE_OBJECT_DATA_FIELDS,
+  withProfileServiceSourcePorts,
   ProfileExternalObjectBinding,
   isProfileReferenceGroupType,
 } from './replication-profile-object-reference';
@@ -318,7 +319,10 @@ export class ObjectBindingResolver {
       return { id, created: true, name };
     }
 
-    const columns = pickProfileFields(data, PROFILE_OBJECT_DATA_FIELDS);
+    const columns = pickProfileFields(
+      withProfileServiceSourcePorts(data),
+      PROFILE_OBJECT_DATA_FIELDS,
+    );
     const id = Number(
       await IPObj.insertIpobj(db.getQuery(), { ...columns, fwcloud: this.fwCloudId }),
     );
@@ -413,8 +417,12 @@ export class ObjectBindingResolver {
 
   private findExisting(request: ObjectBindingRequest): Promise<ObjectBindingResult | null> {
     if (request.kind === 'service') {
+      // A legacy port-only service has an unrestricted source and no additional matches.
       return this.findObject(
-        'type = ? AND destination_port_start = ? AND destination_port_end = ?',
+        `type = ? AND destination_port_start = ? AND destination_port_end = ?
+         AND COALESCE(source_port_end, 0) = 0
+         AND COALESCE(tcp_flags_mask, 0) = 0 AND COALESCE(tcp_flags_settings, 0) = 0
+         AND COALESCE(diff_serv, 0) = 0 AND COALESCE(options, 0) = 0`,
         [REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL[request.protocol], request.port, request.port],
       );
     }

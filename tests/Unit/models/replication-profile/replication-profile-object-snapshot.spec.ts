@@ -123,6 +123,13 @@ describe('Replication profile saved object snapshots', () => {
     ['mixed range address families', { ...range, range_end: '2001:db8::20' }, 6, 'range_end'],
     ['invalid service protocol', { ...tcp, protocol: 17 }, 2, 'protocol'],
     [
+      'missing restricted source start',
+      { ...tcp, source_port_start: undefined },
+      2,
+      'source_port_start',
+    ],
+    ['missing restricted source end', { ...tcp, source_port_end: undefined }, 2, 'source_port_end'],
+    [
       'missing service port',
       { ...tcp, destination_port_end: undefined },
       2,
@@ -310,6 +317,66 @@ describe('Replication profile saved object snapshots', () => {
       .and.include('incompatible');
     expectReadOnlyQueries();
   });
+
+  for (const type of [2, 4]) {
+    for (const sourcePorts of [
+      [0, 0],
+      [1024, 1024],
+      [2048, 65535],
+    ]) {
+      it(`rejects reuse of type ${type} when only source ports differ: ${sourcePorts.join('-')}`, async () => {
+        const snapshot = { ...tcp, type, protocol: type === 2 ? 6 : 17 };
+        queries.onFirstCall().resolves([{ id: 100234 }]);
+        queries.onSecondCall().resolves([
+          {
+            ...snapshot,
+            id: 100234,
+            source_port_start: sourcePorts[0],
+            source_port_end: sourcePorts[1],
+          },
+        ]);
+        let error: unknown;
+        try {
+          await findExistingProfileSnapshot(snapshot, type, destinationCloud);
+        } catch (caught) {
+          error = caught;
+        }
+        expect(error).to.be.instanceOf(Error);
+        expect((error as Error).message).to.include('incompatible');
+        expectReadOnlyQueries();
+      });
+    }
+
+    it(`treats omitted source ports in a legacy type ${type} snapshot as unrestricted`, async () => {
+      const {
+        source_port_start,
+        source_port_end,
+        tcp_flags_mask,
+        tcp_flags_settings,
+        ...snapshot
+      } = {
+        ...tcp,
+        type,
+        protocol: type === 2 ? 6 : 17,
+      };
+      expect(await validateProfileObjectSnapshot(snapshot, type, destinationCloud)).to.eq(null);
+      queries.resetHistory();
+      queries.onFirstCall().resolves([{ id: 100234 }]);
+      queries.onSecondCall().resolves([
+        {
+          ...snapshot,
+          id: 100234,
+          source_port_start: 0,
+          source_port_end: 0,
+        },
+      ]);
+      expect((await findExistingProfileSnapshot(snapshot, type, destinationCloud))?.id).to.eq(
+        100234,
+      );
+      expect(snapshot).not.to.have.property('source_port_start');
+      expectReadOnlyQueries();
+    });
+  }
 
   for (const [description, snapshot, existing] of [
     ['range start', range, { ...range, range_start: '198.51.100.11' }],

@@ -15,6 +15,8 @@ import {
   isProfileReferenceGroupType,
   PROFILE_OBJECT_DATA_FIELDS,
   PROFILE_REFERENCE_OBJECT_TYPES,
+  PROFILE_SERVICE_REFERENCE_TYPES,
+  withProfileServiceSourcePorts,
   type ProfileExternalObjectBinding,
 } from './replication-profile-object-reference';
 import {
@@ -28,13 +30,9 @@ import {
   REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY,
   REPLICATION_PROFILE_IPOBJ_TYPE_DNS,
   REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
-  REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_IP,
   REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
   REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
   type ReplicationProfileRecord,
   type ReplicationProfileVpnProtocol,
 } from './replication-profile.constants';
@@ -46,14 +44,6 @@ const duplicityCheck = require('../../middleware/duplicity');
 
 /** Object types a template can reference, as the numbers FWCloud stores. */
 const REFERENCE_TYPES: readonly number[] = Object.values(PROFILE_REFERENCE_OBJECT_TYPES);
-
-/** Services: what a service group holds. */
-const SERVICE_TYPES: readonly number[] = [
-  REPLICATION_PROFILE_IPOBJ_TYPE_IP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_TCP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_ICMP,
-  REPLICATION_PROFILE_IPOBJ_TYPE_UDP,
-];
 
 /** An integer `options` read from its VARCHAR column, as the object API (an integer) takes it. */
 function integerOptions(value: unknown): unknown {
@@ -145,60 +135,61 @@ export const PROFILE_HOST_INTERFACE_COLUMNS = PROFILE_HOST_INTERFACE_FIELDS.filt
  * order must not turn an existing object into a conflict. The saved data itself stays untouched.
  */
 export function profileObjectSnapshotKey(snapshot: ReplicationProfileRecord): string {
-  const normalize = (value: unknown, field?: string): unknown => {
-    if (Array.isArray(value)) {
-      const normalized = value.map((item) => normalize(item));
+  return JSON.stringify(normalizeSnapshotValue(snapshot));
+}
 
-      if (field !== 'members' && field !== 'addresses') {
-        return normalized;
-      }
+function normalizeSnapshotValue(value: unknown, field?: string): unknown {
+  if (Array.isArray(value)) {
+    const normalized = value.map((item) => normalizeSnapshotValue(item));
 
-      // Each item is serialized once, not on every comparison of the sort.
-      return normalized
-        .map((item) => ({ item, text: JSON.stringify(item) }))
-        .sort((left, right) => left.text.localeCompare(right.text))
-        .map(({ item }) => item);
+    if (field !== 'members' && field !== 'addresses') {
+      return normalized;
     }
 
-    if (typeof value === 'string') {
-      if (['address', 'range_start', 'range_end'].includes(field) && isIP(value)) {
-        return ipaddr.parse(value).toString();
-      }
+    // Each item is serialized once, not on every comparison of the sort.
+    return normalized
+      .map((item) => ({ item, text: JSON.stringify(item) }))
+      .sort((left, right) => left.text.localeCompare(right.text))
+      .map(({ item }) => item);
+  }
 
-      if (field === 'netmask' && isIP(value)) {
-        const prefix = ipaddr.parse(value).prefixLengthFromSubnetMask();
+  if (typeof value === 'string') {
+    if ((field === 'address' || field === 'range_start' || field === 'range_end') && isIP(value)) {
+      return ipaddr.parse(value).toString();
+    }
 
-        if (prefix !== null) {
-          return `/${prefix}`;
-        }
-      }
+    if (field === 'netmask' && isIP(value)) {
+      const prefix = ipaddr.parse(value).prefixLengthFromSubnetMask();
 
-      if (field === 'options') {
-        return integerOptions(value);
+      if (prefix !== null) {
+        return `/${prefix}`;
       }
     }
 
-    const record = asReplicationProfileRecord(value);
-
-    if (!record) {
-      return value;
+    if (field === 'options') {
+      return integerOptions(value);
     }
+  }
 
-    return Object.fromEntries(
-      Object.keys(record)
-        .filter(
-          (field) =>
-            field !== 'id' &&
-            field !== 'comment' &&
-            record[field] !== undefined &&
-            record[field] !== null,
-        )
-        .sort()
-        .map((field) => [field, normalize(record[field], field)]),
-    );
-  };
+  const rawRecord = asReplicationProfileRecord(value);
+  const record = rawRecord && withProfileServiceSourcePorts(rawRecord);
 
-  return JSON.stringify(normalize(snapshot));
+  if (!record) {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.keys(record)
+      .filter(
+        (field) =>
+          field !== 'id' &&
+          field !== 'comment' &&
+          record[field] !== undefined &&
+          record[field] !== null,
+      )
+      .sort()
+      .map((field) => [field, normalizeSnapshotValue(record[field], field)]),
+  );
 }
 
 /** Conflicts between pending objects are checked even while the destination contains neither. */
@@ -356,12 +347,12 @@ export class ProfileSnapshotSelectionPlan {
   hasSelectedDependency(snapshot: ReplicationProfileRecord): boolean {
     return (
       Array.isArray(snapshot.members) &&
-      snapshot.members.some(
-        (member) =>
-          this.choices.has(profileObjectSnapshotKey(member)) ||
-          this.get(member) ||
-          this.hasSelectedDependency(member),
-      )
+      snapshot.members.some((member) => {
+        const key = profileObjectSnapshotKey(member);
+        return (
+          this.choices.has(key) || this.bindings.has(key) || this.hasSelectedDependency(member)
+        );
+      })
     );
   }
 
@@ -598,7 +589,7 @@ async function validateSnapshot(
   }
 
   const columns = Object.fromEntries(
-    Object.entries(data).filter(
+    Object.entries(withProfileServiceSourcePorts(data)).filter(
       ([field, value]) =>
         allowed.includes(field) && field !== 'members' && field !== 'interfaces' && value !== null,
     ),
@@ -704,13 +695,14 @@ async function validateSnapshot(
         return `${path}.members[${index}] must contain the member's original type.`;
       }
 
-      const service = SERVICE_TYPES.includes(memberType);
+      const service = PROFILE_SERVICE_REFERENCE_TYPES.has(memberType);
       const accepted =
-        type === REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP
+        !isProfileReferenceGroupType(memberType) &&
+        (type === REPLICATION_PROFILE_IPOBJ_TYPE_SERVICE_GROUP
           ? service
           : type === REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT
             ? memberType === REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY
-            : !service && !isProfileReferenceGroupType(memberType);
+            : !service);
 
       if (!accepted || !REFERENCE_TYPES.includes(memberType)) {
         return `${path}.members[${index}] contains unsupported dependency type ${memberType}.`;
@@ -788,17 +780,16 @@ export async function loadProfileObjects(
   keys: { type: number | undefined; id: unknown }[],
   fwCloudId: number,
 ): Promise<ProfileObjectLookup> {
-  const idsOf = (groups: boolean): number[] => [
-    ...new Set(
-      keys
-        .filter(({ type }) => type !== undefined && isProfileReferenceGroupType(type) === groups)
-        .map(({ id }) => id)
-        .filter(isReplicationProfilePositiveInteger),
-    ),
-  ];
+  const objectIds = new Set<number>();
+  const groupIds = new Set<number>();
+  for (const { type, id } of keys) {
+    if (type !== undefined && isReplicationProfilePositiveInteger(id)) {
+      (isProfileReferenceGroupType(type) ? groupIds : objectIds).add(id);
+    }
+  }
   const loaded = await Promise.all([
-    loadObjects(idsOf(false), fwCloudId),
-    loadGroups(idsOf(true), fwCloudId),
+    loadObjects([...objectIds], fwCloudId),
+    loadGroups([...groupIds], fwCloudId),
   ]);
   // ipobj and ipobj_g ids overlap: the type tells which table an id belongs to.
   const key = (type: number, id: number) => `${type}:${id}`;
@@ -985,5 +976,5 @@ function objectData(row: ReplicationProfileRecord): ReplicationProfileRecord {
     }
   }
 
-  return data;
+  return withProfileServiceSourcePorts(data);
 }

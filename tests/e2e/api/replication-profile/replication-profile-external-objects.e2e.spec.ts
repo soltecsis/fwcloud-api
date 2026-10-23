@@ -3,6 +3,8 @@ import request = require('supertest');
 import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { Cluster } from '../../../../src/models/firewall/Cluster';
+import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
@@ -15,6 +17,7 @@ import { ReplicationProfile } from '../../../../src/models/replication-profile/r
 import {
   loadReplicationProfileModel,
   resolveReplicationProfileTemplatePath,
+  writeReplicationProfileModel,
 } from '../../../../src/models/replication-profile/replication-profile-template';
 import { User } from '../../../../src/models/user/User';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
@@ -128,12 +131,54 @@ describe(describeName('Replication profile external object automatic recreation 
       .set('Cookie', [attachSession(sessionId)])
       .send(makeCustomReplicationProfilePayload(prefix, { code: `${prefix}profile`, model }))
       .expect(201);
+    return trackProfile(response.body.data.id);
+  }
+
+  async function trackProfile(id: number): Promise<ReplicationProfile> {
     const profile = await db
       .getSource()
       .manager.getRepository(ReplicationProfile)
-      .findOneByOrFail({ id: response.body.data.id });
+      .findOneByOrFail({ id });
     createdProfiles.push(profile);
     return profile;
+  }
+
+  async function captureProfile(
+    source: { kind: 'firewall' | 'cluster'; id: number },
+    name: string,
+    code?: string,
+  ): Promise<ReplicationProfile> {
+    const response = await request(app.express)
+      .post(`/fwclouds/${fwCloud.id}/profiles/from-source`)
+      .set('Cookie', [attachSession(sessionId)])
+      .send({ source, name, code })
+      .expect(201);
+    expect(response.body.data.warnings).to.deep.eq([]);
+    return trackProfile(response.body.data.id);
+  }
+
+  async function addForwardServiceRule(
+    firewallId: number,
+    ruleOrder: number,
+    comment: string,
+    service: { ipobj?: number; ipobj_g?: number },
+  ): Promise<void> {
+    const rule = await PolicyRule.insertPolicy_r({
+      firewall: firewallId,
+      type: 3,
+      rule_order: ruleOrder,
+      comment,
+      action: 1,
+      active: 1,
+      special: 0,
+      options: 0,
+    });
+    await db
+      .getSource()
+      .query(
+        'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, ?, -1, 9, 1)',
+        [rule, service.ipobj ?? -1, service.ipobj_g ?? -1],
+      );
   }
 
   async function createDestinationTarget(): Promise<Firewall> {
@@ -157,6 +202,309 @@ describe(describeName('Replication profile external object automatic recreation 
         name: `${prefix}destination-target`,
         fwCloudId: destination.id,
       });
+  }
+
+  for (const sourceKind of ['firewall', 'cluster'] as const) {
+    for (const targetKind of ['firewall', 'cluster'] as const) {
+      it(`should capture complete services from a ${sourceKind} in FWCloud A and apply saved JSON to a ${targetKind} in FWCloud B`, async () => {
+        const manager = db.getSource().manager;
+        const sourceFirewall = target;
+        const destination = await createDestinationTarget();
+        const asTarget = async (firewall: Firewall, kind: 'firewall' | 'cluster') => {
+          if (kind === 'firewall') return { kind, id: firewall.id };
+          const cluster = await manager.getRepository(Cluster).save({
+            name: `${prefix}${firewall.id}-cluster`,
+            fwCloudId: firewall.fwCloudId,
+          });
+          await manager.getRepository(Firewall).update(firewall.id, {
+            clusterId: cluster.id,
+            fwmaster: 1,
+          });
+          await manager.getRepository(Firewall).save({
+            name: `${prefix}${firewall.id}-backup`,
+            fwCloudId: firewall.fwCloudId,
+            clusterId: cluster.id,
+            fwmaster: 0,
+          });
+          return { kind, id: cluster.id };
+        };
+        const captureSource = await asTarget(sourceFirewall, sourceKind);
+        const applyTarget = await asTarget(destination, targetKind);
+        const services: IPObj[] = [];
+        for (const objectType of ['tcp', 'udp'] as const) {
+          for (const [restriction, start, end, destinationStart, destinationEnd] of [
+            ['single', 2048, 2048, 443, 443],
+            ['range', 1024, 65535, 8000, 8010],
+            ['any', 0, 0, 53, 53],
+            ['source-only', 4096, 8192, 0, 0],
+          ] as const) {
+            const object = await createObject(objectType, {
+              name: `${prefix}${objectType}-${restriction}`,
+              protocol: objectType === 'tcp' ? 6 : 17,
+              source_port_start: start,
+              source_port_end: end,
+              destination_port_start: destinationStart,
+              destination_port_end: destinationEnd,
+              ...(objectType === 'tcp' ? { tcp_flags_mask: 2, tcp_flags_settings: 2 } : {}),
+              diff_serv: 8,
+              options: 0,
+              comment: `${objectType} ${restriction} configuration`,
+            });
+            services.push(object);
+            await addForwardServiceRule(
+              sourceFirewall.id,
+              services.length,
+              `${objectType} ${restriction}`,
+              { ipobj: object.id },
+            );
+          }
+        }
+        const group = await manager.getRepository(IPObjGroup).save({
+          name: `${prefix}restricted-services`,
+          type: 21,
+          fwCloudId: fwCloud.id,
+        });
+        for (const object of services) {
+          await manager.query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
+            object.id,
+            group.id,
+          ]);
+        }
+        await addForwardServiceRule(sourceFirewall.id, 20, 'All grouped services', {
+          ipobj_g: group.id,
+        });
+        const originals = await manager.getRepository(IPObj).findBy({ fwCloudId: fwCloud.id });
+        const profile = await captureProfile(
+          captureSource,
+          'Complete service snapshot',
+          `${prefix}capture`,
+        );
+        const file = resolveReplicationProfileTemplatePath(profile);
+        const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile))) as Record<
+          string,
+          any
+        >;
+        expect(model.objectReferences).to.have.length(services.length + 1);
+        const groupReference = model.objectReferences.find(
+          (item) => item.objectType === 'serviceGroup',
+        );
+        for (const service of services) {
+          const reference = model.objectReferences.find(
+            (item) => item.sourceObjectId === service.id && item.objectType !== 'serviceGroup',
+          );
+          expect(reference.snapshot).to.include({
+            name: service.name,
+            protocol: service.protocol,
+            source_port_start: service.source_port_start,
+            source_port_end: service.source_port_end,
+            destination_port_start: service.destination_port_start,
+            destination_port_end: service.destination_port_end,
+            diff_serv: 8,
+            options: 0,
+          });
+          if (service.ipObjTypeId === 2)
+            expect(reference.snapshot).to.include({ tcp_flags_mask: 2, tcp_flags_settings: 2 });
+          expect(
+            groupReference.snapshot.members.find((member) => member.id === service.id),
+          ).to.include(reference.snapshot);
+        }
+        writeReplicationProfileModel(profile, model);
+        expect(loadReplicationProfileModel(profile)).to.deep.eq(model);
+        const jsonBeforeApply = fs.readFileSync(file, 'utf8');
+        const applied = await request(app.express)
+          .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+          .set('Cookie', [attachSession(sessionId)])
+          .send({ target: applyTarget, mode: 'merge' })
+          .expect(200);
+        expect(applied.body.data.applied).to.eq(true);
+        expect(applied.body.data.errors).to.deep.eq([]);
+        const recreated = await manager
+          .getRepository(IPObj)
+          .findBy({ fwCloudId: destination.fwCloudId });
+        expect(recreated).to.have.length(services.length);
+        for (const original of originals) {
+          const copy = recreated.find((item) => item.name === original.name)!;
+          const { id, fwCloudId: sourceCloud, created_at, updated_at, ...configuration } = original;
+          expect(copy.id).not.to.eq(id);
+          expect(copy).to.include(configuration);
+        }
+        const destinationGroup = await manager.getRepository(IPObjGroup).findOneByOrFail({
+          name: group.name,
+          fwCloudId: destination.fwCloudId,
+        });
+        const members = await manager.query('SELECT ipobj FROM ipobj__ipobjg WHERE ipobj_g = ?', [
+          destinationGroup.id,
+        ]);
+        expect(members.map((item) => Number(item.ipobj)).sort((a, b) => a - b)).to.deep.eq(
+          recreated.map((item) => item.id).sort((a, b) => a - b),
+        );
+        expect(await ruleReferences(destination.id)).to.have.members(
+          recreated.map((item) => item.id),
+        );
+        expect(await ruleReferences(destination.id, true)).to.deep.eq([destinationGroup.id]);
+        // FWCloud rule IDs occur in logging prefixes and VyOS paths.
+        const ports = (value: unknown) =>
+          JSON.stringify(value).match(
+            /(?:--(?:s|d)port|(?:tcp|udp) (?:s|d)port|(?:source|destination) port) [0-9:-]+/g,
+          ) ?? [];
+        for (const compiler of ['IPTables', 'NFTables', 'VyOS'] as const) {
+          const compile = async (firewall: Firewall) =>
+            PolicyCompiler.compile(
+              compiler,
+              await PolicyRule.getPolicyData(
+                'compiler',
+                db.getQuery(),
+                firewall.fwCloudId,
+                firewall.id,
+                3,
+                null,
+                null,
+              ),
+            );
+          const originalPolicy = await compile(sourceFirewall);
+          const recreatedPolicy = await compile(destination);
+          expect(recreatedPolicy).to.have.length(originalPolicy.length);
+          for (const rule of recreatedPolicy) {
+            const original = originalPolicy.find((item) => item.comment === rule.comment)!;
+            expect(ports(rule.cs), `${compiler}: ${rule.comment}`).to.deep.eq(ports(original.cs));
+            if (
+              rule.comment.includes('range') ||
+              rule.comment.includes('single') ||
+              rule.comment.includes('source-only')
+            ) {
+              expect(
+                ports(rule.cs).some((port) => /--sport| sport|source port/.test(port)),
+                `${compiler}: ${rule.comment}`,
+              ).to.eq(true);
+            }
+          }
+        }
+        expect(await manager.getRepository(IPObj).findBy({ fwCloudId: fwCloud.id })).to.deep.eq(
+          originals,
+        );
+        expect(fs.readFileSync(file, 'utf8')).to.eq(jsonBeforeApply);
+      });
+    }
+  }
+
+  it('should preserve CUSTOM_TCP source range 1024-65535 and destination 443 through automatic capture and cross-cloud application', async () => {
+    const sourceFirewall = target;
+    const destination = await createDestinationTarget();
+    const object = await createObject('tcp', {
+      name: `${prefix}CUSTOM_TCP`,
+      protocol: 6,
+      source_port_start: 1024,
+      source_port_end: 65535,
+      destination_port_start: 443,
+      destination_port_end: 443,
+    });
+    await addForwardServiceRule(sourceFirewall.id, 1, 'Source-restricted HTTPS', {
+      ipobj: object.id,
+    });
+    const profile = await captureProfile(
+      { kind: 'firewall', id: sourceFirewall.id },
+      'CUSTOM_TCP capture',
+    );
+    await request(app.express)
+      .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+      .set('Cookie', [attachSession(sessionId)])
+      .send(applyPayload(destination))
+      .expect(200);
+    const [copy] = await db
+      .getSource()
+      .manager.getRepository(IPObj)
+      .findBy({ fwCloudId: destination.fwCloudId });
+    expect(copy).to.include({
+      protocol: 6,
+      source_port_start: 1024,
+      source_port_end: 65535,
+      destination_port_start: 443,
+      destination_port_end: 443,
+    });
+    expect(copy.name).to.eq(object.name);
+    expect(await ruleReferences(destination.id)).to.deep.eq([copy.id]);
+  });
+
+  for (const objectType of ['tcp', 'udp'] as const) {
+    it(`should reject a ${objectType} source-port conflict and preserve the snapshot after an explicit recreation choice`, async () => {
+      const destination = await createDestinationTarget();
+      const configuration = {
+        protocol: objectType === 'tcp' ? 6 : 17,
+        source_port_start: 1024,
+        source_port_end: 65535,
+        destination_port_start: 443,
+        destination_port_end: 443,
+      };
+      const original = await createObject(objectType, configuration);
+      const profile = await saveProfile(modelUsing(objectType, original.id));
+      const incompatible = await createObject(objectType, {
+        ...configuration,
+        name: original.name,
+        fwCloudId: destination.fwCloudId,
+        source_port_start: 0,
+        source_port_end: 0,
+      });
+      const before = await objectsNamed(original.name, destination.fwCloudId);
+      await request(app.express)
+        .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+        .set('Cookie', [attachSession(sessionId)])
+        .send(applyPayload(destination))
+        .expect(422);
+      expect(await ruleReferences(destination.id)).to.be.empty;
+      expect(await objectsNamed(original.name, destination.fwCloudId)).to.deep.eq(before);
+      await unlockFwCloud(destination.fwCloudId);
+      const applied = await request(app.express)
+        .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+        .set('Cookie', [attachSession(sessionId)])
+        .send({
+          ...applyPayload(destination),
+          objectReplacements: { 'selected-object': { useSnapshot: true } },
+        })
+        .expect(200);
+      expect(applied.body.data.errors).to.deep.eq([]);
+      const copy = await db
+        .getSource()
+        .manager.getRepository(IPObj)
+        .findOneByOrFail({
+          name: `${original.name} (template)`,
+          fwCloudId: destination.fwCloudId,
+        });
+      expect(copy).to.include(configuration);
+      expect(await ruleReferences(destination.id)).to.deep.eq([copy.id, copy.id]);
+      expect(copy.id).not.to.eq(incompatible.id);
+      expect(await objectsNamed(original.name, destination.fwCloudId)).to.deep.eq(before);
+      expect(await objectsNamed(original.name)).to.have.length(1);
+    });
+
+    it(`should recreate a legacy ${objectType} snapshot with omitted source ports as unrestricted`, async () => {
+      const destination = await createDestinationTarget();
+      const original = await createObject(objectType, {
+        protocol: objectType === 'tcp' ? 6 : 17,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 48443,
+        destination_port_end: 48443,
+      });
+      const profile = await saveProfile(modelUsing(objectType, original.id));
+      const stored = loadReplicationProfileModel(profile) as Record<string, any>;
+      delete stored.objectReferences[0].snapshot.source_port_start;
+      delete stored.objectReferences[0].snapshot.source_port_end;
+      writeReplicationProfileModel(profile, stored);
+      await request(app.express)
+        .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+        .set('Cookie', [attachSession(sessionId)])
+        .send(applyPayload(destination))
+        .expect(200);
+      const [copy] = await objectsNamed(original.name, destination.fwCloudId);
+      expect(copy).to.include({
+        protocol: original.protocol,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 48443,
+        destination_port_end: 48443,
+      });
+      expect(await ruleReferences(destination.id)).to.deep.eq([copy.id, copy.id]);
+    });
   }
 
   const valueObjects: {
