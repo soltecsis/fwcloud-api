@@ -506,6 +506,16 @@ export class Routes extends RouteCollection {
                     .get('/collections', CrowdSecController, 'collections')
                     .name('fwclouds.firewalls.system.crowdsec.collections.index');
                   router
+                    .get('/collections/acquisition', CrowdSecController, 'collectionAcquisition')
+                    .name('fwclouds.firewalls.system.crowdsec.collections.acquisition.show');
+                  router
+                    .put(
+                      '/collections/acquisition',
+                      CrowdSecController,
+                      'updateCollectionAcquisition',
+                    )
+                    .name('fwclouds.firewalls.system.crowdsec.collections.acquisition.update');
+                  router
                     .get('/console/status', CrowdSecController, 'consoleStatus')
                     .name('fwclouds.firewalls.system.crowdsec.console.status');
                   router
@@ -868,6 +878,16 @@ export class Routes extends RouteCollection {
             router
               .get('/collections', CrowdSecClusterController, 'collections')
               .name('fwclouds.clusters.system.crowdsec.collections.index');
+            router
+              .get('/collections/acquisition', CrowdSecClusterController, 'collectionAcquisition')
+              .name('fwclouds.clusters.system.crowdsec.collections.acquisition.show');
+            router
+              .put(
+                '/collections/acquisition',
+                CrowdSecClusterController,
+                'updateCollectionAcquisition',
+              )
+              .name('fwclouds.clusters.system.crowdsec.collections.acquisition.update');
             router
               .post('/collections/install', CrowdSecClusterController, 'installCollection')
               .name('fwclouds.clusters.system.crowdsec.collections.install');

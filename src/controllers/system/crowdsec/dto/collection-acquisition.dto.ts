@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ArrayMaxSize, IsArray, IsString, Matches } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsInt, IsString, Matches, Min } from 'class-validator';
 import { CROWDSEC_COLLECTION_NAME } from './collection.dto';
 
 export class CrowdSecCollectionAcquisitionQueryDto {
@@ -36,4 +36,16 @@ export class CrowdSecCollectionAcquisitionUpdateDto {
   @ArrayMaxSize(256)
   @IsString({ each: true })
   log_paths: string[];
+}
+
+export class CrowdSecClusterCollectionAcquisitionQueryDto extends CrowdSecCollectionAcquisitionQueryDto {
+  @IsInt()
+  @Min(1)
+  node_id: number;
+}
+
+export class CrowdSecClusterCollectionAcquisitionNodeQueryDto {
+  @IsInt()
+  @Min(1)
+  node_id: number;
 }

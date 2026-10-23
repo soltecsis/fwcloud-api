@@ -40,6 +40,10 @@ import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecAlertsQueryDto } from './dto/alerts-query.dto';
 import { CrowdSecBouncerDto } from './dto/bouncer.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
+import {
+  CrowdSecCollectionAcquisitionQueryDto,
+  CrowdSecCollectionAcquisitionUpdateDto,
+} from './dto/collection-acquisition.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
 import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
@@ -57,6 +61,7 @@ import {
   CrowdSecBlockingStatisticsHistoryQueryDto,
 } from './dto/blocking-statistics-history-query.dto';
 import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
+import { CrowdSecCollectionAcquisitionService } from './crowdsec-collection-acquisition.service';
 
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
@@ -133,6 +138,36 @@ export class CrowdSecController extends Controller {
     ).getCrowdSecCollections(installed);
 
     return ResponseBuilder.buildResponse().status(200).body(collections);
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecCollectionAcquisitionQueryDto)
+  public async collectionAcquisition(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const name = req.query.name as string;
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(communication, name);
+    const acquisition = await communication.getCrowdSecCollectionAcquisition(name);
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionUpdateDto)
+  public async updateCollectionAcquisition(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.updateCrowdSecCollectionAcquisition({
+      name: req.body.name,
+      logPaths: req.body.log_paths,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
   }
 
   @Validate()
