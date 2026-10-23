@@ -331,6 +331,10 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
   abstract getCrowdSecCollections(installed?: boolean): Promise<Record<string, unknown>>;
+  abstract getCrowdSecCollectionAcquisition(name: string): Promise<CrowdSecCollectionAcquisition>;
+  abstract updateCrowdSecCollectionAcquisition(
+    acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition>;
   abstract installCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract updateCrowdSecCollections(): Promise<Record<string, unknown>>;
