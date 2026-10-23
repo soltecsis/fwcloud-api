@@ -929,6 +929,34 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should access an acquisition only through the selected authorized cluster node', async () => {
+    const viewPolicyStub = sinon.stub(CrowdSecPolicy, 'view').resolves(Authorization.grant());
+    sinon.stub(secondCommunication, 'getCrowdSecCollections').resolves({
+      collections: [{ name: 'crowdsecurity/nginx', state: 'installed' }],
+    });
+    const acquisition = {
+      collection: 'crowdsecurity/nginx',
+      filePath: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+      state: 'ready' as const,
+      labelType: 'nginx',
+      candidateLabelTypes: [],
+      logPaths: [],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    };
+    const acquisitionStub = sinon
+      .stub(secondCommunication, 'getCrowdSecCollectionAcquisition')
+      .resolves(acquisition);
+
+    const response = await controller.collectionAcquisition({
+      session: { user: null },
+      query: { name: 'crowdsecurity/nginx', node_id: String(secondNode.id) },
+    } as unknown as Request);
+
+    expect(viewPolicyStub.calledOnceWithExactly(secondNode, null)).to.be.true;
+    expect(acquisitionStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: acquisition });
+  });
+
   it('should authorize cluster role transitions before contacting agents', async () => {
     managePolicyStub.resolves(Authorization.revoke());
 

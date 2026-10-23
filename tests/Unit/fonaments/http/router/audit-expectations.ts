@@ -223,6 +223,12 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'PUT /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/sampling': {
     audited: true,
   },
+  'PUT /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition': {
+    audited: true,
+  },
+  'PUT /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition/parser': {
+    audited: true,
+  },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routeGroups/:routeGroup': { audited: true },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routingGroups/:routingGroup': { audited: true },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/routingRules/:routingRule': { audited: true },
@@ -252,6 +258,12 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/sampling': {
+    audited: true,
+  },
+  'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition': {
+    audited: true,
+  },
+  'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition/parser': {
     audited: true,
   },
   'PUT /fwclouds/:fwcloud/firewalls/:firewall/system/dhcpGroups/:dhcpgroup': { audited: true },

@@ -32,6 +32,9 @@ import {
   CCDHash,
   Communication,
   CrowdSecAlertsQuery,
+  CrowdSecCollectionAcquisition,
+  CrowdSecCollectionAcquisitionParserSelection,
+  CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
@@ -766,6 +769,22 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   }
 
   getCrowdSecCollections(_installed?: boolean): Promise<Record<string, unknown>> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecCollectionAcquisition(_name: string): Promise<CrowdSecCollectionAcquisition> {
+    throw new Error('Method not implemented.');
+  }
+
+  updateCrowdSecCollectionAcquisition(
+    _acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    throw new Error('Method not implemented.');
+  }
+
+  selectCrowdSecCollectionAcquisitionParser(
+    _selection: CrowdSecCollectionAcquisitionParserSelection,
+  ): Promise<CrowdSecCollectionAcquisition> {
     throw new Error('Method not implemented.');
   }
 

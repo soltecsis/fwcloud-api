@@ -98,6 +98,31 @@ export type CrowdSecConsoleEnrollment = {
 
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
+export type CrowdSecCollectionAcquisitionState =
+  | 'ready'
+  | 'automatic_configuration_unavailable'
+  | 'manual_review_required';
+
+export type CrowdSecCollectionAcquisition = {
+  collection: string;
+  filePath: string;
+  state: CrowdSecCollectionAcquisitionState;
+  labelType?: string;
+  candidateLabelTypes: string[];
+  logPaths: string[];
+  message: string;
+};
+
+export type CrowdSecCollectionAcquisitionUpdate = {
+  name: string;
+  logPaths: string[];
+};
+
+export type CrowdSecCollectionAcquisitionParserSelection = {
+  name: string;
+  labelType: string;
+};
+
 export type CrowdSecFirewallBouncerStatisticsState = 'available' | 'unavailable';
 
 export type CrowdSecFirewallBouncerStatisticsSamplingConfig = {
@@ -311,6 +336,13 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
   abstract getCrowdSecCollections(installed?: boolean): Promise<Record<string, unknown>>;
+  abstract getCrowdSecCollectionAcquisition(name: string): Promise<CrowdSecCollectionAcquisition>;
+  abstract updateCrowdSecCollectionAcquisition(
+    acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition>;
+  abstract selectCrowdSecCollectionAcquisitionParser(
+    selection: CrowdSecCollectionAcquisitionParserSelection,
+  ): Promise<CrowdSecCollectionAcquisition>;
   abstract installCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract updateCrowdSecCollections(): Promise<Record<string, unknown>>;

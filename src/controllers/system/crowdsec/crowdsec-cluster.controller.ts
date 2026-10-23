@@ -44,6 +44,12 @@ import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import {
+  CrowdSecClusterCollectionAcquisitionNodeQueryDto,
+  CrowdSecClusterCollectionAcquisitionQueryDto,
+  CrowdSecCollectionAcquisitionParserSelectionDto,
+  CrowdSecCollectionAcquisitionUpdateDto,
+} from './dto/collection-acquisition.dto';
+import {
   CentralLapiNode,
   CentralLapiReplicationError,
   CrowdSecLapiSharedService,
@@ -55,6 +61,7 @@ import {
   CrowdSecBlockingStatisticsClusterHistoryQueryDto,
 } from './dto/blocking-statistics-history-query.dto';
 import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
+import { CrowdSecCollectionAcquisitionService } from './crowdsec-collection-acquisition.service';
 
 type ClusterCrowdSecInstallationSnapshot = Pick<
   CrowdSecInstallation,
@@ -1270,6 +1277,56 @@ export class CrowdSecClusterController extends Controller {
     );
 
     return ResponseBuilder.buildResponse().status(200).body({ nodes: collections });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecClusterCollectionAcquisitionQueryDto)
+  public async collectionAcquisition(req: Request): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+    const name = req.query.name as string;
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(communication, name);
+    const acquisition = await communication.getCrowdSecCollectionAcquisition(name);
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionUpdateDto)
+  @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
+  public async updateCollectionAcquisition(req: Request): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
+
+    const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.updateCrowdSecCollectionAcquisition({
+      name: req.body.name,
+      logPaths: req.body.log_paths,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
+  @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
+  public async selectCollectionAcquisitionParser(req: Request): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
+
+    const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.selectCrowdSecCollectionAcquisitionParser({
+      name: req.body.name,
+      labelType: req.body.label_type,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
   }
 
   @Validate()
