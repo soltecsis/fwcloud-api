@@ -41,6 +41,10 @@ import { ValidationException } from '../../../../../src/fonaments/exceptions/val
 import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crowdsec/dto/uninstall.dto';
 import { CrowdSecCollectionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/collections-query.dto';
 import { CrowdSecCollectionDto } from '../../../../../src/controllers/system/crowdsec/dto/collection.dto';
+import {
+  CrowdSecCollectionAcquisitionParserSelectionDto,
+  CrowdSecCollectionAcquisitionUpdateDto,
+} from '../../../../../src/controllers/system/crowdsec/dto/collection-acquisition.dto';
 import { CrowdSecConsoleEnrollDto } from '../../../../../src/controllers/system/crowdsec/dto/console-enroll.dto';
 import { CrowdSecDecisionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-query.dto';
 import { CrowdSecAlertsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/alerts-query.dto';
@@ -2251,6 +2255,45 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(collectionsStub.called).to.be.false;
   });
 
+  it('should return an installed Collection acquisition from the agent', async () => {
+    sinon.stub(communication, 'getCrowdSecCollections').resolves({
+      collections: [{ name: 'crowdsecurity/nginx', state: 'installed' }],
+    });
+    const acquisition = {
+      collection: 'crowdsecurity/nginx',
+      filePath: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+      state: 'ready' as const,
+      labelType: 'nginx',
+      candidateLabelTypes: [],
+      logPaths: [],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    };
+    const acquisitionStub = sinon
+      .stub(communication, 'getCrowdSecCollectionAcquisition')
+      .resolves(acquisition);
+
+    const response = await controller.collectionAcquisition({
+      query: { name: 'crowdsecurity/nginx' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(acquisitionStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: acquisition });
+  });
+
+  it('should reject a Collection acquisition update when the Collection is not installed', async () => {
+    sinon.stub(communication, 'getCrowdSecCollections').resolves({ collections: [] });
+    const updateStub = sinon.stub(communication, 'updateCrowdSecCollectionAcquisition');
+
+    await expect(
+      controller.updateCollectionAcquisition({
+        body: { name: 'crowdsecurity/nginx', log_paths: [] },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'CrowdSec collection is not installed');
+    expect(updateStub.called).to.be.false;
+  });
+
   it('should forward CrowdSec Console status to the agent', async () => {
     const status = { state: 'connected' as const, message: 'CrowdSec Central API is reachable' };
     const statusStub = sinon.stub(communication, 'getCrowdSecConsoleStatus').resolves(status);
@@ -2689,6 +2732,21 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   it('should reject an invalid collection name', async () => {
     await expect(
       new Validator({ name: 'crowdsecurity/nginx;rm' }, CrowdSecCollectionDto).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
+  it('should reject invalid managed acquisition update and parser-selection payloads', async () => {
+    await expect(
+      new Validator(
+        { name: 'crowdsecurity/nginx', log_paths: 'not-an-array' },
+        CrowdSecCollectionAcquisitionUpdateDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        { name: 'crowdsecurity/nginx', label_type: 'nginx\ninvalid' },
+        CrowdSecCollectionAcquisitionParserSelectionDto,
+      ).validate(),
     ).to.be.rejectedWith(ValidationException);
   });
 

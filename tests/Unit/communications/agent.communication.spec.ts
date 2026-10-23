@@ -339,6 +339,82 @@ describe(AgentCommunication.name, () => {
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections/update');
       expect(stub.firstCall.args[1]).to.deep.equal({});
     });
+
+    it('should map managed acquisition reads, path updates and parser selection', async () => {
+      const acquisition = {
+        collection: 'crowdsecurity/nginx',
+        file_path: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+        state: 'manual_review_required' as const,
+        candidate_label_types: ['nginx', 'openresty'],
+        log_paths: [],
+        message: 'Manual review is required',
+      };
+      const getStub = sinon.stub(axios, 'get').resolves({ status: 200, data: acquisition });
+      const putStub = sinon.stub(axios, 'put').resolves({
+        status: 200,
+        data: {
+          ...acquisition,
+          state: 'ready',
+          label_type: 'nginx',
+          candidate_label_types: [],
+        },
+      });
+
+      const result = await agent.getCrowdSecCollectionAcquisition('crowdsecurity/nginx');
+      await agent.updateCrowdSecCollectionAcquisition({
+        name: 'crowdsecurity/nginx',
+        logPaths: ['/var/log/nginx/access.log'],
+      });
+      await agent.selectCrowdSecCollectionAcquisitionParser({
+        name: 'crowdsecurity/nginx',
+        labelType: 'nginx',
+      });
+
+      expect(getStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/collections/acquisition',
+      );
+      expect(getStub.firstCall.args[1].params).to.deep.equal({ name: 'crowdsecurity/nginx' });
+      expect(result).to.deep.equal({
+        collection: 'crowdsecurity/nginx',
+        filePath: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+        state: 'manual_review_required',
+        candidateLabelTypes: ['nginx', 'openresty'],
+        logPaths: [],
+        message: 'Manual review is required',
+      });
+      expect(putStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/collections/acquisition',
+      );
+      expect(putStub.firstCall.args[1]).to.deep.equal({
+        name: 'crowdsecurity/nginx',
+        log_paths: ['/var/log/nginx/access.log'],
+      });
+      expect(putStub.secondCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/collections/acquisition/parser',
+      );
+      expect(putStub.secondCall.args[1]).to.deep.equal({
+        name: 'crowdsecurity/nginx',
+        label_type: 'nginx',
+      });
+    });
+
+    it('should preserve managed acquisition path conflict details', () => {
+      const error = crowdSecAgentErrorToHttpException(
+        'CROWDSEC_COLLECTION_ACQUISITION_PATH_CONFLICT',
+        {
+          path: '/var/log/nginx/access.log',
+          conflicting_file_path: '/etc/crowdsec/acquis.d/existing.yaml',
+        },
+      );
+
+      expect(error.status).to.equal(409);
+      expect(error.toResponse()).to.deep.include({
+        errors: {
+          path: '/var/log/nginx/access.log',
+          conflicting_file_path: '/etc/crowdsec/acquis.d/existing.yaml',
+        },
+      });
+    });
   });
 
   describe('CrowdSec Console', () => {
