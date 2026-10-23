@@ -40,6 +40,11 @@ import { CrowdSecCollectionsQueryDto } from './dto/collections-query.dto';
 import { CrowdSecAlertsQueryDto } from './dto/alerts-query.dto';
 import { CrowdSecBouncerDto } from './dto/bouncer.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
+import {
+  CrowdSecCollectionAcquisitionQueryDto,
+  CrowdSecCollectionAcquisitionParserSelectionDto,
+  CrowdSecCollectionAcquisitionUpdateDto,
+} from './dto/collection-acquisition.dto';
 import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecDecisionsFlushDto } from './dto/decisions-flush.dto';
 import { CrowdSecDecisionsQueryDto } from './dto/decisions-query.dto';
@@ -50,6 +55,14 @@ import { CrowdSecCentralLapiConfigureDto } from './dto/central-lapi-configure.dt
 import { CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 import { PgpHelper } from '../../../utils/pgp';
 import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
+import { CrowdSecBlockingStatisticsSamplingDto } from './dto/blocking-statistics-sampling.dto';
+import {
+  CrowdSecBlockingStatisticsAddressHistoryQueryDto,
+  CrowdSecBlockingStatisticsAddressOptionsQueryDto,
+  CrowdSecBlockingStatisticsHistoryQueryDto,
+} from './dto/blocking-statistics-history-query.dto';
+import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
+import { CrowdSecCollectionAcquisitionService } from './crowdsec-collection-acquisition.service';
 import {
   Body,
   Delete,
@@ -255,6 +268,53 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
+  @ValidateQuery(CrowdSecCollectionAcquisitionQueryDto)
+  public async collectionAcquisition(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    const name = req.query.name as string;
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(communication, name);
+    const acquisition = await communication.getCrowdSecCollectionAcquisition(name);
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionUpdateDto)
+  public async updateCollectionAcquisition(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.updateCrowdSecCollectionAcquisition({
+      name: req.body.name,
+      logPaths: req.body.log_paths,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
+  public async selectCollectionAcquisitionParser(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const communication = await this.getAgentCommunication();
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.selectCrowdSecCollectionAcquisitionParser({
+      name: req.body.name,
+      labelType: req.body.label_type,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate()
   @OperationId('Get firewall CrowdSec Console status')
   @Get('console/status')
   @SuccessResponse('200', 'CrowdSec Console status retrieved')
@@ -384,6 +444,102 @@ export class CrowdSecController extends Controller {
 
     const bouncers = await (await this.getAgentCommunication()).getCrowdSecBouncers();
     return ResponseBuilder.buildResponse().status(200).body(bouncers);
+  }
+
+  @Validate()
+  public async blockingStatisticsSampling(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const configuration =
+      await CrowdSecBlockingStatisticsSharedService.samplingService().configuration(
+        this._firewall.id,
+      );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.samplingResponse(configuration));
+  }
+
+  @Validate(CrowdSecBlockingStatisticsSamplingDto)
+  public async updateBlockingStatisticsSampling(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const service = CrowdSecBlockingStatisticsSharedService.samplingService();
+    const current = await service.configuration(this._firewall.id);
+    const result = await service.update([this._firewall], {
+      enabled: req.body.enabled,
+      samplingInterval: req.body.sampling_interval ?? current.samplingInterval,
+      requestMaxSamples: req.body.request_max_samples ?? current.requestMaxSamples,
+      cacheMaxSize: req.body.cache_max_size ?? current.cacheMaxSize,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed: result.completed,
+        ...CrowdSecBlockingStatisticsSharedService.samplingResponse(result.configuration),
+        nodes: result.nodes,
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsHistoryQueryDto)
+  public async blockingStatistics(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).history(
+      this._firewall.id,
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.sampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsAddressHistoryQueryDto)
+  public async blockingStatisticsAddresses(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressHistory(
+      this._firewall.id,
+      CrowdSecBlockingStatisticsSharedService.addresses(req.query.addresses),
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsAddressOptionsQueryDto)
+  public async blockingStatisticsAddressOptions(req: ExpressRequest): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
+
+    const page = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressOptions(this._firewall.id, {
+      ...CrowdSecBlockingStatisticsSharedService.range(req),
+      ...CrowdSecBlockingStatisticsSharedService.pagination(req),
+      search: req.query.search as string | undefined,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.addressOptionsResponse(page));
   }
 
   @Validate()
@@ -594,6 +750,9 @@ export class CrowdSecController extends Controller {
     const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
     const localLapiNodes = await this.getLocalLapiNodes();
     if (localLapiNodes) {
+      for (const node of localLapiNodes) {
+        await this.assertMachineRemovalAllowed(node.communication, machineName);
+      }
       const cleanup = await this.lapiService().cleanupMachine(localLapiNodes, machineName);
       return ResponseBuilder.buildResponse().status(200).body({
         name: machineName,
@@ -602,9 +761,9 @@ export class CrowdSecController extends Controller {
       });
     }
 
-    const machine = await (
-      await this.getAgentCommunication()
-    ).removeCrowdSecLapiMachine(machineName);
+    const communication = await this.getAgentCommunication();
+    await this.assertMachineRemovalAllowed(communication, machineName);
+    const machine = await communication.removeCrowdSecLapiMachine(machineName);
     return ResponseBuilder.buildResponse().status(200).body(machine);
   }
 
@@ -1959,6 +2118,7 @@ export class CrowdSecController extends Controller {
     ).enrollCrowdSecConsole({
       ...req.body,
       enrollmentKey,
+      name: this.consoleInstanceName(),
     });
     const installationRepository = this.getCrowdSecInstallationRepository();
     if (await installationRepository.findByFirewallId(this._firewall.id)) {
@@ -2272,6 +2432,18 @@ export class CrowdSecController extends Controller {
       });
   }
 
+  private async assertMachineRemovalAllowed(
+    communication: AgentCommunication,
+    machineName: string,
+  ): Promise<void> {
+    const machine = (await communication.getCrowdSecLapiMachines()).machines.find(
+      (item) => item.name === machineName,
+    );
+    if (machine && CrowdSecLapiSharedService.isLoopbackMachineAddress(machine.ip_address)) {
+      throw new HttpException('The local CrowdSec LAPI Machine cannot be removed', 409);
+    }
+  }
+
   private async getLocalLapiNodes() {
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
       this._firewall.id,
@@ -2359,9 +2531,9 @@ export class CrowdSecController extends Controller {
   private consoleInstanceName(): string {
     const name = this._firewall.name?.trim();
     if (name && !/[^A-Za-z0-9._-]/.test(name)) {
-      return 'fwcloud-' + name;
+      return name;
     }
-    return 'fwcloud-' + this._firewall.fwCloudId + '-' + this._firewall.id;
+    return this._firewall.fwCloudId + '-' + this._firewall.id;
   }
 
   private async enrollmentKey(req: ExpressRequest, value: unknown): Promise<string> {

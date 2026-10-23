@@ -41,6 +41,10 @@ import { ValidationException } from '../../../../../src/fonaments/exceptions/val
 import { CrowdSecUninstallDto } from '../../../../../src/controllers/system/crowdsec/dto/uninstall.dto';
 import { CrowdSecCollectionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/collections-query.dto';
 import { CrowdSecCollectionDto } from '../../../../../src/controllers/system/crowdsec/dto/collection.dto';
+import {
+  CrowdSecCollectionAcquisitionParserSelectionDto,
+  CrowdSecCollectionAcquisitionUpdateDto,
+} from '../../../../../src/controllers/system/crowdsec/dto/collection-acquisition.dto';
 import { CrowdSecConsoleEnrollDto } from '../../../../../src/controllers/system/crowdsec/dto/console-enroll.dto';
 import { CrowdSecDecisionsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/decisions-query.dto';
 import { CrowdSecAlertsQueryDto } from '../../../../../src/controllers/system/crowdsec/dto/alerts-query.dto';
@@ -61,6 +65,7 @@ import {
   CrowdSecInstallationMode,
 } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 import { PgpHelper } from '../../../../../src/utils/pgp';
+import { CrowdSecBlockingStatisticsSharedService } from '../../../../../src/controllers/system/crowdsec/crowdsec-blocking-statistics-shared.service';
 
 describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -168,7 +173,10 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should forward CrowdSec status to the agent', async () => {
-    const status = { crowdsec: { installed: true } };
+    const status = {
+      crowdsec: { installed: true },
+      active_decisions: { count: 3, limit: null, truncated: false },
+    };
     const statusStub = sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
 
     const response: ResponseBuilder = await controller.status({
@@ -279,14 +287,17 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should forward CrowdSec decision filters to the agent', async () => {
-    const decisions = { decisions: [] };
+    const decisions = {
+      decisions: [{ id: '1', expires_at: '2026-10-15T10:00:00.000Z' }],
+      total: 3,
+    };
     const decisionsStub = sinon.stub(communication, 'getCrowdSecDecisions').resolves(decisions);
 
     const response: ResponseBuilder = await controller.decisions({
       query: {
         limit: '10',
         scope: 'Ip',
-        value: '192.0.2.10',
+        value: '14.',
         decision_type: 'ban',
         origin: 'CAPI',
         scenario: 'http:scan',
@@ -298,7 +309,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       decisionsStub.calledOnceWithExactly({
         limit: 10,
         scope: 'Ip',
-        value: '192.0.2.10',
+        value: '14.',
         decisionType: 'ban',
         origin: 'CAPI',
         scenario: 'http:scan',
@@ -404,7 +415,17 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   });
 
   it('should list CrowdSec LAPI machines through the agent', async () => {
-    const machines = { machines: [] };
+    const machines = {
+      machines: [
+        {
+          name: 'local-machine',
+          state: 'validated' as const,
+          ip_address: '127.0.0.1',
+          os: 'linux',
+          last_heartbeat: '2026-10-16T10:00:00Z',
+        },
+      ],
+    };
     const machinesStub = sinon.stub(communication, 'getCrowdSecLapiMachines').resolves(machines);
 
     const response = await controller.machines({
@@ -573,6 +594,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const validateStub = sinon
       .stub(communication, 'validateCrowdSecLapiMachine')
       .resolves(validation);
+    const machinesStub = sinon
+      .stub(communication, 'getCrowdSecLapiMachines')
+      .resolves({ machines: [] });
     const removeStub = sinon.stub(communication, 'removeCrowdSecLapiMachine').resolves(removal);
 
     const validationResponse = await controller.validateMachine({
@@ -585,10 +609,35 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(validateStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(machinesStub.calledOnce).to.be.true;
     expect(removeStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(removeMachineInstallationStub.called).to.be.false;
     expect(validationResponse.toJSON()).to.include({ status: 200, data: validation });
     expect(removalResponse.toJSON()).to.include({ status: 200, data: removal });
+  });
+
+  it('should reject removal of a local LAPI Machine before calling the agent', async () => {
+    sinon.stub(communication, 'getCrowdSecLapiMachines').resolves({
+      machines: [
+        {
+          name: 'local-machine',
+          state: 'validated',
+          ip_address: '127.0.0.1',
+          os: 'linux',
+          last_heartbeat: null,
+        },
+      ],
+    });
+    const removeStub = sinon.stub(communication, 'removeCrowdSecLapiMachine');
+
+    await expect(
+      controller.removeMachine({
+        params: { machine: 'local-machine' },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'The local CrowdSec LAPI Machine cannot be removed');
+
+    expect(removeStub.called).to.be.false;
   });
 
   it('should replicate manual Machine and Bouncer actions across local LAPI cluster nodes', async () => {
@@ -619,6 +668,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const secondValidateStub = sinon
       .stub(secondCommunication, 'validateCrowdSecLapiMachine')
       .resolves({ state: 'validated' });
+    sinon.stub(communication, 'getCrowdSecLapiMachines').resolves({ machines: [] });
+    sinon.stub(secondCommunication, 'getCrowdSecLapiMachines').resolves({ machines: [] });
     const localMachineRemoveStub = sinon
       .stub(communication, 'removeCrowdSecLapiMachine')
       .resolves({});
@@ -2204,6 +2255,45 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(collectionsStub.called).to.be.false;
   });
 
+  it('should return an installed Collection acquisition from the agent', async () => {
+    sinon.stub(communication, 'getCrowdSecCollections').resolves({
+      collections: [{ name: 'crowdsecurity/nginx', state: 'installed' }],
+    });
+    const acquisition = {
+      collection: 'crowdsecurity/nginx',
+      filePath: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+      state: 'ready' as const,
+      labelType: 'nginx',
+      candidateLabelTypes: [],
+      logPaths: [],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    };
+    const acquisitionStub = sinon
+      .stub(communication, 'getCrowdSecCollectionAcquisition')
+      .resolves(acquisition);
+
+    const response = await controller.collectionAcquisition({
+      query: { name: 'crowdsecurity/nginx' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(acquisitionStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: acquisition });
+  });
+
+  it('should reject a Collection acquisition update when the Collection is not installed', async () => {
+    sinon.stub(communication, 'getCrowdSecCollections').resolves({ collections: [] });
+    const updateStub = sinon.stub(communication, 'updateCrowdSecCollectionAcquisition');
+
+    await expect(
+      controller.updateCollectionAcquisition({
+        body: { name: 'crowdsecurity/nginx', log_paths: [] },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith(HttpException, 'CrowdSec collection is not installed');
+    expect(updateStub.called).to.be.false;
+  });
+
   it('should forward CrowdSec Console status to the agent', async () => {
     const status = { state: 'connected' as const, message: 'CrowdSec Central API is reachable' };
     const statusStub = sinon.stub(communication, 'getCrowdSecConsoleStatus').resolves(status);
@@ -2248,8 +2338,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
-    expect(enrollStub.calledOnceWithExactly({ enrollmentKey, name: 'fwcloud', tags: ['fwcloud'] }))
-      .to.be.true;
+    expect(
+      enrollStub.calledOnceWithExactly({
+        enrollmentKey,
+        name: fwcProduct.firewall.name,
+        tags: ['fwcloud'],
+      }),
+    ).to.be.true;
     expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, false))
       .to.be.true;
     expect(result.toJSON().data).to.deep.equal(response);
@@ -2446,7 +2541,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         {
           limit: 100,
           scope: 'Ip',
-          value: '192.0.2.10',
+          value: '14.',
           decision_type: 'ban',
           origin: 'CAPI',
           scenario: 'http:scan',
@@ -2640,6 +2735,21 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.rejectedWith(ValidationException);
   });
 
+  it('should reject invalid managed acquisition update and parser-selection payloads', async () => {
+    await expect(
+      new Validator(
+        { name: 'crowdsecurity/nginx', log_paths: 'not-an-array' },
+        CrowdSecCollectionAcquisitionUpdateDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+    await expect(
+      new Validator(
+        { name: 'crowdsecurity/nginx', label_type: 'nginx\ninvalid' },
+        CrowdSecCollectionAcquisitionParserSelectionDto,
+      ).validate(),
+    ).to.be.rejectedWith(ValidationException);
+  });
+
   it('should reject collection mutations without access before contacting the agent', async () => {
     managePolicyStub.resolves(Authorization.revoke());
     const installStub = sinon.stub(communication, 'installCrowdSecCollection');
@@ -2733,7 +2843,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(
       enrollStub.calledOnceWithExactly({
         enrollmentKey: 'crowdsec-enrollment-key',
-        name: 'fwcloud-' + fwcProduct.firewall.name,
+        name: fwcProduct.firewall.name,
       }),
     ).to.be.true;
     expect(messages).to.deep.equal([
@@ -3056,6 +3166,84 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(hasMachineDependentsStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(uninstallStub.called).to.be.false;
     expect(removeInstallationStub.called).to.be.false;
+  });
+
+  it('should return paginated CrowdSec blocking statistics history', async () => {
+    const history = sinon.stub().resolves({
+      total: 17,
+      page: 2,
+      limit: 10,
+      samples: [
+        {
+          collectedAt: new Date('2026-10-20T10:00:00.000Z'),
+          policyGeneration: '2',
+          ipv4Input: { packets: 4, bytes: 400 },
+          ipv4Forward: { packets: 3, bytes: 300 },
+          ipv6Input: { packets: 0, bytes: 0 },
+          ipv6Forward: { packets: 0, bytes: 0 },
+        },
+      ],
+    });
+    sinon.stub(CrowdSecBlockingStatisticsSharedService, 'statisticsService').resolves({
+      history,
+    } as never);
+
+    const response = await controller.blockingStatistics({
+      session: { user: null },
+      query: { page: '2', limit: '10' },
+    } as unknown as Request);
+
+    expect(
+      history.calledOnceWithExactly(
+        fwcProduct.firewall.id,
+        { startsAt: undefined, endsAt: undefined },
+        { page: 2, limit: 10 },
+      ),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      samples: [
+        {
+          collected_at: '2026-10-20T10:00:00.000Z',
+          policy_generation: '2',
+          ipv4_input: { packets: 4, bytes: 400 },
+          ipv4_forward: { packets: 3, bytes: 300 },
+          ipv6_input: { packets: 0, bytes: 0 },
+          ipv6_forward: { packets: 0, bytes: 0 },
+        },
+      ],
+      pagination: { page: 2, limit: 10, total: 17, pages: 2 },
+    });
+  });
+
+  it('should list paginated CrowdSec blocking statistics address options', async () => {
+    const addressOptions = sinon.stub().resolves({
+      addresses: ['14.0.0.1', '14.0.0.2'],
+      total: 2,
+      page: 1,
+      limit: 1000,
+    });
+    sinon.stub(CrowdSecBlockingStatisticsSharedService, 'statisticsService').resolves({
+      addressOptions,
+    } as never);
+
+    const response = await controller.blockingStatisticsAddressOptions({
+      session: { user: null },
+      query: { search: '14.0.0.' },
+    } as unknown as Request);
+
+    expect(
+      addressOptions.calledOnceWithExactly(fwcProduct.firewall.id, {
+        startsAt: undefined,
+        endsAt: undefined,
+        page: 1,
+        limit: 1000,
+        search: '14.0.0.',
+      }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      addresses: ['14.0.0.1', '14.0.0.2'],
+      pagination: { page: 1, limit: 1000, total: 2, pages: 1 },
+    });
   });
 
   it('should reject a user without access before contacting the agent', async () => {

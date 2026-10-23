@@ -254,6 +254,13 @@ describe(AgentCommunication.name, () => {
       expect(consoleError.message).to.equal('CrowdSec Console enrollment request is invalid');
     });
 
+    it('should map protected local Machine errors to a conflict', () => {
+      const error = crowdSecAgentErrorToHttpException('CROWDSEC_MACHINE_PROTECTED');
+
+      expect(error.status).to.equal(409);
+      expect(error.message).to.equal('The local CrowdSec LAPI Machine cannot be removed');
+    });
+
     it('should map firewall integration errors without exposing agent details', () => {
       const error = crowdSecAgentErrorToHttpException('CROWDSEC_FIREWALL_INTEGRATION_INVALID');
 
@@ -332,6 +339,82 @@ describe(AgentCommunication.name, () => {
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/collections/update');
       expect(stub.firstCall.args[1]).to.deep.equal({});
     });
+
+    it('should map managed acquisition reads, path updates and parser selection', async () => {
+      const acquisition = {
+        collection: 'crowdsecurity/nginx',
+        file_path: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+        state: 'manual_review_required' as const,
+        candidate_label_types: ['nginx', 'openresty'],
+        log_paths: [],
+        message: 'Manual review is required',
+      };
+      const getStub = sinon.stub(axios, 'get').resolves({ status: 200, data: acquisition });
+      const putStub = sinon.stub(axios, 'put').resolves({
+        status: 200,
+        data: {
+          ...acquisition,
+          state: 'ready',
+          label_type: 'nginx',
+          candidate_label_types: [],
+        },
+      });
+
+      const result = await agent.getCrowdSecCollectionAcquisition('crowdsecurity/nginx');
+      await agent.updateCrowdSecCollectionAcquisition({
+        name: 'crowdsecurity/nginx',
+        logPaths: ['/var/log/nginx/access.log'],
+      });
+      await agent.selectCrowdSecCollectionAcquisitionParser({
+        name: 'crowdsecurity/nginx',
+        labelType: 'nginx',
+      });
+
+      expect(getStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/collections/acquisition',
+      );
+      expect(getStub.firstCall.args[1].params).to.deep.equal({ name: 'crowdsecurity/nginx' });
+      expect(result).to.deep.equal({
+        collection: 'crowdsecurity/nginx',
+        filePath: '/etc/crowdsec/acquis.d/crowdsecurity-nginx.yaml',
+        state: 'manual_review_required',
+        candidateLabelTypes: ['nginx', 'openresty'],
+        logPaths: [],
+        message: 'Manual review is required',
+      });
+      expect(putStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/collections/acquisition',
+      );
+      expect(putStub.firstCall.args[1]).to.deep.equal({
+        name: 'crowdsecurity/nginx',
+        log_paths: ['/var/log/nginx/access.log'],
+      });
+      expect(putStub.secondCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/collections/acquisition/parser',
+      );
+      expect(putStub.secondCall.args[1]).to.deep.equal({
+        name: 'crowdsecurity/nginx',
+        label_type: 'nginx',
+      });
+    });
+
+    it('should preserve managed acquisition path conflict details', () => {
+      const error = crowdSecAgentErrorToHttpException(
+        'CROWDSEC_COLLECTION_ACQUISITION_PATH_CONFLICT',
+        {
+          path: '/var/log/nginx/access.log',
+          conflicting_file_path: '/etc/crowdsec/acquis.d/existing.yaml',
+        },
+      );
+
+      expect(error.status).to.equal(409);
+      expect(error.toResponse()).to.deep.include({
+        errors: {
+          path: '/var/log/nginx/access.log',
+          conflicting_file_path: '/etc/crowdsec/acquis.d/existing.yaml',
+        },
+      });
+    });
   });
 
   describe('CrowdSec Console', () => {
@@ -372,13 +455,24 @@ describe(AgentCommunication.name, () => {
 
   describe('CrowdSec LAPI machines', () => {
     it('should request the central LAPI machine inventory', async () => {
-      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: { machines: [] } });
+      const machines = {
+        machines: [
+          {
+            name: 'local-machine',
+            state: 'validated',
+            ip_address: '127.0.0.1',
+            os: 'linux',
+            last_heartbeat: '2026-10-16T10:00:00Z',
+          },
+        ],
+      };
+      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: machines });
 
       const response = await agent.getCrowdSecLapiMachines();
 
       expect(stub.calledOnce).to.be.true;
       expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/lapi/machines');
-      expect(response).to.deep.equal({ machines: [] });
+      expect(response).to.deep.equal(machines);
     });
 
     it('should forward central LAPI machine operations using the agent contract', async () => {
@@ -550,6 +644,90 @@ describe(AgentCommunication.name, () => {
     });
   });
 
+  describe('CrowdSec Firewall Bouncer statistics', () => {
+    const sample = {
+      collected_at: '2026-10-20T10:00:00.000Z',
+      policy_generation: 2,
+      ipv4_input: { packets: 10, bytes: 1000 },
+      ipv4_forward: { packets: 20, bytes: 2000 },
+      ipv6_input: { packets: 30, bytes: 3000 },
+      ipv6_forward: { packets: 40, bytes: 4000 },
+      addresses: [{ address: '192.0.2.1', packets: 50, bytes: 5000 }],
+    };
+
+    it('should retrieve and consume cached samples from the agent', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: { state: 'available', samples: [sample] },
+      });
+      const putStub = sinon.stub(axios, 'put').resolves({
+        status: 200,
+        data: { state: 'available', samples: [sample] },
+      });
+
+      const statistics = await agent.getCrowdSecFirewallBouncerStatistics();
+      const consumedStatistics = await agent.takeCrowdSecFirewallBouncerStatistics();
+
+      expect(getStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics',
+      );
+      expect(putStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics/samples',
+      );
+      expect(putStub.firstCall.args[1]).to.deep.equal({});
+      expect(statistics).to.deep.equal({
+        state: 'available',
+        samples: [
+          {
+            collectedAt: sample.collected_at,
+            policyGeneration: sample.policy_generation,
+            ipv4Input: sample.ipv4_input,
+            ipv4Forward: sample.ipv4_forward,
+            ipv6Input: sample.ipv6_input,
+            ipv6Forward: sample.ipv6_forward,
+            addresses: sample.addresses,
+          },
+        ],
+      });
+      expect(consumedStatistics).to.deep.equal(statistics);
+    });
+
+    it('should read and update sampling configuration through the agent', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: {
+          enabled: true,
+          sampling_interval: 30,
+          request_max_samples: 1000,
+          cache_max_size: 10485760,
+        },
+      });
+      const putStub = sinon.stub(axios, 'put').resolves({ status: 200 });
+
+      const sampling = await agent.getCrowdSecFirewallBouncerStatisticsSampling();
+      await agent.updateCrowdSecFirewallBouncerStatisticsSampling(sampling);
+
+      expect(getStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics/sampling',
+      );
+      expect(sampling).to.deep.equal({
+        enabled: true,
+        samplingInterval: 30,
+        requestMaxSamples: 1000,
+        cacheMaxSize: 10485760,
+      });
+      expect(putStub.firstCall.args[0]).to.equal(
+        'http://host:0/api/v1/crowdsec/bouncer/statistics/sampling',
+      );
+      expect(putStub.firstCall.args[1]).to.deep.equal({
+        enabled: true,
+        sampling_interval: 30,
+        request_max_samples: 1000,
+        cache_max_size: 10485760,
+      });
+    });
+  });
+
   describe('Firewall policy installation', () => {
     it('should forward the CrowdSec backend in the agent upload form', async () => {
       const append = sinon.spy(FormData.prototype, 'append');
@@ -613,6 +791,7 @@ describe(AgentCommunication.name, () => {
       await agent.getCrowdSecDecisions({
         limit: 10,
         decisionType: 'ban',
+        value: '14.',
         origin: 'CAPI',
       });
       await agent.getCrowdSecAlerts({ decisionType: 'ban', scenario: 'http:scan' });
@@ -621,6 +800,7 @@ describe(AgentCommunication.name, () => {
       expect(getStub.firstCall.args[1].params).to.include({
         limit: 10,
         decision_type: 'ban',
+        value: '14.',
         origin: 'CAPI',
       });
       expect(getStub.secondCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/alerts');

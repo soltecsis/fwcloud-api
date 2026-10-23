@@ -347,13 +347,26 @@ export class CrowdSecLapiSharedService {
     return value;
   }
 
+  static isLoopbackMachineAddress(value: unknown): boolean {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    const address = value.trim().split('[').join('').split(']').join('').toLowerCase();
+    if (['localhost', 'localhost.localdomain', 'lo', 'loopback'].includes(address)) {
+      return true;
+    }
+    if (isIP(address) === 4) {
+      return address.startsWith('127.');
+    }
+    return address === '::1' || address === '0:0:0:0:0:0:0:1';
+  }
+
   static machineNameForFirewall(firewall: Firewall): string {
     const name = firewall.name
       .replace(/[^A-Za-z0-9_.-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
-    const prefix = 'fwcloud-';
-    return `${prefix}${(name || 'node').slice(0, 128 - prefix.length)}`;
+    return (name || 'node').slice(0, 128);
   }
 
   static machineInstallationState(machine: Record<string, unknown>): string | undefined {

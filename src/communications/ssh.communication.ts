@@ -32,12 +32,18 @@ import {
   CCDHash,
   Communication,
   CrowdSecAlertsQuery,
+  CrowdSecCollectionAcquisition,
+  CrowdSecCollectionAcquisitionParserSelection,
+  CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
+  CrowdSecFirewallBouncerStatisticsSamples,
+  CrowdSecFirewallBouncerStatisticsSamplingConfig,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
+  CrowdSecLapiMachines,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
   CrowdSecTransitionPrepare,
@@ -766,6 +772,22 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
+  getCrowdSecCollectionAcquisition(_name: string): Promise<CrowdSecCollectionAcquisition> {
+    throw new Error('Method not implemented.');
+  }
+
+  updateCrowdSecCollectionAcquisition(
+    _acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    throw new Error('Method not implemented.');
+  }
+
+  selectCrowdSecCollectionAcquisitionParser(
+    _selection: CrowdSecCollectionAcquisitionParserSelection,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    throw new Error('Method not implemented.');
+  }
+
   installCrowdSecCollection(_name: string): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
@@ -806,6 +828,24 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
+  getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    throw new Error('Method not implemented.');
+  }
+
+  takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig> {
+    throw new Error('Method not implemented.');
+  }
+
+  updateCrowdSecFirewallBouncerStatisticsSampling(
+    _config: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
   registerCrowdSecBouncer(_name: string): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
@@ -841,7 +881,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
-  getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+  getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines> {
     throw new Error('Method not implemented.');
   }
 

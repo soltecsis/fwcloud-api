@@ -25,12 +25,18 @@ import {
   CCDHash,
   Communication,
   CrowdSecAlertsQuery,
+  CrowdSecCollectionAcquisition,
+  CrowdSecCollectionAcquisitionParserSelection,
+  CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
   CrowdSecFirewallBackend,
+  CrowdSecFirewallBouncerStatisticsSamples,
+  CrowdSecFirewallBouncerStatisticsSamplingConfig,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
+  CrowdSecLapiMachines,
   CrowdSecMachineReauthentication,
   CrowdSecTransitionActivation,
   CrowdSecTransitionPrepare,
@@ -55,6 +61,7 @@ import FormData from 'form-data';
 import * as path from 'path';
 import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
+import { ErrorPayload } from '../fonaments/http/response-builder';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
 
@@ -63,6 +70,41 @@ type AgentCommunicationData = {
   host: string;
   port: number;
   apikey: string;
+};
+
+type CrowdSecFirewallBouncerStatisticsSamplingResponse = {
+  enabled: boolean;
+  sampling_interval: number;
+  request_max_samples: number;
+  cache_max_size: number;
+};
+
+type CrowdSecCollectionAcquisitionResponse = {
+  collection: string;
+  file_path: string;
+  state: 'ready' | 'automatic_configuration_unavailable' | 'manual_review_required';
+  label_type?: string;
+  candidate_label_types: string[];
+  log_paths: string[];
+  message: string;
+};
+
+type CrowdSecCollectionAcquisitionPathConflict = {
+  path: string;
+  conflicting_file_path: string;
+};
+
+type CrowdSecFirewallBouncerStatisticsSamplesResponse = {
+  state: 'available' | 'unavailable';
+  samples: {
+    collected_at: string;
+    policy_generation: number;
+    ipv4_input: { packets: number; bytes: number };
+    ipv4_forward: { packets: number; bytes: number };
+    ipv6_input: { packets: number; bytes: number };
+    ipv6_forward: { packets: number; bytes: number };
+    addresses: { address: string; packets: number; bytes: number }[];
+  }[];
 };
 
 const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: number }> = {
@@ -113,6 +155,10 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
   CROWDSEC_MACHINE_NOT_FOUND: {
     message: 'CrowdSec machine was not found',
     status: 404,
+  },
+  CROWDSEC_MACHINE_PROTECTED: {
+    message: 'The local CrowdSec LAPI Machine cannot be removed',
+    status: 409,
   },
   CROWDSEC_MACHINE_REAUTHENTICATION_REQUIRED: {
     message: 'CrowdSec machine must be registered and validated again',
@@ -166,13 +212,46 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec collection is tainted',
     status: 409,
   },
+  CROWDSEC_COLLECTION_INVALID: {
+    message: 'CrowdSec collection acquisition is invalid',
+    status: 422,
+  },
   CROWDSEC_CONSOLE_INVALID_ENROLLMENT: {
     message: 'CrowdSec Console enrollment request is invalid',
     status: 422,
   },
 };
 
-export function crowdSecAgentErrorToHttpException(code: unknown): HttpException {
+class CrowdSecCollectionAcquisitionPathConflictException extends HttpException {
+  constructor(
+    private readonly path: string,
+    private readonly conflictingFilePath: string,
+  ) {
+    super('CrowdSec acquisition path is already declared in another acquisition file', 409);
+  }
+
+  public toResponse(): ErrorPayload {
+    return {
+      ...super.toResponse(),
+      errors: {
+        path: this.path,
+        conflicting_file_path: this.conflictingFilePath,
+      },
+    };
+  }
+}
+
+export function crowdSecAgentErrorToHttpException(
+  code: unknown,
+  conflict?: CrowdSecCollectionAcquisitionPathConflict,
+): HttpException {
+  if (code === 'CROWDSEC_COLLECTION_ACQUISITION_PATH_CONFLICT' && conflict) {
+    return new CrowdSecCollectionAcquisitionPathConflictException(
+      conflict.path,
+      conflict.conflicting_file_path,
+    );
+  }
+
   const response = typeof code === 'string' ? CROWDSEC_AGENT_ERROR_RESPONSES[code] : undefined;
 
   return response
@@ -200,6 +279,22 @@ const CROWDSEC_PROGRESS_MESSAGE_TYPES: ReadonlySet<CrowdSecProgressMessageType> 
   'warning',
   'error',
 ]);
+
+function crowdSecCollectionAcquisitionPathConflict(
+  data: unknown,
+): CrowdSecCollectionAcquisitionPathConflict | undefined {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const response = data as Record<string, unknown>;
+  return typeof response.path === 'string' && typeof response.conflicting_file_path === 'string'
+    ? {
+        path: response.path,
+        conflicting_file_path: response.conflicting_file_path,
+      }
+    : undefined;
+}
 
 export function parseCrowdSecProgressMessage(message: string): CrowdSecProgressMessage | undefined {
   try {
@@ -1086,6 +1181,54 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async getCrowdSecCollectionAcquisition(name: string): Promise<CrowdSecCollectionAcquisition> {
+    try {
+      const response = await axios.get<CrowdSecCollectionAcquisitionResponse>(
+        this.url + '/api/v1/crowdsec/collections/acquisition',
+        { ...this.config, params: { name } },
+      );
+      return this.crowdSecCollectionAcquisitionResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async updateCrowdSecCollectionAcquisition(
+    acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    try {
+      const response = await axios.put<CrowdSecCollectionAcquisitionResponse>(
+        this.url + '/api/v1/crowdsec/collections/acquisition',
+        {
+          name: acquisition.name,
+          log_paths: acquisition.logPaths,
+        },
+        this.config,
+      );
+      return this.crowdSecCollectionAcquisitionResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async selectCrowdSecCollectionAcquisitionParser(
+    selection: CrowdSecCollectionAcquisitionParserSelection,
+  ): Promise<CrowdSecCollectionAcquisition> {
+    try {
+      const response = await axios.put<CrowdSecCollectionAcquisitionResponse>(
+        this.url + '/api/v1/crowdsec/collections/acquisition/parser',
+        {
+          name: selection.name,
+          label_type: selection.labelType,
+        },
+        this.config,
+      );
+      return this.crowdSecCollectionAcquisitionResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   async installCrowdSecCollection(name: string): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/collections/install', {
@@ -1192,6 +1335,73 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   async getCrowdSecBouncers(): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecGetOperation('/api/v1/crowdsec/bouncers');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    try {
+      const response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplesResponse> =
+        await axios.get(this.url + '/api/v1/crowdsec/bouncer/statistics', this.config);
+
+      return this.crowdSecFirewallBouncerStatisticsSamplesResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples> {
+    try {
+      const response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplesResponse> =
+        await axios.put(this.url + '/api/v1/crowdsec/bouncer/statistics/samples', {}, this.config);
+
+      return this.crowdSecFirewallBouncerStatisticsSamplesResponse(response);
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig> {
+    try {
+      const response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplingResponse> =
+        await axios.get(this.url + '/api/v1/crowdsec/bouncer/statistics/sampling', this.config);
+
+      if (response.status === 200 && response.data) {
+        return {
+          enabled: response.data.enabled,
+          samplingInterval: response.data.sampling_interval,
+          requestMaxSamples: response.data.request_max_samples,
+          cacheMaxSize: response.data.cache_max_size,
+        };
+      }
+
+      throw new Error('Unexpected CrowdSec Firewall Bouncer statistics sampling response');
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async updateCrowdSecFirewallBouncerStatisticsSampling(
+    sampling: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void> {
+    try {
+      const response = await axios.put(
+        this.url + '/api/v1/crowdsec/bouncer/statistics/sampling',
+        {
+          enabled: sampling.enabled,
+          sampling_interval: sampling.samplingInterval,
+          request_max_samples: sampling.requestMaxSamples,
+          cache_max_size: sampling.cacheMaxSize,
+        },
+        this.config,
+      );
+
+      if (response.status === 200) {
+        return;
+      }
+
+      throw new Error('Unexpected CrowdSec Firewall Bouncer statistics sampling update response');
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }
@@ -1332,9 +1542,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getCrowdSecLapiMachines(): Promise<Record<string, unknown>> {
+  async getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines> {
     try {
-      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/machines');
+      return (await this.runCrowdSecGetOperation(
+        '/api/v1/crowdsec/lapi/machines',
+      )) as CrowdSecLapiMachines;
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }
@@ -1593,15 +1805,77 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     throw new Error('Unexpected CrowdSec operation response');
   }
 
+  private crowdSecFirewallBouncerStatisticsSamplesResponse(
+    response: AxiosResponse<CrowdSecFirewallBouncerStatisticsSamplesResponse>,
+  ): CrowdSecFirewallBouncerStatisticsSamples {
+    if (response.status === 200 && response.data && Array.isArray(response.data.samples)) {
+      return {
+        state: response.data.state,
+        samples: response.data.samples.map((sample) => ({
+          collectedAt: sample.collected_at,
+          policyGeneration: sample.policy_generation,
+          ipv4Input: sample.ipv4_input,
+          ipv4Forward: sample.ipv4_forward,
+          ipv6Input: sample.ipv6_input,
+          ipv6Forward: sample.ipv6_forward,
+          addresses: sample.addresses,
+        })),
+      };
+    }
+
+    throw new Error('Unexpected CrowdSec Firewall Bouncer statistics response');
+  }
+
+  private crowdSecCollectionAcquisitionResponse(
+    response: AxiosResponse<CrowdSecCollectionAcquisitionResponse>,
+  ): CrowdSecCollectionAcquisition {
+    const acquisition = response.data;
+    const validState = [
+      'ready',
+      'automatic_configuration_unavailable',
+      'manual_review_required',
+    ].includes(acquisition?.state);
+    const validStringArray = (value: unknown): value is string[] =>
+      Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+
+    if (
+      response.status === 200 &&
+      acquisition &&
+      typeof acquisition.collection === 'string' &&
+      typeof acquisition.file_path === 'string' &&
+      validState &&
+      (acquisition.label_type === undefined || typeof acquisition.label_type === 'string') &&
+      validStringArray(acquisition.candidate_label_types) &&
+      validStringArray(acquisition.log_paths) &&
+      typeof acquisition.message === 'string'
+    ) {
+      return {
+        collection: acquisition.collection,
+        filePath: acquisition.file_path,
+        state: acquisition.state,
+        ...(acquisition.label_type === undefined ? {} : { labelType: acquisition.label_type }),
+        candidateLabelTypes: acquisition.candidate_label_types,
+        logPaths: acquisition.log_paths,
+        message: acquisition.message,
+      };
+    }
+
+    throw new Error('Unexpected CrowdSec collection acquisition response');
+  }
+
   private handleCrowdSecRequestException(error: unknown, eventEmitter?: EventEmitter): never {
     let exception: HttpException;
 
     if (error instanceof HttpException) {
       exception = error;
     } else if (axios.isAxiosError(error)) {
-      const code = error.response?.data?.code;
+      const responseData = error.response?.data;
+      const code = responseData?.code;
       if (code) {
-        exception = crowdSecAgentErrorToHttpException(code);
+        exception = crowdSecAgentErrorToHttpException(
+          code,
+          crowdSecCollectionAcquisitionPathConflict(responseData),
+        );
       } else if (error.code === 'ECONNABORTED') {
         exception = new HttpException('CrowdSec agent request timed out', 504);
       } else if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {

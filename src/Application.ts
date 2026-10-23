@@ -66,6 +66,7 @@ import { ClusterServiceProvider } from './models/firewall/cluster.provider';
 import { OpenVPNPrefixServiceProvider } from './models/vpn/openvpn/openvpn-prefix.provider';
 import { OpenVPNStatusHistoryServiceProvider } from './models/vpn/openvpn/status/openvpn-status-history.provider';
 import { OpenVPNStatusSamplingServiceProvider } from './models/vpn/openvpn/status/openvpn-status-sampling.provider';
+import { CrowdSecBlockingStatisticsServiceProvider } from './models/system/crowdsec/crowdsec-blocking-statistics.provider';
 import { isMainThread } from 'worker_threads';
 import { BackupService } from './backups/backup.service';
 import { PolicyRuleServiceProvider } from './policy-rule/policy-rule.provider';
@@ -174,6 +175,7 @@ export class Application extends HTTPApplication {
       OpenVPNPrefixServiceProvider,
       OpenVPNStatusHistoryServiceProvider,
       OpenVPNStatusSamplingServiceProvider,
+      CrowdSecBlockingStatisticsServiceProvider,
       HAProxyRuleServiceProvider,
       HAProxyGroupServiceProvider,
       PolicyRuleServiceProvider,

@@ -22,7 +22,7 @@
 
 import { Matches } from 'class-validator';
 
-const CROWDSEC_COLLECTION_NAME = /^[A-Za-z0-9._-]{1,64}\/[A-Za-z0-9._-]{1,64}$/;
+export const CROWDSEC_COLLECTION_NAME = /^[A-Za-z0-9._-]{1,64}\/[A-Za-z0-9._-]{1,64}$/;
 
 export class CrowdSecCollectionDto {
   @Matches(CROWDSEC_COLLECTION_NAME, { message: 'Invalid CrowdSec collection name' })

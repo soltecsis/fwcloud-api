@@ -33,7 +33,7 @@ import { CrowdSecInstallationRepository } from '../../../models/system/crowdsec/
 import { FirewallRepository } from '../../../models/firewall/firewall.repository';
 import { CrowdSecPolicy } from '../../../policies/crowdsec.policy';
 import { PgpHelper } from '../../../utils/pgp';
-import { Validate } from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
@@ -44,10 +44,24 @@ import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import {
+  CrowdSecClusterCollectionAcquisitionNodeQueryDto,
+  CrowdSecClusterCollectionAcquisitionQueryDto,
+  CrowdSecCollectionAcquisitionParserSelectionDto,
+  CrowdSecCollectionAcquisitionUpdateDto,
+} from './dto/collection-acquisition.dto';
+import {
   CentralLapiNode,
   CentralLapiReplicationError,
   CrowdSecLapiSharedService,
 } from './crowdsec-lapi-shared.service';
+import { CrowdSecBlockingStatisticsSamplingDto } from './dto/blocking-statistics-sampling.dto';
+import {
+  CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto,
+  CrowdSecBlockingStatisticsClusterAddressOptionsQueryDto,
+  CrowdSecBlockingStatisticsClusterHistoryQueryDto,
+} from './dto/blocking-statistics-history-query.dto';
+import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
+import { CrowdSecCollectionAcquisitionService } from './crowdsec-collection-acquisition.service';
 import {
   Body,
   Example,
@@ -1465,6 +1479,148 @@ export class CrowdSecClusterController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body({ nodes: collections });
   }
 
+  @Validate()
+  @ValidateQuery(CrowdSecClusterCollectionAcquisitionQueryDto)
+  public async collectionAcquisition(req: ExpressRequest): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+    const name = req.query.name as string;
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(communication, name);
+    const acquisition = await communication.getCrowdSecCollectionAcquisition(name);
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionUpdateDto)
+  @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
+  public async updateCollectionAcquisition(req: ExpressRequest): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
+
+    const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.updateCrowdSecCollectionAcquisition({
+      name: req.body.name,
+      logPaths: req.body.log_paths,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
+  @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
+  public async selectCollectionAcquisitionParser(req: ExpressRequest): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
+
+    const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+    await CrowdSecCollectionAcquisitionService.ensureCollectionInstalled(
+      communication,
+      req.body.name,
+    );
+    const acquisition = await communication.selectCrowdSecCollectionAcquisitionParser({
+      name: req.body.name,
+      labelType: req.body.label_type,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(acquisition);
+  }
+
+  @Validate()
+  public async blockingStatisticsSampling(req: ExpressRequest): Promise<ResponseBuilder> {
+    const nodes = await this.getViewNodes(req);
+    const configuration =
+      await CrowdSecBlockingStatisticsSharedService.samplingService().configuration(nodes[0].id);
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        ...CrowdSecBlockingStatisticsSharedService.samplingResponse(configuration),
+        nodes: nodes.map((node) => ({ firewall_id: node.id, name: node.name })),
+      });
+  }
+
+  @Validate(CrowdSecBlockingStatisticsSamplingDto)
+  public async updateBlockingStatisticsSampling(req: ExpressRequest): Promise<ResponseBuilder> {
+    const nodes = await this.getAuthorizedNodes(req, false);
+    const service = CrowdSecBlockingStatisticsSharedService.samplingService();
+    const current = await service.configuration(nodes[0].id);
+    const result = await service.update(nodes, {
+      enabled: req.body.enabled,
+      samplingInterval: req.body.sampling_interval ?? current.samplingInterval,
+      requestMaxSamples: req.body.request_max_samples ?? current.requestMaxSamples,
+      cacheMaxSize: req.body.cache_max_size ?? current.cacheMaxSize,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed: result.completed,
+        ...CrowdSecBlockingStatisticsSharedService.samplingResponse(result.configuration),
+        nodes: result.nodes,
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsClusterHistoryQueryDto)
+  public async blockingStatistics(req: ExpressRequest): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).history(
+      node.id,
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.sampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto)
+  public async blockingStatisticsAddresses(req: ExpressRequest): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    const history = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressHistory(
+      node.id,
+      CrowdSecBlockingStatisticsSharedService.addresses(req.query.addresses),
+      CrowdSecBlockingStatisticsSharedService.range(req),
+      CrowdSecBlockingStatisticsSharedService.pagination(req),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        samples: history.samples.map((sample) =>
+          CrowdSecBlockingStatisticsSharedService.addressSampleResponse(sample),
+        ),
+        pagination: CrowdSecBlockingStatisticsSharedService.paginationResponse(history),
+      });
+  }
+
+  @Validate()
+  @ValidateQuery(CrowdSecBlockingStatisticsClusterAddressOptionsQueryDto)
+  public async blockingStatisticsAddressOptions(req: ExpressRequest): Promise<ResponseBuilder> {
+    const node = await this.getSelectedViewNode(req);
+    const page = await (
+      await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
+    ).addressOptions(node.id, {
+      ...CrowdSecBlockingStatisticsSharedService.range(req),
+      ...CrowdSecBlockingStatisticsSharedService.pagination(req),
+      search: req.query.search as string | undefined,
+    });
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(CrowdSecBlockingStatisticsSharedService.addressOptionsResponse(page));
+  }
+
   @Validate(CrowdSecCollectionDto)
   @OperationId('Install CrowdSec collection in cluster')
   @Post('collections/install')
@@ -2223,6 +2379,27 @@ export class CrowdSecClusterController extends Controller {
       (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
     }
     return nodes;
+  }
+
+  private async getViewNodes(req: ExpressRequest): Promise<Firewall[]> {
+    const nodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
+    if (nodes.length === 0) {
+      throw new HttpException('CrowdSec cluster has no firewall nodes', 409);
+    }
+    for (const node of nodes) {
+      (await CrowdSecPolicy.view(node, req.session.user)).authorize();
+    }
+    return nodes;
+  }
+
+  private async getSelectedViewNode(req: ExpressRequest): Promise<Firewall> {
+    const nodeId = Number(req.query.node_id);
+    const node = this._cluster.firewalls.find((candidate) => candidate.id === nodeId);
+    if (!node) {
+      throw new HttpException('Selected CrowdSec node does not belong to this cluster', 422);
+    }
+    (await CrowdSecPolicy.view(node, req.session.user)).authorize();
+    return node;
   }
 
   private lapiService(): CrowdSecLapiSharedService {

@@ -77,7 +77,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
   });
 
   describe('CrowdSec NFTables compatibility', () => {
-    it('should create timeout-enabled IPv4 and IPv6 blacklist sets', async () => {
+    it('should create counter-enabled IPv4 and IPv6 blacklist sets and named counters', async () => {
       const writes: string[] = [];
       const script = new PolicyScript({}, 1, 1);
       (script as any).stream = {
@@ -90,10 +90,34 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
 
       const output = writes.join('');
       expect(output).to.contain(
-        '$NFT add set ip filter crowdsec-blacklists { type ipv4_addr\\; flags timeout\\; }',
+        '$NFT add set ip filter crowdsec-blacklists { type ipv4_addr\\; flags timeout\\; counter\\; }',
       );
       expect(output).to.contain(
-        '$NFT add set ip6 filter crowdsec6-blacklists { type ipv6_addr\\; flags timeout\\; }',
+        '$NFT add set ip6 filter crowdsec6-blacklists { type ipv6_addr\\; flags timeout\\; counter\\; }',
+      );
+      expect(output).to.contain('$NFT add counter ip filter fwcloud_crowdsec_v4_input');
+      expect(output).to.contain('$NFT add counter ip6 filter fwcloud_crowdsec_v6_forward');
+    });
+
+    it('should create dedicated named IPTables and IP6Tables blocking chains', async () => {
+      const writes: string[] = [];
+      const script = new PolicyScript({}, 1, 1);
+      (script as any).stream = {
+        write: (content: string) => writes.push(content),
+      };
+
+      sinon.stub(Firewall, 'getFirewallOptions').resolves(FireWallOptMask.CROWDSEC_COMPAT);
+
+      await (script as any).dumpCrowdSecIptablesBlockingChains();
+
+      const output = writes.join('');
+      expect(output).to.contain('$IPTABLES -N FWC_CROWDSEC_V4_INPUT');
+      expect(output).to.contain(
+        '$IPTABLES -A FWC_CROWDSEC_V4_INPUT -m set --match-set crowdsec-blacklists src -j DROP',
+      );
+      expect(output).to.contain('$IP6TABLES -N FWC_CROWDSEC_V6_FORWARD');
+      expect(output).to.contain(
+        '$IP6TABLES -A FWC_CROWDSEC_V6_FORWARD -m set --match-set crowdsec6-blacklists src -j DROP',
       );
     });
 
@@ -136,10 +160,15 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
       error = err;
     }
 
+    const blockingAction = ruleData.action === 2;
     const cs =
       compiler === 'IPTables'
-        ? `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
-        : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip${IPv === 'IPv4' ? '' : '6'} saddr @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
+        ? blockingAction
+          ? `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -j FWC_CROWDSEC_${IPv === 'IPv4' ? 'V4' : 'V6'}_${chain}\n`
+          : `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
+        : blockingAction
+          ? `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip${IPv === 'IPv4' ? '' : '6'} saddr @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter name fwcloud_crowdsec_${IPv === 'IPv4' ? 'v4' : 'v6'}_${chain.toLowerCase()} drop comment \\"CrowdSec firewall bouncer support\\"\n`
+          : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip${IPv === 'IPv4' ? '' : '6'} saddr @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
 
     if (
       ruleData.type != PolicyTypesMap.get('IPv4:INPUT') &&
@@ -168,6 +197,34 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
     manager = db.getSource().manager;
     fwcProduct = await new FwCloudFactory().make();
     ruleData.firewall = fwcProduct.firewall.id;
+  });
+
+  describe('CrowdSec blocking rule compilation', () => {
+    after(() => {
+      ruleData.action = 1;
+    });
+
+    it('should compile an IPTables blocking rule through its named chain', async () => {
+      IPv = 'IPv4';
+      compiler = 'IPTables';
+      chain = 'INPUT';
+      ruleData.action = 2;
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+      ruleData.fw_apply_to = null;
+
+      await runTest();
+    });
+
+    it('should compile an NFTables blocking rule through its named counter', async () => {
+      IPv = 'IPv6';
+      compiler = 'NFTables';
+      chain = 'FORWARD';
+      ruleData.action = 2;
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+      ruleData.fw_apply_to = null;
+
+      await runTest();
+    });
   });
 
   describe('IPv4', () => {

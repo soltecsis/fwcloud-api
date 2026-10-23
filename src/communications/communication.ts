@@ -98,6 +98,66 @@ export type CrowdSecConsoleEnrollment = {
 
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
+export type CrowdSecCollectionAcquisitionState =
+  | 'ready'
+  | 'automatic_configuration_unavailable'
+  | 'manual_review_required';
+
+export type CrowdSecCollectionAcquisition = {
+  collection: string;
+  filePath: string;
+  state: CrowdSecCollectionAcquisitionState;
+  labelType?: string;
+  candidateLabelTypes: string[];
+  logPaths: string[];
+  message: string;
+};
+
+export type CrowdSecCollectionAcquisitionUpdate = {
+  name: string;
+  logPaths: string[];
+};
+
+export type CrowdSecCollectionAcquisitionParserSelection = {
+  name: string;
+  labelType: string;
+};
+
+export type CrowdSecFirewallBouncerStatisticsState = 'available' | 'unavailable';
+
+export type CrowdSecFirewallBouncerStatisticsSamplingConfig = {
+  enabled: boolean;
+  samplingInterval: number;
+  requestMaxSamples: number;
+  cacheMaxSize: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsCounter = {
+  packets: number;
+  bytes: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsAddressCounter = {
+  address: string;
+  packets: number;
+  bytes: number;
+};
+
+export type CrowdSecFirewallBouncerStatisticsSample = {
+  collectedAt: string;
+  policyGeneration: number;
+  ipv4Input: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv4Forward: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv6Input: CrowdSecFirewallBouncerStatisticsCounter;
+  ipv6Forward: CrowdSecFirewallBouncerStatisticsCounter;
+  addresses: CrowdSecFirewallBouncerStatisticsAddressCounter[];
+};
+
+export type CrowdSecFirewallBouncerStatisticsSamples = {
+  state: CrowdSecFirewallBouncerStatisticsState;
+  samples: CrowdSecFirewallBouncerStatisticsSample[];
+};
+
 export type CrowdSecMachineInstall = {
   machineName: string;
   lapiUrl: string;
@@ -107,6 +167,18 @@ export type CrowdSecMachineInstall = {
 export type CrowdSecMachineCredentials = {
   login: string;
   password: string;
+};
+
+export type CrowdSecLapiMachine = {
+  name: string;
+  state: 'pending' | 'validated' | 'unknown';
+  ip_address?: string | null;
+  os?: string | null;
+  last_heartbeat?: string | null;
+};
+
+export type CrowdSecLapiMachines = {
+  machines: CrowdSecLapiMachine[];
 };
 
 export type CrowdSecMachineActivation = {
@@ -264,6 +336,13 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
   abstract getCrowdSecCollections(installed?: boolean): Promise<Record<string, unknown>>;
+  abstract getCrowdSecCollectionAcquisition(name: string): Promise<CrowdSecCollectionAcquisition>;
+  abstract updateCrowdSecCollectionAcquisition(
+    acquisition: CrowdSecCollectionAcquisitionUpdate,
+  ): Promise<CrowdSecCollectionAcquisition>;
+  abstract selectCrowdSecCollectionAcquisitionParser(
+    selection: CrowdSecCollectionAcquisitionParserSelection,
+  ): Promise<CrowdSecCollectionAcquisition>;
   abstract installCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecCollection(name: string): Promise<Record<string, unknown>>;
   abstract updateCrowdSecCollections(): Promise<Record<string, unknown>>;
@@ -276,6 +355,12 @@ export abstract class Communication<ConnectionData> {
   abstract flushCrowdSecDecisions(confirm: boolean): Promise<Record<string, unknown>>;
   abstract getCrowdSecAlerts(query?: CrowdSecAlertsQuery): Promise<Record<string, unknown>>;
   abstract getCrowdSecBouncers(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
+  abstract takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
+  abstract getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig>;
+  abstract updateCrowdSecFirewallBouncerStatisticsSampling(
+    config: CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  ): Promise<void>;
   abstract registerCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecBouncer(name: string): Promise<Record<string, unknown>>;
   abstract uninstallCrowdSecBouncer(
@@ -293,7 +378,7 @@ export abstract class Communication<ConnectionData> {
     name: string,
     apiKey: string,
   ): Promise<Record<string, unknown>>;
-  abstract getCrowdSecLapiMachines(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecLapiMachines(): Promise<CrowdSecLapiMachines>;
   abstract validateCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract removeCrowdSecLapiMachine(name: string): Promise<Record<string, unknown>>;
   abstract installCrowdSecMachine(
