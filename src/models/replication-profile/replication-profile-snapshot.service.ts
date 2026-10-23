@@ -28,17 +28,28 @@ import { DefaultPolicyRuleComments } from '../policy/PolicyRule';
 import { PolicyRuleValidityPeriod, policyRuleDateKey } from '../policy/policy-rule-validity';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replication.service';
+import type {
+  PolicyReplicationProvisionAddress,
+  PolicyReplicationProvisionInterface,
+} from './policy-replication.types';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
 import { getProvisionRuleNegationError } from './replication-profile-rule-negation';
 import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
 import { captureProfileObjectReferences } from './replication-profile-object-reference.service';
+import { validateProfileObjectSnapshot } from './replication-profile-object-snapshot';
+import {
+  parseReplicationProfileAddress,
+  type ReplicationProfileParameter,
+} from './replication-profile-parameters';
 import {
   getProfileObjectReferenceLocations,
+  PROFILE_OBJECT_DATA_FIELDS,
   PROFILE_SERVICE_REFERENCE_TYPES,
   type ReplicationProfileObjectReference,
 } from './replication-profile-object-reference';
 import {
+  normalizeProfileObjectOptions,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK,
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
@@ -192,6 +203,9 @@ interface SnapshotIpObjRow {
   fwcloud?: number | null;
   range_start?: string | null;
   range_end?: string | null;
+  comment?: string | null;
+  diff_serv?: number | null;
+  options?: string | number | null;
 }
 
 interface SnapshotGroupRow {
@@ -204,11 +218,6 @@ interface SnapshotGroupRow {
 interface SnapshotObjectLookup {
   objects: Map<number, SnapshotIpObjRow>;
   groups: Map<number, SnapshotGroupRow>;
-}
-
-interface SnapshotProvisionAddress {
-  value: unknown;
-  name?: string;
 }
 
 interface SnapshotProvisionObject {
@@ -238,14 +247,6 @@ function capturedValue<T>(capture: SnapshotCapture<T>): T {
 
 function captureFailure(captures: SnapshotCapture<unknown>[]): { reason: string } | undefined {
   return captures.find((capture): capture is { reason: string } => 'reason' in capture);
-}
-
-interface SnapshotParameter {
-  name: string;
-  type: 'address' | 'network' | 'range';
-  label: string;
-  required: boolean;
-  default: unknown;
 }
 
 interface SnapshotProvisionRule extends PolicyRuleValidityPeriod {
@@ -287,8 +288,8 @@ interface SourceSnapshot {
  * while services retain their complete configuration through external object references.
  */
 class SnapshotValueCollector {
-  private readonly parameters: SnapshotParameter[] = [];
-  private readonly byLiteral = new Map<string, string>();
+  private readonly parameters: ReplicationProfileParameter[] = [];
+  private readonly byLiteral = new Map<string, ReplicationProfileParameter>();
   private readonly usedNames = new Set<string>();
   private readonly serviceReferences = new Map<string, SnapshotServiceReference>();
 
@@ -319,7 +320,12 @@ class SnapshotValueCollector {
     );
   }
 
-  defineInterfaceAddress(role: string, index: number, literal: string): { param: string } {
+  defineInterfaceAddress(
+    role: string,
+    index: number,
+    literal: string,
+    ipVersion: 4 | 6,
+  ): { param: string } {
     const suffix = index === 0 ? '' : `_${index + 1}`;
 
     return this.define(
@@ -327,6 +333,7 @@ class SnapshotValueCollector {
       'address',
       `${role.toUpperCase()} interface address`,
       literal,
+      ipVersion,
     );
   }
 
@@ -341,21 +348,33 @@ class SnapshotValueCollector {
   /** Same literal captured twice reuses one parameter instead of duplicating. */
   private define(
     baseName: string,
-    type: SnapshotParameter['type'],
+    type: ReplicationProfileParameter['type'],
     label: string,
     defaultValue: string | number,
+    ipVersion?: 4 | 6,
   ): { param: string } {
     const literalKey = `${type}:${String(defaultValue)}`;
     const existing = this.byLiteral.get(literalKey);
 
     if (existing) {
-      return { param: existing };
+      if (ipVersion !== undefined) {
+        existing.ipVersion = ipVersion;
+      }
+      return { param: existing.name };
     }
 
     const name = this.uniqueName(baseName || 'VALUE');
 
-    this.parameters.push({ name, type, label, required: true, default: defaultValue });
-    this.byLiteral.set(literalKey, name);
+    const parameter: ReplicationProfileParameter = {
+      name,
+      type,
+      label,
+      required: true,
+      default: defaultValue,
+      ...(ipVersion === undefined ? {} : { ipVersion }),
+    };
+    this.parameters.push(parameter);
+    this.byLiteral.set(literalKey, parameter);
 
     return { param: name };
   }
@@ -382,7 +401,7 @@ class SnapshotValueCollector {
     return /^[A-Z]/.test(slug) ? slug : `P_${slug}`;
   }
 
-  getParameters(): SnapshotParameter[] {
+  getParameters(): ReplicationProfileParameter[] {
     return this.parameters;
   }
 }
@@ -480,20 +499,21 @@ export class ReplicationProfileSnapshotService extends Service {
 
     // assignInterfaceRoles already guarantees uniqueness.
     const roles = Array.from(roleByInterfaceId.values());
-    const profileInterfaces = interfaces.map((iface) => {
+    const profileInterfaces: PolicyReplicationProvisionInterface[] = [];
+    for (const iface of interfaces) {
       const role = roleByInterfaceId.get(iface.id) as string;
-
-      return {
+      profileInterfaces.push({
         name: iface.name,
         role,
-        addresses: this.captureInterfaceAddresses(
+        addresses: await this.captureInterfaceAddresses(
+          iface,
           role,
           addressesByInterface.get(iface.id) ?? [],
           values,
-          warnings,
+          fwCloudId,
         ),
-      };
-    });
+      });
+    }
     const routing = await this.captureRouting(
       resolved.firewall.id,
       roleByInterfaceId,
@@ -1512,33 +1532,65 @@ export class ReplicationProfileSnapshotService extends Service {
   }
 
   /**
-   * Captures the IPv4 addresses configured on a source interface as parameters,
+   * Captures every configured IPv4 and IPv6 address on a source interface as parameters,
    * which is what lets the operator assign different IPs when the template is
    * applied to another firewall.
    */
-  private captureInterfaceAddresses(
+  private async captureInterfaceAddresses(
+    iface: SnapshotInterfaceRow,
     role: string,
     addresses: SnapshotIpObjRow[],
     values: SnapshotValueCollector,
-    warnings: string[],
-  ): SnapshotProvisionAddress[] {
-    const captured: SnapshotProvisionAddress[] = [];
+    fwCloudId: number,
+  ): Promise<PolicyReplicationProvisionAddress[]> {
+    const captured: PolicyReplicationProvisionAddress[] = [];
 
     for (const address of addresses) {
+      const label = `Interface "${iface.name}" (role "${role}"), object "${address.name}" (address "${address.address}", netmask "${address.netmask ?? ''}", IPv${address.ip_version})`;
       if (address.type !== REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS) {
-        warnings.push(
-          `Object "${address.name}" of interface role "${role}" was not captured: only address objects are templated.`,
+        throw new HttpException(
+          `${label} cannot be captured: unsupported interface object type ${address.type}; an address object is required.`,
+          422,
         );
-        continue;
+      }
+
+      const literal = ipObjCidr(address.address, address.netmask);
+      const parsed = parseReplicationProfileAddress(literal, address.ip_version as 4 | 6);
+      const metadata = {
+        comment: address.comment ?? null,
+        diff_serv: address.diff_serv ?? null,
+        options: (normalizeProfileObjectOptions(address.options) ?? null) as number | null,
+      };
+      // Legacy interface addresses carry zeroes in the service port columns. Any other
+      // configured object field must pass the address API schema instead of being omitted.
+      const original = Object.fromEntries(
+        Object.entries(address).filter(
+          ([field, value]) =>
+            (PROFILE_OBJECT_DATA_FIELDS as readonly string[]).includes(field) &&
+            !(field.endsWith('_port_start') || field.endsWith('_port_end') ? value === 0 : false),
+        ),
+      );
+      const invalid = await validateProfileObjectSnapshot(
+        {
+          ...original,
+          ...metadata,
+        },
+        REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
+        fwCloudId,
+        { checkDestination: false },
+      );
+      if (invalid || !parsed || (address.ip_version !== 4 && address.ip_version !== 6)) {
+        throw new HttpException(
+          `${label} cannot be captured: ${invalid ?? 'the address, family or netmask cannot be represented by the template.'}`,
+          422,
+        );
       }
 
       captured.push({
-        value: values.defineInterfaceAddress(
-          role,
-          captured.length,
-          ipObjCidr(address.address, address.netmask),
-        ),
+        value: values.defineInterfaceAddress(role, captured.length, literal, parsed.ipVersion),
         name: address.name,
+        ipVersion: parsed.ipVersion,
+        ...metadata,
       });
     }
 
@@ -1553,8 +1605,8 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     const rows = await dbQuery<SnapshotIpObjRow>(
-      `SELECT id, name, type, ip_version, address, netmask, interface FROM ipobj
-       WHERE interface IN (${sqlPlaceholders(interfaceIds.length)}) AND ip_version = 4
+      `SELECT id, interface, ${PROFILE_OBJECT_DATA_FIELDS.join(', ')} FROM ipobj
+       WHERE interface IN (${sqlPlaceholders(interfaceIds.length)})
        ORDER BY id`,
       interfaceIds,
     );
@@ -1562,11 +1614,7 @@ export class ReplicationProfileSnapshotService extends Service {
     const byInterface = new Map<number, SnapshotIpObjRow[]>();
 
     for (const row of rows) {
-      if (!byInterface.has(row.interface!)) {
-        byInterface.set(row.interface!, []);
-      }
-
-      byInterface.get(row.interface!)!.push(row);
+      addToList(byInterface, row.interface!, row);
     }
 
     return byInterface;
