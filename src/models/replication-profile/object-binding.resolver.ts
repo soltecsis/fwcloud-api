@@ -36,7 +36,6 @@ import {
 } from './replication-profile-object-reference';
 import {
   findExistingProfileSnapshot,
-  pickProfileFields,
   PROFILE_HOST_INTERFACE_COLUMNS,
   profileObjectSnapshotKey,
   validateProfileObjectSnapshot,
@@ -48,6 +47,8 @@ import {
   REPLICATION_PROFILE_IPOBJ_TYPE_RANGE,
   REPLICATION_PROFILE_IPOBJ_TYPE_HOST,
   REPLICATION_PROFILE_PROTOCOL_BY_IPOBJ_TYPE,
+  pickProfileFields,
+  PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS,
   ReplicationProfileIpVersion,
   ReplicationProfileObjectKind,
   ReplicationProfileRecord,
@@ -65,7 +66,9 @@ export type ObjectBindingRequest =
       address: string;
       netmask: string;
       name?: string;
-      comment?: string;
+      comment?: string | null;
+      diff_serv?: number | null;
+      options?: string | number | null;
       /** Keep the application-selected IP name and comment when matching an interface address. */
       useSelectedConfiguration?: boolean;
       /** Binds the address to a firewall interface (used for provisioned IPs). */
@@ -409,9 +412,11 @@ export class ObjectBindingResolver {
       return `range:${request.ipVersion}:${request.start}:${request.end}`;
     }
 
-    const selected = request.useSelectedConfiguration
-      ? `:${JSON.stringify([request.name, request.comment ?? ''])}`
-      : '';
+    const metadata = pickProfileFields(request, PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS);
+    const selected =
+      request.useSelectedConfiguration || Object.keys(metadata).length > 0
+        ? `:${JSON.stringify({ name: request.name, ...metadata, useSelectedConfiguration: request.useSelectedConfiguration })}`
+        : '';
     return `${request.kind}:${request.ipVersion}:${request.address}:${request.netmask}:${request.interfaceId ?? 0}${selected}`;
   }
 
@@ -438,17 +443,33 @@ export class ObjectBindingResolver {
 
     // An address bound to an interface must match that interface: the same
     // literal IP under a different interface is a different object.
-    return this.findObject(
-      `type = ? AND ip_version = ? AND address = ? AND netmask = ? AND interface <=> ?${request.useSelectedConfiguration ? " AND name = ? AND COALESCE(comment, '') = ?" : ''}`,
-      [
-        REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[request.kind],
-        request.ipVersion,
-        request.address,
-        request.netmask,
-        request.interfaceId ?? null,
-        ...(request.useSelectedConfiguration ? [request.name, request.comment ?? ''] : []),
-      ],
-    );
+    const metadata = pickProfileFields(request, PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS);
+    const conditions = [
+      'type = ?',
+      'ip_version = ?',
+      'address = ?',
+      'netmask = ?',
+      'interface <=> ?',
+    ];
+    const params: unknown[] = [
+      REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND[request.kind],
+      request.ipVersion,
+      request.address,
+      request.netmask,
+      request.interfaceId ?? null,
+    ];
+    if (request.useSelectedConfiguration || Object.keys(metadata).length > 0) {
+      conditions.push('name = ?');
+      params.push(request.name ?? this.defaultName(request));
+    }
+    for (const [field, value] of Object.entries(metadata)) {
+      conditions.push(`${field} <=> ?`);
+      params.push(value);
+    }
+    if (request.useSelectedConfiguration && request.comment === undefined) {
+      conditions.push("COALESCE(comment, '') = ''");
+    }
+    return this.findObject(conditions.join(' AND '), params);
   }
 
   /** The oldest object of the FWCloud matching the condition, as a binding that reuses it. */
@@ -503,7 +524,7 @@ export class ObjectBindingResolver {
         netmask: request.netmask,
         ip_version: request.ipVersion,
         interfaceId: request.interfaceId ?? null,
-        ...(request.comment === undefined ? {} : { comment: request.comment }),
+        ...pickProfileFields(request, PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS),
       },
       request.interfaceId === undefined,
     );

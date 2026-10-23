@@ -47,6 +47,7 @@ import {
 import {
   profileSnapshotHasIpVersion,
   validateProfileObjectSnapshotPlan,
+  validateProfileObjectSnapshot,
 } from './replication-profile-object-snapshot';
 import {
   dereferenceParameter,
@@ -63,6 +64,9 @@ import {
 import {
   REPLICATION_PROFILE_FAMILY_TYPES,
   isReplicationProfileRuleOptions,
+  normalizeProfileObjectOptions,
+  pickProfileFields,
+  PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS,
   REPLICATION_PROFILE_IPOBJ_TYPE_ADDRESS,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND,
   REPLICATION_PROFILE_IPOBJ_TYPE_BY_PROTOCOL,
@@ -521,6 +525,14 @@ export class PolicyReplicationService extends Service {
       return result;
     }
 
+    // Validate every address with the native object rules before creating any interfaces.
+    result.errors.push(
+      ...(await this.validateProvisionInterfaceAddresses(provision, parameterValues, fwCloudId)),
+    );
+    if (result.errors.length > 0) {
+      return result;
+    }
+
     const existingInterfaces = await this.loadFirewallInterfaces(firewallId);
     const mappedInterfaceIds = this.resolveMappedInterfaces(
       provision,
@@ -779,6 +791,49 @@ export class PolicyReplicationService extends Service {
     return mappedIds;
   }
 
+  private async validateProvisionInterfaceAddresses(
+    provision: PolicyReplicationProvision,
+    parameterValues: Map<string, unknown>,
+    fwCloudId: number,
+  ): Promise<string[]> {
+    const errors: string[] = [];
+    for (const iface of provision.interfaces) {
+      for (const [index, declared] of iface.addresses.entries()) {
+        const raw = dereferenceParameter(declared.value, parameterValues);
+        if (raw === undefined) {
+          continue;
+        }
+        const label = `Interface "${iface.name}" (role "${iface.role}"), address ${index + 1} "${describeReplicationProfileValue(raw)}"`;
+        const parsed = parseReplicationProfileAddress(raw, declared.ipVersion);
+        if (!parsed) {
+          errors.push(`${label}: invalid IP address, prefix or address family.`);
+          continue;
+        }
+        const metadata = pickProfileFields(declared, PROFILE_INTERFACE_ADDRESS_METADATA_FIELDS);
+        if (metadata.options !== undefined) {
+          metadata.options = normalizeProfileObjectOptions(metadata.options);
+        }
+        const invalid = await validateProfileObjectSnapshot(
+          {
+            type: REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND.address,
+            name: declared.name ?? `${iface.name}-${index === 0 ? 'ip' : `ip${index + 1}`}`,
+            address: parsed.address,
+            netmask: parsed.netmask,
+            ip_version: parsed.ipVersion,
+            ...metadata,
+          },
+          REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND.address,
+          fwCloudId,
+          { checkDestination: false },
+        );
+        if (invalid) {
+          errors.push(`${label}: ${invalid}`);
+        }
+      }
+    }
+    return errors;
+  }
+
   private async provisionInterfaceAddresses(
     iface: PolicyReplicationProvisionInterface,
     interfaceId: number,
@@ -795,7 +850,7 @@ export class PolicyReplicationService extends Service {
         continue;
       }
 
-      const parsed = parseReplicationProfileAddress(raw);
+      const parsed = parseReplicationProfileAddress(raw, declared.ipVersion);
 
       if (!parsed) {
         result.errors.push(
@@ -811,6 +866,8 @@ export class PolicyReplicationService extends Service {
         netmask: parsed.netmask,
         name: declared.name ?? `${iface.name}-${index === 0 ? 'ip' : `ip${index + 1}`}`,
         comment: declared.comment,
+        diff_serv: declared.diff_serv,
+        options: declared.options,
         useSelectedConfiguration: declared.useSelectedConfiguration,
         interfaceId: isDryRun ? undefined : interfaceId,
       });

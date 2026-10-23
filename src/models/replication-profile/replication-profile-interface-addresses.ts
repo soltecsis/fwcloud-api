@@ -24,6 +24,7 @@ import type {
   PolicyReplicationInterfaceAddressOverrides,
   PolicyReplicationProvision,
   PolicyReplicationProvisionAddress,
+  PolicyReplicationProvisionInterface,
 } from './policy-replication.types';
 import {
   asReplicationProfileNonEmptyString,
@@ -64,7 +65,10 @@ export async function applyInterfaceAddressOverrides(
   }
 
   const errors: string[] = [];
-  const selected = new Map<string, PolicyReplicationProvisionAddress[]>();
+  const selected = new Map<
+    PolicyReplicationProvisionInterface,
+    PolicyReplicationProvisionAddress[]
+  >();
   const interfaces = new Map(provision.interfaces.map((iface) => [iface.role, iface]));
   const parametersByName = new Map(parameters.map((parameter) => [parameter.name, parameter]));
 
@@ -115,20 +119,21 @@ export async function applyInterfaceAddressOverrides(
       }
       names.add(nameKey);
 
-      const declared = iface.addresses[index].value;
-      const sourceParameter = isReplicationProfileParameterRef(declared)
-        ? declared.param
+      const declared = iface.addresses[index];
+      const sourceParameter = isReplicationProfileParameterRef(declared.value)
+        ? declared.value.param
         : undefined;
       const parameter =
         sourceParameter === undefined ? undefined : parametersByName.get(sourceParameter);
       const originalValue =
         sourceParameter !== undefined
           ? (parameter?.default ?? parameterValues?.[sourceParameter])
-          : declared;
+          : declared.value;
       const expectedIpVersion =
-        parameter?.ipVersion ?? parseReplicationProfileAddress(originalValue)?.ipVersion;
-      const parsed =
-        raw.split('/').length <= 2 ? parseReplicationProfileAddress(raw, expectedIpVersion) : null;
+        declared.ipVersion ??
+        parameter?.ipVersion ??
+        parseReplicationProfileAddress(originalValue)?.ipVersion;
+      const parsed = parseReplicationProfileAddress(raw, expectedIpVersion);
 
       if (!parsed) {
         errors.push(
@@ -156,6 +161,7 @@ export async function applyInterfaceAddressOverrides(
       }
 
       addresses.push({
+        ...declared,
         name,
         value: raw,
         ...(sourceParameter === undefined ? {} : { sourceParameter }),
@@ -163,12 +169,12 @@ export async function applyInterfaceAddressOverrides(
         useSelectedConfiguration: true,
       });
     }
-    selected.set(role, addresses);
+    selected.set(iface, addresses);
   }
 
   if (errors.length === 0) {
-    for (const [role, addresses] of selected) {
-      interfaces.get(role)!.addresses = addresses;
+    for (const [iface, addresses] of selected) {
+      iface.addresses = addresses;
     }
   }
 

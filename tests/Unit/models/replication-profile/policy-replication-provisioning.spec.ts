@@ -15,6 +15,7 @@ import {
   PolicyReplicationProvision,
 } from '../../../../src/models/replication-profile/policy-replication.types';
 import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
+import { applyInterfaceAddressOverrides } from '../../../../src/models/replication-profile/replication-profile-interface-addresses';
 
 /**
  * A two-interface edge profile written entirely in terms of parameters: this is
@@ -187,6 +188,163 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     // One source network plus one service.
     expect(ruleObjects).to.have.length(2);
   });
+
+  it('should preserve native IPv6 address settings when deployment overrides select an address', async () => {
+    const model = {
+      parameters: [{ name: 'V6', type: 'address', ipVersion: 6, default: '2001:db8::10/127' }],
+      provision: {
+        interfaces: [
+          {
+            name: 'eth0',
+            role: 'lan',
+            addresses: [
+              {
+                name: 'Original IPv6',
+                value: { param: 'V6' },
+                ipVersion: 6,
+                comment: 'Original comment',
+                diff_serv: 12,
+                options: '0',
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const captured = getProfileProvisioning(model);
+    expect(
+      await applyInterfaceAddressOverrides(
+        captured,
+        { lan: [{ name: 'Selected IPv6', value: '2001:0DB8::20/127' }] },
+        getProfileParameters(model),
+        undefined,
+        fwc.fwcloud.id,
+      ),
+    ).to.be.empty;
+    const result = await service.provisionPolicyFromProfile(
+      { kind: 'firewall', id: targetFirewall.id },
+      captured,
+      fwc.fwcloud.id,
+      'merge',
+      { parameters: getProfileParameters(model) },
+    );
+    expect(result.errors).to.be.empty;
+    expect(result.applied).to.equal(true);
+    const [row] = await db
+      .getSource()
+      .query(
+        'SELECT O.* FROM ipobj O JOIN interface I ON I.id = O.interface WHERE I.firewall = ?',
+        [targetFirewall.id],
+      );
+    expect(row).to.include({
+      name: 'Selected IPv6',
+      address: '2001:0DB8::20',
+      netmask: '/127',
+      ip_version: 6,
+      comment: 'Original comment',
+      diff_serv: 12,
+      options: '0',
+    });
+  });
+
+  it('should preserve unset captured IPv6 settings instead of reusing different destination settings', async () => {
+    const iface = await db.getSource().manager.getRepository(Interface).save({
+      name: 'eth0',
+      type: '10',
+      interface_type: '10',
+      firewallId: targetFirewall.id,
+    });
+    const existing = await db.getSource().manager.getRepository(IPObj).save({
+      name: 'IPv6',
+      address: '2001:db8::1',
+      netmask: '/64',
+      ip_version: 6,
+      ipObjTypeId: 5,
+      fwCloudId: fwc.fwcloud.id,
+      interfaceId: iface.id,
+      comment: 'Destination comment',
+      diff_serv: 12,
+      options: '1',
+    });
+    const result = await service.provisionPolicyFromProfile(
+      { kind: 'firewall', id: targetFirewall.id },
+      getProfileProvisioning({
+        provision: {
+          interfaces: [
+            {
+              name: 'eth0',
+              role: 'lan',
+              addresses: [
+                {
+                  name: 'IPv6',
+                  value: '2001:db8::1/64',
+                  ipVersion: 6,
+                  comment: null,
+                  diff_serv: null,
+                  options: null,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      fwc.fwcloud.id,
+      'merge',
+    );
+    expect(result.errors).to.be.empty;
+    expect(result.applied).to.equal(true);
+    const rows = await db
+      .getSource()
+      .manager.getRepository(IPObj)
+      .findBy({ interfaceId: iface.id });
+    expect(rows).to.have.length(2);
+    expect(rows.find((row) => row.id !== existing.id)).to.include({
+      ip_version: 6,
+      address: '2001:db8::1',
+      netmask: '/64',
+      comment: null,
+      diff_serv: null,
+      options: null,
+    });
+    expect(rows.find((row) => row.id === existing.id)).to.include({
+      comment: 'Destination comment',
+      diff_serv: 12,
+      options: '1',
+    });
+  });
+
+  for (const address of [
+    { value: '2001:db8:::1/64' },
+    { value: '2001:db8::1/129' },
+    { value: '2001:db8::1/64/128' },
+    { value: '2001:db8::1/64', ipVersion: 4 },
+    { value: '2001:db8::1/64', options: 'invalid' },
+  ]) {
+    it(`should reject invalid IPv6 configuration before writing any interfaces: ${JSON.stringify(address)}`, async () => {
+      const result = await service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: targetFirewall.id },
+        getProfileProvisioning({
+          provision: {
+            interfaces: [
+              { name: 'valid-first', role: 'first', addresses: ['192.0.2.1/24'] },
+              { name: 'invalid-second', role: 'second', addresses: [address] },
+            ],
+          },
+        }),
+        fwc.fwcloud.id,
+        'merge',
+      );
+      expect(result.applied).to.equal(false);
+      expect(result.errors).to.have.length(1);
+      expect(result.errors[0]).to.include('invalid-second').and.to.include(address.value);
+      expect(
+        await db
+          .getSource()
+          .manager.getRepository(Interface)
+          .countBy({ firewallId: targetFirewall.id }),
+      ).to.equal(0);
+    });
+  }
 
   it('should bind a role to the target interface assigned to it instead of creating one', async () => {
     const eth1 = await db.getSource().manager.getRepository(Interface).save({
