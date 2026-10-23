@@ -61,6 +61,7 @@ import FormData from 'form-data';
 import * as path from 'path';
 import * as https from 'https';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
+import { ErrorPayload } from '../fonaments/http/response-builder';
 import { app } from '../fonaments/abstract-application';
 import WebSocket from 'ws';
 
@@ -86,6 +87,11 @@ type CrowdSecCollectionAcquisitionResponse = {
   candidate_label_types: string[];
   log_paths: string[];
   message: string;
+};
+
+type CrowdSecCollectionAcquisitionPathConflict = {
+  path: string;
+  conflicting_file_path: string;
 };
 
 type CrowdSecFirewallBouncerStatisticsSamplesResponse = {
@@ -206,13 +212,46 @@ const CROWDSEC_AGENT_ERROR_RESPONSES: Record<string, { message: string; status: 
     message: 'CrowdSec collection is tainted',
     status: 409,
   },
+  CROWDSEC_COLLECTION_INVALID: {
+    message: 'CrowdSec collection acquisition is invalid',
+    status: 422,
+  },
   CROWDSEC_CONSOLE_INVALID_ENROLLMENT: {
     message: 'CrowdSec Console enrollment request is invalid',
     status: 422,
   },
 };
 
-export function crowdSecAgentErrorToHttpException(code: unknown): HttpException {
+class CrowdSecCollectionAcquisitionPathConflictException extends HttpException {
+  constructor(
+    private readonly path: string,
+    private readonly conflictingFilePath: string,
+  ) {
+    super('CrowdSec acquisition path is already declared in another acquisition file', 409);
+  }
+
+  public toResponse(): ErrorPayload {
+    return {
+      ...super.toResponse(),
+      errors: {
+        path: this.path,
+        conflicting_file_path: this.conflictingFilePath,
+      },
+    };
+  }
+}
+
+export function crowdSecAgentErrorToHttpException(
+  code: unknown,
+  conflict?: CrowdSecCollectionAcquisitionPathConflict,
+): HttpException {
+  if (code === 'CROWDSEC_COLLECTION_ACQUISITION_PATH_CONFLICT' && conflict) {
+    return new CrowdSecCollectionAcquisitionPathConflictException(
+      conflict.path,
+      conflict.conflicting_file_path,
+    );
+  }
+
   const response = typeof code === 'string' ? CROWDSEC_AGENT_ERROR_RESPONSES[code] : undefined;
 
   return response
@@ -240,6 +279,22 @@ const CROWDSEC_PROGRESS_MESSAGE_TYPES: ReadonlySet<CrowdSecProgressMessageType> 
   'warning',
   'error',
 ]);
+
+function crowdSecCollectionAcquisitionPathConflict(
+  data: unknown,
+): CrowdSecCollectionAcquisitionPathConflict | undefined {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const response = data as Record<string, unknown>;
+  return typeof response.path === 'string' && typeof response.conflicting_file_path === 'string'
+    ? {
+        path: response.path,
+        conflicting_file_path: response.conflicting_file_path,
+      }
+    : undefined;
+}
 
 export function parseCrowdSecProgressMessage(message: string): CrowdSecProgressMessage | undefined {
   try {
@@ -1814,9 +1869,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     if (error instanceof HttpException) {
       exception = error;
     } else if (axios.isAxiosError(error)) {
-      const code = error.response?.data?.code;
+      const responseData = error.response?.data;
+      const code = responseData?.code;
       if (code) {
-        exception = crowdSecAgentErrorToHttpException(code);
+        exception = crowdSecAgentErrorToHttpException(
+          code,
+          crowdSecCollectionAcquisitionPathConflict(responseData),
+        );
       } else if (error.code === 'ECONNABORTED') {
         exception = new HttpException('CrowdSec agent request timed out', 504);
       } else if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {
