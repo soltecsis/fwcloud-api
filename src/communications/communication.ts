@@ -98,6 +98,26 @@ export type CrowdSecConsoleEnrollment = {
 
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
+export type CrowdSecCollectionAcquisitionState =
+  | 'ready'
+  | 'automatic_configuration_unavailable'
+  | 'manual_review_required';
+
+export type CrowdSecCollectionAcquisition = {
+  collection: string;
+  filePath: string;
+  state: CrowdSecCollectionAcquisitionState;
+  labelType?: string;
+  candidateLabelTypes: string[];
+  logPaths: string[];
+  message: string;
+};
+
+export type CrowdSecCollectionAcquisitionUpdate = {
+  name: string;
+  logPaths: string[];
+};
+
 export type CrowdSecFirewallBouncerStatisticsState = 'available' | 'unavailable';
 
 export type CrowdSecFirewallBouncerStatisticsSamplingConfig = {
