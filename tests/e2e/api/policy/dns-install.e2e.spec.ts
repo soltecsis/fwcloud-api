@@ -30,6 +30,7 @@ import { Application } from '../../../../src/Application';
 import { describeName, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
+import { buildDockerImage, DOCKER_IMAGE_BUILD_TIMEOUT } from '../../../utils/docker-image';
 import db from '../../../../src/database/database-manager';
 import { User } from '../../../../src/models/user/User';
 import { Firewall, FirewallInstallCommunication } from '../../../../src/models/firewall/Firewall';
@@ -153,10 +154,10 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
       .send({ fwcloud: fwc.fwcloud.id, firewall: firewall.id });
   }
 
-  before('build the DNS firewall image', function () {
+  before('build the DNS firewall image', async function () {
     // A cold build downloads Ubuntu packages and must not consume the firewall startup timeout.
-    const buildTimeout = 300000;
-    this.timeout(buildTimeout + 10000);
+    // Include the Docker availability probe (30 seconds) in the hook's separate deadline.
+    this.timeout(DOCKER_IMAGE_BUILD_TIMEOUT + 40000);
 
     try {
       docker('info');
@@ -164,18 +165,7 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
       this.skip();
     }
 
-    execFileSync(
-      'docker',
-      [
-        'build',
-        '--progress=plain',
-        '-t',
-        image,
-        path.join(process.cwd(), 'tests', 'fixtures', 'dns-firewall'),
-      ],
-      // Capture build progress without printing it; failures retain the Docker diagnostics.
-      { stdio: 'pipe', timeout: buildTimeout, maxBuffer: 10 * 1024 * 1024 },
-    );
+    await buildDockerImage(image, path.join(process.cwd(), 'tests', 'fixtures', 'dns-firewall'));
   });
 
   before('start the DNS firewall containers', async function () {
