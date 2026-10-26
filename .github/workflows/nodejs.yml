@@ -182,6 +182,7 @@ jobs:
             ].join("\n"));
           '
       - name: Install Trivy
+        id: install_trivy
         run: |
           curl --fail --silent --show-error --location \
             "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${TRIVY_ARCHIVE}" \
@@ -202,20 +203,24 @@ jobs:
           "$TRIVY_BINARY" fs . --scanners vuln --pkg-types library \
             --include-dev-deps --list-all-pkgs --no-progress \
             --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --ignore-unfixed=false \
-            --exit-code 0 --format json --output reports/dependencies/trivy.json
-          STATUS=$?
+            --exit-code 0 --format json --output reports/dependencies/trivy.json \
+            2>&1 | tee reports/dependencies/scan.log
+          CODES=("${PIPESTATUS[@]}")
           set -e
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "exit_code=${CODES[0]}" >> "$GITHUB_OUTPUT"
+          test "${CODES[1]}" -eq 0
       - name: Generate CycloneDX SBOM
         id: sbom
         run: |
           : > reports/dependencies/sbom.cdx.json
           set +e
           "$TRIVY_BINARY" fs . --include-dev-deps --no-progress \
-            --format cyclonedx --output reports/dependencies/sbom.cdx.json
-          STATUS=$?
+            --format cyclonedx --output reports/dependencies/sbom.cdx.json \
+            2>&1 | tee reports/dependencies/sbom.log
+          CODES=("${PIPESTATUS[@]}")
           set -e
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "exit_code=${CODES[0]}" >> "$GITHUB_OUTPUT"
+          test "${CODES[1]}" -eq 0
       - name: Record Trivy and database versions
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
         run: '"$TRIVY_BINARY" version --format json > reports/dependencies/trivy-version.json'
@@ -226,20 +231,48 @@ jobs:
           set +e
           "$TRIVY_BINARY" convert --format table --scanners vuln \
             --severity "$TRIVY_BLOCKING_SEVERITIES" --exit-code "$TRIVY_FINDINGS_EXIT_CODE" \
-            reports/dependencies/trivy.json
-          STATUS=$?
+            reports/dependencies/trivy.json 2>&1 | tee reports/dependencies/blocking.txt
+          CODES=("${PIPESTATUS[@]}")
           set -e
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
-          test "$STATUS" -eq 0
+          echo "exit_code=${CODES[0]}" >> "$GITHUB_OUTPUT"
+          test "${CODES[1]}" -eq 0
+          exit "${CODES[0]}"
       - name: Verify and summarize dependency scan
-        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        id: sca_summary
+        if: ${{ always() }}
         env:
           TRIVY_EXIT_CODE: ${{ steps.trivy.outputs.exit_code }}
           TRIVY_SBOM_EXIT_CODE: ${{ steps.sbom.outputs.exit_code }}
           TRIVY_POLICY_EXIT_CODE: ${{ steps.trivy_policy.outputs.exit_code }}
-        run: node scripts/trivy-report.cjs
+        run: |
+          mkdir -p reports/dependencies
+          node scripts/trivy-report.cjs
+      - name: Record dependency analysis context even after an earlier failure
+        if: ${{ always() }}
+        env:
+          INSTALL_RESULT: ${{ steps.install_trivy.outcome }}
+          SCAN_RESULT: ${{ steps.trivy.outcome }}
+          SCAN_EXIT_CODE: ${{ steps.trivy.outputs.exit_code }}
+          SBOM_RESULT: ${{ steps.sbom.outcome }}
+          SBOM_EXIT_CODE: ${{ steps.sbom.outputs.exit_code }}
+          GATE_RESULT: ${{ steps.trivy_policy.outcome }}
+          GATE_EXIT_CODE: ${{ steps.trivy_policy.outputs.exit_code }}
+          SUMMARY_RESULT: ${{ steps.sca_summary.outcome }}
+        run: |
+          mkdir -p reports/dependencies
+          {
+            printf '## API dependency analysis context\n\nSource: %s@%s\n\n' "$GITHUB_REPOSITORY" "$ANALYSIS_COMMIT"
+            printf 'Run: %s/%s/actions/runs/%s/attempts/%s\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+            printf 'Trivy installation: %s; configured version: %s\n\n' "$INSTALL_RESULT" "${TRIVY_VERSION:-unavailable}"
+            printf 'Scan step: %s; native exit code: %s\n' "$SCAN_RESULT" "${SCAN_EXIT_CODE:-not run}"
+            printf 'SBOM step: %s; native exit code: %s\n' "$SBOM_RESULT" "${SBOM_EXIT_CODE:-not run}"
+            printf 'Gate step: %s; native exit code: %s\n' "$GATE_RESULT" "${GATE_EXIT_CODE:-not run}"
+            printf 'Evidence validation: %s\n\n' "$SUMMARY_RESULT"
+            printf 'Gate codes: 0 = accepted; %s = blocking findings; other nonzero = operational error.\n' "${TRIVY_FINDINGS_EXIT_CODE:-5}"
+            printf 'Consult blocking.txt, scan.log, sbom.log and metadata.json when available. Missing reports or skipped steps do not constitute a successful scan.\n'
+          } | tee reports/dependencies/context.txt >> "$GITHUB_STEP_SUMMARY"
       - name: Upload dependency security evidence
-        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: backend-sca-sbom-${{ github.run_id }}-${{ github.run_attempt }}
@@ -248,6 +281,10 @@ jobs:
             reports/dependencies/sbom.cdx.json
             reports/dependencies/trivy.json
             reports/dependencies/trivy-version.json
+            reports/dependencies/blocking.txt
+            reports/dependencies/context.txt
+            reports/dependencies/scan.log
+            reports/dependencies/sbom.log
           retention-days: 90
           if-no-files-found: error
 

@@ -704,6 +704,10 @@ reports/dependencies/metadata.json
 reports/dependencies/sbom.cdx.json
 reports/dependencies/trivy.json
 reports/dependencies/trivy-version.json
+reports/dependencies/blocking.txt
+reports/dependencies/context.txt
+reports/dependencies/scan.log
+reports/dependencies/sbom.log
 ```
 
 Desde la simplificación `simplifyTrivyCi`, el informe detallado `trivy.json` se
@@ -712,6 +716,20 @@ necesitar un lanzador local. El gate imprime además la tabla HIGH/CRITICAL en e
 log. `trivy-version.json` conserva versión y fechas de la base. El resumen y
 `metadata.json` siguen siendo agregados; el artefacto ya no es exclusivamente
 agregado. La política anterior eliminaba ambos JSON antes del upload.
+
+Como en UI, `blocking.txt` conserva la tabla legible de hallazgos HIGH/CRITICAL.
+La misma salida se muestra en el log, incluido el diagnóstico nativo si el gate
+no puede leer el informe. `scan.log` y `sbom.log` conservan la salida de diagnóstico
+de ambos comandos, por ejemplo ante un fallo de descarga de la base. Los códigos
+originales se capturan antes de que `tee` pueda ocultarlos; un error al guardar la
+salida también falla el paso.
+
+La validación del recolector, el contexto y el upload usan `always()`, aunque el
+escaneo haya quedado omitido por un fallo anterior. `context.txt` incluye revisión,
+run/intento, estados de los pasos y códigos nativos, y se incorpora al resumen de
+Actions. Si la instalación falla, conserva ese contexto y los metadatos de error
+que hayan podido generarse. No se fabrican informes de vulnerabilidades cuando el
+scanner no ha podido producirlos: el artefacto será parcial y el job seguirá fallando.
 
 El SBOM es CycloneDX 1.7. La generación local produjo 631 componentes totales, de
 los cuales 630 son componentes npm, y 632 relaciones. El recolector comprueba que
@@ -870,7 +888,7 @@ de trabajo, sin modificar los informes o dependencias del entorno de desarrollo.
 | Informe y SBOM independientes | Mismos 617 paquetes npm; SBOM sin vulnerabilidades |
 | Gate con base actualizada | Código nativo 5; recolector `findings`, sin errores de evidencia |
 | Base no disponible en prueba controlada | Informe previo truncado, código del scanner 1 y recolector `error`; no se acepta evidencia antigua |
-| Artefacto declarado | Los cuatro JSON presentes; upload conserva su condición `always()` también tras el gate bloqueante |
+| Artefacto declarado | Cuatro JSON, `blocking.txt`, `context.txt`, `scan.log` y `sbom.log`; upload con `always()` |
 | ESLint/Prettier de herramientas, Actionlint 1.7.12 y whitespace | Correctos |
 
 La base declara `UpdatedAt: 2026-10-26T07:15:18Z`. El análisis real observa **2 HIGH
@@ -881,6 +899,25 @@ gate. El cambio de integración no añade excepciones ni modifica dependencias.
 
 La ejecución de esta revisión en Actions y las referencias de integración quedan
 pendientes. Estos resultados locales no sustituyen la evidencia de Actions.
+
+#### Informe de fallos descargable alineado con UI
+
+Verificación adicional del 2026-10-26 sobre una copia aislada, ejecutando los pasos
+actualizados del workflow con el binario oficial y la misma base indicada arriba:
+
+- Gate real HIGH: código nativo **5**, tabla con `CVE-2026-111181` tanto en el log
+  como en `blocking.txt`; los ocho archivos declarados para upload están presentes.
+- Copia del informe sin HIGH/CRITICAL: gate **0** y recolector `success`; el nuevo
+  guardado de salida también conserva el resultado aceptable.
+- Base no disponible: código del scanner **1**, JSON previo truncado, diagnóstico
+  conservado en `scan.log`, gate **1** con diagnóstico en `blocking.txt`, recolector
+  `error` y contexto con los códigos operativos.
+- Instalación fallida simulada con escaneos omitidos: se generan contexto y
+  metadatos de error; el upload no depende de que haya arrancado el scanner.
+- Fallo al escribir `blocking.txt`: el paso falla aunque se haya podido ejecutar
+  Trivy; la copia de salida no convierte un fallo en éxito.
+- Actionlint 1.7.12 y `git diff --check`: correctos. La transferencia efectiva del
+  artefacto se verificará en Actions con esta revisión.
 
 ## 8. Fase 5 — Pruebas negativas de autenticación y autorización
 
