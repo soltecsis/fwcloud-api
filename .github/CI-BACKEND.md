@@ -724,8 +724,11 @@ de ambos comandos, por ejemplo ante un fallo de descarga de la base. Los código
 originales se capturan antes de que `tee` pueda ocultarlos; un error al guardar la
 salida también falla el paso.
 
-La validación del recolector, el contexto y el upload usan `always()`, aunque el
-escaneo haya quedado omitido por un fallo anterior. `context.txt` incluye revisión,
+El paso `Enforce Trivy severity policy and report analysis context` reúne gate,
+validación del recolector y contexto con `always()`, aunque el escaneo haya quedado
+omitido por un fallo anterior. La tabla, el resumen del recolector y el contexto se
+muestran en el mismo log antes de finalizar el paso. El upload sigue siendo un
+paso independiente con `always()`. `context.txt` incluye revisión,
 run/intento, estados de los pasos y códigos nativos, y se incorpora al resumen de
 Actions. Si la instalación falla, conserva ese contexto y los metadatos de error
 que hayan podido generarse. No se fabrican informes de vulnerabilidades cuando el
@@ -918,6 +921,15 @@ actualizados del workflow con el binario oficial y la misma base indicada arriba
   Trivy; la copia de salida no convierte un fallo en éxito.
 - Actionlint 1.7.12 y `git diff --check`: correctos. La transferencia efectiva del
   artefacto se verificará en Actions con esta revisión.
+
+La consolidación posterior del gate, recolector y contexto en un solo paso se ha
+verificado con informes de prueba y Trivy 0.74.0: éxito completo (0), hallazgos (5),
+SBOM inválido con gate nativo limpio (1), informe ausente (1), instalación fallida
+con escaneo omitido (1) y fallo de escritura de la tabla (1). En todos los casos
+se consulta el contexto desde ese mismo paso y se conserva en el archivo y resumen
+de Actions. Los códigos del gate se capturan antes de validar evidencias; el paso
+no sale por hallazgos hasta haber mostrado el contexto. La validación y el guardado
+de evidencias pueden bloquear incluso cuando el gate nativo devuelve 0.
 
 ## 8. Fase 5 — Pruebas negativas de autenticación y autorización
 
