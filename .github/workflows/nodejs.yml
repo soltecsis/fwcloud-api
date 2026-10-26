@@ -155,6 +155,12 @@ jobs:
     name: FWCloud-API SCA and SBOM
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TRIVY_CONFIG: /dev/null
+      TRIVY_IGNOREFILE: /dev/null
+      TRIVY_TIMEOUT: 10m
+      TRIVY_DISABLE_TELEMETRY: 'true'
+      TRIVY_SKIP_VERSION_CHECK: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -169,6 +175,9 @@ jobs:
               "TRIVY_ARCHIVE=" + c.archive,
               "TRIVY_ARCHIVE_SHA256=" + c.archiveSha256,
               "TRIVY_BINARY=" + process.env.RUNNER_TEMP + "/trivy",
+              "TRIVY_CACHE_DIR=" + process.env.RUNNER_TEMP + "/trivy-cache",
+              "TRIVY_BLOCKING_SEVERITIES=" + c.blockingSeverities.join(","),
+              "TRIVY_FINDINGS_EXIT_CODE=" + c.findingsExitCode,
               ""
             ].join("\n"));
           '
@@ -180,34 +189,44 @@ jobs:
           printf '%s  %s\n' "$TRIVY_ARCHIVE_SHA256" "$RUNNER_TEMP/$TRIVY_ARCHIVE" \
             | sha256sum --check --strict
           tar -xzf "$RUNNER_TEMP/$TRIVY_ARCHIVE" -C "$RUNNER_TEMP" trivy
-          "$RUNNER_TEMP/trivy" --version
+          VERSION=$("$TRIVY_BINARY" --version)
+          test "${VERSION%%$'\n'*}" = "Version: $TRIVY_VERSION"
+          mkdir -p reports/dependencies
       - name: Verify native Trivy policy
-        run: node --test scripts/trivy-run.test.cjs
+        run: node --test scripts/trivy-policy.test.cjs
       - name: Scan dependency vulnerabilities
         id: trivy
         run: |
+          : > reports/dependencies/trivy.json
           set +e
-          node scripts/trivy-run.cjs json
+          "$TRIVY_BINARY" fs . --scanners vuln --pkg-types library \
+            --include-dev-deps --list-all-pkgs --no-progress \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --ignore-unfixed=false \
+            --exit-code 0 --format json --output reports/dependencies/trivy.json
           STATUS=$?
           set -e
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
       - name: Generate CycloneDX SBOM
         id: sbom
         run: |
+          : > reports/dependencies/sbom.cdx.json
           set +e
-          node scripts/trivy-run.cjs sbom
+          "$TRIVY_BINARY" fs . --include-dev-deps --no-progress \
+            --format cyclonedx --output reports/dependencies/sbom.cdx.json
           STATUS=$?
           set -e
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
       - name: Record Trivy and database versions
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
-        run: node scripts/trivy-run.cjs version
+        run: '"$TRIVY_BINARY" version --format json > reports/dependencies/trivy-version.json'
       - name: Enforce native Trivy severity policy
         id: trivy_policy
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
         run: |
           set +e
-          node scripts/trivy-run.cjs check
+          "$TRIVY_BINARY" convert --format table --scanners vuln \
+            --severity "$TRIVY_BLOCKING_SEVERITIES" --exit-code "$TRIVY_FINDINGS_EXIT_CODE" \
+            reports/dependencies/trivy.json
           STATUS=$?
           set -e
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
@@ -219,9 +238,6 @@ jobs:
           TRIVY_SBOM_EXIT_CODE: ${{ steps.sbom.outputs.exit_code }}
           TRIVY_POLICY_EXIT_CODE: ${{ steps.trivy_policy.outputs.exit_code }}
         run: node scripts/trivy-report.cjs
-      - name: Remove detailed vulnerability report
-        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
-        run: rm -f reports/dependencies/trivy.json reports/dependencies/trivy-version.json
       - name: Upload dependency security evidence
         if: ${{ always() && steps.trivy.outcome != 'skipped' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -230,6 +246,8 @@ jobs:
           path: |
             reports/dependencies/metadata.json
             reports/dependencies/sbom.cdx.json
+            reports/dependencies/trivy.json
+            reports/dependencies/trivy-version.json
           retention-days: 90
           if-no-files-found: error
 
