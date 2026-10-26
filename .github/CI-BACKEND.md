@@ -665,8 +665,8 @@ El bloqueo por severidad se ejecuta ahora con `trivy convert` sobre el JSON comp
 sin repetir el escaneo ni perder los hallazgos informativos. Usa
 `--severity HIGH,CRITICAL` y `--exit-code 5`; el paso falla ante cualquier código
 distinto de 0. El recolector registra `policyExitCode` y comprueba su coherencia
-con el informe, además de rechazar evidencia incompleta. El modo local
-`security:check` utiliza la misma política de `scripts/trivy-config.json`.
+con el informe, además de rechazar evidencia incompleta. La política se conserva
+en `scripts/trivy-config.json`; Actions ejecuta directamente la CLI oficial.
 Ver la validación del apartado 11.
 
 No se utiliza `--ignore-unfixed`. También se deshabilita la carga implícita de
@@ -688,8 +688,8 @@ El nuevo job `FWCloud-API SCA and SBOM` realiza:
 5. registro de versión de Trivy y base de vulnerabilidades;
 6. bloqueo nativo con `trivy convert` y validación del inventario/evidencia mediante
    `scripts/trivy-report.cjs`;
-7. eliminación del informe detallado de vulnerabilidades;
-8. subida de evidencia agregada y del SBOM.
+7. subida de evidencia agregada, informe detallado, versión/base y SBOM, también
+   cuando el gate falla.
 
 El artefacto se denomina:
 
@@ -702,12 +702,37 @@ Se solicitan 90 días de retención. Contiene:
 ```text
 reports/dependencies/metadata.json
 reports/dependencies/sbom.cdx.json
+reports/dependencies/trivy.json
+reports/dependencies/trivy-version.json
+reports/dependencies/blocking.txt
+reports/dependencies/context.txt
+reports/dependencies/scan.log
+reports/dependencies/sbom.log
 ```
 
-El informe detallado `trivy.json` se utiliza solo durante el job y se elimina antes
-de publicar el artefacto. El resumen de Actions y `metadata.json` contienen conteos,
-versiones, estado, hash SHA-256 del lockfile y metadatos de ejecución, pero no
-descripciones de vulnerabilidades ni rutas detalladas.
+Desde la simplificación `simplifyTrivyCi`, el informe detallado `trivy.json` se
+conserva en el artefacto para consultar CVE, versiones afectadas y correcciones sin
+necesitar un lanzador local. El gate imprime además la tabla HIGH/CRITICAL en el
+log. `trivy-version.json` conserva versión y fechas de la base. El resumen y
+`metadata.json` siguen siendo agregados; el artefacto ya no es exclusivamente
+agregado. La política anterior eliminaba ambos JSON antes del upload.
+
+Como en UI, `blocking.txt` conserva la tabla legible de hallazgos HIGH/CRITICAL.
+La misma salida se muestra en el log, incluido el diagnóstico nativo si el gate
+no puede leer el informe. `scan.log` y `sbom.log` conservan la salida de diagnóstico
+de ambos comandos, por ejemplo ante un fallo de descarga de la base. Los códigos
+originales se capturan antes de que `tee` pueda ocultarlos; un error al guardar la
+salida también falla el paso.
+
+El paso `Enforce Trivy severity policy and report analysis context` reúne gate,
+validación del recolector y contexto con `always()`, aunque el escaneo haya quedado
+omitido por un fallo anterior. La tabla, el resumen del recolector y el contexto se
+muestran en el mismo log antes de finalizar el paso. El upload sigue siendo un
+paso independiente con `always()`. `context.txt` incluye revisión,
+run/intento, estados de los pasos y códigos nativos, y se incorpora al resumen de
+Actions. Si la instalación falla, conserva ese contexto y los metadatos de error
+que hayan podido generarse. No se fabrican informes de vulnerabilidades cuando el
+scanner no ha podido producirlos: el artefacto será parcial y el job seguirá fallando.
 
 El SBOM es CycloneDX 1.7. La generación local produjo 631 componentes totales, de
 los cuales 630 son componentes npm, y 632 relaciones. El recolector comprueba que
@@ -726,7 +751,7 @@ escenarios; se conserva y amplía con la verificación del gate nativo del apart
 
 - análisis limpio con dependencias de ejecución y desarrollo;
 - vulnerabilidad media informativa;
-- vulnerabilidad alta bloqueante sin exposición de detalle;
+- vulnerabilidad alta bloqueante sin detalle en metadata/resumen del recolector;
 - informe o SBOM ausente;
 - error operativo de cualquiera de los dos comandos;
 - inventario vacío;
@@ -788,51 +813,123 @@ puede introducir nuevos hallazgos en ejecuciones posteriores del mismo commit.
 - [ ] Enlazar la PR y la ejecución de Actions validada.
 - [ ] Descargar y validar `metadata.json` y el SBOM CycloneDX.
 - [ ] Confirmar la retención efectiva de 90 días.
-- [ ] Confirmar que el informe detallado no se publica.
+- [ ] Revisar el informe detallado conservado por la simplificación de 7.9 y su visibilidad.
 - [ ] Completar la identificación del responsable y las referencias de evidencia.
 
-### 7.9. Integración local mediante Docker
+### 7.9. CLI nativa y simplificación alineada con UI
 
-Se incorporan los comandos `npm run security:scan`, `npm run security:check` y
-`npm run security:sbom`, disponibles sin instalación de Trivy ni dependencias npm.
-Requieren Node/npm y Docker arrancado. Los requisitos e informes se describen a
-continuación; la política de bloqueo y tratamiento de hallazgos se detalla en 7.4.
+La rama `simplifyTrivyCi` retira el soporte local propio introducido en `6df43611`:
+`trivy-local.cjs`, `trivy-run.cjs`, sus pruebas de infraestructura y los comandos
+npm `security:scan`, `security:check` y `security:sbom`. La configuración ya no
+contiene imagen Docker, volumen de caché ni arrays de argumentos del lanzador.
+Los resultados antiguos de esa integración son históricos; no describen el
+lockfile ni la automatización actuales.
 
-`scripts/trivy-config.json` centraliza versión, checksum del binario, digest de la
-imagen Docker, parámetros y severidades bloqueantes. `scripts/trivy-run.cjs` ejecuta
-los mismos comandos mediante Docker en local y mediante el binario verificado en
-Actions. El recolector consume también la política compartida.
+Como en UI, Actions ejecuta comandos de Trivy directamente y conserva el informe
+detallado en el artefacto. La configuración reducida centraliza versión/checksum,
+severidades/código bloqueantes y versión CycloneDX. Se conserva Trivy 0.74.0 y el
+alcance `fs .`, incluidas dependencias de desarrollo. El SBOM se sigue generando
+independientemente, sin vulnerabilidades; no se sustituye por el de UI, que convierte
+el JSON e incluye vulnerabilidades. El recolector y sus validaciones de inventarios,
+relaciones, versión/base y coherencia del gate se mantienen.
 
-La imagen local queda fijada como:
+`scripts/trivy-policy.test.cjs` comprueba el gate con el binario instalado en el job:
+MEDIUM aceptado, HIGH/CRITICAL sin corrección bloqueados, JSON original intacto y
+entrada malformada rechazada. Las pruebas de montaje Docker, descriptores de archivos
+y orquestación local desaparecen con su implementación.
 
-```text
-aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+#### Ejecución local opcional con la CLI oficial
+
+Instalar Trivy siguiendo la [documentación oficial](https://trivy.dev/latest/getting-started/installation/).
+Para reproducir CI, utilizar la versión de `scripts/trivy-config.json`, el mismo
+commit/lockfile y una base actualizada; su actualización puede cambiar hallazgos.
+Desde la raíz del repositorio, sin instalar dependencias npm ni usar scripts propios:
+
+```bash
+export TRIVY_CONFIG=/dev/null
+export TRIVY_IGNOREFILE=/dev/null
+export TRIVY_TIMEOUT=10m
+export TRIVY_DISABLE_TELEMETRY=true
+export TRIVY_SKIP_VERSION_CHECK=true
+
+trivy --version
+mkdir -p reports/dependencies
+
+# Informe completo con todas las severidades.
+trivy fs . --scanners vuln --pkg-types library --include-dev-deps \
+  --list-all-pkgs --no-progress --ignore-unfixed=false --exit-code 0 \
+  --format json --output reports/dependencies/trivy.json
+
+# SBOM independiente, como en el CI de API.
+trivy fs . --include-dev-deps --no-progress \
+  --format cyclonedx --output reports/dependencies/sbom.cdx.json
+
+trivy version --format json > reports/dependencies/trivy-version.json
+
+# Mostrar los hallazgos que bloquean, sin repetir el escaneo.
+trivy convert --format table --scanners vuln --severity HIGH,CRITICAL \
+  --exit-code 5 reports/dependencies/trivy.json
 ```
 
-El repositorio se monta en lectura y la salida se escribe desde Node en el
-anfitrión, evitando archivos propiedad de root. La caché se conserva en el volumen
-Docker `fwcloud-trivy-cache`. El análisis local conserva el JSON detallado; el CI
-mantiene la eliminación previa a la publicación de artefactos.
+El código 5 del último comando significa hallazgos bloqueantes; otros códigos no
+cero son errores. La descarga/actualización de la base requiere acceso a red.
+Para consultar una tabla de todas las severidades se puede ejecutar
+`trivy convert --format table --scanners vuln reports/dependencies/trivy.json`.
+Estos comandos no sustituyen las validaciones adicionales del recolector en CI.
 
-Verificación del 2026-10-02: `security:scan` muestra 14 hallazgos (8 `HIGH`,
-6 `MEDIUM`) con la base actualizada; `security:check` los bloquea y conserva la
-evidencia. `security:sbom` genera correctamente el inventario CycloneDX. Estos datos
-actualizan la observación del día, sin sustituir la línea base histórica de 7.3.
-Estos hallazgos corresponden al lockfile anterior a la remediación publicada en
-`6df43611`. Las actualizaciones posteriores y la validación correcta comunicada
-del CI se registran en 7.8.
+#### Verificación de la simplificación
 
-Verificaciones de esta integración:
+Validación local del 2026-10-26 con el binario oficial 0.74.0 y checksum comprobado.
+Los pasos se extrajeron del workflow y ejecutaron en una copia aislada del árbol
+de trabajo, sin modificar los informes o dependencias del entorno de desarrollo.
 
-| Verificación | Resultado |
+| Comprobación | Resultado |
 | --- | --- |
-| `security:scan` y `security:sbom` con Docker | Correctos |
-| `security:check` con Docker | Código 1 por los ocho hallazgos `HIGH`, sin errores de evidencia |
-| Lanzador nativo y recolector utilizados por CI | Mismos 630 paquetes y 14 hallazgos; bloqueo correcto |
-| Permisos de informes locales | Escritos por el usuario del anfitrión |
-| Pruebas de recolectores y lanzador | 27 pruebas correctas |
-| Actionlint `1.7.7`, ESLint y Prettier del proyecto | Correctos |
-| `git diff --check` | Correcto |
+| Automatización completa con `TRIVY_BINARY` configurado | 55 pruebas Node y 9 Python correctas; incluida la prueba nativa del gate |
+| Pruebas específicas de Trivy | 14 correctas: CLI nativa y validaciones del recolector |
+| Instalación y comandos nativos reales | Correctos; versión/checksum y JSON de versión/base verificados |
+| Informe y SBOM independientes | Mismos 617 paquetes npm; SBOM sin vulnerabilidades |
+| Gate con base actualizada | Código nativo 5; recolector `findings`, sin errores de evidencia |
+| Base no disponible en prueba controlada | Informe previo truncado, código del scanner 1 y recolector `error`; no se acepta evidencia antigua |
+| Artefacto declarado | Cuatro JSON, `blocking.txt`, `context.txt`, `scan.log` y `sbom.log`; upload con `always()` |
+| ESLint/Prettier de herramientas, Actionlint 1.7.12 y whitespace | Correctos |
+
+La base declara `UpdatedAt: 2026-10-26T07:15:18Z`. El análisis real observa **2 HIGH
+y 1 LOW**. Los HIGH son dos ocurrencias de `CVE-2026-111181` en `body-parser`
+**1.20.8** y **2.3.0**, con correcciones indicadas en **1.20.9** y **2.4.0**,
+respectivamente. La remediación queda pendiente y el lockfile actual no supera el
+gate. El cambio de integración no añade excepciones ni modifica dependencias.
+
+La ejecución de esta revisión en Actions y las referencias de integración quedan
+pendientes. Estos resultados locales no sustituyen la evidencia de Actions.
+
+#### Informe de fallos descargable alineado con UI
+
+Verificación adicional del 2026-10-26 sobre una copia aislada, ejecutando los pasos
+actualizados del workflow con el binario oficial y la misma base indicada arriba:
+
+- Gate real HIGH: código nativo **5**, tabla con `CVE-2026-111181` tanto en el log
+  como en `blocking.txt`; los ocho archivos declarados para upload están presentes.
+- Copia del informe sin HIGH/CRITICAL: gate **0** y recolector `success`; el nuevo
+  guardado de salida también conserva el resultado aceptable.
+- Base no disponible: código del scanner **1**, JSON previo truncado, diagnóstico
+  conservado en `scan.log`, gate **1** con diagnóstico en `blocking.txt`, recolector
+  `error` y contexto con los códigos operativos.
+- Instalación fallida simulada con escaneos omitidos: se generan contexto y
+  metadatos de error; el upload no depende de que haya arrancado el scanner.
+- Fallo al escribir `blocking.txt`: el paso falla aunque se haya podido ejecutar
+  Trivy; la copia de salida no convierte un fallo en éxito.
+- Actionlint 1.7.12 y `git diff --check`: correctos. La transferencia efectiva del
+  artefacto se verificará en Actions con esta revisión.
+
+La consolidación posterior del gate, recolector y contexto en un solo paso se ha
+verificado con informes de prueba y Trivy 0.74.0: éxito completo (0), hallazgos (5),
+SBOM inválido con gate nativo limpio (1), informe ausente (1), instalación fallida
+con escaneo omitido (1) y fallo de escritura de la tabla (1). En todos los casos
+se consulta el contexto desde ese mismo paso y se conserva en el archivo y resumen
+de Actions. Los códigos del gate se capturan antes de validar evidencias; el paso
+no sale por hallazgos hasta haber mostrado el contexto. La validación y el guardado
+de evidencias pueden bloquear incluso cuando el gate nativo devuelve 0.
 
 ## 8. Fase 5 — Pruebas negativas de autenticación y autorización
 
@@ -1319,7 +1416,8 @@ validados localmente; todavía no se atribuyen a una ejecución desplegada de Ac
 - Se mantienen dos generaciones nativas separadas: JSON de vulnerabilidades y
   SBOM CycloneDX sin ellas. No se añade otro validador ni se convierte directamente
   el JSON con vulnerabilidades en el SBOM publicado, para conservar su contenido.
-  El modo local `sbom` delega la serialización en Trivy; `check`/CI revisan inventario.
+  La serialización se delega en Trivy y el recolector revisa el inventario en CI.
+  El lanzador local histórico se retira en la simplificación de 7.9.
 - `tests/utils/security-data.ts` comparte creación de cuentas/recursos y payload de
   login entre utilidades de pruebas y laboratorio.
   No importa Mocha ni el reinicio de BD; ambos entornos conservan sus ciclos de vida.

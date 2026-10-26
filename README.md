@@ -11,6 +11,23 @@ GitHub Actions uses official ZAP API Scan profiles for public login and ten auth
 plus real HTTP checks for sessions, optional 2FA, permissions, isolation and audit.
 See [ZAP and HTTP security checks](docs/ZAP.md) for coverage, credential-free evidence and ENS mapping.
 
+## Dependency scanning and SBOM
+
+GitHub Actions runs the pinned official Trivy CLI directly, scans runtime and
+development dependencies, and generates a CycloneDX SBOM. HIGH/CRITICAL findings
+and invalid or incomplete evidence block `backend-ci`.
+The `backend-sca-sbom-<RUN_ID>-<ATTEMPT>` artifact retains the complete vulnerability
+report, SBOM, scanner/database version and aggregate metadata, including on gate failure.
+It also includes a readable `blocking.txt` report, scan/SBOM diagnostic logs and
+`context.txt` with step outcomes and native exit codes. Context and available evidence
+are uploaded even when an earlier failure prevents scanning; partial evidence does
+not count as a successful scan.
+Requested retention is 90 days.
+
+There are no project-specific local Trivy launchers or `security:*` npm commands.
+For optional local analysis, install the official CLI and use the commands in
+[the CI specification](.github/CI-BACKEND.md#79-cli-nativa-y-simplificación-alineada-con-ui).
+
 ## SonarQube in CI
 
 SonarQube Cloud analyzes TypeScript and legacy JavaScript with the official scan action,

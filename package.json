@@ -20,9 +20,6 @@
     "test:security": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --forbid-only --fail-zero \"dist/tests/e2e/security/**/*.spec.js\" dist/tests/Unit/gates/is-logged-in.spec.js",
     "ci:reports": "node scripts/ci-reports.cjs",
     "test:ci-tools": "node --test scripts/*.test.cjs && python3 .github/zap/auth-hook.test.py",
-    "security:scan": "node scripts/trivy-local.cjs scan",
-    "security:check": "node scripts/trivy-local.cjs check",
-    "security:sbom": "node scripts/trivy-local.cjs sbom",
     "format": "prettier --check \"{src,app,lib,tests}/**/*.ts\"",
     "format:check": "npm run format && npm run format:ci",
     "format:ci": "prettier --check \"scripts/**/*.cjs\" \".github/zap/**/*.cjs\"",
@@ -58,7 +55,7 @@
     "cron": "4.4.0",
     "dotenv": "17.4.2",
     "easy-tree": "0.0.3",
-    "express": "5.2.1",
+    "express": "5.3.0",
     "express-session": "1.19.0",
     "form-data": "4.0.6",
     "fs-extra": "11.4.0",
@@ -129,7 +126,7 @@
     "@sinonjs/fake-timers": "15.4.0",
     "glob": "13.0.6",
     "cross-spawn": "7.0.6",
-    "serialize-javascript": "7.1.0",
+    "serialize-javascript": "7.1.4",
     "ts-deepmerge": "8.0.0",
     "ws": "8.21.3",
     "typeorm": {
@@ -137,6 +134,13 @@
     },
     "nodemon": {
       "chokidar": "5.0.0"
+    },
+    "tsoa@7.0.0-alpha.0": {
+      "@tsoa/runtime@7.0.0-alpha.0": {
+        "express": {
+          "body-parser": "2.4.0"
+        }
+      }
     }
   },
   "allowScripts": {
