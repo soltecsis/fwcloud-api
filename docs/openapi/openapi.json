@@ -155,6 +155,65 @@
         "type": "object",
         "additionalProperties": false
       },
+      "CrowdSecCollectionAcquisitionUpdateDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "log_paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "log_paths"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "CrowdSecCollectionAcquisitionParserSelectionDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "label_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label_type"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "CrowdSecBlockingStatisticsSamplingDto": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "sampling_interval": {
+            "type": "number",
+            "format": "double"
+          },
+          "request_max_samples": {
+            "type": "number",
+            "format": "double"
+          },
+          "cache_max_size": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "CrowdSecCentralLapiConfigureDto": {
         "properties": {
           "listenUri": {
@@ -2671,6 +2730,243 @@
         ]
       }
     },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/collections/acquisition": {
+      "get": {
+        "operationId": "Get CrowdSec collection acquisition",
+        "responses": {
+          "200": {
+            "description": "Collection acquisition retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "collection": "crowdsecurity/sshd",
+                        "file_path": "/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml",
+                        "state": "ready",
+                        "label_type": "syslog",
+                        "candidate_label_types": [],
+                        "log_paths": [
+                          "/var/log/auth.log"
+                        ],
+                        "message": "CrowdSec acquisition is managed by FWCloud"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "Update CrowdSec collection acquisition",
+        "responses": {
+          "200": {
+            "description": "Collection acquisition updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "collection": "crowdsecurity/sshd",
+                        "file_path": "/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml",
+                        "state": "ready",
+                        "label_type": "syslog",
+                        "candidate_label_types": [],
+                        "log_paths": [
+                          "/var/log/auth.log"
+                        ],
+                        "message": "CrowdSec acquisition is managed by FWCloud"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecCollectionAcquisitionUpdateDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/collections/acquisition/parser": {
+      "put": {
+        "operationId": "Select CrowdSec collection acquisition parser",
+        "responses": {
+          "200": {
+            "description": "Collection acquisition parser selected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "collection": "crowdsecurity/sshd",
+                        "file_path": "/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml",
+                        "state": "ready",
+                        "label_type": "syslog",
+                        "candidate_label_types": [],
+                        "log_paths": [],
+                        "message": "CrowdSec acquisition is managed by FWCloud"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecCollectionAcquisitionParserSelectionDto"
+              }
+            }
+          }
+        }
+      }
+    },
     "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/console/status": {
       "get": {
         "operationId": "Get firewall CrowdSec Console status",
@@ -3042,6 +3338,510 @@
             "schema": {
               "format": "double",
               "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/blocking-statistics/sampling": {
+      "get": {
+        "operationId": "Get CrowdSec blocking statistics sampling configuration",
+        "responses": {
+          "200": {
+            "description": "Blocking statistics sampling configuration retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "enabled": true,
+                        "sampling_interval": 60,
+                        "request_max_samples": 1000,
+                        "cache_max_size": 10000
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "Update CrowdSec blocking statistics sampling configuration",
+        "responses": {
+          "200": {
+            "description": "Blocking statistics sampling configuration updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "completed": true,
+                        "enabled": true,
+                        "sampling_interval": 60,
+                        "request_max_samples": 1000,
+                        "cache_max_size": 10000,
+                        "nodes": []
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecBlockingStatisticsSamplingDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/blocking-statistics": {
+      "get": {
+        "operationId": "List CrowdSec blocking statistics",
+        "responses": {
+          "200": {
+            "description": "Blocking statistics retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "samples": [
+                          {
+                            "collected_at": "2026-10-23T10:00:00.000Z",
+                            "policy_generation": "1792659255373",
+                            "ipv4_input": {
+                              "packets": 12,
+                              "bytes": 840
+                            },
+                            "ipv4_forward": {
+                              "packets": 0,
+                              "bytes": 0
+                            },
+                            "ipv6_input": {
+                              "packets": 0,
+                              "bytes": 0
+                            },
+                            "ipv6_forward": {
+                              "packets": 0,
+                              "bytes": 0
+                            }
+                          }
+                        ],
+                        "pagination": {
+                          "page": 1,
+                          "limit": 1000,
+                          "total": 1,
+                          "pages": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starts_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ends_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/blocking-statistics/addresses": {
+      "get": {
+        "operationId": "List CrowdSec blocking statistics by address",
+        "responses": {
+          "200": {
+            "description": "Address blocking statistics retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "samples": [
+                          {
+                            "address": "203.0.113.10",
+                            "collected_at": "2026-10-23T10:00:00.000Z",
+                            "policy_generation": "1792659255373",
+                            "packets": 42,
+                            "bytes": 4096
+                          }
+                        ],
+                        "pagination": {
+                          "page": 1,
+                          "limit": 1000,
+                          "total": 1,
+                          "pages": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "addresses",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starts_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ends_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/blocking-statistics/addresses/options": {
+      "get": {
+        "operationId": "List CrowdSec blocking statistics address options",
+        "responses": {
+          "200": {
+            "description": "Blocking statistics address options retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "addresses": [
+                          "203.0.113.10"
+                        ],
+                        "pagination": {
+                          "page": 1,
+                          "limit": 1000,
+                          "total": 1,
+                          "pages": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starts_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ends_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]
@@ -5212,6 +6012,807 @@
             "schema": {
               "format": "double",
               "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/collections/acquisition": {
+      "get": {
+        "operationId": "Get cluster CrowdSec collection acquisition",
+        "responses": {
+          "200": {
+            "description": "Cluster collection acquisition retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "collection": "crowdsecurity/sshd",
+                        "file_path": "/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml",
+                        "state": "ready",
+                        "label_type": "syslog",
+                        "candidate_label_types": [],
+                        "log_paths": [
+                          "/var/log/auth.log"
+                        ],
+                        "message": "CrowdSec acquisition is managed by FWCloud"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "Update cluster CrowdSec collection acquisition",
+        "responses": {
+          "200": {
+            "description": "Cluster collection acquisition updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "collection": "crowdsecurity/sshd",
+                        "file_path": "/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml",
+                        "state": "ready",
+                        "label_type": "syslog",
+                        "candidate_label_types": [],
+                        "log_paths": [
+                          "/var/log/auth.log"
+                        ],
+                        "message": "CrowdSec acquisition is managed by FWCloud"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecCollectionAcquisitionUpdateDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/collections/acquisition/parser": {
+      "put": {
+        "operationId": "Select cluster CrowdSec collection acquisition parser",
+        "responses": {
+          "200": {
+            "description": "Cluster collection acquisition parser selected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "collection": "crowdsecurity/sshd",
+                        "file_path": "/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml",
+                        "state": "ready",
+                        "label_type": "syslog",
+                        "candidate_label_types": [],
+                        "log_paths": [],
+                        "message": "CrowdSec acquisition is managed by FWCloud"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecCollectionAcquisitionParserSelectionDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/blocking-statistics/sampling": {
+      "get": {
+        "operationId": "Get cluster CrowdSec blocking statistics sampling configuration",
+        "responses": {
+          "200": {
+            "description": "Cluster blocking statistics sampling configuration retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "enabled": true,
+                        "sampling_interval": 60,
+                        "request_max_samples": 1000,
+                        "cache_max_size": 10000,
+                        "nodes": [
+                          {
+                            "firewall_id": 12,
+                            "name": "node-1"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "Update cluster CrowdSec blocking statistics sampling configuration",
+        "responses": {
+          "200": {
+            "description": "Cluster blocking statistics sampling configuration updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "completed": true,
+                        "enabled": true,
+                        "sampling_interval": 60,
+                        "request_max_samples": 1000,
+                        "cache_max_size": 10000,
+                        "nodes": []
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecBlockingStatisticsSamplingDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/blocking-statistics": {
+      "get": {
+        "operationId": "List cluster CrowdSec blocking statistics",
+        "responses": {
+          "200": {
+            "description": "Cluster blocking statistics retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "samples": [
+                          {
+                            "collected_at": "2026-10-23T10:00:00.000Z",
+                            "policy_generation": "1792659255373",
+                            "ipv4_input": {
+                              "packets": 12,
+                              "bytes": 840
+                            },
+                            "ipv4_forward": {
+                              "packets": 0,
+                              "bytes": 0
+                            },
+                            "ipv6_input": {
+                              "packets": 0,
+                              "bytes": 0
+                            },
+                            "ipv6_forward": {
+                              "packets": 0,
+                              "bytes": 0
+                            }
+                          }
+                        ],
+                        "pagination": {
+                          "page": 1,
+                          "limit": 1000,
+                          "total": 1,
+                          "pages": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starts_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ends_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/blocking-statistics/addresses": {
+      "get": {
+        "operationId": "List cluster CrowdSec blocking statistics by address",
+        "responses": {
+          "200": {
+            "description": "Cluster address blocking statistics retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "samples": [
+                          {
+                            "address": "203.0.113.10",
+                            "collected_at": "2026-10-23T10:00:00.000Z",
+                            "policy_generation": "1792659255373",
+                            "packets": 42,
+                            "bytes": 4096
+                          }
+                        ],
+                        "pagination": {
+                          "page": 1,
+                          "limit": 1000,
+                          "total": 1,
+                          "pages": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "addresses",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starts_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ends_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/blocking-statistics/addresses/options": {
+      "get": {
+        "operationId": "List cluster CrowdSec blocking statistics address options",
+        "responses": {
+          "200": {
+            "description": "Cluster blocking statistics address options retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "addresses": [
+                          "203.0.113.10"
+                        ],
+                        "pagination": {
+                          "page": 1,
+                          "limit": 1000,
+                          "total": 1,
+                          "pages": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starts_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ends_at",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]

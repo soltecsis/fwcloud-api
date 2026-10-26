@@ -111,6 +111,35 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CrowdSecCollectionAcquisitionUpdateDto": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "log_paths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CrowdSecCollectionAcquisitionParserSelectionDto": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "label_type": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CrowdSecBlockingStatisticsSamplingDto": {
+        "dataType": "refObject",
+        "properties": {
+            "enabled": {"dataType":"boolean","required":true},
+            "sampling_interval": {"dataType":"double"},
+            "request_max_samples": {"dataType":"double"},
+            "cache_max_size": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CrowdSecCentralLapiConfigureDto": {
         "dataType": "refObject",
         "properties": {
@@ -1145,6 +1174,105 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_collectionAcquisition: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                nameQuery: {"in":"query","name":"name","required":true,"dataType":"string"},
+        };
+        app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.collectionAcquisition)),
+
+            async function CrowdSecController_collectionAcquisition(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_collectionAcquisition, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'collectionAcquisition',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_updateCollectionAcquisition: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"CrowdSecCollectionAcquisitionUpdateDto"},
+        };
+        app.put('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.updateCollectionAcquisition)),
+
+            async function CrowdSecController_updateCollectionAcquisition(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_updateCollectionAcquisition, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'updateCollectionAcquisition',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_selectCollectionAcquisitionParser: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"CrowdSecCollectionAcquisitionParserSelectionDto"},
+        };
+        app.put('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition/parser',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.selectCollectionAcquisitionParser)),
+
+            async function CrowdSecController_selectCollectionAcquisitionParser(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_selectCollectionAcquisitionParser, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'selectCollectionAcquisitionParser',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsCrowdSecController_consoleStatus: Record<string, TsoaRoute.ParameterSchema> = {
                 req: {"in":"request","name":"req","required":true,"dataType":"object"},
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
@@ -1277,6 +1405,181 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'bouncers',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_blockingStatisticsSampling: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/sampling',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatisticsSampling)),
+
+            async function CrowdSecController_blockingStatisticsSampling(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_blockingStatisticsSampling, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatisticsSampling',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_updateBlockingStatisticsSampling: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"CrowdSecBlockingStatisticsSamplingDto"},
+        };
+        app.put('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/sampling',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.updateBlockingStatisticsSampling)),
+
+            async function CrowdSecController_updateBlockingStatisticsSampling(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_updateBlockingStatisticsSampling, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'updateBlockingStatisticsSampling',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_blockingStatistics: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                startsAt: {"in":"query","name":"starts_at","dataType":"double"},
+                endsAt: {"in":"query","name":"ends_at","dataType":"double"},
+                pageQuery: {"in":"query","name":"page","dataType":"double"},
+                limit: {"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatistics)),
+
+            async function CrowdSecController_blockingStatistics(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_blockingStatistics, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatistics',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_blockingStatisticsAddresses: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                addresses: {"in":"query","name":"addresses","required":true,"dataType":"string"},
+                startsAt: {"in":"query","name":"starts_at","dataType":"double"},
+                endsAt: {"in":"query","name":"ends_at","dataType":"double"},
+                page: {"in":"query","name":"page","dataType":"double"},
+                limit: {"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/addresses',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatisticsAddresses)),
+
+            async function CrowdSecController_blockingStatisticsAddresses(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_blockingStatisticsAddresses, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatisticsAddresses',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_blockingStatisticsAddressOptions: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                startsAt: {"in":"query","name":"starts_at","dataType":"double"},
+                endsAt: {"in":"query","name":"ends_at","dataType":"double"},
+                pageQuery: {"in":"query","name":"page","dataType":"double"},
+                limit: {"in":"query","name":"limit","dataType":"double"},
+                search: {"in":"query","name":"search","dataType":"string"},
+        };
+        app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/addresses/options',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatisticsAddressOptions)),
+
+            async function CrowdSecController_blockingStatisticsAddressOptions(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_blockingStatisticsAddressOptions, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatisticsAddressOptions',
                 controller,
                 response,
                 next,
@@ -2227,6 +2530,286 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'collections',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_collectionAcquisition: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                nameQuery: {"in":"query","name":"name","required":true,"dataType":"string"},
+                nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.collectionAcquisition)),
+
+            async function CrowdSecClusterController_collectionAcquisition(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_collectionAcquisition, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'collectionAcquisition',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_updateCollectionAcquisition: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"CrowdSecCollectionAcquisitionUpdateDto"},
+                nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
+        };
+        app.put('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.updateCollectionAcquisition)),
+
+            async function CrowdSecClusterController_updateCollectionAcquisition(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_updateCollectionAcquisition, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'updateCollectionAcquisition',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_selectCollectionAcquisitionParser: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"CrowdSecCollectionAcquisitionParserSelectionDto"},
+                nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
+        };
+        app.put('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition/parser',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.selectCollectionAcquisitionParser)),
+
+            async function CrowdSecClusterController_selectCollectionAcquisitionParser(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_selectCollectionAcquisitionParser, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'selectCollectionAcquisitionParser',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_blockingStatisticsSampling: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/sampling',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatisticsSampling)),
+
+            async function CrowdSecClusterController_blockingStatisticsSampling(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_blockingStatisticsSampling, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatisticsSampling',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_updateBlockingStatisticsSampling: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"CrowdSecBlockingStatisticsSamplingDto"},
+        };
+        app.put('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/sampling',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.updateBlockingStatisticsSampling)),
+
+            async function CrowdSecClusterController_updateBlockingStatisticsSampling(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_updateBlockingStatisticsSampling, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'updateBlockingStatisticsSampling',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_blockingStatistics: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
+                startsAt: {"in":"query","name":"starts_at","dataType":"double"},
+                endsAt: {"in":"query","name":"ends_at","dataType":"double"},
+                pageQuery: {"in":"query","name":"page","dataType":"double"},
+                limit: {"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatistics)),
+
+            async function CrowdSecClusterController_blockingStatistics(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_blockingStatistics, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatistics',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_blockingStatisticsAddresses: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
+                addresses: {"in":"query","name":"addresses","required":true,"dataType":"string"},
+                startsAt: {"in":"query","name":"starts_at","dataType":"double"},
+                endsAt: {"in":"query","name":"ends_at","dataType":"double"},
+                page: {"in":"query","name":"page","dataType":"double"},
+                limit: {"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/addresses',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatisticsAddresses)),
+
+            async function CrowdSecClusterController_blockingStatisticsAddresses(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_blockingStatisticsAddresses, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatisticsAddresses',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_blockingStatisticsAddressOptions: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
+                startsAt: {"in":"query","name":"starts_at","dataType":"double"},
+                endsAt: {"in":"query","name":"ends_at","dataType":"double"},
+                pageQuery: {"in":"query","name":"page","dataType":"double"},
+                limit: {"in":"query","name":"limit","dataType":"double"},
+                search: {"in":"query","name":"search","dataType":"string"},
+        };
+        app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/addresses/options',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatisticsAddressOptions)),
+
+            async function CrowdSecClusterController_blockingStatisticsAddressOptions(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_blockingStatisticsAddressOptions, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'blockingStatisticsAddressOptions',
                 controller,
                 response,
                 next,

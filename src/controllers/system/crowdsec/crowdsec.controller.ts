@@ -71,6 +71,7 @@ import {
   OperationId,
   Path,
   Post,
+  Put,
   Query,
   Request,
   Response,
@@ -143,6 +144,58 @@ interface CrowdSecBouncerRegistrationResponse {
 interface CrowdSecCollectionMutationResponse {
   result: Record<string, unknown>;
   collections: Record<string, unknown>;
+}
+
+interface CrowdSecBlockingStatisticsSamplingResponse {
+  enabled: boolean;
+  sampling_interval: number;
+  request_max_samples: number;
+  cache_max_size: number;
+  completed?: boolean;
+  nodes?: Array<Record<string, unknown>>;
+}
+
+interface CrowdSecBlockingStatisticsCounter {
+  packets: number;
+  bytes: number;
+}
+
+interface CrowdSecBlockingStatisticsHistoryResponse {
+  samples: Array<{
+    collected_at: string;
+    policy_generation: string;
+    ipv4_input: CrowdSecBlockingStatisticsCounter;
+    ipv4_forward: CrowdSecBlockingStatisticsCounter;
+    ipv6_input: CrowdSecBlockingStatisticsCounter;
+    ipv6_forward: CrowdSecBlockingStatisticsCounter;
+  }>;
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecBlockingStatisticsAddressHistoryResponse {
+  samples: Array<{
+    address: string;
+    collected_at: string;
+    policy_generation: string;
+    packets: number;
+    bytes: number;
+  }>;
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecBlockingStatisticsAddressOptionsResponse {
+  addresses: string[];
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecCollectionAcquisitionResponse {
+  collection: string;
+  file_path: string;
+  state: 'ready' | 'automatic_configuration_unavailable' | 'manual_review_required';
+  label_type?: string;
+  candidate_label_types: string[];
+  log_paths: string[];
+  message: string;
 }
 
 type CrowdSecDynamicResponse = Record<string, unknown>;
@@ -269,7 +322,30 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecCollectionAcquisitionQueryDto)
-  public async collectionAcquisition(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Get CrowdSec collection acquisition')
+  @Get('collections/acquisition')
+  @SuccessResponse('200', 'Collection acquisition retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: ['/var/log/auth.log'],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async collectionAcquisition(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Query('name') nameQuery: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -281,7 +357,30 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCollectionAcquisitionUpdateDto)
-  public async updateCollectionAcquisition(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Update CrowdSec collection acquisition')
+  @Put('collections/acquisition')
+  @SuccessResponse('200', 'Collection acquisition updated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: ['/var/log/auth.log'],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateCollectionAcquisition(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Body() body: CrowdSecCollectionAcquisitionUpdateDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -298,7 +397,30 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
-  public async selectCollectionAcquisitionParser(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Select CrowdSec collection acquisition parser')
+  @Put('collections/acquisition/parser')
+  @SuccessResponse('200', 'Collection acquisition parser selected')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: [],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async selectCollectionAcquisitionParser(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Body() body: CrowdSecCollectionAcquisitionParserSelectionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -447,7 +569,26 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async blockingStatisticsSampling(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Get CrowdSec blocking statistics sampling configuration')
+  @Get('blocking-statistics/sampling')
+  @SuccessResponse('200', 'Blocking statistics sampling configuration retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsSamplingResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      enabled: true,
+      sampling_interval: 60,
+      request_max_samples: 1000,
+      cache_max_size: 10000,
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsSampling(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const configuration =
@@ -460,7 +601,29 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecBlockingStatisticsSamplingDto)
-  public async updateBlockingStatisticsSampling(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Update CrowdSec blocking statistics sampling configuration')
+  @Put('blocking-statistics/sampling')
+  @SuccessResponse('200', 'Blocking statistics sampling configuration updated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsSamplingResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      enabled: true,
+      sampling_interval: 60,
+      request_max_samples: 1000,
+      cache_max_size: 10000,
+      nodes: [],
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateBlockingStatisticsSampling(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Body() body: CrowdSecBlockingStatisticsSamplingDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const service = CrowdSecBlockingStatisticsSharedService.samplingService();
@@ -482,7 +645,37 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsHistoryQueryDto)
-  public async blockingStatistics(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('List CrowdSec blocking statistics')
+  @Get('blocking-statistics')
+  @SuccessResponse('200', 'Blocking statistics retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsHistoryResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      samples: [
+        {
+          collected_at: '2026-10-23T10:00:00.000Z',
+          policy_generation: '1792659255373',
+          ipv4_input: { packets: 12, bytes: 840 },
+          ipv4_forward: { packets: 0, bytes: 0 },
+          ipv6_input: { packets: 0, bytes: 0 },
+          ipv6_forward: { packets: 0, bytes: 0 },
+        },
+      ],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatistics(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') pageQuery?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const history = await (
@@ -504,7 +697,37 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsAddressHistoryQueryDto)
-  public async blockingStatisticsAddresses(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('List CrowdSec blocking statistics by address')
+  @Get('blocking-statistics/addresses')
+  @SuccessResponse('200', 'Address blocking statistics retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsAddressHistoryResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      samples: [
+        {
+          address: '203.0.113.10',
+          collected_at: '2026-10-23T10:00:00.000Z',
+          policy_generation: '1792659255373',
+          packets: 42,
+          bytes: 4096,
+        },
+      ],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsAddresses(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Query('addresses') addresses: string,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const history = await (
@@ -527,7 +750,26 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsAddressOptionsQueryDto)
-  public async blockingStatisticsAddressOptions(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('List CrowdSec blocking statistics address options')
+  @Get('blocking-statistics/addresses/options')
+  @SuccessResponse('200', 'Blocking statistics address options retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsAddressOptionsResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { addresses: ['203.0.113.10'], pagination: { page: 1, limit: 1000, total: 1, pages: 1 } },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsAddressOptions(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') pageQuery?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const page = await (
