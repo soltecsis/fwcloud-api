@@ -36,6 +36,7 @@ import { Interface } from '../interface/Interface';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Tree } from '../tree/Tree';
 import { ObjectBindingResolver } from './object-binding.resolver';
+import { getProvisionInterfaceAddressReferenceErrors } from './replication-profile-interface-address-reference';
 import {
   getProvisionRuleNegationError,
   normalizeRuleNegation,
@@ -498,6 +499,11 @@ export class PolicyReplicationService extends Service {
 
     // Check every rule before provisioning interfaces or objects: invalid rule settings
     // must never result in a partially applied or broadened policy.
+    result.errors.push(
+      ...getProvisionInterfaceAddressReferenceErrors(provision).map(
+        (error) => `${error.path}: ${error.message}`,
+      ),
+    );
     for (const [index, rule] of provision.rules.entries()) {
       for (const error of getPolicyRuleValidityErrors(rule)) {
         result.errors.push(`Rule ${index + 1}: ${error.message}`);
@@ -872,6 +878,8 @@ export class PolicyReplicationService extends Service {
         interfaceId: isDryRun ? undefined : interfaceId,
       });
 
+      resolver.registerInterfaceAddress(iface.role, index, binding, parsed.ipVersion);
+
       const parameter =
         declared.sourceParameter ??
         (isReplicationProfileParameterRef(declared.value) ? declared.value.param : undefined);
@@ -1159,6 +1167,30 @@ export class PolicyReplicationService extends Service {
 
       if (object.kind === 'external') {
         ({ ref, type } = await this.resolveExternalReference(object.referenceId!, resolver));
+      } else if (
+        object.kind === 'address' &&
+        (object.interfaceRole !== undefined || object.interfaceAddressIndex !== undefined)
+      ) {
+        // A captured interface IP always resolves to precisely the IP declaration it came from.
+        // Never fall back to the whole interface, a same-name address or an unrelated literal.
+        const address = resolver.resolveInterfaceAddress(
+          object.interfaceRole!,
+          object.interfaceAddressIndex!,
+        );
+        if (!address) {
+          result.errors.push(
+            `${target.label}: interface IP "${object.interfaceRole}" address #${object.interfaceAddressIndex! + 1} could not be resolved.`,
+          );
+          return null;
+        }
+        if (target.ipVersion && address.ipVersion !== target.ipVersion) {
+          result.errors.push(
+            `${target.label}: interface IP "${address.name}" is not an IPv${target.ipVersion} address.`,
+          );
+          return null;
+        }
+        ref = { ipobjId: address.id };
+        type = REPLICATION_PROFILE_IPOBJ_TYPE_BY_KIND.address;
       } else if (object.kind === 'interfaceRole') {
         const interfaceId = interfaceIdByRole.get(object.role!);
 

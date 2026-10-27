@@ -179,6 +179,13 @@ export interface PolicyReplicationProvisionObject {
   value?: PolicyReplicationValueRef;
   /** Interface role, when kind is 'interfaceRole'. */
   role?: string;
+  /**
+   * A specific address declared on this interface, when kind is 'address'. Both fields are
+   * required together. Unlike interfaceRole, this selects one IP object, never the interface's
+   * address set or an In/Out restriction. The index is in provision.interfaces[].addresses.
+   */
+  interfaceRole?: string;
+  interfaceAddressIndex?: number;
   /** Fixed id of a predefined FWCloud object or group, when kind is 'std' or 'stdGroup'. */
   id?: number;
   name?: string;
@@ -807,6 +814,30 @@ function parseProvisionObject(
   value: unknown,
   ensureInterface: (role: string) => string,
 ): PolicyReplicationProvisionObject | null {
+  const selector = asReplicationProfileRecord(value);
+  if (
+    selector &&
+    (selector.interfaceRole !== undefined || selector.interfaceAddressIndex !== undefined)
+  ) {
+    return {
+      kind: firstNonEmptyString(selector, [
+        'kind',
+        'type',
+        'objectType',
+      ])?.toLowerCase() as PolicyReplicationProvisionObject['kind'],
+      value:
+        firstValueOrParamRef(selector, ['value', 'address', 'cidr', 'network', 'ip']) ?? undefined,
+      name: firstNonEmptyString(selector, ['name']) ?? undefined,
+      // Preserve even malformed selectors so validation cannot silently discard an IP reference.
+      ...(selector.interfaceRole !== undefined
+        ? { interfaceRole: selector.interfaceRole as string }
+        : {}),
+      ...(selector.interfaceAddressIndex !== undefined
+        ? { interfaceAddressIndex: selector.interfaceAddressIndex as number }
+        : {}),
+    };
+  }
+
   if (isReplicationProfileExternalObjectUsage(value)) {
     return { kind: 'external', referenceId: value.referenceId };
   }
@@ -827,14 +858,14 @@ function parseProvisionObject(
     return null;
   }
 
+  const type = firstNonEmptyString(record, ['kind', 'type', 'objectType'])?.toLowerCase();
+  const name = firstNonEmptyString(record, ['name']) ?? undefined;
+
   const standard = parseStandardReference(record);
 
   if (standard) {
-    return { ...standard, name: firstNonEmptyString(record, ['name']) ?? undefined };
+    return { ...standard, name };
   }
-
-  const type = firstNonEmptyString(record, ['kind', 'type', 'objectType'])?.toLowerCase();
-  const name = firstNonEmptyString(record, ['name']) ?? undefined;
 
   if (type === 'interface' || type === 'interfacerole') {
     const role = firstNonEmptyString(record, ['role', 'value', 'name', 'ref', 'label']);

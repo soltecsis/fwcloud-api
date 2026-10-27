@@ -155,6 +155,7 @@ export class ObjectBindingResolver {
   private readonly snapshotObjects = new Map<string, Promise<ObjectBindingResult>>();
   private readonly selectedSnapshotObjects = new Map<string, ProfileExternalObjectBinding>();
   private readonly parameterAddresses = new Map<string, Map<string, ProvisionedParameterAddress>>();
+  private readonly interfaceAddresses = new Map<string, Map<number, ProvisionedParameterAddress>>();
 
   constructor(
     private readonly fwCloudId: number,
@@ -174,6 +175,25 @@ export class ObjectBindingResolver {
       () => this.findExisting(request),
       () => this.create(request),
     );
+  }
+
+  /** Bind a specific declaration to its selected/recreated IP, including per-application overrides. */
+  registerInterfaceAddress(
+    role: string,
+    index: number,
+    binding: ObjectBindingResult,
+    ipVersion: ReplicationProfileIpVersion,
+  ): void {
+    let addresses = this.interfaceAddresses.get(role);
+    if (!addresses) {
+      addresses = new Map();
+      this.interfaceAddresses.set(role, addresses);
+    }
+    addresses.set(index, { ...binding, ipVersion });
+  }
+
+  resolveInterfaceAddress(role: string, index: number): ProvisionedParameterAddress | undefined {
+    return this.interfaceAddresses.get(role)?.get(index);
   }
 
   /** Preserve the selected interface IP for usages of its original template parameter. */
