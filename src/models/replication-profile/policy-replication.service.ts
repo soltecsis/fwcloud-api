@@ -773,6 +773,7 @@ export class PolicyReplicationService extends Service {
 
     const roles = new Set(provision.interfaces.map((iface) => iface.role));
     const idByName = new Map<string, number>();
+    const usedIds = new Set<number>();
 
     for (const [id, row] of existingInterfaces) {
       idByName.set(row.name.toLowerCase(), id);
@@ -787,10 +788,11 @@ export class PolicyReplicationService extends Service {
         result.errors.push(
           `Interface "${name}" assigned to role "${role}" does not exist on the target.`,
         );
-      } else if ([...mappedIds.values()].includes(interfaceId)) {
+      } else if (usedIds.has(interfaceId)) {
         result.errors.push(`Interface "${name}" is assigned to more than one role.`);
       } else {
         mappedIds.set(role, interfaceId);
+        usedIds.add(interfaceId);
       }
     }
 
@@ -880,21 +882,17 @@ export class PolicyReplicationService extends Service {
 
       resolver.registerInterfaceAddress(iface.role, index, binding, parsed.ipVersion);
 
+      const declarationKey = `${iface.role}:address:${index}`;
       const parameter =
         declared.sourceParameter ??
         (isReplicationProfileParameterRef(declared.value) ? declared.value.param : undefined);
       if (parameter) {
-        resolver.registerParameterAddress(
-          parameter,
-          `${iface.role}:address:${index}`,
-          binding,
-          parsed.ipVersion,
-        );
+        resolver.registerParameterAddress(parameter, declarationKey, binding, parsed.ipVersion);
       }
 
       bindings.push({
         kind: 'ipobj',
-        key: `${iface.role}:address:${index}`,
+        key: declarationKey,
         objectId: binding.id,
         created: binding.created,
       });

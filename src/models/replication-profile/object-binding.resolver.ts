@@ -223,13 +223,20 @@ export class ObjectBindingResolver {
       return undefined;
     }
 
-    const candidates = Array.from(addresses.values());
-    if (candidates.length === 1) {
-      return candidates[0];
+    if (addresses.size === 1) {
+      return addresses.values().next().value;
+    }
+    if (!name) {
+      return null;
     }
 
-    const named = name ? candidates.filter((candidate) => candidate.name === name) : [];
-    return named.length === 1 ? named[0] : null;
+    let named: ProvisionedParameterAddress | null = null;
+    for (const candidate of addresses.values()) {
+      if (candidate.name !== name) continue;
+      if (named) return null;
+      named = candidate;
+    }
+    return named;
   }
 
   /**
