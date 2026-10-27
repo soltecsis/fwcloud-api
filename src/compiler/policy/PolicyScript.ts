@@ -34,33 +34,35 @@ import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { RoutingCompiled, RoutingCompiler } from '../routing/RoutingCompiler';
 import fs from 'fs';
-import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
+import {
+  RouteData,
+  RoutingTableService,
+} from '../../models/routing/routing-table/routing-table.service';
 import { app } from '../../fonaments/abstract-application';
+import { RoutingTable } from '../../models/routing/routing-table/routing-table.model';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
-import { RoutingRuleService } from '../../models/routing/routing-rule/routing-rule.service';
+import {
+  RoutingRulesData,
+  RoutingRuleService,
+} from '../../models/routing/routing-rule/routing-rule.service';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import * as path from 'path';
 import { mkdirpSync } from 'fs-extra';
+import { typeMap } from '../../config/policy/dangerousRules';
 
 const config = require('../../config/config');
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
 
-interface OptimizedBlockLine {
-  key: string;
-  line: string;
-  render: (lines: string[]) => string;
-}
-
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
   private policyCompilationMode: PolicyCompilationMode;
-  private restoredCommands: Set<string> = new Set();
+  private restoreExecutions: Map<string, number> = new Map();
   private restoreFilterPolicies: Set<string> = new Set();
   private dnsChecks: string[] = [];
   private path: string;
-  private stream: fs.WriteStream;
+  private stream: any;
 
   constructor(
     private dbCon: any,
@@ -87,12 +89,13 @@ export class PolicyScript {
     mkdirpSync(path.dirname(this.path));
   }
 
-  private greetingMessage(): void {
+  private greetingMessage(): Promise<void> {
     this.stream.write(
       'greeting_msg() {\n' +
         `  log "FWCloud.net - Loading firewall policy generated: ${Date()} "\n` +
         '}\n',
     );
+    return;
   }
 
   private async dumpFirewallOptions(): Promise<void> {
@@ -102,19 +105,23 @@ export class PolicyScript {
       'options_load() {\n' + '  echo\n' + '  echo "OPTIONS"\n' + '  echo "-------"\n',
     );
 
-    // IPv4 and IPv6 packet forwarding. Every option is applied and any failure fails the policy
-    // load, except for the options of an IP version not available (skipped by policy_sysctl).
+    // IPv4 packet forwarding
     const ipv4ForwardingAction = options & FireWallOptMask.IPv4_FORWARDING ? '1' : '0';
-    const ipv6ForwardingAction = options & FireWallOptMask.IPv6_FORWARDING ? '1' : '0';
     this.stream.write(
-      '  FWC_OPTIONS_STATUS=0\n' +
-        `  policy_sysctl net.ipv4.conf.all.forwarding ${ipv4ForwardingAction} || FWC_OPTIONS_STATUS=1\n` +
-        `  policy_sysctl net.ipv6.conf.all.forwarding ${ipv6ForwardingAction} || FWC_OPTIONS_STATUS=1\n`,
+      '  if [ -z "$SYSCTL" ]; then\n' +
+        `    echo ${ipv4ForwardingAction} > /proc/sys/net/ipv4/ip_forward\n` +
+        '  else\n' +
+        `    $SYSCTL -w net.ipv4.conf.all.forwarding=${ipv4ForwardingAction}\n` +
+        '  fi\n\n',
     );
+
+    // IPv6 packet forwarding
+    const ipv6ForwardingAction = options & FireWallOptMask.IPv6_FORWARDING ? '1' : '0';
+    this.stream.write(`  $SYSCTL -w net.ipv6.conf.all.forwarding=${ipv6ForwardingAction}\n`);
 
     if (options & FireWallOptMask.DOCKER_COMPAT) this.stream.write('\n  DOCKER_COMPATIBILITY=1\n');
 
-    this.stream.write('  return $FWC_OPTIONS_STATUS\n}\n\n');
+    this.stream.write('}\n\n');
 
     this.channel.emit(
       'message',
@@ -123,6 +130,7 @@ export class PolicyScript {
         true,
       ),
     );
+    return;
   }
 
   private async dumpCompilation(type: number): Promise<RuleCompilationResult[]> {
@@ -138,7 +146,9 @@ export class PolicyScript {
       const flushOptimizedBuffer = () => {
         if (!optimizedBuffer) return;
         optimized += this.renderOptimizedPolicyCommands(optimizedBuffer);
-        optimized += `${optimizedRuleLabels.join('\n')}\n`;
+        if (optimizedRuleLabels.length > 0) {
+          optimized += `${optimizedRuleLabels.join('\n')}\n`;
+        }
         optimizedBuffer = '';
         optimizedRuleLabels = [];
       };
@@ -171,19 +181,13 @@ export class PolicyScript {
     let cs = '';
     for (let i = 0; i < rulesCompiled.length; i++) {
       const rule = rulesCompiled[i];
-      cs += `\n${this.renderShellRule(rule, `Rule ${i + 1}`)}`;
+      cs += `\necho "Rule ${i + 1} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n`;
+      cs += this.shellComment(rule.comment);
+      if (rule.active) cs += rule.cs;
       if (rule.dangerousRuleData) dangerous.push(rule);
     }
     this.stream.write(cs);
     return dangerous;
-  }
-
-  private renderShellRule(rule: RuleCompilationResult | RoutingCompiled, label: string): string {
-    return (
-      `echo "${label} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}"\n` +
-      this.shellComment(rule.comment) +
-      (rule.active ? rule.cs : '')
-    );
   }
 
   private shellComment(comment: string): string {
@@ -243,11 +247,7 @@ export class PolicyScript {
       this.channel.emit('message', new ProgressNoticePayload(text, highlight));
     let dangerous: Array<RuleCompilationResult> = [];
 
-    for (const version of [4, 6]) {
-      const ipv = `IPv${version}`;
-      // Skip the policy of an IP version not available on the firewall (see policy_ip_available).
-      if (!isVyOS) this.stream.write(`\nif policy_ip_available ${version}; then`);
-
+    for (const ipv of ['IPv4', 'IPv6']) {
       const tables: [string, [string, string][]][] = [
         [
           `FILTER TABLE (${ipv})`,
@@ -290,11 +290,6 @@ export class PolicyScript {
           );
         }
       }
-
-      if (!isVyOS)
-        this.stream.write(
-          `\nelse\n  echo\n  echo "${ipv} not available on this system, ${ipv} policy skipped."\nfi\n`,
-        );
     }
 
     return dangerous;
@@ -310,7 +305,7 @@ export class PolicyScript {
       if (!rule.active) continue;
 
       cs += `\n# Rule ${i + 1} (ID: ${rule.id})\n`;
-      cs += this.shellComment(rule.comment);
+      if (rule.comment) cs += `# ${rule.comment.replace(/\n/g, '\n# ')}\n`;
       cs += rule.cs;
       if (rule.dangerousRuleData) dangerous.push(rule);
     }
@@ -345,19 +340,31 @@ export class PolicyScript {
   private stripShellComments(line: string): string {
     let inSingleQuote = false;
     let inDoubleQuote = false;
+    let result = '';
 
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
+
       if (char === "'" && !inDoubleQuote) {
         inSingleQuote = !inSingleQuote;
-      } else if (char === '"' && !inSingleQuote) {
-        inDoubleQuote = !inDoubleQuote;
-      } else if (char === '#' && !inSingleQuote && !inDoubleQuote) {
-        return line.slice(0, i);
+        result += char;
+        continue;
       }
+
+      if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        result += char;
+        continue;
+      }
+
+      if (char === '#' && !inSingleQuote && !inDoubleQuote) {
+        break;
+      }
+
+      result += char;
     }
 
-    return line;
+    return result;
   }
 
   private normalizeIptablesRestoreQuotes(command: string): string {
@@ -368,9 +375,12 @@ export class PolicyScript {
 
   private parseIptablesRestoreLine(
     line: string,
-  ): { iptables: string; table: string; restoreLine: string } | null {
+  ): { restoreCommand: string; table: string; restoreLine: string } | null {
     const commandMatch = line.trim().match(/^(\$IPTABLES|\$IP6TABLES)\s+(.+)$/);
     if (!commandMatch) return null;
+
+    const restoreCommand =
+      commandMatch[1] === '$IPTABLES' ? '$IPTABLES_RESTORE' : '$IP6TABLES_RESTORE';
 
     let command = commandMatch[2];
     command = this.stripShellComments(command).trim();
@@ -385,7 +395,7 @@ export class PolicyScript {
 
     if (!command.startsWith('-A ') && !command.startsWith('-N ')) return null;
 
-    return { iptables: commandMatch[1], table, restoreLine: command };
+    return { restoreCommand, table, restoreLine: command };
   }
 
   private parseNftablesFileLine(
@@ -412,29 +422,34 @@ export class PolicyScript {
     return command.replace(/\\"/g, '"').replace(/\\'/g, "'");
   }
 
-  // iptables-restore block with the rules of a table, for the iptables command ($IPTABLES or $IP6TABLES)
-  // of the rules.
-  private renderIptablesRestoreBlock(iptables: string, table: string, lines: string[]): string {
-    const firstRestore = !this.restoredCommands.has(iptables);
-    this.restoredCommands.add(iptables);
-    const chainPolicies = this.getIptablesRestoreChainPolicies(iptables, table);
+  private flushIptablesRestoreBuffer(
+    restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null,
+  ): string {
+    if (!restoreBuffer || restoreBuffer.lines.length === 0) return '';
+
+    const executions = this.restoreExecutions.get(restoreBuffer.restoreCommand) ?? 0;
+    this.restoreExecutions.set(restoreBuffer.restoreCommand, executions + 1);
+    const chainPolicies = this.getIptablesRestoreChainPolicies(restoreBuffer);
 
     return (
-      `cat <<'FWC_IPTABLES_RESTORE' | ${iptables}_RESTORE${firstRestore ? '' : ' --noflush'}\n` +
-      `*${table}\n\n` +
+      `cat <<'FWC_IPTABLES_RESTORE' | ${restoreBuffer.restoreCommand}` +
+      `${executions > 0 ? ' --noflush' : ''}\n` +
+      `*${restoreBuffer.table}\n\n` +
       `${chainPolicies.length > 0 ? `${chainPolicies.join('\n')}\n\n` : ''}` +
-      `${lines.join('\n')}\n\n` +
+      `${restoreBuffer.lines.join('\n')}\n\n` +
       'COMMIT\n' +
       'FWC_IPTABLES_RESTORE\n' +
       // The first restore flushes the table, including the temporary DNS resolution rules.
-      `${firstRestore ? `policy_dns_resolution allow "${iptables}"\n` : ''}`
+      `${executions > 0 ? '' : `policy_dns_resolution allow "${restoreBuffer.restoreCommand === '$IPTABLES_RESTORE' ? '$IPTABLES' : '$IP6TABLES'}"\n`}`
     );
   }
 
-  private renderNftablesCommands(lines: string[]): string {
-    return this.useOptimizedNftablesFile()
-      ? this.renderNftablesFileCommands(lines)
-      : lines.map((line) => `$NFT ${line.replace(/;/g, '\\;')}`).join('\n') + '\n';
+  private flushNftablesFileBuffer(
+    nftBuffer: { family: string; table: string; chain: string; lines: string[] } | null,
+  ): string {
+    if (!nftBuffer || nftBuffer.lines.length === 0) return '';
+
+    return this.renderNftablesFileCommands(nftBuffer.lines);
   }
 
   private renderNftablesFileCommands(lines: string[]): string {
@@ -445,11 +460,14 @@ export class PolicyScript {
     return "cat <<'FWC_NFT_RULES' | $NFT -f -\n" + `${lines.join('\n')}\n` + 'FWC_NFT_RULES\n';
   }
 
-  private getIptablesRestoreChainPolicies(iptables: string, table: string): string[] {
-    if (table !== 'filter') return [];
-    if (this.restoreFilterPolicies.has(iptables)) return [];
+  private getIptablesRestoreChainPolicies(restoreBuffer: {
+    restoreCommand: string;
+    table: string;
+  }): string[] {
+    if (restoreBuffer.table !== 'filter') return [];
+    if (this.restoreFilterPolicies.has(restoreBuffer.restoreCommand)) return [];
 
-    this.restoreFilterPolicies.add(iptables);
+    this.restoreFilterPolicies.add(restoreBuffer.restoreCommand);
     return [':INPUT DROP [0:0]', ':OUTPUT DROP [0:0]', ':FORWARD DROP [0:0]'];
   }
 
@@ -459,38 +477,14 @@ export class PolicyScript {
     return `${formattedRule}\n`;
   }
 
-  // A rule command that goes in an optimized block (iptables-restore or nft -f input): the consecutive
-  // lines with the same key go in the same block.
-  private parseOptimizedLine(rawLine: string): OptimizedBlockLine | null {
-    if (this.useOptimizedIptablesRestore()) {
-      const parsed = this.parseIptablesRestoreLine(rawLine);
-      return (
-        parsed && {
-          key: `${parsed.iptables} ${parsed.table}`,
-          line: parsed.restoreLine,
-          render: (lines) => this.renderIptablesRestoreBlock(parsed.iptables, parsed.table, lines),
-        }
-      );
-    }
-
-    const parsed = this.parseNftablesFileLine(rawLine);
-    return (
-      parsed && {
-        key: `${parsed.family} ${parsed.table} ${parsed.chain}`,
-        line: parsed.fileLine,
-        render: (lines) => this.renderNftablesFileCommands(lines),
-      }
-    );
-  }
-
-  private renderOptimizedPolicyCommands(cs: string): string {
+  private renderOptimizedIptablesCommands(cs: string): string {
     let optimized = '';
-    let block: { key: string; lines: string[]; render: (lines: string[]) => string } | null = null;
+    let restoreBuffer: { restoreCommand: string; table: string; lines: string[] } | null = null;
     let pendingRuleLabel: string | null = null;
 
-    const flushBlock = () => {
-      if (block) optimized += block.render(block.lines);
-      block = null;
+    const flushRestoreBuffer = () => {
+      optimized += this.flushIptablesRestoreBuffer(restoreBuffer);
+      restoreBuffer = null;
     };
 
     for (const rawLine of cs.split('\n')) {
@@ -502,7 +496,7 @@ export class PolicyScript {
       }
 
       if (trimmedLine.startsWith('if [')) {
-        flushBlock();
+        flushRestoreBuffer();
         if (pendingRuleLabel) {
           optimized = optimized.replace(/\n+$/, '\n');
           optimized += `\n${pendingRuleLabel}\n`;
@@ -513,7 +507,7 @@ export class PolicyScript {
       }
 
       if (trimmedLine === 'fi') {
-        flushBlock();
+        flushRestoreBuffer();
         optimized += `${rawLine}\n\n`;
         continue;
       }
@@ -523,35 +517,43 @@ export class PolicyScript {
         continue;
       }
 
-      const parsedLine = this.parseOptimizedLine(rawLine);
+      const parsedLine = this.parseIptablesRestoreLine(rawLine);
 
       if (!parsedLine) {
-        flushBlock();
+        flushRestoreBuffer();
         if (pendingRuleLabel) {
           optimized += `${pendingRuleLabel}\n`;
           pendingRuleLabel = null;
         }
-        optimized += `${rawLine}\n`;
+        optimized += rawLine.length > 0 ? `${rawLine}\n` : '\n';
         continue;
       }
 
-      if (!block || block.key !== parsedLine.key) {
-        flushBlock();
-        block = { key: parsedLine.key, lines: [], render: parsedLine.render };
+      if (
+        !restoreBuffer ||
+        restoreBuffer.restoreCommand !== parsedLine.restoreCommand ||
+        restoreBuffer.table !== parsedLine.table
+      ) {
+        flushRestoreBuffer();
+        restoreBuffer = {
+          restoreCommand: parsedLine.restoreCommand,
+          table: parsedLine.table,
+          lines: [],
+        };
       }
 
       if (pendingRuleLabel) {
-        if (block.lines.length > 0) {
-          block.lines.push('');
+        if (restoreBuffer.lines.length > 0) {
+          restoreBuffer.lines.push('');
         }
-        block.lines.push(pendingRuleLabel);
+        restoreBuffer.lines.push(pendingRuleLabel);
         pendingRuleLabel = null;
       }
 
-      block.lines.push(parsedLine.line);
+      restoreBuffer.lines.push(parsedLine.restoreLine);
     }
 
-    flushBlock();
+    flushRestoreBuffer();
 
     if (pendingRuleLabel) {
       optimized += `${pendingRuleLabel}\n`;
@@ -560,12 +562,105 @@ export class PolicyScript {
     return optimized;
   }
 
+  private renderOptimizedNftablesCommands(cs: string): string {
+    let optimized = '';
+    let nftBuffer: { family: string; table: string; chain: string; lines: string[] } | null = null;
+    let pendingRuleLabel: string | null = null;
+
+    const flushNftBuffer = () => {
+      optimized += this.flushNftablesFileBuffer(nftBuffer);
+      nftBuffer = null;
+    };
+
+    for (const rawLine of cs.split('\n')) {
+      const trimmedLine = rawLine.trim();
+
+      if (trimmedLine.match(/^# Rule \d+ \(ID: \d+\)$/)) {
+        pendingRuleLabel = trimmedLine;
+        continue;
+      }
+
+      if (trimmedLine.startsWith('if [')) {
+        flushNftBuffer();
+        if (pendingRuleLabel) {
+          optimized = optimized.replace(/\n+$/, '\n');
+          optimized += `\n${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
+        optimized += `${rawLine}\n`;
+        continue;
+      }
+
+      if (trimmedLine === 'fi') {
+        flushNftBuffer();
+        optimized += `${rawLine}\n\n`;
+        continue;
+      }
+
+      // Skip shell comment lines completely - they are handled separately in dumpCompilation
+      if (trimmedLine.startsWith('#')) {
+        continue;
+      }
+
+      const parsedLine = this.parseNftablesFileLine(rawLine);
+
+      if (!parsedLine) {
+        flushNftBuffer();
+        if (pendingRuleLabel) {
+          optimized += `${pendingRuleLabel}\n`;
+          pendingRuleLabel = null;
+        }
+        optimized += rawLine.length > 0 ? `${rawLine}\n` : '\n';
+        continue;
+      }
+
+      if (
+        !nftBuffer ||
+        nftBuffer.family !== parsedLine.family ||
+        nftBuffer.table !== parsedLine.table ||
+        nftBuffer.chain !== parsedLine.chain
+      ) {
+        flushNftBuffer();
+        nftBuffer = {
+          family: parsedLine.family,
+          table: parsedLine.table,
+          chain: parsedLine.chain,
+          lines: [],
+        };
+      }
+
+      if (pendingRuleLabel) {
+        if (nftBuffer.lines.length > 0) {
+          nftBuffer.lines.push('');
+        }
+        nftBuffer.lines.push(pendingRuleLabel);
+        pendingRuleLabel = null;
+      }
+
+      nftBuffer.lines.push(parsedLine.fileLine);
+    }
+
+    flushNftBuffer();
+
+    if (pendingRuleLabel) {
+      optimized += `${pendingRuleLabel}\n`;
+    }
+
+    return optimized;
+  }
+
+  private renderOptimizedPolicyCommands(cs: string): string {
+    return this.useOptimizedIptablesRestore()
+      ? this.renderOptimizedIptablesCommands(cs)
+      : this.renderOptimizedNftablesCommands(cs);
+  }
+
   private isOptimizedScriptRule(cs: string): boolean {
     return cs.includes('# Hook script rule code:');
   }
 
   public dump(): Promise<Array<RuleCompilationResult>> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       this.dnsChecks = [];
       this.stream = fs.createWriteStream(this.path);
       this.stream
@@ -593,7 +688,7 @@ export class PolicyScript {
             if (!isVyOS) {
               this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
               this.stream.write(`POLICY_COMPILATION_MODE="${this.policyCompilationMode}"\n\n`);
-              this.greetingMessage();
+              await this.greetingMessage();
               await this.dumpFirewallOptions();
 
               this.stream.write('policy_load() {\n');
@@ -614,7 +709,7 @@ export class PolicyScript {
                   '# For this reason, if we have Nftables policy we must allow pass all through Iptables.\n',
                 );
                 this.stream.write('iptables_default_filter_policy ACCEPT\n');
-                this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
+                await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
               } else {
                 // IPTables compiler.
                 this.stream.write('\n# Default IPTables chains policy.\n');
@@ -622,7 +717,7 @@ export class PolicyScript {
               }
 
               if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
-                this.dumpMangleTableRules(); // Generate default rules for mangle table
+                await this.dumpMangeTableRules(); // Generate default rules for mangle table
 
               dangerous = await this.dumpPolicyTables();
               this.stream.write('\n}\n\n');
@@ -656,6 +751,9 @@ export class PolicyScript {
 
             this.channel.emit('message', new ProgressPayload('end', false, 'Compilation finished'));
 
+            //console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
+            //console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
+
             resolve(dangerous);
           } catch (error) {
             reject(error);
@@ -667,40 +765,65 @@ export class PolicyScript {
     });
   }
 
-  private dumpNFTablesStd(): void {
+  private dumpNFTablesStd(): Promise<void> {
     // Code for create the standard nftables tables and chain.
     this.stream.write('\n\necho\n');
     this.stream.write('echo "******************************"\n');
     this.stream.write('echo "* NFTABLES TABLES AND CHAINS *"\n');
     this.stream.write('echo "******************************"\n');
-    for (const family of ['ip', 'ip6']) {
-      const nftablesStdCommands = [
-        `add table ${family} filter`,
+    const families = ['ip', 'ip6'];
+    const nftablesStdCommands: string[] = [];
+    for (const family of families) {
+      nftablesStdCommands.push(`add table ${family} filter`);
+      nftablesStdCommands.push(
         `add chain ${family} filter INPUT { type filter hook input priority 0; policy drop; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} filter FORWARD { type filter hook forward priority 0; policy drop; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} filter OUTPUT { type filter hook output priority 0; policy drop; }`,
-        `add table ${family} nat`,
+      );
+      nftablesStdCommands.push(`add table ${family} nat`);
+      nftablesStdCommands.push(
         `add chain ${family} nat PREROUTING { type nat hook prerouting priority - 100; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} nat INPUT { type nat hook input priority 100; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} nat OUTPUT { type nat hook output priority - 100; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} nat POSTROUTING { type nat hook postrouting priority 100; policy accept; }`,
-        `add table ${family} mangle`,
+      );
+      nftablesStdCommands.push(`add table ${family} mangle`);
+      nftablesStdCommands.push(
         `add chain ${family} mangle PREROUTING { type filter hook prerouting priority - 150; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} mangle INPUT { type filter hook input priority - 150; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} mangle FORWARD { type filter hook forward priority - 150; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} mangle OUTPUT { type route hook output priority - 150; policy accept; }`,
+      );
+      nftablesStdCommands.push(
         `add chain ${family} mangle POSTROUTING { type filter hook postrouting priority - 150; policy accept; }`,
-      ];
-
-      // Only for the IP versions available on the firewall (see policy_ip_available), each one in
-      // its own nft -f block since a failed command rejects the whole block.
-      this.stream.write(`if policy_ip_available ${family === 'ip' ? 4 : 6}; then\n`);
-      this.stream.write(this.renderNftablesCommands(nftablesStdCommands));
-      this.stream.write('fi\n');
+      );
     }
+    this.stream.write(
+      this.useOptimizedNftablesFile()
+        ? this.renderNftablesFileCommands(nftablesStdCommands)
+        : nftablesStdCommands.map((command) => `$NFT ${command.replace(/;/g, '\\;')}`).join('\n') +
+            '\n',
+    );
+    return;
   }
 
-  private dumpMangleTableRules(): void {
+  private dumpMangeTableRules(): Promise<void> {
     this.channel.emit('message', new ProgressNoticePayload('MANGLE TABLE:', true));
     this.channel.emit('message', new ProgressNoticePayload('Automatic rules.'));
     this.stream.write('\n\necho\n');
@@ -708,8 +831,6 @@ export class PolicyScript {
     this.stream.write('echo "* MANGLE TABLE *"\n');
     this.stream.write('echo "****************"\n');
     this.stream.write('#Automatic rules for mangle table.\n');
-    // IPv4 only rules (see policy_ip_available).
-    this.stream.write('if policy_ip_available 4; then\n');
     if (this.policyCompiler == 'IPTables') {
       const mangleRules =
         '$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n' +
@@ -720,7 +841,7 @@ export class PolicyScript {
         '$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n';
       this.stream.write(
         this.useOptimizedIptablesRestore()
-          ? this.renderOptimizedPolicyCommands(mangleRules)
+          ? this.renderOptimizedIptablesCommands(mangleRules)
           : mangleRules,
       );
     } else {
@@ -733,9 +854,13 @@ export class PolicyScript {
         'add rule ip mangle POSTROUTING counter meta mark set ct mark',
         'add rule ip mangle POSTROUTING mark != 0x0 counter accept',
       ];
-      this.stream.write(this.renderNftablesCommands(mangleRules));
+      this.stream.write(
+        this.useOptimizedNftablesFile()
+          ? this.renderNftablesFileCommands(mangleRules)
+          : mangleRules.map((rule) => `$NFT ${rule}`).join('\n') + '\n',
+      );
     }
-    this.stream.write('fi\n');
+    return;
   }
 
   private async dumpRouting(): Promise<void> {
@@ -743,7 +868,12 @@ export class PolicyScript {
       RoutingTableService.name,
     );
     const routingRuleService = await app().getService<RoutingRuleService>(RoutingRuleService.name);
-    const routingTables = await routingTableService.findManyInPath({
+    let routes: RouteData<RouteItemForCompiler>[];
+    let routesCompiled: RoutingCompiled[];
+    let rules: RoutingRulesData<RoutingRuleItemForCompiler>[];
+    let rulesCompiled: RoutingCompiled[];
+
+    const routingTables: RoutingTable[] = await routingTableService.findManyInPath({
       fwCloudId: this.fwcloud,
       firewallId: this.firewall,
     });
@@ -774,50 +904,58 @@ export class PolicyScript {
       this.stream.write('echo "DONE"\n\n');
 
       // Compile and dump all routing tables.
-      for (const table of routingTables) {
+      for (let i = 0; i < routingTables.length; i++) {
         this.stream.write('echo\n');
-        const msg = `ROUTING TABLE: ${table.number} (${table.name})`;
+        const msg = `ROUTING TABLE: ${routingTables[i].number} (${routingTables[i].name})`;
         this.stream.write(`echo "${msg}"\n`);
         // If the main table exists in our firewall, then flush it before loading its routes.
-        if (table.number === 254) this.stream.write('$IP route flush scope global table main\n');
+        if (routingTables[i].number === 254)
+          this.stream.write('$IP route flush scope global table main\n');
         this.channel.emit('message', new ProgressNoticePayload(msg, true));
 
-        const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+        routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
           'compiler',
           this.fwcloud,
           this.firewall,
-          table.id,
+          routingTables[i].id,
         );
         if (routes.length > 0) {
-          const routesCompiled = this.routingCompiler.compile('Route', routes, this.channel);
+          routesCompiled = this.routingCompiler.compile('Route', routes, this.channel);
 
           let cs = '';
-          for (const [index, route] of routesCompiled.entries()) {
-            cs += this.renderShellRule(route, `Route ${index + 1}`);
+          for (let j = 0; j < routesCompiled.length; j++) {
+            cs += `echo "Route ${j + 1} (ID: ${routesCompiled[j].id})${!routesCompiled[j].active ? ' [DISABLED]' : ''}"\n`;
+            if (routesCompiled[j].comment)
+              cs += `# ${routesCompiled[j].comment.replace(/\n/g, '\n# ')}\n`;
+            if (routesCompiled[j].active) cs += routesCompiled[j].cs;
           }
           this.stream.write(cs);
         }
       }
 
       // Compile and dump routing policy.
-      const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+      rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
         'compiler',
         this.fwcloud,
         this.firewall,
       );
       if (rules.length > 0) {
-        const rulesCompiled = this.routingCompiler.compile('Rule', rules, this.channel);
+        rulesCompiled = this.routingCompiler.compile('Rule', rules, this.channel);
 
         this.stream.write(`\necho\necho "ROUTING RULES:"n`);
         this.channel.emit('message', new ProgressNoticePayload('ROUTING RULES:', true));
         let cs = '';
-        for (const [index, rule] of rulesCompiled.entries()) {
-          cs += `\n${this.renderShellRule(rule, `Routing rule ${index + 1}`)}`;
+        for (let j = 0; j < rulesCompiled.length; j++) {
+          cs += `\necho "Routing rule ${j + 1} (ID: ${rulesCompiled[j].id})${!rulesCompiled[j].active ? ' [DISABLED]' : ''}"\n`;
+          if (rulesCompiled[j].comment)
+            cs += `# ${rulesCompiled[j].comment.replace(/\n/g, '\n# ')}\n`;
+          if (rulesCompiled[j].active) cs += rulesCompiled[j].cs;
         }
         this.stream.write(cs);
       }
     }
 
     this.stream.write('\n}\n\n');
+    return;
   }
 }
