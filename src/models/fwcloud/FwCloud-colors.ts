@@ -93,7 +93,7 @@ export class fwcloudColors {
         for (const item2 of other.colors) {
           if (item1.color === item2.color) {
             item1.count += item2.count;
-            other.colors.shift();
+            other.colors.splice(other.colors.indexOf(item2), 1);
             break;
           }
         }

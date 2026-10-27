@@ -154,6 +154,20 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
         expect(fwcColors1.found({ color: '#112233', count: 15 })).to.be.true;
       });
 
+      it('should keep the other colors when the same color is not the first one', () => {
+        const colors = new fwcloudColors([{ color: '#112233', count: 5 }]);
+        colors.combine(
+          new fwcloudColors([
+            { color: '#445566', count: 1 },
+            { color: '#112233', count: 10 },
+          ]),
+        );
+        expect(colors.colors).to.deep.equal([
+          { color: '#112233', count: 15 },
+          { color: '#445566', count: 1 },
+        ]);
+      });
+
       it('should return sorted combined fwcloudColor object', () => {
         fwcColors1.combine(fwcColors2);
         fwcColors1.sort();
