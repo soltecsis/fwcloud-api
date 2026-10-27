@@ -31,6 +31,7 @@ import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replica
 import type {
   PolicyReplicationProvisionAddress,
   PolicyReplicationProvisionInterface,
+  PolicyReplicationProvisionObject,
 } from './policy-replication.types';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
@@ -81,6 +82,7 @@ type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
+const OBJECT_DATA_FIELDS: ReadonlySet<string> = new Set(PROFILE_OBJECT_DATA_FIELDS);
 
 // Predefined service group the default "useful ICMP" INPUT rule allows.
 const DEFAULT_ICMP_SERVICE_GROUP = 5;
@@ -220,15 +222,8 @@ interface SnapshotObjectLookup {
   groups: Map<number, SnapshotGroupRow>;
 }
 
-interface SnapshotProvisionObject {
-  kind: 'address' | 'network' | 'range' | 'interfaceRole' | 'std' | 'stdGroup' | 'vpnClient';
-  value?: unknown;
-  role?: string;
-  interfaceRole?: string;
-  interfaceAddressIndex?: number;
-  id?: number;
-  name?: string;
-  vpnId?: string;
+interface SnapshotProvisionObject extends PolicyReplicationProvisionObject {
+  kind: Exclude<PolicyReplicationProvisionObject['kind'], 'host' | 'external'>;
 }
 
 type SnapshotProvisionService =
@@ -1601,8 +1596,8 @@ export class ReplicationProfileSnapshotService extends Service {
       const original = Object.fromEntries(
         Object.entries(address).filter(
           ([field, value]) =>
-            (PROFILE_OBJECT_DATA_FIELDS as readonly string[]).includes(field) &&
-            !(field.endsWith('_port_start') || field.endsWith('_port_end') ? value === 0 : false),
+            OBJECT_DATA_FIELDS.has(field) &&
+            !((field.endsWith('_port_start') || field.endsWith('_port_end')) && value === 0),
         ),
       );
       const invalid = await validateProfileObjectSnapshot(
