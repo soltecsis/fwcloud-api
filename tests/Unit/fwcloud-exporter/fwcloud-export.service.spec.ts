@@ -106,22 +106,25 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
   describe('colors()', () => {
     let fwcColors1: fwcloudColors;
     let fwcColors2: fwcloudColors;
-    const cua1: colorUsage[] = [];
-    const cua2: colorUsage[] = [];
+    let cua1: colorUsage[];
+    let cua2: colorUsage[];
 
     beforeEach(async () => {
       let n: number;
+      cua1 = [];
+      cua2 = [];
 
       // Generate ramdon content colorsUsage arrays.
+      // Colors are never shared between both arrays, as combine() would merge them adding counts.
       for (n = ramdomInteger(1, 64); n > 0; n--) {
         cua1.push({
-          color: '#' + Math.random().toString(16).substr(2, 6),
+          color: '#1' + n.toString(16).padStart(5, '0'),
           count: ramdomInteger(1, 10000),
         });
       }
       for (n = ramdomInteger(1, 64); n > 0; n--) {
         cua2.push({
-          color: '#' + Math.random().toString(16).substr(2, 6),
+          color: '#2' + n.toString(16).padStart(5, '0'),
           count: ramdomInteger(1, 10000),
         });
       }
