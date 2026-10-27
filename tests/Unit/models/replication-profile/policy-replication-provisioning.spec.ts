@@ -779,6 +779,200 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     }
   });
 
+  describe('cluster node restrictions', () => {
+    const COMMENTS = ['Master only', 'Backup only', 'Every node'];
+    let cluster: Cluster;
+    let backup: Firewall;
+
+    beforeEach(async () => {
+      const manager = db.getSource().manager;
+      cluster = await manager.getRepository(Cluster).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwc.fwcloud.id,
+      });
+      targetFirewall.clusterId = cluster.id;
+      targetFirewall.fwmaster = 1;
+      await manager.getRepository(Firewall).save(targetFirewall);
+      backup = await manager.getRepository(Firewall).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwc.fwcloud.id,
+        clusterId: cluster.id,
+        fwmaster: 0,
+      });
+      provision.rules = [
+        { ...provision.rules[0], nodeRole: 'master', comment: COMMENTS[0] },
+        { ...provision.rules[0], nodeRole: 'backup', comment: COMMENTS[1] },
+        { ...provision.rules[0], comment: COMMENTS[2] },
+      ];
+    });
+
+    const applyToCluster = (
+      nodeRoleMapping: Record<string, number> | undefined,
+      mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults',
+    ) =>
+      service.provisionPolicyFromProfile(
+        { kind: 'cluster', id: cluster.id },
+        provision,
+        fwc.fwcloud.id,
+        mode,
+        { ...applyOptions(values), nodeRoleMapping },
+      );
+
+    const appliedNodes = () =>
+      db
+        .getSource()
+        .query(
+          'SELECT comment, fw_apply_to FROM policy_r WHERE firewall = ? AND comment IN (?) ORDER BY rule_order',
+          [targetFirewall.id, COMMENTS],
+        );
+
+    async function expectNothingWritten(): Promise<void> {
+      expect(await appliedNodes()).to.be.empty;
+      expect(
+        await db
+          .getSource()
+          .query('SELECT id FROM interface WHERE firewall = ?', [targetFirewall.id]),
+      ).to.be.empty;
+    }
+
+    it('should restrict each rule to the destination node mapped to its role', async () => {
+      const result = await applyToCluster({ master: targetFirewall.id, backup: backup.id });
+
+      expect(result.errors).to.be.empty;
+      expect(result.applied).to.be.true;
+      expect(await appliedNodes()).to.deep.equal([
+        { comment: COMMENTS[0], fw_apply_to: targetFirewall.id },
+        { comment: COMMENTS[1], fw_apply_to: backup.id },
+        { comment: COMMENTS[2], fw_apply_to: null },
+      ]);
+    });
+
+    it('should follow the node role mapping instead of node positions', async () => {
+      const result = await applyToCluster({ master: backup.id, backup: targetFirewall.id });
+
+      expect(result.errors).to.be.empty;
+      expect(await appliedNodes()).to.deep.equal([
+        { comment: COMMENTS[0], fw_apply_to: backup.id },
+        { comment: COMMENTS[1], fw_apply_to: targetFirewall.id },
+        { comment: COMMENTS[2], fw_apply_to: null },
+      ]);
+    });
+
+    for (const mode of ['replace_defaults', 'merge', 'dry_run'] as const) {
+      it(`should reject a node role without a destination node before writing anything in ${mode}`, async () => {
+        for (const mapping of [undefined, {}, { master: targetFirewall.id }]) {
+          const result = await applyToCluster(mapping, mode);
+
+          expect(result.applied, JSON.stringify(mapping)).to.be.false;
+          expect(result.createdRules, JSON.stringify(mapping)).to.be.empty;
+          expect(result.errors, JSON.stringify(mapping)).to.include(
+            'Rule 2 node: cluster node role "backup" is not assigned to a node of the target cluster.',
+          );
+        }
+        await expectNothingWritten();
+      });
+    }
+
+    it('should reject a destination node that belongs to another cluster', async () => {
+      const otherCluster = await db
+        .getSource()
+        .manager.getRepository(Cluster)
+        .save({ name: StringHelper.randomize(10), fwCloudId: fwc.fwcloud.id });
+      const outsider = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .save({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwc.fwcloud.id,
+          clusterId: otherCluster.id,
+          fwmaster: 1,
+        });
+
+      const result = await applyToCluster({ master: targetFirewall.id, backup: outsider.id });
+
+      expect(result.applied).to.be.false;
+      expect(result.errors).to.deep.equal([
+        'Rule 2 node: cluster node role "backup" is not assigned to a node of the target cluster.',
+      ]);
+      await expectNothingWritten();
+    });
+
+    it('should reject two node roles assigned to the same destination node', async () => {
+      const result = await applyToCluster({ master: backup.id, backup: backup.id });
+
+      expect(result.applied).to.be.false;
+      expect(result.errors).to.deep.equal([
+        'Rule 1 node: cluster node roles "master" and "backup" are assigned to the same node; each role needs a node of its own.',
+        'Rule 2 node: cluster node roles "backup" and "master" are assigned to the same node; each role needs a node of its own.',
+      ]);
+      await expectNothingWritten();
+    });
+
+    it('should reject a node restriction on a firewall target', async () => {
+      const firewall = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .save({ name: StringHelper.randomize(10), fwCloudId: fwc.fwcloud.id });
+
+      const result = await service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: firewall.id },
+        provision,
+        fwc.fwcloud.id,
+        'replace_defaults',
+        { ...applyOptions(values), nodeRoleMapping: { master: firewall.id } },
+      );
+
+      expect(result.applied).to.be.false;
+      expect(result.errors).to.deep.equal([
+        'Rule 1: it only applies to cluster node "master", but the target is not a cluster.',
+        'Rule 2: it only applies to cluster node "backup", but the target is not a cluster.',
+      ]);
+      expect(
+        await db.getSource().query('SELECT id FROM policy_r WHERE firewall = ?', [firewall.id]),
+      ).to.be.empty;
+    });
+
+    for (const mode of ['replace_defaults', 'merge', 'dry_run'] as const) {
+      it(`should reject malformed node roles instead of applying the rule to every node in ${mode}`, async () => {
+        for (const nodeRole of [null, '', ' ', 2, ['backup'], { role: 'backup' }]) {
+          provision.rules[1].nodeRole = nodeRole as unknown as string;
+
+          const result = await applyToCluster(
+            { master: targetFirewall.id, backup: backup.id },
+            mode,
+          );
+
+          expect(result.applied, JSON.stringify(nodeRole)).to.be.false;
+          expect(result.createdRules, JSON.stringify(nodeRole)).to.be.empty;
+          expect(result.errors, JSON.stringify(nodeRole)).to.deep.equal([
+            'Rule 2: nodeRole must name a cluster node; leave it out to apply the rule to every node.',
+          ]);
+        }
+        await expectNothingWritten();
+      });
+    }
+
+    it('should tell rules on different nodes apart in merge mode', async () => {
+      const mapping = { master: targetFirewall.id, backup: backup.id };
+      const everyNode = provision.rules[2];
+      provision.rules = [everyNode];
+      expect((await applyToCluster(mapping)).errors).to.be.empty;
+
+      // The same rule restricted to one node is a different rule...
+      provision.rules = [{ ...everyNode, nodeRole: 'backup' }];
+      const restricted = await applyToCluster(mapping, 'merge');
+      expect(restricted.errors).to.be.empty;
+      expect(restricted.conflicts).to.be.empty;
+      expect(restricted.createdRules).to.have.length(1);
+
+      // ...which is recognized once it exists.
+      const again = await applyToCluster(mapping, 'merge');
+      expect(again.errors).to.be.empty;
+      expect(again.createdRules).to.be.empty;
+      expect(again.conflicts.map((conflict) => conflict.type)).to.deep.equal(['duplicated_rule']);
+    });
+  });
+
   it('should validate without writing anything in dry-run mode', async () => {
     const result = await service.provisionPolicyFromProfile(
       { kind: 'firewall', id: targetFirewall.id },

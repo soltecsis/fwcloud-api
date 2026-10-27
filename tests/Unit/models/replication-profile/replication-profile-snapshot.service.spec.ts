@@ -46,6 +46,7 @@ import {
   writeReplicationProfileModel,
 } from '../../../../src/models/replication-profile/replication-profile-template';
 import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
+import { portableProfileModel } from '../../../../src/models/replication-profile/replication-profile-portable';
 import { applyInterfaceAddressOverrides } from '../../../../src/models/replication-profile/replication-profile-interface-addresses';
 import { policyRuleDateKey } from '../../../../src/models/policy/policy-rule-validity';
 import { resolveProfileObjectReferences } from '../../../../src/models/replication-profile/replication-profile-object-reference.service';
@@ -74,6 +75,7 @@ interface CapturedRule {
   destination?: CapturedObject[];
   services?: { protocol?: string; port?: unknown; kind?: string; referenceId?: string }[];
   comment?: string;
+  nodeRole?: string;
 }
 
 interface CapturedParameter {
@@ -979,6 +981,42 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         expect(getProvision(profile).rules).to.be.empty;
       });
 
+      it('should capture the INPUT policy of a cluster whose default rule only applies to one node', async () => {
+        await addDefaultInputRules();
+        const manager = db.getSource().manager;
+        const cluster = await manager
+          .getRepository(Cluster)
+          .save({ name: StringHelper.randomize(10), fwCloudId: fwc.fwcloud.id });
+        await manager
+          .getRepository(Firewall)
+          .update(source.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+        const backup = await manager.getRepository(Firewall).save({
+          name: `${cluster.name}-backup`,
+          fwCloudId: fwc.fwcloud.id,
+          clusterId: cluster.id,
+          fwmaster: 0,
+        });
+        // Otherwise the target's own default ICMP rule would accept ICMP on every node.
+        await db
+          .getSource()
+          .query(
+            'UPDATE policy_r SET fw_apply_to = ? WHERE firewall = ? AND type = 1 AND comment = ?',
+            [backup.id, source.firewall.id, USEFUL_ICMP],
+          );
+
+        const { profile, warnings } = await service.createProfileFromSource(
+          { source: { kind: 'cluster', id: cluster.id }, name: 'Node default rule snapshot' },
+          { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+        );
+
+        expect(warnings).to.be.empty;
+        const rules = getProvision(profile).rules;
+        expect(rules.map((rule) => [rule.comment, rule.nodeRole])).to.deep.eq([
+          [SELF_HOST, undefined],
+          [USEFUL_ICMP, 'backup'],
+        ]);
+      });
+
       it('should capture the INPUT policy whole once it holds a rule of its own', async () => {
         // Applying a profile with INPUT rules replaces the target's default INPUT rules.
         await addDefaultInputRules();
@@ -1162,6 +1200,26 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(warnings).to.have.length(2);
       expect(warnings.join(' ')).to.contain('Disabled rule');
       expect(warnings.join(' ')).to.contain('Reject rule');
+    });
+
+    it('should not capture a rule restricted to another firewall instead of widening it', async () => {
+      const other = await makeReplicationTargetFirewall(fwc);
+      const ruleId = await insertForwardRule(source.firewall.id, 100, {
+        comment: 'Other firewall only',
+      });
+      await db
+        .getSource()
+        .query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [other.firewall.id, ruleId]);
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Foreign node rule' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(warnings).to.deep.eq([
+        'FORWARD IPv4 rule 100 ("Other firewall only") was not captured: it only applies to a firewall that is not a node of the source.',
+      ]);
+      expect(getProvision(profile).rules).to.be.empty;
     });
 
     it('should reject a firewall that belongs to another FWCloud', async () => {
@@ -1553,6 +1611,224 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       const sourceRef = model.sourceRef as Record<string, unknown>;
       expect(sourceRef.kind).to.be.eq('cluster');
       expect(sourceRef.name).to.be.eq(cluster.name);
+    });
+
+    it('should keep the node each rule is restricted to through the saved and exported JSON', async () => {
+      const backup = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ clusterId: cluster.id, fwmaster: 0 });
+      const restrictTo = (ruleId: number, nodeId: number) =>
+        db.getSource().query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [nodeId, ruleId]);
+      await restrictTo(
+        await insertForwardRule(source.firewall.id, 100, { comment: 'Master only' }),
+        source.firewall.id,
+      );
+      await restrictTo(
+        await insertForwardRule(source.firewall.id, 101, { comment: 'Backup only' }),
+        backup.id,
+      );
+      await insertForwardRule(source.firewall.id, 102, { comment: 'Every node' });
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'cluster', id: cluster.id }, name: 'Node restricted rules' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(warnings).to.be.empty;
+      const nodeRoles = (rules: { comment?: string; nodeRole?: string }[]) =>
+        rules.map((rule) => [rule.comment, rule.nodeRole]);
+      const expected = [
+        ['Master only', 'master'],
+        ['Backup only', 'backup'],
+        ['Every node', undefined],
+      ];
+      const model = loadReplicationProfileModel(profile);
+      const rules = getProvision(profile).rules;
+      expect(nodeRoles(rules)).to.deep.eq(expected);
+      expect(rules[2]).not.to.have.property('nodeRole');
+      expect((model.policyStructure as { rules: CapturedRule[] }).rules).to.deep.eq(rules);
+      // Applying a node's rules needs that node, so it is no longer optional.
+      const topologyPreset = model.topologyPreset as {
+        nodes: Array<{ role: string; required: boolean }>;
+      };
+      expect(topologyPreset.nodes.map((node) => [node.role, node.required])).to.deep.eq([
+        ['master', true],
+        ['backup', true],
+      ]);
+      // A firewall has no nodes to apply these rules to.
+      expect((model.compatibility as { target_kinds: string[] }).target_kinds).to.deep.eq([
+        'cluster',
+      ]);
+
+      writeReplicationProfileModel(profile, JSON.parse(JSON.stringify(model)));
+      const reloaded = loadReplicationProfileModel(profile);
+      expect(reloaded).to.deep.eq(model);
+      expect(nodeRoles(getProfileProvisioning(portableProfileModel(reloaded)).rules)).to.deep.eq(
+        expected,
+      );
+    });
+
+    it('should not capture a rule restricted to a firewall outside the cluster', async () => {
+      const outsider = await makeReplicationTargetFirewall(fwc);
+      const ruleId = await insertForwardRule(source.firewall.id, 100, { comment: 'Outsider only' });
+      await db
+        .getSource()
+        .query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [outsider.firewall.id, ruleId]);
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'cluster', id: cluster.id }, name: 'Outsider node rule' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(warnings).to.deep.eq([
+        'FORWARD IPv4 rule 100 ("Outsider only") was not captured: it only applies to a firewall that is not a node of the source.',
+      ]);
+      expect(getProvision(profile).rules).to.be.empty;
+    });
+
+    it('should leave out routing and system entries restricted to one node, and require Keepalived masters', async () => {
+      const backup = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ clusterId: cluster.id, fwmaster: 0 });
+      // Keepalived only binds to interfaces with a MAC address.
+      await db
+        .getSource()
+        .query("UPDATE interface SET mac = '00:11:22:33:44:55' WHERE id = ?", [
+          source.lanInterface.id,
+        ]);
+      const provisioning = await app.getService<PolicyReplicationService>(
+        PolicyReplicationService.name,
+      );
+      const applied = await provisioning.provisionPolicyFromProfile(
+        { kind: 'cluster', id: cluster.id },
+        getProfileProvisioning({
+          provision: {
+            interfaces: [
+              { name: 'ens18', role: 'wan' },
+              { name: 'ens19', role: 'lan' },
+            ],
+            routing: {
+              tables: [
+                {
+                  key: 'isp2',
+                  number: 12,
+                  name: 'ISP2',
+                  routes: [
+                    {
+                      destination: [{ kind: 'std', id: 70003 }],
+                      gateway: { kind: 'address', value: '203.0.113.1' },
+                    },
+                  ],
+                },
+              ],
+              rules: [{ from: [{ kind: 'address', value: '192.168.70.100' }], table: 'isp2' }],
+            },
+            system: {
+              dhcp: [
+                {
+                  network: { kind: 'network', value: '192.168.70.0/24' },
+                  range: { kind: 'range', value: '192.168.70.100-192.168.70.200' },
+                  router: { kind: 'address', value: '192.168.70.1' },
+                  dns: [],
+                  maxLease: 7200,
+                },
+              ],
+              keepalived: [
+                {
+                  interfaceRole: 'lan',
+                  virtualIps: [{ kind: 'address', value: '192.168.70.254' }],
+                  masterNode: 'backup',
+                },
+              ],
+              haproxy: [
+                {
+                  frontendIp: { kind: 'address', value: '198.51.100.10' },
+                  frontendService: { protocol: 'tcp', port: 443 },
+                  backendIps: [{ kind: 'address', value: '192.168.70.20' }],
+                  backendService: { protocol: 'tcp', port: 8443 },
+                },
+              ],
+            },
+          },
+        }),
+        fwc.fwcloud.id,
+        'replace_defaults',
+        {
+          interfaceNameMapping: { wan: 'ens18', lan: 'ens19' },
+          nodeRoleMapping: { master: source.firewall.id, backup: backup.id },
+        },
+      );
+      expect(applied.errors).to.be.empty;
+      expect(applied.provisioned).to.include({ routes: 1, routingRules: 1, dhcp: 1, haproxy: 1 });
+      expect(applied.provisioned.keepalived).to.eq(1);
+      const capture = () =>
+        service.createProfileFromSource(
+          { source: { kind: 'cluster', id: cluster.id }, name: StringHelper.randomize(10) },
+          { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+        );
+
+      const unrestricted = await capture();
+      expect(unrestricted.warnings).to.be.empty;
+      const unrestrictedModel = loadReplicationProfileModel(unrestricted.profile);
+      expect(
+        (unrestrictedModel.provision as Record<string, any>).system.keepalived[0].masterNode,
+      ).to.eq('backup');
+      expect(
+        (unrestrictedModel.topologyPreset as { nodes: Array<{ required: boolean }> }).nodes.map(
+          (node) => node.required,
+        ),
+      ).to.deep.eq([true, true]);
+
+      for (const table of ['route', 'routing_r', 'dhcp_r', 'keepalived_r', 'haproxy_r']) {
+        await db
+          .getSource()
+          .query(
+            `UPDATE ${table} SET fw_apply_to = ? WHERE ${table === 'route' || table === 'routing_r' ? 'routing_table IN (SELECT id FROM routing_table WHERE firewall = ?)' : 'firewall = ?'}`,
+            [backup.id, source.firewall.id],
+          );
+      }
+      const restricted = await capture();
+
+      expect(restricted.warnings).to.have.length(5);
+      for (const [index, entry] of [
+        'Route',
+        'Routing rule',
+        'DHCP rule',
+        'Keepalived rule',
+        'HAProxy rule',
+      ].entries()) {
+        expect(restricted.warnings[index]).to.match(
+          new RegExp(
+            `^${entry} .*was not captured: it only applies to one cluster node, which templates keep for policy rules only\\.$`,
+          ),
+        );
+      }
+      const provision = loadReplicationProfileModel(restricted.profile).provision as Record<
+        string,
+        any
+      >;
+      expect(provision.routing.tables[0].routes).to.deep.eq([]);
+      expect(provision.routing.rules).to.deep.eq([]);
+      expect(provision.system).to.deep.include({ dhcp: [], keepalived: [], haproxy: [] });
+
+      // A disabled entry is reported as disabled first, whatever node it applies to.
+      for (const table of ['route', 'routing_r', 'dhcp_r', 'keepalived_r', 'haproxy_r']) {
+        await db
+          .getSource()
+          .query(`UPDATE ${table} SET active = 0 WHERE fw_apply_to = ?`, [backup.id]);
+      }
+      const disabled = await capture();
+      expect(
+        disabled.warnings.map((warning) => warning.split(' was not captured: ')[1]),
+      ).to.deep.eq([
+        'the route is disabled.',
+        'the rule is disabled.',
+        'the rule is disabled.',
+        'the rule is disabled.',
+        'the rule is disabled.',
+      ]);
     });
 
     it('should reject a cluster that belongs to another FWCloud', async () => {

@@ -647,6 +647,88 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
     ]);
   });
 
+  describe('rule node restrictions', () => {
+    const ruleNodeErrors = (payload: unknown) =>
+      errorsFor(payload).filter(
+        (error) => error.path?.includes('.rules[') && error.code.endsWith('node_role'),
+      );
+    const firstRule = (payload: Record<string, unknown>) =>
+      (provision(payload).rules as Record<string, unknown>[])[0];
+
+    it('should accept a rule restricted to a node role of the cluster topology', () => {
+      expect(firstRule(clusterProfile()).nodeRole).to.equal('primary');
+      expect(ruleNodeErrors(clusterProfile())).to.deep.equal([]);
+    });
+
+    for (const nodeRole of [null, '', ' ', 2, ['primary'], { role: 'primary' }, 'missing']) {
+      it(`should reject the rule node role ${JSON.stringify(nodeRole)} instead of applying the rule to every node`, () => {
+        const payload = clusterProfile();
+        firstRule(payload).nodeRole = nodeRole;
+
+        expect(ruleNodeErrors(payload).map((error) => error.path)).to.deep.equal([
+          'model.provision.rules[0].nodeRole',
+        ]);
+      });
+    }
+
+    it('should validate rule node roles in every structure-only template spelling', () => {
+      for (const field of ['policyStructure', 'policy_structure']) {
+        const payload = clusterProfile();
+        provision(payload).rules = [];
+        model(payload)[field] = { rules: [{ chain: 'forward', nodeRole: 'missing' }] };
+
+        expect(ruleNodeErrors(payload).map((error) => error.path)).to.deep.equal([
+          `model.${field}.rules[0].nodeRole`,
+        ]);
+      }
+    });
+
+    it('should reject a node restriction in a firewall profile, which has no nodes', () => {
+      const payload = firewallProfile();
+      firstRule(payload).nodeRole = 'primary';
+
+      expect(ruleNodeErrors(payload)).to.have.length(1);
+      expect(ruleNodeErrors(payload)[0]).to.include({
+        code: 'invalid_rule_node_role',
+        path: 'model.provision.rules[0].nodeRole',
+      });
+    });
+
+    for (const field of ['node_role', 'fw_apply_to', 'applyTo', 'apply_to']) {
+      it(`should reject ${field}, which would not restrict the rule to a node`, () => {
+        const payload = clusterProfile();
+        delete firstRule(payload).nodeRole;
+        firstRule(payload)[field] = 'primary';
+
+        expect(ruleNodeErrors(payload)).to.have.length(1);
+        expect(ruleNodeErrors(payload)[0]).to.include({
+          code: 'invalid_rule_node_role',
+          path: `model.provision.rules[0].${field}`,
+        });
+      });
+    }
+
+    it('should reject a rule that provision and the editor structure restrict to different nodes', () => {
+      for (const structureRole of ['secondary', undefined]) {
+        const payload = clusterProfile();
+        const structureRule = { ...firstRule(payload) };
+        if (structureRole === undefined) delete structureRule.nodeRole;
+        else structureRule.nodeRole = structureRole;
+        model(payload).policyStructure = { rules: [structureRule] };
+
+        expect(ruleNodeErrors(payload), String(structureRole)).to.have.length(1);
+        expect(ruleNodeErrors(payload)[0]).to.include({
+          code: 'invalid_rule_node_role',
+          path: 'model.policyStructure.rules[0].nodeRole',
+        });
+      }
+
+      const consistent = clusterProfile();
+      model(consistent).policyStructure = { rules: [{ ...firstRule(consistent) }] };
+      expect(ruleNodeErrors(consistent)).to.deep.equal([]);
+    });
+  });
+
   it('should return all detected validation errors in a UI-readable shape', () => {
     const payload = firewallProfile();
     payload.targetKind = 'gateway';

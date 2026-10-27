@@ -64,6 +64,7 @@ import {
 } from './replication-profile-parameters';
 import {
   REPLICATION_PROFILE_FAMILY_TYPES,
+  asReplicationProfileNonEmptyString,
   isReplicationProfileRuleOptions,
   normalizeProfileObjectOptions,
   pickProfileFields,
@@ -122,7 +123,10 @@ export interface ProvisionOptions {
   /** Identify the profile so its object bindings can be recorded and reused. */
   profileCode?: string;
   profileVersion?: number;
-  /** Cluster node role → created node firewall id, used by Keepalived's master node. */
+  /**
+   * Cluster node role → created node firewall id, used by Keepalived's master node and by the
+   * rules restricted to a node.
+   */
   nodeRoleMapping?: Record<string, number>;
   /**
    * Existing target interfaces (by name) the operator assigned to profile roles,
@@ -515,12 +519,28 @@ export class PolicyReplicationService extends Service {
       if (error) {
         result.errors.push(`Rule ${index + 1}: ${error}`);
       }
+      if (rule.nodeRole !== undefined && !asReplicationProfileNonEmptyString(rule.nodeRole)) {
+        result.errors.push(
+          `Rule ${index + 1}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
+        );
+      }
     }
     if (result.errors.length > 0) {
       return result;
     }
 
     const firewallId = await this.resolveProvisionTargetFirewallId(target);
+    // Like the rule settings above, every node must be resolved before anything is written.
+    const ruleNodeIds = await this.resolveProvisionRuleNodes(
+      provision,
+      firewallId,
+      options.nodeRoleMapping,
+      result,
+    );
+    if (result.errors.length > 0) {
+      return result;
+    }
+
     const isDryRun = mode === 'dry_run';
     let parameterValues: Map<string, unknown>;
 
@@ -595,6 +615,7 @@ export class PolicyReplicationService extends Service {
       mode,
       isDryRun,
       options.vpnConfigIds,
+      ruleNodeIds,
     );
 
     if (countProvisionExtras(provision) > 0) {
@@ -915,6 +936,7 @@ export class PolicyReplicationService extends Service {
     mode: PolicyReplicationMode,
     isDryRun: boolean,
     vpnConfigIds: ReadonlyMap<string, ResolvedVpnConfig> | undefined,
+    ruleNodeIds: Map<number, number>,
   ): Promise<void> {
     // In merge mode an equivalent rule already on the target is left alone;
     // replace_defaults appends the profile rules above the catch-all.
@@ -967,11 +989,13 @@ export class PolicyReplicationService extends Service {
         continue;
       }
 
+      const fwApplyTo = ruleNodeIds.get(index) ?? null;
       const signature = this.buildProvisionRuleSignature(
         rule,
         policyTypeId,
         resolvedInterfaces,
         sides,
+        fwApplyTo,
       );
 
       if (existingSignatures.has(signature)) {
@@ -1000,6 +1024,7 @@ export class PolicyReplicationService extends Service {
             positions,
             resolvedInterfaces,
             sides,
+            fwApplyTo,
           );
 
       result.createdRules.push({
@@ -1698,6 +1723,7 @@ export class PolicyReplicationService extends Service {
     policyTypeId: number,
     interfaces: ProvisionRuleInterfaces,
     sides: ProvisionRuleSides,
+    fwApplyTo: number | null,
   ): string {
     const interfaceIds = [...interfaces.inIds, ...interfaces.outIds];
     // Include the VPN protocol and config ID so merge-mode signatures distinguish VPN clients.
@@ -1721,22 +1747,26 @@ export class PolicyReplicationService extends Service {
       rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
       this.concatKey('i', interfaceIds),
       this.concatKey('o', ipobjIds),
-      this.provisionRuleSettingsSignature(rule),
+      this.provisionRuleSettingsSignature(rule, fwApplyTo),
     ].join('|');
   }
 
   /** Template rules and database rows must use identical defaults and date normalization. */
-  private provisionRuleSettingsSignature(rule: {
-    negate?: string | null;
-    options?: number;
-    time_start?: unknown;
-    time_end?: unknown;
-  }): string {
+  private provisionRuleSettingsSignature(
+    rule: {
+      negate?: string | null;
+      options?: number;
+      time_start?: unknown;
+      time_end?: unknown;
+    },
+    fwApplyTo: number | null,
+  ): string {
     return [
       normalizeRuleNegation(rule.negate) ?? '',
       rule.options ?? 0,
       policyRuleDateKey(rule.time_start),
       policyRuleDateKey(rule.time_end),
+      fwApplyTo ?? '',
     ].join('|');
   }
 
@@ -1759,15 +1789,16 @@ export class PolicyReplicationService extends Service {
       options: number;
       time_start: Date | null;
       time_end: Date | null;
+      fw_apply_to: number | null;
     }>(
-      `SELECT R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end,
+      `SELECT R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end, R.fw_apply_to,
               GROUP_CONCAT(DISTINCT CONCAT('i', RI.interface) ORDER BY CONCAT('i', RI.interface)) AS interfaces,
               GROUP_CONCAT(DISTINCT CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj)) ORDER BY CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj))) AS ipobjs
        FROM policy_r R
        LEFT JOIN policy_r__interface RI ON RI.rule = R.id
        LEFT JOIN policy_r__ipobj RO ON RO.rule = R.id
        WHERE R.firewall = ? AND R.special = 0
-       GROUP BY R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end`,
+       GROUP BY R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end, R.fw_apply_to`,
       [firewallId],
     );
 
@@ -1776,7 +1807,7 @@ export class PolicyReplicationService extends Service {
     return new Set(
       rows.map(
         (row) =>
-          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${this.provisionRuleSettingsSignature(row)}`,
+          `${row.type}|${row.action}|${row.interfaces ?? ''}|${row.ipobjs ?? ''}|${this.provisionRuleSettingsSignature(row, row.fw_apply_to)}`,
       ),
     );
   }
@@ -1789,6 +1820,7 @@ export class PolicyReplicationService extends Service {
     positions: ProvisionRulePositions,
     interfaces: ProvisionRuleInterfaces,
     sides: ProvisionRuleSides,
+    fwApplyTo: number | null,
   ): Promise<number> {
     const ruleId = await PolicyRule.insertPolicy_r({
       firewall: firewallId,
@@ -1801,6 +1833,7 @@ export class PolicyReplicationService extends Service {
       options: rule.options ?? 0,
       special: 0,
       negate: normalizeRuleNegation(rule.negate),
+      fw_apply_to: fwApplyTo,
       comment: rule.comment ?? 'Provisioned by replication profile.',
     });
 
@@ -2439,8 +2472,9 @@ export class PolicyReplicationService extends Service {
   }
 
   /**
-   * The node of the target cluster acting as master: the one mapped to a profile node role,
-   * or (older profiles) the n-th node, 1 being the master. A firewall is its own node.
+   * The node of the target cluster mapped to a profile node role (Keepalived's master, a rule's
+   * node) or, in older Keepalived entries, the n-th node, 1 being the master. A firewall is its
+   * own node.
    */
   private resolveClusterNode(
     firewallId: number,
@@ -2477,6 +2511,64 @@ export class PolicyReplicationService extends Service {
     }
 
     return nodeId;
+  }
+
+  /**
+   * The node of the target cluster each rule restricted to a node goes to, by rule index. Its node
+   * role must be mapped to a node of the target cluster that no other role is mapped to: a rule
+   * that cannot be placed is an error, never applied to every node.
+   */
+  private async resolveProvisionRuleNodes(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    nodeRoleMapping: Record<string, number> | undefined,
+    result: PolicyReplicationResult,
+  ): Promise<Map<number, number>> {
+    const nodeIds = new Map<number, number>();
+    if (provision.rules.every((rule) => rule.nodeRole === undefined)) {
+      return nodeIds;
+    }
+
+    const mapping = nodeRoleMapping ?? {};
+    const clusterNodeIds = await this.loadClusterNodeIds(firewallId);
+    for (const [index, { nodeRole }] of provision.rules.entries()) {
+      if (nodeRole === undefined) {
+        continue;
+      }
+      if (!clusterNodeIds) {
+        result.errors.push(
+          `Rule ${index + 1}: it only applies to cluster node "${nodeRole}", but the target is not a cluster.`,
+        );
+        continue;
+      }
+
+      const label = `Rule ${index + 1} node`;
+      const nodeId = this.resolveClusterNode(
+        firewallId,
+        clusterNodeIds,
+        nodeRole,
+        mapping,
+        label,
+        result,
+      );
+      if (nodeId === null) {
+        continue;
+      }
+
+      const sharedWith = Object.keys(mapping).find(
+        (role) => role !== nodeRole && Number(mapping[role]) === nodeId,
+      );
+      if (sharedWith !== undefined) {
+        result.errors.push(
+          `${label}: cluster node roles "${nodeRole}" and "${sharedWith}" are assigned to the same node; each role needs a node of its own.`,
+        );
+        continue;
+      }
+
+      nodeIds.set(index, nodeId);
+    }
+
+    return nodeIds;
   }
 
   /** Node ids of the firewall's cluster, the master first; null when the firewall is not a cluster node. */
