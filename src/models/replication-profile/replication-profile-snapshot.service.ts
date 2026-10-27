@@ -88,6 +88,22 @@ const OBJECT_DATA_FIELDS: ReadonlySet<string> = new Set(PROFILE_OBJECT_DATA_FIEL
 const DEFAULT_ICMP_SERVICE_GROUP = 5;
 
 /**
+ * Why a routing or system entry is left out whatever it references: it is disabled, or it only
+ * applies to one cluster node, which it must not be widened from.
+ */
+function entrySkipReason(
+  entry: { active: number; fw_apply_to: number | null },
+  noun: 'route' | 'rule',
+): string | null {
+  if (!entry.active) {
+    return `the ${noun} is disabled.`;
+  }
+  return entry.fw_apply_to !== null
+    ? 'it only applies to one cluster node, which templates keep for policy rules only.'
+    : null;
+}
+
+/**
  * FWCloud stores an object's netmask as '/24' or as '255.255.255.0' (the interface the OpenVPN
  * server creates uses the latter); profile values are CIDR. A mask that isn't a valid one is kept
  * as-is so validation reports the object instead of silently widening it.
@@ -157,6 +173,7 @@ interface SnapshotRuleRow {
   options: number;
   time_start: Date | null;
   time_end: Date | null;
+  fw_apply_to: number | null;
 }
 
 interface SnapshotRuleInterfaceRow {
@@ -264,6 +281,8 @@ interface SnapshotProvisionRule extends PolicyRuleValidityPeriod {
   translatedDestination?: SnapshotProvisionObject[];
   translatedService?: SnapshotProvisionService[];
   comment?: string;
+  /** Role of the only cluster node the rule applies to. */
+  nodeRole?: string;
 }
 
 interface SnapshotTopologyNode {
@@ -528,6 +547,7 @@ export class ReplicationProfileSnapshotService extends Service {
     // rather than the interface's entire address set or an In/Out restriction.
     const rules = await this.capturePolicyRules(
       resolved.firewall.id,
+      resolved.nodeRoleById,
       roleByInterfaceId,
       loopbackInterfaceIds,
       values,
@@ -557,7 +577,8 @@ export class ReplicationProfileSnapshotService extends Service {
     const model: Record<string, unknown> = {
       parameters: values.getParameters(),
       compatibility: {
-        target_kinds: ['firewall', 'cluster'],
+        // A firewall has no nodes to apply node-restricted rules to.
+        target_kinds: rules.some((rule) => rule.nodeRole) ? ['cluster'] : ['firewall', 'cluster'],
         supportedRoles: roles,
       },
       policyStructure,
@@ -576,7 +597,18 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     if (resolved.topologyNodes) {
-      model.topologyPreset = { nodes: resolved.topologyNodes };
+      // A node that rules or Keepalived depend on is required wherever the template is applied.
+      const usedNodeRoles = new Set([
+        ...rules.map((rule) => rule.nodeRole),
+        ...((system?.keepalived ?? []) as { masterNode?: string }[]).map(
+          (entry) => entry.masterNode,
+        ),
+      ]);
+      model.topologyPreset = {
+        nodes: resolved.topologyNodes.map((node) =>
+          usedNodeRoles.has(node.role) ? { ...node, required: true } : node,
+        ),
+      };
 
       if (roles.length > 0) {
         (model.roleAssignments as Record<string, unknown>).nodeRoles = resolved.topologyNodes.map(
@@ -605,6 +637,8 @@ export class ReplicationProfileSnapshotService extends Service {
     firewall: SnapshotFirewallRow;
     sourceName: string;
     topologyNodes: SnapshotTopologyNode[] | null;
+    /** Topology role of each cluster node (policy_r.fw_apply_to); empty for a firewall. */
+    nodeRoleById: Map<number, string>;
   }> {
     if (source.kind === 'cluster') {
       const clusters = await dbQuery<SnapshotClusterRow>(
@@ -626,10 +660,15 @@ export class ReplicationProfileSnapshotService extends Service {
         throw new HttpException(`Master firewall of source cluster ${source.id} not found.`, 422);
       }
 
+      const topologyNodes = this.buildTopologyNodes(members);
+
       return {
         firewall: master,
         sourceName: clusters[0].name,
-        topologyNodes: this.buildTopologyNodes(members),
+        topologyNodes,
+        nodeRoleById: new Map(
+          members.map((member, index): [number, string] => [member.id, topologyNodes[index].role]),
+        ),
       };
     }
 
@@ -642,7 +681,12 @@ export class ReplicationProfileSnapshotService extends Service {
       throw new NotFoundException('Source firewall not found');
     }
 
-    return { firewall: firewalls[0], sourceName: firewalls[0].name, topologyNodes: null };
+    return {
+      firewall: firewalls[0],
+      sourceName: firewalls[0].name,
+      topologyNodes: null,
+      nodeRoleById: new Map(),
+    };
   }
 
   /** Master first (required), remaining members become backup roles. */
@@ -696,6 +740,7 @@ export class ReplicationProfileSnapshotService extends Service {
    */
   private async capturePolicyRules(
     firewallId: number,
+    nodeRoleById: Map<number, string>,
     roleByInterfaceId: Map<number, string>,
     loopbackInterfaceIds: Set<number>,
     values: SnapshotValueCollector,
@@ -704,7 +749,7 @@ export class ReplicationProfileSnapshotService extends Service {
   ): Promise<SnapshotProvisionRule[]> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow>(
-      `SELECT id, type, rule_order, action, active, special, comment, negate, options, time_start, time_end FROM policy_r
+      `SELECT id, type, rule_order, action, active, special, comment, negate, options, time_start, time_end, fw_apply_to FROM policy_r
        WHERE firewall = ? AND type IN (${sqlPlaceholders(typeIds.length)}) ORDER BY rule_order`,
       [firewallId, ...typeIds],
     );
@@ -754,6 +799,14 @@ export class ReplicationProfileSnapshotService extends Service {
           continue;
         }
 
+        const nodeRole = rule.fw_apply_to === null ? undefined : nodeRoleById.get(rule.fw_apply_to);
+        if (rule.fw_apply_to !== null && !nodeRole) {
+          warnings.push(
+            `${label} was not captured: it only applies to a firewall that is not a node of the source.`,
+          );
+          continue;
+        }
+
         const provisionRule = this.captureRule(
           rule,
           policy,
@@ -767,7 +820,7 @@ export class ReplicationProfileSnapshotService extends Service {
         );
 
         if (provisionRule) {
-          captured.push(provisionRule);
+          captured.push(nodeRole ? { ...provisionRule, nodeRole } : provisionRule);
         }
       }
     }
@@ -779,7 +832,7 @@ export class ReplicationProfileSnapshotService extends Service {
    * Whether a rule is still exactly one of the INPUT rules PolicyRule.insertDefaultPolicy creates:
    * "self host" accepts anything coming in through the loopback interface, and "useful ICMP" the
    * predefined ICMP group (5) as its only service. Any change (another object, a VPN, a different
-   * action, disabling it) makes it the user's own.
+   * action, disabling it, restricting it to one node) makes it the user's own.
    */
   private isUntouchedDefaultRule(
     rule: SnapshotRuleRow,
@@ -792,6 +845,7 @@ export class ReplicationProfileSnapshotService extends Service {
       rule.action !== RULE_ACTION_ACCEPT ||
       rule.active !== 1 ||
       rule.options !== 0 ||
+      rule.fw_apply_to !== null ||
       !!rule.time_start ||
       !!rule.time_end ||
       !!rule.negate ||
@@ -1147,8 +1201,9 @@ export class ReplicationProfileSnapshotService extends Service {
         active: number;
         comment: string | null;
         route_order: number;
+        fw_apply_to: number | null;
       }>(
-        `SELECT id, routing_table, gateway, interface, active, comment, route_order FROM route
+        `SELECT id, routing_table, gateway, interface, active, comment, route_order, fw_apply_to FROM route
          WHERE routing_table IN (${sqlPlaceholders(tableIds.length)}) ORDER BY routing_table, route_order`,
         tableIds,
       ),
@@ -1158,8 +1213,9 @@ export class ReplicationProfileSnapshotService extends Service {
         active: number;
         comment: string | null;
         rule_order: number;
+        fw_apply_to: number | null;
       }>(
-        `SELECT id, routing_table, active, comment, rule_order FROM routing_r
+        `SELECT id, routing_table, active, comment, rule_order, fw_apply_to FROM routing_r
          WHERE routing_table IN (${sqlPlaceholders(tableIds.length)}) ORDER BY rule_order`,
         tableIds,
       ),
@@ -1215,9 +1271,9 @@ export class ReplicationProfileSnapshotService extends Service {
           const interfaceRole = route.interface
             ? roleByInterfaceId.get(route.interface)
             : undefined;
-          const reason = !route.active
-            ? 'the route is disabled.'
-            : routeRefs.unsupported.has(route.id)
+          const reason =
+            entrySkipReason(route, 'route') ??
+            (routeRefs.unsupported.has(route.id)
               ? 'VPN references cannot be templated yet.'
               : 'reason' in destination
                 ? destination.reason
@@ -1225,7 +1281,7 @@ export class ReplicationProfileSnapshotService extends Service {
                   ? gateway.reason
                   : route.interface && !interfaceRole
                     ? 'it references an interface of another firewall.'
-                    : null;
+                    : null);
 
           if (reason) {
             warnings.push(`${label} was not captured: ${reason}`);
@@ -1253,13 +1309,13 @@ export class ReplicationProfileSnapshotService extends Service {
         lookup,
         values,
       );
-      const reason = !rule.active
-        ? 'the rule is disabled.'
-        : ruleRefs.unsupported.has(rule.id)
+      const reason =
+        entrySkipReason(rule, 'rule') ??
+        (ruleRefs.unsupported.has(rule.id)
           ? 'VPN and mark references cannot be templated yet.'
           : 'reason' in from
             ? from.reason
-            : null;
+            : null);
 
       if (reason) {
         warnings.push(`${label} was not captured: ${reason}`);
@@ -1297,8 +1353,9 @@ export class ReplicationProfileSnapshotService extends Service {
         router: number | null;
         max_lease: number;
         comment: string | null;
+        fw_apply_to: number | null;
       }>(
-        'SELECT id, rule_type, rule_order, active, network, `range`, router, max_lease, comment FROM dhcp_r WHERE firewall = ? ORDER BY rule_order',
+        'SELECT id, rule_type, rule_order, active, network, `range`, router, max_lease, comment, fw_apply_to FROM dhcp_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
       dbQuery<{
@@ -1308,8 +1365,9 @@ export class ReplicationProfileSnapshotService extends Service {
         interface: number | null;
         master_node: number | null;
         comment: string | null;
+        fw_apply_to: number | null;
       }>(
-        'SELECT id, rule_order, active, interface, master_node, comment FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
+        'SELECT id, rule_order, active, interface, master_node, comment, fw_apply_to FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
       dbQuery<{
@@ -1320,8 +1378,9 @@ export class ReplicationProfileSnapshotService extends Service {
         frontend_port: number | null;
         backend_port: number | null;
         comment: string | null;
+        fw_apply_to: number | null;
       }>(
-        'SELECT id, rule_order, active, frontend_ip, frontend_port, backend_port, comment FROM haproxy_r WHERE firewall = ? ORDER BY rule_order',
+        'SELECT id, rule_order, active, frontend_ip, frontend_port, backend_port, comment, fw_apply_to FROM haproxy_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
     ]);
@@ -1404,9 +1463,8 @@ export class ReplicationProfileSnapshotService extends Service {
             values,
           ),
         };
-        const reason = !row.active
-          ? 'the rule is disabled.'
-          : captureFailure(Object.values(captures))?.reason;
+        const reason =
+          entrySkipReason(row, 'rule') ?? captureFailure(Object.values(captures))?.reason;
         return reason
           ? skip(label, reason)
           : [
@@ -1432,13 +1490,13 @@ export class ReplicationProfileSnapshotService extends Service {
         // Clusters reference the master by its node role; a firewall is its own master.
         const nodeIndex = row.master_node ? nodes.indexOf(row.master_node) : 0;
         const masterNode = topologyNodes ? topologyNodes[nodeIndex]?.role : undefined;
-        const reason = !row.active
-          ? 'the rule is disabled.'
-          : !interfaceRole
+        const reason =
+          entrySkipReason(row, 'rule') ??
+          (!interfaceRole
             ? 'it references an interface of another firewall.'
             : nodeIndex < 0 || (topologyNodes && !masterNode)
               ? 'its master node is not a node of the source.'
-              : captureFailure([virtualIps])?.reason;
+              : captureFailure([virtualIps])?.reason);
         return reason
           ? skip(label, reason)
           : [
@@ -1463,9 +1521,8 @@ export class ReplicationProfileSnapshotService extends Service {
           ),
           backendService: port(row.backend_port),
         };
-        const reason = !row.active
-          ? 'the rule is disabled.'
-          : captureFailure(Object.values(captures))?.reason;
+        const reason =
+          entrySkipReason(row, 'rule') ?? captureFailure(Object.values(captures))?.reason;
         return reason
           ? skip(label, reason)
           : [

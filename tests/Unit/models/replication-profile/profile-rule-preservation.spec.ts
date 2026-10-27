@@ -231,6 +231,7 @@ describe('Template rules sharing default-rule comments survive application', () 
       mode,
       mode === 'dry_run',
       undefined,
+      new Map(),
     );
     return result;
   }

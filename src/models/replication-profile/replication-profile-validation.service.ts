@@ -274,8 +274,10 @@ class ReplicationProfileDefinitionValidator {
       this.validateVpnOptionParameters(model, parameterNames, errors);
     }
 
-    if (rootTargetKind === 'cluster') {
-      this.validateClusterTopology(model, errors);
+    if (rootTargetKind) {
+      const nodeRoles =
+        rootTargetKind === 'cluster' ? this.validateClusterTopology(model, errors) : null;
+      this.validateRuleNodeRoles(model, nodeRoles, errors);
     }
 
     return errors;
@@ -1168,19 +1170,29 @@ class ReplicationProfileDefinitionValidator {
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
   ): void {
+    this.forEachSavedRule(model, (rule, rulePath) => {
+      for (const error of getPolicyRuleValidityErrors(rule))
+        this.addError(errors, 'invalid_rule_validity', error.message, `${rulePath}.${error.field}`);
+    });
+  }
+
+  /** Every rule object of every saved representation: provision, then the editor's structure. */
+  private forEachSavedRule(
+    model: ValidationRecord,
+    visit: (
+      rule: ValidationRecord,
+      rulePath: string,
+      field: string,
+      index: number,
+      rules: unknown[],
+    ) => void,
+  ): void {
     for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
-      const structure = asReplicationProfileRecord(model[field]);
-      if (!Array.isArray(structure?.rules)) continue;
-      structure.rules.forEach((value, index) => {
+      const rules = asReplicationProfileRecord(model[field])?.rules;
+      if (!Array.isArray(rules)) continue;
+      rules.forEach((value, index) => {
         const rule = asReplicationProfileRecord(value);
-        if (!rule) return;
-        for (const error of getPolicyRuleValidityErrors(rule))
-          this.addError(
-            errors,
-            'invalid_rule_validity',
-            error.message,
-            `model.${field}.rules[${index}].${error.field}`,
-          );
+        if (rule) visit(rule, `model.${field}.rules[${index}]`, field, index, rules);
       });
     }
   }
@@ -1511,13 +1523,14 @@ class ReplicationProfileDefinitionValidator {
     }
   }
 
+  /** Returns the node roles the topology defines. */
   private validateClusterTopology(
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
-  ): void {
+  ): Set<string> {
     const topology = this.getFirstField(model, 'model', TOPOLOGY_FIELDS);
     if (!topology || topology.value === undefined || topology.value === null) {
-      return;
+      return new Set();
     }
 
     const topologyRecord = asReplicationProfileRecord(topology.value);
@@ -1528,7 +1541,7 @@ class ReplicationProfileDefinitionValidator {
         'Cluster topologyPreset must be an object.',
         topology.path,
       );
-      return;
+      return new Set();
     }
 
     this.validateNotFirewallOnlyTopology(topologyRecord, topology.path, errors);
@@ -1553,7 +1566,8 @@ class ReplicationProfileDefinitionValidator {
     );
     this.validateTopologyMappings(topologyRecord, topology.path, interfaceRoles, nodeRoles, errors);
     this.validateRoleAssignmentNodeRoles(model, nodeRoles, errors);
-    this.validateRuleNodeRoles(model, nodeRoles, errors);
+
+    return nodeRoles;
   }
 
   private validateNotFirewallOnlyTopology(
@@ -2048,34 +2062,71 @@ class ReplicationProfileDefinitionValidator {
     );
   }
 
+  /**
+   * A rule restricted to a cluster node names one node role of the topology (null: the profile
+   * creates a firewall, which has no nodes), as policy_r.fw_apply_to holds one node at most. Other
+   * spellings are rejected: they would leave the rule applied to every node. Validates every saved
+   * representation, including the structure the editor will reopen, and requires both to restrict
+   * the same rules: an application reads provision, the editor rewrites it from the structure.
+   */
   private validateRuleNodeRoles(
     model: ValidationRecord,
-    nodeRoles: Set<string>,
+    nodeRoles: Set<string> | null,
     errors: ReplicationProfileValidationError[],
   ): void {
-    const provision = asReplicationProfileRecord(model.provision);
-    if (!provision || !Array.isArray(provision.rules)) {
-      return;
-    }
-
-    provision.rules.forEach((rule, index) => {
-      this.validateNodeRoleReferences(rule, `model.provision.rules[${index}]`, nodeRoles, errors);
-    });
-  }
-
-  private validateNodeRoleReferences(
-    value: unknown,
-    path: string,
-    nodeRoles: Set<string>,
-    errors: ReplicationProfileValidationError[],
-  ): void {
-    this.visitNestedFields(value, path, (key, item, itemPath) => {
-      if (this.isNodeRoleField(key)) {
-        this.validateTopologyNodeRoleValue(item, itemPath, nodeRoles, errors, 'Rule');
-        return true;
+    const provisionRules = asReplicationProfileRecord(model.provision)?.rules;
+    this.forEachSavedRule(model, (rule, rulePath, field, index, rules) => {
+      const nodeRolePath = `${rulePath}.nodeRole`;
+      if (
+        field !== 'provision' &&
+        Array.isArray(provisionRules) &&
+        provisionRules.length === rules.length &&
+        JSON.stringify(asReplicationProfileRecord(provisionRules[index])?.nodeRole) !==
+          JSON.stringify(rule.nodeRole)
+      ) {
+        this.addError(
+          errors,
+          'invalid_rule_node_role',
+          `model.provision and model.${field} restrict rule ${index + 1} to different nodes.`,
+          nodeRolePath,
+        );
+      }
+      for (const key of Object.keys(rule)) {
+        if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
+          this.addError(
+            errors,
+            'invalid_rule_node_role',
+            `Rules are restricted to a cluster node through nodeRole, not ${key}.`,
+            `${rulePath}.${key}`,
+          );
+        }
       }
 
-      return false;
+      if (rule.nodeRole === undefined) {
+        return;
+      }
+      if (!nodeRoles) {
+        this.addError(
+          errors,
+          'invalid_rule_node_role',
+          'Only cluster profiles can restrict a rule to a node.',
+          nodeRolePath,
+        );
+      } else if (typeof rule.nodeRole !== 'string') {
+        this.addError(
+          errors,
+          'invalid_topology_node_role',
+          'Rule node role must be one node role of topologyPreset.',
+          nodeRolePath,
+        );
+      } else if (!nodeRoles.has(rule.nodeRole)) {
+        this.addError(
+          errors,
+          'invalid_topology_node_role',
+          `Rule references node role "${rule.nodeRole}", but this role is not defined in topologyPreset.`,
+          nodeRolePath,
+        );
+      }
     });
   }
 
@@ -2203,8 +2254,10 @@ class ReplicationProfileDefinitionValidator {
     );
   }
 
-  private isNodeRoleField(key: string): boolean {
-    return this.normalizeKey(key).endsWith('noderole');
+  /** A rule field meant to restrict the rule to a node; only nodeRole does. */
+  private isNodeRestrictionField(key: string): boolean {
+    const normalized = this.normalizeKey(key);
+    return normalized.endsWith('noderole') || normalized.endsWith('applyto');
   }
 
   private isProtocolField(key: string): boolean {

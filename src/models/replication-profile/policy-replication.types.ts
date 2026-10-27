@@ -210,6 +210,12 @@ export interface PolicyReplicationProvisionRule extends PolicyRuleValidityPeriod
   options?: number;
   /** Native policy_r.negate: negated position IDs separated by spaces. */
   negate?: string | null;
+  /**
+   * Cluster node the rule is restricted to: the role of a topologyPreset node, resolved through the
+   * apply request's nodeRoleMapping. Omitted, the rule applies to every node, as a NULL
+   * policy_r.fw_apply_to does; FWCloud restricts a rule to one node at most.
+   */
+  nodeRole?: string;
   /** Roles of the inbound interfaces (match provisioned interface roles). A rule may have several. */
   inRoles: string[];
   /** Roles of the outbound interfaces. */
@@ -741,6 +747,8 @@ function parseProvisionRule(
     ...(record.options !== undefined ? { options: record.options as number } : {}),
     ...(record.time_start !== undefined ? { time_start: record.time_start as string | null } : {}),
     ...(record.time_end !== undefined ? { time_end: record.time_end as string | null } : {}),
+    // Malformed values too: they must be rejected, never applied to every node.
+    ...(record.nodeRole !== undefined ? { nodeRole: record.nodeRole as string } : {}),
     comment,
   };
 }

@@ -60,6 +60,31 @@ describe(describeName('Policy Replication Types Unit Tests'), () => {
     expect(rules.map((rule) => rule.negate)).to.deep.equal(invalidValues);
   });
 
+  for (const field of ['provision', 'policyStructure', 'policy_structure']) {
+    it(`should keep the cluster node a rule is restricted to in ${field}`, () => {
+      const rules = getProfileProvisioning(
+        JSON.parse(
+          JSON.stringify({
+            [field]: { rules: [{ chain: 'forward', nodeRole: 'backup' }, { chain: 'forward' }] },
+          }),
+        ),
+      ).rules;
+
+      expect(rules[0].nodeRole).to.equal('backup');
+      // No node role means every node, as for rules captured before node roles existed.
+      expect(rules[1]).not.to.have.property('nodeRole');
+    });
+  }
+
+  it('should preserve malformed node roles for validation instead of applying the rule to every node', () => {
+    const invalidValues = [null, '', ' ', 2, ['backup'], { role: 'backup' }];
+    const rules = getProfileProvisioning({
+      provision: { rules: invalidValues.map((nodeRole) => ({ nodeRole })) },
+    }).rules;
+
+    expect(rules.map((rule) => rule.nodeRole)).to.deep.equal(invalidValues);
+  });
+
   it('should canonicalize native negation for duplicate-rule comparisons', () => {
     expect(normalizeRuleNegation(' 25 7  9 7 22 ')).to.equal('7 9 22 25');
     expect(normalizeRuleNegation('\t25 7\n9 7 22 ')).to.equal('7 9 22 25');
