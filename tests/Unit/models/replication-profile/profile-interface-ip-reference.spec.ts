@@ -216,6 +216,63 @@ describe('Specific interface IP references remain policy objects', () => {
     assert.match(errors[0].message, /not an IPv4 address/);
   });
 
+  for (const scenario of [
+    {
+      label: 'equivalent IPv4 masks',
+      declared: '192.0.2.1/24',
+      value: '192.0.2.1/255.255.255.0',
+      valid: true,
+    },
+    {
+      label: 'implicit IPv4 host masks',
+      declared: '192.0.2.1/32',
+      value: '192.0.2.1',
+      valid: true,
+    },
+    {
+      label: 'distinct IPv6 address text',
+      declared: '2001:db8::1/64',
+      value: '2001:0db8::1/64',
+      valid: false,
+    },
+    {
+      label: 'selected literal overrides',
+      declared: '198.51.100.1/24',
+      value: '192.0.2.1/24',
+      selected: true,
+      valid: true,
+    },
+    {
+      label: 'invalid literals despite an override',
+      declared: '198.51.100.1/24',
+      value: 'invalid',
+      selected: true,
+      valid: false,
+    },
+  ]) {
+    it(`preserves address matching for ${scenario.label}`, () => {
+      const family = scenario.declared.includes(':') ? 6 : 4;
+      const provision = parse(
+        structure(family, {
+          source: [{ ...selected(0, family), value: scenario.value }],
+        }),
+      );
+      Object.assign(provision.interfaces[0].addresses[0], {
+        value: scenario.declared,
+        useSelectedConfiguration: scenario.selected,
+      });
+      const errors = getProvisionInterfaceAddressReferenceErrors(provision);
+      assert.equal(errors.length, scenario.valid ? 0 : 1);
+      if (!scenario.valid) {
+        assert.deepEqual(errors[0], {
+          path: 'rules[0].source[0]',
+          message:
+            'Interface IP reference "wan" address #1 does not match its declared value or parameter.',
+        });
+      }
+    });
+  }
+
   for (const binding of ['missing', 'wrong-family']) {
     it(`does not fall back to an interface or literal when the IP binding is ${binding}`, async () => {
       const resolver = new ObjectBindingResolver(1, false);

@@ -814,26 +814,26 @@ function parseProvisionObject(
   value: unknown,
   ensureInterface: (role: string) => string,
 ): PolicyReplicationProvisionObject | null {
-  const selector = asReplicationProfileRecord(value);
+  const record = asReplicationProfileRecord(value);
   if (
-    selector &&
-    (selector.interfaceRole !== undefined || selector.interfaceAddressIndex !== undefined)
+    record &&
+    (record.interfaceRole !== undefined || record.interfaceAddressIndex !== undefined)
   ) {
     return {
-      kind: firstNonEmptyString(selector, [
+      kind: firstNonEmptyString(record, [
         'kind',
         'type',
         'objectType',
       ])?.toLowerCase() as PolicyReplicationProvisionObject['kind'],
       value:
-        firstValueOrParamRef(selector, ['value', 'address', 'cidr', 'network', 'ip']) ?? undefined,
-      name: firstNonEmptyString(selector, ['name']) ?? undefined,
+        firstValueOrParamRef(record, ['value', 'address', 'cidr', 'network', 'ip']) ?? undefined,
+      name: firstNonEmptyString(record, ['name']) ?? undefined,
       // Preserve even malformed selectors so validation cannot silently discard an IP reference.
-      ...(selector.interfaceRole !== undefined
-        ? { interfaceRole: selector.interfaceRole as string }
+      ...(record.interfaceRole !== undefined
+        ? { interfaceRole: record.interfaceRole as string }
         : {}),
-      ...(selector.interfaceAddressIndex !== undefined
-        ? { interfaceAddressIndex: selector.interfaceAddressIndex as number }
+      ...(record.interfaceAddressIndex !== undefined
+        ? { interfaceAddressIndex: record.interfaceAddressIndex as number }
         : {}),
     };
   }
@@ -851,8 +851,6 @@ function parseProvisionObject(
   if (shorthand) {
     return { kind: 'interfaceRole', role: ensureInterface(shorthand) };
   }
-
-  const record = asReplicationProfileRecord(value);
 
   if (!record) {
     return null;

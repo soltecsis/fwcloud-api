@@ -1,9 +1,79 @@
-import type { PolicyReplicationProvision } from './policy-replication.types';
-import { asReplicationProfileRecord } from './replication-profile.constants';
+import type {
+  PolicyReplicationProvision,
+  PolicyReplicationProvisionAddress,
+  PolicyReplicationProvisionInterface,
+} from './policy-replication.types';
+import {
+  asReplicationProfileRecord,
+  isReplicationProfileIpVersion,
+  type ReplicationProfileIpVersion,
+  type ReplicationProfileRecord,
+} from './replication-profile.constants';
 import {
   isReplicationProfileParameterRef,
   parseReplicationProfileAddress,
+  type ReplicationProfileAddressValue,
 } from './replication-profile-parameters';
+
+function matchesDeclaredAddress(
+  value: unknown,
+  declared: PolicyReplicationProvisionAddress,
+  declaredAddress: ReplicationProfileAddressValue | null,
+): boolean {
+  if (isReplicationProfileParameterRef(value)) {
+    return (
+      (isReplicationProfileParameterRef(declared.value) && value.param === declared.value.param) ||
+      value.param === declared.sourceParameter
+    );
+  }
+  if (isReplicationProfileParameterRef(declared.value)) {
+    return false;
+  }
+  const address = parseReplicationProfileAddress(value);
+  return (
+    address !== null &&
+    (declared.useSelectedConfiguration === true ||
+      (declaredAddress !== null &&
+        address.address === declaredAddress.address &&
+        address.netmask === declaredAddress.netmask &&
+        address.ipVersion === declaredAddress.ipVersion))
+  );
+}
+
+/** Returns the first error for a reference, keeping value errors ahead of family errors. */
+function getReferenceError(
+  record: ReplicationProfileRecord,
+  interfaces: ReadonlyMap<string, PolicyReplicationProvisionInterface>,
+  ipVersion: ReplicationProfileIpVersion | undefined,
+): string | undefined {
+  const { kind, value, interfaceRole: role, interfaceAddressIndex: index } = record;
+  if (
+    kind !== 'address' ||
+    typeof role !== 'string' ||
+    role.trim() === '' ||
+    typeof index !== 'number' ||
+    !Number.isInteger(index) ||
+    index < 0 ||
+    value === undefined
+  ) {
+    return 'An interface IP reference requires kind "address", value, interfaceRole and a non-negative integer interfaceAddressIndex.';
+  }
+
+  const declared = interfaces.get(role)?.addresses[index];
+  const label = `Interface IP reference "${role}" address #${index + 1}`;
+  if (!declared) {
+    return `${label} is not declared by the template.`;
+  }
+
+  const declaredAddress = parseReplicationProfileAddress(declared.value);
+  if (!matchesDeclaredAddress(value, declared, declaredAddress)) {
+    return `${label} does not match its declared value or parameter.`;
+  }
+  const declaredFamily = declared.ipVersion ?? declaredAddress?.ipVersion;
+  if (ipVersion !== undefined && declaredFamily !== undefined && declaredFamily !== ipVersion) {
+    return `${label} is not an IPv${ipVersion} address.`;
+  }
+}
 
 /** A specific interface IP is identified by its declaration, independently of database IDs. */
 export function getProvisionInterfaceAddressReferenceErrors(
@@ -15,7 +85,7 @@ export function getProvisionInterfaceAddressReferenceErrors(
   }
   const interfaces = new Map(provision.interfaces.map((iface) => [iface.role, iface]));
 
-  const visit = (value: unknown, path: string, family?: 4 | 6): void => {
+  const visit = (value: unknown, path: string, family?: ReplicationProfileIpVersion): void => {
     if (Array.isArray(value)) {
       value.forEach((item, index) => visit(item, `${path}[${index}]`, family));
       return;
@@ -24,54 +94,12 @@ export function getProvisionInterfaceAddressReferenceErrors(
     if (!record) {
       return;
     }
-    const ipVersion = record.ipVersion === 4 || record.ipVersion === 6 ? record.ipVersion : family;
+    const ipVersion = isReplicationProfileIpVersion(record.ipVersion) ? record.ipVersion : family;
     if (
       record.interfaceAddressIndex !== undefined ||
       (Object.prototype.hasOwnProperty.call(record, 'kind') && record.interfaceRole !== undefined)
     ) {
-      const role = record.interfaceRole;
-      const index = record.interfaceAddressIndex;
-      let message: string | undefined;
-      if (
-        record.kind !== 'address' ||
-        typeof role !== 'string' ||
-        role.trim() === '' ||
-        typeof index !== 'number' ||
-        !Number.isInteger(index) ||
-        index < 0 ||
-        record.value === undefined
-      ) {
-        message =
-          'An interface IP reference requires kind "address", value, interfaceRole and a non-negative integer interfaceAddressIndex.';
-      } else {
-        const iface = interfaces.get(role);
-        const declared = iface?.addresses[index];
-        if (!declared) {
-          message = `Interface IP reference "${role}" address #${index + 1} is not declared by the template.`;
-        } else {
-          const selectedParameter = declared.sourceParameter;
-          const sameValue = isReplicationProfileParameterRef(record.value)
-            ? (isReplicationProfileParameterRef(declared.value) &&
-                record.value.param === declared.value.param) ||
-              record.value.param === selectedParameter
-            : !isReplicationProfileParameterRef(declared.value) &&
-              parseReplicationProfileAddress(record.value) !== null &&
-              (declared.useSelectedConfiguration === true ||
-                JSON.stringify(parseReplicationProfileAddress(record.value)) ===
-                  JSON.stringify(parseReplicationProfileAddress(declared.value)));
-          const declaredFamily =
-            declared.ipVersion ?? parseReplicationProfileAddress(declared.value)?.ipVersion;
-          if (!sameValue) {
-            message = `Interface IP reference "${role}" address #${index + 1} does not match its declared value or parameter.`;
-          } else if (
-            ipVersion !== undefined &&
-            declaredFamily !== undefined &&
-            declaredFamily !== ipVersion
-          ) {
-            message = `Interface IP reference "${role}" address #${index + 1} is not an IPv${ipVersion} address.`;
-          }
-        }
-      }
+      const message = getReferenceError(record, interfaces, ipVersion);
       if (message) {
         errors.push({ path, message });
       }
