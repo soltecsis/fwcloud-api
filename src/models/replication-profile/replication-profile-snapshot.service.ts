@@ -31,6 +31,7 @@ import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replica
 import type {
   PolicyReplicationProvisionAddress,
   PolicyReplicationProvisionInterface,
+  PolicyReplicationProvisionObject,
 } from './policy-replication.types';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
@@ -81,6 +82,7 @@ type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
+const OBJECT_DATA_FIELDS: ReadonlySet<string> = new Set(PROFILE_OBJECT_DATA_FIELDS);
 
 // Predefined service group the default "useful ICMP" INPUT rule allows.
 const DEFAULT_ICMP_SERVICE_GROUP = 5;
@@ -220,13 +222,8 @@ interface SnapshotObjectLookup {
   groups: Map<number, SnapshotGroupRow>;
 }
 
-interface SnapshotProvisionObject {
-  kind: 'address' | 'network' | 'range' | 'interfaceRole' | 'std' | 'stdGroup' | 'vpnClient';
-  value?: unknown;
-  role?: string;
-  id?: number;
-  name?: string;
-  vpnId?: string;
+interface SnapshotProvisionObject extends PolicyReplicationProvisionObject {
+  kind: Exclude<PolicyReplicationProvisionObject['kind'], 'host' | 'external'>;
 }
 
 type SnapshotProvisionService =
@@ -289,9 +286,29 @@ interface SourceSnapshot {
  */
 class SnapshotValueCollector {
   private readonly parameters: ReplicationProfileParameter[] = [];
-  private readonly byLiteral = new Map<string, ReplicationProfileParameter>();
+  private readonly byIdentity = new Map<string, ReplicationProfileParameter>();
   private readonly usedNames = new Set<string>();
   private readonly serviceReferences = new Map<string, SnapshotServiceReference>();
+  private readonly interfaceAddresses = new Map<number, SnapshotProvisionObject>();
+
+  registerInterfaceAddress(
+    id: number,
+    role: string,
+    index: number,
+    address: PolicyReplicationProvisionAddress,
+  ): void {
+    this.interfaceAddresses.set(id, {
+      kind: 'address',
+      value: address.value,
+      name: address.name,
+      interfaceRole: role,
+      interfaceAddressIndex: index,
+    });
+  }
+
+  getInterfaceAddress(id: number): SnapshotProvisionObject | undefined {
+    return this.interfaceAddresses.get(id);
+  }
 
   defineService(
     service: Pick<SnapshotIpObjRow, 'type' | 'id'>,
@@ -334,6 +351,7 @@ class SnapshotValueCollector {
       `${role.toUpperCase()} interface address`,
       literal,
       ipVersion,
+      `interface:${JSON.stringify([role, index])}`,
     );
   }
 
@@ -345,16 +363,17 @@ class SnapshotValueCollector {
     return this.define(this.slug(objectName), kind, objectName, literal);
   }
 
-  /** Same literal captured twice reuses one parameter instead of duplicating. */
+  /** Free objects reuse literal parameters; assigned IPs retain their declaration identity. */
   private define(
     baseName: string,
     type: ReplicationProfileParameter['type'],
     label: string,
     defaultValue: string | number,
     ipVersion?: 4 | 6,
+    identity?: string,
   ): { param: string } {
-    const literalKey = `${type}:${String(defaultValue)}`;
-    const existing = this.byLiteral.get(literalKey);
+    const key = identity ?? `literal:${type}:${String(defaultValue)}`;
+    const existing = this.byIdentity.get(key);
 
     if (existing) {
       if (ipVersion !== undefined) {
@@ -374,7 +393,7 @@ class SnapshotValueCollector {
       ...(ipVersion === undefined ? {} : { ipVersion }),
     };
     this.parameters.push(parameter);
-    this.byLiteral.set(literalKey, parameter);
+    this.byIdentity.set(key, parameter);
 
     return { param: name };
   }
@@ -488,15 +507,6 @@ export class ReplicationProfileSnapshotService extends Service {
     const loopbackInterfaceIds = new Set(
       interfaces.filter((iface) => iface.name === 'lo').map((iface) => iface.id),
     );
-    const rules = await this.capturePolicyRules(
-      resolved.firewall.id,
-      roleByInterfaceId,
-      loopbackInterfaceIds,
-      values,
-      warnings,
-      vpnObjects,
-    );
-
     // assignInterfaceRoles already guarantees uniqueness.
     const roles = Array.from(roleByInterfaceId.values());
     const profileInterfaces: PolicyReplicationProvisionInterface[] = [];
@@ -514,6 +524,16 @@ export class ReplicationProfileSnapshotService extends Service {
         ),
       });
     }
+    // Capture each assigned IP before rules so they can reference that exact address,
+    // rather than the interface's entire address set or an In/Out restriction.
+    const rules = await this.capturePolicyRules(
+      resolved.firewall.id,
+      roleByInterfaceId,
+      loopbackInterfaceIds,
+      values,
+      warnings,
+      vpnObjects,
+    );
     const routing = await this.captureRouting(
       resolved.firewall.id,
       roleByInterfaceId,
@@ -972,8 +992,8 @@ export class ReplicationProfileSnapshotService extends Service {
 
   /**
    * Maps objects into the provision vocabulary. Predefined objects and groups
-   * are referenced by id; an object owned by a source interface becomes a role
-   * reference; a free-standing address, network or range becomes a parameter.
+   * are referenced by id; an assigned IP keeps its exact address and owner; only
+   * an actual interface object becomes a role reference. Other addresses become parameters.
    */
   private captureObjects(
     refs: SnapshotObjectRef[],
@@ -984,6 +1004,9 @@ export class ReplicationProfileSnapshotService extends Service {
     const captured: SnapshotProvisionObject[] = [];
 
     for (const ref of refs) {
+      if ([ref.ipobj, ref.ipobj_g, ref.interface].filter((id) => id > 0).length !== 1) {
+        throw new HttpException('Cannot capture an ambiguous IP/interface object reference.', 422);
+      }
       if (ref.ipobj_g > 0) {
         const group = lookup.groups.get(ref.ipobj_g);
 
@@ -1011,7 +1034,7 @@ export class ReplicationProfileSnapshotService extends Service {
       const ipobj = lookup.objects.get(ref.ipobj);
 
       if (!ipobj) {
-        return { reason: 'it references an object that no longer exists.' };
+        throw new HttpException(`Cannot capture IP object ${ref.ipobj}: it no longer exists.`, 422);
       }
 
       if (ipobj.fwcloud === null) {
@@ -1020,7 +1043,14 @@ export class ReplicationProfileSnapshotService extends Service {
       }
 
       if (ipobj.interface !== null && roleByInterfaceId.has(ipobj.interface)) {
-        captured.push({ kind: 'interfaceRole', role: roleByInterfaceId.get(ipobj.interface)! });
+        const address = values.getInterfaceAddress(ipobj.id);
+        if (!address) {
+          throw new HttpException(
+            `Cannot capture interface IP object "${ipobj.name}": its assigned address is unresolved.`,
+            422,
+          );
+        }
+        captured.push({ ...address });
         continue;
       }
 
@@ -1566,8 +1596,8 @@ export class ReplicationProfileSnapshotService extends Service {
       const original = Object.fromEntries(
         Object.entries(address).filter(
           ([field, value]) =>
-            (PROFILE_OBJECT_DATA_FIELDS as readonly string[]).includes(field) &&
-            !(field.endsWith('_port_start') || field.endsWith('_port_end') ? value === 0 : false),
+            OBJECT_DATA_FIELDS.has(field) &&
+            !((field.endsWith('_port_start') || field.endsWith('_port_end')) && value === 0),
         ),
       );
       const invalid = await validateProfileObjectSnapshot(
@@ -1586,12 +1616,14 @@ export class ReplicationProfileSnapshotService extends Service {
         );
       }
 
-      captured.push({
+      const declared: PolicyReplicationProvisionAddress = {
         value: values.defineInterfaceAddress(role, captured.length, literal, parsed.ipVersion),
         name: address.name,
         ipVersion: parsed.ipVersion,
         ...metadata,
-      });
+      };
+      values.registerInterfaceAddress(address.id, role, captured.length, declared);
+      captured.push(declared);
     }
 
     return captured;

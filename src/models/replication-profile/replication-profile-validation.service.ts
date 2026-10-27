@@ -4,6 +4,7 @@ import { Service } from '../../fonaments/services/service';
 import { IsRoutingTableNumberConstraint } from '../../fonaments/validation/rules/is-routing-table-number.validation';
 import { findSecretLikePaths } from './replication-profile-secret.guard';
 import { validateProfileVpnTemplate } from './replication-profile-vpn.validation';
+import { getProvisionInterfaceAddressReferenceErrors } from './replication-profile-interface-address-reference';
 import {
   getProfileProvisioning,
   getProfileProvisioningSource,
@@ -258,6 +259,7 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
+    this.validateInterfaceAddressReferences(model, errors);
     this.validateRuleValidityPeriods(model, errors);
     this.validateStructureRuleSettings(model, errors);
     if (model.vpnTemplate !== undefined) {
@@ -574,6 +576,27 @@ class ReplicationProfileDefinitionValidator {
       parameterNames,
       errors,
     );
+  }
+
+  /** Keep every saved representation unambiguous, including the editor's copy of the policy. */
+  private validateInterfaceAddressReferences(
+    model: ValidationRecord,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+      const structure = asReplicationProfileRecord(model[field]);
+      if (!structure) continue;
+      for (const error of getProvisionInterfaceAddressReferenceErrors(
+        getProfileProvisioning({ provision: structure }),
+      )) {
+        this.addError(
+          errors,
+          'invalid_interface_address_reference',
+          error.message,
+          `model.${field}.${error.path}`,
+        );
+      }
+    }
   }
 
   private validateProvisionRouting(

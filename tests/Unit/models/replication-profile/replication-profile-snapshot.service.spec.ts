@@ -46,6 +46,7 @@ import {
   writeReplicationProfileModel,
 } from '../../../../src/models/replication-profile/replication-profile-template';
 import { getProfileParameters } from '../../../../src/models/replication-profile/replication-profile-parameters';
+import { applyInterfaceAddressOverrides } from '../../../../src/models/replication-profile/replication-profile-interface-addresses';
 import { policyRuleDateKey } from '../../../../src/models/policy/policy-rule-validity';
 import { resolveProfileObjectReferences } from '../../../../src/models/replication-profile/replication-profile-object-reference.service';
 
@@ -53,6 +54,8 @@ interface CapturedObject {
   kind: string;
   value?: unknown;
   role?: string;
+  interfaceRole?: string;
+  interfaceAddressIndex?: number;
   name?: string;
   vpnId?: string;
 }
@@ -556,8 +559,16 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         .manager.getRepository(ReplicationProfile)
         .findOneByOrFail({ id: profile.id });
       const capturedRule = getProvision(reloaded).rules[0];
-      expect(capturedRule.source).to.deep.eq([{ kind: 'interfaceRole', role: 'ens18' }]);
-      expect(capturedRule.destination).to.deep.eq([{ kind: 'interfaceRole', role: 'ens18' }]);
+      const [declared] = getProvision(reloaded).interfaces[0].addresses;
+      const expectedAddress = {
+        kind: 'address',
+        value: declared.value,
+        name: source.wanAddress.name,
+        interfaceRole: 'ens18',
+        interfaceAddressIndex: 0,
+      };
+      expect(capturedRule.source).to.deep.eq([expectedAddress]);
+      expect(capturedRule.destination).to.deep.eq([expectedAddress]);
       expect(capturedRule.negate).to.eq('7 8');
       expect(capturedRule.inRole).to.be.undefined;
       expect(capturedRule.outRole).to.be.undefined;
@@ -600,13 +611,148 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       ).to.be.empty;
       const targetRefs = await db
         .getSource()
-        .query('SELECT interface, position FROM policy_r__ipobj WHERE rule = ? ORDER BY position', [
-          targetRule.id,
-        ]);
+        .query(
+          'SELECT ipobj, interface, position FROM policy_r__ipobj WHERE rule = ? ORDER BY position',
+          [targetRule.id],
+        );
+      const targetAddress = await db.getSource().manager.getRepository(IPObj).findOneByOrFail({
+        interfaceId: target.wanInterface.id,
+        address: source.wanAddress.address,
+      });
       expect(targetRefs).to.deep.eq([
-        { interface: target.wanInterface.id, position: 7 },
-        { interface: target.wanInterface.id, position: 8 },
+        { ipobj: targetAddress.id, interface: -1, position: 7 },
+        { ipobj: targetAddress.id, interface: -1, position: 8 },
       ]);
+    });
+
+    it('should keep a freestanding IP independent from an assigned IP with the same literal when overriding the interface', async () => {
+      await db.getSource().manager.getRepository(IPObj).update(source.wanAddress.id, {
+        netmask: '/24',
+      });
+      const freeAddress = await db.getSource().manager.getRepository(IPObj).save({
+        name: 'Freestanding address matching the interface IP',
+        address: source.wanAddress.address,
+        netmask: '/24',
+        ipObjTypeId: 5,
+        ip_version: 4,
+        fwCloudId: fwc.fwcloud.id,
+      });
+      for (const [index, ownedPosition] of [7, 8].entries()) {
+        const ruleId = await insertForwardRule(source.firewall.id, 100 + index, {
+          comment: `Owned IP in position ${ownedPosition}`,
+        });
+        await attachIpObj(ruleId, source.wanAddress.id, ownedPosition);
+        await attachIpObj(ruleId, freeAddress.id, ownedPosition === 7 ? 8 : 7);
+      }
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        {
+          source: { kind: 'firewall', id: source.firewall.id },
+          name: 'Distinct assigned and freestanding IPs',
+        },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+      const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile)));
+      const provision = getProfileProvisioning(model);
+      const parameters = getProfileParameters(model);
+      for (const rule of provision.rules) {
+        const [owned, free] = rule.comment.endsWith('7')
+          ? [rule.source[0], rule.destination[0]]
+          : [rule.destination[0], rule.source[0]];
+        expect(owned).to.include({ interfaceRole: 'ens18', interfaceAddressIndex: 0 });
+        expect(free).not.to.have.property('interfaceRole');
+        expect(free).not.to.have.property('interfaceAddressIndex');
+        expect(free.value).not.to.deep.eq(owned.value);
+      }
+      expect(
+        await applyInterfaceAddressOverrides(
+          provision,
+          { ens18: [{ name: 'Selected WAN IP', value: '198.51.100.7/28' }] },
+          parameters,
+          undefined,
+          fwc.fwcloud.id,
+        ),
+      ).to.be.empty;
+      const target = await makeReplicationTargetFirewall(fwc, false);
+      const provisioning = await app.getService<PolicyReplicationService>(
+        PolicyReplicationService.name,
+      );
+      const applied = await provisioning.provisionPolicyFromProfile(
+        { kind: 'firewall', id: target.firewall.id },
+        provision,
+        fwc.fwcloud.id,
+        'merge',
+        { parameters },
+      );
+      expect(applied.errors).to.be.empty;
+      expect(applied.createdRules).to.have.length(2);
+      for (const rule of applied.createdRules) {
+        const refs = await db.getSource().query(
+          `SELECT R.position, R.interface AS interfaceReference, O.address, O.netmask,
+                  O.interface AS owner, O.name
+           FROM policy_r__ipobj R INNER JOIN ipobj O ON O.id = R.ipobj
+           WHERE R.rule = ? ORDER BY R.position`,
+          [rule.targetRuleId],
+        );
+        const ownedPosition = rule.comment.endsWith('7') ? 7 : 8;
+        expect(refs).to.have.length(2);
+        expect(refs.find((ref) => ref.position === ownedPosition)).to.include({
+          interfaceReference: -1,
+          address: '198.51.100.7',
+          netmask: '/28',
+          owner: target.wanInterface.id,
+          name: 'Selected WAN IP',
+        });
+        expect(refs.find((ref) => ref.position !== ownedPosition)).to.include({
+          interfaceReference: -1,
+          address: source.wanAddress.address,
+          netmask: '/24',
+          owner: null,
+          name: freeAddress.name,
+        });
+        expect(
+          await db
+            .getSource()
+            .query('SELECT * FROM policy_r__interface WHERE rule = ?', [rule.targetRuleId]),
+        ).to.be.empty;
+      }
+    });
+
+    it('should reject a relation that ambiguously names both an IP and an interface', async () => {
+      const ruleId = await insertForwardRule(source.firewall.id, 100);
+      await attachIpObj(ruleId, source.wanAddress.id, 7);
+      await db
+        .getSource()
+        .query('UPDATE policy_r__ipobj SET interface = ? WHERE rule = ? AND position = 7', [
+          source.wanInterface.id,
+          ruleId,
+        ]);
+
+      await expect(
+        service.buildSourceSnapshot({ kind: 'firewall', id: source.firewall.id }, fwc.fwcloud.id),
+      ).to.be.rejectedWith(HttpException, 'ambiguous IP/interface object reference');
+    });
+
+    it('should preserve actual source/destination interface objects as interface address sets', async () => {
+      const ruleId = await insertForwardRule(source.firewall.id, 100);
+      await db
+        .getSource()
+        .query(
+          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, -1, ?, 7, 1), (?, -1, -1, ?, 8, 1)',
+          [ruleId, source.wanInterface.id, ruleId, source.lanInterface.id],
+        );
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Actual interface objects' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+      const [captured] = getProvision(profile).rules;
+      expect(captured.source).to.deep.eq([{ kind: 'interfaceRole', role: 'ens18' }]);
+      expect(captured.destination).to.deep.eq([{ kind: 'interfaceRole', role: 'ens19' }]);
+      expect(captured.inRole).to.be.undefined;
+      expect(captured.outRole).to.be.undefined;
     });
 
     it('should skip the default policy rules generated at firewall creation', async () => {

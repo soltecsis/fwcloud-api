@@ -106,22 +106,25 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
   describe('colors()', () => {
     let fwcColors1: fwcloudColors;
     let fwcColors2: fwcloudColors;
-    const cua1: colorUsage[] = [];
-    const cua2: colorUsage[] = [];
+    let cua1: colorUsage[];
+    let cua2: colorUsage[];
 
     beforeEach(async () => {
       let n: number;
+      cua1 = [];
+      cua2 = [];
 
       // Generate ramdon content colorsUsage arrays.
+      // Colors are never shared between both arrays, as combine() would merge them adding counts.
       for (n = ramdomInteger(1, 64); n > 0; n--) {
         cua1.push({
-          color: '#' + Math.random().toString(16).substr(2, 6),
+          color: '#1' + n.toString(16).padStart(5, '0'),
           count: ramdomInteger(1, 10000),
         });
       }
       for (n = ramdomInteger(1, 64); n > 0; n--) {
         cua2.push({
-          color: '#' + Math.random().toString(16).substr(2, 6),
+          color: '#2' + n.toString(16).padStart(5, '0'),
           count: ramdomInteger(1, 10000),
         });
       }
@@ -149,6 +152,20 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
         fwcColors2.add({ color: '#112233', count: 10 });
         fwcColors1.combine(fwcColors2);
         expect(fwcColors1.found({ color: '#112233', count: 15 })).to.be.true;
+      });
+
+      it('should keep the other colors when the same color is not the first one', () => {
+        const colors = new fwcloudColors([{ color: '#112233', count: 5 }]);
+        colors.combine(
+          new fwcloudColors([
+            { color: '#445566', count: 1 },
+            { color: '#112233', count: 10 },
+          ]),
+        );
+        expect(colors.colors).to.deep.equal([
+          { color: '#112233', count: 15 },
+          { color: '#445566', count: 1 },
+        ]);
       });
 
       it('should return sorted combined fwcloudColor object', () => {
