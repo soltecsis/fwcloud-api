@@ -2769,6 +2769,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const channel = new Channel('crowdsec-install', listener);
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
     const bouncerStub = sinon.stub(communication, 'installCrowdSecBouncer');
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole');
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('nftables');
     const channelStub = sinon.stub(Channel, 'fromRequest').resolves(channel);
     const messages: ProgressPayload[] = [];
@@ -2783,6 +2784,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(channelStub.calledOnce).to.be.true;
     expect(crowdsecStub.calledOnceWithExactly(channel, 'nftables')).to.be.true;
     expect(bouncerStub.called).to.be.false;
+    expect(enrollStub.called).to.be.false;
     expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
@@ -2873,13 +2875,14 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       session: { user: null },
     } as unknown as Request);
 
+    expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
       new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
       new ProgressPayload(
         'warning',
         false,
-        'CrowdSec installation completed, but Console enrollment could not be requested',
+        'CrowdSec installation completed successfully, but Console enrollment failed. You can retry enrollment from the Status panel',
       ),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);

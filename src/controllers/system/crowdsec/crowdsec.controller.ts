@@ -1764,7 +1764,7 @@ export class CrowdSecController extends Controller {
           new ProgressPayload(
             'warning',
             false,
-            'CrowdSec installation completed, but Console enrollment could not be requested',
+            'CrowdSec installation completed successfully, but Console enrollment failed. You can retry enrollment from the Status panel',
           ),
         );
       }
