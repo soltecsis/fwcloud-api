@@ -55,6 +55,7 @@ import {
 
 import { getPolicyRuleValidityErrors } from '../policy/policy-rule-validity';
 import { profileHAProxyErrors } from './replication-profile-haproxy';
+import { profileKeepalivedErrors } from './replication-profile-keepalived';
 
 const Joi = require('joi');
 const sharedSchema = require('../../middleware/joi_schemas/shared');
@@ -260,7 +261,8 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
-    this.validateHAProxySettings(model, errors);
+    this.validateSystemSettings(model, errors, 'haproxy', 'HAProxy', profileHAProxyErrors);
+    this.validateSystemSettings(model, errors, 'keepalived', 'Keepalived', profileKeepalivedErrors);
     this.validateInterfaceAddressReferences(model, errors);
     this.validateRuleValidityPeriods(model, errors);
     this.validateStructureRuleSettings(model, errors);
@@ -280,6 +282,7 @@ class ReplicationProfileDefinitionValidator {
       const nodeRoles =
         rootTargetKind === 'cluster' ? this.validateClusterTopology(model, errors) : null;
       this.validateRuleNodeRoles(model, nodeRoles, errors);
+      this.validateKeepalivedNodeRoles(model, nodeRoles, errors);
     }
 
     return errors;
@@ -789,6 +792,7 @@ class ReplicationProfileDefinitionValidator {
       'Keepalived entries',
       errors,
       (entry, path) => {
+        if (entry.rule_type === 2) return;
         this.validateOptionalRole(
           entry.interfaceRole,
           `${path}.interfaceRole`,
@@ -1168,21 +1172,24 @@ class ReplicationProfileDefinitionValidator {
     });
   }
 
-  /** Check native HAProxy settings in every representation, including the editor's copy. */
-  private validateHAProxySettings(
+  /** Check native service settings in every representation, including the editor's copy. */
+  private validateSystemSettings(
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
+    service: 'haproxy' | 'keepalived',
+    label: 'HAProxy' | 'Keepalived',
+    validate: (entry: ValidationRecord) => string[],
   ): void {
     for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
       const system = asReplicationProfileRecord(asReplicationProfileRecord(model[field])?.system);
       this.forEachRecord(
-        system?.haproxy,
-        `model.${field}.system.haproxy`,
-        'HAProxy entries',
+        system?.[service],
+        `model.${field}.system.${service}`,
+        `${label} entries`,
         errors,
         (entry, path) => {
-          for (const message of profileHAProxyErrors(entry)) {
-            this.addError(errors, 'invalid_haproxy_configuration', `HAProxy: ${message}`, path);
+          for (const message of validate(entry)) {
+            this.addError(errors, `invalid_${service}_configuration`, `${label}: ${message}`, path);
           }
         },
       );
@@ -2276,6 +2283,75 @@ class ReplicationProfileDefinitionValidator {
       NORMALIZED_INTERFACE_ROLE_FIELDS.has(normalized) ||
       (normalized.endsWith('role') && !normalized.includes('noderole'))
     );
+  }
+
+  /**
+   * Keepalived "Apply to" (manual configurations too), held to the rules of a policy rule's node in
+   * every saved representation: a restriction that apply and the editor would read differently, or
+   * one spelled in a field that apply ignores, would end up on every node.
+   */
+  private validateKeepalivedNodeRoles(
+    model: ValidationRecord,
+    nodeRoles: Set<string> | null,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    const entriesOf = (field: string): unknown[] | null => {
+      const keepalived = asReplicationProfileRecord(
+        asReplicationProfileRecord(model[field])?.system,
+      )?.keepalived;
+      return Array.isArray(keepalived) ? keepalived : null;
+    };
+    const provisionEntries = entriesOf('provision');
+    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+      const entries = entriesOf(field);
+      entries?.forEach((value, index) => {
+        const entry = asReplicationProfileRecord(value);
+        if (!entry) return;
+        const path = `model.${field}.system.keepalived[${index}]`;
+        if (
+          field !== 'provision' &&
+          provisionEntries?.length === entries.length &&
+          JSON.stringify(asReplicationProfileRecord(provisionEntries[index])?.nodeRole) !==
+            JSON.stringify(entry.nodeRole)
+        ) {
+          this.addError(
+            errors,
+            'invalid_rule_node_role',
+            `model.provision and model.${field} restrict Keepalived rule ${index + 1} to different nodes.`,
+            `${path}.nodeRole`,
+          );
+        }
+        for (const key of Object.keys(entry)) {
+          if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
+            this.addError(
+              errors,
+              'invalid_rule_node_role',
+              `Keepalived rules are restricted to a cluster node through nodeRole, not ${key}.`,
+              `${path}.${key}`,
+            );
+          }
+        }
+
+        if (entry.nodeRole === undefined) {
+          return;
+        }
+        if (!nodeRoles) {
+          this.addError(
+            errors,
+            'invalid_rule_node_role',
+            'Only cluster profiles can restrict a Keepalived rule to a node.',
+            `${path}.nodeRole`,
+          );
+        } else if (typeof entry.nodeRole !== 'string' || !nodeRoles.has(entry.nodeRole)) {
+          this.addError(
+            errors,
+            'invalid_topology_node_role',
+            `Keepalived nodeRole ${JSON.stringify(entry.nodeRole)} is not a node role of the cluster topology.`,
+            `${path}.nodeRole`,
+          );
+        }
+      });
+    }
   }
 
   /** A rule field meant to restrict the rule to a node; only nodeRole does. */
