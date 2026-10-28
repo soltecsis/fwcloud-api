@@ -21,6 +21,10 @@
 */
 
 import type { ReplicationProfile } from './replication-profile.model';
+import {
+  readProfileHAProxySettings,
+  type ProfileHAProxySettings,
+} from './replication-profile-haproxy';
 import type { PolicyRuleValidityPeriod } from '../policy/policy-rule-validity';
 import type { ResolvedProfileObjectReference } from './replication-profile-object-reference';
 import {
@@ -280,7 +284,7 @@ export interface PolicyReplicationProvisionKeepalived {
   comment?: string;
 }
 
-export interface PolicyReplicationProvisionHaproxy {
+export interface PolicyReplicationProvisionHaproxy extends ProfileHAProxySettings {
   frontendIp: PolicyReplicationProvisionObject | null;
   frontendService: PolicyReplicationProvisionService | null;
   backendIps: PolicyReplicationProvisionObject[];
@@ -556,10 +560,15 @@ function parseProvisionSystem(
       comment: optionalComment(entry),
     })),
     haproxy: recordArray(record?.haproxy).map((entry) => ({
-      frontendIp: parseSingleObject(entry.frontendIp, ensureInterface),
-      frontendService: parseProvisionServices(entry.frontendService)[0] ?? null,
-      backendIps: parseProvisionRuleSide(entry.backendIps, ensureInterface),
-      backendService: parseProvisionServices(entry.backendService)[0] ?? null,
+      ...readProfileHAProxySettings(entry),
+      frontendIp:
+        entry.rule_type === 2 ? null : parseSingleObject(entry.frontendIp, ensureInterface),
+      frontendService:
+        entry.rule_type === 2 ? null : (parseProvisionServices(entry.frontendService)[0] ?? null),
+      backendIps:
+        entry.rule_type === 2 ? [] : parseProvisionRuleSide(entry.backendIps, ensureInterface),
+      backendService:
+        entry.rule_type === 2 ? null : (parseProvisionServices(entry.backendService)[0] ?? null),
       comment: optionalComment(entry),
     })),
   };

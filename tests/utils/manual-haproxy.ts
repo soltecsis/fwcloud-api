@@ -1,0 +1,23 @@
+/** Multiple independent blocks, literal parameters, TLS paths, tabs and CRLF. */
+export const MANUAL_HAPROXY = [
+  '# Manual HAProxy — preserve verbatim  ',
+  'frontend https_frontend',
+  '    bind *:443 ssl crt /etc/haproxy/certs/example.pem',
+  '    mode http',
+  '    default_backend web_servers',
+  '',
+  'backend web_servers',
+  '    mode http',
+  '    balance roundrobin',
+  '    server web1 192.168.1.10:8080 check',
+  '    server web2 192.168.1.11:8080 check',
+  '',
+  'frontend health',
+  '\tbind *:8081',
+  '\tdefault_backend health_servers',
+  '',
+  'backend health_servers',
+  '\tserver health 127.0.0.1:9090 check',
+  '# Literal ${ADDRESS} and { param: "ADDRESS" } must not be interpolated',
+  '',
+].join('\r\n');
