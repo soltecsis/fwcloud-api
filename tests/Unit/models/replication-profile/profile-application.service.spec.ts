@@ -373,11 +373,8 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       });
       const file = resolveReplicationProfileTemplatePath(profile);
       const original = fs.readFileSync(file, 'utf8');
+      // The mapped interface has no MAC: Keepalived only needs its name.
       const target = await makeTargetFirewall();
-      await db
-        .getSource()
-        .manager.getRepository(Interface)
-        .update(target.wanInterface.id, { mac: '02:00:00:00:00:01' });
       const request = makeApplyRequest(
         target,
         'dry_run',
@@ -390,7 +387,7 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       expect(preview.warnings.join(' '))
         .to.include('removed cluster-node restrictions')
         .and.include('retained')
-        .and.include('only for clusters');
+        .and.include('after converting the firewall to a cluster');
       const applied = await service.apply(actor(authorizedUser), {
         ...request,
         replication: { ...request.replication, mode: 'replace_defaults' },
@@ -471,7 +468,7 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       ).to.be.empty;
     });
 
-    it('still reports required Keepalived interface data when converting a cluster template', async () => {
+    it('still reports required Keepalived data when converting a cluster template', async () => {
       profile = await makeProfile({
         targetKind: 'cluster',
         model: {
@@ -487,7 +484,7 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
                 {
                   interfaceRole: 'wan',
                   masterNode: 'master',
-                  virtualIps: [{ kind: 'address', value: '203.0.113.254' }],
+                  virtualIps: [],
                 },
               ],
             },
@@ -506,7 +503,7 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
           ),
         );
         expect(result.applied).to.equal(false);
-        expect(result.errors.join(' ')).to.include('Keepalived 1').and.include('MAC');
+        expect(result.errors.join(' ')).to.include('Keepalived 1').and.include('virtual IP');
         expect(result.provisioned.keepalived).to.equal(0);
       }
       expect(
