@@ -244,6 +244,7 @@ class CrowdSecCollectionAcquisitionPathConflictException extends HttpException {
 export function crowdSecAgentErrorToHttpException(
   code: unknown,
   conflict?: CrowdSecCollectionAcquisitionPathConflict,
+  commandFailureMessage?: unknown,
 ): HttpException {
   if (code === 'CROWDSEC_COLLECTION_ACQUISITION_PATH_CONFLICT' && conflict) {
     return new CrowdSecCollectionAcquisitionPathConflictException(
@@ -252,11 +253,27 @@ export function crowdSecAgentErrorToHttpException(
     );
   }
 
+  if (
+    code === 'CROWDSEC_COMMAND_FAILED' &&
+    isCrowdSecPackageCommandFailureMessage(commandFailureMessage)
+  ) {
+    return new HttpException(commandFailureMessage, 502);
+  }
+
   const response = typeof code === 'string' ? CROWDSEC_AGENT_ERROR_RESPONSES[code] : undefined;
 
   return response
     ? new HttpException(response.message, response.status)
     : new HttpException('CrowdSec agent request failed', 502);
+}
+
+function isCrowdSecPackageCommandFailureMessage(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('CrowdSec package installation failed') &&
+    value.length <= 256 &&
+    !/[\r\n]/.test(value)
+  );
 }
 
 export function sanitizeCrowdSecProgressMessage(message: string): string {
@@ -1875,6 +1892,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         exception = crowdSecAgentErrorToHttpException(
           code,
           crowdSecCollectionAcquisitionPathConflict(responseData),
+          responseData?.message,
         );
       } else if (error.code === 'ECONNABORTED') {
         exception = new HttpException('CrowdSec agent request timed out', 504);
