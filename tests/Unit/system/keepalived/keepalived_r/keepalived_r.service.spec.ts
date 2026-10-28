@@ -83,6 +83,29 @@ describe(KeepalivedRuleService.name, () => {
     sinon.restore();
   });
 
+  describe('interfaceValidationError', () => {
+    it('should report an unresolved interface dependency', () => {
+      expect(KeepalivedRuleService.interfaceValidationError()).to.equal('Interface was not found');
+    });
+
+    for (const mac of [undefined, null, '']) {
+      it(`should identify the interface when its MAC is ${String(mac)}`, () => {
+        expect(
+          KeepalivedRuleService.interfaceValidationError({ id: 42, name: 'eth1', mac }),
+        ).to.equal('Interface "eth1" (ID 42) has no MAC address');
+      });
+    }
+
+    it('should validate planned interfaces before their database ID is assigned', () => {
+      expect(
+        KeepalivedRuleService.interfaceValidationError({
+          name: 'eth1',
+          mac: '02:00:00:00:00:01',
+        }),
+      ).to.equal(null);
+    });
+  });
+
   describe('getKeepalivedRulesData', () => {
     const fwcloud = 1;
     const firewall = 2;
@@ -128,6 +151,31 @@ describe(KeepalivedRuleService.name, () => {
 
       await expect(service.getKeepalivedRulesData('keepalived_grid', fwcloud, firewall, rules)).to
         .be.rejected;
+    });
+
+    it('filters compilation for the master without hiding other node rules from its editing grid', async () => {
+      const resolver = sinon
+        .stub<any, any>(service as any, 'resolveFirewallsForQuery')
+        .resolves({ queryFirewallIds: [10], targetFirewallId: 10 });
+      const compilerSql = sinon
+        .stub<any, any>(service as any, 'buildKeepalivedRulesCompilerSql')
+        .returns([]);
+      const gridSql = sinon.stub<any, any>(service as any, 'getKeepalivedRulesGridSql').returns([]);
+      repositoryStub.resolves([
+        Object.assign(new KeepalivedRule(), { id: 1, firewallApplyToId: null }),
+        Object.assign(new KeepalivedRule(), { id: 2, firewallApplyToId: 10 }),
+        Object.assign(new KeepalivedRule(), { id: 3, firewallApplyToId: 11 }),
+      ]);
+      try {
+        const compiled = await service.getKeepalivedRulesData('compiler', fwcloud, 10);
+        expect(compiled.map((rule) => rule.id)).to.deep.equal([1, 2]);
+        const editable = await service.getKeepalivedRulesData('keepalived_grid', fwcloud, 10);
+        expect(editable.map((rule) => rule.id)).to.deep.equal([1, 2, 3]);
+      } finally {
+        resolver.restore();
+        compilerSql.restore();
+        gridSql.restore();
+      }
     });
 
     it('should merge cluster firewalls and filter results by firewallApplyToId', async () => {
@@ -227,6 +275,33 @@ describe(KeepalivedRuleService.name, () => {
       const result = await service.store(data);
 
       expect(result).to.be.an('object').that.is.not.empty;
+    });
+
+    it('should report the interface without saving a rule when its MAC is missing', async () => {
+      await manager.getRepository(Interface).update(1, { mac: '' });
+      const save = sinon.spy(service['_repository'], 'save');
+
+      await expect(service.store({ firewallId: firewall.id, interfaceId: 1 })).to.be.rejectedWith(
+        'Interface "eth1" (ID 1) has no MAC address',
+      );
+
+      sinon.assert.notCalled(save);
+    });
+
+    it('should create a rule after assigning the required MAC to the interface', async () => {
+      await manager.getRepository(Interface).update(1, { mac: '' });
+      await expect(service.store({ firewallId: firewall.id, interfaceId: 1 })).to.be.rejectedWith(
+        'has no MAC address',
+      );
+      await manager.getRepository(Interface).update(1, { mac: '02:00:00:00:00:01' });
+
+      const result = await service.store({ firewallId: firewall.id, interfaceId: 1 });
+      const saved = await manager.getRepository(KeepalivedRule).findOneOrFail({
+        where: { id: result.id },
+      });
+
+      expect(saved.interfaceId).to.equal(1);
+      expect(saved.interface.mac).to.equal('02:00:00:00:00:01');
     });
 
     it('should throw an error if the group does not exist', async () => {
@@ -573,6 +648,7 @@ describe(KeepalivedRuleService.name, () => {
   describe('update', () => {
     let keepalivedRule: KeepalivedRule;
     let repositoryStub: sinon.SinonStub;
+    let saveStub: sinon.SinonStub;
 
     beforeEach(() => {
       keepalivedRule = {
@@ -583,7 +659,7 @@ describe(KeepalivedRuleService.name, () => {
       } as unknown as KeepalivedRule;
 
       repositoryStub = sinon.stub(service['_repository'], 'findOne').resolves(keepalivedRule);
-      sinon.stub(service['_repository'], 'save').resolvesArg(0);
+      saveStub = sinon.stub(service['_repository'], 'save').resolvesArg(0);
     });
 
     afterEach(() => {
@@ -597,6 +673,22 @@ describe(KeepalivedRuleService.name, () => {
 
       expect(repositoryStub.called).to.be.true;
       expect(result).to.be.an('object').that.is.not.empty;
+    });
+
+    it('should use the same interface dependency validation when updating', async () => {
+      const iface = await manager.getRepository(Interface).save({
+        name: 'eth-missing-mac',
+        firewallId: firewall.id,
+        type: '10',
+        interface_type: '10',
+        mac: '',
+      });
+
+      await expect(service.update(keepalivedRule.id, { interfaceId: iface.id })).to.be.rejectedWith(
+        `Interface "eth-missing-mac" (ID ${iface.id}) has no MAC address`,
+      );
+
+      sinon.assert.notCalled(saveStub);
     });
 
     it('should handle errors when updating a KeepalivedRule', async () => {
