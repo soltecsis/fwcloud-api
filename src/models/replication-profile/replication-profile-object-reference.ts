@@ -478,6 +478,7 @@ function collectUsageSites(block: unknown, path: string): ProfileExternalObjectU
     field(entry.virtualIps, `${entryPath}.virtualIps`, false),
   );
   forEachRecord(system?.haproxy, `${path}.system.haproxy`, (entry, entryPath) => {
+    if (entry.rule_type === 2) return;
     field(entry.frontendIp, `${entryPath}.frontendIp`, false);
     field(entry.backendIps, `${entryPath}.backendIps`, false);
     field(entry.frontendService, `${entryPath}.frontendService`, true);

@@ -54,6 +54,7 @@ import {
 } from './replication-profile-object-reference';
 
 import { getPolicyRuleValidityErrors } from '../policy/policy-rule-validity';
+import { profileHAProxyErrors } from './replication-profile-haproxy';
 
 const Joi = require('joi');
 const sharedSchema = require('../../middleware/joi_schemas/shared');
@@ -259,6 +260,7 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
+    this.validateHAProxySettings(model, errors);
     this.validateInterfaceAddressReferences(model, errors);
     this.validateRuleValidityPeriods(model, errors);
     this.validateStructureRuleSettings(model, errors);
@@ -820,6 +822,7 @@ class ReplicationProfileDefinitionValidator {
       'HAProxy entries',
       errors,
       (entry, path) => {
+        if (entry.rule_type === 2) return;
         side(entry.frontendIp, `${path}.frontendIp`);
         side(entry.backendIps, `${path}.backendIps`);
         this.validatePortsAndProtocols(
@@ -1163,6 +1166,27 @@ class ReplicationProfileDefinitionValidator {
         this.validateRuleSettings(rule, `model.${source.field}.rules[${index}]`, errors);
       }
     });
+  }
+
+  /** Check native HAProxy settings in every representation, including the editor's copy. */
+  private validateHAProxySettings(
+    model: ValidationRecord,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+      const system = asReplicationProfileRecord(asReplicationProfileRecord(model[field])?.system);
+      this.forEachRecord(
+        system?.haproxy,
+        `model.${field}.system.haproxy`,
+        'HAProxy entries',
+        errors,
+        (entry, path) => {
+          for (const message of profileHAProxyErrors(entry)) {
+            this.addError(errors, 'invalid_haproxy_configuration', `HAProxy: ${message}`, path);
+          }
+        },
+      );
+    }
   }
 
   /** Validate every saved representation, including the structure the editor will reopen. */

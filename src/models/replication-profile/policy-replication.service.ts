@@ -23,6 +23,11 @@
 import { QueryRunner } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
+import {
+  HAProxyRuleService,
+  type ICreateHAProxyRule,
+} from '../system/haproxy/haproxy_r/haproxy_r.service';
+import { profileHAProxyErrors } from './replication-profile-haproxy';
 import { dbQuery, findTreeNodeId, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import {
@@ -504,6 +509,9 @@ export class PolicyReplicationService extends Service {
     // Check every rule before provisioning interfaces or objects: invalid rule settings
     // must never result in a partially applied or broadened policy.
     result.errors.push(
+      ...provision.system.haproxy.flatMap((entry, index) =>
+        profileHAProxyErrors(entry).map((error) => `HAProxy ${index + 1}: ${error}`),
+      ),
       ...getProvisionInterfaceAddressReferenceErrors(provision).map(
         (error) => `${error.path}: ${error.message}`,
       ),
@@ -1620,6 +1628,7 @@ export class PolicyReplicationService extends Service {
     }
 
     for (const [index, entry] of provision.system.haproxy.entries()) {
+      if (entry.rule_type === 2) continue;
       const label = `HAProxy ${index + 1}`;
 
       await check([entry.frontendIp], {
@@ -2385,68 +2394,69 @@ export class PolicyReplicationService extends Service {
 
     for (const [index, entry] of haproxy.entries()) {
       const label = `HAProxy ${index + 1}`;
-      const frontendIpId = await single(entry.frontendIp, `${label} frontend IP`, ADDRESS_TYPES);
-      const services =
-        frontendIpId === null
-          ? null
-          : await this.resolveProvisionServices(
-              [entry.frontendService, entry.backendService].filter((service) => !!service),
-              { label: `${label} ports`, allowedTypes: PORT_SERVICE_TYPES },
-              parameterValues,
-              resolver,
-              result,
-            );
-      const backendIps =
-        services === null
-          ? null
-          : await this.resolveProvisionObjects(
-              entry.backendIps,
-              { label: `${label} backend IPs`, allowedTypes: ADDRESS_TYPES },
-              interfaceIdByRole,
-              parameterValues,
-              resolver,
-              result,
-            );
+      const manual = entry.rule_type === 2;
+      const data: ICreateHAProxyRule = {
+        firewallId,
+        rule_type: manual ? 2 : 1,
+        active: entry.active ?? true,
+        style: entry.style,
+        comment: entry.comment ?? '',
+      };
 
-      if (backendIps === null) {
-        return;
+      if (manual) {
+        data.cfg_text = entry.cfg_text;
+      } else {
+        const frontendIpId = await single(entry.frontendIp, `${label} frontend IP`, ADDRESS_TYPES);
+        const services =
+          frontendIpId === null
+            ? null
+            : await this.resolveProvisionServices(
+                [entry.frontendService, entry.backendService].filter((service) => !!service),
+                { label: `${label} ports`, allowedTypes: PORT_SERVICE_TYPES },
+                parameterValues,
+                resolver,
+                result,
+              );
+        const backendIps =
+          services === null
+            ? null
+            : await this.resolveProvisionObjects(
+                entry.backendIps,
+                { label: `${label} backend IPs`, allowedTypes: ADDRESS_TYPES },
+                interfaceIdByRole,
+                parameterValues,
+                resolver,
+                result,
+              );
+
+        if (backendIps === null) return;
+        if (services.length !== 2 || backendIps.length === 0) {
+          result.errors.push(
+            `${label}: the frontend and backend ports and at least one backend IP are required.`,
+          );
+          return;
+        }
+
+        Object.assign(data, {
+          frontendIpId,
+          frontendPortId: services[0].ipobjId,
+          backendPortId: services[1].ipobjId,
+          backendIpsIds: this.orderedIds(backendIps),
+        });
+        // Preserve the structured preview count even if the subsequent store fails.
+        summary.haproxy++;
       }
 
-      if (services.length !== 2 || backendIps.length === 0) {
-        result.errors.push(
-          `${label}: the frontend and backend ports and at least one backend IP are required.`,
+      if (!isDryRun) {
+        const service = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
+        const created = await this.runFwcService(
+          label,
+          result,
+          async () => (await service.store(data)).id,
         );
-        return;
+        if (!created) return;
       }
-
-      summary.haproxy++;
-
-      if (isDryRun) {
-        continue;
-      }
-
-      const service = await this._app.getService<any>('HAProxyRuleService');
-      const created = await this.runFwcService(
-        label,
-        result,
-        async () =>
-          (
-            await service.store({
-              firewallId,
-              rule_type: 1,
-              active: true,
-              frontendIpId,
-              frontendPortId: services[0].ipobjId,
-              backendPortId: services[1].ipobjId,
-              backendIpsIds: this.orderedIds(backendIps),
-              comment: entry.comment ?? '',
-            })
-          ).id,
-      );
-
-      if (!created) {
-        return;
-      }
+      if (manual) summary.haproxy++;
     }
   }
 

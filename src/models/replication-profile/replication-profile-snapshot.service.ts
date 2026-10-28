@@ -21,6 +21,7 @@
 */
 
 import * as ipaddr from 'ipaddr.js';
+import { profileHAProxyErrors } from './replication-profile-haproxy';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
@@ -1372,6 +1373,9 @@ export class ReplicationProfileSnapshotService extends Service {
       ),
       dbQuery<{
         id: number;
+        rule_type: number;
+        cfg_text: string | null;
+        style: string | null;
         rule_order: number;
         active: number;
         frontend_ip: number | null;
@@ -1380,15 +1384,31 @@ export class ReplicationProfileSnapshotService extends Service {
         comment: string | null;
         fw_apply_to: number | null;
       }>(
-        'SELECT id, rule_order, active, frontend_ip, frontend_port, backend_port, comment, fw_apply_to FROM haproxy_r WHERE firewall = ? ORDER BY rule_order',
+        'SELECT id, rule_type, cfg_text, style, rule_order, active, frontend_ip, frontend_port, backend_port, comment, fw_apply_to FROM haproxy_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
     ]);
+
+    // Node-local manual rules cannot be widened to the entire destination cluster.
+    // The system template currently represents the master's shared service policy only.
+    if (firewall.cluster) {
+      const localManual = await dbQuery<{ id: number; firewall: number }>(
+        'SELECT id, firewall FROM haproxy_r WHERE rule_type = 2 AND firewall <> ? AND firewall IN (SELECT id FROM firewall WHERE cluster = ?)',
+        [firewall.id, firewall.cluster],
+      );
+      if (localManual.length) {
+        throw new HttpException(
+          `HAProxy manual configuration ${localManual[0].id} on firewall ${localManual[0].firewall} cannot be captured: node-local manual configurations are unsupported.`,
+          422,
+        );
+      }
+    }
 
     if (!dhcp.length && !keepalived.length && !haproxy.length) {
       return null;
     }
 
+    const structuredHAProxy = haproxy.filter((row) => row.rule_type === 1);
     const [dhcpRefs, keepalivedRefs, haproxyRefs] = await Promise.all([
       this.loadJoinRefs(
         'dhcp_r',
@@ -1405,13 +1425,13 @@ export class ReplicationProfileSnapshotService extends Service {
       this.loadJoinRefs(
         'haproxy_r',
         'rule',
-        haproxy.map((row) => row.id),
+        structuredHAProxy.map((row) => row.id),
         [],
       ),
     ]);
     const singles = [
       ...dhcp.flatMap((row) => [row.network, row.range, row.router]),
-      ...haproxy.flatMap((row) => [row.frontend_ip, row.frontend_port, row.backend_port]),
+      ...structuredHAProxy.flatMap((row) => [row.frontend_ip, row.frontend_port, row.backend_port]),
     ]
       .filter((id): id is number => !!id)
       .map((ipobj) => ({ ipobj }));
@@ -1510,6 +1530,25 @@ export class ReplicationProfileSnapshotService extends Service {
       }),
       haproxy: haproxy.flatMap((row) => {
         const label = `HAProxy rule ${row.rule_order}`;
+        const settings = {
+          rule_type: row.rule_type,
+          ...(row.rule_type === 2 ? { cfg_text: row.cfg_text } : {}),
+          active: !!row.active,
+          ...(row.style !== null ? { style: row.style } : {}),
+        };
+        const errors = profileHAProxyErrors(settings);
+        if (row.rule_type === 2 && row.fw_apply_to) {
+          errors.push('node-restricted manual configurations are unsupported.');
+        }
+        if (errors.length) {
+          throw new HttpException(
+            `${label} (ID ${row.id}) cannot be captured: ${errors.join(' ')}`,
+            422,
+          );
+        }
+        if (row.rule_type === 2) {
+          return [{ ...settings, ...(row.comment !== null ? { comment: row.comment } : {}) }];
+        }
         const captures = {
           frontendIp: one(row.frontend_ip),
           frontendService: port(row.frontend_port),
@@ -1528,6 +1567,7 @@ export class ReplicationProfileSnapshotService extends Service {
           : [
               {
                 frontendIp: capturedValue(captures.frontendIp)[0],
+                ...settings,
                 frontendService: capturedValue(captures.frontendService)[0],
                 backendIps: capturedValue(captures.backendIps),
                 backendService: capturedValue(captures.backendService)[0],
