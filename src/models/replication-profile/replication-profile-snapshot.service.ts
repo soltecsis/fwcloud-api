@@ -22,6 +22,7 @@
 
 import * as ipaddr from 'ipaddr.js';
 import { profileHAProxyErrors } from './replication-profile-haproxy';
+import { profileKeepalivedErrors } from './replication-profile-keepalived';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
@@ -100,7 +101,7 @@ function entrySkipReason(
     return `the ${noun} is disabled.`;
   }
   return entry.fw_apply_to !== null
-    ? 'it only applies to one cluster node, which templates keep for policy rules only.'
+    ? 'it only applies to one cluster node, which templates keep for policy and Keepalived rules only.'
     : null;
 }
 
@@ -564,6 +565,7 @@ export class ReplicationProfileSnapshotService extends Service {
     const system = await this.captureSystem(
       resolved.firewall,
       resolved.topologyNodes,
+      resolved.nodeRoleById,
       roleByInterfaceId,
       values,
       warnings,
@@ -574,12 +576,13 @@ export class ReplicationProfileSnapshotService extends Service {
       ...(routing ? { routing } : {}),
       ...(system ? { system } : {}),
     };
+    const keepalived = (system?.keepalived ?? []) as { masterNode?: string; nodeRole?: string }[];
 
     const model: Record<string, unknown> = {
       parameters: values.getParameters(),
       compatibility: {
-        // A firewall has no nodes to apply node-restricted rules to.
-        target_kinds: rules.some((rule) => rule.nodeRole) ? ['cluster'] : ['firewall', 'cluster'],
+        // Target kind selects the native topology conversion when the template is applied.
+        target_kinds: ['firewall', 'cluster'],
         supportedRoles: roles,
       },
       policyStructure,
@@ -601,9 +604,7 @@ export class ReplicationProfileSnapshotService extends Service {
       // A node that rules or Keepalived depend on is required wherever the template is applied.
       const usedNodeRoles = new Set([
         ...rules.map((rule) => rule.nodeRole),
-        ...((system?.keepalived ?? []) as { masterNode?: string }[]).map(
-          (entry) => entry.masterNode,
-        ),
+        ...keepalived.flatMap((entry) => [entry.masterNode, entry.nodeRole]),
       ]);
       model.topologyPreset = {
         nodes: resolved.topologyNodes.map((node) =>
@@ -1339,6 +1340,7 @@ export class ReplicationProfileSnapshotService extends Service {
   private async captureSystem(
     firewall: SnapshotFirewallRow,
     topologyNodes: SnapshotTopologyNode[] | null,
+    nodeRoleById: Map<number, string>,
     roleByInterfaceId: Map<number, string>,
     values: SnapshotValueCollector,
     warnings: string[],
@@ -1361,6 +1363,9 @@ export class ReplicationProfileSnapshotService extends Service {
       ),
       dbQuery<{
         id: number;
+        rule_type: number;
+        cfg_text: string | null;
+        style: string | null;
         rule_order: number;
         active: number;
         interface: number | null;
@@ -1368,7 +1373,7 @@ export class ReplicationProfileSnapshotService extends Service {
         comment: string | null;
         fw_apply_to: number | null;
       }>(
-        'SELECT id, rule_order, active, interface, master_node, comment, fw_apply_to FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
+        'SELECT id, rule_type, cfg_text, style, rule_order, active, interface, master_node, comment, fw_apply_to FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
       dbQuery<{
@@ -1500,6 +1505,36 @@ export class ReplicationProfileSnapshotService extends Service {
       }),
       keepalived: keepalived.flatMap((row) => {
         const label = `Keepalived rule ${row.rule_order}`;
+        const settings = {
+          rule_type: row.rule_type,
+          ...(row.rule_type === 2 ? { cfg_text: row.cfg_text } : {}),
+          active: !!row.active,
+          ...(row.style !== null ? { style: row.style } : {}),
+        };
+        const errors = profileKeepalivedErrors(settings);
+        if (errors.length) {
+          throw new HttpException(
+            `${label} (ID ${row.id}) cannot be captured: ${errors.join(' ')}`,
+            422,
+          );
+        }
+        // "Apply to" travels as the node's role, as for policy rules; it is never widened.
+        const nodeRole = row.fw_apply_to === null ? undefined : nodeRoleById.get(row.fw_apply_to);
+        if (row.fw_apply_to !== null && !nodeRole) {
+          // FWCloud keeps fw_apply_to when a cluster becomes a firewall.
+          return skip(
+            label,
+            row.fw_apply_to === firewall.id
+              ? 'it only applies to this firewall as a node of the cluster it belonged to.'
+              : 'it only applies to a firewall that is not a node of the source.',
+          );
+        }
+        const node = nodeRole ? { nodeRole } : {};
+        if (row.rule_type === 2) {
+          return [
+            { ...settings, ...node, ...(row.comment !== null ? { comment: row.comment } : {}) },
+          ];
+        }
         const virtualIps = this.captureObjects(
           keepalivedRefs.refs.get(row.id) ?? [],
           roleByInterfaceId,
@@ -1510,20 +1545,20 @@ export class ReplicationProfileSnapshotService extends Service {
         // Clusters reference the master by its node role; a firewall is its own master.
         const nodeIndex = row.master_node ? nodes.indexOf(row.master_node) : 0;
         const masterNode = topologyNodes ? topologyNodes[nodeIndex]?.role : undefined;
-        const reason =
-          entrySkipReason(row, 'rule') ??
-          (!interfaceRole
-            ? 'it references an interface of another firewall.'
-            : nodeIndex < 0 || (topologyNodes && !masterNode)
-              ? 'its master node is not a node of the source.'
-              : captureFailure([virtualIps])?.reason);
+        const reason = !interfaceRole
+          ? 'it references an interface of another firewall.'
+          : nodeIndex < 0 || (topologyNodes && !masterNode)
+            ? 'its master node is not a node of the source.'
+            : captureFailure([virtualIps])?.reason;
         return reason
           ? skip(label, reason)
           : [
               {
+                ...settings,
                 interfaceRole,
                 virtualIps: capturedValue(virtualIps),
                 ...(masterNode ? { masterNode } : {}),
+                ...node,
                 ...(row.comment ? { comment: row.comment } : {}),
               },
             ];
