@@ -243,7 +243,7 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
     expect(rule.comment).to.equal('LAN via ISP2');
   });
 
-  it('should create DHCP and HAProxy entries and skip Keepalived on interfaces without a MAC', async () => {
+  it('should create DHCP and HAProxy entries', async () => {
     const result = await apply({
       provision: {
         interfaces: INTERFACES,
@@ -257,9 +257,7 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
               maxLease: 3600,
             },
           ],
-          keepalived: [
-            { interfaceRole: 'lan', virtualIps: [{ kind: 'address', value: '192.168.60.254' }] },
-          ],
+
           haproxy: [
             {
               frontendIp: { kind: 'address', value: '198.51.100.10' },
@@ -274,7 +272,6 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
 
     expect(result.errors).to.be.empty;
     expect(result.provisioned).to.include({ dhcp: 1, keepalived: 0, haproxy: 1 });
-    expect(result.warnings.some((warning) => warning.includes('MAC'))).to.be.true;
 
     const [dhcp] = await query('SELECT id, max_lease, active FROM dhcp_r WHERE firewall = ?', [
       firewall.id,
@@ -291,6 +288,138 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
     expect(
       await query('SELECT id FROM haproxy_r WHERE firewall = ?', [firewall.id]),
     ).to.have.length(1);
+  });
+
+  it('should reject the same missing MAC dependency in preview and apply before creating interfaces', async () => {
+    const model = {
+      provision: {
+        interfaces: INTERFACES,
+        system: {
+          keepalived: [
+            {
+              interfaceRole: 'lan',
+              comment: 'LAN VIP',
+              virtualIps: [{ kind: 'address', value: '192.168.60.254' }],
+            },
+          ],
+        },
+      },
+    };
+    const preview = await apply(model, 'dry_run');
+    const result = await apply(model);
+    expect(result.errors).to.deep.equal(preview.errors);
+    expect(preview.provisioned.keepalived).to.eq(0);
+    expect(result.provisioned.keepalived).to.eq(0);
+    expect(result.errors.join(' '))
+      .to.include('Keepalived 1 (LAN VIP)')
+      .and.include('"LAN"')
+      .and.include('"lan"')
+      .and.include('MAC');
+    expect(result.applied).to.equal(false);
+    expect(result.warnings.join(' ')).not.to.include('skipped');
+    expect(await query('SELECT id FROM interface WHERE firewall = ?', [firewall.id])).to.be.empty;
+    expect(await query('SELECT id FROM keepalived_r WHERE firewall = ?', [firewall.id])).to.be
+      .empty;
+  });
+
+  it('should require virtual IPs and a declared Keepalived interface in preview and apply', async () => {
+    const provision = getProfileProvisioning({ provision: { interfaces: INTERFACES } });
+    provision.system.keepalived.push({
+      masterNode: 1,
+      interfaceRole: 'unknown',
+      virtualIps: [],
+      comment: 'Missing VIP',
+    });
+    for (const mode of ['dry_run', 'replace_defaults'] as const) {
+      const result = await service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: firewall.id },
+        provision,
+        fwc.fwcloud.id,
+        mode,
+      );
+      expect(result.applied).to.equal(false);
+      expect(result.errors.join(' '))
+        .to.include('Keepalived 1 (Missing VIP)')
+        .and.include('unknown')
+        .and.include('virtual IP');
+    }
+    expect(await query('SELECT id FROM interface WHERE firewall = ?', [firewall.id])).to.be.empty;
+  });
+
+  it('should use the mapped destination interface and count only successfully created Keepalived rules', async () => {
+    await query(
+      "INSERT INTO interface (name, type, interface_type, firewall, mac) VALUES ('ens18', 10, 10, ?, '00:11:22:33:44:55')",
+      [firewall.id],
+    );
+    const provision = getProfileProvisioning({
+      provision: {
+        interfaces: INTERFACES,
+        system: {
+          keepalived: [
+            { interfaceRole: 'lan', virtualIps: [{ kind: 'address', value: '192.168.60.254' }] },
+          ],
+        },
+      },
+    });
+    const run = (mode: 'dry_run' | 'replace_defaults') =>
+      service.provisionPolicyFromProfile(
+        { kind: 'firewall', id: firewall.id },
+        provision,
+        fwc.fwcloud.id,
+        mode,
+        { interfaceNameMapping: { lan: 'ens18' } },
+      );
+    const preview = await run('dry_run');
+    expect(preview.errors).to.be.empty;
+    expect(preview.provisioned.keepalived).to.eq(1);
+    const applied = await run('replace_defaults');
+    expect(applied.errors).to.be.empty;
+    expect(applied.applied).to.eq(true);
+    expect(applied.provisioned.keepalived).to.eq(1);
+    const [rule] = await query(
+      'SELECT I.name FROM keepalived_r K JOIN interface I ON I.id = K.interface WHERE K.firewall = ?',
+      [firewall.id],
+    );
+    expect(rule.name).to.eq('ens18');
+  });
+
+  it('should preserve manual Keepalived directives without requiring an interface or MAC', async () => {
+    const cfg_text =
+      '# VRRP settings\nvrrp_instance VI_1 {\n  interface eth1\n  virtual_router_id 51\n}\n';
+    const model = {
+      provision: {
+        system: {
+          keepalived: [
+            {
+              rule_type: 2,
+              active: false,
+              style: 'manual-style',
+              cfg_text,
+              comment: 'Manual VRRP',
+            },
+          ],
+        },
+      },
+    };
+    const preview = await apply(model, 'dry_run');
+    expect(preview.errors).to.be.empty;
+    expect(preview.provisioned.keepalived).to.eq(1);
+    const result = await apply(model);
+    expect(result.errors).to.be.empty;
+    expect(result.applied).to.eq(true);
+    expect(result.provisioned.keepalived).to.eq(1);
+    const [rule] = await query(
+      'SELECT rule_type, active, style, cfg_text, comment, interface FROM keepalived_r WHERE firewall = ?',
+      [firewall.id],
+    );
+    expect(rule).to.deep.eq({
+      rule_type: 2,
+      active: 0,
+      style: 'manual-style',
+      cfg_text,
+      comment: 'Manual VRRP',
+      interface: null,
+    });
   });
 
   it('should only count routing and system entries in dry-run mode', async () => {
@@ -414,7 +543,10 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
     const unmapped = await run({ madrid: master.id });
     expect(unmapped.errors.join(' ')).to.contain('"valencia"');
 
-    await query("UPDATE interface SET mac = '00:11:22:33:44:55' WHERE firewall = ?", [master.id]);
+    await query(
+      "INSERT INTO interface (name, type, interface_type, firewall, mac) VALUES ('LAN', 10, 10, ?, '00:11:22:33:44:55')",
+      [master.id],
+    );
     const mapped = await run({ madrid: master.id, valencia: backup.id });
     expect(mapped.errors).to.be.empty;
     const [rule] = await query('SELECT master_node FROM keepalived_r WHERE firewall = ?', [
@@ -436,5 +568,136 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
         },
       }).some((error) => error.path.endsWith('masterNode')),
     ).to.be.true;
+  });
+
+  it('should restrict Keepalived rules to the node mapped to their role, as "Apply to" does', async () => {
+    const [cluster] = await query("INSERT INTO cluster (fwcloud, name) VALUES (?, 'CL-apply')", [
+      fwc.fwcloud.id,
+    ]).then((inserted) => [inserted.insertId]);
+    const [master, backup] = await Promise.all(
+      [1, 0].map((fwmaster) =>
+        db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .save({
+            name: StringHelper.randomize(10),
+            fwCloudId: fwc.fwcloud.id,
+            clusterId: cluster,
+            fwmaster,
+          }),
+      ),
+    );
+    const model = {
+      topologyPreset: {
+        kind: 'cluster',
+        nodes: [
+          { role: 'madrid', name: 'FW-1', required: true, master: true },
+          { role: 'valencia', name: 'FW-2', required: true },
+        ],
+      },
+      provision: {
+        interfaces: [{ name: 'LAN', role: 'lan' }],
+        system: {
+          keepalived: [
+            {
+              interfaceRole: 'lan',
+              virtualIps: [{ kind: 'address', value: '192.168.80.254' }],
+              masterNode: 'madrid',
+              nodeRole: 'valencia',
+            },
+            {
+              rule_type: 2,
+              cfg_text: 'vrrp_script chk {\n  script "true"\n}\n',
+              nodeRole: 'madrid',
+            },
+            { rule_type: 2, cfg_text: 'global_defs {\n}\n' },
+          ],
+        },
+      },
+    };
+    const run = (
+      mapping: Record<string, number>,
+      mode: 'replace_defaults' | 'dry_run' = 'replace_defaults',
+    ) =>
+      service.provisionPolicyFromProfile(
+        { kind: 'cluster', id: cluster },
+        getProfileProvisioning(model),
+        fwc.fwcloud.id,
+        mode,
+        { nodeRoleMapping: mapping },
+      );
+
+    // Preview and apply refuse an unplaceable rule before writing anything.
+    for (const mode of ['dry_run', 'replace_defaults'] as const) {
+      const unmapped = await run({ madrid: master.id }, mode);
+      expect(unmapped.errors).to.deep.eq([
+        'Keepalived 1 node: cluster node role "valencia" is not assigned to a node of the target cluster.',
+      ]);
+    }
+    const shared = await run({ madrid: master.id, valencia: master.id });
+    expect(shared.errors.join(' ')).to.contain('are assigned to the same node');
+    // A malformed role is never read as a node position nor applied to every node.
+    for (const nodeRole of [null, '', ' ', 2, [], {}]) {
+      for (const mode of ['dry_run', 'replace_defaults'] as const) {
+        const malformed = await service.provisionPolicyFromProfile(
+          { kind: 'cluster', id: cluster },
+          getProfileProvisioning({
+            ...model,
+            provision: {
+              ...model.provision,
+              system: { keepalived: [{ rule_type: 2, cfg_text: 'global_defs {\n}\n', nodeRole }] },
+            },
+          }),
+          fwc.fwcloud.id,
+          mode,
+          { nodeRoleMapping: { madrid: master.id, valencia: backup.id } },
+        );
+        expect(malformed.errors, `${mode} ${JSON.stringify(nodeRole)}`).to.deep.eq([
+          'Keepalived 1: nodeRole must name a cluster node; leave it out to apply the rule to every node.',
+        ]);
+      }
+    }
+    expect(await query('SELECT id FROM interface WHERE firewall = ?', [master.id])).to.be.empty;
+    expect(await query('SELECT id FROM keepalived_r WHERE firewall = ?', [master.id])).to.be.empty;
+
+    await query(
+      "INSERT INTO interface (name, type, interface_type, firewall, mac) VALUES ('LAN', 10, 10, ?, '00:11:22:33:44:55')",
+      [master.id],
+    );
+    const mapped = await run({ madrid: master.id, valencia: backup.id });
+    expect(mapped.errors).to.be.empty;
+    expect(mapped.provisioned.keepalived).to.eq(3);
+    expect(
+      await query(
+        'SELECT rule_type, master_node, fw_apply_to FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
+        [master.id],
+      ),
+    ).to.deep.eq([
+      { rule_type: 1, master_node: master.id, fw_apply_to: backup.id },
+      { rule_type: 2, master_node: null, fw_apply_to: master.id },
+      { rule_type: 2, master_node: null, fw_apply_to: null },
+    ]);
+
+    // A firewall has no nodes to restrict a rule to.
+    const onFirewall = await apply(
+      { provision: { system: { keepalived: [{ ...model.provision.system.keepalived[1] }] } } },
+      'dry_run',
+    );
+    expect(onFirewall.errors).to.deep.eq([
+      'Keepalived 1: it only applies to cluster node "madrid", but the target is not a cluster.',
+    ]);
+
+    const saveErrors = (keepalived: unknown[]) =>
+      validateReplicationProfilePayload({
+        targetKind: 'cluster',
+        model: { ...model, provision: { ...model.provision, system: { keepalived } } },
+      }).filter((error) => error.path.endsWith('nodeRole'));
+    expect(saveErrors(model.provision.system.keepalived)).to.be.empty;
+    expect(
+      saveErrors([{ rule_type: 2, cfg_text: 'global_defs {\n}\n', nodeRole: 'sevilla' }]),
+    ).to.have.length(1);
+    expect(
+      saveErrors([{ rule_type: 2, cfg_text: 'global_defs {\n}\n', nodeRole: 7 }]),
+    ).to.have.length(1);
   });
 });
