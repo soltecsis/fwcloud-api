@@ -285,6 +285,238 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
     });
   });
 
+  describe('declarative topology conversion', () => {
+    it('applies a historical firewall-only template to a cluster', async () => {
+      profile = await makeProfile({
+        targetKind: 'firewall',
+        model: {
+          compatibility: { target_kinds: ['firewall'] },
+          provision: {
+            interfaces: [{ name: 'WAN', role: 'wan' }],
+            rules: [{ chain: 'input', inRole: 'wan', comment: 'Converted firewall policy' }],
+          },
+        },
+      });
+      const target = await makeTargetFirewall();
+      const cluster = await db
+        .getSource()
+        .manager.getRepository(Cluster)
+        .save({ name: 'Converted target', fwCloudId: fwc.fwcloud.id });
+      await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .update(target.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+      const request = makeApplyRequest(
+        target,
+        'dry_run',
+        { interfaceNameMapping: { wan: target.wanInterface.name } },
+        {
+          target: { kind: 'cluster', id: cluster.id },
+          sourceProfile: undefined,
+          interfaceRoleMapping: undefined,
+        },
+      );
+      const preview = await service.apply(actor(authorizedUser), request);
+      expect(preview.errors).to.be.empty;
+      const applied = await service.apply(actor(authorizedUser), {
+        ...request,
+        replication: { ...request.replication, mode: 'replace_defaults' },
+      });
+      expect(applied.errors).to.be.empty;
+      expect(applied.applied).to.equal(true);
+      expect(applied.createdRules).to.have.length(1);
+      const [rule] = await db
+        .getSource()
+        .query('SELECT fw_apply_to FROM policy_r WHERE id = ?', [
+          applied.createdRules[0].targetRuleId,
+        ]);
+      expect(rule.fw_apply_to).to.equal(null);
+    });
+
+    it('converts a cluster template to a firewall without losing Keepalived or changing the source file', async () => {
+      profile = await makeProfile({
+        targetKind: 'cluster',
+        model: {
+          compatibility: { target_kinds: ['cluster'] },
+          topologyPreset: {
+            kind: 'cluster',
+            nodes: [
+              { role: 'master', name: 'Master', master: true, required: true },
+              { role: 'backup', name: 'Backup', required: true },
+            ],
+          },
+          provision: {
+            interfaces: [{ name: 'WAN', role: 'wan' }],
+            rules: [{ chain: 'input', inRole: 'wan', nodeRole: 'backup', comment: 'Only backup' }],
+            system: {
+              keepalived: [
+                {
+                  interfaceRole: 'wan',
+                  virtualIps: [{ kind: 'address', value: '203.0.113.254' }],
+                  masterNode: 'backup',
+                  nodeRole: 'backup',
+                  active: true,
+                  style: 'HA-style',
+                  comment: 'Structured VRRP',
+                },
+                {
+                  rule_type: 2,
+                  cfg_text: '# Native VRRP\r\n',
+                  nodeRole: 'master',
+                  active: false,
+                  comment: 'Manual VRRP',
+                },
+              ],
+            },
+          },
+        },
+      });
+      const file = resolveReplicationProfileTemplatePath(profile);
+      const original = fs.readFileSync(file, 'utf8');
+      const target = await makeTargetFirewall();
+      await db
+        .getSource()
+        .manager.getRepository(Interface)
+        .update(target.wanInterface.id, { mac: '02:00:00:00:00:01' });
+      const request = makeApplyRequest(
+        target,
+        'dry_run',
+        { interfaceNameMapping: { wan: target.wanInterface.name } },
+        { sourceProfile: undefined, interfaceRoleMapping: undefined },
+      );
+      const preview = await service.apply(actor(authorizedUser), request);
+      expect(preview.errors).to.be.empty;
+      expect(preview.provisioned.keepalived).to.equal(2);
+      expect(preview.warnings.join(' '))
+        .to.include('removed cluster-node restrictions')
+        .and.include('retained')
+        .and.include('only for clusters');
+      const applied = await service.apply(actor(authorizedUser), {
+        ...request,
+        replication: { ...request.replication, mode: 'replace_defaults' },
+      });
+      expect(applied.errors).to.be.empty;
+      expect(applied.applied).to.equal(true);
+      expect(applied.provisioned.keepalived).to.equal(2);
+      const [rule] = await db
+        .getSource()
+        .query('SELECT fw_apply_to FROM policy_r WHERE id = ?', [
+          applied.createdRules[0].targetRuleId,
+        ]);
+      expect(rule.fw_apply_to).to.equal(null);
+      const keepalived = await db
+        .getSource()
+        .query(
+          'SELECT rule_type, master_node, fw_apply_to, active, style, cfg_text FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
+          [target.firewall.id],
+        );
+      expect(keepalived).to.have.length(2);
+      expect(keepalived[0]).to.include({
+        master_node: target.firewall.id,
+        fw_apply_to: null,
+        active: 1,
+        style: 'HA-style',
+      });
+      expect(keepalived[1]).to.include({
+        rule_type: 2,
+        cfg_text: '# Native VRRP\r\n',
+        fw_apply_to: null,
+        active: 0,
+      });
+      expect(fs.readFileSync(file, 'utf8')).to.equal(original);
+    });
+
+    it('validates source node restrictions before converting instead of widening malformed rules', async () => {
+      profile = await makeProfile({
+        targetKind: 'cluster',
+        model: {
+          compatibility: { target_kinds: ['cluster'] },
+          topologyPreset: {
+            kind: 'cluster',
+            nodes: [{ role: 'master', name: 'Master', master: true, required: true }],
+          },
+          provision: {
+            rules: [{ chain: 'input', nodeRole: 'master' }],
+            system: {
+              keepalived: [{ rule_type: 2, cfg_text: '# Native VRRP', nodeRole: 'master' }],
+            },
+          },
+        },
+      });
+      const file = resolveReplicationProfileTemplatePath(profile);
+      const original = fs.readFileSync(file, 'utf8');
+      const target = await makeTargetFirewall();
+      const request = makeApplyRequest(
+        target,
+        'dry_run',
+        {},
+        { sourceProfile: undefined, interfaceRoleMapping: undefined },
+      );
+      try {
+        for (const side of ['rules', 'keepalived']) {
+          const invalid = JSON.parse(original);
+          const entries =
+            side === 'rules' ? invalid.provision.rules : invalid.provision.system.keepalived;
+          entries[0].nodeRole = 'unknown-node';
+          fs.writeFileSync(file, JSON.stringify(invalid));
+          await expect(service.apply(actor(authorizedUser), request)).to.be.rejected;
+        }
+      } finally {
+        fs.writeFileSync(file, original);
+      }
+      expect(
+        await db
+          .getSource()
+          .query('SELECT id FROM keepalived_r WHERE firewall = ?', [target.firewall.id]),
+      ).to.be.empty;
+    });
+
+    it('still reports required Keepalived interface data when converting a cluster template', async () => {
+      profile = await makeProfile({
+        targetKind: 'cluster',
+        model: {
+          compatibility: { target_kinds: ['cluster'] },
+          topologyPreset: {
+            kind: 'cluster',
+            nodes: [{ role: 'master', name: 'Master', master: true, required: true }],
+          },
+          provision: {
+            interfaces: [{ name: 'WAN', role: 'wan' }],
+            system: {
+              keepalived: [
+                {
+                  interfaceRole: 'wan',
+                  masterNode: 'master',
+                  virtualIps: [{ kind: 'address', value: '203.0.113.254' }],
+                },
+              ],
+            },
+          },
+        },
+      });
+      const target = await makeTargetFirewall();
+      for (const mode of ['dry_run', 'replace_defaults'] as const) {
+        const result = await service.apply(
+          actor(authorizedUser),
+          makeApplyRequest(
+            target,
+            mode,
+            { interfaceNameMapping: { wan: target.wanInterface.name } },
+            { sourceProfile: undefined, interfaceRoleMapping: undefined },
+          ),
+        );
+        expect(result.applied).to.equal(false);
+        expect(result.errors.join(' ')).to.include('Keepalived 1').and.include('MAC');
+        expect(result.provisioned.keepalived).to.equal(0);
+      }
+      expect(
+        await db
+          .getSource()
+          .query('SELECT id FROM keepalived_r WHERE firewall = ?', [target.firewall.id]),
+      ).to.be.empty;
+    });
+  });
+
   describe('declarative cluster profile', () => {
     it('previews a sync cluster profile without a source firewall or database writes', async () => {
       profile = await makeProfile({

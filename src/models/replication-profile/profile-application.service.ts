@@ -55,6 +55,7 @@ import {
 } from './replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-parameters';
 import { convertProfileVpnReferencesToIp } from './profile-vpn-ip-conversion';
+import { convertProfileProvisionTarget } from './profile-topology-conversion';
 import {
   ProfileVpnCaTemplate,
   ProfileVpnCertificateTemplate,
@@ -222,7 +223,11 @@ export class ProfileApplicationService extends Service {
       target = await this.validateTarget(request);
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
-      let provision = getProfileProvisioning(model);
+      const topology = convertProfileProvisionTarget(
+        getProfileProvisioning(model),
+        request.replication.target.kind,
+      );
+      let provision = topology.provision;
       const parameters = getProfileParameters(model);
       const addressErrors = await applyInterfaceAddressOverrides(
         provision,
@@ -309,6 +314,7 @@ export class ProfileApplicationService extends Service {
         });
       }
 
+      result.warnings.push(...topology.warnings);
       if (conversion) result.vpnConversions = conversion.vpnConversions;
 
       if (objects.objectReferences.length > 0) {
@@ -817,6 +823,7 @@ export class ProfileApplicationService extends Service {
               resolvedReferences: result.resolvedReferences.length,
               removedDefaultRules: result.removedDefaultRules.length,
               skippedRules: result.skippedRules,
+              provisioned: result.provisioned,
               conflicts: result.conflicts.map((conflict) => conflict.message),
               warnings: result.warnings,
               errors: result.errors,
