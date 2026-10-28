@@ -290,7 +290,7 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
     ).to.have.length(1);
   });
 
-  it('should reject the same missing MAC dependency in preview and apply before creating interfaces', async () => {
+  it('should create Keepalived on a new interface without a MAC as the preview reported', async () => {
     const model = {
       provision: {
         interfaces: INTERFACES,
@@ -306,20 +306,21 @@ describe(describeName('PolicyReplicationService provisioning blocks Unit Tests')
       },
     };
     const preview = await apply(model, 'dry_run');
-    const result = await apply(model);
-    expect(result.errors).to.deep.equal(preview.errors);
-    expect(preview.provisioned.keepalived).to.eq(0);
-    expect(result.provisioned.keepalived).to.eq(0);
-    expect(result.errors.join(' '))
-      .to.include('Keepalived 1 (LAN VIP)')
-      .and.include('"LAN"')
-      .and.include('"lan"')
-      .and.include('MAC');
-    expect(result.applied).to.equal(false);
-    expect(result.warnings.join(' ')).not.to.include('skipped');
+    expect(preview.errors).to.be.empty;
+    expect(preview.provisioned.keepalived).to.eq(1);
     expect(await query('SELECT id FROM interface WHERE firewall = ?', [firewall.id])).to.be.empty;
-    expect(await query('SELECT id FROM keepalived_r WHERE firewall = ?', [firewall.id])).to.be
-      .empty;
+
+    const result = await apply(model);
+    expect(result.errors).to.be.empty;
+    expect(result.applied).to.equal(true);
+    expect(result.provisioned.keepalived).to.eq(preview.provisioned.keepalived);
+    expect(result.warnings.join(' ')).not.to.include('skipped');
+    const [rule] = await query(
+      'SELECT I.name, I.mac, K.comment FROM keepalived_r K JOIN interface I ON I.id = K.interface WHERE K.firewall = ?',
+      [firewall.id],
+    );
+    expect(rule).to.include({ name: 'LAN', comment: 'LAN VIP' });
+    expect(rule.mac).not.to.be.ok;
   });
 
   it('should require virtual IPs and a declared Keepalived interface in preview and apply', async () => {

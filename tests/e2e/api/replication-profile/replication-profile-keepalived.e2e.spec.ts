@@ -172,25 +172,35 @@ describe(describeName('Replication profile Keepalived dependencies E2E Tests'), 
       });
   }
 
-  it('blocks preview and application for a new NIC without MAC, then applies in another FWCloud after destination discovery', async () => {
+  it('applies Keepalived on a new NIC without a MAC in another FWCloud as previewed', async () => {
     const original = await capture();
     const target = await cluster(targetCloud);
-    for (const mode of ['dry_run', 'merge'] as const) {
-      const response = await apply(target, mode).expect(422);
-      expect(response.body.data.applied).to.eq(false);
-      expect(response.body.data.errors.join(' '))
-        .to.include('Keepalived 1')
-        .and.include('wan')
-        .and.include('eth0')
-        .and.match(/MAC/i);
-      expect(await readRules(target.master.id)).to.deep.eq([]);
-      expect(
-        await manager()
-          .getRepository(Interface)
-          .find({ where: { firewallId: target.master.id } }),
-      ).to.deep.eq([]);
-    }
+    const preview = await apply(target, 'dry_run').expect(200);
+    expect(preview.body.data.errors).to.deep.eq([]);
+    expect(preview.body.data.provisioned.keepalived).to.eq(1);
+    expect(await readRules(target.master.id)).to.deep.eq([]);
+    expect(
+      await manager().getRepository(Interface).countBy({ firewallId: target.master.id }),
+    ).to.eq(0);
 
+    const applied = await apply(target, 'merge').expect(200);
+    expect(applied.body.data.applied).to.eq(true);
+    expect(applied.body.data.errors).to.deep.eq([]);
+    expect(applied.body.data.provisioned.keepalived).to.eq(
+      preview.body.data.provisioned.keepalived,
+    );
+    const [created] = await readRules(target.master.id);
+    expect(created.id).not.to.eq(original.rule.id);
+    const iface = await manager()
+      .getRepository(Interface)
+      .findOneByOrFail({ id: created.interface });
+    expect(iface).to.include({ name: 'eth0', firewallId: target.master.id });
+    expect(iface.mac).not.to.be.ok;
+  });
+
+  it('applies in another FWCloud on the destination NIC assigned after discovery', async () => {
+    const original = await capture();
+    const target = await cluster(targetCloud);
     const destination = await discover(target, '02:00:00:00:00:18');
     const preview = await apply(target, 'dry_run', { wan: destination.name }).expect(200);
     expect(preview.body.data.errors).to.deep.eq([]);
@@ -244,23 +254,25 @@ describe(describeName('Replication profile Keepalived dependencies E2E Tests'), 
     expect(await readRules(original.source.master.id)).to.have.length(1);
   });
 
-  it('rejects an existing mapped NIC without a MAC consistently in preview and application', async () => {
+  it('accepts an existing mapped NIC without a MAC consistently in preview and application', async () => {
     await capture();
     const target = await cluster(targetCloud);
     const destination = await discover(target);
-    let previewErrors: string[];
-    for (const mode of ['dry_run', 'merge'] as const) {
-      const response = await apply(target, mode, { wan: destination.name }).expect(422);
-      const errors = response.body.data.errors;
-      expect(errors.join(' ')).to.include('Keepalived 1').and.include('ens18').and.match(/MAC/i);
-      if (mode === 'dry_run') previewErrors = errors;
-      else expect(errors).to.deep.eq(previewErrors);
-      expect(response.body.data.applied).to.eq(false);
-      expect(await readRules(target.master.id)).to.deep.eq([]);
-      expect(
-        await manager().getRepository(Interface).countBy({ firewallId: target.master.id }),
-      ).to.eq(1);
-    }
+    const preview = await apply(target, 'dry_run', { wan: destination.name }).expect(200);
+    expect(preview.body.data.errors).to.deep.eq([]);
+    expect(preview.body.data.provisioned.keepalived).to.eq(1);
+    expect(await readRules(target.master.id)).to.deep.eq([]);
+
+    const applied = await apply(target, 'merge', { wan: destination.name }).expect(200);
+    expect(applied.body.data.applied).to.eq(true);
+    expect(applied.body.data.errors).to.deep.eq([]);
+    expect(applied.body.data.provisioned.keepalived).to.eq(
+      preview.body.data.provisioned.keepalived,
+    );
+    const [created] = await readRules(target.master.id);
+    expect(created.interface).to.eq(destination.id);
+    expect((await manager().getRepository(Interface).findOneByOrFail({ id: destination.id })).mac)
+      .not.to.be.ok;
   });
 
   it('reports a Keepalived service failure, audits the failed step and preserves the actual partial application', async () => {
@@ -308,7 +320,7 @@ describe(describeName('Replication profile Keepalived dependencies E2E Tests'), 
     sinon.stub(service, 'store').callsFake(async (data) => {
       // Another interface assignment may change after preflight. The normal service
       // must still validate the dependency when it creates the configuration.
-      await manager().getRepository(Interface).update(destination.id, { mac: '' });
+      await manager().getRepository(Interface).update(destination.id, { name: '' });
       return store(data);
     });
 
@@ -317,7 +329,7 @@ describe(describeName('Replication profile Keepalived dependencies E2E Tests'), 
     expect(response.body.data.errors.join(' '))
       .to.include('Keepalived 1')
       .and.include('ens18')
-      .and.match(/MAC/i);
+      .and.include('has no name');
     expect(response.body.data.provisioned.keepalived).to.eq(0);
     expect(await readRules(target.master.id)).to.deep.eq([]);
     expect(
