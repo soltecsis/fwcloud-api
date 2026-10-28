@@ -89,10 +89,22 @@ describe(KeepalivedRuleService.name, () => {
     });
 
     for (const mac of [undefined, null, '']) {
-      it(`should identify the interface when its MAC is ${String(mac)}`, () => {
+      it(`should accept a named interface when its MAC is ${String(mac)}`, () => {
         expect(
           KeepalivedRuleService.interfaceValidationError({ id: 42, name: 'eth1', mac }),
-        ).to.equal('Interface "eth1" (ID 42) has no MAC address');
+        ).to.equal(null);
+      });
+    }
+
+    for (const name of [undefined, null, '', ' ']) {
+      it(`should identify the interface when its name is ${JSON.stringify(name)}`, () => {
+        expect(
+          KeepalivedRuleService.interfaceValidationError({
+            id: 42,
+            name,
+            mac: '02:00:00:00:00:01',
+          }),
+        ).to.equal('Interface (ID 42) has no name');
       });
     }
 
@@ -277,23 +289,8 @@ describe(KeepalivedRuleService.name, () => {
       expect(result).to.be.an('object').that.is.not.empty;
     });
 
-    it('should report the interface without saving a rule when its MAC is missing', async () => {
+    it('should create a rule on an interface without a MAC', async () => {
       await manager.getRepository(Interface).update(1, { mac: '' });
-      const save = sinon.spy(service['_repository'], 'save');
-
-      await expect(service.store({ firewallId: firewall.id, interfaceId: 1 })).to.be.rejectedWith(
-        'Interface "eth1" (ID 1) has no MAC address',
-      );
-
-      sinon.assert.notCalled(save);
-    });
-
-    it('should create a rule after assigning the required MAC to the interface', async () => {
-      await manager.getRepository(Interface).update(1, { mac: '' });
-      await expect(service.store({ firewallId: firewall.id, interfaceId: 1 })).to.be.rejectedWith(
-        'has no MAC address',
-      );
-      await manager.getRepository(Interface).update(1, { mac: '02:00:00:00:00:01' });
 
       const result = await service.store({ firewallId: firewall.id, interfaceId: 1 });
       const saved = await manager.getRepository(KeepalivedRule).findOneOrFail({
@@ -301,7 +298,18 @@ describe(KeepalivedRuleService.name, () => {
       });
 
       expect(saved.interfaceId).to.equal(1);
-      expect(saved.interface.mac).to.equal('02:00:00:00:00:01');
+      expect(saved.interface.mac).to.equal('');
+    });
+
+    it('should report the interface without saving a rule when its name is missing', async () => {
+      await manager.getRepository(Interface).update(1, { name: '' });
+      const save = sinon.spy(service['_repository'], 'save');
+
+      await expect(service.store({ firewallId: firewall.id, interfaceId: 1 })).to.be.rejectedWith(
+        'Interface (ID 1) has no name',
+      );
+
+      sinon.assert.notCalled(save);
     });
 
     it('should throw an error if the group does not exist', async () => {
@@ -677,15 +685,15 @@ describe(KeepalivedRuleService.name, () => {
 
     it('should use the same interface dependency validation when updating', async () => {
       const iface = await manager.getRepository(Interface).save({
-        name: 'eth-missing-mac',
+        name: '',
         firewallId: firewall.id,
         type: '10',
         interface_type: '10',
-        mac: '',
+        mac: '02:00:00:00:00:01',
       });
 
       await expect(service.update(keepalivedRule.id, { interfaceId: iface.id })).to.be.rejectedWith(
-        `Interface "eth-missing-mac" (ID ${iface.id}) has no MAC address`,
+        `Interface (ID ${iface.id}) has no name`,
       );
 
       sinon.assert.notCalled(saveStub);
