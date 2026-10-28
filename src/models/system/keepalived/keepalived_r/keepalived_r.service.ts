@@ -112,6 +112,22 @@ export class KeepalivedRuleService extends Service {
     this._groupService = new KeepalivedGroupService(app);
   }
 
+  /** Keepalived addresses interfaces by name; their hardware MAC is optional. */
+  public static interfaceValidationError(
+    iface?: { id?: number; name?: string | null; mac?: string | null } | null,
+  ): string | null {
+    if (!iface) {
+      return 'Interface was not found';
+    }
+
+    if (!iface.name || iface.name.trim() === '') {
+      const id = iface.id ? ` (ID ${iface.id})` : '';
+      return `Interface${id} has no name`;
+    }
+
+    return null;
+  }
+
   public async build(): Promise<Service> {
     this._databaseService = await this._app.getService(DatabaseService.name);
     this._repository = new KeepalivedRepository(this._databaseService.dataSource.manager);
@@ -140,8 +156,9 @@ export class KeepalivedRuleService extends Service {
         .getSource()
         .manager.getRepository(Interface)
         .findOneOrFail({ where: { id: data.interfaceId } });
-      if (!interfaceData.mac || interfaceData.mac === '') {
-        throw new Error('Interface mac is not defined');
+      const interfaceError = KeepalivedRuleService.interfaceValidationError(interfaceData);
+      if (interfaceError) {
+        throw new Error(interfaceError);
       }
       keepalivedRuleData.interface = interfaceData;
     }
@@ -379,8 +396,9 @@ export class KeepalivedRuleService extends Service {
               .getSource()
               .manager.getRepository(Interface)
               .findOneOrFail({ where: { id: Number(value) } });
-            if (!interfaceData.mac || interfaceData.mac === '') {
-              throw new Error('Interface mac is not defined');
+            const interfaceError = KeepalivedRuleService.interfaceValidationError(interfaceData);
+            if (interfaceError) {
+              throw new Error(interfaceError);
             }
             keepalivedRule.interface = interfaceData;
             keepalivedRule.interfaceId = interfaceData.id;
@@ -562,7 +580,8 @@ export class KeepalivedRuleService extends Service {
         break;
     }
 
-    if (shouldFilterByApplyTo) {
+    // The master grid lists every rule for editing; compilation always targets one node.
+    if (dst === 'compiler' || shouldFilterByApplyTo) {
       rulesData = rulesData.filter(
         (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === targetFirewallId,
       );
