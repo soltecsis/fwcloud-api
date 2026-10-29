@@ -665,8 +665,16 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
         const payload = clusterProfile();
         firstRule(payload).nodeRole = nodeRole;
 
-        expect(ruleNodeErrors(payload).map((error) => error.path)).to.deep.equal([
-          'model.provision.rules[0].nodeRole',
+        expect(ruleNodeErrors(payload)).to.deep.equal([
+          {
+            code: 'invalid_topology_node_role',
+            message:
+              typeof nodeRole !== 'string'
+                ? 'Rule node role must be one node role of topologyPreset.'
+                : `Rule references node role "${nodeRole}", but this role is not defined in topologyPreset.`,
+            path: 'model.provision.rules[0].nodeRole',
+            severity: 'error',
+          },
         ]);
       });
     }
@@ -753,8 +761,13 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
         const payload = clusterProfile();
         withKeepalived(payload, nodeRole);
 
-        expect(keepalivedNodeErrors(payload).map((error) => error.path)).to.deep.equal([
-          'model.provision.system.keepalived[0].nodeRole',
+        expect(keepalivedNodeErrors(payload)).to.deep.equal([
+          {
+            code: 'invalid_topology_node_role',
+            message: `Keepalived nodeRole ${JSON.stringify(nodeRole)} is not a node role of the cluster topology.`,
+            path: 'model.provision.system.keepalived[0].nodeRole',
+            severity: 'error',
+          },
         ]);
       });
     }

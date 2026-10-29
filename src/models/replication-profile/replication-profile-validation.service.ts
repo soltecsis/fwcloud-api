@@ -86,6 +86,7 @@ type FieldVisitor = (key: string, value: unknown, path: string) => boolean;
 
 const COMPATIBILITY_FIELDS = ['compatibility'] as const;
 const PROVISION_FIELDS = ['provision'] as const;
+const SAVED_STRUCTURE_FIELDS = ['provision', ...POLICY_STRUCTURE_FIELDS] as const;
 const TOPOLOGY_FIELDS = ['topologyPreset', 'topology_preset'] as const;
 
 /** Parser and error message of the parameter types whose default value can be checked. */
@@ -282,7 +283,7 @@ class ReplicationProfileDefinitionValidator {
       const nodeRoles =
         rootTargetKind === 'cluster' ? this.validateClusterTopology(model, errors) : null;
       this.validateRuleNodeRoles(model, nodeRoles, errors);
-      this.validateKeepalivedNodeRoles(model, nodeRoles, errors);
+      this.validateRuleNodeRoles(model, nodeRoles, errors, 'keepalived');
     }
 
     return errors;
@@ -590,7 +591,7 @@ class ReplicationProfileDefinitionValidator {
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
   ): void {
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+    for (const field of SAVED_STRUCTURE_FIELDS) {
       const structure = asReplicationProfileRecord(model[field]);
       if (!structure) continue;
       for (const error of getProvisionInterfaceAddressReferenceErrors(
@@ -1180,7 +1181,7 @@ class ReplicationProfileDefinitionValidator {
     label: 'HAProxy' | 'Keepalived',
     validate: (entry: ValidationRecord) => string[],
   ): void {
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+    for (const field of SAVED_STRUCTURE_FIELDS) {
       const system = asReplicationProfileRecord(asReplicationProfileRecord(model[field])?.system);
       this.forEachRecord(
         system?.[service],
@@ -1207,7 +1208,7 @@ class ReplicationProfileDefinitionValidator {
     });
   }
 
-  /** Every rule object of every saved representation: provision, then the editor's structure. */
+  /** Every policy or Keepalived rule object: provision, then the editor's structure. */
   private forEachSavedRule(
     model: ValidationRecord,
     visit: (
@@ -1217,15 +1218,29 @@ class ReplicationProfileDefinitionValidator {
       index: number,
       rules: unknown[],
     ) => void,
+    service?: 'keepalived',
   ): void {
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
-      const rules = asReplicationProfileRecord(model[field])?.rules;
-      if (!Array.isArray(rules)) continue;
+    for (const field of SAVED_STRUCTURE_FIELDS) {
+      const rules = this.getSavedRules(model, field, service);
+      if (!rules) continue;
+      const path = service ? `model.${field}.system.${service}` : `model.${field}.rules`;
       rules.forEach((value, index) => {
         const rule = asReplicationProfileRecord(value);
-        if (rule) visit(rule, `model.${field}.rules[${index}]`, field, index, rules);
+        if (rule) visit(rule, `${path}[${index}]`, field, index, rules);
       });
     }
+  }
+
+  private getSavedRules(
+    model: ValidationRecord,
+    field: string,
+    service?: 'keepalived',
+  ): unknown[] | null {
+    const structure = asReplicationProfileRecord(model[field]);
+    const rules = service
+      ? asReplicationProfileRecord(structure?.system)?.[service]
+      : structure?.rules;
+    return Array.isArray(rules) ? rules : null;
   }
 
   private validateRuleSettings(
@@ -2099,66 +2114,66 @@ class ReplicationProfileDefinitionValidator {
    * spellings are rejected: they would leave the rule applied to every node. Validates every saved
    * representation, including the structure the editor will reopen, and requires both to restrict
    * the same rules: an application reads provision, the editor rewrites it from the structure.
+   * Keepalived uses the same restriction checks, including manual configurations.
    */
   private validateRuleNodeRoles(
     model: ValidationRecord,
     nodeRoles: Set<string> | null,
     errors: ReplicationProfileValidationError[],
+    service?: 'keepalived',
   ): void {
-    const provisionRules = asReplicationProfileRecord(model.provision)?.rules;
-    this.forEachSavedRule(model, (rule, rulePath, field, index, rules) => {
-      const nodeRolePath = `${rulePath}.nodeRole`;
-      if (
-        field !== 'provision' &&
-        Array.isArray(provisionRules) &&
-        provisionRules.length === rules.length &&
-        JSON.stringify(asReplicationProfileRecord(provisionRules[index])?.nodeRole) !==
-          JSON.stringify(rule.nodeRole)
-      ) {
-        this.addError(
-          errors,
-          'invalid_rule_node_role',
-          `model.provision and model.${field} restrict rule ${index + 1} to different nodes.`,
-          nodeRolePath,
-        );
-      }
-      for (const key of Object.keys(rule)) {
-        if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
+    const provisionRules = this.getSavedRules(model, 'provision', service);
+    const ruleLabel = service ? 'Keepalived rule' : 'rule';
+    const restrictionLabel = service ? 'Keepalived rules' : 'Rules';
+    this.forEachSavedRule(
+      model,
+      (rule, rulePath, field, index, rules) => {
+        const nodeRolePath = `${rulePath}.nodeRole`;
+        if (
+          field !== 'provision' &&
+          provisionRules?.length === rules.length &&
+          JSON.stringify(asReplicationProfileRecord(provisionRules[index])?.nodeRole) !==
+            JSON.stringify(rule.nodeRole)
+        ) {
           this.addError(
             errors,
             'invalid_rule_node_role',
-            `Rules are restricted to a cluster node through nodeRole, not ${key}.`,
-            `${rulePath}.${key}`,
+            `model.provision and model.${field} restrict ${ruleLabel} ${index + 1} to different nodes.`,
+            nodeRolePath,
           );
         }
-      }
+        for (const key of Object.keys(rule)) {
+          if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
+            this.addError(
+              errors,
+              'invalid_rule_node_role',
+              `${restrictionLabel} are restricted to a cluster node through nodeRole, not ${key}.`,
+              `${rulePath}.${key}`,
+            );
+          }
+        }
 
-      if (rule.nodeRole === undefined) {
-        return;
-      }
-      if (!nodeRoles) {
-        this.addError(
-          errors,
-          'invalid_rule_node_role',
-          'Only cluster profiles can restrict a rule to a node.',
-          nodeRolePath,
-        );
-      } else if (typeof rule.nodeRole !== 'string') {
-        this.addError(
-          errors,
-          'invalid_topology_node_role',
-          'Rule node role must be one node role of topologyPreset.',
-          nodeRolePath,
-        );
-      } else if (!nodeRoles.has(rule.nodeRole)) {
-        this.addError(
-          errors,
-          'invalid_topology_node_role',
-          `Rule references node role "${rule.nodeRole}", but this role is not defined in topologyPreset.`,
-          nodeRolePath,
-        );
-      }
-    });
+        if (rule.nodeRole === undefined) {
+          return;
+        }
+        if (!nodeRoles) {
+          this.addError(
+            errors,
+            'invalid_rule_node_role',
+            `Only cluster profiles can restrict a ${ruleLabel} to a node.`,
+            nodeRolePath,
+          );
+        } else if (typeof rule.nodeRole !== 'string' || !nodeRoles.has(rule.nodeRole)) {
+          const message = service
+            ? `Keepalived nodeRole ${JSON.stringify(rule.nodeRole)} is not a node role of the cluster topology.`
+            : typeof rule.nodeRole !== 'string'
+              ? 'Rule node role must be one node role of topologyPreset.'
+              : `Rule references node role "${rule.nodeRole}", but this role is not defined in topologyPreset.`;
+          this.addError(errors, 'invalid_topology_node_role', message, nodeRolePath);
+        }
+      },
+      service,
+    );
   }
 
   private collectProfileInterfaceRoles(model: ValidationRecord): Set<string> {
@@ -2283,75 +2298,6 @@ class ReplicationProfileDefinitionValidator {
       NORMALIZED_INTERFACE_ROLE_FIELDS.has(normalized) ||
       (normalized.endsWith('role') && !normalized.includes('noderole'))
     );
-  }
-
-  /**
-   * Keepalived "Apply to" (manual configurations too), held to the rules of a policy rule's node in
-   * every saved representation: a restriction that apply and the editor would read differently, or
-   * one spelled in a field that apply ignores, would end up on every node.
-   */
-  private validateKeepalivedNodeRoles(
-    model: ValidationRecord,
-    nodeRoles: Set<string> | null,
-    errors: ReplicationProfileValidationError[],
-  ): void {
-    const entriesOf = (field: string): unknown[] | null => {
-      const keepalived = asReplicationProfileRecord(
-        asReplicationProfileRecord(model[field])?.system,
-      )?.keepalived;
-      return Array.isArray(keepalived) ? keepalived : null;
-    };
-    const provisionEntries = entriesOf('provision');
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
-      const entries = entriesOf(field);
-      entries?.forEach((value, index) => {
-        const entry = asReplicationProfileRecord(value);
-        if (!entry) return;
-        const path = `model.${field}.system.keepalived[${index}]`;
-        if (
-          field !== 'provision' &&
-          provisionEntries?.length === entries.length &&
-          JSON.stringify(asReplicationProfileRecord(provisionEntries[index])?.nodeRole) !==
-            JSON.stringify(entry.nodeRole)
-        ) {
-          this.addError(
-            errors,
-            'invalid_rule_node_role',
-            `model.provision and model.${field} restrict Keepalived rule ${index + 1} to different nodes.`,
-            `${path}.nodeRole`,
-          );
-        }
-        for (const key of Object.keys(entry)) {
-          if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
-            this.addError(
-              errors,
-              'invalid_rule_node_role',
-              `Keepalived rules are restricted to a cluster node through nodeRole, not ${key}.`,
-              `${path}.${key}`,
-            );
-          }
-        }
-
-        if (entry.nodeRole === undefined) {
-          return;
-        }
-        if (!nodeRoles) {
-          this.addError(
-            errors,
-            'invalid_rule_node_role',
-            'Only cluster profiles can restrict a Keepalived rule to a node.',
-            `${path}.nodeRole`,
-          );
-        } else if (typeof entry.nodeRole !== 'string' || !nodeRoles.has(entry.nodeRole)) {
-          this.addError(
-            errors,
-            'invalid_topology_node_role',
-            `Keepalived nodeRole ${JSON.stringify(entry.nodeRole)} is not a node role of the cluster topology.`,
-            `${path}.nodeRole`,
-          );
-        }
-      });
-    }
   }
 
   /** A rule field meant to restrict the rule to a node; only nodeRole does. */
