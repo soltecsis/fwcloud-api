@@ -52,6 +52,7 @@ import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 import { CrowdSecMachineInstallDto } from './dto/machine-install.dto';
 import { CrowdSecTransitionDto } from './dto/transition.dto';
 import { CrowdSecCentralLapiConfigureDto } from './dto/central-lapi-configure.dto';
+import { CrowdSecLapiConnectivityDto } from './dto/lapi-connectivity.dto';
 import { CrowdSecLapiSharedService } from './crowdsec-lapi-shared.service';
 import { PgpHelper } from '../../../utils/pgp';
 import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
@@ -604,6 +605,16 @@ export class CrowdSecController extends Controller {
       }
       throw error;
     }
+  }
+
+  @Validate(CrowdSecLapiConnectivityDto)
+  public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
+    (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
+
+    const connectivity = await (
+      await this.getAgentCommunication()
+    ).checkCrowdSecLapiConnectivity(req.body.lapiUrl);
+    return ResponseBuilder.buildResponse().status(200).body(connectivity);
   }
 
   @Validate(CrowdSecMachineInstallDto)

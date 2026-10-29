@@ -167,6 +167,13 @@ export type CrowdSecMachineInstall = {
   continueWithoutLapiConnectivity?: boolean;
 };
 
+export type CrowdSecLapiConnectivityCheck = {
+  lapi_url?: string;
+  reachable: boolean;
+  error_code?: string;
+  message: string;
+};
+
 export type CrowdSecMachineCredentials = {
   login: string;
   password: string;
@@ -371,6 +378,7 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<Record<string, unknown>>;
   abstract configureCrowdSecCentralLapi(listenUri: string): Promise<Record<string, unknown>>;
+  abstract checkCrowdSecLapiConnectivity(lapiUrl: string): Promise<CrowdSecLapiConnectivityCheck>;
   abstract getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>>;
   abstract exportCrowdSecMachineCredentials(name: string): Promise<CrowdSecMachineCredentials>;
   abstract replicateCrowdSecLapiMachine(

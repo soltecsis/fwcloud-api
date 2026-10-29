@@ -33,6 +33,7 @@ import {
   CrowdSecFirewallBackend,
   CrowdSecFirewallBouncerStatisticsSamples,
   CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  CrowdSecLapiConnectivityCheck,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
@@ -1504,6 +1505,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       return await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/central/configure', {
         listen_uri: listenUri,
       });
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
+  async checkCrowdSecLapiConnectivity(lapiUrl: string): Promise<CrowdSecLapiConnectivityCheck> {
+    try {
+      return (await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/connectivity', {
+        lapi_url: lapiUrl,
+      })) as CrowdSecLapiConnectivityCheck;
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }

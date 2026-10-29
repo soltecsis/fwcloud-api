@@ -497,6 +497,25 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should check external CrowdSec Local API TCP connectivity', async () => {
+    const connectivity = {
+      lapi_url: 'https://192.0.2.20:8080',
+      reachable: true,
+      message: 'CrowdSec Local API is reachable',
+    };
+    const connectivityStub = sinon
+      .stub(communication, 'checkCrowdSecLapiConnectivity')
+      .resolves(connectivity);
+
+    const response = await controller.checkLapiConnectivity({
+      body: { lapiUrl: 'https://192.0.2.20:8080' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(connectivityStub.calledOnceWithExactly('https://192.0.2.20:8080')).to.be.true;
+    expect(response.toJSON()).to.include({ status: 200, data: connectivity });
+  });
+
   it('should configure the CrowdSec central listener on every LAPI cluster node', async () => {
     const secondCommunication = new AgentCommunication({
       protocol: 'https',
