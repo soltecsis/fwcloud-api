@@ -51,6 +51,7 @@ import {
   getProfileReferenceIpObjType,
 } from './replication-profile-object-reference';
 import { validateProfileObjectSnapshot } from './replication-profile-object-snapshot';
+import { getProfileProvisioning } from './policy-replication.types';
 
 export const PROFILE_CREATE_AUDIT_CALL = 'profiles.create';
 export const PROFILE_CLONE_AUDIT_CALL = 'profiles.clone';
@@ -1097,13 +1098,15 @@ export class ReplicationProfileService extends Service {
     return slug.length > 0 ? slug : 'profile';
   }
 
-  /** Without a model (unreadable template) only the profile's own target kind counts. */
+  /** Declarative templates can be converted like native policies; legacy replicas keep compatibility. */
   public supportsTargetKind(
     profile: ReplicationProfile,
     targetKind: ReplicationProfileTargetKind,
     model: ReplicationProfileModel | null,
   ): boolean {
+    if (!REPLICATION_PROFILE_TARGET_KINDS.includes(targetKind)) return false;
     return (
+      getProfileProvisioning(model) !== null ||
       normalizeReplicationProfileTargetKinds(profile.targetKind).includes(targetKind) ||
       getReplicationProfileModelTargetKinds(model).includes(targetKind)
     );

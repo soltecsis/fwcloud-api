@@ -112,6 +112,31 @@ describe(describeName('Replication Profile Service Unit Tests'), () => {
     });
   });
 
+  describe('supportsTargetKind()', () => {
+    it('should preserve declarative conversion and legacy target aliases for native target kinds', () => {
+      const legacy = makeProfile({ targetKind: 'firewall' });
+      const declarative = {
+        provision: { interfaces: [{ name: 'eth0', role: 'wan' }], rules: [] },
+      };
+      expect(service.supportsTargetKind(legacy, 'firewall', null)).to.eq(true);
+      expect(service.supportsTargetKind(legacy, 'cluster', null)).to.eq(false);
+      expect(
+        service.supportsTargetKind(legacy, 'cluster', { provision: { interfaces: [], rules: [] } }),
+      ).to.eq(false);
+      expect(
+        service.supportsTargetKind(legacy, 'cluster', {
+          compatibility: { targetKinds: [' CLUSTER '] },
+        }),
+      ).to.eq(true);
+      for (const kind of ['firewall', 'cluster'] as const) {
+        expect(service.supportsTargetKind(legacy, kind, declarative)).to.eq(true);
+      }
+      for (const kind of ['', 'gateway', ' FIREWALL ', null, undefined]) {
+        expect(service.supportsTargetKind(legacy, kind as any, declarative)).to.eq(false);
+      }
+    });
+  });
+
   describe('findCatalog()', () => {
     const findCatalogProfiles = async (
       filters: Partial<ReplicationProfileCatalogFilters> = {},

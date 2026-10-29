@@ -665,8 +665,16 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
         const payload = clusterProfile();
         firstRule(payload).nodeRole = nodeRole;
 
-        expect(ruleNodeErrors(payload).map((error) => error.path)).to.deep.equal([
-          'model.provision.rules[0].nodeRole',
+        expect(ruleNodeErrors(payload)).to.deep.equal([
+          {
+            code: 'invalid_topology_node_role',
+            message:
+              typeof nodeRole !== 'string'
+                ? 'Rule node role must be one node role of topologyPreset.'
+                : `Rule references node role "${nodeRole}", but this role is not defined in topologyPreset.`,
+            path: 'model.provision.rules[0].nodeRole',
+            severity: 'error',
+          },
         ]);
       });
     }
@@ -726,6 +734,96 @@ describe(describeName('Replication Profile Validation Service Unit Tests'), () =
       const consistent = clusterProfile();
       model(consistent).policyStructure = { rules: [{ ...firstRule(consistent) }] };
       expect(ruleNodeErrors(consistent)).to.deep.equal([]);
+    });
+  });
+
+  describe('Keepalived node restrictions', () => {
+    const keepalivedNodeErrors = (payload: unknown) =>
+      errorsFor(payload).filter(
+        (error) => error.path?.includes('.keepalived[') && error.code.endsWith('node_role'),
+      );
+    const withKeepalived = (payload: Record<string, unknown>, nodeRole?: unknown) => {
+      const entry: Record<string, unknown> = { rule_type: 2, cfg_text: 'global_defs {\n}\n' };
+      if (nodeRole !== undefined) entry.nodeRole = nodeRole;
+      provision(payload).system = { keepalived: [entry] };
+      return entry;
+    };
+
+    it('should accept a Keepalived rule restricted to a node role of the cluster topology', () => {
+      const payload = clusterProfile();
+      const entry = withKeepalived(payload, 'secondary');
+      model(payload).policyStructure = { system: { keepalived: [{ ...entry }] } };
+      expect(keepalivedNodeErrors(payload)).to.deep.equal([]);
+    });
+
+    for (const nodeRole of [null, '', ' ', 2, ['primary'], { role: 'primary' }, 'missing']) {
+      it(`should reject the Keepalived node role ${JSON.stringify(nodeRole)} instead of applying it to every node`, () => {
+        const payload = clusterProfile();
+        withKeepalived(payload, nodeRole);
+
+        expect(keepalivedNodeErrors(payload)).to.deep.equal([
+          {
+            code: 'invalid_topology_node_role',
+            message: `Keepalived nodeRole ${JSON.stringify(nodeRole)} is not a node role of the cluster topology.`,
+            path: 'model.provision.system.keepalived[0].nodeRole',
+            severity: 'error',
+          },
+        ]);
+      });
+    }
+
+    it('should validate Keepalived node roles in structure-only templates', () => {
+      const payload = clusterProfile();
+      model(payload).policyStructure = {
+        system: {
+          keepalived: [{ rule_type: 2, cfg_text: 'global_defs {\n}\n', nodeRole: 'missing' }],
+        },
+      };
+
+      expect(keepalivedNodeErrors(payload).map((error) => error.path)).to.deep.equal([
+        'model.policyStructure.system.keepalived[0].nodeRole',
+      ]);
+    });
+
+    it('should reject a Keepalived node restriction in a firewall profile, even with a topology', () => {
+      const payload = firewallProfile();
+      model(payload).topologyPreset = { nodes: [{ role: 'primary' }] };
+      withKeepalived(payload, 'primary');
+
+      expect(keepalivedNodeErrors(payload)).to.have.length(1);
+      expect(keepalivedNodeErrors(payload)[0]).to.include({
+        code: 'invalid_rule_node_role',
+        path: 'model.provision.system.keepalived[0].nodeRole',
+      });
+    });
+
+    for (const field of ['node_role', 'fw_apply_to', 'applyTo', 'apply_to']) {
+      it(`should reject Keepalived ${field}, which would not restrict the rule to a node`, () => {
+        const payload = clusterProfile();
+        withKeepalived(payload)[field] = 'primary';
+
+        expect(keepalivedNodeErrors(payload)).to.have.length(1);
+        expect(keepalivedNodeErrors(payload)[0]).to.include({
+          code: 'invalid_rule_node_role',
+          path: `model.provision.system.keepalived[0].${field}`,
+        });
+      });
+    }
+
+    it('should reject a Keepalived rule that provision and the editor structure restrict to different nodes', () => {
+      for (const structureRole of ['primary', undefined]) {
+        const payload = clusterProfile();
+        const structureEntry = { ...withKeepalived(payload, 'secondary') };
+        if (structureRole === undefined) delete structureEntry.nodeRole;
+        else structureEntry.nodeRole = structureRole;
+        model(payload).policyStructure = { system: { keepalived: [structureEntry] } };
+
+        expect(keepalivedNodeErrors(payload), String(structureRole)).to.have.length(1);
+        expect(keepalivedNodeErrors(payload)[0]).to.include({
+          code: 'invalid_rule_node_role',
+          path: 'model.policyStructure.system.keepalived[0].nodeRole',
+        });
+      }
     });
   });
 

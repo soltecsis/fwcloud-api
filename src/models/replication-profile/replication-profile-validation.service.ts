@@ -55,6 +55,7 @@ import {
 
 import { getPolicyRuleValidityErrors } from '../policy/policy-rule-validity';
 import { profileHAProxyErrors } from './replication-profile-haproxy';
+import { profileKeepalivedErrors } from './replication-profile-keepalived';
 
 const Joi = require('joi');
 const sharedSchema = require('../../middleware/joi_schemas/shared');
@@ -85,6 +86,7 @@ type FieldVisitor = (key: string, value: unknown, path: string) => boolean;
 
 const COMPATIBILITY_FIELDS = ['compatibility'] as const;
 const PROVISION_FIELDS = ['provision'] as const;
+const SAVED_STRUCTURE_FIELDS = ['provision', ...POLICY_STRUCTURE_FIELDS] as const;
 const TOPOLOGY_FIELDS = ['topologyPreset', 'topology_preset'] as const;
 
 /** Parser and error message of the parameter types whose default value can be checked. */
@@ -260,7 +262,8 @@ class ReplicationProfileDefinitionValidator {
     errors.push(...validateProfileObjectReferences(model));
     const parameterNames = this.validateParameters(model, errors);
     this.validateProvision(model, errors, parameterNames);
-    this.validateHAProxySettings(model, errors);
+    this.validateSystemSettings(model, errors, 'haproxy', 'HAProxy', profileHAProxyErrors);
+    this.validateSystemSettings(model, errors, 'keepalived', 'Keepalived', profileKeepalivedErrors);
     this.validateInterfaceAddressReferences(model, errors);
     this.validateRuleValidityPeriods(model, errors);
     this.validateStructureRuleSettings(model, errors);
@@ -280,6 +283,7 @@ class ReplicationProfileDefinitionValidator {
       const nodeRoles =
         rootTargetKind === 'cluster' ? this.validateClusterTopology(model, errors) : null;
       this.validateRuleNodeRoles(model, nodeRoles, errors);
+      this.validateRuleNodeRoles(model, nodeRoles, errors, 'keepalived');
     }
 
     return errors;
@@ -587,7 +591,7 @@ class ReplicationProfileDefinitionValidator {
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
   ): void {
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+    for (const field of SAVED_STRUCTURE_FIELDS) {
       const structure = asReplicationProfileRecord(model[field]);
       if (!structure) continue;
       for (const error of getProvisionInterfaceAddressReferenceErrors(
@@ -789,6 +793,7 @@ class ReplicationProfileDefinitionValidator {
       'Keepalived entries',
       errors,
       (entry, path) => {
+        if (entry.rule_type === 2) return;
         this.validateOptionalRole(
           entry.interfaceRole,
           `${path}.interfaceRole`,
@@ -1168,21 +1173,24 @@ class ReplicationProfileDefinitionValidator {
     });
   }
 
-  /** Check native HAProxy settings in every representation, including the editor's copy. */
-  private validateHAProxySettings(
+  /** Check native service settings in every representation, including the editor's copy. */
+  private validateSystemSettings(
     model: ValidationRecord,
     errors: ReplicationProfileValidationError[],
+    service: 'haproxy' | 'keepalived',
+    label: 'HAProxy' | 'Keepalived',
+    validate: (entry: ValidationRecord) => string[],
   ): void {
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
+    for (const field of SAVED_STRUCTURE_FIELDS) {
       const system = asReplicationProfileRecord(asReplicationProfileRecord(model[field])?.system);
       this.forEachRecord(
-        system?.haproxy,
-        `model.${field}.system.haproxy`,
-        'HAProxy entries',
+        system?.[service],
+        `model.${field}.system.${service}`,
+        `${label} entries`,
         errors,
         (entry, path) => {
-          for (const message of profileHAProxyErrors(entry)) {
-            this.addError(errors, 'invalid_haproxy_configuration', `HAProxy: ${message}`, path);
+          for (const message of validate(entry)) {
+            this.addError(errors, `invalid_${service}_configuration`, `${label}: ${message}`, path);
           }
         },
       );
@@ -1200,7 +1208,7 @@ class ReplicationProfileDefinitionValidator {
     });
   }
 
-  /** Every rule object of every saved representation: provision, then the editor's structure. */
+  /** Every policy or Keepalived rule object: provision, then the editor's structure. */
   private forEachSavedRule(
     model: ValidationRecord,
     visit: (
@@ -1210,15 +1218,29 @@ class ReplicationProfileDefinitionValidator {
       index: number,
       rules: unknown[],
     ) => void,
+    service?: 'keepalived',
   ): void {
-    for (const field of ['provision', ...POLICY_STRUCTURE_FIELDS]) {
-      const rules = asReplicationProfileRecord(model[field])?.rules;
-      if (!Array.isArray(rules)) continue;
+    for (const field of SAVED_STRUCTURE_FIELDS) {
+      const rules = this.getSavedRules(model, field, service);
+      if (!rules) continue;
+      const path = service ? `model.${field}.system.${service}` : `model.${field}.rules`;
       rules.forEach((value, index) => {
         const rule = asReplicationProfileRecord(value);
-        if (rule) visit(rule, `model.${field}.rules[${index}]`, field, index, rules);
+        if (rule) visit(rule, `${path}[${index}]`, field, index, rules);
       });
     }
+  }
+
+  private getSavedRules(
+    model: ValidationRecord,
+    field: string,
+    service?: 'keepalived',
+  ): unknown[] | null {
+    const structure = asReplicationProfileRecord(model[field]);
+    const rules = service
+      ? asReplicationProfileRecord(structure?.system)?.[service]
+      : structure?.rules;
+    return Array.isArray(rules) ? rules : null;
   }
 
   private validateRuleSettings(
@@ -2092,66 +2114,66 @@ class ReplicationProfileDefinitionValidator {
    * spellings are rejected: they would leave the rule applied to every node. Validates every saved
    * representation, including the structure the editor will reopen, and requires both to restrict
    * the same rules: an application reads provision, the editor rewrites it from the structure.
+   * Keepalived uses the same restriction checks, including manual configurations.
    */
   private validateRuleNodeRoles(
     model: ValidationRecord,
     nodeRoles: Set<string> | null,
     errors: ReplicationProfileValidationError[],
+    service?: 'keepalived',
   ): void {
-    const provisionRules = asReplicationProfileRecord(model.provision)?.rules;
-    this.forEachSavedRule(model, (rule, rulePath, field, index, rules) => {
-      const nodeRolePath = `${rulePath}.nodeRole`;
-      if (
-        field !== 'provision' &&
-        Array.isArray(provisionRules) &&
-        provisionRules.length === rules.length &&
-        JSON.stringify(asReplicationProfileRecord(provisionRules[index])?.nodeRole) !==
-          JSON.stringify(rule.nodeRole)
-      ) {
-        this.addError(
-          errors,
-          'invalid_rule_node_role',
-          `model.provision and model.${field} restrict rule ${index + 1} to different nodes.`,
-          nodeRolePath,
-        );
-      }
-      for (const key of Object.keys(rule)) {
-        if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
+    const provisionRules = this.getSavedRules(model, 'provision', service);
+    const ruleLabel = service ? 'Keepalived rule' : 'rule';
+    const restrictionLabel = service ? 'Keepalived rules' : 'Rules';
+    this.forEachSavedRule(
+      model,
+      (rule, rulePath, field, index, rules) => {
+        const nodeRolePath = `${rulePath}.nodeRole`;
+        if (
+          field !== 'provision' &&
+          provisionRules?.length === rules.length &&
+          JSON.stringify(asReplicationProfileRecord(provisionRules[index])?.nodeRole) !==
+            JSON.stringify(rule.nodeRole)
+        ) {
           this.addError(
             errors,
             'invalid_rule_node_role',
-            `Rules are restricted to a cluster node through nodeRole, not ${key}.`,
-            `${rulePath}.${key}`,
+            `model.provision and model.${field} restrict ${ruleLabel} ${index + 1} to different nodes.`,
+            nodeRolePath,
           );
         }
-      }
+        for (const key of Object.keys(rule)) {
+          if (key !== 'nodeRole' && this.isNodeRestrictionField(key)) {
+            this.addError(
+              errors,
+              'invalid_rule_node_role',
+              `${restrictionLabel} are restricted to a cluster node through nodeRole, not ${key}.`,
+              `${rulePath}.${key}`,
+            );
+          }
+        }
 
-      if (rule.nodeRole === undefined) {
-        return;
-      }
-      if (!nodeRoles) {
-        this.addError(
-          errors,
-          'invalid_rule_node_role',
-          'Only cluster profiles can restrict a rule to a node.',
-          nodeRolePath,
-        );
-      } else if (typeof rule.nodeRole !== 'string') {
-        this.addError(
-          errors,
-          'invalid_topology_node_role',
-          'Rule node role must be one node role of topologyPreset.',
-          nodeRolePath,
-        );
-      } else if (!nodeRoles.has(rule.nodeRole)) {
-        this.addError(
-          errors,
-          'invalid_topology_node_role',
-          `Rule references node role "${rule.nodeRole}", but this role is not defined in topologyPreset.`,
-          nodeRolePath,
-        );
-      }
-    });
+        if (rule.nodeRole === undefined) {
+          return;
+        }
+        if (!nodeRoles) {
+          this.addError(
+            errors,
+            'invalid_rule_node_role',
+            `Only cluster profiles can restrict a ${ruleLabel} to a node.`,
+            nodeRolePath,
+          );
+        } else if (typeof rule.nodeRole !== 'string' || !nodeRoles.has(rule.nodeRole)) {
+          const message = service
+            ? `Keepalived nodeRole ${JSON.stringify(rule.nodeRole)} is not a node role of the cluster topology.`
+            : typeof rule.nodeRole !== 'string'
+              ? 'Rule node role must be one node role of topologyPreset.'
+              : `Rule references node role "${rule.nodeRole}", but this role is not defined in topologyPreset.`;
+          this.addError(errors, 'invalid_topology_node_role', message, nodeRolePath);
+        }
+      },
+      service,
+    );
   }
 
   private collectProfileInterfaceRoles(model: ValidationRecord): Set<string> {

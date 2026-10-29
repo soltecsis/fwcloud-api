@@ -55,6 +55,7 @@ import {
 } from './replication-profile-template';
 import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-parameters';
 import { convertProfileVpnReferencesToIp } from './profile-vpn-ip-conversion';
+import { convertProfileProvisionTarget } from './profile-topology-conversion';
 import {
   ProfileVpnCaTemplate,
   ProfileVpnCertificateTemplate,
@@ -222,7 +223,11 @@ export class ProfileApplicationService extends Service {
       target = await this.validateTarget(request);
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
-      let provision = getProfileProvisioning(model);
+      const topology = convertProfileProvisionTarget(
+        getProfileProvisioning(model),
+        request.replication.target.kind,
+      );
+      let provision = topology.provision;
       const parameters = getProfileParameters(model);
       const addressErrors = await applyInterfaceAddressOverrides(
         provision,
@@ -309,6 +314,7 @@ export class ProfileApplicationService extends Service {
         });
       }
 
+      result.warnings.push(...topology.warnings);
       if (conversion) result.vpnConversions = conversion.vpnConversions;
 
       if (objects.objectReferences.length > 0) {
@@ -572,12 +578,15 @@ export class ProfileApplicationService extends Service {
         )
       : new Map<string, string>();
     for (const iface of provision?.interfaces ?? []) {
-      const selectedAddresses = iface.addresses
-        .filter((address) => address.useSelectedConfiguration)
-        .map((address) => parseReplicationProfileAddress(address.value))
-        .filter((address) => address !== null);
-      const selected =
-        selectedAddresses.find((address) => address.ipVersion === 4) ?? selectedAddresses[0];
+      let selected: ReturnType<typeof parseReplicationProfileAddress> = null;
+      for (const address of iface.addresses) {
+        if (!address.useSelectedConfiguration) continue;
+        const parsed = parseReplicationProfileAddress(address.value);
+        if (!parsed) continue;
+        if (!selected || parsed.ipVersion === 4) selected = parsed;
+        // Prefer the first IPv4 address; otherwise retain the first valid address.
+        if (parsed.ipVersion === 4) break;
+      }
       if (selected) {
         interfaceAddresses.set(iface.role, selected.address);
       }
@@ -817,6 +826,7 @@ export class ProfileApplicationService extends Service {
               resolvedReferences: result.resolvedReferences.length,
               removedDefaultRules: result.removedDefaultRules.length,
               skippedRules: result.skippedRules,
+              provisioned: result.provisioned,
               conflicts: result.conflicts.map((conflict) => conflict.message),
               warnings: result.warnings,
               errors: result.errors,

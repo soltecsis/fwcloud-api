@@ -27,6 +27,11 @@ import StringHelper from '../../../../../src/utils/string.helper';
 import sinon from 'sinon';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
+import { Cluster } from '../../../../../src/models/firewall/Cluster';
+import { KeepalivedRuleService } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
+import { Channel } from '../../../../../src/sockets/channels/channel';
+import { EventEmitter } from 'events';
+import { Communication } from '../../../../../src/communications/communication';
 
 describe(KeepalivedController.name, () => {
   let firewall: Firewall;
@@ -81,6 +86,61 @@ describe(KeepalivedController.name, () => {
 
   afterEach(() => {
     sinon.restore();
+  });
+
+  describe('install', () => {
+    it('installs shared and node-restricted rules only on their actual destination node', async () => {
+      await manager.getRepository(KeepalivedRule).delete(Keepalivedrule.id);
+      const cluster = await manager
+        .getRepository(Cluster)
+        .save({ name: 'HA', fwCloudId: fwCloud.id });
+      await manager
+        .getRepository(Firewall)
+        .update(firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+      const [backup, third] = await manager.getRepository(Firewall).save([
+        { name: 'Backup', fwCloudId: fwCloud.id, clusterId: cluster.id, fwmaster: 0 },
+        { name: 'Third', fwCloudId: fwCloud.id, clusterId: cluster.id, fwmaster: 0 },
+      ]);
+      const service = await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+      for (const [label, node] of [
+        ['shared', undefined],
+        ['master-only', firewall.id],
+        ['backup-only', backup.id],
+        ['third-only', third.id],
+      ] as const) {
+        await service.store({
+          firewallId: firewall.id,
+          rule_type: 2,
+          active: true,
+          cfg_text: `# ${label}`,
+          fw_apply_to: node,
+        });
+      }
+      const install = sinon.stub().resolves();
+      const communicate = sinon
+        .stub(Firewall.prototype, 'getCommunication')
+        .resolves({ installKeepalivedConfigs: install } as unknown as Communication<unknown>);
+      sinon
+        .stub(Channel, 'fromRequest')
+        .resolves(new Channel('keepalived-test', new EventEmitter()));
+      for (const [node, expected] of [
+        [firewall, '# shared\n# master-only'],
+        [backup, '# shared\n# backup-only'],
+        [third, '# shared\n# third-only'],
+      ] as const) {
+        const req = {
+          params: { fwcloud: String(fwCloud.id), firewall: String(node.id) },
+        } as unknown as Request;
+        await controller.make(req);
+        await controller.install(req);
+        expect(communicate.lastCall.thisValue.id).to.equal(node.id);
+        expect(install.lastCall.args[0]).to.equal('/etc/keepalived');
+        expect(install.lastCall.args[1]).to.deep.equal([
+          { name: 'keepalived.conf', content: expected },
+        ]);
+      }
+      expect(install.callCount).to.equal(3);
+    });
   });
 
   describe('make', () => {

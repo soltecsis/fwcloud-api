@@ -191,7 +191,7 @@ describe('Profile application rollback boundary', () => {
     });
     sandbox.stub(service, 'validateTarget').resolves({ kind: 'firewall', id: 12 });
     sandbox.stub(service, 'auditAttempt').resolves();
-    provision = sandbox.stub().resolves({ applied: true, errors: [] });
+    provision = sandbox.stub().resolves({ applied: true, errors: [], warnings: [] });
     service._policyReplicationService = { provisionPolicyFromProfile: provision };
     undo = sandbox.stub().resolves();
     pki = sandbox
@@ -232,7 +232,7 @@ describe('Profile application rollback boundary', () => {
   }
 
   it('rolls back on returned policy errors and marks the application unsuccessful', async () => {
-    provision.resolves({ applied: true, errors: ['invalid rule'] });
+    provision.resolves({ applied: true, errors: ['invalid rule'], warnings: [] });
     const result = await service.apply({ user: {} }, request);
     assert.equal(result.applied, false);
     assert.deepEqual(result.errors, ['invalid rule']);
@@ -258,7 +258,7 @@ describe('Profile application rollback boundary', () => {
   });
 
   it('reports cleanup errors alongside the policy error', async () => {
-    provision.resolves({ applied: false, errors: ['invalid rule'] });
+    provision.resolves({ applied: false, errors: ['invalid rule'], warnings: [] });
     undo.rejects(new Error('cleanup failed'));
     const result = await service.apply({ user: {} }, request);
     assert.deepEqual(result.errors, ['invalid rule', 'VPN rollback (CA): cleanup failed']);

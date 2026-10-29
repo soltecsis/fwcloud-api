@@ -14,14 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  FindOneOptions,
-  FindOptionsOrder,
-  FindOptionsRelations,
-  FindOptionsSelect,
-  In,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
 import { KeepalivedRule } from './keepalived_r.model';
 import { KeepalivedRepository } from './keepalived.repository';
 import { IPObj } from '../../../ipobj/IPObj';
@@ -112,6 +105,22 @@ export class KeepalivedRuleService extends Service {
     this._groupService = new KeepalivedGroupService(app);
   }
 
+  /** Keepalived addresses interfaces by name; their hardware MAC is optional. */
+  public static interfaceValidationError(
+    iface?: { id?: number; name?: string | null; mac?: string | null } | null,
+  ): string | null {
+    if (!iface) {
+      return 'Interface was not found';
+    }
+
+    if (!iface.name || iface.name.trim() === '') {
+      const id = iface.id ? ` (ID ${iface.id})` : '';
+      return `Interface${id} has no name`;
+    }
+
+    return null;
+  }
+
   public async build(): Promise<Service> {
     this._databaseService = await this._app.getService(DatabaseService.name);
     this._repository = new KeepalivedRepository(this._databaseService.dataSource.manager);
@@ -136,14 +145,7 @@ export class KeepalivedRuleService extends Service {
         .findOneOrFail({ where: { id: data.group } });
     }
     if (data.interfaceId) {
-      const interfaceData = await db
-        .getSource()
-        .manager.getRepository(Interface)
-        .findOneOrFail({ where: { id: data.interfaceId } });
-      if (!interfaceData.mac || interfaceData.mac === '') {
-        throw new Error('Interface mac is not defined');
-      }
-      keepalivedRuleData.interface = interfaceData;
+      keepalivedRuleData.interface = await this.findValidatedInterface(data.interfaceId);
     }
     if (data.masterNodeId) {
       keepalivedRuleData.masterNode = await db
@@ -240,7 +242,7 @@ export class KeepalivedRuleService extends Service {
       keepalived_rs[0].firewallId,
     );
 
-    keepalived_rs.map((item, index) => {
+    keepalived_rs.forEach((item, index) => {
       item.id = undefined;
       item.rule_order = lastRule.rule_order + index + 1;
     });
@@ -360,110 +362,58 @@ export class KeepalivedRuleService extends Service {
         throw new Error('IP version mismatch');
       }
     } else {
-      const fieldHandlers: Array<{
-        payloadKey: keyof (ICreateKeepalivedRule & IUpdateKeepalivedRule);
-        apply: (value: unknown) => Promise<void>;
-      }> = [
-        {
-          payloadKey: 'interfaceId',
-          apply: async (value) => {
-            if (value === undefined) {
-              return;
-            }
-            if (value === null || value === '') {
-              keepalivedRule.interface = null;
-              keepalivedRule.interfaceId = null;
-              return;
-            }
-            const interfaceData = await db
-              .getSource()
-              .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: Number(value) } });
-            if (!interfaceData.mac || interfaceData.mac === '') {
-              throw new Error('Interface mac is not defined');
-            }
-            keepalivedRule.interface = interfaceData;
-            keepalivedRule.interfaceId = interfaceData.id;
-          },
-        },
-        {
-          payloadKey: 'masterNodeId',
-          apply: async (value) => {
-            if (value === undefined) {
-              return;
-            }
-            if (value === null || value === '') {
-              keepalivedRule.masterNode = null;
-              keepalivedRule.masterNodeId = null;
-              return;
-            }
-            keepalivedRule.masterNode = await db
-              .getSource()
-              .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: Number(value) } });
-            keepalivedRule.masterNodeId = keepalivedRule.masterNode.id;
-          },
-        },
-        {
-          payloadKey: 'firewallId',
-          apply: async (value) => {
-            if (value === undefined) {
-              return;
-            }
-            if (value === null || value === '') {
-              throw new ValidationException('The given data was invalid', {
-                firewallId: ['Firewall is required'],
-              });
-            }
-            keepalivedRule.firewall = await db
-              .getSource()
-              .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: Number(value) } });
-            keepalivedRule.firewallId = keepalivedRule.firewall.id;
-          },
-        },
-        {
-          payloadKey: 'firewallApplyToId',
-          apply: async (value) => {
-            if (!Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId')) {
-              return;
-            }
-            if (value === null || value === undefined || value === '') {
-              keepalivedRule.firewallApplyTo = null;
-              keepalivedRule.firewallApplyToId = null;
-              return;
-            }
-            await this.validateFirewallApplyTo(keepalivedRule.firewall, Number(value));
-            keepalivedRule.firewallApplyTo = await db
-              .getSource()
-              .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: Number(value) } });
-            keepalivedRule.firewallApplyToId = keepalivedRule.firewallApplyTo.id;
-          },
-        },
-        {
-          payloadKey: 'fw_apply_to',
-          apply: async (value) => {
-            if (!Object.prototype.hasOwnProperty.call(data, 'fw_apply_to')) {
-              return;
-            }
-            if (value === null || value === undefined || value === '') {
-              keepalivedRule.firewallApplyTo = null;
-              keepalivedRule.firewallApplyToId = null;
-              return;
-            }
-            await this.validateFirewallApplyTo(keepalivedRule.firewall, Number(value));
-            keepalivedRule.firewallApplyTo = await db
-              .getSource()
-              .manager.getRepository(Firewall)
-              .findOneOrFail({ where: { id: Number(value) } });
-            keepalivedRule.firewallApplyToId = keepalivedRule.firewallApplyTo.id;
-          },
-        },
-      ];
+      const interfaceId: unknown = data.interfaceId;
+      if (interfaceId !== undefined) {
+        keepalivedRule.interface =
+          interfaceId === null || interfaceId === ''
+            ? null
+            : await this.findValidatedInterface(Number(interfaceId));
+        keepalivedRule.interfaceId = keepalivedRule.interface?.id ?? null;
+      }
 
-      for (const { payloadKey, apply } of fieldHandlers) {
-        await apply((data as Record<string, unknown>)[payloadKey as string]);
+      const masterNodeId: unknown = data.masterNodeId;
+      if (masterNodeId !== undefined) {
+        keepalivedRule.masterNode =
+          masterNodeId === null || masterNodeId === ''
+            ? null
+            : await db
+                .getSource()
+                .manager.getRepository(Firewall)
+                .findOneOrFail({ where: { id: Number(masterNodeId) } });
+        keepalivedRule.masterNodeId = keepalivedRule.masterNode?.id ?? null;
+      }
+
+      const firewallId: unknown = data.firewallId;
+      if (firewallId !== undefined) {
+        if (firewallId === null || firewallId === '') {
+          throw new ValidationException('The given data was invalid', {
+            firewallId: ['Firewall is required'],
+          });
+        }
+        keepalivedRule.firewall = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: Number(firewallId) } });
+        keepalivedRule.firewallId = keepalivedRule.firewall.id;
+      }
+
+      // Preserve the legacy alias's precedence when both fields are provided.
+      for (const key of ['firewallApplyToId', 'fw_apply_to'] as const) {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) {
+          continue;
+        }
+        const value: unknown = data[key];
+        if (value === null || value === undefined || value === '') {
+          keepalivedRule.firewallApplyTo = null;
+          keepalivedRule.firewallApplyToId = null;
+          continue;
+        }
+        await this.validateFirewallApplyTo(keepalivedRule.firewall, Number(value));
+        keepalivedRule.firewallApplyTo = await db
+          .getSource()
+          .manager.getRepository(Firewall)
+          .findOneOrFail({ where: { id: Number(value) } });
+        keepalivedRule.firewallApplyToId = keepalivedRule.firewallApplyTo.id;
       }
     }
 
@@ -547,12 +497,6 @@ export class KeepalivedRuleService extends Service {
     let rulesData: KeepalivedRulesData<T>[];
     switch (dst) {
       case 'keepalived_grid':
-        rulesData = (await this._repository.getKeepalivedRules(
-          fwcloud,
-          firewallsForQuery,
-          rules,
-        )) as KeepalivedRulesData<T>[];
-        break;
       case 'compiler':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
@@ -562,7 +506,8 @@ export class KeepalivedRuleService extends Service {
         break;
     }
 
-    if (shouldFilterByApplyTo) {
+    // The master grid lists every rule for editing; compilation always targets one node.
+    if (dst === 'compiler' || shouldFilterByApplyTo) {
       rulesData = rulesData.filter(
         (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === targetFirewallId,
       );
@@ -575,14 +520,8 @@ export class KeepalivedRuleService extends Service {
       ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
     }
 
-    const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
-      dst === 'compiler'
-        ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewallsForQuery, rules)
-        : this.getKeepalivedRulesGridSql(fwcloud, firewallsForQuery, rules);
-
-    const result = await Promise.all(
-      sqls.map((sql) => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)),
-    );
+    const sqls = this.getKeepalivedRuleItemsSql(fwcloud, firewallsForQuery);
+    await Promise.all(sqls.map((sql) => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
     return rulesData.map((rule) => {
       if (rule.items) {
@@ -622,19 +561,14 @@ export class KeepalivedRuleService extends Service {
       const hasFirewallApplyToId = Object.prototype.hasOwnProperty.call(data, 'firewallApplyToId');
       const hasFwApplyTo = Object.prototype.hasOwnProperty.call(data, 'fw_apply_to');
 
-      if (hasFirewallApplyToId) {
-        const value = data.firewallApplyToId;
+      if (hasFirewallApplyToId || hasFwApplyTo) {
+        const value = hasFirewallApplyToId ? data.firewallApplyToId : data.fw_apply_to;
         const isEmptyValue =
           value === null || value === undefined || (typeof value === 'string' && value === '');
         data.fw_apply_to = isEmptyValue ? null : Number(value);
-        delete (data as Record<string, unknown>).firewallApplyToId;
-      }
-
-      if (hasFwApplyTo && !hasFirewallApplyToId) {
-        const value = data.fw_apply_to;
-        const isEmptyValue =
-          value === null || value === undefined || (typeof value === 'string' && value === '');
-        data.fw_apply_to = isEmptyValue ? null : Number(value);
+        if (hasFirewallApplyToId) {
+          delete (data as Record<string, unknown>).firewallApplyToId;
+        }
       }
 
       if (typeof data.firewallId !== 'undefined') {
@@ -678,20 +612,23 @@ export class KeepalivedRuleService extends Service {
     return rules;
   }
 
-  private getKeepalivedRulesGridSql(
+  private getKeepalivedRuleItemsSql(
     fwcloud: number,
     firewall: number | number[],
-    rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
   }
 
-  private buildKeepalivedRulesCompilerSql(
-    fwcloud: number,
-    firewall: number | number[],
-    rules?: number[],
-  ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-    return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
+  private async findValidatedInterface(id: number): Promise<Interface> {
+    const iface = await db
+      .getSource()
+      .manager.getRepository(Interface)
+      .findOneOrFail({ where: { id } });
+    const error = KeepalivedRuleService.interfaceValidationError(iface);
+    if (error) {
+      throw new Error(error);
+    }
+    return iface;
   }
 
   protected async resolveFirewallsForQuery(

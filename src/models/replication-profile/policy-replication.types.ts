@@ -22,6 +22,10 @@
 
 import type { ReplicationProfile } from './replication-profile.model';
 import {
+  readProfileKeepalivedSettings,
+  type ProfileKeepalivedSettings,
+} from './replication-profile-keepalived';
+import {
   readProfileHAProxySettings,
   type ProfileHAProxySettings,
 } from './replication-profile-haproxy';
@@ -273,7 +277,7 @@ export interface PolicyReplicationProvisionDhcp {
   comment?: string;
 }
 
-export interface PolicyReplicationProvisionKeepalived {
+export interface PolicyReplicationProvisionKeepalived extends ProfileKeepalivedSettings {
   interfaceRole?: string;
   virtualIps: PolicyReplicationProvisionObject[];
   /**
@@ -281,6 +285,12 @@ export interface PolicyReplicationProvisionKeepalived {
    * apply request's nodeRoleMapping) or, in older profiles, a 1-based node position.
    */
   masterNode: string | number;
+  /**
+   * Cluster node the rule is restricted to, as policy rules do: the role of a topologyPreset node,
+   * resolved through the apply request's nodeRoleMapping. Omitted, it applies to every node, as a
+   * NULL keepalived_r.fw_apply_to does.
+   */
+  nodeRole?: string;
   comment?: string;
 }
 
@@ -548,8 +558,11 @@ function parseProvisionSystem(
       comment: optionalComment(entry),
     })),
     keepalived: recordArray(record?.keepalived).map((entry) => ({
-      interfaceRole: optionalRole(entry.interfaceRole, ensureInterface),
-      virtualIps: parseProvisionRuleSide(entry.virtualIps, ensureInterface),
+      ...readProfileKeepalivedSettings(entry),
+      interfaceRole:
+        entry.rule_type === 2 ? undefined : optionalRole(entry.interfaceRole, ensureInterface),
+      virtualIps:
+        entry.rule_type === 2 ? [] : parseProvisionRuleSide(entry.virtualIps, ensureInterface),
       masterNode:
         asReplicationProfileNonEmptyString(entry.masterNode) ??
         (typeof entry.masterNode === 'number' &&
@@ -557,6 +570,8 @@ function parseProvisionSystem(
         entry.masterNode > 0
           ? entry.masterNode
           : 1),
+      // Malformed values too: they must be rejected, never applied to every node.
+      ...(entry.nodeRole !== undefined ? { nodeRole: entry.nodeRole as string } : {}),
       comment: optionalComment(entry),
     })),
     haproxy: recordArray(record?.haproxy).map((entry) => ({

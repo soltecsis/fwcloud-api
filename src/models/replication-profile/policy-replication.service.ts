@@ -28,6 +28,7 @@ import {
   type ICreateHAProxyRule,
 } from '../system/haproxy/haproxy_r/haproxy_r.service';
 import { profileHAProxyErrors } from './replication-profile-haproxy';
+import { profileKeepalivedErrors } from './replication-profile-keepalived';
 import { dbQuery, findTreeNodeId, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import {
@@ -38,6 +39,10 @@ import {
 import { RulePositionsMap } from '../policy/PolicyPosition';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { Interface } from '../interface/Interface';
+import {
+  KeepalivedRuleService,
+  ICreateKeepalivedRule,
+} from '../system/keepalived/keepalived_r/keepalived_r.service';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Tree } from '../tree/Tree';
 import { ObjectBindingResolver } from './object-binding.resolver';
@@ -505,10 +510,24 @@ export class PolicyReplicationService extends Service {
     options: ProvisionOptions = {},
   ): Promise<PolicyReplicationResult> {
     const result = createPolicyReplicationResult(mode);
+    const extraCount = countProvisionExtras(provision);
+    if (extraCount > 0) {
+      result.provisioned = {
+        routingTables: 0,
+        routes: 0,
+        routingRules: 0,
+        dhcp: 0,
+        keepalived: 0,
+        haproxy: 0,
+      };
+    }
 
     // Check every rule before provisioning interfaces or objects: invalid rule settings
     // must never result in a partially applied or broadened policy.
     result.errors.push(
+      ...provision.system.keepalived.flatMap((entry, index) =>
+        profileKeepalivedErrors(entry).map((error) => `Keepalived ${index + 1}: ${error}`),
+      ),
       ...provision.system.haproxy.flatMap((entry, index) =>
         profileHAProxyErrors(entry).map((error) => `HAProxy ${index + 1}: ${error}`),
       ),
@@ -516,6 +535,13 @@ export class PolicyReplicationService extends Service {
         (error) => `${error.path}: ${error.message}`,
       ),
     );
+    const validateNodeRole = (nodeRole: unknown, label: string): void => {
+      if (nodeRole !== undefined && !asReplicationProfileNonEmptyString(nodeRole)) {
+        result.errors.push(
+          `${label}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
+        );
+      }
+    };
     for (const [index, rule] of provision.rules.entries()) {
       for (const error of getPolicyRuleValidityErrors(rule)) {
         result.errors.push(`Rule ${index + 1}: ${error.message}`);
@@ -527,11 +553,10 @@ export class PolicyReplicationService extends Service {
       if (error) {
         result.errors.push(`Rule ${index + 1}: ${error}`);
       }
-      if (rule.nodeRole !== undefined && !asReplicationProfileNonEmptyString(rule.nodeRole)) {
-        result.errors.push(
-          `Rule ${index + 1}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
-        );
-      }
+      validateNodeRole(rule.nodeRole, `Rule ${index + 1}`);
+    }
+    for (const [index, entry] of provision.system.keepalived.entries()) {
+      validateNodeRole(entry.nodeRole, `Keepalived ${index + 1}`);
     }
     if (result.errors.length > 0) {
       return result;
@@ -539,8 +564,16 @@ export class PolicyReplicationService extends Service {
 
     const firewallId = await this.resolveProvisionTargetFirewallId(target);
     // Like the rule settings above, every node must be resolved before anything is written.
-    const ruleNodeIds = await this.resolveProvisionRuleNodes(
-      provision,
+    const ruleNodeIds = await this.resolveProvisionNodeRoles(
+      provision.rules,
+      'Rule',
+      firewallId,
+      options.nodeRoleMapping,
+      result,
+    );
+    const keepalivedNodeIds = await this.resolveProvisionNodeRoles(
+      provision.system.keepalived,
+      'Keepalived',
       firewallId,
       options.nodeRoleMapping,
       result,
@@ -568,9 +601,12 @@ export class PolicyReplicationService extends Service {
     }
 
     const existingInterfaces = await this.loadFirewallInterfaces(firewallId);
+    const existingInterfaceIdsByName = new Map(
+      Array.from(existingInterfaces, ([id, iface]) => [iface.name.toLowerCase(), id]),
+    );
     const mappedInterfaceIds = this.resolveMappedInterfaces(
       provision,
-      existingInterfaces,
+      existingInterfaceIdsByName,
       options.interfaceNameMapping,
       result,
     );
@@ -590,6 +626,18 @@ export class PolicyReplicationService extends Service {
         )
       : new Map<string, number>();
 
+    await this.validateKeepalivedDependencies(
+      provision,
+      firewallId,
+      existingInterfaces,
+      existingInterfaceIdsByName,
+      mappedInterfaceIds,
+      previousBindings,
+      options.nodeRoleMapping,
+      result,
+    );
+    if (result.errors.length > 0) return result;
+
     const resolver = new ObjectBindingResolver(fwCloudId, !isDryRun, options.externalObjects);
     result.errors.push(...(await resolver.prepareExternalObjects()));
 
@@ -603,6 +651,7 @@ export class PolicyReplicationService extends Service {
       provision,
       firewallId,
       existingInterfaces,
+      existingInterfaceIdsByName,
       fwCloudId,
       parameterValues,
       resolver,
@@ -626,16 +675,7 @@ export class PolicyReplicationService extends Service {
       ruleNodeIds,
     );
 
-    if (countProvisionExtras(provision) > 0) {
-      result.provisioned = {
-        routingTables: 0,
-        routes: 0,
-        routingRules: 0,
-        dhcp: 0,
-        keepalived: 0,
-        haproxy: 0,
-      };
-
+    if (extraCount > 0) {
       // Routing and system entries are only written once the policy went in cleanly.
       if (result.errors.length === 0 || isDryRun) {
         await this.provisionRouting(
@@ -659,13 +699,14 @@ export class PolicyReplicationService extends Service {
           result,
           isDryRun,
           options,
+          keepalivedNodeIds,
         );
       }
     }
 
     if (isDryRun) {
       result.warnings.push(
-        `Dry run: ${provision.interfaces.length} interface(s), ${provision.rules.length} rule(s) and ${countProvisionExtras(provision)} routing/system entr${countProvisionExtras(provision) === 1 ? 'y' : 'ies'} would be provisioned on firewall ${firewallId}.`,
+        `Dry run: ${provision.interfaces.length} interface(s), ${provision.rules.length} rule(s) and ${extraCount} routing/system entr${extraCount === 1 ? 'y' : 'ies'} would be provisioned on firewall ${firewallId}.`,
       );
 
       return result;
@@ -690,6 +731,65 @@ export class PolicyReplicationService extends Service {
     return result;
   }
 
+  /** The same dependencies are checked for preview and application, before any writes. */
+  private async validateKeepalivedDependencies(
+    provision: PolicyReplicationProvision,
+    firewallId: number,
+    existing: Map<number, InterfaceRow>,
+    existingInterfaceIdsByName: Map<string, number>,
+    mapped: Map<string, number>,
+    previousBindings: Map<string, number>,
+    nodeRoleMapping: Record<string, number> | undefined,
+    result: PolicyReplicationResult,
+  ): Promise<void> {
+    if (!provision.system.keepalived.some((entry) => entry.rule_type !== 2)) return;
+    const nodes = await this.loadClusterNodeIds(firewallId);
+    const interfacesByRole = new Map<string, PolicyReplicationProvisionInterface>();
+    for (const iface of provision.interfaces) {
+      // Match the first declaration, as Array.find did for a duplicated role.
+      if (!interfacesByRole.has(iface.role)) interfacesByRole.set(iface.role, iface);
+    }
+    for (const [index, entry] of provision.system.keepalived.entries()) {
+      if (entry.rule_type === 2) continue;
+      const label = `Keepalived ${index + 1}${entry.comment ? ` (${entry.comment})` : ''}`;
+      const declared = interfacesByRole.get(entry.interfaceRole);
+      if (!declared) {
+        result.errors.push(
+          `${label}: interface role "${entry.interfaceRole ?? '(missing)'}" is not declared.`,
+        );
+      } else {
+        const id =
+          mapped.get(declared.role) ??
+          previousBindings.get(`interface:${declared.role}`) ??
+          existingInterfaceIdsByName.get(declared.name.toLowerCase());
+        const iface = id === undefined ? undefined : existing.get(id);
+
+        // A new interface is created from its declared name later in this plan. Keepalived
+        // uses that name, not the optional hardware MAC recorded by interface discovery.
+        const error = KeepalivedRuleService.interfaceValidationError(
+          iface ?? { name: declared.name },
+        );
+
+        if (error) {
+          result.errors.push(
+            `${label}, interface role "${declared.role}": ${error}. Assign a named destination interface before applying the template.`,
+          );
+        }
+      }
+      if (!entry.virtualIps.length) {
+        result.errors.push(`${label}: at least one virtual IP is required.`);
+      }
+      this.resolveClusterNode(
+        firewallId,
+        nodes,
+        entry.masterNode,
+        nodeRoleMapping,
+        `${label} master node`,
+        result,
+      );
+    }
+  }
+
   /**
    * Creates (or reuses) the declared interfaces and their addresses. Addressing
    * is what lets a rule refer to "the LAN network" and still mean the right
@@ -699,6 +799,7 @@ export class PolicyReplicationService extends Service {
     provision: PolicyReplicationProvision,
     firewallId: number,
     existingInterfaces: Map<number, InterfaceRow>,
+    existingInterfaceIdsByName: Map<string, number>,
     fwCloudId: number,
     parameterValues: Map<string, unknown>,
     resolver: ObjectBindingResolver,
@@ -709,11 +810,6 @@ export class PolicyReplicationService extends Service {
     isDryRun: boolean,
   ): Promise<Map<string, number>> {
     const interfaceIdByRole = new Map<string, number>();
-    const existingByName = new Map<string, number>();
-
-    for (const [id, row] of existingInterfaces) {
-      existingByName.set(row.name.toLowerCase(), id);
-    }
 
     const manager = db.getSource().manager;
     const dbCon = isDryRun ? null : db.getQuery();
@@ -725,7 +821,9 @@ export class PolicyReplicationService extends Service {
       const bindingKey = `interface:${iface.role}`;
       const mapped = mappedInterfaceIds.get(iface.role);
       const reused =
-        mapped ?? previousBindings.get(bindingKey) ?? existingByName.get(iface.name.toLowerCase());
+        mapped ??
+        previousBindings.get(bindingKey) ??
+        existingInterfaceIdsByName.get(iface.name.toLowerCase());
       let interfaceId: number;
 
       if (reused !== undefined && existingInterfaces.has(reused)) {
@@ -789,7 +887,7 @@ export class PolicyReplicationService extends Service {
    */
   private resolveMappedInterfaces(
     provision: PolicyReplicationProvision,
-    existingInterfaces: Map<number, InterfaceRow>,
+    existingInterfaceIdsByName: Map<string, number>,
     mapping: Record<string, string> | undefined,
     result: PolicyReplicationResult,
   ): Map<string, number> {
@@ -801,15 +899,10 @@ export class PolicyReplicationService extends Service {
     }
 
     const roles = new Set(provision.interfaces.map((iface) => iface.role));
-    const idByName = new Map<string, number>();
     const usedIds = new Set<number>();
 
-    for (const [id, row] of existingInterfaces) {
-      idByName.set(row.name.toLowerCase(), id);
-    }
-
     for (const [role, name] of entries) {
-      const interfaceId = idByName.get(name.toLowerCase());
+      const interfaceId = existingInterfaceIdsByName.get(name.toLowerCase());
 
       if (!roles.has(role)) {
         result.errors.push(`Role "${role}" is not declared by the profile interfaces.`);
@@ -1621,6 +1714,7 @@ export class PolicyReplicationService extends Service {
     }
 
     for (const [index, entry] of provision.system.keepalived.entries()) {
+      if (entry.rule_type === 2) continue;
       await check(entry.virtualIps, {
         label: `Keepalived ${index + 1} virtual IPs`,
         allowedTypes: ADDRESS_TYPES,
@@ -2220,6 +2314,7 @@ export class PolicyReplicationService extends Service {
     result: PolicyReplicationResult,
     isDryRun: boolean,
     options: ProvisionOptions,
+    keepalivedNodeIds: Map<number, number>,
   ): Promise<void> {
     const summary = result.provisioned!;
     const { dhcp, keepalived, haproxy } = provision.system;
@@ -2308,88 +2403,87 @@ export class PolicyReplicationService extends Service {
       }
     }
 
-    // Node ids of the target cluster (null for a firewall), read once for every Keepalived entry.
+    // Interfaces and their addresses are resolved before dependent Keepalived rules.
     let clusterNodeIds: number[] | null | undefined;
 
     for (const [index, entry] of keepalived.entries()) {
-      const label = `Keepalived ${index + 1}`;
-      const interfaceId = this.resolveOptionalRole(
-        entry.interfaceRole,
-        `${label} interface`,
-        interfaceIdByRole,
-        result,
-      );
-      const virtualIps = await this.resolveProvisionObjects(
-        entry.virtualIps,
-        { label: `${label} virtual IPs`, allowedTypes: ADDRESS_TYPES },
-        interfaceIdByRole,
-        parameterValues,
-        resolver,
-        result,
-      );
-      clusterNodeIds ??= await this.loadClusterNodeIds(firewallId);
-      const masterNodeId = this.resolveClusterNode(
+      const label = `Keepalived ${index + 1}${entry.comment ? ` (${entry.comment})` : ''}`;
+      const data: ICreateKeepalivedRule = {
         firewallId,
-        clusterNodeIds,
-        entry.masterNode,
-        options.nodeRoleMapping,
-        `${label} master node`,
-        result,
-      );
-
-      if (interfaceId === null || virtualIps === null || masterNodeId === null) {
-        return;
-      }
-
-      if (interfaceId === undefined || virtualIps.length === 0) {
-        result.errors.push(`${label}: an interface and at least one virtual IP are required.`);
-        return;
-      }
-
-      // Keepalived binds to a real NIC: FWCloud refuses interfaces without a MAC address,
-      // which a freshly provisioned interface only has once it has been discovered.
-      const mac = isDryRun
-        ? 'dry-run'
-        : (
-            await dbQuery<{ mac: string | null }>('SELECT mac FROM interface WHERE id = ?', [
-              interfaceId,
-            ])
-          )[0]?.mac;
-
-      if (!mac) {
-        result.warnings.push(
-          `${label}: skipped because interface "${entry.interfaceRole}" has no MAC address yet. Discover the interfaces and add it from System > Keepalived.`,
+        rule_type: entry.rule_type ?? 1,
+        active: entry.active ?? true,
+        style: entry.style,
+        // Resolved before anything was written; FWCloud's "Apply to" for a cluster node.
+        fw_apply_to: keepalivedNodeIds.get(index),
+        comment: entry.comment ?? '',
+      };
+      let step = label;
+      if (entry.rule_type === 2) {
+        data.cfg_text = entry.cfg_text;
+      } else {
+        const interfaceId = this.resolveOptionalRole(
+          entry.interfaceRole,
+          `${label} interface`,
+          interfaceIdByRole,
+          result,
         );
-        continue;
+        const virtualIps = await this.resolveProvisionObjects(
+          entry.virtualIps,
+          { label: `${label} virtual IPs`, allowedTypes: ADDRESS_TYPES },
+          interfaceIdByRole,
+          parameterValues,
+          resolver,
+          result,
+        );
+        clusterNodeIds ??= await this.loadClusterNodeIds(firewallId);
+        const masterNodeId = this.resolveClusterNode(
+          firewallId,
+          clusterNodeIds,
+          entry.masterNode,
+          options.nodeRoleMapping,
+          `${label} master node`,
+          result,
+        );
+        if (interfaceId === null || virtualIps === null || masterNodeId === null) return;
+        if (interfaceId === undefined || virtualIps.length === 0) {
+          result.errors.push(`${label}: an interface and at least one virtual IP are required.`);
+          return;
+        }
+        step = `${label}, interface role "${entry.interfaceRole}" (ID ${interfaceId})`;
+        if (!isDryRun) {
+          const [iface] = await dbQuery<InterfaceRow>(
+            'SELECT id, name, firewall FROM interface WHERE id = ? AND firewall = ?',
+            [interfaceId, firewallId],
+          );
+          if (iface) step += ` ("${iface.name}")`;
+          const error = KeepalivedRuleService.interfaceValidationError(iface);
+          if (error) {
+            result.errors.push(`${step}: ${error}.`);
+            return;
+          }
+        }
+        Object.assign(data, {
+          interfaceId,
+          masterNodeId,
+          virtualIpsIds: this.orderedIds(virtualIps),
+        });
       }
-
-      summary.keepalived++;
 
       if (isDryRun) {
+        summary.keepalived++;
         continue;
       }
-
-      const service = await this._app.getService<any>('KeepalivedRuleService');
-      const created = await this.runFwcService(
-        label,
-        result,
-        async () =>
-          (
-            await service.store({
-              firewallId,
-              rule_type: 1,
-              active: true,
-              interfaceId,
-              masterNodeId,
-              virtualIpsIds: this.orderedIds(virtualIps),
-              comment: entry.comment ?? '',
-            })
-          ).id,
-      );
-
-      if (!created) {
-        return;
-      }
+      const created = await this.runFwcService(step, result, async () => {
+        const service = await this._app.getService<KeepalivedRuleService>(
+          KeepalivedRuleService.name,
+        );
+        const rule = await service.store(data);
+        if (!rule?.id) throw new Error('Keepalived creation returned no persisted rule ID');
+        return rule.id;
+      });
+      if (!created) return;
+      // In an application this is the number actually created, even if a later step fails.
+      summary.keepalived++;
     }
 
     for (const [index, entry] of haproxy.entries()) {
@@ -2524,35 +2618,36 @@ export class PolicyReplicationService extends Service {
   }
 
   /**
-   * The node of the target cluster each rule restricted to a node goes to, by rule index. Its node
-   * role must be mapped to a node of the target cluster that no other role is mapped to: a rule
-   * that cannot be placed is an error, never applied to every node.
+   * The node of the target cluster each policy or Keepalived rule restricted to a node goes to, by
+   * entry index. Its node role must be mapped to a node of the target cluster that no other role
+   * is mapped to: a rule that cannot be placed is an error, never applied to every node.
    */
-  private async resolveProvisionRuleNodes(
-    provision: PolicyReplicationProvision,
+  private async resolveProvisionNodeRoles(
+    entries: { nodeRole?: string }[],
+    noun: 'Rule' | 'Keepalived',
     firewallId: number,
     nodeRoleMapping: Record<string, number> | undefined,
     result: PolicyReplicationResult,
   ): Promise<Map<number, number>> {
     const nodeIds = new Map<number, number>();
-    if (provision.rules.every((rule) => rule.nodeRole === undefined)) {
+    if (entries.every((entry) => entry.nodeRole === undefined)) {
       return nodeIds;
     }
 
     const mapping = nodeRoleMapping ?? {};
     const clusterNodeIds = await this.loadClusterNodeIds(firewallId);
-    for (const [index, { nodeRole }] of provision.rules.entries()) {
+    for (const [index, { nodeRole }] of entries.entries()) {
       if (nodeRole === undefined) {
         continue;
       }
       if (!clusterNodeIds) {
         result.errors.push(
-          `Rule ${index + 1}: it only applies to cluster node "${nodeRole}", but the target is not a cluster.`,
+          `${noun} ${index + 1}: it only applies to cluster node "${nodeRole}", but the target is not a cluster.`,
         );
         continue;
       }
 
-      const label = `Rule ${index + 1} node`;
+      const label = `${noun} ${index + 1} node`;
       const nodeId = this.resolveClusterNode(
         firewallId,
         clusterNodeIds,

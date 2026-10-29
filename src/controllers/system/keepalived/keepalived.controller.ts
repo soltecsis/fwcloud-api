@@ -228,11 +228,7 @@ export class KeepalivedController extends Controller {
         this._firewall.id,
       );
 
-    const filteredRules = rules.filter(
-      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === this._firewall.id,
-    );
-
-    new KeepalivedCompiler().compile(filteredRules);
+    new KeepalivedCompiler().compile(rules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
@@ -240,41 +236,19 @@ export class KeepalivedController extends Controller {
   @Validate()
   public async install(req: Request): Promise<ResponseBuilder> {
     const channel: Channel = await Channel.fromRequest(req);
-    let firewallId: number;
-
     const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({ where: { id: this._firewall.id } });
-    if (firewall.clusterId) {
-      firewallId = (
-        await db
-          .getSource()
-          .manager.getRepository(Firewall)
-          .createQueryBuilder('firewall')
-          .where('firewall.clusterId = :clusterId', {
-            clusterId: firewall.clusterId,
-          })
-          .andWhere('firewall.fwmaster = 1')
-          .getOneOrFail()
-      ).id;
-    } else {
-      firewallId = firewall.id;
-    }
-
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
         'compiler',
         this._fwCloud.id,
-        firewallId,
+        firewall.id,
       );
 
-    const filteredRules = rules.filter(
-      (rule) => !rule.firewallApplyToId || rule.firewallApplyToId === firewallId,
-    );
-
     const content: string = new KeepalivedCompiler()
-      .compile(filteredRules, channel)
+      .compile(rules, channel)
       .map((item) => item.cs)
       .join('\n');
 

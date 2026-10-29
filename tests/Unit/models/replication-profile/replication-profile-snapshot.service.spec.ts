@@ -49,6 +49,7 @@ import { getProfileParameters } from '../../../../src/models/replication-profile
 import { portableProfileModel } from '../../../../src/models/replication-profile/replication-profile-portable';
 import { applyInterfaceAddressOverrides } from '../../../../src/models/replication-profile/replication-profile-interface-addresses';
 import { policyRuleDateKey } from '../../../../src/models/policy/policy-rule-validity';
+import { KeepalivedRuleService } from '../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
 import { resolveProfileObjectReferences } from '../../../../src/models/replication-profile/replication-profile-object-reference.service';
 
 interface CapturedObject {
@@ -274,6 +275,60 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
   });
 
   describe('firewall snapshots', () => {
+    it('preserves disabled manual Keepalived configuration without inventing interface dependencies', async () => {
+      const keepalived = await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+      const cfg_text = '# Source VRRP\nvrrp_instance VI_1 {\n  virtual_router_id 51\n}\n';
+      await keepalived.store({
+        firewallId: source.firewall.id,
+        rule_type: 2,
+        cfg_text,
+        active: false,
+        style: 'custom',
+        comment: 'Preserve native directives',
+      });
+      const { profile, warnings } = await service.createProfileFromSource(
+        {
+          source: { kind: 'firewall', id: source.firewall.id },
+          name: 'Manual Keepalived snapshot',
+        },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+      const [entry] = getProfileProvisioning(loadReplicationProfileModel(profile)).system
+        .keepalived;
+      expect(entry).to.include({
+        rule_type: 2,
+        cfg_text,
+        active: false,
+        style: 'custom',
+        comment: 'Preserve native directives',
+      });
+      expect(entry.interfaceRole).to.eq(undefined);
+      expect(entry.virtualIps).to.deep.eq([]);
+    });
+
+    it('should not widen a Keepalived rule a former cluster left restricted to the firewall', async () => {
+      const keepalived = await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+      await keepalived.store({
+        firewallId: source.firewall.id,
+        rule_type: 2,
+        cfg_text: 'global_defs {\n}\n',
+        active: true,
+        fw_apply_to: source.firewall.id,
+      });
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Former cluster node' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.have.length(1);
+      expect(warnings[0]).to.match(
+        /^Keepalived rule .*was not captured: it only applies to this firewall as a node of the cluster it belonged to\.$/,
+      );
+      expect(
+        getProfileProvisioning(loadReplicationProfileModel(profile)).system.keepalived,
+      ).to.deep.eq([]);
+    });
+
     it('should capture interfaces and expressible FORWARD rules into a custom profile', async () => {
       const httpService = await makeTcpService(8080);
       const acceptRuleId = await insertForwardRule(source.firewall.id, 100, {
@@ -1656,8 +1711,9 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         ['master', true],
         ['backup', true],
       ]);
-      // A firewall has no nodes to apply these rules to.
+      // A standalone application converts node restrictions without changing the saved template.
       expect((model.compatibility as { target_kinds: string[] }).target_kinds).to.deep.eq([
+        'firewall',
         'cluster',
       ]);
 
@@ -1789,31 +1845,65 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
             [backup.id, source.firewall.id],
           );
       }
+      // With the master as Keepalived master, only "Apply to" makes the backup node required.
+      await db
+        .getSource()
+        .query('UPDATE keepalived_r SET master_node = ? WHERE firewall = ?', [
+          source.firewall.id,
+          source.firewall.id,
+        ]);
+      // Manual configurations keep their node too.
+      await (
+        await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name)
+      ).store({
+        firewallId: source.firewall.id,
+        rule_type: 2,
+        cfg_text: 'global_defs {\n}\n',
+        active: true,
+        fw_apply_to: backup.id,
+      });
       const restricted = await capture();
 
-      expect(restricted.warnings).to.have.length(5);
+      expect(restricted.warnings).to.have.length(4);
       for (const [index, entry] of [
         'Route',
         'Routing rule',
         'DHCP rule',
-        'Keepalived rule',
         'HAProxy rule',
       ].entries()) {
         expect(restricted.warnings[index]).to.match(
           new RegExp(
-            `^${entry} .*was not captured: it only applies to one cluster node, which templates keep for policy rules only\\.$`,
+            `^${entry} .*was not captured: it only applies to one cluster node, which templates keep for policy and Keepalived rules only\\.$`,
           ),
         );
       }
-      const provision = loadReplicationProfileModel(restricted.profile).provision as Record<
-        string,
-        any
-      >;
+      const restrictedModel = loadReplicationProfileModel(restricted.profile);
+      const provision = restrictedModel.provision as Record<string, any>;
       expect(provision.routing.tables[0].routes).to.deep.eq([]);
       expect(provision.routing.rules).to.deep.eq([]);
-      expect(provision.system).to.deep.include({ dhcp: [], keepalived: [], haproxy: [] });
+      expect(provision.system).to.deep.include({ dhcp: [], haproxy: [] });
+      expect(provision.system.keepalived).to.have.length(2);
+      expect(provision.system.keepalived[0]).to.include({
+        masterNode: 'master',
+        nodeRole: 'backup',
+      });
+      expect(provision.system.keepalived[1]).to.include({
+        rule_type: 2,
+        cfg_text: 'global_defs {\n}\n',
+        nodeRole: 'backup',
+      });
+      expect(provision.system.keepalived[1]).to.not.have.any.keys('interfaceRole', 'masterNode');
+      expect(restrictedModel.compatibility).to.deep.include({
+        target_kinds: ['firewall', 'cluster'],
+      });
+      expect(
+        (restrictedModel.topologyPreset as { nodes: Array<{ required: boolean }> }).nodes.map(
+          (node) => node.required,
+        ),
+      ).to.deep.eq([true, true]);
 
-      // A disabled entry is reported as disabled first, whatever node it applies to.
+      // A disabled entry is reported as disabled first, whatever node it applies to; Keepalived
+      // keeps disabled rules with their node.
       for (const table of ['route', 'routing_r', 'dhcp_r', 'keepalived_r', 'haproxy_r']) {
         await db
           .getSource()
@@ -1827,8 +1917,28 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         'the rule is disabled.',
         'the rule is disabled.',
         'the rule is disabled.',
-        'the rule is disabled.',
       ]);
+      expect(
+        (loadReplicationProfileModel(disabled.profile).provision as Record<string, any>).system
+          .keepalived[0],
+      ).to.include({ active: false, nodeRole: 'backup' });
+
+      // A rule restricted to a firewall outside the cluster is never widened to every node.
+      const outsider = await makeReplicationTargetFirewall(fwc);
+      await db
+        .getSource()
+        .query('UPDATE keepalived_r SET fw_apply_to = ? WHERE firewall = ?', [
+          outsider.firewall.id,
+          source.firewall.id,
+        ]);
+      const outside = await capture();
+      expect(outside.warnings[3]).to.match(
+        /^Keepalived rule .*was not captured: it only applies to a firewall that is not a node of the source\.$/,
+      );
+      expect(
+        (loadReplicationProfileModel(outside.profile).provision as Record<string, any>).system
+          .keepalived,
+      ).to.deep.eq([]);
     });
 
     it('should reject a cluster that belongs to another FWCloud', async () => {
