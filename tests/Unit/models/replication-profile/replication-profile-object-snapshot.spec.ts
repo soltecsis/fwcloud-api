@@ -7,7 +7,10 @@ import {
   ProfileSnapshotSelectionPlan,
   validateProfileObjectSnapshot,
 } from '../../../../src/models/replication-profile/replication-profile-object-snapshot';
-import { resolveProfileObjectReferences } from '../../../../src/models/replication-profile/replication-profile-object-reference.service';
+import {
+  captureProfileObjectReferences,
+  resolveProfileObjectReferences,
+} from '../../../../src/models/replication-profile/replication-profile-object-reference.service';
 
 /** These tests use the real API validators, with no application or database bootstrap. */
 describe('Replication profile saved object snapshots', () => {
@@ -63,6 +66,134 @@ describe('Replication profile saved object snapshots', () => {
       expect(call.args[0]).to.match(/^\s*SELECT\b/i);
     }
   }
+
+  for (const [type, protocol, objectType] of [
+    [2, 6, 'tcp'],
+    [4, 17, 'udp'],
+  ] as const) {
+    for (const [start, end] of [
+      [8000, 8010],
+      [443, 443],
+      [0, 0],
+    ]) {
+      for (const restrictedSource of [false, true]) {
+        it(`preserves type ${type} ports ${start}-${end} with ${restrictedSource ? 'restricted' : 'ANY'} source through capture, JSON and destination resolution`, async () => {
+          const service = {
+            type,
+            protocol,
+            name: `CUSTOM_${objectType.toUpperCase()}_${start}_${end}`,
+            source_port_start: restrictedSource ? 1024 : 0,
+            source_port_end: restrictedSource ? 2048 : 0,
+            destination_port_start: start,
+            destination_port_end: end,
+            options: 0,
+            ...(type === 2 ? { tcp_flags_mask: 2, tcp_flags_settings: 2 } : {}),
+          };
+          queries.resolves([{ id: 42, ...service }]);
+          const usage = { kind: 'external', referenceId: 'custom-service' };
+          const model = {
+            objectReferences: [{ referenceId: 'custom-service', objectType, sourceObjectId: 42 }],
+            provision: {
+              rules: [
+                { chain: 'forward', action: 'accept', services: [usage], comment: 'First' },
+                { chain: 'input', action: 'deny', services: [usage], comment: 'Second' },
+              ],
+            },
+          };
+
+          const captured: any = await captureProfileObjectReferences(model, 1);
+          const loaded = JSON.parse(JSON.stringify(captured));
+          expect(loaded.objectReferences).to.have.length(1);
+          expect(loaded.objectReferences[0].snapshot).to.deep.equal(service);
+          expect(loaded.objectReferences[0].locations).to.have.length(2);
+          expect(loaded.provision.rules).to.deep.equal(model.provision.rules);
+          queries.resolves([]);
+
+          const resolved = await resolveProfileObjectReferences(loaded, destinationCloud);
+
+          expect(resolved.errors).to.deep.equal([]);
+          expect(resolved.bindings.get('custom-service')).to.deep.equal({ type, data: service });
+          expect(loaded.objectReferences[0].snapshot).to.deep.equal(service);
+          expectReadOnlyQueries();
+        });
+      }
+    }
+  }
+
+  it('identifies the invalid member service and its native validation error in a service group', async () => {
+    const error = await validateProfileObjectSnapshot(
+      {
+        type: 21,
+        name: 'APPLICATION_SERVICES',
+        members: [{ ...tcp, name: 'INVALID_TCP_RANGE', destination_port_end: 7999 }],
+      },
+      21,
+      destinationCloud,
+      { checkDestination: false },
+    );
+
+    expect(error).to.include('snapshot.members[0]');
+    expect(error).to.include('INVALID_TCP_RANGE');
+    expect(error).to.include('port');
+    expectReadOnlyQueries();
+  });
+
+  it('preserves ranged TCP and UDP dependencies in a shared service group through JSON and resolution', async () => {
+    const tcpMember = { ...tcp, id: 42 };
+    const udpMember = {
+      id: 43,
+      type: 4,
+      name: 'CUSTOM_UDP_RANGE',
+      protocol: 17,
+      source_port_start: 2048,
+      source_port_end: 4096,
+      destination_port_start: 9000,
+      destination_port_end: 9010,
+    };
+    queries.callsFake(async (sql: string) => {
+      if (sql.includes('FROM ipobj_g')) {
+        return [{ id: 77, type: 21, name: 'APPLICATION_SERVICES' }];
+      }
+      if (sql.includes('FROM ipobj__ipobjg')) {
+        return [tcpMember, udpMember].map((member) => ({ ...member, group_id: 77 }));
+      }
+      return [];
+    });
+    const usage = { kind: 'external', referenceId: 'application-services' };
+    const model = {
+      objectReferences: [
+        { referenceId: 'application-services', objectType: 'serviceGroup', sourceObjectId: 77 },
+      ],
+      provision: {
+        rules: [
+          { chain: 'forward', action: 'accept', services: [usage] },
+          { chain: 'input', action: 'accept', services: [usage] },
+        ],
+      },
+    };
+
+    const captured = await captureProfileObjectReferences(model, 1);
+    const loaded = JSON.parse(JSON.stringify(captured));
+    const snapshot = {
+      type: 21,
+      name: 'APPLICATION_SERVICES',
+      members: [tcpMember, udpMember],
+    };
+    expect(loaded.objectReferences[0].snapshot).to.deep.equal(snapshot);
+    expect(loaded.objectReferences[0].locations).to.have.length(2);
+    expect(loaded.provision.rules).to.deep.equal(model.provision.rules);
+    queries.resetBehavior();
+    queries.resolves([]);
+
+    const resolved = await resolveProfileObjectReferences(loaded, destinationCloud);
+
+    expect(resolved.errors).to.deep.equal([]);
+    expect(resolved.bindings.get('application-services')).to.deep.equal({
+      type: 21,
+      data: snapshot,
+    });
+    expectReadOnlyQueries();
+  });
 
   for (const snapshot of [
     address,
