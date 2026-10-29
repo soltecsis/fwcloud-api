@@ -288,7 +288,12 @@ export function getProfileObjectReferenceLocations(model: unknown): Map<string, 
   const locations = new Map<string, string[]>();
 
   for (const site of source ? collectUsageSites(source.value, `model.${source.field}`) : []) {
-    locations.set(site.referenceId, [...(locations.get(site.referenceId) ?? []), site.path]);
+    const paths = locations.get(site.referenceId);
+    if (paths) {
+      paths.push(site.path);
+    } else {
+      locations.set(site.referenceId, [site.path]);
+    }
   }
 
   return locations;
