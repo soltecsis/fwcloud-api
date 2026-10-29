@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request } from 'express';
+import { Request as ExpressRequest } from 'express';
 import * as uuid from 'uuid';
 import { AgentCommunication } from '../../../communications/agent.communication';
 import { CrowdSecFirewallBackend } from '../../../communications/communication';
@@ -63,11 +63,149 @@ import {
 } from './dto/blocking-statistics-history-query.dto';
 import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
 import { CrowdSecCollectionAcquisitionService } from './crowdsec-collection-acquisition.service';
+import {
+  Body,
+  Delete,
+  Example,
+  Get,
+  OperationId,
+  Path,
+  Post,
+  Put,
+  Query,
+  Request,
+  Response,
+  Route,
+  SuccessResponse,
+  Tags,
+} from 'tsoa';
 
+interface CrowdSecApiEnvelopeResponse<TData> {
+  status: number;
+  response: string;
+  message: string;
+  data: TData;
+}
+
+interface CrowdSecApiErrorResponse {
+  status: number;
+  response: string;
+  message: string;
+  errors?: Record<string, unknown>;
+}
+
+interface CrowdSecCentralLapiCandidatesResponse {
+  candidates: Array<{ id: number; name: string; cluster_id?: number }>;
+}
+
+interface CrowdSecConfirmationResponse {
+  console_enrollment_confirmed: boolean;
+}
+
+interface CrowdSecConsoleStatusResponse {
+  state: 'connected' | 'not_configured' | 'pending_approval' | 'rate_limited' | 'error';
+  enrollment_state: 'enrolled' | 'unknown';
+  message: string;
+}
+
+interface CrowdSecTransitionResponse {
+  changed: boolean;
+  preparation?: Record<string, unknown>;
+  validation?: Record<string, unknown>;
+  activation?: Record<string, unknown>;
+  finalization?: Record<string, unknown>;
+  source_machine_removed?: boolean;
+  source_bouncer_cleanup_required?: boolean;
+  central_bouncer_cleanup_required?: boolean;
+}
+
+interface CrowdSecMachineInstallationResponse {
+  machine: Record<string, unknown>;
+  validation?: Record<string, unknown>;
+  activation?: Record<string, unknown>;
+  connectivity_confirmation_required?: boolean;
+  connectivity_confirmation_reason?: string;
+  pending_connectivity?: boolean;
+}
+
+interface CrowdSecUninstallResponse {
+  steps: Array<Record<string, unknown>>;
+  central_bouncer_cleanup_required?: boolean;
+  central_machine_cleanup_required?: boolean;
+}
+
+interface CrowdSecBouncerRegistrationResponse {
+  name: string;
+  /** PGP-encrypted API key. */
+  api_key?: string;
+  nodes?: Array<Record<string, unknown>>;
+}
+
+interface CrowdSecCollectionMutationResponse {
+  result: Record<string, unknown>;
+  collections: Record<string, unknown>;
+}
+
+interface CrowdSecBlockingStatisticsSamplingResponse {
+  enabled: boolean;
+  sampling_interval: number;
+  request_max_samples: number;
+  cache_max_size: number;
+  completed?: boolean;
+  nodes?: Array<Record<string, unknown>>;
+}
+
+interface CrowdSecBlockingStatisticsCounter {
+  packets: number;
+  bytes: number;
+}
+
+interface CrowdSecBlockingStatisticsHistoryResponse {
+  samples: Array<{
+    collected_at: string;
+    policy_generation: string;
+    ipv4_input: CrowdSecBlockingStatisticsCounter;
+    ipv4_forward: CrowdSecBlockingStatisticsCounter;
+    ipv6_input: CrowdSecBlockingStatisticsCounter;
+    ipv6_forward: CrowdSecBlockingStatisticsCounter;
+  }>;
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecBlockingStatisticsAddressHistoryResponse {
+  samples: Array<{
+    address: string;
+    collected_at: string;
+    policy_generation: string;
+    packets: number;
+    bytes: number;
+  }>;
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecBlockingStatisticsAddressOptionsResponse {
+  addresses: string[];
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecCollectionAcquisitionResponse {
+  collection: string;
+  file_path: string;
+  state: 'ready' | 'automatic_configuration_unavailable' | 'manual_review_required';
+  label_type?: string;
+  candidate_label_types: string[];
+  log_paths: string[];
+  message: string;
+}
+
+type CrowdSecDynamicResponse = Record<string, unknown>;
+
+@Route('fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec')
+@Tags('crowdsec')
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
 
-  public async make(request: Request): Promise<void> {
+  public async make(request: ExpressRequest): Promise<void> {
     const firewallId = Number(request.params.firewall);
     const fwcloudId = Number(request.params.fwcloud);
 
@@ -87,7 +225,33 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async status(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Get firewall CrowdSec status')
+  @Get('status')
+  @SuccessResponse('200', 'CrowdSec status retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      crowdsec: { installed: true, running: true, version: 'v1.8.1' },
+      ipset_installed: true,
+      lapi: { state: 'ready', message: 'CrowdSec Local API is reachable' },
+      community_blocklist: { state: 'ready', message: 'CrowdSec Central API is reachable' },
+      community_blocklist_enrollment: 'enrolled',
+      installation_mode: 'lapi',
+      local_remediation: false,
+      central_lapi_enabled: true,
+      central_lapi_has_machines: false,
+      machine_connectivity_pending: false,
+      console_enrollment_confirmed: true,
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async status(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
     const status = await (await this.getAgentCommunication()).getCrowdSecStatus();
     const installationRepository = this.getCrowdSecInstallationRepository();
@@ -129,7 +293,22 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecCollectionsQueryDto)
-  public async collections(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List firewall CrowdSec collections')
+  @Get('collections')
+  @SuccessResponse('200', 'CrowdSec collections retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { collections: [] },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async collections(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('installed') installedQuery?: 'true' | 'false',
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const installed =
@@ -143,7 +322,30 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecCollectionAcquisitionQueryDto)
-  public async collectionAcquisition(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Get CrowdSec collection acquisition')
+  @Get('collections/acquisition')
+  @SuccessResponse('200', 'Collection acquisition retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: ['/var/log/auth.log'],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async collectionAcquisition(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Query('name') nameQuery: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -155,7 +357,30 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCollectionAcquisitionUpdateDto)
-  public async updateCollectionAcquisition(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Update CrowdSec collection acquisition')
+  @Put('collections/acquisition')
+  @SuccessResponse('200', 'Collection acquisition updated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: ['/var/log/auth.log'],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateCollectionAcquisition(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Body() body: CrowdSecCollectionAcquisitionUpdateDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -172,7 +397,30 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
-  public async selectCollectionAcquisitionParser(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Select CrowdSec collection acquisition parser')
+  @Put('collections/acquisition/parser')
+  @SuccessResponse('200', 'Collection acquisition parser selected')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: [],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async selectCollectionAcquisitionParser(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Body() body: CrowdSecCollectionAcquisitionParserSelectionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -189,7 +437,25 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async consoleStatus(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Get firewall CrowdSec Console status')
+  @Get('console/status')
+  @SuccessResponse('200', 'CrowdSec Console status retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecConsoleStatusResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      state: 'connected',
+      enrollment_state: 'unknown',
+      message: 'CrowdSec Central API is reachable',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async consoleStatus(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const status = await (await this.getAgentCommunication()).getCrowdSecConsoleStatus();
@@ -198,7 +464,27 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecDecisionsQueryDto)
-  public async decisions(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List firewall CrowdSec decisions')
+  @Get('decisions')
+  @SuccessResponse('200', 'CrowdSec decisions retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { decisions: [] },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async decisions(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('limit') limit?: number,
+    @Query('scope') scope?: string,
+    @Query('value') value?: string,
+    @Query('decision_type') decisionType?: string,
+    @Query('origin') origin?: string,
+    @Query('scenario') scenario?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const decisions = await (
@@ -217,7 +503,30 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecAlertsQueryDto)
-  public async alerts(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List firewall CrowdSec alerts')
+  @Get('alerts')
+  @SuccessResponse('200', 'CrowdSec alerts retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { alerts: [] },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async alerts(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('limit') limit?: number,
+    @Query('since') since?: string,
+    @Query('until') until?: string,
+    @Query('scenario') scenario?: string,
+    @Query('type') type?: string,
+    @Query('scope') scope?: string,
+    @Query('value') value?: string,
+    @Query('ip') ip?: string,
+    @Query('range') range?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const alerts = await (
@@ -238,7 +547,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async bouncers(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List firewall CrowdSec bouncers')
+  @Get('bouncers')
+  @SuccessResponse('200', 'CrowdSec bouncers retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { bouncers: [] },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async bouncers(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const bouncers = await (await this.getAgentCommunication()).getCrowdSecBouncers();
@@ -246,7 +569,26 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async blockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Get CrowdSec blocking statistics sampling configuration')
+  @Get('blocking-statistics/sampling')
+  @SuccessResponse('200', 'Blocking statistics sampling configuration retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsSamplingResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      enabled: true,
+      sampling_interval: 60,
+      request_max_samples: 1000,
+      cache_max_size: 10000,
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsSampling(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const configuration =
@@ -259,7 +601,29 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecBlockingStatisticsSamplingDto)
-  public async updateBlockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Update CrowdSec blocking statistics sampling configuration')
+  @Put('blocking-statistics/sampling')
+  @SuccessResponse('200', 'Blocking statistics sampling configuration updated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsSamplingResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      enabled: true,
+      sampling_interval: 60,
+      request_max_samples: 1000,
+      cache_max_size: 10000,
+      nodes: [],
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateBlockingStatisticsSampling(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Body() body: CrowdSecBlockingStatisticsSamplingDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const service = CrowdSecBlockingStatisticsSharedService.samplingService();
@@ -281,7 +645,37 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsHistoryQueryDto)
-  public async blockingStatistics(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List CrowdSec blocking statistics')
+  @Get('blocking-statistics')
+  @SuccessResponse('200', 'Blocking statistics retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsHistoryResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      samples: [
+        {
+          collected_at: '2026-10-23T10:00:00.000Z',
+          policy_generation: '1792659255373',
+          ipv4_input: { packets: 12, bytes: 840 },
+          ipv4_forward: { packets: 0, bytes: 0 },
+          ipv6_input: { packets: 0, bytes: 0 },
+          ipv6_forward: { packets: 0, bytes: 0 },
+        },
+      ],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatistics(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') pageQuery?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const history = await (
@@ -303,7 +697,37 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsAddressHistoryQueryDto)
-  public async blockingStatisticsAddresses(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List CrowdSec blocking statistics by address')
+  @Get('blocking-statistics/addresses')
+  @SuccessResponse('200', 'Address blocking statistics retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsAddressHistoryResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      samples: [
+        {
+          address: '203.0.113.10',
+          collected_at: '2026-10-23T10:00:00.000Z',
+          policy_generation: '1792659255373',
+          packets: 42,
+          bytes: 4096,
+        },
+      ],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsAddresses(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() firewall: number,
+    @Query('addresses') addresses: string,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const history = await (
@@ -326,7 +750,26 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsAddressOptionsQueryDto)
-  public async blockingStatisticsAddressOptions(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List CrowdSec blocking statistics address options')
+  @Get('blocking-statistics/addresses/options')
+  @SuccessResponse('200', 'Blocking statistics address options retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsAddressOptionsResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { addresses: ['203.0.113.10'], pagination: { page: 1, limit: 1000, total: 1, pages: 1 } },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsAddressOptions(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') pageQuery?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.view(this._firewall, req.session.user)).authorize();
 
     const page = await (
@@ -342,7 +785,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async machines(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List firewall CrowdSec machines')
+  @Get('machines')
+  @SuccessResponse('200', 'CrowdSec machines retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { machines: [] },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async machines(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const machines = await (await this.getAgentCommunication()).getCrowdSecLapiMachines();
@@ -350,7 +807,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async centralLapiCandidates(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List central LAPI candidates')
+  @Get('lapi/central/candidates')
+  @SuccessResponse('200', 'Central LAPI candidates retrieved')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCentralLapiCandidatesResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { candidates: [{ id: 12, name: 'central-lapi' }] },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async centralLapiCandidates(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const excludedFirewallIds = [this._firewall.id];
@@ -390,7 +861,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCentralLapiConfigureDto)
-  public async configureCentralLapi(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Configure central CrowdSec LAPI')
+  @Post('lapi/central/configure')
+  @SuccessResponse('200', 'Central LAPI configured')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { listen_uri: '0.0.0.0:8080', central_lapi_enabled: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async configureCentralLapi(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecCentralLapiConfigureDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
@@ -429,7 +915,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async validateMachine(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Validate CrowdSec machine')
+  @Post('machines/{machine}/validate')
+  @SuccessResponse('200', 'Machine validated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { name: 'edge-machine', validated: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async validateMachine(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Path('machine') machinePath?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
@@ -470,7 +971,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async removeMachine(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Remove CrowdSec machine')
+  @Delete('machines/{machine}')
+  @SuccessResponse('200', 'Machine removed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { name: 'edge-machine', removed: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async removeMachine(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Path('machine') machinePath?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const machineName = CrowdSecLapiSharedService.machineName(req.params.machine);
@@ -494,7 +1010,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async reauthenticateMachine(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Reauthenticate CrowdSec machine')
+  @Post('machines/reauthenticate')
+  @SuccessResponse('200', 'Machine reauthenticated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { reauthenticated: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async reauthenticateMachine(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
@@ -607,7 +1137,26 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecMachineInstallDto)
-  public async installMachine(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Install CrowdSec machine')
+  @Post('machines/install')
+  @SuccessResponse('200', 'Machine installation completed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecMachineInstallationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      machine: { installation_state: 'installed' },
+      validation: { nodes: [{ firewall_id: 12, status: 'validated' }] },
+      activation: { active: true },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async installMachine(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecMachineInstallDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
@@ -820,7 +1369,27 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecTransitionDto)
-  public async transitionMachineAddress(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Change CrowdSec machine LAPI address')
+  @Post('transitions/address')
+  @SuccessResponse('200', 'Machine address transitioned')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      changed: true,
+      preparation: { transition_id: '00000000-0000-4000-8000-000000000000' },
+      activation: { changed: true },
+      finalization: { completed: true },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionMachineAddress(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecTransitionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     if (!req.body.confirm) {
@@ -957,7 +1526,30 @@ export class CrowdSecController extends Controller {
     }
   }
   @Validate(CrowdSecTransitionDto)
-  public async transitionMachineCentralLapi(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Move CrowdSec machine to central LAPI')
+  @Post('transitions/central')
+  @SuccessResponse('200', 'Machine central LAPI transitioned')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      changed: true,
+      preparation: { transition_id: '00000000-0000-4000-8000-000000000000' },
+      validation: { nodes: [{ firewall_id: 12, status: 'validated' }] },
+      activation: { changed: true },
+      finalization: { completed: true },
+      source_machine_removed: true,
+      source_bouncer_cleanup_required: false,
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionMachineCentralLapi(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecTransitionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     if (!req.body.confirm) {
@@ -1136,7 +1728,28 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecTransitionDto)
-  public async transitionMachineRemediation(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Change CrowdSec machine remediation')
+  @Post('transitions/remediation')
+  @SuccessResponse('200', 'Machine remediation transitioned')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      changed: true,
+      preparation: { transition_id: '00000000-0000-4000-8000-000000000000' },
+      activation: { changed: true },
+      finalization: { completed: true },
+      central_bouncer_cleanup_required: false,
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionMachineRemediation(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecTransitionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     if (!req.body.confirm) {
@@ -1293,7 +1906,27 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecTransitionDto)
-  public async transitionCrowdSecRole(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Change CrowdSec installation role')
+  @Post('transitions/role')
+  @SuccessResponse('200', 'CrowdSec role transitioned')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      changed: true,
+      preparation: { transition_id: '00000000-0000-4000-8000-000000000000' },
+      activation: { changed: true },
+      finalization: { completed: true },
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionCrowdSecRole(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecTransitionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     if (!req.body.confirm) {
@@ -1552,7 +2185,25 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecBouncerDto)
-  public async registerBouncer(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Register CrowdSec bouncer')
+  @Post('bouncers/register')
+  @SuccessResponse('200', 'Bouncer registered')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecBouncerRegistrationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      name: 'firewall-bouncer',
+      api_key: '-----BEGIN PGP MESSAGE-----\n…\n-----END PGP MESSAGE-----',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async registerBouncer(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecBouncerDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const name = this.bouncerName(req.body.name);
@@ -1596,7 +2247,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async removeBouncer(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Remove CrowdSec bouncer')
+  @Delete('bouncers/{bouncer}')
+  @SuccessResponse('200', 'Bouncer removed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { name: 'firewall-bouncer', removed: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async removeBouncer(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Path('bouncer') bouncerPath?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const name = this.bouncerName(req.params.bouncer);
@@ -1615,7 +2281,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async deleteDecision(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Delete CrowdSec decision')
+  @Delete('decisions/{decision}')
+  @SuccessResponse('200', 'Decision deleted')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { deleted: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async deleteDecision(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Path('decision') decisionPath?: string,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const decision = await (
@@ -1625,7 +2306,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecDecisionsFlushDto)
-  public async flushDecisions(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Flush CrowdSec decisions')
+  @Post('decisions/flush')
+  @SuccessResponse('200', 'Decisions flushed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { flushed: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async flushDecisions(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecDecisionsFlushDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const decisions = await (
@@ -1635,7 +2331,27 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecConsoleEnrollDto)
-  public async enrollConsole(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Enroll CrowdSec Console')
+  @Post('console/enroll')
+  @SuccessResponse('200', 'Console enrollment requested')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecConsoleStatusResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      state: 'pending_approval',
+      enrollment_state: 'unknown',
+      message:
+        'Enrollment request submitted. Accept the Security Engine in CrowdSec Console to complete enrollment.',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async enrollConsole(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecConsoleEnrollDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const enrollmentKey = await this.enrollmentKey(req, req.body.enrollmentKey);
@@ -1654,7 +2370,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async confirmConsoleEnrollment(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Confirm CrowdSec Console enrollment')
+  @Post('console/enrollment/confirm')
+  @SuccessResponse('200', 'Console enrollment confirmed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecConfirmationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { console_enrollment_confirmed: true },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async confirmConsoleEnrollment(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const installationRepository = this.getCrowdSecInstallationRepository();
@@ -1673,7 +2403,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async clearConsoleEnrollment(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Clear CrowdSec Console enrollment confirmation')
+  @Post('console/enrollment/clear')
+  @SuccessResponse('200', 'Console enrollment confirmation cleared')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecConfirmationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { console_enrollment_confirmed: false },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async clearConsoleEnrollment(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const installationRepository = this.getCrowdSecInstallationRepository();
@@ -1695,7 +2439,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCollectionDto)
-  public async installCollection(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Install CrowdSec collection')
+  @Post('collections/install')
+  @SuccessResponse('200', 'Collection installed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionMutationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { result: {}, collections: {} },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async installCollection(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecCollectionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -1706,7 +2465,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecCollectionDto)
-  public async removeCollection(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Remove CrowdSec collection')
+  @Post('collections/remove')
+  @SuccessResponse('200', 'Collection removed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionMutationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { result: {}, collections: {} },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async removeCollection(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecCollectionDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -1717,7 +2491,21 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async updateCollections(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Update CrowdSec collections')
+  @Post('collections/update')
+  @SuccessResponse('200', 'Collections updated')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionMutationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { result: {}, collections: {} },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateCollections(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const communication = await this.getAgentCommunication();
@@ -1728,7 +2516,22 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate()
-  public async install(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Install CrowdSec')
+  @Post('install')
+  @SuccessResponse('200', 'CrowdSec installed')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { crowdsec: {} },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async install(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: Partial<CrowdSecConsoleEnrollDto>,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const enrollmentKey =
@@ -1776,7 +2579,26 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecUninstallDto)
-  public async uninstall(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Uninstall CrowdSec')
+  @Post('uninstall')
+  @SuccessResponse('200', 'CrowdSec uninstalled')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecUninstallResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      steps: [],
+      central_machine_cleanup_required: false,
+      central_bouncer_cleanup_required: false,
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async uninstall(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecUninstallDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const installation = await this.getCrowdSecInstallationRepository().findByFirewallId(
@@ -1930,7 +2752,7 @@ export class CrowdSecController extends Controller {
     return new CrowdSecInstallationRepository(db.getSource().manager);
   }
 
-  private decisionId(req: Request): string {
+  private decisionId(req: ExpressRequest): string {
     const id = String(req.params.decision);
     if (!/^[1-9]\d{0,18}$/.test(id)) {
       throw new HttpException('Invalid CrowdSec decision ID', 400);
@@ -1956,7 +2778,7 @@ export class CrowdSecController extends Controller {
     return this._firewall.fwCloudId + '-' + this._firewall.id;
   }
 
-  private async enrollmentKey(req: Request, value: unknown): Promise<string> {
+  private async enrollmentKey(req: ExpressRequest, value: unknown): Promise<string> {
     const enrollmentKey = await this.decryptCrowdSecSecret(req, value, 'CrowdSec enrollment key');
     if (
       enrollmentKey.length === 0 ||
@@ -1968,7 +2790,10 @@ export class CrowdSecController extends Controller {
     return enrollmentKey;
   }
 
-  private async optionalBouncerApiKey(req: Request, value: unknown): Promise<string | undefined> {
+  private async optionalBouncerApiKey(
+    req: ExpressRequest,
+    value: unknown,
+  ): Promise<string | undefined> {
     if (value === undefined) {
       return undefined;
     }
@@ -1985,7 +2810,11 @@ export class CrowdSecController extends Controller {
     return apiKey;
   }
 
-  private async decryptCrowdSecSecret(req: Request, value: unknown, name: string): Promise<string> {
+  private async decryptCrowdSecSecret(
+    req: ExpressRequest,
+    value: unknown,
+    name: string,
+  ): Promise<string> {
     if (typeof value !== 'string') {
       throw new HttpException('Invalid ' + name, 422);
     }

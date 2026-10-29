@@ -947,10 +947,16 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       .stub(secondCommunication, 'getCrowdSecCollectionAcquisition')
       .resolves(acquisition);
 
-    const response = await controller.collectionAcquisition({
-      session: { user: null },
-      query: { name: 'crowdsecurity/nginx', node_id: String(secondNode.id) },
-    } as unknown as Request);
+    const response = await controller.collectionAcquisition(
+      {
+        session: { user: null },
+        query: { name: 'crowdsecurity/nginx', node_id: String(secondNode.id) },
+      } as unknown as Request,
+      1,
+      1,
+      'crowdsecurity/nginx',
+      secondNode.id,
+    );
 
     expect(viewPolicyStub.calledOnceWithExactly(secondNode, null)).to.be.true;
     expect(acquisitionStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
@@ -985,10 +991,15 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       history,
     } as never);
 
-    const response = await controller.blockingStatistics({
-      session: { user: null },
-      query: { node_id: String(secondNode.id) },
-    } as unknown as Request);
+    const response = await controller.blockingStatistics(
+      {
+        session: { user: null },
+        query: { node_id: String(secondNode.id) },
+      } as unknown as Request,
+      1,
+      1,
+      secondNode.id,
+    );
 
     expect(viewPolicyStub.calledOnceWithExactly(secondNode, null)).to.be.true;
     expect(

@@ -2272,10 +2272,15 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .stub(communication, 'getCrowdSecCollectionAcquisition')
       .resolves(acquisition);
 
-    const response = await controller.collectionAcquisition({
-      query: { name: 'crowdsecurity/nginx' },
-      session: { user: null },
-    } as unknown as Request);
+    const response = await controller.collectionAcquisition(
+      {
+        query: { name: 'crowdsecurity/nginx' },
+        session: { user: null },
+      } as unknown as Request,
+      1,
+      1,
+      'crowdsecurity/nginx',
+    );
 
     expect(acquisitionStub.calledOnceWithExactly('crowdsecurity/nginx')).to.be.true;
     expect(response.toJSON()).to.include({ status: 200, data: acquisition });
@@ -2286,10 +2291,15 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const updateStub = sinon.stub(communication, 'updateCrowdSecCollectionAcquisition');
 
     await expect(
-      controller.updateCollectionAcquisition({
-        body: { name: 'crowdsecurity/nginx', log_paths: [] },
-        session: { user: null },
-      } as unknown as Request),
+      controller.updateCollectionAcquisition(
+        {
+          body: { name: 'crowdsecurity/nginx', log_paths: [] },
+          session: { user: null },
+        } as unknown as Request,
+        1,
+        1,
+        { name: 'crowdsecurity/nginx', log_paths: [] },
+      ),
     ).to.be.rejectedWith(HttpException, 'CrowdSec collection is not installed');
     expect(updateStub.called).to.be.false;
   });
