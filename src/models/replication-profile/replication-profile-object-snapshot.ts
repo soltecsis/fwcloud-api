@@ -45,7 +45,10 @@ const interfaceSchema = require('../../middleware/joi_schemas/interface');
 const duplicityCheck = require('../../middleware/duplicity');
 
 /** Object types a template can reference, as the numbers FWCloud stores. */
-const REFERENCE_TYPES: readonly number[] = Object.values(PROFILE_REFERENCE_OBJECT_TYPES);
+const REFERENCE_TYPES = new Set<number>(Object.values(PROFILE_REFERENCE_OBJECT_TYPES));
+const OBJECT_FIELDS = new Set<string>(PROFILE_OBJECT_DATA_FIELDS);
+const HOST_FIELDS = new Set([...OBJECT_FIELDS, 'interfaces']);
+const GROUP_FIELDS = new Set(['type', 'name', 'comment', 'members']);
 
 export { pickProfileFields } from './replication-profile.constants';
 
@@ -117,6 +120,11 @@ export const PROFILE_HOST_INTERFACE_FIELDS = [
 export const PROFILE_HOST_INTERFACE_COLUMNS = PROFILE_HOST_INTERFACE_FIELDS.filter(
   (field) => field !== 'interface_order',
 );
+const HOST_INTERFACE_FIELDS = new Set<string>([
+  ...PROFILE_HOST_INTERFACE_FIELDS,
+  'id',
+  'addresses',
+]);
 
 /**
  * Compares the configuration an object represents, independent of IDs, comments and equivalent
@@ -554,7 +562,7 @@ async function validateSnapshot(
     return `${path} must contain the original object's type and name.`;
   }
 
-  if (!REFERENCE_TYPES.includes(type)) {
+  if (!REFERENCE_TYPES.has(type)) {
     return `${path} contains unsupported object type ${type}.`;
   }
 
@@ -565,13 +573,8 @@ async function validateSnapshot(
   ancestors.add(snapshot);
   const group = isProfileReferenceGroupType(type);
   const host = type === REPLICATION_PROFILE_IPOBJ_TYPE_HOST;
-  const allowed = group ? ['type', 'name', 'comment', 'members'] : [...PROFILE_OBJECT_DATA_FIELDS];
-
-  if (host) {
-    allowed.push('interfaces');
-  }
-
-  const unknown = Object.keys(data).filter((field) => field !== 'id' && !allowed.includes(field));
+  const allowed = group ? GROUP_FIELDS : host ? HOST_FIELDS : OBJECT_FIELDS;
+  const unknown = Object.keys(data).filter((field) => field !== 'id' && !allowed.has(field));
 
   if (unknown.length > 0) {
     return `${path} does not take ${unknown.join(', ')}.`;
@@ -580,7 +583,7 @@ async function validateSnapshot(
   const columns = Object.fromEntries(
     Object.entries(withProfileServiceSourcePorts(data)).filter(
       ([field, value]) =>
-        allowed.includes(field) && field !== 'members' && field !== 'interfaces' && value !== null,
+        allowed.has(field) && field !== 'members' && field !== 'interfaces' && value !== null,
     ),
   );
 
@@ -634,10 +637,7 @@ async function validateSnapshot(
       }
 
       const unsupported = Object.keys(hostInterface).filter(
-        (field) =>
-          field !== 'id' &&
-          field !== 'addresses' &&
-          !(PROFILE_HOST_INTERFACE_FIELDS as readonly string[]).includes(field),
+        (field) => !HOST_INTERFACE_FIELDS.has(field),
       );
 
       if (unsupported.length > 0) {
@@ -693,7 +693,7 @@ async function validateSnapshot(
             ? memberType === REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY
             : !service);
 
-      if (!accepted || !REFERENCE_TYPES.includes(memberType)) {
+      if (!accepted || !REFERENCE_TYPES.has(memberType)) {
         return `${path}.members[${index}] contains unsupported dependency type ${memberType}.`;
       }
 
