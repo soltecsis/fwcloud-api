@@ -161,6 +161,9 @@ export type CrowdSecFirewallBouncerStatisticsSamples = {
 export type CrowdSecMachineInstall = {
   machineName: string;
   lapiUrl: string;
+  localRemediation?: boolean;
+  backend?: CrowdSecFirewallBackend;
+  bouncerApiKey?: string;
   continueWithoutLapiConnectivity?: boolean;
 };
 

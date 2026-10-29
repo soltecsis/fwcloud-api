@@ -76,6 +76,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   let managePolicyStub: sinon.SinonStub;
   let saveLapiInstallationStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
+  let saveExternalMachineInstallationStub: sinon.SinonStub;
   let removeInstallationStub: sinon.SinonStub;
   let findInstallationStub: sinon.SinonStub;
   let findCentralCandidatesStub: sinon.SinonStub;
@@ -135,6 +136,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .resolves(new CrowdSecInstallation());
     saveMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveMachineInstallation')
+      .resolves(new CrowdSecInstallation());
+    saveExternalMachineInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveExternalMachineInstallation')
       .resolves(new CrowdSecInstallation());
     removeInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'removeByFirewallId')
@@ -1151,6 +1155,60 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(installedFirewall.options & FireWallOptMask.CROWDSEC_COMPAT).to.equal(
       FireWallOptMask.CROWDSEC_COMPAT,
     );
+  });
+
+  it('should configure a Machine directly against an external LAPI', async () => {
+    const channel = new Channel('crowdsec-external-machine', new EventEmitter());
+    const installStub = sinon.stub(communication, 'installCrowdSecMachine').resolves({
+      machine_name: 'external-machine',
+      state: 'pending',
+      installation_state: 'pending_validation',
+      bouncer_configured: true,
+    });
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('nftables');
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+
+    const response = await controller.installMachine({
+      body: {
+        machineName: 'external-machine',
+        lapiUrl: 'https://192.0.2.20:8080',
+        localRemediation: true,
+        bouncerApiKey: 'external-bouncer-key',
+      },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(
+      installStub.calledOnceWithExactly(
+        {
+          machineName: 'external-machine',
+          lapiUrl: 'https://192.0.2.20:8080',
+          localRemediation: true,
+          backend: 'nftables',
+          bouncerApiKey: 'external-bouncer-key',
+        },
+        channel,
+      ),
+    ).to.be.true;
+    expect(
+      saveExternalMachineInstallationStub.calledOnceWithExactly({
+        firewallId: fwcProduct.firewall.id,
+        lapiUrl: 'https://192.0.2.20:8080',
+        machineName: 'external-machine',
+        localRemediation: true,
+        machineConnectivityPending: false,
+      }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      machine: {
+        machine_name: 'external-machine',
+        state: 'pending',
+        installation_state: 'pending_validation',
+        bouncer_configured: true,
+      },
+      external_lapi: true,
+    });
+    expect(JSON.stringify(response.toJSON())).to.not.contain('external-bouncer-key');
   });
 
   it('should require confirmation without persisting an unreachable CrowdSec Machine', async () => {

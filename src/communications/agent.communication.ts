@@ -1601,6 +1601,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           mode: 'machine',
           machine_name: installation.machineName,
           lapi_url: installation.lapiUrl,
+          ...(installation.localRemediation === undefined
+            ? {}
+            : { local_remediation: installation.localRemediation }),
+          ...(installation.backend === undefined ? {} : { backend: installation.backend }),
+          ...(installation.bouncerApiKey === undefined
+            ? {}
+            : { bouncer_api_key: installation.bouncerApiKey }),
           ...(installation.continueWithoutLapiConnectivity === true
             ? { continue_without_lapi_connectivity: true }
             : {}),
