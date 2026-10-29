@@ -169,10 +169,9 @@ describe(KeepalivedRuleService.name, () => {
       const resolver = sinon
         .stub<any, any>(service as any, 'resolveFirewallsForQuery')
         .resolves({ queryFirewallIds: [10], targetFirewallId: 10 });
-      const compilerSql = sinon
-        .stub<any, any>(service as any, 'buildKeepalivedRulesCompilerSql')
+      const itemsSql = sinon
+        .stub<any, any>(service as any, 'getKeepalivedRuleItemsSql')
         .returns([]);
-      const gridSql = sinon.stub<any, any>(service as any, 'getKeepalivedRulesGridSql').returns([]);
       repositoryStub.resolves([
         Object.assign(new KeepalivedRule(), { id: 1, firewallApplyToId: null }),
         Object.assign(new KeepalivedRule(), { id: 2, firewallApplyToId: 10 }),
@@ -185,8 +184,7 @@ describe(KeepalivedRuleService.name, () => {
         expect(editable.map((rule) => rule.id)).to.deep.equal([1, 2, 3]);
       } finally {
         resolver.restore();
-        compilerSql.restore();
-        gridSql.restore();
+        itemsSql.restore();
       }
     });
 
@@ -206,8 +204,8 @@ describe(KeepalivedRuleService.name, () => {
       repositoryStub = sinon
         .stub(service['_repository'], 'getKeepalivedRules')
         .resolves(rulesForCluster);
-      const gridSqlStub = sinon
-        .stub<any, any>(service as any, 'getKeepalivedRulesGridSql')
+      const itemsSqlStub = sinon
+        .stub<any, any>(service as any, 'getKeepalivedRuleItemsSql')
         .returns([]);
 
       const result = await service.getKeepalivedRulesData('keepalived_grid', fwcloud, 11);
@@ -216,7 +214,7 @@ describe(KeepalivedRuleService.name, () => {
       expect(result.map((rule) => rule.id)).to.deep.equal([1, 2]);
 
       resolverStub.restore();
-      gridSqlStub.restore();
+      itemsSqlStub.restore();
     });
   });
 
@@ -719,6 +717,78 @@ describe(KeepalivedRuleService.name, () => {
       expect(keepalivedRule.firewallApplyToId).to.equal(firewall.id);
     });
 
+    it('should preserve omitted dependencies and clear optional dependencies with null or empty input', async () => {
+      const iface = { id: 42 } as Interface;
+      for (const value of [null, '']) {
+        keepalivedRule.interface = iface;
+        keepalivedRule.interfaceId = iface.id;
+        keepalivedRule.masterNode = firewall;
+        keepalivedRule.masterNodeId = firewall.id;
+
+        await service.update(keepalivedRule.id, {});
+        expect(keepalivedRule.interface).to.equal(iface);
+        expect(keepalivedRule.masterNode).to.equal(firewall);
+
+        await service.update(keepalivedRule.id, {
+          interfaceId: value,
+          masterNodeId: value,
+        } as unknown as ICreateKeepalivedRule);
+        expect(keepalivedRule.interface).to.equal(null);
+        expect(keepalivedRule.interfaceId).to.equal(null);
+        expect(keepalivedRule.masterNode).to.equal(null);
+        expect(keepalivedRule.masterNodeId).to.equal(null);
+      }
+    });
+
+    it('should clear either apply-to alias when explicitly empty and preserve it when omitted', async () => {
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+      for (const key of ['firewallApplyToId', 'fw_apply_to']) {
+        for (const value of [null, undefined, '']) {
+          keepalivedRule.firewallApplyTo = firewall;
+          keepalivedRule.firewallApplyToId = firewall.id;
+          await service.update(keepalivedRule.id, {});
+          expect(keepalivedRule.firewallApplyToId).to.equal(firewall.id);
+
+          await service.update(keepalivedRule.id, { [key]: value });
+          expect(keepalivedRule.firewallApplyTo).to.equal(null);
+          expect(keepalivedRule.firewallApplyToId).to.equal(null);
+        }
+      }
+      sinon.assert.notCalled(validateStub);
+    });
+
+    it('should validate both apply-to aliases in order before the legacy alias takes precedence', async () => {
+      const other = await manager.getRepository(Firewall).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwCloud.id,
+      });
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+
+      await service.update(keepalivedRule.id, {
+        firewallApplyToId: firewall.id,
+        fw_apply_to: other.id,
+      });
+
+      expect(validateStub.args).to.deep.equal([
+        [firewall, firewall.id],
+        [firewall, other.id],
+      ]);
+      expect(keepalivedRule.firewallApplyToId).to.equal(other.id);
+    });
+
+    it('should reject an empty required firewall before saving the rule', async () => {
+      for (const firewallId of [null, '']) {
+        await expect(
+          service.update(keepalivedRule.id, { firewallId } as unknown as ICreateKeepalivedRule),
+        ).to.be.rejectedWith(ValidationException);
+      }
+      sinon.assert.notCalled(saveStub);
+    });
+
     it('should throw when firewall apply to validation fails', async () => {
       const anotherFirewall = await manager.getRepository(Firewall).save(
         manager.getRepository(Firewall).create({
@@ -752,6 +822,34 @@ describe(KeepalivedRuleService.name, () => {
   });
 
   describe('bulkUpdate', () => {
+    it('should normalize either apply-to alias and give firewallApplyToId precedence in bulk updates', async () => {
+      sinon.stub(service['_repository'], 'findOne').resolves({
+        firewall,
+      } as KeepalivedRule);
+      const updateStub = sinon.stub(service['_repository'], 'update').resolves();
+      sinon.stub(service['_repository'], 'find').resolves([keepalivedRule]);
+      const validateStub = sinon
+        .stub<any, any>(service as any, 'validateFirewallApplyTo')
+        .resolves();
+
+      for (const [input, expected] of [
+        [{ firewallApplyToId: String(firewall.id) }, firewall.id],
+        [{ fw_apply_to: String(firewall.id) }, firewall.id],
+        [{ firewallApplyToId: String(firewall.id), fw_apply_to: -1 }, firewall.id],
+        [{ firewallApplyToId: null, fw_apply_to: firewall.id }, null],
+        [{ firewallApplyToId: undefined, fw_apply_to: firewall.id }, null],
+        [{ fw_apply_to: '' }, null],
+      ] as const) {
+        const data = { ...input } as unknown as ICreateKeepalivedRule;
+
+        await service.bulkUpdate([keepalivedRule.id], data);
+
+        expect(updateStub.lastCall.args[1]).to.deep.equal({ fw_apply_to: expected });
+        expect(validateStub.lastCall.args).to.deep.equal([firewall, expected]);
+        expect(data).to.deep.equal({ fw_apply_to: expected });
+      }
+    });
+
     it('should update firewall apply to across multiple rules', async () => {
       const ids = [keepalivedRule.id];
 
