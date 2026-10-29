@@ -335,7 +335,6 @@ interface FirewallRow {
 interface InterfaceRow {
   id: number;
   name: string;
-  mac: string | null;
   firewall: number | null;
 }
 
@@ -536,6 +535,13 @@ export class PolicyReplicationService extends Service {
         (error) => `${error.path}: ${error.message}`,
       ),
     );
+    const validateNodeRole = (nodeRole: unknown, label: string): void => {
+      if (nodeRole !== undefined && !asReplicationProfileNonEmptyString(nodeRole)) {
+        result.errors.push(
+          `${label}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
+        );
+      }
+    };
     for (const [index, rule] of provision.rules.entries()) {
       for (const error of getPolicyRuleValidityErrors(rule)) {
         result.errors.push(`Rule ${index + 1}: ${error.message}`);
@@ -547,18 +553,10 @@ export class PolicyReplicationService extends Service {
       if (error) {
         result.errors.push(`Rule ${index + 1}: ${error}`);
       }
-      if (rule.nodeRole !== undefined && !asReplicationProfileNonEmptyString(rule.nodeRole)) {
-        result.errors.push(
-          `Rule ${index + 1}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
-        );
-      }
+      validateNodeRole(rule.nodeRole, `Rule ${index + 1}`);
     }
     for (const [index, entry] of provision.system.keepalived.entries()) {
-      if (entry.nodeRole !== undefined && !asReplicationProfileNonEmptyString(entry.nodeRole)) {
-        result.errors.push(
-          `Keepalived ${index + 1}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
-        );
-      }
+      validateNodeRole(entry.nodeRole, `Keepalived ${index + 1}`);
     }
     if (result.errors.length > 0) {
       return result;
@@ -746,10 +744,15 @@ export class PolicyReplicationService extends Service {
   ): Promise<void> {
     if (!provision.system.keepalived.some((entry) => entry.rule_type !== 2)) return;
     const nodes = await this.loadClusterNodeIds(firewallId);
+    const interfacesByRole = new Map<string, PolicyReplicationProvisionInterface>();
+    for (const iface of provision.interfaces) {
+      // Match the first declaration, as Array.find did for a duplicated role.
+      if (!interfacesByRole.has(iface.role)) interfacesByRole.set(iface.role, iface);
+    }
     for (const [index, entry] of provision.system.keepalived.entries()) {
       if (entry.rule_type === 2) continue;
       const label = `Keepalived ${index + 1}${entry.comment ? ` (${entry.comment})` : ''}`;
-      const declared = provision.interfaces.find((iface) => iface.role === entry.interfaceRole);
+      const declared = interfacesByRole.get(entry.interfaceRole);
       if (!declared) {
         result.errors.push(
           `${label}: interface role "${entry.interfaceRole ?? '(missing)'}" is not declared.`,
@@ -2449,7 +2452,7 @@ export class PolicyReplicationService extends Service {
         step = `${label}, interface role "${entry.interfaceRole}" (ID ${interfaceId})`;
         if (!isDryRun) {
           const [iface] = await dbQuery<InterfaceRow>(
-            'SELECT id, name, mac, firewall FROM interface WHERE id = ? AND firewall = ?',
+            'SELECT id, name, firewall FROM interface WHERE id = ? AND firewall = ?',
             [interfaceId, firewallId],
           );
           if (iface) step += ` ("${iface.name}")`;
@@ -2838,7 +2841,7 @@ export class PolicyReplicationService extends Service {
   private async loadFirewallInterfaces(firewallId: number): Promise<Map<number, InterfaceRow>> {
     const map = new Map<number, InterfaceRow>();
     for (const row of await dbQuery<InterfaceRow>(
-      'SELECT id, name, mac, firewall FROM interface WHERE firewall = ?',
+      'SELECT id, name, firewall FROM interface WHERE firewall = ?',
       [firewallId],
     )) {
       map.set(row.id, row);
