@@ -35,9 +35,10 @@ import {
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
 
 export class CrowdSecClusterMachineInstallDto {
+  @IsOptional()
   @IsInt()
   @Min(1)
-  centralFirewallId: number;
+  centralFirewallId?: number;
 
   @IsString()
   @Length(1, 256)

@@ -44,9 +44,7 @@ export class CrowdSecTransitionDto {
   @IsBoolean()
   localRemediation: boolean;
 
-  @ValidateIf(
-    (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
-  )
+  @IsOptional()
   @IsInt()
   @Min(1)
   centralFirewallId?: number;
