@@ -587,12 +587,18 @@ async function validateSnapshot(
     ),
   );
 
-  // Continents are stored as groups, but their type is accepted by the general object schema.
-  await ipobjSchema.validate({
-    method: 'PUT',
-    url: group && type !== REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT ? '/ipobj/group' : '/ipobj',
-    body: { ...columns, id: 1, fwcloud: fwCloudId },
-  });
+  // Keep the native validator's explanation together with the offending dependency's identity.
+  // In a service group a bare Joi error otherwise names only a port field, losing the service.
+  try {
+    // Continents are stored as groups, but their type is accepted by the general object schema.
+    await ipobjSchema.validate({
+      method: 'PUT',
+      url: group && type !== REPLICATION_PROFILE_IPOBJ_TYPE_CONTINENT ? '/ipobj/group' : '/ipobj',
+      body: { ...columns, id: 1, fwcloud: fwCloudId },
+    });
+  } catch (error) {
+    return `${path} (${JSON.stringify(data.name)}): ${describeReplicationProfileError(error)}`;
+  }
 
   if (
     type === REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK &&
@@ -694,7 +700,7 @@ async function validateSnapshot(
             : !service);
 
       if (!accepted || !REFERENCE_TYPES.has(memberType)) {
-        return `${path}.members[${index}] contains unsupported dependency type ${memberType}.`;
+        return `${path}.members[${index}] (${JSON.stringify(memberData.name)}) contains unsupported dependency type ${memberType}.`;
       }
 
       const invalid = await validateSnapshot(
