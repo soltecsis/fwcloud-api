@@ -815,8 +815,7 @@ export class ReplicationProfileSnapshotService extends Service {
             !this.isUntouchedDefaultRule(rule, policy, refsOf(rule.id), loopbackInterfaceIds),
         ),
     );
-    const customizedTypes = new Set(customizedPolicies.map((policy) => policy.typeId));
-    const candidateRules = nonSpecialRules.filter((rule) => customizedTypes.has(Number(rule.type)));
+    const candidateRules = customizedPolicies.flatMap((policy) => rulesByType.get(policy.typeId)!);
     const lookup = await this.loadObjectLookup(
       candidateRules.flatMap((rule) => ipObjRefs.get(rule.id) ?? []),
     );
@@ -1300,7 +1299,7 @@ export class ReplicationProfileSnapshotService extends Service {
           );
           const gateway = route.gateway
             ? this.captureObjects([{ ipobj: route.gateway }], roleByInterfaceId, lookup, values)
-            : { value: [] };
+            : { value: [] as SnapshotProvisionObject[] };
           const interfaceRole = route.interface
             ? roleByInterfaceId.get(route.interface)
             : undefined;
@@ -1308,25 +1307,21 @@ export class ReplicationProfileSnapshotService extends Service {
             entrySkipReason(route, 'route') ??
             (routeRefs.unsupported.has(route.id)
               ? 'VPN references cannot be templated yet.'
-              : 'reason' in destination
-                ? destination.reason
-                : 'reason' in gateway
-                  ? gateway.reason
-                  : route.interface && !interfaceRole
-                    ? 'it references an interface of another firewall.'
-                    : null);
+              : (captureFailure([destination, gateway])?.reason ??
+                (route.interface && !interfaceRole
+                  ? 'it references an interface of another firewall.'
+                  : null)));
 
           if (reason) {
             warnings.push(`${label} was not captured: ${reason}`);
             return [];
           }
 
+          const [gatewayObject] = capturedValue(gateway);
           return [
             {
-              destination: (destination as { value: SnapshotProvisionObject[] }).value,
-              ...((gateway as { value: SnapshotProvisionObject[] }).value[0]
-                ? { gateway: (gateway as { value: SnapshotProvisionObject[] }).value[0] }
-                : {}),
+              destination: capturedValue(destination),
+              ...(gatewayObject ? { gateway: gatewayObject } : {}),
               ...(interfaceRole ? { interfaceRole } : {}),
               ...(route.comment ? { comment: route.comment } : {}),
             },
@@ -1346,9 +1341,7 @@ export class ReplicationProfileSnapshotService extends Service {
         entrySkipReason(rule, 'rule') ??
         (ruleRefs.unsupported.has(rule.id)
           ? 'VPN and mark references cannot be templated yet.'
-          : 'reason' in from
-            ? from.reason
-            : null);
+          : captureFailure([from])?.reason);
 
       if (reason) {
         warnings.push(`${label} was not captured: ${reason}`);
@@ -1357,7 +1350,7 @@ export class ReplicationProfileSnapshotService extends Service {
 
       return [
         {
-          from: (from as { value: SnapshotProvisionObject[] }).value,
+          from: capturedValue(from),
           table: keyOf(rule.routing_table),
           ...(rule.comment ? { comment: rule.comment } : {}),
         },
@@ -1642,11 +1635,13 @@ export class ReplicationProfileSnapshotService extends Service {
 
     [...objects, ...groups]
       .sort((a, b) => a.order - b.order)
-      .forEach((row) => {
-        const list = refs.get(row.owner) ?? [];
-        list.push('ipobj_g' in row ? { ipobj_g: row.ipobj_g } : { ipobj: row.ipobj });
-        refs.set(row.owner, list);
-      });
+      .forEach((row) =>
+        addToList(
+          refs,
+          row.owner,
+          'ipobj_g' in row ? { ipobj_g: row.ipobj_g } : { ipobj: row.ipobj },
+        ),
+      );
 
     unsupportedRows.flat().forEach((row) => unsupported.add(row.owner));
 
