@@ -8,10 +8,10 @@ export function convertProfileProvisionTarget(
 ): { provision: PolicyReplicationProvision | null; warnings: string[] } {
   if (!provision || targetKind === 'cluster') return { provision, warnings: [] };
 
-  const policyRestricted = provision.rules.filter((entry) => entry.nodeRole !== undefined).length;
-  const keepalivedRestricted = provision.system.keepalived.filter(
-    (entry) => entry.nodeRole !== undefined,
-  ).length;
+  const countRestricted = (entries: { nodeRole?: string }[]) =>
+    entries.reduce((count, entry) => count + Number(entry.nodeRole !== undefined), 0);
+  const policyRestricted = countRestricted(provision.rules);
+  const keepalivedRestricted = countRestricted(provision.system.keepalived);
   const warnings: string[] = [];
   if (policyRestricted || keepalivedRestricted) {
     warnings.push(

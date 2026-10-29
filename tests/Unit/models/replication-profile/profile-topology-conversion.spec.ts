@@ -68,6 +68,18 @@ describe('Profile native topology conversion', () => {
     });
   });
 
+  it('retains the original plan when only the Keepalived retention warning is needed', () => {
+    const provision = getProfileProvisioning(model());
+    for (const rule of [...provision.rules, ...provision.system.keepalived]) delete rule.nodeRole;
+
+    const result = convertProfileProvisionTarget(provision, 'firewall');
+
+    expect(result.provision).to.equal(provision);
+    expect(result.warnings).to.deep.equal([
+      'Keepalived: 2 configuration(s) will be retained on the standalone firewall. In FWCloud, their policy can be managed after converting the firewall to a cluster.',
+    ]);
+  });
+
   it('supports both kinds for historical declarative single-kind templates', async () => {
     const service = await testSuite.app.getService<ReplicationProfileService>(
       ReplicationProfileService.name,
