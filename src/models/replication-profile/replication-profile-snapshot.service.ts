@@ -21,8 +21,7 @@
 */
 
 import * as ipaddr from 'ipaddr.js';
-import { profileHAProxyErrors } from './replication-profile-haproxy';
-import { profileKeepalivedErrors } from './replication-profile-keepalived';
+import { profileSystemRuleErrors } from './replication-profile-system-rule';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
@@ -105,6 +104,27 @@ function entrySkipReason(
     : null;
 }
 
+/** Normalize database fields and validate both native system-rule formats before capture. */
+function captureSystemRuleSettings(row: SnapshotSystemRuleRow, service: 'HAProxy' | 'Keepalived') {
+  const settings = {
+    rule_type: row.rule_type,
+    ...(row.rule_type === 2 ? { cfg_text: row.cfg_text } : {}),
+    active: !!row.active,
+    ...(row.style !== null ? { style: row.style } : {}),
+  };
+  const errors = profileSystemRuleErrors(settings, service);
+  if (service === 'HAProxy' && row.rule_type === 2 && row.fw_apply_to) {
+    errors.push('node-restricted manual configurations are unsupported.');
+  }
+  if (errors.length) {
+    throw new HttpException(
+      `${service} rule ${row.rule_order} (ID ${row.id}) cannot be captured: ${errors.join(' ')}`,
+      422,
+    );
+  }
+  return settings;
+}
+
 /**
  * FWCloud stores an object's netmask as '/24' or as '255.255.255.0' (the interface the OpenVPN
  * server creates uses the latter); profile values are CIDR. A mask that isn't a valid one is kept
@@ -161,6 +181,17 @@ interface SnapshotInterfaceRow {
   id: number;
   name: string;
   labelName: string | null;
+}
+
+interface SnapshotSystemRuleRow {
+  id: number;
+  rule_type: number;
+  cfg_text: string | null;
+  style: string | null;
+  rule_order: number;
+  active: number;
+  comment: string | null;
+  fw_apply_to: number | null;
 }
 
 interface SnapshotRuleRow {
@@ -1361,34 +1392,17 @@ export class ReplicationProfileSnapshotService extends Service {
         'SELECT id, rule_type, rule_order, active, network, `range`, router, max_lease, comment, fw_apply_to FROM dhcp_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
-      dbQuery<{
-        id: number;
-        rule_type: number;
-        cfg_text: string | null;
-        style: string | null;
-        rule_order: number;
-        active: number;
-        interface: number | null;
-        master_node: number | null;
-        comment: string | null;
-        fw_apply_to: number | null;
-      }>(
+      dbQuery<SnapshotSystemRuleRow & { interface: number | null; master_node: number | null }>(
         'SELECT id, rule_type, cfg_text, style, rule_order, active, interface, master_node, comment, fw_apply_to FROM keepalived_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
-      dbQuery<{
-        id: number;
-        rule_type: number;
-        cfg_text: string | null;
-        style: string | null;
-        rule_order: number;
-        active: number;
-        frontend_ip: number | null;
-        frontend_port: number | null;
-        backend_port: number | null;
-        comment: string | null;
-        fw_apply_to: number | null;
-      }>(
+      dbQuery<
+        SnapshotSystemRuleRow & {
+          frontend_ip: number | null;
+          frontend_port: number | null;
+          backend_port: number | null;
+        }
+      >(
         'SELECT id, rule_type, cfg_text, style, rule_order, active, frontend_ip, frontend_port, backend_port, comment, fw_apply_to FROM haproxy_r WHERE firewall = ? ORDER BY rule_order',
         [firewall.id],
       ),
@@ -1505,19 +1519,7 @@ export class ReplicationProfileSnapshotService extends Service {
       }),
       keepalived: keepalived.flatMap((row) => {
         const label = `Keepalived rule ${row.rule_order}`;
-        const settings = {
-          rule_type: row.rule_type,
-          ...(row.rule_type === 2 ? { cfg_text: row.cfg_text } : {}),
-          active: !!row.active,
-          ...(row.style !== null ? { style: row.style } : {}),
-        };
-        const errors = profileKeepalivedErrors(settings);
-        if (errors.length) {
-          throw new HttpException(
-            `${label} (ID ${row.id}) cannot be captured: ${errors.join(' ')}`,
-            422,
-          );
-        }
+        const settings = captureSystemRuleSettings(row, 'Keepalived');
         // "Apply to" travels as the node's role, as for policy rules; it is never widened.
         const nodeRole = row.fw_apply_to === null ? undefined : nodeRoleById.get(row.fw_apply_to);
         if (row.fw_apply_to !== null && !nodeRole) {
@@ -1565,22 +1567,7 @@ export class ReplicationProfileSnapshotService extends Service {
       }),
       haproxy: haproxy.flatMap((row) => {
         const label = `HAProxy rule ${row.rule_order}`;
-        const settings = {
-          rule_type: row.rule_type,
-          ...(row.rule_type === 2 ? { cfg_text: row.cfg_text } : {}),
-          active: !!row.active,
-          ...(row.style !== null ? { style: row.style } : {}),
-        };
-        const errors = profileHAProxyErrors(settings);
-        if (row.rule_type === 2 && row.fw_apply_to) {
-          errors.push('node-restricted manual configurations are unsupported.');
-        }
-        if (errors.length) {
-          throw new HttpException(
-            `${label} (ID ${row.id}) cannot be captured: ${errors.join(' ')}`,
-            422,
-          );
-        }
+        const settings = captureSystemRuleSettings(row, 'HAProxy');
         if (row.rule_type === 2) {
           return [{ ...settings, ...(row.comment !== null ? { comment: row.comment } : {}) }];
         }
