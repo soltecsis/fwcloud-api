@@ -1104,9 +1104,9 @@ export class ReplicationProfileService extends Service {
     targetKind: ReplicationProfileTargetKind,
     model: ReplicationProfileModel | null,
   ): boolean {
+    if (!REPLICATION_PROFILE_TARGET_KINDS.includes(targetKind)) return false;
     return (
-      (REPLICATION_PROFILE_TARGET_KINDS.includes(targetKind) &&
-        getProfileProvisioning(model) !== null) ||
+      getProfileProvisioning(model) !== null ||
       normalizeReplicationProfileTargetKinds(profile.targetKind).includes(targetKind) ||
       getReplicationProfileModelTargetKinds(model).includes(targetKind)
     );
