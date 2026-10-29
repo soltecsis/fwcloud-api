@@ -31,6 +31,8 @@ import { ReplicationProfile } from '../../../../src/models/replication-profile/r
 import { resolveReplicationProfileTemplatePath } from '../../../../src/models/replication-profile/replication-profile-template';
 import StringHelper from '../../../../src/utils/string.helper';
 import * as fs from 'fs';
+import * as vpnConfigs from '../../../../src/models/replication-profile/profile-vpn-config-provisioning.service';
+import { ProfileVpnRollback } from '../../../../src/models/replication-profile/profile-vpn-rollback';
 
 describe(describeName('ProfileApplicationService Unit Tests'), () => {
   let app: Application;
@@ -283,6 +285,67 @@ describe(describeName('ProfileApplicationService Unit Tests'), () => {
       expect(data.status).to.be.eq('success');
       expect(data.applied).to.be.false;
     });
+  });
+
+  describe('VPN endpoints using selected interface addresses', () => {
+    const selected = (value: string, useSelectedConfiguration = true) => ({
+      value,
+      useSelectedConfiguration,
+    });
+    for (const scenario of [
+      { addresses: [], endpoint: '203.0.113.100:51820' },
+      {
+        addresses: [selected('192.0.2.1/24', false), selected('2001:db8::1/64')],
+        endpoint: '[2001:db8::1]:51820',
+      },
+      {
+        addresses: [selected('invalid'), selected('2001:db8::1/64'), selected('2001:db8::2/64')],
+        endpoint: '[2001:db8::1]:51820',
+      },
+      {
+        addresses: [selected('2001:db8::1/64'), selected('192.0.2.1/24'), selected('192.0.2.2/24')],
+        endpoint: '192.0.2.1:51820',
+      },
+    ]) {
+      it(`should resolve ${scenario.endpoint} without changing address preference`, async () => {
+        const sandbox = sinon.createSandbox();
+        try {
+          sandbox.stub(service as any, 'vpnFirewallIdOf').resolves(fwc.firewall.id);
+          sandbox
+            .stub(vpnConfigs, 'loadInterfaceRoleAddresses')
+            .resolves(new Map([['wan', '203.0.113.100']]));
+          const provisionConfigs = sandbox
+            .stub(vpnConfigs, 'provisionVpnTemplateConfigs')
+            .resolves(new Map());
+          const model = {
+            vpnTemplate: {
+              connections: [
+                {
+                  id: 'client',
+                  kind: 'wireguard',
+                  role: 'client',
+                  name: 'Client',
+                  options: [
+                    { name: 'Endpoint', arg: 'eth0:51820', scope: 5, interfaceRole: 'wan' },
+                  ],
+                },
+              ],
+            },
+          };
+          const result = await (service as any).provisionVpnResources(
+            { fwCloudId: fwc.fwcloud.id, replication: { mode: 'merge' } },
+            model,
+            null,
+            new ProfileVpnRollback(),
+            { interfaces: [{ role: 'wan', addresses: scenario.addresses }] },
+          );
+          expect(result.errors).to.be.empty;
+          expect(provisionConfigs.firstCall.args[3][0].options[0].arg).to.eq(scenario.endpoint);
+        } finally {
+          sandbox.restore();
+        }
+      });
+    }
   });
 
   describe('declarative topology conversion', () => {

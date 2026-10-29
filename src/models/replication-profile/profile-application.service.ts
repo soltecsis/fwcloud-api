@@ -578,12 +578,15 @@ export class ProfileApplicationService extends Service {
         )
       : new Map<string, string>();
     for (const iface of provision?.interfaces ?? []) {
-      const selectedAddresses = iface.addresses
-        .filter((address) => address.useSelectedConfiguration)
-        .map((address) => parseReplicationProfileAddress(address.value))
-        .filter((address) => address !== null);
-      const selected =
-        selectedAddresses.find((address) => address.ipVersion === 4) ?? selectedAddresses[0];
+      let selected: ReturnType<typeof parseReplicationProfileAddress> = null;
+      for (const address of iface.addresses) {
+        if (!address.useSelectedConfiguration) continue;
+        const parsed = parseReplicationProfileAddress(address.value);
+        if (!parsed) continue;
+        if (!selected || parsed.ipVersion === 4) selected = parsed;
+        // Prefer the first IPv4 address; otherwise retain the first valid address.
+        if (parsed.ipVersion === 4) break;
+      }
       if (selected) {
         interfaceAddresses.set(iface.role, selected.address);
       }
