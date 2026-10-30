@@ -141,6 +141,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/machines/install': {
     audited: true,
   },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/lapi/connectivity': {
+    audited: true,
+  },
   'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/install': {
     audited: true,
   },

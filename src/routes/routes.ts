@@ -883,6 +883,9 @@ export class Routes extends RouteCollection {
               .get('/blocking-statistics', CrowdSecClusterController, 'blockingStatistics')
               .name('fwclouds.clusters.system.crowdsec.blockingStatistics.index');
             router
+              .post('/lapi/connectivity', CrowdSecClusterController, 'checkLapiConnectivity')
+              .name('fwclouds.clusters.system.crowdsec.lapi.connectivity');
+            router
               .post('/machines/install', CrowdSecClusterController, 'installMachine')
               .name('fwclouds.clusters.system.crowdsec.machines.install');
             router

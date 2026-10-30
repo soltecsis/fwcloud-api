@@ -41,6 +41,7 @@ import db from '../../../database/database-manager';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.dto';
+import { CrowdSecClusterLapiConnectivityDto } from './dto/cluster-lapi-connectivity.dto';
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import {
@@ -90,6 +91,7 @@ type ClusterMachineNodeResult = {
   firewall_id: number;
   name: string;
   machine_name: string;
+  machine?: Record<string, unknown>;
   status:
     | 'completed'
     | 'connectivity_confirmation_required'
@@ -153,6 +155,16 @@ export class CrowdSecClusterController extends Controller {
   @Validate(CrowdSecClusterMachineInstallDto)
   public async installMachine(req: Request): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
+
+    if (req.body.centralFirewallId === undefined) {
+      return this.installExternalMachines(req, nodes);
+    }
+    if (req.body.bouncerApiKey !== undefined) {
+      throw new HttpException(
+        'CrowdSec Firewall Bouncer API key is only supported with an external Local API',
+        422,
+      );
+    }
 
     const lapiService = this.lapiService();
     const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
@@ -422,6 +434,35 @@ export class CrowdSecClusterController extends Controller {
           : [],
         nodes: results,
       });
+  }
+
+  @Validate(CrowdSecClusterLapiConnectivityDto)
+  public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
+    const nodes = await this.getAuthorizedNodes(req);
+    const results = [];
+
+    for (const node of nodes) {
+      try {
+        const connectivity = await (
+          await CrowdSecLapiSharedService.agentCommunication(node, false)
+        ).checkCrowdSecLapiConnectivity(req.body.lapiUrl);
+        results.push({
+          firewall_id: node.id,
+          name: node.name,
+          ...connectivity,
+        });
+      } catch (error) {
+        results.push({
+          firewall_id: node.id,
+          name: node.name,
+          reachable: false,
+          error_code: 'FWCLOUD_AGENT_UNREACHABLE',
+          message: error instanceof Error ? error.message : 'FWCloud Agent is unavailable',
+        });
+      }
+    }
+
+    return ResponseBuilder.buildResponse().status(200).body({ nodes: results });
   }
 
   @Validate(CrowdSecClusterTransitionDto)
@@ -2029,6 +2070,183 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('CrowdSec cluster node initial state was not captured', 500);
     }
     return snapshot;
+  }
+
+  private async installExternalMachines(req: Request, nodes: Firewall[]): Promise<ResponseBuilder> {
+    const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
+    if (req.body.localRemediation && providedBouncerApiKey === undefined) {
+      throw new HttpException(
+        'CrowdSec Firewall Bouncer API key is required for local remediation',
+        422,
+      );
+    }
+    if (!req.body.localRemediation && providedBouncerApiKey !== undefined) {
+      throw new HttpException(
+        'CrowdSec Firewall Bouncer API key is only supported with local remediation',
+        422,
+      );
+    }
+
+    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
+    const channel = await Channel.fromRequest(req);
+    channel.emit(
+      'message',
+      new ProgressPayload('start', false, 'Installing CrowdSec Machines in cluster nodes'),
+    );
+    const results: ClusterMachineNodeResult[] = [];
+    const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
+      const machineName = CrowdSecLapiSharedService.machineNameForFirewall(node);
+      channel.emit(
+        'message',
+        new ProgressPayload('info', false, `Installing CrowdSec Machine on node '${node.name}'`),
+      );
+      try {
+        await this.lapiService().assertCanBecomeMachine(node, true);
+        const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
+        const backend =
+          (await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ?? 'iptables';
+        const machine = await communication.installCrowdSecMachine(
+          {
+            machineName,
+            lapiUrl,
+            localRemediation: req.body.localRemediation,
+            backend,
+            ...(providedBouncerApiKey === undefined
+              ? {}
+              : { bouncerApiKey: providedBouncerApiKey }),
+            ...(req.body.continueWithoutLapiConnectivity === true
+              ? { continueWithoutLapiConnectivity: true }
+              : {}),
+          },
+          channel,
+        );
+        if (
+          CrowdSecLapiSharedService.machineInstallationState(machine) ===
+          'connectivity_confirmation_required'
+        ) {
+          results.push({
+            firewall_id: node.id,
+            name: node.name,
+            machine_name: machineName,
+            machine,
+            status: 'connectivity_confirmation_required',
+          });
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'end',
+              false,
+              'CrowdSec Machine installation is awaiting external Local API connectivity confirmation',
+            ),
+          );
+          return false;
+        }
+
+        const pendingConnectivity =
+          CrowdSecLapiSharedService.machineInstallationState(machine) === 'pending_connectivity';
+        await this.persistExternalMachineNode({
+          node,
+          lapiUrl,
+          machineName,
+          localRemediation: req.body.localRemediation,
+          machineConnectivityPending: pendingConnectivity,
+        });
+        results.push({
+          firewall_id: node.id,
+          name: node.name,
+          machine_name: machineName,
+          machine,
+          status: pendingConnectivity ? 'pending_connectivity' : 'completed',
+        });
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            pendingConnectivity ? 'warning' : 'success',
+            false,
+            pendingConnectivity
+              ? `CrowdSec Machine installation on node '${node.name}' is pending external Local API connectivity`
+              : `CrowdSec Machine '${machineName}' on node '${node.name}' must be validated manually in the external Local API`,
+          ),
+        );
+      } catch (error) {
+        results.push({
+          firewall_id: node.id,
+          name: node.name,
+          machine_name: machineName,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'CrowdSec Machine installation failed',
+        });
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'error',
+            false,
+            'CrowdSec Machine installation failed on node ' + node.name,
+          ),
+        );
+      }
+      return true;
+    });
+
+    if (!completedAllNodes) {
+      return ResponseBuilder.buildResponse().status(200).body({
+        completed: false,
+        external_lapi: true,
+        connectivity_confirmation_required: true,
+        nodes: results,
+      });
+    }
+
+    const completed = results.every((result) => result.status === 'completed');
+    const pendingConnectivity = results.some((result) => result.status === 'pending_connectivity');
+    channel.emit(
+      'message',
+      new ProgressPayload(
+        'end',
+        !completed,
+        completed
+          ? 'CrowdSec Machine installation finished on all cluster nodes; validate each Machine manually in the external Local API'
+          : pendingConnectivity
+            ? 'CrowdSec Machine installation is pending external Local API connectivity'
+            : 'CrowdSec Machine installation finished with node failures',
+      ),
+    );
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed,
+        external_lapi: true,
+        ...(pendingConnectivity ? { pending_connectivity: true } : {}),
+        nodes: results,
+      });
+  }
+
+  private async persistExternalMachineNode({
+    node,
+    lapiUrl,
+    machineName,
+    localRemediation,
+    machineConnectivityPending = false,
+  }: {
+    node: Firewall;
+    lapiUrl: string;
+    machineName: string;
+    localRemediation: boolean;
+    machineConnectivityPending?: boolean;
+  }): Promise<void> {
+    await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+      node,
+      localRemediation,
+    );
+    await new CrowdSecInstallationRepository(
+      db.getSource().manager,
+    ).saveExternalMachineInstallation({
+      firewallId: node.id,
+      lapiUrl,
+      machineName,
+      localRemediation,
+      ...(machineConnectivityPending ? { machineConnectivityPending: true } : {}),
+    });
   }
 
   private async persistMachineNode({
