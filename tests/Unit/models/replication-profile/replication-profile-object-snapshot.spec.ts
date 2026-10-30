@@ -325,6 +325,38 @@ describe('Replication profile saved object snapshots', () => {
     });
   }
 
+  it('rejects nested groups because the native group membership model takes objects only', async () => {
+    const error = await validateProfileObjectSnapshot(
+      {
+        type: 20,
+        name: 'OFFICE_NETWORKS',
+        members: [{ type: 20, name: 'NESTED_NETWORKS', members: [address] }],
+      },
+      20,
+      destinationCloud,
+      { checkDestination: false },
+    );
+
+    expect(error).to.include('snapshot.members[0]');
+    expect(error).to.include('NESTED_NETWORKS');
+    expect(error).to.include('unsupported dependency type 20');
+    expectReadOnlyQueries();
+  });
+
+  it('safely rejects a circular group member without recursing or writing objects', async () => {
+    const group = { type: 20, name: 'CIRCULAR_NETWORKS', members: [] as any[] };
+    group.members.push(group);
+
+    const error = await validateProfileObjectSnapshot(group, 20, destinationCloud, {
+      checkDestination: false,
+    });
+
+    expect(error).to.include('snapshot.members[0]');
+    expect(error).to.include('CIRCULAR_NETWORKS');
+    expect(error).to.include('unsupported dependency type 20');
+    expectReadOnlyQueries();
+  });
+
   it('looks up snapshots inside the destination FWCloud and allows shared default objects', async () => {
     expect(await findExistingProfileSnapshot(address, 5, destinationCloud)).to.eq(null);
 

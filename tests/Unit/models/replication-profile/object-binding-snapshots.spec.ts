@@ -155,6 +155,81 @@ describe('ObjectBindingResolver saved external object recreation', () => {
     expect(insertMember.firstCall.args[0].body).to.deep.equal({ ipobj_g: 100201, ipobj: 100101 });
   });
 
+  it('recreates a shared address group only once and replaces every source member ID', async () => {
+    const members = [
+      { ...address, id: 44 },
+      {
+        id: 45,
+        type: 7,
+        name: 'Office LAN',
+        address: '192.0.2.0',
+        netmask: '/24',
+        ip_version: 4,
+      },
+      {
+        id: 46,
+        type: 6,
+        name: 'Office pool',
+        range_start: '198.51.100.10',
+        range_end: '198.51.100.20',
+        ip_version: 4,
+      },
+    ];
+    const group = { type: 20, name: 'OFFICE_NETWORKS', comment: 'Office objects', members };
+    const saved = JSON.stringify(group);
+    const resolver = new ObjectBindingResolver(
+      72,
+      true,
+      new Map([
+        ['source-group', binding(group)],
+        ['destination-group', binding(JSON.parse(saved))],
+      ]),
+    );
+
+    const resolved = await Promise.all([
+      resolver.resolveExternal('source-group'),
+      resolver.resolveExternal('destination-group'),
+      resolver.resolveExternal('source-group'),
+    ]);
+
+    expect(resolved).to.deep.equal(Array(3).fill({ id: 100201, type: 20 }));
+    expect(insertGroup.calledOnce).to.equal(true);
+    expect(insertGroup.firstCall.args[0]).to.deep.equal({
+      type: 20,
+      name: 'OFFICE_NETWORKS',
+      comment: 'Office objects',
+      fwcloud: 72,
+    });
+    expect(insertObject.callCount).to.equal(3);
+    expect(
+      insertObject.getCalls().every((call) => call.calledBefore(insertGroup.firstCall)),
+    ).to.equal(true);
+    expect(insertObject.getCalls().map((call) => call.args[1])).to.deep.equal(
+      members.map(({ id: _sourceId, ...member }) => ({ ...member, fwcloud: 72 })),
+    );
+    expect(insertMember.getCalls().map((call) => call.args[0].body)).to.deep.equal([
+      { ipobj_g: 100201, ipobj: 100101 },
+      { ipobj_g: 100201, ipobj: 100102 },
+      { ipobj_g: 100201, ipobj: 100103 },
+    ]);
+    expect(JSON.stringify(group)).to.equal(saved);
+  });
+
+  it('reuses a compatible destination group without creating or changing its members', async () => {
+    const group = { type: 20, name: 'OFFICE_NETWORKS', members: [{ id: 44, ...address }] };
+    findExisting.resolves({
+      id: 100201,
+      data: { ...group, members: [{ id: 100101, ...address }] },
+    });
+    const resolver = new ObjectBindingResolver(72, true, new Map([['group', binding(group)]]));
+
+    expect(await resolver.resolveExternal('group')).to.deep.equal({ id: 100201, type: 20 });
+    expect(findExisting.firstCall.args).to.deep.equal([group, 20, 72]);
+    expect(insertGroup.called).to.equal(false);
+    expect(insertObject.called).to.equal(false);
+    expect(insertMember.called).to.equal(false);
+  });
+
   it('recreates service groups preserving their port service dependencies', async () => {
     const service = {
       type: 2,
