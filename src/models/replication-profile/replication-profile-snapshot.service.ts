@@ -50,6 +50,7 @@ import {
   getProfileReferenceIpObjType,
   isProfileReferenceGroupType,
   getProfileReferenceObjectType,
+  PROFILE_OBJECT_DATA_FIELD_SET as OBJECT_DATA_FIELDS,
   PROFILE_OBJECT_DATA_FIELDS,
   PROFILE_SERVICE_REFERENCE_TYPES,
   type ReplicationProfileObjectReference,
@@ -69,16 +70,29 @@ import {
 
 /** Filter and NAT policies of both families, in FWCloud tree order, with their positions. */
 const CAPTURED_POLICIES = (['IPv4', 'IPv6'] as const).flatMap((family) =>
-  (['INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'] as const).map((chain) => ({
-    typeId: PolicyTypesMap.get(`${family}:${chain}`)!,
-    chain: chain.toLowerCase() as SnapshotChain,
-    ipVersion: family === 'IPv4' ? 4 : 6,
-    label: `${chain} ${family}`,
-    positions: getProvisionRulePositions(
-      family === 'IPv4' ? 4 : 6,
-      chain.toLowerCase() as SnapshotChain,
-    ),
-  })),
+  (['INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'] as const).map((chain) => {
+    const ipVersion = family === 'IPv4' ? 4 : 6;
+    const ruleChain = chain.toLowerCase() as SnapshotChain;
+    const positions = getProvisionRulePositions(ipVersion, ruleChain);
+
+    return {
+      typeId: PolicyTypesMap.get(`${family}:${chain}`)!,
+      chain: ruleChain,
+      ipVersion,
+      label: `${chain} ${family}`,
+      positions,
+      objectPositions: new Set(
+        [
+          positions.source,
+          positions.destination,
+          positions.service,
+          positions.translatedSource,
+          positions.translatedDestination,
+          positions.translatedService,
+        ].filter((position) => position !== undefined),
+      ),
+    };
+  }),
 );
 
 type SnapshotChain = 'input' | 'output' | 'forward' | 'snat' | 'dnat';
@@ -87,7 +101,6 @@ type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
-const OBJECT_DATA_FIELDS: ReadonlySet<string> = new Set(PROFILE_OBJECT_DATA_FIELDS);
 
 // Predefined service group the default "useful ICMP" INPUT rule allows.
 const DEFAULT_ICMP_SERVICE_GROUP = 5;
@@ -347,7 +360,6 @@ interface SourceSnapshot {
  * while custom groups and services retain their complete configuration through external snapshots.
  */
 class SnapshotValueCollector {
-  private readonly parameters: ReplicationProfileParameter[] = [];
   private readonly byIdentity = new Map<string, ReplicationProfileParameter>();
   private readonly usedNames = new Set<string>();
   private readonly objectReferences = new Map<string, SnapshotObjectReference>();
@@ -474,7 +486,6 @@ class SnapshotValueCollector {
       default: defaultValue,
       ...(ipVersion === undefined ? {} : { ipVersion }),
     };
-    this.parameters.push(parameter);
     this.byIdentity.set(key, parameter);
 
     return { param: name };
@@ -503,7 +514,7 @@ class SnapshotValueCollector {
   }
 
   getParameters(): ReplicationProfileParameter[] {
-    return this.parameters;
+    return Array.from(this.byIdentity.values());
   }
 }
 
@@ -915,18 +926,20 @@ export class ReplicationProfileSnapshotService extends Service {
 
         const provisionRule = capture.value;
         captured.push(nodeRole ? { ...provisionRule, nodeRole } : provisionRule);
-        for (const object of [
-          ...(provisionRule.source ?? []),
-          ...(provisionRule.destination ?? []),
-          ...(provisionRule.translatedSource ?? []),
-          ...(provisionRule.translatedDestination ?? []),
-          ...(provisionRule.services ?? []),
-          ...(provisionRule.translatedService ?? []),
+        for (const objects of [
+          provisionRule.source,
+          provisionRule.destination,
+          provisionRule.translatedSource,
+          provisionRule.translatedDestination,
+          provisionRule.services,
+          provisionRule.translatedService,
         ]) {
-          if (object.kind === 'external' && object.referenceId) {
-            const labels = objectRuleLabels.get(object.referenceId) ?? new Set<string>();
-            labels.add(label);
-            objectRuleLabels.set(object.referenceId, labels);
+          for (const object of objects ?? []) {
+            if (object.kind === 'external' && object.referenceId) {
+              const labels = objectRuleLabels.get(object.referenceId) ?? new Set<string>();
+              labels.add(label);
+              objectRuleLabels.set(object.referenceId, labels);
+            }
           }
         }
       }
@@ -1023,20 +1036,9 @@ export class ReplicationProfileSnapshotService extends Service {
       };
     }
 
-    const known = new Set(
-      [
-        positions.source,
-        positions.destination,
-        positions.service,
-        positions.translatedSource,
-        positions.translatedDestination,
-        positions.translatedService,
-      ].filter((position) => position !== undefined),
-    );
-
     const refsByPosition = new Map<number, SnapshotObjectRef[]>();
     for (const ref of ipObjRefs) {
-      if (!known.has(ref.position)) {
+      if (!policy.objectPositions.has(ref.position)) {
         return {
           reason: 'it references objects in positions the vocabulary cannot express.',
         };

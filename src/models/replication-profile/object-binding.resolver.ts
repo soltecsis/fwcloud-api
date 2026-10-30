@@ -170,11 +170,7 @@ export class ObjectBindingResolver {
   }
 
   resolve(request: ObjectBindingRequest): Promise<ObjectBindingResult> {
-    return this.findOrCreate(
-      this.cacheKey(request),
-      () => this.findExisting(request),
-      () => this.create(request),
-    );
+    return this.resolveObject(this.cacheKey(request), request);
   }
 
   /** Bind a specific declaration to its selected/recreated IP, including per-application overrides. */
@@ -415,15 +411,14 @@ export class ObjectBindingResolver {
   }
 
   /** One lookup per key and run: the object found for it or else the one created. */
-  private async findOrCreate(
+  private async resolveObject(
     key: string,
-    find: () => Promise<ObjectBindingResult | null>,
-    create: () => Promise<ObjectBindingResult>,
+    request: ObjectBindingRequest,
   ): Promise<ObjectBindingResult> {
     let result = this.cache.get(key);
 
     if (!result) {
-      result = (await find()) ?? (await create());
+      result = (await this.findExisting(request)) ?? (await this.create(request));
       this.cache.set(key, result);
     }
 
