@@ -97,6 +97,16 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     return Number(rows[0].total);
   }
 
+  /** The profile applied to the target firewall, as the rule settings tests apply it. */
+  const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
+    service.provisionPolicyFromProfile(
+      { kind: 'firewall', id: targetFirewall.id },
+      provision,
+      fwc.fwcloud.id,
+      mode,
+      applyOptions(values),
+    );
+
   it('should read the parameterized model into the provision vocabulary', () => {
     expect(provision.interfaces).to.have.length(2);
     expect(provision.interfaces[0].addresses).to.have.length(1);
@@ -543,15 +553,6 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
   });
 
   describe('rule validity periods', () => {
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
-
     it('should merge rules with different dates and recognize equivalent instants', async () => {
       expect((await apply()).createdRules).to.have.length(1);
       for (const period of [
@@ -587,15 +588,6 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
   });
 
   describe('native rule options', () => {
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
-
     it('should distinguish options in merge mode and skip only rules with the same behavior', async () => {
       // The original legacy rule has no options field and behaves exactly like explicit zero.
       const legacy = await apply();
@@ -659,15 +651,6 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
         comment,
       }));
     });
-
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
 
     const appliedRules = () =>
       db
@@ -807,15 +790,6 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
   });
 
   describe('position negation', () => {
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
-
     it('should preserve negated positions independently of the other rule positions', async () => {
       provision.rules[0].negate = '25 9 22 7 7';
       provision.rules[0].destination = [{ kind: 'address', value: '203.0.113.10' }];
@@ -1357,7 +1331,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
       );
     }
 
-    const apply = (
+    const applyProvision = (
       applied: PolicyReplicationProvision = provision,
       options: Record<string, unknown> = {},
       mode: 'replace_defaults' | 'dry_run' = 'replace_defaults',
@@ -1373,7 +1347,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should show the address of each created interface without repairing the tree', async () => {
       await createFirewallTree();
 
-      const result = await apply();
+      const result = await applyProvision();
 
       expect(result.applied).to.be.true;
       expect(await shownAddresses()).to.deep.eq({
@@ -1396,7 +1370,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should show every address of an interface that declares several', async () => {
       await createFirewallTree();
 
-      await apply(
+      await applyProvision(
         getProfileProvisioning({
           provision: {
             interfaces: [
@@ -1425,7 +1399,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
       });
       await createFirewallTree();
 
-      await apply(provision, { interfaceNameMapping: { lan: 'eth1' } });
+      await applyProvision(provision, { interfaceNameMapping: { lan: 'eth1' } });
 
       expect(await shownAddresses()).to.deep.eq({
         WAN: ['WAN-ip (198.51.100.10)'],
@@ -1436,8 +1410,8 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should not show an address twice when the profile is applied again', async () => {
       await createFirewallTree();
 
-      await apply();
-      await apply();
+      await applyProvision();
+      await applyProvision();
 
       expect(await shownAddresses()).to.deep.eq({
         WAN: ['WAN-ip (198.51.100.10)'],
@@ -1448,8 +1422,8 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should not show addresses that a dry run or a rejected apply did not create', async () => {
       await createFirewallTree();
 
-      await apply(provision, {}, 'dry_run');
-      const rejected = await apply(provision, { interfaceNameMapping: { lan: 'eth9' } });
+      await applyProvision(provision, {}, 'dry_run');
+      const rejected = await applyProvision(provision, { interfaceNameMapping: { lan: 'eth9' } });
 
       expect(rejected.applied).to.be.false;
       expect(await shownAddresses()).to.deep.eq({});

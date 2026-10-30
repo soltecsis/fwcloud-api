@@ -168,6 +168,59 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       });
   }
 
+  async function makeGroup(name: string, type: number, members: number[]): Promise<number> {
+    const group = await db
+      .getSource()
+      .query('INSERT INTO ipobj_g (name, type, comment, fwcloud) VALUES (?, ?, ?, ?)', [
+        name,
+        type,
+        `Configuration of ${name}`,
+        fwc.fwcloud.id,
+      ]);
+    for (const member of members) {
+      await db
+        .getSource()
+        .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
+          member,
+          group.insertId,
+        ]);
+    }
+    return Number(group.insertId);
+  }
+
+  function attachGroup(
+    ruleId: number,
+    groupId: number,
+    position: number,
+    positionOrder = 1,
+  ): Promise<void> {
+    return db
+      .getSource()
+      .query(
+        'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, ?, ?)',
+        [ruleId, groupId, position, positionOrder],
+      );
+  }
+
+  /** Turns a side's firewall into the master of a new two-node cluster. */
+  async function asCluster(side: ReplicationTargetSide): Promise<number> {
+    const manager = db.getSource().manager;
+    const cluster = await manager.getRepository(Cluster).save({
+      name: StringHelper.randomize(10),
+      fwCloudId: fwc.fwcloud.id,
+    });
+    await manager
+      .getRepository(Firewall)
+      .update(side.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+    await manager.getRepository(Firewall).save({
+      name: `${cluster.name}-backup`,
+      fwCloudId: fwc.fwcloud.id,
+      clusterId: cluster.id,
+      fwmaster: 0,
+    });
+    return cluster.id;
+  }
+
   async function expectCaptureFailure(
     captureSource: { kind: 'firewall' | 'cluster'; id: number },
     diagnostics: string[],
@@ -1458,24 +1511,6 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(loadReplicationProfileModel(profile)).to.deep.eq(model);
     });
 
-    async function asCluster(side: ReplicationTargetSide): Promise<number> {
-      const manager = db.getSource().manager;
-      const cluster = await manager.getRepository(Cluster).save({
-        name: StringHelper.randomize(10),
-        fwCloudId: fwc.fwcloud.id,
-      });
-      await manager
-        .getRepository(Firewall)
-        .update(side.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
-      await manager.getRepository(Firewall).save({
-        name: `${cluster.name}-backup`,
-        fwCloudId: fwc.fwcloud.id,
-        clusterId: cluster.id,
-        fwmaster: 0,
-      });
-      return cluster.id;
-    }
-
     for (const sourceKind of ['firewall', 'cluster'] as const) {
       for (const targetKind of ['firewall', 'cluster'] as const) {
         it(`should preserve rule options from ${sourceKind} through saved JSON to another ${targetKind} and compiled policy`, async () => {
@@ -1704,24 +1739,6 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       );
     }
 
-    async function asCluster(side: ReplicationTargetSide): Promise<number> {
-      const manager = db.getSource().manager;
-      const cluster = await manager.getRepository(Cluster).save({
-        name: StringHelper.randomize(10),
-        fwCloudId: fwc.fwcloud.id,
-      });
-      await manager
-        .getRepository(Firewall)
-        .update(side.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
-      await manager.getRepository(Firewall).save({
-        name: `${cluster.name}-backup`,
-        fwCloudId: fwc.fwcloud.id,
-        clusterId: cluster.id,
-        fwmaster: 0,
-      });
-      return cluster.id;
-    }
-
     /** FORWARD rules from the LAN network to the WAN network, each with its state and service. */
     async function addLanToWanRules(
       rules: { comment: string; active: number; service: number }[],
@@ -1890,24 +1907,8 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         destination_port_end: 5353,
         fwCloudId: fwc.fwcloud.id,
       });
-      const makeGroup = async (name: string, type: number, member: number) => {
-        const group = await db
-          .getSource()
-          .query('INSERT INTO ipobj_g (name, type, fwcloud) VALUES (?, ?, ?)', [
-            name,
-            type,
-            fwc.fwcloud.id,
-          ]);
-        await db
-          .getSource()
-          .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
-            member,
-            group.insertId,
-          ]);
-        return Number(group.insertId);
-      };
-      const serverGroup = await makeGroup('Servers', 20, serverNetwork.id);
-      const syncGroup = await makeGroup('Sync services', 21, syncService.id);
+      const serverGroup = await makeGroup('Servers', 20, [serverNetwork.id]);
+      const syncGroup = await makeGroup('Sync services', 21, [syncService.id]);
       const ruleId = await insertForwardRule(source.firewall.id, 1, {
         comment: 'Disabled administration access',
         active: 0,
@@ -1915,17 +1916,9 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       await attachIpObj(ruleId, adminHost.id, forward.source);
       await attachIpObj(ruleId, backupRange.id, forward.destination);
       await attachIpObj(ruleId, adminService.id, forward.service);
-      for (const [group, position] of [
-        [serverGroup, forward.destination],
-        [syncGroup, forward.service],
-      ]) {
-        await db
-          .getSource()
-          .query(
-            'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, ?, 2)',
-            [ruleId, group, position],
-          );
-      }
+      // After the object each position already holds.
+      await attachGroup(ruleId, serverGroup, forward.destination, 2);
+      await attachGroup(ruleId, syncGroup, forward.service, 2);
       await insertForwardRule(source.firewall.id, 2, { comment: 'Enabled rule using nothing' });
 
       const { profile, warnings } = await capture();
@@ -2875,35 +2868,6 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
   });
 
   describe('custom object group snapshots', () => {
-    async function makeGroup(name: string, type: number, members: number[]): Promise<number> {
-      const group = await db
-        .getSource()
-        .query('INSERT INTO ipobj_g (name, type, comment, fwcloud) VALUES (?, ?, ?, ?)', [
-          name,
-          type,
-          `Configuration of ${name}`,
-          fwc.fwcloud.id,
-        ]);
-      for (const member of members) {
-        await db
-          .getSource()
-          .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
-            member,
-            group.insertId,
-          ]);
-      }
-      return Number(group.insertId);
-    }
-
-    function attachGroup(ruleId: number, groupId: number, position: number): Promise<void> {
-      return db
-        .getSource()
-        .query(
-          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, ?, 1)',
-          [ruleId, groupId, position],
-        );
-    }
-
     for (const kind of ['firewall', 'cluster'] as const) {
       it(`should preserve shared custom address and service groups, complete members and rule semantics in ${kind} JSON`, async () => {
         let sourceId = source.firewall.id;

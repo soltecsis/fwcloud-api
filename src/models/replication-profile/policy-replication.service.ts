@@ -246,6 +246,50 @@ export function getProvisionRulePositions(
   };
 }
 
+/**
+ * Rule and service settings checked before provisioning interfaces or objects: invalid settings
+ * must never result in a partially applied or broadened policy.
+ */
+function getProvisionSettingsErrors(provision: PolicyReplicationProvision): string[] {
+  const errors = [
+    ...provision.system.keepalived.flatMap((entry, index) =>
+      profileKeepalivedErrors(entry).map((error) => `Keepalived ${index + 1}: ${error}`),
+    ),
+    ...provision.system.haproxy.flatMap((entry, index) =>
+      profileHAProxyErrors(entry).map((error) => `HAProxy ${index + 1}: ${error}`),
+    ),
+    ...getProvisionInterfaceAddressReferenceErrors(provision).map(
+      (error) => `${error.path}: ${error.message}`,
+    ),
+  ];
+  const checkNodeRole = (nodeRole: unknown, label: string): void => {
+    if (nodeRole !== undefined && !asReplicationProfileNonEmptyString(nodeRole)) {
+      errors.push(
+        `${label}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
+      );
+    }
+  };
+  for (const [index, rule] of provision.rules.entries()) {
+    const label = `Rule ${index + 1}`;
+    errors.push(...getPolicyRuleValidityErrors(rule).map((error) => `${label}: ${error.message}`));
+    if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
+      errors.push(`${label}: options must be an integer between 0 and 65535.`);
+    }
+    if (rule.active !== undefined && typeof rule.active !== 'boolean') {
+      errors.push(`${label}: active must be a boolean.`);
+    }
+    const negationError = getProvisionRuleNegationError(rule);
+    if (negationError) {
+      errors.push(`${label}: ${negationError}`);
+    }
+    checkNodeRole(rule.nodeRole, label);
+  }
+  for (const [index, entry] of provision.system.keepalived.entries()) {
+    checkNodeRole(entry.nodeRole, `Keepalived ${index + 1}`);
+  }
+  return errors;
+}
+
 interface ProvisionBinding {
   kind: 'interface' | 'ipobj' | 'rule';
   key: string;
@@ -522,45 +566,7 @@ export class PolicyReplicationService extends Service {
       };
     }
 
-    // Check every rule before provisioning interfaces or objects: invalid rule settings
-    // must never result in a partially applied or broadened policy.
-    result.errors.push(
-      ...provision.system.keepalived.flatMap((entry, index) =>
-        profileKeepalivedErrors(entry).map((error) => `Keepalived ${index + 1}: ${error}`),
-      ),
-      ...provision.system.haproxy.flatMap((entry, index) =>
-        profileHAProxyErrors(entry).map((error) => `HAProxy ${index + 1}: ${error}`),
-      ),
-      ...getProvisionInterfaceAddressReferenceErrors(provision).map(
-        (error) => `${error.path}: ${error.message}`,
-      ),
-    );
-    const validateNodeRole = (nodeRole: unknown, label: string): void => {
-      if (nodeRole !== undefined && !asReplicationProfileNonEmptyString(nodeRole)) {
-        result.errors.push(
-          `${label}: nodeRole must name a cluster node; leave it out to apply the rule to every node.`,
-        );
-      }
-    };
-    for (const [index, rule] of provision.rules.entries()) {
-      for (const error of getPolicyRuleValidityErrors(rule)) {
-        result.errors.push(`Rule ${index + 1}: ${error.message}`);
-      }
-      if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
-        result.errors.push(`Rule ${index + 1}: options must be an integer between 0 and 65535.`);
-      }
-      if (rule.active !== undefined && typeof rule.active !== 'boolean') {
-        result.errors.push(`Rule ${index + 1}: active must be a boolean.`);
-      }
-      const error = getProvisionRuleNegationError(rule);
-      if (error) {
-        result.errors.push(`Rule ${index + 1}: ${error}`);
-      }
-      validateNodeRole(rule.nodeRole, `Rule ${index + 1}`);
-    }
-    for (const [index, entry] of provision.system.keepalived.entries()) {
-      validateNodeRole(entry.nodeRole, `Keepalived ${index + 1}`);
-    }
+    result.errors.push(...getProvisionSettingsErrors(provision));
     if (result.errors.length > 0) {
       return result;
     }
@@ -1094,15 +1100,19 @@ export class PolicyReplicationService extends Service {
       }
 
       const fwApplyTo = ruleNodeIds.get(index) ?? null;
-      const signature = this.buildProvisionRuleSignature(
-        rule,
-        policyTypeId,
-        resolvedInterfaces,
-        sides,
-        fwApplyTo,
-      );
+      const enabled = rule.active !== false;
+      const exists = (candidate: PolicyReplicationProvisionRule) =>
+        existingSignatures.has(
+          this.buildProvisionRuleSignature(
+            candidate,
+            policyTypeId,
+            resolvedInterfaces,
+            sides,
+            fwApplyTo,
+          ),
+        );
 
-      if (existingSignatures.has(signature)) {
+      if (exists(rule)) {
         if (mode === 'merge') {
           result.conflicts.push({
             type: 'duplicated_rule',
@@ -1112,20 +1122,9 @@ export class PolicyReplicationService extends Service {
         }
 
         result.warnings.push(`Rule ${index + 1}: an equivalent rule already exists on the target.`);
-      } else if (
-        existingSignatures.has(
-          this.buildProvisionRuleSignature(
-            { ...rule, active: rule.active === false },
-            policyTypeId,
-            resolvedInterfaces,
-            sides,
-            fwApplyTo,
-          ),
-        )
-      ) {
+      } else if (exists({ ...rule, active: !enabled })) {
         // A different state is a different rule, but never add one silently next to its opposite.
-        const [existing, created] =
-          rule.active === false ? ['enabled', 'disabled'] : ['disabled', 'enabled'];
+        const [existing, created] = enabled ? ['disabled', 'enabled'] : ['enabled', 'disabled'];
         result.warnings.push(
           `Rule ${index + 1}: an equivalent rule already exists on the target, but ${existing}; this rule is added ${created}.`,
         );
@@ -1153,7 +1152,7 @@ export class PolicyReplicationService extends Service {
         targetRuleId,
         policyTypeId,
         ruleOrder,
-        active: rule.active !== false,
+        active: enabled,
         comment: rule.comment ?? null,
       });
     }
