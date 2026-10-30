@@ -97,6 +97,10 @@ const OBJECT_TYPE_NAMES = Object.keys(
   PROFILE_REFERENCE_OBJECT_TYPES,
 ) as ProfileReferenceObjectType[];
 
+const OBJECT_TYPE_NAMES_BY_ID = new Map<number, ProfileReferenceObjectType>(
+  OBJECT_TYPE_NAMES.map((name) => [PROFILE_REFERENCE_OBJECT_TYPES[name], name]),
+);
+
 /** Service types, including service groups, shared by capture and reference validation. */
 export const PROFILE_SERVICE_REFERENCE_TYPES: ReadonlyMap<number, ProfileReferenceObjectType> =
   new Map(
@@ -131,6 +135,11 @@ export const PROFILE_OBJECT_DATA_FIELDS = [
   'options',
   'comment',
 ] as const;
+
+/** Membership index shared by capture, validation and replacement handling. */
+export const PROFILE_OBJECT_DATA_FIELD_SET: ReadonlySet<string> = new Set(
+  PROFILE_OBJECT_DATA_FIELDS,
+);
 
 /** Legacy TCP/UDP snapshots with no source endpoints use FWCloud's unrestricted 0/0 ports. */
 export function withProfileServiceSourcePorts(
@@ -255,6 +264,13 @@ export function getProfileReferenceIpObjType(objectType: unknown): number | unde
   return isReplicationProfileStringValue(objectType, OBJECT_TYPE_NAMES)
     ? PROFILE_REFERENCE_OBJECT_TYPES[objectType]
     : undefined;
+}
+
+/** Template object type corresponding to a native ipobj type, if supported. */
+export function getProfileReferenceObjectType(
+  type: number,
+): ProfileReferenceObjectType | undefined {
+  return OBJECT_TYPE_NAMES_BY_ID.get(type);
 }
 
 export function isProfileReferenceGroupType(type: number): boolean {

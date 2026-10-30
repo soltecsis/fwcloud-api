@@ -12,9 +12,10 @@ import * as ipaddr from 'ipaddr.js';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import db from '../../database/database-manager';
 import {
+  getProfileReferenceObjectType,
   isProfileReferenceGroupType,
+  PROFILE_OBJECT_DATA_FIELD_SET as OBJECT_FIELDS,
   PROFILE_OBJECT_DATA_FIELDS,
-  PROFILE_REFERENCE_OBJECT_TYPES,
   PROFILE_SERVICE_REFERENCE_TYPES,
   withProfileServiceSourcePorts,
   type ProfileExternalObjectBinding,
@@ -44,9 +45,6 @@ const ipobjSchema = require('../../middleware/joi_schemas/ipobj');
 const interfaceSchema = require('../../middleware/joi_schemas/interface');
 const duplicityCheck = require('../../middleware/duplicity');
 
-/** Object types a template can reference, as the numbers FWCloud stores. */
-const REFERENCE_TYPES = new Set<number>(Object.values(PROFILE_REFERENCE_OBJECT_TYPES));
-const OBJECT_FIELDS = new Set<string>(PROFILE_OBJECT_DATA_FIELDS);
 const HOST_FIELDS = new Set([...OBJECT_FIELDS, 'interfaces']);
 const GROUP_FIELDS = new Set(['type', 'name', 'comment', 'members']);
 
@@ -562,7 +560,7 @@ async function validateSnapshot(
     return `${path} must contain the original object's type and name.`;
   }
 
-  if (!REFERENCE_TYPES.has(type)) {
+  if (getProfileReferenceObjectType(type) === undefined) {
     return `${path} contains unsupported object type ${type}.`;
   }
 
@@ -604,7 +602,7 @@ async function validateSnapshot(
     type === REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK &&
     (typeof data.address !== 'string' || !data.address)
   ) {
-    return `${path} must contain the network address.`;
+    return `${path} (${JSON.stringify(data.name)}) must contain the network address.`;
   }
 
   if (
@@ -614,7 +612,7 @@ async function validateSnapshot(
       data.ip_version as 4 | 6,
     )
   ) {
-    return `${path}.range_start must not be greater than range_end.`;
+    return `${path} (${JSON.stringify(data.name)}).range_start must not be greater than range_end.`;
   }
 
   if (checkDestination) {
@@ -699,7 +697,7 @@ async function validateSnapshot(
             ? memberType === REPLICATION_PROFILE_IPOBJ_TYPE_COUNTRY
             : !service);
 
-      if (!accepted || !REFERENCE_TYPES.has(memberType)) {
+      if (!accepted || getProfileReferenceObjectType(memberType) === undefined) {
         return `${path}.members[${index}] (${JSON.stringify(memberData.name)}) contains unsupported dependency type ${memberType}.`;
       }
 
@@ -788,7 +786,12 @@ export async function loadProfileObjects(
   ]);
   // ipobj and ipobj_g ids overlap: the type tells which table an id belongs to.
   const key = (type: number, id: number) => `${type}:${id}`;
-  const found = new Map(loaded.flat().map(({ type, id, data }) => [key(type, id), data]));
+  const found = new Map<string, ReplicationProfileRecord>();
+  for (const objects of loaded) {
+    for (const { type, id, data } of objects) {
+      found.set(key(type, id), data);
+    }
+  }
 
   return (type, id) =>
     isReplicationProfilePositiveInteger(id) ? found.get(key(type, id)) : undefined;
@@ -827,16 +830,20 @@ async function loadGroups(ids: number[], fwCloudId: number): Promise<LoadedObjec
   );
   const members = await loadGroupMembers(rows.map((row) => Number(row.id)));
 
-  return rows.map((row) => ({
-    type: Number(row.type),
-    id: Number(row.id),
-    data: {
-      type: Number(row.type),
-      name: row.name,
-      ...(row.comment ? { comment: row.comment } : {}),
-      members: members.get(Number(row.id)) ?? [],
-    },
-  }));
+  return rows.map((row) => {
+    const type = Number(row.type);
+    const id = Number(row.id);
+    return {
+      type,
+      id,
+      data: {
+        type,
+        name: row.name,
+        ...(row.comment ? { comment: row.comment } : {}),
+        members: members.get(id) ?? [],
+      },
+    };
+  });
 }
 
 /** Interfaces of each host, with their addresses. */
@@ -939,11 +946,13 @@ async function loadGroupMembers(
 
 /** The data of each ipobj row, in their order: a host also holds its interfaces. */
 async function objectsData(rows: ReplicationProfileRecord[]): Promise<ReplicationProfileRecord[]> {
-  const interfaces = await loadHostInterfaces(
+  // A host can occur in several groups; its interfaces only need to be read once.
+  const hostIds = new Set(
     rows
       .filter((row) => Number(row.type) === REPLICATION_PROFILE_IPOBJ_TYPE_HOST)
       .map((row) => Number(row.id)),
   );
+  const interfaces = await loadHostInterfaces([...hostIds]);
 
   return rows.map((row) => {
     const data = objectData(row);

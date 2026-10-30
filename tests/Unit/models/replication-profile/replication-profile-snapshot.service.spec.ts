@@ -60,6 +60,7 @@ interface CapturedObject {
   interfaceAddressIndex?: number;
   name?: string;
   vpnId?: string;
+  referenceId?: string;
 }
 
 interface CapturedRule {
@@ -2344,26 +2345,330 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(reparsed.routing.tables[0].routes).to.have.length(1);
       expect(reparsed.system.dhcp).to.have.length(1);
     });
+  });
 
-    it('should reject capture when a rule references an unsupported address group', async () => {
-      const [group] = await db
+  describe('custom object group snapshots', () => {
+    async function makeGroup(name: string, type: number, members: number[]): Promise<number> {
+      const group = await db
         .getSource()
-        .query("INSERT INTO ipobj_g (name, type, fwcloud) VALUES ('Office nets', 20, ?)", [
+        .query('INSERT INTO ipobj_g (name, type, comment, fwcloud) VALUES (?, ?, ?, ?)', [
+          name,
+          type,
+          `Configuration of ${name}`,
           fwc.fwcloud.id,
-        ])
-        .then((result) => [result.insertId]);
-      const ruleId = await insertForwardRule(source.firewall.id, 120, { comment: 'Group rule' });
-      await db
+        ]);
+      for (const member of members) {
+        await db
+          .getSource()
+          .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
+            member,
+            group.insertId,
+          ]);
+      }
+      return Number(group.insertId);
+    }
+
+    function attachGroup(ruleId: number, groupId: number, position: number): Promise<void> {
+      return db
         .getSource()
         .query(
-          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, 7, 1)',
-          [ruleId, group],
+          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, ?, 1)',
+          [ruleId, groupId, position],
+        );
+    }
+
+    for (const kind of ['firewall', 'cluster'] as const) {
+      it(`should preserve shared custom address and service groups, complete members and rule semantics in ${kind} JSON`, async () => {
+        let sourceId = source.firewall.id;
+        let backupId: number | undefined;
+        if (kind === 'cluster') {
+          const cluster = await db.getSource().manager.getRepository(Cluster).save({
+            name: 'Custom group source cluster',
+            fwCloudId: fwc.fwcloud.id,
+          });
+          await db
+            .getSource()
+            .manager.getRepository(Firewall)
+            .update(source.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+          const backup = await db.getSource().manager.getRepository(Firewall).save({
+            name: 'Custom group source backup',
+            fwCloudId: fwc.fwcloud.id,
+            clusterId: cluster.id,
+            fwmaster: 0,
+          });
+          sourceId = cluster.id;
+          backupId = backup.id;
+        }
+        const addressDefinitions = [
+          { type: 5, name: 'OFFICE_IP', address: '192.168.1.10', netmask: '/32' },
+          { type: 7, name: 'OFFICE_LAN', address: '192.168.2.0', netmask: '/24' },
+          {
+            type: 6,
+            name: 'OFFICE_RANGE',
+            range_start: '192.168.3.10',
+            range_end: '192.168.3.20',
+          },
+        ].map((definition) => ({ ...definition, ip_version: 4, options: 0 }));
+        const addressMembers: IPObj[] = [];
+        for (const { type, ...definition } of addressDefinitions) {
+          addressMembers.push(
+            await db
+              .getSource()
+              .manager.getRepository(IPObj)
+              .save({
+                ...definition,
+                ipObjTypeId: type,
+                options: '0',
+                fwCloudId: fwc.fwcloud.id,
+              }),
+          );
+        }
+        const tcp = await makeTcpService(8443);
+        const udp = await db.getSource().manager.getRepository(IPObj).save({
+          name: 'OFFICE_UDP',
+          ipObjTypeId: 4,
+          protocol: 17,
+          source_port_start: 1024,
+          source_port_end: 2048,
+          destination_port_start: 9000,
+          destination_port_end: 9010,
+          fwCloudId: fwc.fwcloud.id,
+        });
+        const addressGroup = await makeGroup(
+          'OFFICE_NETWORKS',
+          20,
+          addressMembers.map((member) => member.id),
+        );
+        const serviceGroup = await makeGroup('OFFICE_SERVICES', 21, [tcp.id, udp.id]);
+        const options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATELESS;
+        const firstRule = await insertForwardRule(source.firewall.id, 120, {
+          comment: 'Office internet access',
+          options,
+          negate: '7 8 9',
+        });
+        const timeStart = new Date('2026-10-01T08:00:00Z');
+        const timeEnd = new Date('2026-10-31T20:00:00Z');
+        await db
+          .getSource()
+          .manager.getRepository(PolicyRule)
+          .update(firstRule, { time_start: timeStart, time_end: timeEnd });
+        if (backupId) {
+          await db
+            .getSource()
+            .query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [backupId, firstRule]);
+        }
+        await attachGroup(firstRule, addressGroup, 7);
+        await attachGroup(firstRule, addressGroup, 8);
+        await attachGroup(firstRule, serviceGroup, 9);
+        const forwardPositions = getProvisionRulePositions(4, 'forward');
+        await attachInterface(firstRule, source.lanInterface.id, forwardPositions.in);
+        await attachInterface(firstRule, source.wanInterface.id, forwardPositions.out);
+        const secondRule = await insertForwardRule(source.firewall.id, 121, {
+          action: 2,
+          comment: 'Office deny fallback',
+        });
+        await attachGroup(secondRule, addressGroup, 7);
+        await attachGroup(secondRule, serviceGroup, 9);
+
+        const { profile, warnings } = await service.createProfileFromSource(
+          { source: { kind, id: sourceId }, name: 'Complete custom group capture' },
+          { fwCloudId: fwc.fwcloud.id, userId: ownerId },
         );
 
+        expect(warnings).to.be.empty;
+        const saved = await db
+          .getSource()
+          .manager.getRepository(ReplicationProfile)
+          .findOneByOrFail({ id: profile.id });
+        const model: any = JSON.parse(JSON.stringify(loadReplicationProfileModel(saved)));
+        const rules = model.provision.rules as CapturedRule[];
+        expect(rules.map((rule) => rule.comment)).to.deep.eq([
+          'Office internet access',
+          'Office deny fallback',
+        ]);
+        expect(rules[0]).to.include({
+          chain: 'forward',
+          action: 'accept',
+          ipVersion: 4,
+          options,
+          negate: '7 8 9',
+          inRole: 'ens19',
+          outRole: 'ens18',
+          time_start: timeStart.toISOString(),
+          time_end: timeEnd.toISOString(),
+        });
+        if (kind === 'cluster') expect(rules[0].nodeRole).to.eq('backup');
+        expect(rules[1].action).to.eq('deny');
+        expect(model.objectReferences).to.have.length(2);
+        const addressReference = model.objectReferences.find(
+          (reference) => reference.objectType === 'group',
+        );
+        const serviceReference = model.objectReferences.find(
+          (reference) => reference.objectType === 'serviceGroup',
+        );
+        expect(addressReference.snapshot).to.include({
+          type: 20,
+          name: 'OFFICE_NETWORKS',
+          comment: 'Configuration of OFFICE_NETWORKS',
+        });
+        expect(addressReference.snapshot.members).to.have.length(3);
+        for (const definition of addressDefinitions) {
+          expect(
+            addressReference.snapshot.members.find((member) => member.name === definition.name),
+          ).to.include(definition);
+        }
+        expect(serviceReference.snapshot).to.include({
+          type: 21,
+          name: 'OFFICE_SERVICES',
+          comment: 'Configuration of OFFICE_SERVICES',
+        });
+        expect(serviceReference.snapshot.members).to.have.length(2);
+        expect(serviceReference.snapshot.members.find((member) => member.type === 4)).to.include({
+          name: udp.name,
+          protocol: 17,
+          source_port_start: 1024,
+          source_port_end: 2048,
+          destination_port_start: 9000,
+          destination_port_end: 9010,
+        });
+        expect(addressReference.locations).to.have.length(3);
+        expect(serviceReference.locations).to.have.length(2);
+        expect(rules[0].source).to.deep.eq([
+          { kind: 'external', referenceId: addressReference.referenceId },
+        ]);
+        expect(rules[0].destination).to.deep.eq(rules[0].source);
+        expect(rules[1].source).to.deep.eq(rules[0].source);
+        expect(rules[0].services).to.deep.eq([
+          { kind: 'external', referenceId: serviceReference.referenceId },
+        ]);
+        expect(rules[1].services).to.deep.eq(rules[0].services);
+        expect(model.policyStructure.rules).to.deep.eq(rules);
+        writeReplicationProfileModel(saved, model);
+        expect(loadReplicationProfileModel(saved)).to.deep.eq(model);
+        expect(getProfileProvisioning(loadReplicationProfileModel(saved)).rules).to.have.length(2);
+      });
+    }
+
+    it('should preserve shared custom groups in compatible SNAT and DNAT positions', async () => {
+      const address = await db.getSource().manager.getRepository(IPObj).save({
+        name: 'OFFICE_NAT_ADDRESS',
+        ipObjTypeId: 5,
+        address: '192.168.4.10',
+        netmask: '/32',
+        ip_version: 4,
+        fwCloudId: fwc.fwcloud.id,
+      });
+      const tcp = await makeTcpService(8443);
+      const addressGroup = await makeGroup('OFFICE_NAT_NETWORKS', 20, [address.id]);
+      const serviceGroup = await makeGroup('OFFICE_NAT_SERVICES', 21, [tcp.id]);
+      for (const [index, chain] of (['snat', 'dnat'] as const).entries()) {
+        const rule = await PolicyRule.insertPolicy_r({
+          firewall: source.firewall.id,
+          type: PolicyTypesMap.get(`IPv4:${chain.toUpperCase()}`)!,
+          rule_order: 120 + index,
+          comment: `Office ${chain} rule`,
+          action: 1,
+          active: 1,
+          options: 0,
+          special: 0,
+        });
+        const positions = getProvisionRulePositions(4, chain);
+        await attachGroup(rule, addressGroup, positions.source);
+        await attachGroup(rule, addressGroup, positions.destination);
+        await attachGroup(rule, serviceGroup, positions.service);
+        // Native translated positions accept individual addresses/ports, rather than groups.
+        await attachIpObj(
+          rule,
+          address.id,
+          chain === 'snat' ? positions.translatedSource : positions.translatedDestination,
+        );
+        await attachIpObj(rule, tcp.id, positions.translatedService);
+      }
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'NAT custom groups' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+      expect(warnings).to.be.empty;
+      const model: any = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile)));
+      expect(model.provision.rules).to.have.length(2);
+      expect(model.objectReferences).to.have.length(3);
+      const addressReference = model.objectReferences.find(
+        (reference) => reference.objectType === 'group',
+      );
+      const serviceReference = model.objectReferences.find(
+        (reference) => reference.objectType === 'serviceGroup',
+      );
+      const portReference = model.objectReferences.find(
+        (reference) => reference.objectType === 'tcp',
+      );
+      expect(addressReference).to.include({ sourceName: 'OFFICE_NAT_NETWORKS' });
+      expect(serviceReference).to.include({ sourceName: 'OFFICE_NAT_SERVICES' });
+      expect(addressReference.locations).to.have.length(4);
+      expect(serviceReference.locations).to.have.length(2);
+      expect(portReference.locations).to.have.length(2);
+      for (const rule of model.provision.rules) {
+        const groupUsage = [{ kind: 'external', referenceId: addressReference.referenceId }];
+        expect(rule.source).to.deep.eq(groupUsage);
+        expect(rule.destination).to.deep.eq(groupUsage);
+        expect(rule.services).to.deep.eq([
+          { kind: 'external', referenceId: serviceReference.referenceId },
+        ]);
+        expect(rule.translatedService).to.deep.eq([
+          { kind: 'external', referenceId: portReference.referenceId },
+        ]);
+        const translatedField =
+          rule.chain === 'snat' ? 'translatedSource' : 'translatedDestination';
+        expect(rule[translatedField][0]).to.include({ kind: 'address', name: address.name });
+      }
+      expect(model.objectReferences.map((reference) => reference.snapshot.name)).to.include.members(
+        ['OFFICE_NAT_NETWORKS', 'OFFICE_NAT_SERVICES', tcp.name],
+      );
+      expect(model.policyStructure.rules).to.deep.eq(model.provision.rules);
+      writeReplicationProfileModel(profile, model);
+      expect(loadReplicationProfileModel(profile)).to.deep.eq(model);
+    });
+
+    it('should fail before persistence and identify all rules, the custom address group and its invalid member', async () => {
+      const invalid = await db.getSource().manager.getRepository(IPObj).save({
+        name: 'OFFICE_INVALID_RANGE',
+        ipObjTypeId: 6,
+        ip_version: 4,
+        range_start: '192.168.1.20',
+        range_end: '192.168.1.10',
+        fwCloudId: fwc.fwcloud.id,
+      });
+      const group = await makeGroup('OFFICE_INVALID_GROUP', 20, [invalid.id]);
+      for (const [index, comment] of [
+        'Invalid source group rule',
+        'Invalid destination group rule',
+      ].entries()) {
+        const rule = await insertForwardRule(source.firewall.id, 120 + index, { comment });
+        await attachGroup(rule, group, index === 0 ? 7 : 8);
+      }
+
       await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
-        'FORWARD IPv4 rule 120',
-        'Group rule',
-        'groups',
+        'Invalid source group rule',
+        'Invalid destination group rule',
+        'OFFICE_INVALID_GROUP',
+        'OFFICE_INVALID_RANGE',
+        'range',
+      ]);
+    });
+
+    it('should fail before persistence when a service is stored in a custom address group', async () => {
+      const tcp = await makeTcpService(8443);
+      const group = await makeGroup('OFFICE_BAD_MEMBER_TYPE', 20, [tcp.id]);
+      const rule = await insertForwardRule(source.firewall.id, 120, {
+        comment: 'Invalid custom group dependency',
+      });
+      await attachGroup(rule, group, 7);
+
+      await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        'Invalid custom group dependency',
+        'OFFICE_BAD_MEMBER_TYPE',
+        tcp.name,
+        'unsupported dependency type 2',
       ]);
     });
   });

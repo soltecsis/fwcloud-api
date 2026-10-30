@@ -28,6 +28,7 @@ import {
   getProfileReferenceDataFields,
   getProfileReferenceIpObjType,
   getProfileReferenceRequiredFields,
+  PROFILE_OBJECT_DATA_FIELD_SET as OBJECT_DATA_FIELDS,
   PROFILE_OBJECT_DATA_FIELDS,
   ProfileExternalObjectBinding,
   ProfileObjectReplacement,
@@ -297,7 +298,7 @@ export async function resolveProfileObjectReferences(
     if (binding) {
       resolution.bindings.set(reference.referenceId, binding);
     }
-    if (!resolved.resolved && resolved.locations.length > 0) {
+    if (!confirmed && used) {
       // A reference no usage is left for is listed, but nothing has to replace it.
       resolution.missingObjects.push(resolved);
     }
@@ -396,9 +397,7 @@ async function bindReplacementData(
     return 'data must be an object.';
   }
 
-  const unknownFields = Object.keys(data).filter(
-    (field) => !(PROFILE_OBJECT_DATA_FIELDS as readonly string[]).includes(field),
-  );
+  const unknownFields = Object.keys(data).filter((field) => !OBJECT_DATA_FIELDS.has(field));
   const missingFields = dataFields.filter(
     (field) => data[field] === undefined || data[field] === null || data[field] === '',
   );

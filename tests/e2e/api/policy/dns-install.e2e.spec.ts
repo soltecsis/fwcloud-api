@@ -23,6 +23,7 @@
 import { expect } from 'chai';
 import request = require('supertest');
 import { execFileSync } from 'child_process';
+import { isIPv4 } from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import { EntityManager } from 'typeorm';
@@ -184,12 +185,18 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
       `--address=/${ipv4Hostname}/192.0.2.10`,
       `--address=/${ipv6Hostname}/2001:db8::10`,
     ).trim();
+    // Both containers use the default bridge network; inspect its address rather than
+    // the deprecated top-level NetworkSettings.IPAddress field.
     const dnsServerAddress = docker(
       'inspect',
       '-f',
-      '{{.NetworkSettings.IPAddress}}',
+      '{{(index .NetworkSettings.Networks "bridge").IPAddress}}',
       dnsServer,
     ).trim();
+    expect(
+      isIPv4(dnsServerAddress),
+      'The DNS container must have an IPv4 address on bridge.',
+    ).to.eq(true);
     container = docker(
       'run',
       '-d',

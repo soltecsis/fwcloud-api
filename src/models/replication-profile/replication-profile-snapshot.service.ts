@@ -48,6 +48,9 @@ import {
   getProfileObjectReferenceLocations,
   getProfileObjectReferences,
   getProfileReferenceIpObjType,
+  isProfileReferenceGroupType,
+  getProfileReferenceObjectType,
+  PROFILE_OBJECT_DATA_FIELD_SET as OBJECT_DATA_FIELDS,
   PROFILE_OBJECT_DATA_FIELDS,
   PROFILE_SERVICE_REFERENCE_TYPES,
   type ReplicationProfileObjectReference,
@@ -67,16 +70,29 @@ import {
 
 /** Filter and NAT policies of both families, in FWCloud tree order, with their positions. */
 const CAPTURED_POLICIES = (['IPv4', 'IPv6'] as const).flatMap((family) =>
-  (['INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'] as const).map((chain) => ({
-    typeId: PolicyTypesMap.get(`${family}:${chain}`)!,
-    chain: chain.toLowerCase() as SnapshotChain,
-    ipVersion: family === 'IPv4' ? 4 : 6,
-    label: `${chain} ${family}`,
-    positions: getProvisionRulePositions(
-      family === 'IPv4' ? 4 : 6,
-      chain.toLowerCase() as SnapshotChain,
-    ),
-  })),
+  (['INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'] as const).map((chain) => {
+    const ipVersion = family === 'IPv4' ? 4 : 6;
+    const ruleChain = chain.toLowerCase() as SnapshotChain;
+    const positions = getProvisionRulePositions(ipVersion, ruleChain);
+
+    return {
+      typeId: PolicyTypesMap.get(`${family}:${chain}`)!,
+      chain: ruleChain,
+      ipVersion,
+      label: `${chain} ${family}`,
+      positions,
+      objectPositions: new Set(
+        [
+          positions.source,
+          positions.destination,
+          positions.service,
+          positions.translatedSource,
+          positions.translatedDestination,
+          positions.translatedService,
+        ].filter((position) => position !== undefined),
+      ),
+    };
+  }),
 );
 
 type SnapshotChain = 'input' | 'output' | 'forward' | 'snat' | 'dnat';
@@ -85,7 +101,6 @@ type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
-const OBJECT_DATA_FIELDS: ReadonlySet<string> = new Set(PROFILE_OBJECT_DATA_FIELDS);
 
 // Predefined service group the default "useful ICMP" INPUT rule allows.
 const DEFAULT_ICMP_SERVICE_GROUP = 5;
@@ -275,13 +290,13 @@ interface SnapshotObjectLookup {
 }
 
 interface SnapshotProvisionObject extends PolicyReplicationProvisionObject {
-  kind: Exclude<PolicyReplicationProvisionObject['kind'], 'host' | 'external'>;
+  kind: Exclude<PolicyReplicationProvisionObject['kind'], 'host'>;
 }
 
 type SnapshotProvisionService =
   ReplicationProfileExternalObjectUsage | { kind: 'std' | 'stdGroup'; id: number; name?: string };
 
-type SnapshotServiceReference = Pick<
+type SnapshotObjectReference = Pick<
   ReplicationProfileObjectReference,
   'referenceId' | 'objectType' | 'sourceObjectId'
 >;
@@ -342,13 +357,12 @@ interface SourceSnapshot {
 
 /**
  * Collects reusable profile values: address parameters default to the captured values,
- * while services retain their complete configuration through external object references.
+ * while custom groups and services retain their complete configuration through external snapshots.
  */
 class SnapshotValueCollector {
-  private readonly parameters: ReplicationProfileParameter[] = [];
   private readonly byIdentity = new Map<string, ReplicationProfileParameter>();
   private readonly usedNames = new Set<string>();
-  private readonly serviceReferences = new Map<string, SnapshotServiceReference>();
+  private readonly objectReferences = new Map<string, SnapshotObjectReference>();
   private readonly interfaceAddresses = new Map<number, SnapshotProvisionObject>();
 
   registerInterfaceAddress(
@@ -378,21 +392,41 @@ class SnapshotValueCollector {
       return undefined;
     }
 
-    const referenceId = `service-${service.type}-${service.id}`;
-    if (!this.serviceReferences.has(referenceId)) {
-      this.serviceReferences.set(referenceId, {
+    return this.defineReference(service, objectType, 'service');
+  }
+
+  defineGroup(group: SnapshotGroupRow): ReplicationProfileExternalObjectUsage | undefined {
+    const objectType = getProfileReferenceObjectType(group.type);
+    if (
+      !objectType ||
+      !isProfileReferenceGroupType(group.type) ||
+      PROFILE_SERVICE_REFERENCE_TYPES.has(group.type)
+    ) {
+      return undefined;
+    }
+    return this.defineReference(group, objectType, 'group');
+  }
+
+  private defineReference(
+    object: Pick<SnapshotIpObjRow, 'type' | 'id'>,
+    objectType: SnapshotObjectReference['objectType'],
+    prefix: 'service' | 'group',
+  ): ReplicationProfileExternalObjectUsage {
+    const referenceId = `${prefix}-${object.type}-${object.id}`;
+    if (!this.objectReferences.has(referenceId)) {
+      this.objectReferences.set(referenceId, {
         referenceId,
         objectType,
-        sourceObjectId: service.id,
+        sourceObjectId: object.id,
       });
     }
     return { kind: 'external', referenceId };
   }
 
   /** Discard references belonging only to skipped rules or system entries. */
-  getObjectReferences(model: Record<string, unknown>): SnapshotServiceReference[] {
+  getObjectReferences(model: Record<string, unknown>): SnapshotObjectReference[] {
     const locations = getProfileObjectReferenceLocations(model);
-    return Array.from(this.serviceReferences.values()).filter((reference) =>
+    return Array.from(this.objectReferences.values()).filter((reference) =>
       locations.has(reference.referenceId),
     );
   }
@@ -452,7 +486,6 @@ class SnapshotValueCollector {
       default: defaultValue,
       ...(ipVersion === undefined ? {} : { ipVersion }),
     };
-    this.parameters.push(parameter);
     this.byIdentity.set(key, parameter);
 
     return { param: name };
@@ -481,7 +514,7 @@ class SnapshotValueCollector {
   }
 
   getParameters(): ReplicationProfileParameter[] {
-    return this.parameters;
+    return Array.from(this.byIdentity.values());
   }
 }
 
@@ -585,7 +618,7 @@ export class ReplicationProfileSnapshotService extends Service {
     }
     // Capture each assigned IP before rules so they can reference that exact address,
     // rather than the interface's entire address set or an In/Out restriction.
-    const { rules, serviceRuleLabels } = await this.capturePolicyRules(
+    const { rules, objectRuleLabels } = await this.capturePolicyRules(
       resolved.firewall.id,
       resolved.nodeRoleById,
       roleByInterfaceId,
@@ -662,9 +695,9 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     const capturedModel = await captureProfileObjectReferences(model, fwCloudId);
-    await this.validatePolicyServices(
+    await this.validatePolicyObjects(
       getProfileObjectReferences(capturedModel),
-      serviceRuleLabels,
+      objectRuleLabels,
       fwCloudId,
     );
 
@@ -676,15 +709,15 @@ export class ReplicationProfileSnapshotService extends Service {
     };
   }
 
-  /** Validate each shared service once, retaining all affected rules in diagnostics. */
-  private async validatePolicyServices(
+  /** Validate each shared object and all its dependencies, retaining affected rule labels. */
+  private async validatePolicyObjects(
     references: ReplicationProfileObjectReference[],
-    serviceRuleLabels: Map<string, Set<string>>,
+    objectRuleLabels: Map<string, Set<string>>,
     fwCloudId: number,
   ): Promise<void> {
     const errors: string[] = [];
     for (const reference of references) {
-      const labels = serviceRuleLabels.get(reference.referenceId);
+      const labels = objectRuleLabels.get(reference.referenceId);
       if (!labels) continue;
 
       const type = getProfileReferenceIpObjType(reference.objectType)!;
@@ -693,7 +726,7 @@ export class ReplicationProfileSnapshotService extends Service {
       });
       if (invalid) {
         errors.push(
-          `${Array.from(labels).join(', ')} cannot be captured: service "${reference.sourceName}" (${reference.referenceId}): ${invalid}`,
+          `${Array.from(labels).join(', ')} cannot be captured: ${isProfileReferenceGroupType(type) ? 'group' : 'service'} "${reference.sourceName ?? reference.referenceId}" (${reference.referenceId}): ${invalid}`,
         );
       }
     }
@@ -815,7 +848,7 @@ export class ReplicationProfileSnapshotService extends Service {
     loopbackInterfaceIds: Set<number>,
     values: SnapshotValueCollector,
     vpnObjects: Map<string, SnapshotProvisionObject>,
-  ): Promise<{ rules: SnapshotProvisionRule[]; serviceRuleLabels: Map<string, Set<string>> }> {
+  ): Promise<{ rules: SnapshotProvisionRule[]; objectRuleLabels: Map<string, Set<string>> }> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow>(
       `SELECT id, type, rule_order, action, active, special, comment, negate, options, time_start, time_end, fw_apply_to FROM policy_r
@@ -857,7 +890,7 @@ export class ReplicationProfileSnapshotService extends Service {
     );
 
     const captured: SnapshotProvisionRule[] = [];
-    const serviceRuleLabels = new Map<string, Set<string>>();
+    const objectRuleLabels = new Map<string, Set<string>>();
     const errors: string[] = [];
 
     for (const policy of customizedPolicies) {
@@ -893,21 +926,27 @@ export class ReplicationProfileSnapshotService extends Service {
 
         const provisionRule = capture.value;
         captured.push(nodeRole ? { ...provisionRule, nodeRole } : provisionRule);
-        for (const service of [
-          ...(provisionRule.services ?? []),
-          ...(provisionRule.translatedService ?? []),
+        for (const objects of [
+          provisionRule.source,
+          provisionRule.destination,
+          provisionRule.translatedSource,
+          provisionRule.translatedDestination,
+          provisionRule.services,
+          provisionRule.translatedService,
         ]) {
-          if (service.kind === 'external') {
-            const labels = serviceRuleLabels.get(service.referenceId) ?? new Set<string>();
-            labels.add(label);
-            serviceRuleLabels.set(service.referenceId, labels);
+          for (const object of objects ?? []) {
+            if (object.kind === 'external' && object.referenceId) {
+              const labels = objectRuleLabels.get(object.referenceId) ?? new Set<string>();
+              labels.add(label);
+              objectRuleLabels.set(object.referenceId, labels);
+            }
           }
         }
       }
     }
 
     assertPolicyCaptureComplete(errors);
-    return { rules: captured, serviceRuleLabels };
+    return { rules: captured, objectRuleLabels };
   }
 
   /**
@@ -997,20 +1036,9 @@ export class ReplicationProfileSnapshotService extends Service {
       };
     }
 
-    const known = new Set(
-      [
-        positions.source,
-        positions.destination,
-        positions.service,
-        positions.translatedSource,
-        positions.translatedDestination,
-        positions.translatedService,
-      ].filter((position) => position !== undefined),
-    );
-
     const refsByPosition = new Map<number, SnapshotObjectRef[]>();
     for (const ref of ipObjRefs) {
-      if (!known.has(ref.position)) {
+      if (!policy.objectPositions.has(ref.position)) {
         return {
           reason: 'it references objects in positions the vocabulary cannot express.',
         };
@@ -1117,7 +1145,8 @@ export class ReplicationProfileSnapshotService extends Service {
 
   /**
    * Maps objects into the provision vocabulary. Predefined objects and groups
-   * are referenced by id; an assigned IP keeps its exact address and owner; only
+   * are referenced by id; custom groups keep external snapshots of their members;
+   * an assigned IP keeps its exact address and owner; only
    * an actual interface object becomes a role reference. Other addresses become parameters.
    */
   private captureObjects(
@@ -1135,13 +1164,21 @@ export class ReplicationProfileSnapshotService extends Service {
       if (ref.ipobj_g > 0) {
         const group = lookup.groups.get(ref.ipobj_g);
 
-        if (!group || group.fwcloud !== null) {
-          return {
-            reason: 'object groups of the FWCloud cannot be templated; only predefined groups can.',
-          };
+        if (!group) {
+          return { reason: `object group ${ref.ipobj_g} no longer exists.` };
+        }
+        if (group.fwcloud === null) {
+          captured.push({ kind: 'stdGroup', id: group.id, name: group.name });
+          continue;
         }
 
-        captured.push({ kind: 'stdGroup', id: group.id, name: group.name });
+        const reference = values.defineGroup(group);
+        if (!reference) {
+          return {
+            reason: `group "${group.name}" has unsupported address group type ${group.type}.`,
+          };
+        }
+        captured.push(reference);
         continue;
       }
 
