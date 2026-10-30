@@ -1007,6 +1007,8 @@ export interface PolicyReplicationRulePreview {
   targetRuleId: number | null;
   policyTypeId: number;
   ruleOrder: number;
+  /** Whether the rule is (or would be) enabled; a disabled one is created but never compiled. */
+  active: boolean;
   comment: string | null;
 }
 

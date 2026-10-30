@@ -549,6 +549,9 @@ export class PolicyReplicationService extends Service {
       if (rule.options !== undefined && !isReplicationProfileRuleOptions(rule.options)) {
         result.errors.push(`Rule ${index + 1}: options must be an integer between 0 and 65535.`);
       }
+      if (rule.active !== undefined && typeof rule.active !== 'boolean') {
+        result.errors.push(`Rule ${index + 1}: active must be a boolean.`);
+      }
       const error = getProvisionRuleNegationError(rule);
       if (error) {
         result.errors.push(`Rule ${index + 1}: ${error}`);
@@ -1109,6 +1112,23 @@ export class PolicyReplicationService extends Service {
         }
 
         result.warnings.push(`Rule ${index + 1}: an equivalent rule already exists on the target.`);
+      } else if (
+        existingSignatures.has(
+          this.buildProvisionRuleSignature(
+            { ...rule, active: rule.active === false },
+            policyTypeId,
+            resolvedInterfaces,
+            sides,
+            fwApplyTo,
+          ),
+        )
+      ) {
+        // A different state is a different rule, but never add one silently next to its opposite.
+        const [existing, created] =
+          rule.active === false ? ['enabled', 'disabled'] : ['disabled', 'enabled'];
+        result.warnings.push(
+          `Rule ${index + 1}: an equivalent rule already exists on the target, but ${existing}; this rule is added ${created}.`,
+        );
       }
 
       const planned = (plannedByType.get(policyTypeId) ?? 0) + 1;
@@ -1133,6 +1153,7 @@ export class PolicyReplicationService extends Service {
         targetRuleId,
         policyTypeId,
         ruleOrder,
+        active: rule.active !== false,
         comment: rule.comment ?? null,
       });
     }
@@ -1857,6 +1878,7 @@ export class PolicyReplicationService extends Service {
   /** Template rules and database rows must use identical defaults and date normalization. */
   private provisionRuleSettingsSignature(
     rule: {
+      active?: boolean | number;
       negate?: string | null;
       options?: number;
       time_start?: unknown;
@@ -1865,6 +1887,7 @@ export class PolicyReplicationService extends Service {
     fwApplyTo: number | null,
   ): string {
     return [
+      rule.active === undefined || rule.active ? 1 : 0,
       normalizeRuleNegation(rule.negate) ?? '',
       rule.options ?? 0,
       policyRuleDateKey(rule.time_start),
@@ -1888,20 +1911,21 @@ export class PolicyReplicationService extends Service {
       action: number;
       interfaces: string | null;
       ipobjs: string | null;
+      active: number;
       negate: string | null;
       options: number;
       time_start: Date | null;
       time_end: Date | null;
       fw_apply_to: number | null;
     }>(
-      `SELECT R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end, R.fw_apply_to,
+      `SELECT R.id, R.type, R.action, R.active, R.negate, R.options, R.time_start, R.time_end, R.fw_apply_to,
               GROUP_CONCAT(DISTINCT CONCAT('i', RI.interface) ORDER BY CONCAT('i', RI.interface)) AS interfaces,
               GROUP_CONCAT(DISTINCT CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj)) ORDER BY CONCAT('o', IF(RO.ipobj_g > 0, CONCAT('g', RO.ipobj_g), RO.ipobj))) AS ipobjs
        FROM policy_r R
        LEFT JOIN policy_r__interface RI ON RI.rule = R.id
        LEFT JOIN policy_r__ipobj RO ON RO.rule = R.id
        WHERE R.firewall = ? AND R.special = 0
-       GROUP BY R.id, R.type, R.action, R.negate, R.options, R.time_start, R.time_end, R.fw_apply_to`,
+       GROUP BY R.id, R.type, R.action, R.active, R.negate, R.options, R.time_start, R.time_end, R.fw_apply_to`,
       [firewallId],
     );
 
@@ -1930,7 +1954,7 @@ export class PolicyReplicationService extends Service {
       type: policyTypeId,
       rule_order: ruleOrder,
       action: rule.action === 'deny' ? RULE_ACTION_DENY : RULE_ACTION_ACCEPT,
-      active: 1,
+      active: rule.active === false ? 0 : 1,
       time_start: parsePolicyRuleDate(rule.time_start),
       time_end: parsePolicyRuleDate(rule.time_end),
       options: rule.options ?? 0,
@@ -3227,6 +3251,7 @@ export class PolicyReplicationService extends Service {
         targetRuleId: null,
         policyTypeId: rule.type,
         ruleOrder: rule.rule_order,
+        active: !!rule.active,
         comment: rule.comment,
       },
     };
