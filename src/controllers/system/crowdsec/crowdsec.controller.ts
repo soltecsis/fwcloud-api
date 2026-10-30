@@ -1255,10 +1255,13 @@ export class CrowdSecController extends Controller {
     ) {
       throw new HttpException('CrowdSec Machine installation was not found', 409);
     }
-    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
+    const externalLapi = installation.centralFirewallId === null;
+    const lapiUrl = externalLapi
+      ? CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl)
+      : CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
     if (
       req.body.mode !== CrowdSecInstallationMode.Machine ||
-      req.body.centralFirewallId !== installation.centralFirewallId ||
+      req.body.centralFirewallId !== (externalLapi ? undefined : installation.centralFirewallId) ||
       req.body.machineName !== installation.machineName ||
       lapiUrl !== installation.lapiUrl ||
       req.body.localRemediation === installation.localRemediation
@@ -1270,9 +1273,18 @@ export class CrowdSecController extends Controller {
     }
 
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
+    if (externalLapi && req.body.localRemediation && providedBouncerApiKey === undefined) {
+      throw new HttpException(
+        'CrowdSec Firewall Bouncer API key is required for local remediation',
+        422,
+      );
+    }
     const lapiService = this.lapiService();
-    const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-    const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
+    const centralLapiNodes = externalLapi
+      ? []
+      : await lapiService.getCentralNodes(
+          await this.getCentralFirewall(installation.centralFirewallId as number),
+        );
     const remoteCommunication = await this.getAgentCommunication();
     const channel = await Channel.fromRequest(req);
     const backend = req.body.localRemediation
@@ -1300,7 +1312,7 @@ export class CrowdSecController extends Controller {
       authorityChanged: false,
       backend,
     };
-    if (req.body.localRemediation) {
+    if (req.body.localRemediation && !externalLapi) {
       await lapiService.preflight(
         centralLapiNodes,
         CrowdSecLapiSharedService.listenerUriForLapiUrl(installation.lapiUrl),
@@ -1321,7 +1333,7 @@ export class CrowdSecController extends Controller {
       const bouncerApiKey = req.body.localRemediation
         ? (providedBouncerApiKey ?? CrowdSecLapiSharedService.generateBouncerApiKey())
         : undefined;
-      if (bouncerApiKey) {
+      if (bouncerApiKey && !externalLapi) {
         bouncerReplicationStarted = true;
         await lapiService.replicateBouncer(
           centralLapiNodes,
@@ -1335,13 +1347,22 @@ export class CrowdSecController extends Controller {
         channel,
       );
       activated = true;
-      await this.getCrowdSecInstallationRepository().saveMachineInstallation({
-        firewallId: this._firewall.id,
-        centralFirewallId: installation.centralFirewallId,
-        lapiUrl: installation.lapiUrl,
-        machineName: installation.machineName,
-        localRemediation: req.body.localRemediation,
-      });
+      if (externalLapi) {
+        await this.getCrowdSecInstallationRepository().saveExternalMachineInstallation({
+          firewallId: this._firewall.id,
+          lapiUrl: installation.lapiUrl,
+          machineName: installation.machineName,
+          localRemediation: req.body.localRemediation,
+        });
+      } else {
+        await this.getCrowdSecInstallationRepository().saveMachineInstallation({
+          firewallId: this._firewall.id,
+          centralFirewallId: installation.centralFirewallId as number,
+          lapiUrl: installation.lapiUrl,
+          machineName: installation.machineName,
+          localRemediation: req.body.localRemediation,
+        });
+      }
       this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
         this._firewall,
         req.body.localRemediation,
@@ -1359,8 +1380,9 @@ export class CrowdSecController extends Controller {
           preparation,
           activation,
           finalization,
-          central_bouncer_cleanup_required:
-            !req.body.localRemediation && installation.localRemediation,
+          ...(!externalLapi && !req.body.localRemediation && installation.localRemediation
+            ? { central_bouncer_cleanup_required: true }
+            : {}),
         });
     } catch (error) {
       if (prepared && req.body.localRemediation && !activated) {
@@ -1369,7 +1391,7 @@ export class CrowdSecController extends Controller {
         } catch {
           // The agent preserves recovery state when restoring the previous Machine configuration fails.
         }
-        if (bouncerReplicationStarted) {
+        if (bouncerReplicationStarted && !externalLapi) {
           const cleanup = await lapiService.cleanupBouncer(
             bouncerReplicationCompleted
               ? centralLapiNodes
