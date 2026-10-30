@@ -68,4 +68,9 @@ export class CrowdSecTransitionDto {
   @IsString()
   @Length(1, 8192)
   bouncerApiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 8192)
+  enrollmentKey?: string;
 }
