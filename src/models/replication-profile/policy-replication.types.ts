@@ -214,6 +214,11 @@ export interface PolicyReplicationProvisionRule extends PolicyRuleValidityPeriod
   ipVersion: ReplicationProfileIpVersion;
   /** Defaults to 'accept'. */
   action?: 'accept' | 'deny';
+  /**
+   * Native policy_r.active. A disabled rule keeps its place in the policy but is never compiled.
+   * Omitted in legacy templates means enabled, FWCloud's own default.
+   */
+  active?: boolean;
   /** Native policy_r.options bitmask. Omitted in legacy templates means 0. */
   options?: number;
   /** Native policy_r.negate: negated position IDs separated by spaces. */
@@ -692,6 +697,16 @@ function parseProvisionInterface(value: unknown): PolicyReplicationProvisionInte
   };
 }
 
+/** Native rule settings of a template rule (nodeRole stands for fw_apply_to), in order. */
+const PROVISION_RULE_SETTINGS_FIELDS: readonly (keyof PolicyReplicationProvisionRule)[] = [
+  'negate',
+  'active',
+  'options',
+  'time_start',
+  'time_end',
+  'nodeRole',
+];
+
 function parseProvisionRule(
   value: unknown,
   ensureInterface: (
@@ -764,15 +779,10 @@ function parseProvisionRule(
     translatedServices: parseProvisionServices(
       record.translatedService ?? record.translatedServices,
     ),
-    // Keep the native value unchanged, including malformed runtime values, so neither HTTP
-    // validation nor a direct application can silently discard a requested negation.
-    ...(record.negate !== undefined ? { negate: record.negate as string | null } : {}),
-    // Preserve explicit zero and malformed values for validation, rather than silently defaulting.
-    ...(record.options !== undefined ? { options: record.options as number } : {}),
-    ...(record.time_start !== undefined ? { time_start: record.time_start as string | null } : {}),
-    ...(record.time_end !== undefined ? { time_end: record.time_end as string | null } : {}),
-    // Malformed values too: they must be rejected, never applied to every node.
-    ...(record.nodeRole !== undefined ? { nodeRole: record.nodeRole as string } : {}),
+    // Keep native settings unchanged, explicit null and zero and malformed values included, so
+    // neither HTTP validation nor a direct application can silently drop a negation, enable a
+    // disabled rule or apply a node's rule to every node.
+    ...pickProfileFields(record, PROVISION_RULE_SETTINGS_FIELDS),
     comment,
   };
 }
@@ -1000,6 +1010,8 @@ export interface PolicyReplicationRulePreview {
   targetRuleId: number | null;
   policyTypeId: number;
   ruleOrder: number;
+  /** Whether the rule is (or would be) enabled; a disabled one is created but never compiled. */
+  active: boolean;
   comment: string | null;
 }
 
