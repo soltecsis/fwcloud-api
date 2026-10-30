@@ -1230,6 +1230,21 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(JSON.stringify(response.toJSON())).to.not.contain('external-bouncer-key');
   });
 
+  it('should reject a loopback external LAPI URL before configuring a Machine', async () => {
+    await expect(
+      controller.installMachine({
+        body: {
+          machineName: 'external-machine',
+          lapiUrl: 'http://127.0.0.1:8080',
+          localRemediation: false,
+        },
+        session: { user: null },
+      } as unknown as Request),
+    ).to.be.rejectedWith('CrowdSec Local API URL must not use a loopback address');
+
+    expect(saveExternalMachineInstallationStub.called).to.be.false;
+  });
+
   it('should require confirmation without persisting an unreachable CrowdSec Machine', async () => {
     const centralCommunication = new AgentCommunication({
       protocol: 'https',

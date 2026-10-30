@@ -611,9 +611,10 @@ export class CrowdSecController extends Controller {
   public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
+    const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const connectivity = await (
       await this.getAgentCommunication()
-    ).checkCrowdSecLapiConnectivity(req.body.lapiUrl);
+    ).checkCrowdSecLapiConnectivity(lapiUrl);
     return ResponseBuilder.buildResponse().status(200).body(connectivity);
   }
 
@@ -851,7 +852,7 @@ export class CrowdSecController extends Controller {
       );
     }
 
-    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
+    const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const communication = await this.getAgentCommunication();
     const backend =
       (await Firewall.getCrowdSecFirewallBouncerBackend(

@@ -298,6 +298,20 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(saveExternalMachineInstallationStub.called).to.be.false;
   });
 
+  it('should reject a loopback external LAPI URL before configuring cluster Machines', async () => {
+    await expect(
+      controller.installMachine(
+        request({
+          centralFirewallId: undefined,
+          lapiUrl: 'http://[::ffff:127.0.0.1]:8080',
+          localRemediation: false,
+        }),
+      ),
+    ).to.be.rejectedWith('CrowdSec Local API URL must not use a loopback address');
+
+    expect(saveExternalMachineInstallationStub.called).to.be.false;
+  });
+
   it('should check external LAPI connectivity from each selected cluster node', async () => {
     sinon.stub(firstCommunication, 'checkCrowdSecLapiConnectivity').resolves({
       lapi_url: 'http://192.0.2.20:8080',

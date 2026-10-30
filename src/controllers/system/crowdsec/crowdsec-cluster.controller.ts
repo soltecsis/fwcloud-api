@@ -439,13 +439,14 @@ export class CrowdSecClusterController extends Controller {
   @Validate(CrowdSecClusterLapiConnectivityDto)
   public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
+    const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const results = [];
 
     for (const node of nodes) {
       try {
         const connectivity = await (
           await CrowdSecLapiSharedService.agentCommunication(node, false)
-        ).checkCrowdSecLapiConnectivity(req.body.lapiUrl);
+        ).checkCrowdSecLapiConnectivity(lapiUrl);
         results.push({
           firewall_id: node.id,
           name: node.name,
@@ -2087,7 +2088,7 @@ export class CrowdSecClusterController extends Controller {
       );
     }
 
-    const lapiUrl = CrowdSecLapiSharedService.lapiUrl(req.body.lapiUrl);
+    const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const channel = await Channel.fromRequest(req);
     channel.emit(
       'message',
