@@ -604,7 +604,7 @@ async function validateSnapshot(
     type === REPLICATION_PROFILE_IPOBJ_TYPE_NETWORK &&
     (typeof data.address !== 'string' || !data.address)
   ) {
-    return `${path} must contain the network address.`;
+    return `${path} (${JSON.stringify(data.name)}) must contain the network address.`;
   }
 
   if (
@@ -614,7 +614,7 @@ async function validateSnapshot(
       data.ip_version as 4 | 6,
     )
   ) {
-    return `${path}.range_start must not be greater than range_end.`;
+    return `${path} (${JSON.stringify(data.name)}).range_start must not be greater than range_end.`;
   }
 
   if (checkDestination) {
