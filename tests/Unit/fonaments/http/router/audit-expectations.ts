@@ -120,6 +120,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/console/enrollment/clear': {
     audited: true,
   },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/lapi/connectivity': {
+    audited: true,
+  },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/install': {
     audited: true,
   },
@@ -136,6 +139,9 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: true,
   },
   'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/machines/install': {
+    audited: true,
+  },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/lapi/connectivity': {
     audited: true,
   },
   'POST /fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/install': {

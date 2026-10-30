@@ -358,7 +358,11 @@ export class CrowdSecLapiSharedService {
     if (isIP(address) === 4) {
       return address.startsWith('127.');
     }
-    return address === '::1' || address === '0:0:0:0:0:0:0:1';
+    if (address === '::1' || address === '0:0:0:0:0:0:0:1') {
+      return true;
+    }
+    const mappedIpv4 = address.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    return mappedIpv4 !== null && Number.parseInt(mappedIpv4[1], 16) >> 8 === 127;
   }
 
   static machineNameForFirewall(firewall: Firewall): string {
@@ -395,6 +399,15 @@ export class CrowdSecLapiSharedService {
     } catch {
       throw new HttpException('Invalid CrowdSec Local API URL', 400);
     }
+  }
+
+  static externalLapiUrl(value: unknown): string {
+    const lapiUrl = this.lapiUrl(value);
+    const host = new URL(lapiUrl).hostname.replace(/^\[|\]$/g, '');
+    if (this.isLoopbackMachineAddress(host)) {
+      throw new HttpException('CrowdSec Local API URL must not use a loopback address', 400);
+    }
+    return lapiUrl;
   }
 
   static listenerUriForLapiUrl(lapiUrl: string): string {

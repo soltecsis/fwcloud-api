@@ -44,7 +44,7 @@ export type CrowdSecInstallationRestore = Pick<
 
 export type CrowdSecMachineInstallation = {
   firewallId: number;
-  centralFirewallId: number;
+  centralFirewallId: number | null;
   lapiUrl: string;
   machineName: string;
   localRemediation: boolean;
@@ -77,6 +77,15 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       mode: CrowdSecInstallationMode.Machine,
       machineConnectivityPending: installation.machineConnectivityPending ?? false,
       consoleEnrollmentConfirmed: false,
+    });
+  }
+
+  public async saveExternalMachineInstallation(
+    installation: Omit<CrowdSecMachineInstallation, 'centralFirewallId'>,
+  ): Promise<CrowdSecInstallation> {
+    return this.saveMachineInstallation({
+      ...installation,
+      centralFirewallId: null,
     });
   }
 

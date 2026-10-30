@@ -47,6 +47,7 @@ import {
   CrowdSecInstallationMode,
 } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 import { CrowdSecBlockingStatisticsSharedService } from '../../../../../src/controllers/system/crowdsec/crowdsec-blocking-statistics-shared.service';
+import { PgpHelper } from '../../../../../src/utils/pgp';
 
 describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let app: Application;
@@ -59,6 +60,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
   let secondCommunication: AgentCommunication;
   let managePolicyStub: sinon.SinonStub;
   let saveMachineInstallationStub: sinon.SinonStub;
+  let saveExternalMachineInstallationStub: sinon.SinonStub;
   let setCrowdSecCompatibilityStub: sinon.SinonStub;
   let configureCentralLapiStub: sinon.SinonStub;
   let setCentralLapiEnabledStub: sinon.SinonStub;
@@ -112,6 +114,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       .resolves(new CrowdSecInstallation());
     saveMachineInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveMachineInstallation')
+      .resolves(new CrowdSecInstallation());
+    saveExternalMachineInstallationStub = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveExternalMachineInstallation')
       .resolves(new CrowdSecInstallation());
     setCrowdSecCompatibilityStub = sinon
       .stub(FirewallRepository.prototype, 'setCrowdSecCompatibility')
@@ -193,6 +198,153 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           name: secondNode.name,
           machine_name: 'cluster-slave',
           status: 'completed',
+        },
+      ],
+    });
+  });
+
+  it('should configure every cluster node directly against an external LAPI', async () => {
+    const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine').resolves({
+      installation_state: 'pending_validation',
+    });
+    const secondInstall = sinon.stub(secondCommunication, 'installCrowdSecMachine').resolves({
+      installation_state: 'pending_validation',
+    });
+    const firstActivation = sinon.stub(firstCommunication, 'activateCrowdSecMachine');
+    const secondActivation = sinon.stub(secondCommunication, 'activateCrowdSecMachine');
+    sinon.stub(PgpHelper.prototype, 'decrypt').resolves('external-bouncer-api-key');
+
+    const response = await controller.installMachine(
+      request({
+        centralFirewallId: undefined,
+        lapiUrl: 'http://192.0.2.20:8080',
+        localRemediation: true,
+        bouncerApiKey: 'encrypted-external-bouncer-api-key',
+      }),
+    );
+
+    expect(
+      firstInstall.calledOnce &&
+        firstInstall.calledWithMatch({
+          machineName: 'cluster-master',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: true,
+          backend: 'iptables',
+          bouncerApiKey: 'external-bouncer-api-key',
+        }),
+    ).to.be.true;
+    expect(
+      secondInstall.calledOnce &&
+        secondInstall.calledWithMatch({
+          machineName: 'cluster-slave',
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: true,
+          backend: 'iptables',
+          bouncerApiKey: 'external-bouncer-api-key',
+        }),
+    ).to.be.true;
+    expect(firstActivation.called).to.be.false;
+    expect(secondActivation.called).to.be.false;
+    expect(findCentralFirewallStub.called).to.be.false;
+    expect(saveMachineInstallationStub.called).to.be.false;
+    expect(
+      saveExternalMachineInstallationStub.calledWithMatch({
+        firewallId: firstNode.id,
+        lapiUrl: 'http://192.0.2.20:8080',
+        machineName: 'cluster-master',
+        localRemediation: true,
+      }),
+    ).to.be.true;
+    expect(
+      saveExternalMachineInstallationStub.calledWithMatch({
+        firewallId: secondNode.id,
+        lapiUrl: 'http://192.0.2.20:8080',
+        machineName: 'cluster-slave',
+        localRemediation: true,
+      }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      external_lapi: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'cluster-master',
+          machine: { installation_state: 'pending_validation' },
+          status: 'completed',
+        },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          machine_name: 'cluster-slave',
+          machine: { installation_state: 'pending_validation' },
+          status: 'completed',
+        },
+      ],
+    });
+  });
+
+  it('should require a Bouncer API key for external LAPI remediation', async () => {
+    await expect(
+      controller.installMachine(
+        request({
+          centralFirewallId: undefined,
+          lapiUrl: 'http://192.0.2.20:8080',
+          localRemediation: true,
+        }),
+      ),
+    ).to.be.rejectedWith('CrowdSec Firewall Bouncer API key is required for local remediation');
+    expect(saveExternalMachineInstallationStub.called).to.be.false;
+  });
+
+  it('should reject a loopback external LAPI URL before configuring cluster Machines', async () => {
+    await expect(
+      controller.installMachine(
+        request({
+          centralFirewallId: undefined,
+          lapiUrl: 'http://[::ffff:127.0.0.1]:8080',
+          localRemediation: false,
+        }),
+      ),
+    ).to.be.rejectedWith('CrowdSec Local API URL must not use a loopback address');
+
+    expect(saveExternalMachineInstallationStub.called).to.be.false;
+  });
+
+  it('should check external LAPI connectivity from each selected cluster node', async () => {
+    sinon.stub(firstCommunication, 'checkCrowdSecLapiConnectivity').resolves({
+      lapi_url: 'http://192.0.2.20:8080',
+      reachable: true,
+      message: 'CrowdSec Local API is reachable',
+    });
+    sinon.stub(secondCommunication, 'checkCrowdSecLapiConnectivity').resolves({
+      lapi_url: 'http://192.0.2.20:8080',
+      reachable: false,
+      error_code: 'CROWDSEC_LAPI_CONNECTION_REFUSED',
+      message: 'CrowdSec Local API connection was refused',
+    });
+
+    const response = await controller.checkLapiConnectivity(
+      request({ lapiUrl: 'http://192.0.2.20:8080' }),
+    );
+
+    expect(response.toJSON().data).to.deep.equal({
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          lapi_url: 'http://192.0.2.20:8080',
+          reachable: true,
+          message: 'CrowdSec Local API is reachable',
+        },
+        {
+          firewall_id: secondNode.id,
+          name: secondNode.name,
+          lapi_url: 'http://192.0.2.20:8080',
+          reachable: false,
+          error_code: 'CROWDSEC_LAPI_CONNECTION_REFUSED',
+          message: 'CrowdSec Local API connection was refused',
         },
       ],
     });

@@ -26,9 +26,10 @@ export const CROWDSEC_MACHINE_NAME = /^[A-Za-z0-9_.-]{1,128}$/;
 export const CROWDSEC_LAPI_URL = /^https?:\/\/[^\s/]+(?::\d{1,5})?\/?$/;
 
 export class CrowdSecMachineInstallDto {
+  @IsOptional()
   @IsInt()
   @Min(1)
-  centralFirewallId: number;
+  centralFirewallId?: number;
 
   @IsString()
   @Matches(CROWDSEC_MACHINE_NAME, { message: 'Invalid CrowdSec machine name' })
