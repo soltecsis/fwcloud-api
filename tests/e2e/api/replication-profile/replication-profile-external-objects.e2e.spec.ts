@@ -8,7 +8,9 @@ import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
-import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { Interface } from '../../../../src/models/interface/Interface';
+import { PolicyRule, PolicyRuleOptMask } from '../../../../src/models/policy/PolicyRule';
+import { getProvisionRulePositions } from '../../../../src/models/replication-profile/policy-replication.service';
 import {
   PROFILE_REFERENCE_OBJECT_TYPES,
   ProfileReferenceObjectType,
@@ -16,6 +18,7 @@ import {
 import { ReplicationProfile } from '../../../../src/models/replication-profile/replication-profile.model';
 import {
   loadReplicationProfileModel,
+  getUserReplicationProfileTemplatesDirectory,
   resolveReplicationProfileTemplatePath,
   writeReplicationProfileModel,
 } from '../../../../src/models/replication-profile/replication-profile-template';
@@ -162,7 +165,7 @@ describe(describeName('Replication profile external object automatic recreation 
     ruleOrder: number,
     comment: string,
     service: { ipobj?: number; ipobj_g?: number },
-  ): Promise<void> {
+  ): Promise<number> {
     const rule = await PolicyRule.insertPolicy_r({
       firewall: firewallId,
       type: 3,
@@ -179,6 +182,7 @@ describe(describeName('Replication profile external object automatic recreation 
         'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, ?, -1, 9, 1)',
         [rule, service.ipobj ?? -1, service.ipobj_g ?? -1],
       );
+    return rule;
   }
 
   async function createDestinationTarget(): Promise<Firewall> {
@@ -235,8 +239,10 @@ describe(describeName('Replication profile external object automatic recreation 
           for (const [restriction, start, end, destinationStart, destinationEnd] of [
             ['single', 2048, 2048, 443, 443],
             ['range', 1024, 65535, 8000, 8010],
+            ['destination-range', 0, 0, 8000, 8010],
             ['any', 0, 0, 53, 53],
             ['source-only', 4096, 8192, 0, 0],
+            ['unrestricted', 0, 0, 0, 0],
           ] as const) {
             const object = await createObject(objectType, {
               name: `${prefix}${objectType}-${restriction}`,
@@ -273,6 +279,14 @@ describe(describeName('Replication profile external object automatic recreation 
         await addForwardServiceRule(sourceFirewall.id, 20, 'All grouped services', {
           ipobj_g: group.id,
         });
+        const repeatedServices = services.filter((service) =>
+          service.name.endsWith('-destination-range'),
+        );
+        for (const [index, service] of repeatedServices.entries()) {
+          await addForwardServiceRule(sourceFirewall.id, 21 + index, `Repeated ${service.name}`, {
+            ipobj: service.id,
+          });
+        }
         const originals = await manager.getRepository(IPObj).findBy({ fwCloudId: fwCloud.id });
         const profile = await captureProfile(
           captureSource,
@@ -285,6 +299,8 @@ describe(describeName('Replication profile external object automatic recreation 
           any
         >;
         expect(model.objectReferences).to.have.length(services.length + 1);
+        expect(model.provision.rules).to.have.length(services.length + 3);
+        expect(model.policyStructure.rules).to.deep.eq(model.provision.rules);
         const groupReference = model.objectReferences.find(
           (item) => item.objectType === 'serviceGroup',
         );
@@ -338,9 +354,12 @@ describe(describeName('Replication profile external object automatic recreation 
         expect(members.map((item) => Number(item.ipobj)).sort((a, b) => a - b)).to.deep.eq(
           recreated.map((item) => item.id).sort((a, b) => a - b),
         );
-        expect(await ruleReferences(destination.id)).to.have.members(
-          recreated.map((item) => item.id),
-        );
+        expect(await ruleReferences(destination.id)).to.have.members([
+          ...recreated.map((item) => item.id),
+          ...repeatedServices.map(
+            (original) => recreated.find((item) => item.name === original.name)!.id,
+          ),
+        ]);
         expect(await ruleReferences(destination.id, true)).to.deep.eq([destinationGroup.id]);
         // FWCloud rule IDs occur in logging prefixes and VyOS paths.
         const ports = (value: unknown) =>
@@ -367,11 +386,7 @@ describe(describeName('Replication profile external object automatic recreation 
           for (const rule of recreatedPolicy) {
             const original = originalPolicy.find((item) => item.comment === rule.comment)!;
             expect(ports(rule.cs), `${compiler}: ${rule.comment}`).to.deep.eq(ports(original.cs));
-            if (
-              rule.comment.includes('range') ||
-              rule.comment.includes('single') ||
-              rule.comment.includes('source-only')
-            ) {
+            if (/^(tcp|udp) (range|single|source-only)$/.test(rule.comment)) {
               expect(
                 ports(rule.cs).some((port) => /--sport| sport|source port/.test(port)),
                 `${compiler}: ${rule.comment}`,
@@ -385,6 +400,200 @@ describe(describeName('Replication profile external object automatic recreation 
         expect(fs.readFileSync(file, 'utf8')).to.eq(jsonBeforeApply);
       });
     }
+  }
+
+  for (const kind of ['firewall', 'cluster'] as const) {
+    it(`should retain a ranged service and all ${kind} rule restrictions through loading, editing and cross-cloud application`, async () => {
+      const manager = db.getSource().manager;
+      const positions = getProvisionRulePositions(4, 'forward');
+      const negate = [
+        positions.source,
+        positions.destination,
+        positions.service,
+        positions.in,
+        positions.out,
+      ].join(' ');
+      const source = target;
+      const destination = await createDestinationTarget();
+      const clusterFor = async (firewall: Firewall) => {
+        const cluster = await manager.getRepository(Cluster).save({
+          name: `${prefix}${firewall.id}-restricted-cluster`,
+          fwCloudId: firewall.fwCloudId,
+        });
+        await manager.getRepository(Firewall).update(firewall.id, {
+          clusterId: cluster.id,
+          fwmaster: 1,
+        });
+        const backup = await manager.getRepository(Firewall).save({
+          name: `${prefix}${firewall.id}-restricted-backup`,
+          fwCloudId: firewall.fwCloudId,
+          clusterId: cluster.id,
+          fwmaster: 0,
+        });
+        return { cluster, backup };
+      };
+      const sourceCluster = kind === 'cluster' ? await clusterFor(source) : undefined;
+      const targetCluster = kind === 'cluster' ? await clusterFor(destination) : undefined;
+      const interfaces = await manager.getRepository(Interface).save(
+        ['lan0', 'wan0'].map((name) => ({
+          name,
+          type: '10',
+          interface_type: '10',
+          firewallId: source.id,
+        })),
+      );
+      const lan = await createObject('network', {
+        name: `${prefix}LAN`,
+        address: '10.30.0.0',
+        netmask: '/24',
+        ip_version: 4,
+      });
+      const server = await createObject('address', {
+        name: `${prefix}APP_SERVER`,
+        address: '198.51.100.20',
+        netmask: '/32',
+        ip_version: 4,
+      });
+      const configuration = {
+        protocol: 6,
+        source_port_start: 1000,
+        source_port_end: 1024,
+        destination_port_start: 8000,
+        destination_port_end: 8010,
+      };
+      const service = await createObject('tcp', {
+        name: `${prefix}CUSTOM_TCP_RANGE`,
+        ...configuration,
+      });
+      const ruleId = await addForwardServiceRule(source.id, 1, 'Allow application traffic', {
+        ipobj: service.id,
+      });
+      const options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATELESS;
+      const timeStart = new Date('2026-10-01T06:15:30Z');
+      const timeEnd = new Date('2026-10-31T18:45:59Z');
+      await manager.query(
+        'UPDATE policy_r SET options = ?, negate = ?, time_start = ?, time_end = ?, fw_apply_to = ? WHERE id = ?',
+        [options, negate, timeStart, timeEnd, sourceCluster?.backup.id ?? null, ruleId],
+      );
+      for (const [object, position] of [
+        [lan, positions.source],
+        [server, positions.destination],
+      ] as const) {
+        await manager.query(
+          'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, ?, -1, -1, ?, 1)',
+          [ruleId, object.id, position],
+        );
+      }
+      for (const [index, iface] of interfaces.entries()) {
+        await manager.query(
+          'INSERT INTO policy_r__interface (rule, interface, position, position_order) VALUES (?, ?, ?, 1)',
+          [ruleId, iface.id, [positions.in, positions.out][index]],
+        );
+      }
+      const profile = await captureProfile(
+        { kind, id: sourceCluster?.cluster.id ?? source.id },
+        'Ranged service with complete rule restrictions',
+        `${prefix}complete-rule`,
+      );
+      const detail = await request(app.express)
+        .get(profileUrl(profile))
+        .set('Cookie', [attachSession(sessionId)])
+        .expect(200);
+      const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile)));
+      expect(detail.body.data.model.provision.rules).to.deep.eq(model.provision.rules);
+      expect(detail.body.data.model.objectReferences[0].snapshot).to.deep.eq(
+        model.objectReferences[0].snapshot,
+      );
+      expect(model.provision.rules).to.have.length(1);
+      expect(model.objectReferences).to.have.length(1);
+      expect(model.objectReferences[0].snapshot).to.include(configuration);
+      expect(model.provision.rules[0]).to.include({
+        action: 'accept',
+        negate,
+        options,
+        inRole: 'lan0',
+        outRole: 'wan0',
+        time_start: timeStart.toISOString(),
+        time_end: timeEnd.toISOString(),
+        ...(sourceCluster ? { nodeRole: 'backup' } : {}),
+      });
+      model.provision.rules[0].comment = 'Edited application traffic';
+      model.policyStructure.rules[0].comment = 'Edited application traffic';
+      // Test authentication starts a new HTTP session for each request.
+      await unlockFwCloud(fwCloud.id);
+      const edited = await request(app.express)
+        .post(`/fwclouds/${fwCloud.id}/profiles/${profile.code}/versions`)
+        .set('Cookie', [attachSession(sessionId)])
+        .send(
+          makeCustomReplicationProfilePayload(prefix, {
+            name: detail.body.data.name,
+            targetKind: kind,
+            model,
+          }),
+        )
+        .expect(201);
+      const latest = await trackProfile(edited.body.data.id);
+      const previous = await manager.getRepository(ReplicationProfile).findOneByOrFail({
+        code: profile.code,
+        userId: user.id,
+        versionSlot: 'previous',
+      });
+      createdProfiles.push(previous);
+      expect(loadReplicationProfileModel(latest)).to.deep.eq(model);
+      const applied = await request(app.express)
+        .post(`${profileUrl(latest, destination.fwCloudId)}/apply`)
+        .set('Cookie', [attachSession(sessionId)])
+        .send({
+          target: { kind, id: targetCluster?.cluster.id ?? destination.id },
+          mode: 'merge',
+          ...(targetCluster
+            ? {
+                nodeRoleMapping: { master: destination.id, backup: targetCluster.backup.id },
+              }
+            : {}),
+        })
+        .expect(200);
+      expect(applied.body.data.errors).to.deep.eq([]);
+      const [copy] = await objectsNamed(service.name, destination.fwCloudId);
+      expect(copy).to.include(configuration);
+      const [recreatedRule] = await manager.query(
+        'SELECT id, action, options, negate, time_start, time_end, fw_apply_to FROM policy_r WHERE firewall = ? AND special = 0',
+        [destination.id],
+      );
+      expect(recreatedRule).to.include({
+        action: 1,
+        options,
+        negate,
+        fw_apply_to: targetCluster?.backup.id ?? null,
+      });
+      expect(recreatedRule.time_start).to.deep.eq(timeStart);
+      expect(recreatedRule.time_end).to.deep.eq(timeEnd);
+      const objectRefs = await manager.query(
+        'SELECT R.position, O.id, O.address, O.netmask FROM policy_r__ipobj R INNER JOIN ipobj O ON O.id = R.ipobj WHERE R.rule = ? ORDER BY R.position',
+        [recreatedRule.id],
+      );
+      expect(objectRefs).to.have.length(3);
+      expect(objectRefs[0]).to.include({
+        position: positions.source,
+        address: lan.address,
+        netmask: lan.netmask,
+      });
+      expect(objectRefs[1]).to.include({
+        position: positions.destination,
+        address: server.address,
+        netmask: server.netmask,
+      });
+      expect(objectRefs[2]).to.include({ position: positions.service, id: copy.id });
+      const interfaceRefs = await manager.query(
+        'SELECT R.position, I.name, I.firewall FROM policy_r__interface R INNER JOIN interface I ON I.id = R.interface WHERE R.rule = ? ORDER BY R.position',
+        [recreatedRule.id],
+      );
+      expect(interfaceRefs).to.deep.eq([
+        { position: positions.in, name: 'lan0', firewall: destination.id },
+        { position: positions.out, name: 'wan0', firewall: destination.id },
+      ]);
+      expect(loadReplicationProfileModel(latest)).to.deep.eq(model);
+    });
   }
 
   it('should preserve CUSTOM_TCP source range 1024-65535 and destination 443 through automatic capture and cross-cloud application', async () => {
@@ -426,6 +635,138 @@ describe(describeName('Replication profile external object automatic recreation 
   });
 
   for (const objectType of ['tcp', 'udp'] as const) {
+    for (const [restriction, destinationStart, destinationEnd] of [
+      ['different start', 8001, 8010],
+      ['different end', 8000, 8011],
+      ['single port', 8000, 8000],
+      ['unrestricted ports', 0, 0],
+    ] as const) {
+      it(`should not reuse an existing ${objectType} service with ${restriction} instead of destination range 8000-8010`, async () => {
+        const destination = await createDestinationTarget();
+        const configuration = {
+          protocol: objectType === 'tcp' ? 6 : 17,
+          source_port_start: 1024,
+          source_port_end: 65535,
+          destination_port_start: 8000,
+          destination_port_end: 8010,
+        };
+        const original = await createObject(objectType, configuration);
+        await addForwardServiceRule(target.id, 1, 'Original ranged service rule', {
+          ipobj: original.id,
+        });
+        const profile = await captureProfile(
+          { kind: 'firewall', id: target.id },
+          'Destination range equivalence',
+        );
+        const stored = loadReplicationProfileModel(profile) as Record<string, any>;
+        const incompatible = await createObject(objectType, {
+          ...configuration,
+          name: original.name,
+          fwCloudId: destination.fwCloudId,
+          destination_port_start: destinationStart,
+          destination_port_end: destinationEnd,
+        });
+        const before = await objectsNamed(original.name, destination.fwCloudId);
+        await request(app.express)
+          .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+          .set('Cookie', [attachSession(sessionId)])
+          .send(applyPayload(destination))
+          .expect(422);
+        expect(await ruleReferences(destination.id)).to.be.empty;
+        expect(await objectsNamed(original.name, destination.fwCloudId)).to.deep.eq(before);
+        await unlockFwCloud(destination.fwCloudId);
+        const applied = await request(app.express)
+          .post(`${profileUrl(profile, destination.fwCloudId)}/apply`)
+          .set('Cookie', [attachSession(sessionId)])
+          .send({
+            ...applyPayload(destination),
+            objectReplacements: {
+              [stored.objectReferences[0].referenceId]: { useSnapshot: true },
+            },
+          })
+          .expect(200);
+        expect(applied.body.data.errors).to.deep.eq([]);
+        const [copy] = await objectsNamed(`${original.name} (template)`, destination.fwCloudId);
+        expect(copy).to.include(configuration);
+        expect(copy.id).not.to.eq(incompatible.id);
+        expect(await ruleReferences(destination.id)).to.deep.eq([copy.id]);
+        expect(await objectsNamed(original.name, destination.fwCloudId)).to.deep.eq(before);
+        expect(loadReplicationProfileModel(profile)).to.deep.eq(stored);
+      });
+    }
+
+    for (const grouped of [false, true]) {
+      it(`should fail capture explicitly without persisting an incomplete template for an invalid ${objectType} destination range${grouped ? ' in a service group' : ''}`, async () => {
+        const invalid = await createObject(objectType, {
+          name: `${prefix}invalid-${objectType}-range`,
+          protocol: objectType === 'tcp' ? 6 : 17,
+          source_port_start: 0,
+          source_port_end: 0,
+          destination_port_start: 8010,
+          destination_port_end: 8000,
+        });
+        const valid = await createObject(objectType, {
+          name: `${prefix}valid-${objectType}-range`,
+          protocol: objectType === 'tcp' ? 6 : 17,
+          source_port_start: 0,
+          source_port_end: 0,
+          destination_port_start: 8000,
+          destination_port_end: 8010,
+        });
+        await addForwardServiceRule(target.id, 1, 'Valid rule before invalid rule', {
+          ipobj: valid.id,
+        });
+        let reference: { ipobj?: number; ipobj_g?: number } = { ipobj: invalid.id };
+        if (grouped) {
+          const group = await db
+            .getSource()
+            .manager.getRepository(IPObjGroup)
+            .save({
+              name: `${prefix}invalid-service-group`,
+              type: PROFILE_REFERENCE_OBJECT_TYPES.serviceGroup,
+              fwCloudId: fwCloud.id,
+            });
+          await db
+            .getSource()
+            .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
+              invalid.id,
+              group.id,
+            ]);
+          reference = { ipobj_g: group.id };
+        }
+        const comment = 'Invalid application traffic';
+        const ruleId = await addForwardServiceRule(target.id, 2, comment, reference);
+        const code = `${prefix}invalid-capture`;
+        const directory = getUserReplicationProfileTemplatesDirectory(user.id);
+        const files = () =>
+          fs.existsSync(directory)
+            ? fs
+                .readdirSync(directory, { recursive: true })
+                .map(String)
+                .filter((file) => file.endsWith('.json'))
+                .sort()
+            : [];
+        const before = files();
+        const response = await request(app.express)
+          .post(`/fwclouds/${fwCloud.id}/profiles/from-source`)
+          .set('Cookie', [attachSession(sessionId)])
+          .send({
+            source: { kind: 'firewall', id: target.id },
+            name: 'Invalid destination range capture',
+            code,
+          })
+          .expect(422);
+        const error = JSON.stringify(response.body);
+        expect(error).to.include(invalid.name);
+        expect(error).to.include(String(ruleId));
+        expect(error).to.include(comment);
+        expect(error).to.match(/destination[ _]port/i);
+        expect(await db.getSource().manager.getRepository(ReplicationProfile).findBy({ code })).to
+          .be.empty;
+        expect(files()).to.deep.eq(before);
+      });
+    }
+
     it(`should reject a ${objectType} source-port conflict and preserve the snapshot after an explicit recreation choice`, async () => {
       const destination = await createDestinationTarget();
       const configuration = {

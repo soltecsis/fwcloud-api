@@ -166,6 +166,33 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       });
   }
 
+  async function expectCaptureFailure(
+    captureSource: { kind: 'firewall' | 'cluster'; id: number },
+    diagnostics: string[],
+  ): Promise<HttpException> {
+    const error = await service
+      .createProfileFromSource(
+        { source: captureSource, name: 'Incomplete capture must fail' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      )
+      .then(
+        () => null,
+        (error) => error,
+      );
+    expect(error).to.be.instanceOf(HttpException);
+    expect(error.status).to.eq(422);
+    for (const diagnostic of diagnostics) {
+      expect(error.message).to.include(diagnostic);
+    }
+    expect(
+      await db
+        .getSource()
+        .manager.getRepository(ReplicationProfile)
+        .count({ where: { userId: ownerId } }),
+    ).to.eq(0);
+    return error;
+  }
+
   function getProvision(profile: ReplicationProfile): {
     interfaces: Array<{ name: string; role: string; addresses: Array<{ value: unknown }> }>;
     rules: CapturedRule[];
@@ -574,7 +601,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       }
     });
 
-    it('should warn and omit entire rules whose negation cannot be represented', async () => {
+    it('should reject incomplete captures and report every rule whose negation cannot be represented', async () => {
       const cases = [
         { negate: '43', comment: 'Wrong IP family' },
         { negate: '14', comment: 'Translation position' },
@@ -586,16 +613,10 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         await attachIpObj(ruleId, source.wanAddress.id, 7);
       }
 
-      const { profile, warnings } = await service.createProfileFromSource(
-        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Invalid rule negation' },
-        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      await expectCaptureFailure(
+        { kind: 'firewall', id: source.firewall.id },
+        cases.map((item) => item.comment),
       );
-
-      expect(getProvision(profile).rules).to.be.empty;
-      expect(warnings).to.have.length(cases.length);
-      for (const item of cases) {
-        expect(warnings.some((warning) => warning.includes(item.comment))).to.be.true;
-      }
     });
 
     it('should retain negated interface addresses as source and destination when applying to another firewall', async () => {
@@ -1230,7 +1251,91 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(getParameters(profile).some((parameter) => parameter.name === paramName)).to.be.true;
     });
 
-    it('should warn about rules that cannot be expressed in the template vocabulary', async () => {
+    for (const grouped of [false, true]) {
+      it(`should reject an invalid ${grouped ? 'group member' : 'service'} range with service and rule details before saving`, async () => {
+        const invalidService = await db.getSource().manager.getRepository(IPObj).save({
+          name: 'Invalid TCP destination range',
+          ipObjTypeId: 2,
+          protocol: 6,
+          source_port_start: 1024,
+          source_port_end: 2048,
+          destination_port_start: 8011,
+          destination_port_end: 8010,
+          fwCloudId: fwc.fwcloud.id,
+        });
+        const ruleId = await insertForwardRule(source.firewall.id, 100, {
+          comment: 'Application traffic using invalid range',
+        });
+        if (grouped) {
+          const group = await db
+            .getSource()
+            .query('INSERT INTO ipobj_g (name, type, fwcloud) VALUES (?, 21, ?)', [
+              'Invalid service group',
+              fwc.fwcloud.id,
+            ]);
+          await db
+            .getSource()
+            .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
+              invalidService.id,
+              group.insertId,
+            ]);
+          await db
+            .getSource()
+            .query(
+              'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, 9, 1)',
+              [ruleId, group.insertId],
+            );
+        } else {
+          await attachIpObj(ruleId, invalidService.id, 9);
+        }
+
+        await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+          'Invalid TCP destination range',
+          'Application traffic using invalid range',
+          'Destination port end must be greater or equal than destination port start',
+        ]);
+      });
+    }
+
+    it('should report every rule once and in policy order when a service is shared with NAT translation', async () => {
+      const invalidService = await makeTcpService(8000);
+      await db.getSource().manager.getRepository(IPObj).update(invalidService.id, {
+        destination_port_end: 7999,
+      });
+      const forwardRule = await insertForwardRule(source.firewall.id, 100, {
+        comment: 'Shared forward service',
+      });
+      await attachIpObj(forwardRule, invalidService.id, 9);
+      const natRule = await PolicyRule.insertPolicy_r({
+        firewall: source.firewall.id,
+        type: PolicyTypesMap.get('IPv4:DNAT')!,
+        rule_order: 200,
+        comment: 'Shared translation service',
+        action: 1,
+        active: 1,
+        options: 0,
+        special: 0,
+      });
+      const positions = getProvisionRulePositions(4, 'dnat');
+      await attachIpObj(natRule, invalidService.id, positions.service);
+      await attachIpObj(natRule, invalidService.id, positions.translatedService);
+
+      const error = await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        invalidService.name,
+        'Shared forward service',
+        'Shared translation service',
+      ]);
+      expect(error.message).to.eq(
+        'Policy capture failed:\n' +
+          `FORWARD IPv4 rule 100 ("Shared forward service") [id ${forwardRule}], ` +
+          `DNAT IPv4 rule 200 ("Shared translation service") [id ${natRule}] cannot be captured: ` +
+          `service "${invalidService.name}" (service-2-${invalidService.id}): ` +
+          `snapshot ("${invalidService.name}"): ` +
+          'Destination port end must be greater or equal than destination port start',
+      );
+    });
+
+    it('should fail without persisting when policy rules cannot be expressed in the template vocabulary', async () => {
       // Disabled rule.
       await insertForwardRule(source.firewall.id, 101, {
         active: 0,
@@ -1243,21 +1348,15 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         comment: 'Reject rule',
       });
 
-      const { profile, warnings } = await service.createProfileFromSource(
-        {
-          source: { kind: 'firewall', id: source.firewall.id },
-          name: 'Snapshot with warnings',
-        },
-        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
-      );
-
-      expect(getProvision(profile).rules).to.be.empty;
-      expect(warnings).to.have.length(2);
-      expect(warnings.join(' ')).to.contain('Disabled rule');
-      expect(warnings.join(' ')).to.contain('Reject rule');
+      await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        'Disabled rule',
+        'the rule is disabled',
+        'Reject rule',
+        'only ACCEPT and DENY',
+      ]);
     });
 
-    it('should not capture a rule restricted to another firewall instead of widening it', async () => {
+    it('should reject capture of a rule restricted to another firewall', async () => {
       const other = await makeReplicationTargetFirewall(fwc);
       const ruleId = await insertForwardRule(source.firewall.id, 100, {
         comment: 'Other firewall only',
@@ -1266,15 +1365,11 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         .getSource()
         .query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [other.firewall.id, ruleId]);
 
-      const { profile, warnings } = await service.createProfileFromSource(
-        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Foreign node rule' },
-        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
-      );
-
-      expect(warnings).to.deep.eq([
-        'FORWARD IPv4 rule 100 ("Other firewall only") was not captured: it only applies to a firewall that is not a node of the source.',
+      await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        'FORWARD IPv4 rule 100',
+        'Other firewall only',
+        'not a node of the source',
       ]);
-      expect(getProvision(profile).rules).to.be.empty;
     });
 
     it('should reject a firewall that belongs to another FWCloud', async () => {
@@ -1725,22 +1820,18 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       );
     });
 
-    it('should not capture a rule restricted to a firewall outside the cluster', async () => {
+    it('should reject capture of a rule restricted to a firewall outside the cluster', async () => {
       const outsider = await makeReplicationTargetFirewall(fwc);
       const ruleId = await insertForwardRule(source.firewall.id, 100, { comment: 'Outsider only' });
       await db
         .getSource()
         .query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [outsider.firewall.id, ruleId]);
 
-      const { profile, warnings } = await service.createProfileFromSource(
-        { source: { kind: 'cluster', id: cluster.id }, name: 'Outsider node rule' },
-        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
-      );
-
-      expect(warnings).to.deep.eq([
-        'FORWARD IPv4 rule 100 ("Outsider only") was not captured: it only applies to a firewall that is not a node of the source.',
+      await expectCaptureFailure({ kind: 'cluster', id: cluster.id }, [
+        'FORWARD IPv4 rule 100',
+        'Outsider only',
+        'not a node of the source',
       ]);
-      expect(getProvision(profile).rules).to.be.empty;
     });
 
     it('should leave out routing and system entries restricted to one node, and require Keepalived masters', async () => {
@@ -2120,7 +2211,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(validateProfileVpnTemplate(vpn)).to.be.empty;
     });
 
-    it('should omit a whole rule when its VPN match cannot be represented', async () => {
+    it('should fail capture and report every rule whose VPN match cannot be represented', async () => {
       const { serverId } = await makeVpnPair('openvpn');
       const prefix = await db
         .getSource()
@@ -2149,16 +2240,11 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           [foreignRule, fwc.wireguardClients.get('WireGuard-Cli-1').id],
         );
 
-      const { profile, warnings } = await service.createProfileFromSource(
-        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Unsupported VPN matches' },
-        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
-      );
-
-      expect(getProvision(profile).rules).to.be.empty;
-      expect(getVpnTemplate(profile).connections).to.have.length(2);
-      expect(warnings).to.have.length(2);
-      expect(warnings.join(' ')).to.include('Restricted to a dynamic VPN prefix');
-      expect(warnings.join(' ')).to.include('Restricted to a VPN from another firewall');
+      await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        'Restricted to a dynamic VPN prefix',
+        'Restricted to a VPN from another firewall',
+        'VPN reference',
+      ]);
     });
   });
 
@@ -2259,7 +2345,7 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(reparsed.system.dhcp).to.have.length(1);
     });
 
-    it('should warn about FWCloud groups, which are not predefined and cannot be templated', async () => {
+    it('should reject capture when a rule references an unsupported address group', async () => {
       const [group] = await db
         .getSource()
         .query("INSERT INTO ipobj_g (name, type, fwcloud) VALUES ('Office nets', 20, ?)", [
@@ -2274,14 +2360,11 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
           [ruleId, group],
         );
 
-      const { profile, warnings } = await service.createProfileFromSource(
-        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Group snapshot' },
-        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
-      );
-
-      expect(getProvision(profile).rules).to.be.empty;
-      expect(warnings).to.have.length(1);
-      expect(warnings[0]).to.contain('FORWARD IPv4 rule 120').and.to.contain('groups');
+      await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        'FORWARD IPv4 rule 120',
+        'Group rule',
+        'groups',
+      ]);
     });
   });
 

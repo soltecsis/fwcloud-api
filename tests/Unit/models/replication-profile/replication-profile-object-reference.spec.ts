@@ -22,6 +22,7 @@ import {
   validateReplicationProfilePayload,
 } from '../../../../src/models/replication-profile/replication-profile-validation.service';
 import {
+  getProfileObjectReferenceLocations,
   PROFILE_REFERENCE_OBJECT_TYPES,
   ProfileObjectReplacement,
   ProfileReferenceObjectType,
@@ -125,6 +126,32 @@ const VALUE_OBJECTS: {
     created: { protocol: 50 },
   },
 ];
+
+describe('Replication profile reference locations', () => {
+  it('preserves traversal order for shared references in large templates without counting aliases twice', () => {
+    const rules = Array.from({ length: 2048 }, () => ({
+      source: [usage('shared-address')],
+      services: [usage('shared-service'), usage('other-service'), usage('shared-service')],
+    }));
+    const structure = { rules };
+    const model = { provision: structure, policyStructure: structure };
+    const locations = getProfileObjectReferenceLocations(model);
+
+    expect([...locations.keys()]).to.deep.eq(['shared-address', 'shared-service', 'other-service']);
+    expect(locations.get('shared-service')).to.deep.eq(
+      rules.flatMap((_, index) => [
+        `model.provision.rules[${index}].services[0]`,
+        `model.provision.rules[${index}].services[2]`,
+      ]),
+    );
+    expect(locations.get('shared-address')).to.deep.eq(
+      rules.map((_, index) => `model.provision.rules[${index}].source[0]`),
+    );
+    expect(locations.get('other-service')).to.deep.eq(
+      rules.map((_, index) => `model.provision.rules[${index}].services[1]`),
+    );
+  });
+});
 
 describe(describeName('Replication profile external object references'), () => {
   let fwc: FwCloudProduct;

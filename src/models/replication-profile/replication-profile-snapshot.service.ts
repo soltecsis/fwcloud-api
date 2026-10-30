@@ -46,6 +46,8 @@ import {
 } from './replication-profile-parameters';
 import {
   getProfileObjectReferenceLocations,
+  getProfileObjectReferences,
+  getProfileReferenceIpObjType,
   PROFILE_OBJECT_DATA_FIELDS,
   PROFILE_SERVICE_REFERENCE_TYPES,
   type ReplicationProfileObjectReference,
@@ -296,6 +298,12 @@ function captureFailure(captures: SnapshotCapture<unknown>[]): { reason: string 
   return captures.find((capture): capture is { reason: string } => 'reason' in capture);
 }
 
+function assertPolicyCaptureComplete(errors: string[]): void {
+  if (errors.length > 0) {
+    throw new HttpException(`Policy capture failed:\n${errors.join('\n')}`, 422);
+  }
+}
+
 interface SnapshotProvisionRule extends PolicyRuleValidityPeriod {
   chain: SnapshotChain;
   ipVersion: number;
@@ -485,9 +493,8 @@ class SnapshotValueCollector {
  * definitions. The captured profile is
  * self-contained, so it can later be applied without the source firewall.
  *
- * Only rules expressible in the profile vocabulary are captured; every
- * skipped rule is reported through `warnings` instead of being silently
- * widened or dropped.
+ * Every required policy rule must be representable. Incomplete policy captures
+ * fail before a profile or its JSON is persisted.
  */
 export class ReplicationProfileSnapshotService extends Service {
   protected _replicationProfileService: ReplicationProfileService;
@@ -578,13 +585,12 @@ export class ReplicationProfileSnapshotService extends Service {
     }
     // Capture each assigned IP before rules so they can reference that exact address,
     // rather than the interface's entire address set or an In/Out restriction.
-    const rules = await this.capturePolicyRules(
+    const { rules, serviceRuleLabels } = await this.capturePolicyRules(
       resolved.firewall.id,
       resolved.nodeRoleById,
       roleByInterfaceId,
       loopbackInterfaceIds,
       values,
-      warnings,
       vpnObjects,
     );
     const routing = await this.captureRouting(
@@ -655,12 +661,43 @@ export class ReplicationProfileSnapshotService extends Service {
       model.objectReferences = objectReferences;
     }
 
+    const capturedModel = await captureProfileObjectReferences(model, fwCloudId);
+    await this.validatePolicyServices(
+      getProfileObjectReferences(capturedModel),
+      serviceRuleLabels,
+      fwCloudId,
+    );
+
     return {
       targetKind: source.kind,
       sourceName: resolved.sourceName,
-      model: await captureProfileObjectReferences(model, fwCloudId),
+      model: capturedModel,
       warnings,
     };
+  }
+
+  /** Validate each shared service once, retaining all affected rules in diagnostics. */
+  private async validatePolicyServices(
+    references: ReplicationProfileObjectReference[],
+    serviceRuleLabels: Map<string, Set<string>>,
+    fwCloudId: number,
+  ): Promise<void> {
+    const errors: string[] = [];
+    for (const reference of references) {
+      const labels = serviceRuleLabels.get(reference.referenceId);
+      if (!labels) continue;
+
+      const type = getProfileReferenceIpObjType(reference.objectType)!;
+      const invalid = await validateProfileObjectSnapshot(reference.snapshot, type, fwCloudId, {
+        checkDestination: false,
+      });
+      if (invalid) {
+        errors.push(
+          `${Array.from(labels).join(', ')} cannot be captured: service "${reference.sourceName}" (${reference.referenceId}): ${invalid}`,
+        );
+      }
+    }
+    assertPolicyCaptureComplete(errors);
   }
 
   private async resolveSourceFirewall(
@@ -769,7 +806,7 @@ export class ReplicationProfileSnapshotService extends Service {
   /**
    * Captures every filter and NAT policy of the source, in both IP families.
    * Policies holding only their untouched default rules are left out; rules the
-   * vocabulary cannot express are reported through `warnings` instead of being widened.
+   * vocabulary cannot express cause an explicit validation failure.
    */
   private async capturePolicyRules(
     firewallId: number,
@@ -777,9 +814,8 @@ export class ReplicationProfileSnapshotService extends Service {
     roleByInterfaceId: Map<number, string>,
     loopbackInterfaceIds: Set<number>,
     values: SnapshotValueCollector,
-    warnings: string[],
     vpnObjects: Map<string, SnapshotProvisionObject>,
-  ): Promise<SnapshotProvisionRule[]> {
+  ): Promise<{ rules: SnapshotProvisionRule[]; serviceRuleLabels: Map<string, Set<string>> }> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow>(
       `SELECT id, type, rule_order, action, active, special, comment, negate, options, time_start, time_end, fw_apply_to FROM policy_r
@@ -815,50 +851,63 @@ export class ReplicationProfileSnapshotService extends Service {
             !this.isUntouchedDefaultRule(rule, policy, refsOf(rule.id), loopbackInterfaceIds),
         ),
     );
-    const customizedTypes = new Set(customizedPolicies.map((policy) => policy.typeId));
-    const candidateRules = nonSpecialRules.filter((rule) => customizedTypes.has(Number(rule.type)));
+    const candidateRules = customizedPolicies.flatMap((policy) => rulesByType.get(policy.typeId)!);
     const lookup = await this.loadObjectLookup(
       candidateRules.flatMap((rule) => ipObjRefs.get(rule.id) ?? []),
     );
 
     const captured: SnapshotProvisionRule[] = [];
+    const serviceRuleLabels = new Map<string, Set<string>>();
+    const errors: string[] = [];
 
     for (const policy of customizedPolicies) {
       for (const rule of rulesByType.get(policy.typeId)!) {
         const label = this.ruleLabel(rule, policy.label);
 
         if (rule.active !== 1) {
-          warnings.push(`${label} was not captured: the rule is disabled.`);
+          errors.push(`${label} cannot be captured: the rule is disabled.`);
           continue;
         }
 
         const nodeRole = rule.fw_apply_to === null ? undefined : nodeRoleById.get(rule.fw_apply_to);
         if (rule.fw_apply_to !== null && !nodeRole) {
-          warnings.push(
-            `${label} was not captured: it only applies to a firewall that is not a node of the source.`,
+          errors.push(
+            `${label} cannot be captured: it only applies to a firewall that is not a node of the source.`,
           );
           continue;
         }
 
-        const provisionRule = this.captureRule(
+        const capture = this.captureRule(
           rule,
           policy,
-          label,
           refsOf(rule.id),
           vpnObjects,
           roleByInterfaceId,
           lookup,
           values,
-          warnings,
         );
+        if ('reason' in capture) {
+          errors.push(`${label} cannot be captured: ${capture.reason}`);
+          continue;
+        }
 
-        if (provisionRule) {
-          captured.push(nodeRole ? { ...provisionRule, nodeRole } : provisionRule);
+        const provisionRule = capture.value;
+        captured.push(nodeRole ? { ...provisionRule, nodeRole } : provisionRule);
+        for (const service of [
+          ...(provisionRule.services ?? []),
+          ...(provisionRule.translatedService ?? []),
+        ]) {
+          if (service.kind === 'external') {
+            const labels = serviceRuleLabels.get(service.referenceId) ?? new Set<string>();
+            labels.add(label);
+            serviceRuleLabels.set(service.referenceId, labels);
+          }
         }
       }
     }
 
-    return captured;
+    assertPolicyCaptureComplete(errors);
+    return { rules: captured, serviceRuleLabels };
   }
 
   /**
@@ -909,27 +958,22 @@ export class ReplicationProfileSnapshotService extends Service {
   }
 
   /**
-   * Maps one policy_r row into the provision vocabulary. Returns null (and
-   * records a warning) when the rule carries references the vocabulary cannot
-   * express, because capturing it without them would produce a template rule
-   * broader than the original one.
+   * Maps one policy_r row into the provision vocabulary, or explains why it cannot
+   * be represented without broadening the original rule.
    */
   private captureRule(
     rule: SnapshotRuleRow,
     policy: CapturedPolicy,
-    label: string,
     { interfaces: interfaceRefs, ipObjs: ipObjRefs, vpns: vpnRefs }: SnapshotRuleRefs,
     vpnObjects: Map<string, SnapshotProvisionObject>,
     roleByInterfaceId: Map<number, string>,
     lookup: SnapshotObjectLookup,
     values: SnapshotValueCollector,
-    warnings: string[],
-  ): SnapshotProvisionRule | null {
+  ): SnapshotCapture<SnapshotProvisionRule> {
     const isNat = policy.chain === 'snat' || policy.chain === 'dnat';
 
     if (!isNat && rule.action !== RULE_ACTION_ACCEPT && rule.action !== RULE_ACTION_DENY) {
-      warnings.push(`${label} was not captured: only ACCEPT and DENY actions are supported.`);
-      return null;
+      return { reason: 'only ACCEPT and DENY actions are supported.' };
     }
 
     const { positions } = policy;
@@ -940,19 +984,17 @@ export class ReplicationProfileSnapshotService extends Service {
           ![positions.source, positions.destination].includes(ref.position),
       )
     ) {
-      warnings.push(
-        `${label} was not captured: it contains a VPN reference that cannot be represented by a captured VPN client.`,
-      );
-      return null;
+      return {
+        reason: 'it contains a VPN reference that cannot be represented by a captured VPN client.',
+      };
     }
     const inRefs = interfaceRefs.filter((ref) => ref.position === positions.in);
     const outRefs = interfaceRefs.filter((ref) => ref.position === positions.out);
 
     if (interfaceRefs.length !== inRefs.length + outRefs.length) {
-      warnings.push(
-        `${label} was not captured: it references interfaces in positions the vocabulary cannot express.`,
-      );
-      return null;
+      return {
+        reason: 'it references interfaces in positions the vocabulary cannot express.',
+      };
     }
 
     const known = new Set(
@@ -969,10 +1011,9 @@ export class ReplicationProfileSnapshotService extends Service {
     const refsByPosition = new Map<number, SnapshotObjectRef[]>();
     for (const ref of ipObjRefs) {
       if (!known.has(ref.position)) {
-        warnings.push(
-          `${label} was not captured: it references objects in positions the vocabulary cannot express.`,
-        );
-        return null;
+        return {
+          reason: 'it references objects in positions the vocabulary cannot express.',
+        };
       }
       addToList(refsByPosition, ref.position, ref);
     }
@@ -1000,16 +1041,14 @@ export class ReplicationProfileSnapshotService extends Service {
     const failed = captureFailure(Object.values(sides));
 
     if (failed) {
-      warnings.push(`${label} was not captured: ${failed.reason}`);
-      return null;
+      return failed;
     }
 
     const inRoles = inRefs.map((ref) => roleByInterfaceId.get(ref.interface));
     const outRoles = outRefs.map((ref) => roleByInterfaceId.get(ref.interface));
 
     if (inRoles.some((role) => !role) || outRoles.some((role) => !role)) {
-      warnings.push(`${label} was not captured: it references an interface of another firewall.`);
-      return null;
+      return { reason: 'it references an interface of another firewall.' };
     }
 
     const roleValue = (roles: string[]) => (roles.length === 1 ? roles[0] : roles);
@@ -1069,12 +1108,11 @@ export class ReplicationProfileSnapshotService extends Service {
       });
 
       if (negationError) {
-        warnings.push(`${label} was not captured: ${negationError}`);
-        return null;
+        return { reason: negationError };
       }
     }
 
-    return captured;
+    return { value: captured };
   }
 
   /**
@@ -1196,7 +1234,11 @@ export class ReplicationProfileSnapshotService extends Service {
 
       const reference = service && values.defineService(service);
       if (!reference) {
-        return { reason: 'the referenced service or service group could not be captured.' };
+        return {
+          reason: service
+            ? `service "${service.name}" has unsupported object type ${service.type}.`
+            : `service reference (object ${ref.ipobj}, group ${ref.ipobj_g}) no longer exists.`,
+        };
       }
       captured.push(reference);
     }
@@ -1300,7 +1342,7 @@ export class ReplicationProfileSnapshotService extends Service {
           );
           const gateway = route.gateway
             ? this.captureObjects([{ ipobj: route.gateway }], roleByInterfaceId, lookup, values)
-            : { value: [] };
+            : { value: [] as SnapshotProvisionObject[] };
           const interfaceRole = route.interface
             ? roleByInterfaceId.get(route.interface)
             : undefined;
@@ -1308,25 +1350,21 @@ export class ReplicationProfileSnapshotService extends Service {
             entrySkipReason(route, 'route') ??
             (routeRefs.unsupported.has(route.id)
               ? 'VPN references cannot be templated yet.'
-              : 'reason' in destination
-                ? destination.reason
-                : 'reason' in gateway
-                  ? gateway.reason
-                  : route.interface && !interfaceRole
-                    ? 'it references an interface of another firewall.'
-                    : null);
+              : (captureFailure([destination, gateway])?.reason ??
+                (route.interface && !interfaceRole
+                  ? 'it references an interface of another firewall.'
+                  : null)));
 
           if (reason) {
             warnings.push(`${label} was not captured: ${reason}`);
             return [];
           }
 
+          const [gatewayObject] = capturedValue(gateway);
           return [
             {
-              destination: (destination as { value: SnapshotProvisionObject[] }).value,
-              ...((gateway as { value: SnapshotProvisionObject[] }).value[0]
-                ? { gateway: (gateway as { value: SnapshotProvisionObject[] }).value[0] }
-                : {}),
+              destination: capturedValue(destination),
+              ...(gatewayObject ? { gateway: gatewayObject } : {}),
               ...(interfaceRole ? { interfaceRole } : {}),
               ...(route.comment ? { comment: route.comment } : {}),
             },
@@ -1346,9 +1384,7 @@ export class ReplicationProfileSnapshotService extends Service {
         entrySkipReason(rule, 'rule') ??
         (ruleRefs.unsupported.has(rule.id)
           ? 'VPN and mark references cannot be templated yet.'
-          : 'reason' in from
-            ? from.reason
-            : null);
+          : captureFailure([from])?.reason);
 
       if (reason) {
         warnings.push(`${label} was not captured: ${reason}`);
@@ -1357,7 +1393,7 @@ export class ReplicationProfileSnapshotService extends Service {
 
       return [
         {
-          from: (from as { value: SnapshotProvisionObject[] }).value,
+          from: capturedValue(from),
           table: keyOf(rule.routing_table),
           ...(rule.comment ? { comment: rule.comment } : {}),
         },
@@ -1642,11 +1678,13 @@ export class ReplicationProfileSnapshotService extends Service {
 
     [...objects, ...groups]
       .sort((a, b) => a.order - b.order)
-      .forEach((row) => {
-        const list = refs.get(row.owner) ?? [];
-        list.push('ipobj_g' in row ? { ipobj_g: row.ipobj_g } : { ipobj: row.ipobj });
-        refs.set(row.owner, list);
-      });
+      .forEach((row) =>
+        addToList(
+          refs,
+          row.owner,
+          'ipobj_g' in row ? { ipobj_g: row.ipobj_g } : { ipobj: row.ipobj },
+        ),
+      );
 
     unsupportedRows.flat().forEach((row) => unsupported.add(row.owner));
 
@@ -1833,8 +1871,9 @@ export class ReplicationProfileSnapshotService extends Service {
   private ruleLabel(rule: SnapshotRuleRow, policy: string): string {
     const comment = (rule.comment ?? '').trim();
 
-    return comment
+    const label = comment
       ? `${policy} rule ${rule.rule_order} ("${comment}")`
       : `${policy} rule ${rule.rule_order}`;
+    return `${label} [id ${rule.id}]`;
   }
 }
