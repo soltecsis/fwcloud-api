@@ -67,6 +67,7 @@ interface CapturedRule {
   chain: string;
   ipVersion: number;
   action: string;
+  active?: boolean;
   options?: number;
   time_start?: string | null;
   time_end?: string | null;
@@ -1185,6 +1186,28 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         }
       }
 
+      for (const comment of [SELF_HOST, USEFUL_ICMP]) {
+        it(`should capture the default INPUT policy with ${comment} still disabled`, async () => {
+          await addDefaultInputRules();
+          await db
+            .getSource()
+            .query(
+              'UPDATE policy_r SET active = 0 WHERE firewall = ? AND type = 1 AND comment = ?',
+              [source.firewall.id, comment],
+            );
+
+          const { profile, warnings } = await snapshot();
+
+          expect(warnings).to.be.empty;
+          expect(getProvision(profile).rules.map((rule) => [rule.comment, rule.active])).to.deep.eq(
+            [
+              [SELF_HOST, comment !== SELF_HOST],
+              [USEFUL_ICMP, comment !== USEFUL_ICMP],
+            ],
+          );
+        });
+      }
+
       it('should capture a default rule the user gave a VPN client, and the rest of its policy', async () => {
         await addDefaultInputRules();
         const { clientId } = await makeVpnPair('openvpn');
@@ -1337,24 +1360,31 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
     });
 
     it('should fail without persisting when policy rules cannot be expressed in the template vocabulary', async () => {
-      // Disabled rule.
+      // A disabled rule is captured like any other one.
       await insertForwardRule(source.firewall.id, 101, {
         active: 0,
         comment: 'Disabled rule',
       });
 
-      // Unsupported action (REJECT).
-      await insertForwardRule(source.firewall.id, 102, {
+      // Unsupported action (REJECT), enabled and disabled.
+      const rejectRule = await insertForwardRule(source.firewall.id, 102, {
         action: 3,
         comment: 'Reject rule',
       });
+      const disabledRejectRule = await insertForwardRule(source.firewall.id, 103, {
+        action: 3,
+        active: 0,
+        comment: 'Disabled reject rule',
+      });
 
-      await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
-        'Disabled rule',
-        'the rule is disabled',
-        'Reject rule',
+      const error = await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
         'only ACCEPT and DENY',
       ]);
+      expect(error.message).to.eq(
+        'Policy capture failed:\n' +
+          `FORWARD IPv4 rule 102 ("Reject rule") [id ${rejectRule}] cannot be captured: only ACCEPT and DENY actions are supported.\n` +
+          `FORWARD IPv4 rule 103 ("Disabled reject rule") [id ${disabledRejectRule}, disabled] cannot be captured: only ACCEPT and DENY actions are supported.`,
+      );
     });
 
     it('should reject capture of a rule restricted to another firewall', async () => {
@@ -1660,6 +1690,451 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
     }
   });
 
+  describe('disabled policy rules', () => {
+    const forward = getProvisionRulePositions(4, 'forward');
+    const STD_HTTP = 20028;
+    const STD_HTTPS = 20029;
+    const STD_SSH = 20063;
+    const states = (rules: CapturedRule[]) => rules.map((rule) => [rule.comment, rule.active]);
+
+    function capture(kind: 'firewall' | 'cluster' = 'firewall', id = source.firewall.id) {
+      return service.createProfileFromSource(
+        { source: { kind, id }, name: `Disabled rules of a ${kind}` },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+    }
+
+    async function asCluster(side: ReplicationTargetSide): Promise<number> {
+      const manager = db.getSource().manager;
+      const cluster = await manager.getRepository(Cluster).save({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwc.fwcloud.id,
+      });
+      await manager
+        .getRepository(Firewall)
+        .update(side.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+      await manager.getRepository(Firewall).save({
+        name: `${cluster.name}-backup`,
+        fwCloudId: fwc.fwcloud.id,
+        clusterId: cluster.id,
+        fwmaster: 0,
+      });
+      return cluster.id;
+    }
+
+    /** FORWARD rules from the LAN network to the WAN network, each with its state and service. */
+    async function addLanToWanRules(
+      rules: { comment: string; active: number; service: number }[],
+    ): Promise<number[]> {
+      const networks = await db
+        .getSource()
+        .manager.getRepository(IPObj)
+        .save(
+          [
+            ['LAN', '192.168.10.0'],
+            ['WAN', '198.51.100.0'],
+          ].map(([name, address]) => ({
+            name,
+            address,
+            netmask: '/24',
+            ipObjTypeId: 7,
+            ip_version: 4,
+            fwCloudId: fwc.fwcloud.id,
+          })),
+        );
+      const ids: number[] = [];
+      for (const [index, rule] of rules.entries()) {
+        const id = await insertForwardRule(source.firewall.id, index + 1, {
+          comment: rule.comment,
+          active: rule.active,
+        });
+        await attachIpObj(id, networks[0].id, forward.source);
+        await attachIpObj(id, networks[1].id, forward.destination);
+        await attachIpObj(id, rule.service, forward.service);
+        ids.push(id);
+      }
+      return ids;
+    }
+
+    it('should capture a disabled rule between enabled ones in its place, whole and disabled', async () => {
+      await addLanToWanRules([
+        { comment: 'Allow HTTP', active: 1, service: STD_HTTP },
+        { comment: 'Allow SSH', active: 0, service: STD_SSH },
+        { comment: 'Allow HTTPS', active: 1, service: STD_HTTPS },
+      ]);
+
+      const { profile, warnings } = await capture();
+
+      expect(warnings).to.be.empty;
+      const rules = getProvision(profile).rules;
+      expect(states(rules)).to.deep.eq([
+        ['Allow HTTP', true],
+        ['Allow SSH', false],
+        ['Allow HTTPS', true],
+      ]);
+      expect(rules.map((rule) => rule.services)).to.deep.eq([
+        [{ kind: 'std', id: STD_HTTP, name: 'http' }],
+        [{ kind: 'std', id: STD_SSH, name: 'ssh' }],
+        [{ kind: 'std', id: STD_HTTPS, name: 'https' }],
+      ]);
+      // Only the state and the service tell the disabled rule apart from the enabled ones.
+      const settings = ({ active, services, comment, ...rule }: CapturedRule) => rule;
+      expect(settings(rules[1])).to.deep.eq(settings(rules[0]));
+      expect(settings(rules[1])).to.deep.eq(settings(rules[2]));
+      expect(settings(rules[1])).to.deep.include({
+        chain: 'forward',
+        ipVersion: 4,
+        action: 'accept',
+      });
+      expect(rules[1].source).to.deep.eq([
+        { kind: 'network', value: { param: 'LAN' }, name: 'LAN' },
+      ]);
+      expect(rules[1].destination).to.deep.eq([
+        { kind: 'network', value: { param: 'WAN' }, name: 'WAN' },
+      ]);
+
+      const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(profile)));
+      expect(model.policyStructure.rules).to.deep.eq(model.provision.rules);
+      writeReplicationProfileModel(profile, model);
+      const reloaded = loadReplicationProfileModel(profile);
+      expect(reloaded).to.deep.eq(model);
+      for (const parsed of [reloaded, portableProfileModel(reloaded)]) {
+        expect(
+          getProfileProvisioning(parsed).rules.map((rule) => [rule.comment, rule.active]),
+        ).to.deep.eq(states(rules));
+      }
+    });
+
+    for (const active of [0, 1]) {
+      it(`should capture a policy whose rules are all ${active ? 'enabled' : 'disabled'} with an explicit state`, async () => {
+        await addLanToWanRules([
+          { comment: 'First rule', active, service: STD_HTTP },
+          { comment: 'Second rule', active, service: STD_HTTPS },
+        ]);
+
+        const { profile, warnings } = await capture();
+
+        expect(warnings).to.be.empty;
+        expect(states(getProvision(profile).rules)).to.deep.eq([
+          ['First rule', !!active],
+          ['Second rule', !!active],
+        ]);
+      });
+    }
+
+    it('should keep the interfaces, negation, LOG and stateless options and validity of a disabled rule', async () => {
+      const [ruleId] = await addLanToWanRules([
+        { comment: 'Disabled maintenance window', active: 0, service: STD_SSH },
+      ]);
+      const options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATELESS;
+      const negate = `${forward.source} ${forward.service}`;
+      const timeStart = new Date('2026-10-01T08:15:30+02:00');
+      const timeEnd = new Date('2026-10-31T19:45:59+01:00');
+      await db
+        .getSource()
+        .query(
+          'UPDATE policy_r SET options = ?, negate = ?, time_start = ?, time_end = ? WHERE id = ?',
+          [options, negate, timeStart, timeEnd, ruleId],
+        );
+      await attachInterface(ruleId, source.lanInterface.id, forward.in);
+      await attachInterface(ruleId, source.wanInterface.id, forward.out);
+
+      const { profile, warnings } = await capture();
+
+      expect(warnings).to.be.empty;
+      expect(getProvision(profile).rules[0]).to.deep.include({
+        active: false,
+        options,
+        negate,
+        inRole: source.lanInterface.name,
+        outRole: source.wanInterface.name,
+        time_start: policyRuleDateKey(timeStart),
+        time_end: policyRuleDateKey(timeEnd),
+      });
+    });
+
+    it('should capture the objects, services and groups that only a disabled rule references', async () => {
+      const objects = db.getSource().manager.getRepository(IPObj);
+      const adminHost = await objects.save({
+        name: 'Admin host',
+        address: '192.168.10.5',
+        netmask: '/32',
+        ipObjTypeId: 5,
+        ip_version: 4,
+        fwCloudId: fwc.fwcloud.id,
+      });
+      const backupRange = await objects.save({
+        name: 'Backup range',
+        range_start: '192.168.20.10',
+        range_end: '192.168.20.20',
+        ipObjTypeId: 6,
+        ip_version: 4,
+        fwCloudId: fwc.fwcloud.id,
+      });
+      const serverNetwork = await objects.save({
+        name: 'Server network',
+        address: '10.20.0.0',
+        netmask: '/16',
+        ipObjTypeId: 7,
+        ip_version: 4,
+        fwCloudId: fwc.fwcloud.id,
+      });
+      const adminService = await makeTcpService(2222);
+      const syncService = await objects.save({
+        name: 'UDP/5353',
+        ipObjTypeId: 4,
+        protocol: 17,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 5353,
+        destination_port_end: 5353,
+        fwCloudId: fwc.fwcloud.id,
+      });
+      const makeGroup = async (name: string, type: number, member: number) => {
+        const group = await db
+          .getSource()
+          .query('INSERT INTO ipobj_g (name, type, fwcloud) VALUES (?, ?, ?)', [
+            name,
+            type,
+            fwc.fwcloud.id,
+          ]);
+        await db
+          .getSource()
+          .query('INSERT INTO ipobj__ipobjg (ipobj, ipobj_g) VALUES (?, ?)', [
+            member,
+            group.insertId,
+          ]);
+        return Number(group.insertId);
+      };
+      const serverGroup = await makeGroup('Servers', 20, serverNetwork.id);
+      const syncGroup = await makeGroup('Sync services', 21, syncService.id);
+      const ruleId = await insertForwardRule(source.firewall.id, 1, {
+        comment: 'Disabled administration access',
+        active: 0,
+      });
+      await attachIpObj(ruleId, adminHost.id, forward.source);
+      await attachIpObj(ruleId, backupRange.id, forward.destination);
+      await attachIpObj(ruleId, adminService.id, forward.service);
+      for (const [group, position] of [
+        [serverGroup, forward.destination],
+        [syncGroup, forward.service],
+      ]) {
+        await db
+          .getSource()
+          .query(
+            'INSERT INTO policy_r__ipobj (rule, ipobj, ipobj_g, interface, position, position_order) VALUES (?, -1, ?, -1, ?, 2)',
+            [ruleId, group, position],
+          );
+      }
+      await insertForwardRule(source.firewall.id, 2, { comment: 'Enabled rule using nothing' });
+
+      const { profile, warnings } = await capture();
+
+      expect(warnings).to.be.empty;
+      const model = loadReplicationProfileModel(profile);
+      const [disabled, enabled] = getProvision(profile).rules;
+      expect(states([disabled, enabled])).to.deep.eq([
+        ['Disabled administration access', false],
+        ['Enabled rule using nothing', true],
+      ]);
+      const references = model.objectReferences as {
+        referenceId: string;
+        objectType: string;
+        sourceObjectId: number;
+        snapshot: { name: string };
+      }[];
+      expect(
+        references.map((reference) => [reference.objectType, reference.sourceObjectId]),
+      ).to.have.deep.members([
+        ['tcp', adminService.id],
+        ['group', serverGroup],
+        ['serviceGroup', syncGroup],
+      ]);
+      const referenceOf = (objectType: string) => ({
+        kind: 'external',
+        referenceId: references.find((reference) => reference.objectType === objectType)!
+          .referenceId,
+      });
+      expect(disabled.source).to.deep.eq([
+        { kind: 'address', value: { param: 'ADMIN_HOST' }, name: 'Admin host' },
+      ]);
+      expect(disabled.destination).to.have.deep.members([
+        { kind: 'range', value: { param: 'BACKUP_RANGE' }, name: 'Backup range' },
+        referenceOf('group'),
+      ]);
+      expect(disabled.services).to.have.deep.members([
+        referenceOf('tcp'),
+        referenceOf('serviceGroup'),
+      ]);
+      expect(
+        getParameters(profile).map((parameter) => [parameter.name, parameter.default]),
+      ).to.deep.include.members([
+        ['ADMIN_HOST', '192.168.10.5/32'],
+        ['BACKUP_RANGE', '192.168.20.10-192.168.20.20'],
+      ]);
+      expect(
+        references.find((reference) => reference.objectType === 'group')!.snapshot,
+      ).to.deep.include({ name: 'Servers' });
+    });
+
+    it('should identify the disabled rule whose shared service cannot be captured', async () => {
+      const invalidService = await makeTcpService(9000);
+      await db.getSource().manager.getRepository(IPObj).update(invalidService.id, {
+        destination_port_end: 8999,
+      });
+      const [ruleId] = await addLanToWanRules([
+        { comment: 'Disabled invalid service', active: 0, service: invalidService.id },
+      ]);
+
+      const error = await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, [
+        `FORWARD IPv4 rule 1 ("Disabled invalid service") [id ${ruleId}, disabled] cannot be captured`,
+        invalidService.name,
+        'Destination port end must be greater or equal than destination port start',
+      ]);
+      expect(error.message).not.to.include('the rule is disabled');
+    });
+
+    for (const sourceKind of ['firewall', 'cluster'] as const) {
+      for (const targetKind of ['firewall', 'cluster'] as const) {
+        it(`should recreate the enabled and disabled rules of every policy of a ${sourceKind} on another ${targetKind}, keeping disabled ones out of the compiled policy`, async () => {
+          const sourceId = sourceKind === 'cluster' ? await asCluster(source) : source.firewall.id;
+          const serviceObject = await makeTcpService(8080);
+          const expected = new Map<string, boolean>();
+          for (const ipVersion of [4, 6] as const) {
+            for (const chain of ['input', 'output', 'forward', 'snat', 'dnat'] as const) {
+              const positions = getProvisionRulePositions(ipVersion, chain);
+              // Disabled first, last and between enabled rules.
+              for (const [index, active] of [0, 1, 0, 1, 0].entries()) {
+                const comment = `${chain} IPv${ipVersion} rule ${index + 1}`;
+                expected.set(comment, !!active);
+                const id = await PolicyRule.insertPolicy_r({
+                  firewall: source.firewall.id,
+                  type: PolicyTypesMap.get(`IPv${ipVersion}:${chain.toUpperCase()}`),
+                  rule_order: 100 + index,
+                  action: 1,
+                  active,
+                  special: 0,
+                  options: 0,
+                  comment,
+                });
+                await attachIpObj(id, serviceObject.id, positions.service);
+                if (positions.in !== undefined)
+                  await attachInterface(id, source.lanInterface.id, positions.in);
+                if (positions.out !== undefined)
+                  await attachInterface(id, source.wanInterface.id, positions.out);
+                if (chain === 'dnat') {
+                  const address = await db
+                    .getSource()
+                    .manager.getRepository(IPObj)
+                    .save({
+                      name: `DNAT IPv${ipVersion} ${index + 1}`,
+                      address:
+                        ipVersion === 4 ? `192.0.2.${index + 10}` : `2001:db8::${index + 10}`,
+                      ipObjTypeId: 5,
+                      ip_version: ipVersion,
+                      fwCloudId: fwc.fwcloud.id,
+                    });
+                  await attachIpObj(id, address.id, positions.translatedDestination);
+                }
+              }
+            }
+          }
+
+          const captured = await capture(sourceKind, sourceId);
+
+          expect(captured.warnings).to.be.empty;
+          const model = JSON.parse(JSON.stringify(loadReplicationProfileModel(captured.profile)));
+          expect(states(model.provision.rules)).to.deep.eq([...expected]);
+          writeReplicationProfileModel(captured.profile, model);
+          const reloaded = loadReplicationProfileModel(captured.profile);
+          expect(reloaded).to.deep.eq(model);
+
+          const target = await makeReplicationTargetFirewall(fwc, false);
+          const targetId = targetKind === 'cluster' ? await asCluster(target) : target.firewall.id;
+          const provisioning = await app.getService<PolicyReplicationService>(
+            PolicyReplicationService.name,
+          );
+          const options = {
+            parameters: getProfileParameters(reloaded),
+            externalObjects: (await resolveProfileObjectReferences(reloaded, fwc.fwcloud.id))
+              .bindings,
+            interfaceNameMapping: { ens18: 'ens18', ens19: 'ens19' },
+          };
+          const apply = (mode: 'replace_defaults' | 'dry_run') =>
+            provisioning.provisionPolicyFromProfile(
+              { kind: targetKind, id: targetId },
+              getProfileProvisioning(reloaded),
+              fwc.fwcloud.id,
+              mode,
+              options,
+            );
+          const appliedRules = () =>
+            db
+              .getSource()
+              .query(
+                'SELECT comment, active FROM policy_r WHERE firewall = ? AND special = 0 AND comment IN (?) ORDER BY type, rule_order',
+                [target.firewall.id, [...expected.keys()]],
+              );
+
+          const preview = await apply('dry_run');
+          expect(preview.errors).to.be.empty;
+          expect(preview.createdRules.map((rule) => [rule.comment, rule.active])).to.deep.eq([
+            ...expected,
+          ]);
+          expect(await appliedRules()).to.be.empty;
+
+          const result = await apply('replace_defaults');
+          expect(result.errors).to.be.empty;
+          expect(result.createdRules.map((rule) => rule.active)).to.deep.eq([...expected.values()]);
+          expect(
+            (await appliedRules()).map((row: { comment: string; active: number }) => [
+              row.comment,
+              row.active === 1,
+            ]),
+          ).to.deep.eq([...expected]);
+
+          const normalizeIds = (script: string) =>
+            script.replace(/FWCRULE\d+/g, 'FWCRULE<ID>').replace(/RULE ID \d+/g, 'RULE ID <ID>');
+          for (const compiler of ['IPTables', 'NFTables'] as const) {
+            const compileRules = async (firewall: number) => {
+              const policies = await Promise.all(
+                [4, 6].flatMap((ipVersion) =>
+                  ['INPUT', 'OUTPUT', 'FORWARD'].map((chain) =>
+                    PolicyRule.getPolicyData(
+                      'compiler',
+                      db.getQuery(),
+                      fwc.fwcloud.id,
+                      firewall,
+                      PolicyTypesMap.get(`IPv${ipVersion}:${chain}`),
+                      null,
+                      null,
+                    ),
+                  ),
+                ),
+              );
+              const data: any[] = policies.flat();
+              return PolicyCompiler.compile(
+                compiler,
+                data.filter((rule) => expected.has(rule.comment)),
+              );
+            };
+            const original = await compileRules(source.firewall.id);
+            const applied = await compileRules(target.firewall.id);
+            expect(applied).to.have.length(30);
+            for (const rule of applied) {
+              const sourceRule = original.find((item) => item.comment === rule.comment)!;
+              const enabled = expected.get(rule.comment)!;
+              expect(!!rule.active, rule.comment).to.eq(enabled);
+              // A disabled rule stays in the policy without producing any firewall configuration.
+              expect(rule.cs === '', `${compiler} ${rule.comment}`).to.eq(!enabled);
+              expect(normalizeIds(rule.cs), rule.comment).to.eq(normalizeIds(sourceRule.cs));
+            }
+          }
+        });
+      }
+    }
+  });
+
   describe('cluster snapshots', () => {
     let cluster: Cluster;
 
@@ -1819,6 +2294,58 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
       expect(nodeRoles(getProfileProvisioning(portableProfileModel(reloaded)).rules)).to.deep.eq(
         expected,
       );
+    });
+
+    it('should keep the node and the state of disabled rules restricted to one node', async () => {
+      const backup = await db
+        .getSource()
+        .manager.getRepository(Firewall)
+        .findOneByOrFail({ clusterId: cluster.id, fwmaster: 0 });
+      const restrictTo = (ruleId: number, nodeId: number) =>
+        db.getSource().query('UPDATE policy_r SET fw_apply_to = ? WHERE id = ?', [nodeId, ruleId]);
+      await restrictTo(
+        await insertForwardRule(source.firewall.id, 100, {
+          comment: 'Master only, disabled',
+          active: 0,
+        }),
+        source.firewall.id,
+      );
+      await restrictTo(
+        await insertForwardRule(source.firewall.id, 101, {
+          comment: 'Backup only, disabled',
+          active: 0,
+        }),
+        backup.id,
+      );
+      await insertForwardRule(source.firewall.id, 102, { comment: 'Every node, enabled' });
+
+      const { profile, warnings } = await service.createProfileFromSource(
+        { source: { kind: 'cluster', id: cluster.id }, name: 'Disabled node restricted rules' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(warnings).to.be.empty;
+      const model = loadReplicationProfileModel(profile);
+      const expected = [
+        ['Master only, disabled', 'master', false],
+        ['Backup only, disabled', 'backup', false],
+        ['Every node, enabled', undefined, true],
+      ];
+      const settings = (rules: CapturedRule[]) =>
+        rules.map((rule) => [rule.comment, rule.nodeRole, rule.active]);
+      expect(settings(getProvision(profile).rules)).to.deep.eq(expected);
+      expect(settings((model.policyStructure as { rules: CapturedRule[] }).rules)).to.deep.eq(
+        expected,
+      );
+      // A disabled rule is recreated on its node, so that node is required too.
+      expect(
+        (model.topologyPreset as { nodes: Array<{ role: string; required: boolean }> }).nodes.map(
+          (node) => [node.role, node.required],
+        ),
+      ).to.deep.eq([
+        ['master', true],
+        ['backup', true],
+      ]);
     });
 
     it('should reject capture of a rule restricted to a firewall outside the cluster', async () => {

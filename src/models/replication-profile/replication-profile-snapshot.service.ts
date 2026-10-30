@@ -323,6 +323,8 @@ interface SnapshotProvisionRule extends PolicyRuleValidityPeriod {
   chain: SnapshotChain;
   ipVersion: number;
   action: 'accept' | 'deny';
+  /** Native policy_r.active: a disabled rule is captured in place and stays disabled. */
+  active: boolean;
   /** Native policy_r.options bitmask, including LOG, STATELESS and STATEFUL. */
   options: number;
   /** Negated policy_position ids, using policy_r's space-separated representation. */
@@ -837,9 +839,9 @@ export class ReplicationProfileSnapshotService extends Service {
   }
 
   /**
-   * Captures every filter and NAT policy of the source, in both IP families.
-   * Policies holding only their untouched default rules are left out; rules the
-   * vocabulary cannot express cause an explicit validation failure.
+   * Captures every filter and NAT policy of the source, in both IP families, enabled and disabled
+   * rules alike and in their order. Policies holding only their untouched default rules are left
+   * out; rules the vocabulary cannot express cause an explicit validation failure.
    */
   private async capturePolicyRules(
     firewallId: number,
@@ -896,12 +898,6 @@ export class ReplicationProfileSnapshotService extends Service {
     for (const policy of customizedPolicies) {
       for (const rule of rulesByType.get(policy.typeId)!) {
         const label = this.ruleLabel(rule, policy.label);
-
-        if (rule.active !== 1) {
-          errors.push(`${label} cannot be captured: the rule is disabled.`);
-          continue;
-        }
-
         const nodeRole = rule.fw_apply_to === null ? undefined : nodeRoleById.get(rule.fw_apply_to);
         if (rule.fw_apply_to !== null && !nodeRole) {
           errors.push(
@@ -1085,6 +1081,7 @@ export class ReplicationProfileSnapshotService extends Service {
       chain: policy.chain,
       ipVersion: policy.ipVersion,
       action: rule.action === RULE_ACTION_DENY ? 'deny' : 'accept',
+      active: !!rule.active,
       options: rule.options,
       ...(rule.time_start != null ? { time_start: policyRuleDateKey(rule.time_start) } : {}),
       ...(rule.time_end != null ? { time_end: policyRuleDateKey(rule.time_end) } : {}),
@@ -1911,6 +1908,6 @@ export class ReplicationProfileSnapshotService extends Service {
     const label = comment
       ? `${policy} rule ${rule.rule_order} ("${comment}")`
       : `${policy} rule ${rule.rule_order}`;
-    return `${label} [id ${rule.id}]`;
+    return `${label} [id ${rule.id}${rule.active ? '' : ', disabled'}]`;
   }
 }
