@@ -214,6 +214,11 @@ export interface PolicyReplicationProvisionRule extends PolicyRuleValidityPeriod
   ipVersion: ReplicationProfileIpVersion;
   /** Defaults to 'accept'. */
   action?: 'accept' | 'deny';
+  /**
+   * Native policy_r.active. A disabled rule keeps its place in the policy but is never compiled.
+   * Omitted in legacy templates means enabled, FWCloud's own default.
+   */
+  active?: boolean;
   /** Native policy_r.options bitmask. Omitted in legacy templates means 0. */
   options?: number;
   /** Native policy_r.negate: negated position IDs separated by spaces. */
@@ -767,6 +772,8 @@ function parseProvisionRule(
     // Keep the native value unchanged, including malformed runtime values, so neither HTTP
     // validation nor a direct application can silently discard a requested negation.
     ...(record.negate !== undefined ? { negate: record.negate as string | null } : {}),
+    // Malformed values too: they must be rejected, never enabled by default.
+    ...(record.active !== undefined ? { active: record.active as boolean } : {}),
     // Preserve explicit zero and malformed values for validation, rather than silently defaulting.
     ...(record.options !== undefined ? { options: record.options as number } : {}),
     ...(record.time_start !== undefined ? { time_start: record.time_start as string | null } : {}),

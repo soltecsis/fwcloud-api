@@ -266,6 +266,7 @@ class ReplicationProfileDefinitionValidator {
     this.validateSystemSettings(model, errors, 'keepalived', 'Keepalived', profileKeepalivedErrors);
     this.validateInterfaceAddressReferences(model, errors);
     this.validateRuleValidityPeriods(model, errors);
+    this.validateRuleStates(model, errors);
     this.validateStructureRuleSettings(model, errors);
     if (model.vpnTemplate !== undefined) {
       for (const issue of validateProfileVpnTemplate(model.vpnTemplate)) {
@@ -1205,6 +1206,23 @@ class ReplicationProfileDefinitionValidator {
     this.forEachSavedRule(model, (rule, rulePath) => {
       for (const error of getPolicyRuleValidityErrors(rule))
         this.addError(errors, 'invalid_rule_validity', error.message, `${rulePath}.${error.field}`);
+    });
+  }
+
+  /** A state that is not a boolean is rejected in every saved representation, never enabled. */
+  private validateRuleStates(
+    model: ValidationRecord,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    this.forEachSavedRule(model, (rule, rulePath) => {
+      if (rule.active !== undefined && typeof rule.active !== 'boolean') {
+        this.addError(
+          errors,
+          'invalid_rule_active',
+          'Rule active must be a boolean.',
+          `${rulePath}.active`,
+        );
+      }
     });
   }
 
