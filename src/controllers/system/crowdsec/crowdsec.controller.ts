@@ -512,10 +512,29 @@ export class CrowdSecController extends Controller {
       throw new HttpException('CrowdSec Machine installation was not found', 409);
     }
 
+    const remoteCommunication = await this.getAgentCommunication();
+    if (installation.centralFirewallId === null) {
+      const machine = await remoteCommunication.reauthenticateCrowdSecMachine({
+        machineName: installation.machineName,
+        lapiUrl: installation.lapiUrl,
+      });
+      await this.getCrowdSecInstallationRepository().setMachineConnectivityPending(
+        this._firewall.id,
+        false,
+      );
+      return ResponseBuilder.buildResponse()
+        .status(200)
+        .body({
+          machine,
+          external_lapi: true,
+          pending_validation: true,
+          message: `CrowdSec Machine '${installation.machineName}' was re-registered and must be validated manually in the external Local API`,
+        });
+    }
+
     const lapiService = this.lapiService();
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
     const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
-    const remoteCommunication = await this.getAgentCommunication();
     await lapiService.preflight(
       centralLapiNodes,
       CrowdSecLapiSharedService.listenerUriForLapiUrl(installation.lapiUrl),
@@ -1071,7 +1090,6 @@ export class CrowdSecController extends Controller {
     );
     if (
       installation?.mode !== CrowdSecInstallationMode.Machine ||
-      installation.centralFirewallId === null ||
       installation.machineName === null ||
       installation.lapiUrl === null
     ) {
