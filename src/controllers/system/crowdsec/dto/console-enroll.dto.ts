@@ -25,6 +25,7 @@ import { ArrayMaxSize, IsArray, IsOptional, IsString, Length, Matches } from 'cl
 const CROWDSEC_CONSOLE_IDENTIFIER = /^[A-Za-z0-9._-]+$/;
 
 export class CrowdSecConsoleEnrollDto {
+  /** PGP-encrypted CrowdSec Console enrollment key. */
   @IsString()
   @Length(1, 8192)
   enrollmentKey: string;

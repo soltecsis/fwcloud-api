@@ -20,9 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request } from 'express';
+import { Request as ExpressRequest } from 'express';
 import * as uuid from 'uuid';
 import { AgentCommunication } from '../../../communications/agent.communication';
+import { CrowdSecLapiConnectivityCheck } from '../../../communications/communication';
 import { Firewall, FireWallOptMask } from '../../../models/firewall/Firewall';
 import { Cluster } from '../../../models/firewall/Cluster';
 import {
@@ -63,6 +64,126 @@ import {
 } from './dto/blocking-statistics-history-query.dto';
 import { CrowdSecBlockingStatisticsSharedService } from './crowdsec-blocking-statistics-shared.service';
 import { CrowdSecCollectionAcquisitionService } from './crowdsec-collection-acquisition.service';
+import {
+  Body,
+  Example,
+  Get,
+  OperationId,
+  Path,
+  Post,
+  Put,
+  Query,
+  Request,
+  Response,
+  Route,
+  SuccessResponse,
+  Tags,
+} from 'tsoa';
+
+interface CrowdSecClusterApiEnvelopeResponse<TData> {
+  status: number;
+  response: string;
+  message: string;
+  data: TData;
+}
+
+interface CrowdSecClusterApiErrorResponse {
+  status: number;
+  response: string;
+  message: string;
+  errors?: Record<string, unknown>;
+}
+
+interface CrowdSecClusterCollectionsResponse {
+  nodes: Array<{
+    firewall_id: number;
+    name: string;
+    collections?: Record<string, unknown>;
+    error?: string;
+  }>;
+}
+
+interface CrowdSecClusterOperationResponse {
+  completed: boolean;
+  external_lapi?: boolean;
+  finalization_incomplete?: boolean;
+  connectivity_confirmation_required?: boolean;
+  connectivity_confirmation_reason?: string;
+  pending_connectivity?: boolean;
+  central_lapi_nodes?: Array<{ firewall_id: number; name: string }>;
+
+  nodes: ClusterMachineNodeResult[];
+}
+interface CrowdSecClusterCollectionOperationResponse {
+  completed: boolean;
+  operation: ClusterCollectionOperation;
+  rollback_completed?: boolean;
+  manual_reconciliation_required?: boolean;
+  nodes: ClusterCollectionNodeResult[];
+}
+
+interface CrowdSecClusterBlockingStatisticsSamplingResponse {
+  enabled: boolean;
+  sampling_interval: number;
+  request_max_samples: number;
+  cache_max_size: number;
+  completed?: boolean;
+  nodes: Array<Record<string, unknown>>;
+}
+
+interface CrowdSecClusterBlockingStatisticsCounter {
+  packets: number;
+  bytes: number;
+}
+
+interface CrowdSecClusterBlockingStatisticsHistoryResponse {
+  samples: Array<{
+    collected_at: string;
+    policy_generation: string;
+    ipv4_input: CrowdSecClusterBlockingStatisticsCounter;
+    ipv4_forward: CrowdSecClusterBlockingStatisticsCounter;
+    ipv6_input: CrowdSecClusterBlockingStatisticsCounter;
+    ipv6_forward: CrowdSecClusterBlockingStatisticsCounter;
+  }>;
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecClusterBlockingStatisticsAddressHistoryResponse {
+  samples: Array<{
+    address: string;
+    collected_at: string;
+    policy_generation: string;
+    packets: number;
+    bytes: number;
+  }>;
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecClusterBlockingStatisticsAddressOptionsResponse {
+  addresses: string[];
+  pagination: Record<string, number>;
+}
+
+interface CrowdSecClusterCollectionAcquisitionResponse {
+  collection: string;
+  file_path: string;
+  state: 'ready' | 'automatic_configuration_unavailable' | 'manual_review_required';
+  label_type?: string;
+  candidate_label_types: string[];
+  log_paths: string[];
+  message: string;
+}
+
+interface CrowdSecClusterLapiConnectivityNodeResponse extends CrowdSecLapiConnectivityCheck {
+  firewall_id: number;
+  name: string;
+}
+
+interface CrowdSecClusterLapiConnectivityResponse {
+  nodes: CrowdSecClusterLapiConnectivityNodeResponse[];
+}
+
+type CrowdSecClusterDynamicResponse = Record<string, unknown>;
 
 type ClusterCrowdSecInstallationSnapshot = Pick<
   CrowdSecInstallation,
@@ -124,10 +245,12 @@ type ClusterCollectionNode = {
   installed: boolean;
 };
 
+@Route('fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec')
+@Tags('crowdsec')
 export class CrowdSecClusterController extends Controller {
   private _cluster: Cluster;
 
-  public async make(request: Request): Promise<void> {
+  public async make(request: ExpressRequest): Promise<void> {
     const clusterId = Number(request.params.cluster);
     const fwcloudId = Number(request.params.fwcloud);
     if (
@@ -153,7 +276,39 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterMachineInstallDto)
-  public async installMachine(req: Request): Promise<ResponseBuilder> {
+  /**
+   * Installs against a FWCloud-managed central LAPI when `centralFirewallId`
+   * is provided. Omitting it selects an external LAPI; every Machine then
+   * requires manual validation, and local remediation requires the encrypted
+   * `bouncerApiKey` request field.
+   */
+  @OperationId('Install CrowdSec machines in cluster')
+  @Post('machines/install')
+  @SuccessResponse('200', 'Cluster machines installed')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      central_lapi_nodes: [{ firewall_id: 12, name: 'central-lapi-node' }],
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          machine_name: 'fwcloud-cluster-node-1',
+          status: 'completed',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async installMachine(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterMachineInstallDto,
+  ): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
 
     if (req.body.centralFirewallId === undefined) {
@@ -437,7 +592,39 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterLapiConnectivityDto)
-  public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Check external CrowdSec LAPI connectivity for cluster nodes')
+  @Post('lapi/connectivity')
+  @SuccessResponse('200', 'Cluster CrowdSec LAPI connectivity checked')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterLapiConnectivityResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          lapi_url: 'https://lapi.example.net:8080',
+          reachable: true,
+          message: 'CrowdSec Local API is reachable',
+        },
+        {
+          firewall_id: 22,
+          name: 'cluster-node-2',
+          reachable: false,
+          error_code: 'FWCLOUD_AGENT_UNREACHABLE',
+          message: 'FWCloud Agent is unavailable',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async checkLapiConnectivity(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterLapiConnectivityDto,
+  ): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const results = [];
@@ -467,7 +654,32 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterTransitionDto)
-  public async transitionRole(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Change CrowdSec role in cluster')
+  @Post('transitions/role')
+  @SuccessResponse('200', 'Cluster role transitioned')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          machine_name: 'fwcloud-cluster-node-1',
+          status: 'completed',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionRole(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterTransitionDto,
+  ): Promise<ResponseBuilder> {
     if (!req.body.confirm) {
       throw new HttpException('CrowdSec transition confirmation is required', 422);
     }
@@ -658,7 +870,32 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterTransitionDto)
-  public async transitionMachineCentralLapi(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Move cluster CrowdSec machines to central LAPI')
+  @Post('transitions/lapi')
+  @SuccessResponse('200', 'Cluster central LAPI transitioned')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          machine_name: 'fwcloud-cluster-node-1',
+          status: 'completed',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionMachineCentralLapi(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterTransitionDto,
+  ): Promise<ResponseBuilder> {
     if (!req.body.confirm) {
       throw new HttpException('CrowdSec transition confirmation is required', 422);
     }
@@ -873,7 +1110,7 @@ export class CrowdSecClusterController extends Controller {
   }
 
   private async moveClusterMachinesToExternalLapi(
-    req: Request,
+    req: ExpressRequest,
     nodes: Firewall[],
   ): Promise<ResponseBuilder> {
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
@@ -979,7 +1216,32 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterTransitionDto)
-  public async transitionMachineAddress(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Change cluster CrowdSec machine LAPI address')
+  @Post('transitions/address')
+  @SuccessResponse('200', 'Cluster address transitioned')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          machine_name: 'fwcloud-cluster-node-1',
+          status: 'completed',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionMachineAddress(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterTransitionDto,
+  ): Promise<ResponseBuilder> {
     if (!req.body.confirm) {
       throw new HttpException('CrowdSec transition confirmation is required', 422);
     }
@@ -1209,7 +1471,32 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterTransitionDto)
-  public async transitionRemediation(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Change cluster CrowdSec remediation')
+  @Post('transitions/remediation')
+  @SuccessResponse('200', 'Cluster remediation transitioned')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          machine_name: 'fwcloud-cluster-node-1',
+          status: 'completed',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async transitionRemediation(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterTransitionDto,
+  ): Promise<ResponseBuilder> {
     if (!req.body.confirm) {
       throw new HttpException('CrowdSec transition confirmation is required', 422);
     }
@@ -1435,7 +1722,23 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate()
-  public async collections(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List cluster CrowdSec collections')
+  @Get('collections')
+  @SuccessResponse('200', 'Cluster collections retrieved')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionsResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      nodes: [{ firewall_id: 21, name: 'cluster-node-1', collections: { collections: [] } }],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async collections(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+  ): Promise<ResponseBuilder> {
     const nodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
     for (const node of nodes) {
       (await CrowdSecPolicy.view(node, req.session.user)).authorize();
@@ -1466,7 +1769,31 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecClusterCollectionAcquisitionQueryDto)
-  public async collectionAcquisition(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Get cluster CrowdSec collection acquisition')
+  @Get('collections/acquisition')
+  @SuccessResponse('200', 'Cluster collection acquisition retrieved')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: ['/var/log/auth.log'],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async collectionAcquisition(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Query('name') nameQuery: string,
+    @Query('node_id') nodeId: number,
+  ): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
     const name = req.query.name as string;
@@ -1478,7 +1805,31 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecCollectionAcquisitionUpdateDto)
   @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
-  public async updateCollectionAcquisition(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Update cluster CrowdSec collection acquisition')
+  @Put('collections/acquisition')
+  @SuccessResponse('200', 'Cluster collection acquisition updated')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: ['/var/log/auth.log'],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateCollectionAcquisition(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Body() body: CrowdSecCollectionAcquisitionUpdateDto,
+    @Query('node_id') nodeId: number,
+  ): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
 
@@ -1497,7 +1848,31 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
   @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
-  public async selectCollectionAcquisitionParser(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Select cluster CrowdSec collection acquisition parser')
+  @Put('collections/acquisition/parser')
+  @SuccessResponse('200', 'Cluster collection acquisition parser selected')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionAcquisitionResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      collection: 'crowdsecurity/sshd',
+      file_path: '/etc/crowdsec/acquis.d/crowdsecurity-sshd.yaml',
+      state: 'ready',
+      label_type: 'syslog',
+      candidate_label_types: [],
+      log_paths: [],
+      message: 'CrowdSec acquisition is managed by FWCloud',
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async selectCollectionAcquisitionParser(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Body() body: CrowdSecCollectionAcquisitionParserSelectionDto,
+    @Query('node_id') nodeId: number,
+  ): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     (await CrowdSecPolicy.manage(node, req.session.user)).authorize();
 
@@ -1515,7 +1890,27 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate()
-  public async blockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Get cluster CrowdSec blocking statistics sampling configuration')
+  @Get('blocking-statistics/sampling')
+  @SuccessResponse('200', 'Cluster blocking statistics sampling configuration retrieved')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterBlockingStatisticsSamplingResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      enabled: true,
+      sampling_interval: 60,
+      request_max_samples: 1000,
+      cache_max_size: 10000,
+      nodes: [{ firewall_id: 12, name: 'node-1' }],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsSampling(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+  ): Promise<ResponseBuilder> {
     const nodes = await this.getViewNodes(req);
     const configuration =
       await CrowdSecBlockingStatisticsSharedService.samplingService().configuration(nodes[0].id);
@@ -1528,7 +1923,29 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecBlockingStatisticsSamplingDto)
-  public async updateBlockingStatisticsSampling(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Update cluster CrowdSec blocking statistics sampling configuration')
+  @Put('blocking-statistics/sampling')
+  @SuccessResponse('200', 'Cluster blocking statistics sampling configuration updated')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterBlockingStatisticsSamplingResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      enabled: true,
+      sampling_interval: 60,
+      request_max_samples: 1000,
+      cache_max_size: 10000,
+      nodes: [],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateBlockingStatisticsSampling(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Body() body: CrowdSecBlockingStatisticsSamplingDto,
+  ): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req, false);
     const service = CrowdSecBlockingStatisticsSharedService.samplingService();
     const current = await service.configuration(nodes[0].id);
@@ -1549,7 +1966,38 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsClusterHistoryQueryDto)
-  public async blockingStatistics(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List cluster CrowdSec blocking statistics')
+  @Get('blocking-statistics')
+  @SuccessResponse('200', 'Cluster blocking statistics retrieved')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterBlockingStatisticsHistoryResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      samples: [
+        {
+          collected_at: '2026-10-23T10:00:00.000Z',
+          policy_generation: '1792659255373',
+          ipv4_input: { packets: 12, bytes: 840 },
+          ipv4_forward: { packets: 0, bytes: 0 },
+          ipv6_input: { packets: 0, bytes: 0 },
+          ipv6_forward: { packets: 0, bytes: 0 },
+        },
+      ],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatistics(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Query('node_id') nodeId: number,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') pageQuery?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     const history = await (
       await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
@@ -1570,7 +2018,40 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsClusterAddressHistoryQueryDto)
-  public async blockingStatisticsAddresses(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List cluster CrowdSec blocking statistics by address')
+  @Get('blocking-statistics/addresses')
+  @SuccessResponse('200', 'Cluster address blocking statistics retrieved')
+  @Example<
+    CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterBlockingStatisticsAddressHistoryResponse>
+  >({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      samples: [
+        {
+          address: '203.0.113.10',
+          collected_at: '2026-10-23T10:00:00.000Z',
+          policy_generation: '1792659255373',
+          packets: 42,
+          bytes: 4096,
+        },
+      ],
+      pagination: { page: 1, limit: 1000, total: 1, pages: 1 },
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsAddresses(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Query('node_id') nodeId: number,
+    @Query('addresses') addresses: string,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     const history = await (
       await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
@@ -1592,7 +2073,29 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate()
   @ValidateQuery(CrowdSecBlockingStatisticsClusterAddressOptionsQueryDto)
-  public async blockingStatisticsAddressOptions(req: Request): Promise<ResponseBuilder> {
+  @OperationId('List cluster CrowdSec blocking statistics address options')
+  @Get('blocking-statistics/addresses/options')
+  @SuccessResponse('200', 'Cluster blocking statistics address options retrieved')
+  @Example<
+    CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterBlockingStatisticsAddressOptionsResponse>
+  >({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { addresses: ['203.0.113.10'], pagination: { page: 1, limit: 1000, total: 1, pages: 1 } },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async blockingStatisticsAddressOptions(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path() cluster: number,
+    @Query('node_id') nodeId: number,
+    @Query('starts_at') startsAt?: number,
+    @Query('ends_at') endsAt?: number,
+    @Query('page') pageQuery?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+  ): Promise<ResponseBuilder> {
     const node = await this.getSelectedViewNode(req);
     const page = await (
       await CrowdSecBlockingStatisticsSharedService.statisticsService(this._app)
@@ -1607,22 +2110,78 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecCollectionDto)
-  public async installCollection(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Install CrowdSec collection in cluster')
+  @Post('collections/install')
+  @SuccessResponse('200', 'Cluster collection installed')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      operation: 'install',
+      nodes: [{ firewall_id: 21, name: 'cluster-node-1', status: 'completed' }],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async installCollection(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecCollectionDto,
+  ): Promise<ResponseBuilder> {
     return this.mutateClusterCollections(req, 'install', req.body.name);
   }
 
   @Validate(CrowdSecCollectionDto)
-  public async removeCollection(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Remove CrowdSec collection in cluster')
+  @Post('collections/remove')
+  @SuccessResponse('200', 'Cluster collection removed')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      operation: 'remove',
+      nodes: [{ firewall_id: 21, name: 'cluster-node-1', status: 'completed' }],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async removeCollection(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecCollectionDto,
+  ): Promise<ResponseBuilder> {
     return this.mutateClusterCollections(req, 'remove', req.body.name);
   }
 
   @Validate()
-  public async updateCollections(req: Request): Promise<ResponseBuilder> {
+  @OperationId('Update CrowdSec collections in cluster')
+  @Post('collections/update')
+  @SuccessResponse('200', 'Cluster collections updated')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionOperationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: true,
+      operation: 'update',
+      nodes: [{ firewall_id: 21, name: 'cluster-node-1', status: 'completed' }],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async updateCollections(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+  ): Promise<ResponseBuilder> {
     return this.mutateClusterCollections(req, 'update');
   }
 
   private async mutateClusterCollections(
-    req: Request,
+    req: ExpressRequest,
     operation: ClusterCollectionOperation,
     name?: string,
   ): Promise<ResponseBuilder> {
@@ -1796,7 +2355,10 @@ export class CrowdSecClusterController extends Controller {
     }
   }
 
-  private async optionalBouncerApiKey(req: Request, value: unknown): Promise<string | undefined> {
+  private async optionalBouncerApiKey(
+    req: ExpressRequest,
+    value: unknown,
+  ): Promise<string | undefined> {
     if (value === undefined) {
       return undefined;
     }
@@ -1824,7 +2386,7 @@ export class CrowdSecClusterController extends Controller {
     }
   }
 
-  private async transitionNodesToLapi(req: Request): Promise<ResponseBuilder> {
+  private async transitionNodesToLapi(req: ExpressRequest): Promise<ResponseBuilder> {
     if (!req.body.localRemediation || req.body.bouncerApiKey !== undefined) {
       throw new HttpException('Invalid CrowdSec cluster role transition target', 422);
     }
@@ -2215,7 +2777,10 @@ export class CrowdSecClusterController extends Controller {
     return snapshot;
   }
 
-  private async installExternalMachines(req: Request, nodes: Firewall[]): Promise<ResponseBuilder> {
+  private async installExternalMachines(
+    req: ExpressRequest,
+    nodes: Firewall[],
+  ): Promise<ResponseBuilder> {
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     if (req.body.localRemediation && providedBouncerApiKey === undefined) {
       throw new HttpException(
@@ -2454,7 +3019,7 @@ export class CrowdSecClusterController extends Controller {
   }
 
   private async getAuthorizedNodes(
-    req: Request,
+    req: ExpressRequest,
     allowNodeSelection: boolean = true,
   ): Promise<Firewall[]> {
     const clusterNodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
@@ -2483,7 +3048,7 @@ export class CrowdSecClusterController extends Controller {
     return nodes;
   }
 
-  private async getViewNodes(req: Request): Promise<Firewall[]> {
+  private async getViewNodes(req: ExpressRequest): Promise<Firewall[]> {
     const nodes = [...this._cluster.firewalls].sort((first, second) => first.id - second.id);
     if (nodes.length === 0) {
       throw new HttpException('CrowdSec cluster has no firewall nodes', 409);
@@ -2494,7 +3059,7 @@ export class CrowdSecClusterController extends Controller {
     return nodes;
   }
 
-  private async getSelectedViewNode(req: Request): Promise<Firewall> {
+  private async getSelectedViewNode(req: ExpressRequest): Promise<Firewall> {
     const nodeId = Number(req.query.node_id);
     const node = this._cluster.firewalls.find((candidate) => candidate.id === nodeId);
     if (!node) {

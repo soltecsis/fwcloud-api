@@ -46,6 +46,23 @@ try {
     spec.info.description = introMarkdown;
   }
 
+  // CrowdSec controller methods keep their TSOA body parameters optional so
+  // existing direct controller calls in unit tests remain source-compatible.
+  // Runtime validation still requires each mutation payload. Reflect that API
+  // contract in the generated OpenAPI document without changing controller
+  // invocation semantics.
+  for (const [pathName, pathItem] of Object.entries(spec.paths || {})) {
+    if (!pathName.includes('/system/crowdsec/')) {
+      continue;
+    }
+
+    for (const operation of Object.values(pathItem)) {
+      if (operation && typeof operation === 'object' && operation.requestBody) {
+        operation.requestBody.required = true;
+      }
+    }
+  }
+
   fs.writeFileSync(specFile, JSON.stringify(spec, null, 2) + '\n');
 } catch (error) {
   console.error(error);

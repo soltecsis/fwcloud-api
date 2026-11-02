@@ -54,6 +54,7 @@ export class CrowdSecClusterTransitionDto {
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
   lapiUrl?: string;
 
+  /** PGP-encrypted CrowdSec Firewall Bouncer API key. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)
