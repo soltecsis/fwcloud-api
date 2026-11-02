@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Suricata activation on cluster nodes now accepts interfaces defined on the cluster master.
+- Firewall policy installation now resolves DNS objects used as rule sources or destinations.
+- Policy loading now handles unavailable or disabled IPv6 and reports failed policy loads correctly.
 
 
 ## [2.5.7] - 2026-08-26
