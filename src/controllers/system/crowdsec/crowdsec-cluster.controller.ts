@@ -575,7 +575,7 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterLapiConnectivityDto)
-  public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
+  public async checkLapiConnectivity(req: ExpressRequest): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const results = [];
@@ -1061,7 +1061,7 @@ export class CrowdSecClusterController extends Controller {
   }
 
   private async moveClusterMachinesToExternalLapi(
-    req: Request,
+    req: ExpressRequest,
     nodes: Firewall[],
   ): Promise<ResponseBuilder> {
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
@@ -2728,7 +2728,10 @@ export class CrowdSecClusterController extends Controller {
     return snapshot;
   }
 
-  private async installExternalMachines(req: Request, nodes: Firewall[]): Promise<ResponseBuilder> {
+  private async installExternalMachines(
+    req: ExpressRequest,
+    nodes: Firewall[],
+  ): Promise<ResponseBuilder> {
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     if (req.body.localRemediation && providedBouncerApiKey === undefined) {
       throw new HttpException(

@@ -1159,7 +1159,7 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecLapiConnectivityDto)
-  public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
+  public async checkLapiConnectivity(req: ExpressRequest): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
@@ -1406,7 +1406,7 @@ export class CrowdSecController extends Controller {
   }
 
   private async installExternalMachine(
-    req: Request,
+    req: ExpressRequest,
     providedBouncerApiKey: string | undefined,
   ): Promise<ResponseBuilder> {
     if (req.body.localRemediation && providedBouncerApiKey === undefined) {
@@ -1855,7 +1855,7 @@ export class CrowdSecController extends Controller {
   }
 
   private async moveMachineToExternalLapi(
-    req: Request,
+    req: ExpressRequest,
     installation: CrowdSecInstallation,
     providedBouncerApiKey: string | undefined,
   ): Promise<ResponseBuilder> {
@@ -2444,7 +2444,7 @@ export class CrowdSecController extends Controller {
   }
 
   private async transitionLapiToExternalMachine(
-    req: Request,
+    req: ExpressRequest,
     providedBouncerApiKey: string | undefined,
   ): Promise<ResponseBuilder> {
     if (req.body.localRemediation && providedBouncerApiKey === undefined) {
