@@ -66,6 +66,18 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
     return execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   }
 
+  function containerIPv4(containerId: string): string {
+    const networks = JSON.parse(
+      docker('inspect', '-f', '{{json .NetworkSettings.Networks}}', containerId),
+    ) as Record<string, { IPAddress?: string }>;
+    const address = Object.values(networks)
+      .map((network) => network.IPAddress)
+      .find((address) => address);
+
+    if (!address) throw new Error(`Container ${containerId} has no IPv4 network address`);
+    return address;
+  }
+
   function onFirewall(cmd: string): string {
     return docker('exec', container, 'sh', '-c', cmd);
   }
@@ -175,12 +187,7 @@ describe(describeName('Policy install E2E Tests - DNS objects'), function () {
       `--address=/${ipv4Hostname}/192.0.2.10`,
       `--address=/${ipv6Hostname}/2001:db8::10`,
     ).trim();
-    const dnsServerAddress = docker(
-      'inspect',
-      '-f',
-      '{{.NetworkSettings.IPAddress}}',
-      dnsServer,
-    ).trim();
+    const dnsServerAddress = containerIPv4(dnsServer);
     container = docker(
       'run',
       '-d',
