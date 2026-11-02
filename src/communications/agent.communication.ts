@@ -33,6 +33,7 @@ import {
   CrowdSecFirewallBackend,
   CrowdSecFirewallBouncerStatisticsSamples,
   CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  CrowdSecLapiConnectivityCheck,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
@@ -1509,6 +1510,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async checkCrowdSecLapiConnectivity(lapiUrl: string): Promise<CrowdSecLapiConnectivityCheck> {
+    try {
+      return (await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/connectivity', {
+        lapi_url: lapiUrl,
+      })) as CrowdSecLapiConnectivityCheck;
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   async getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/replication/readiness');
@@ -1601,6 +1612,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           mode: 'machine',
           machine_name: installation.machineName,
           lapi_url: installation.lapiUrl,
+          ...(installation.localRemediation === undefined
+            ? {}
+            : { local_remediation: installation.localRemediation }),
+          ...(installation.backend === undefined ? {} : { backend: installation.backend }),
+          ...(installation.bouncerApiKey === undefined
+            ? {}
+            : { bouncer_api_key: installation.bouncerApiKey }),
           ...(installation.continueWithoutLapiConnectivity === true
             ? { continue_without_lapi_connectivity: true }
             : {}),

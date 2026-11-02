@@ -44,9 +44,7 @@ export class CrowdSecTransitionDto {
   @IsBoolean()
   localRemediation: boolean;
 
-  @ValidateIf(
-    (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
-  )
+  @IsOptional()
   @IsInt()
   @Min(1)
   centralFirewallId?: number;
@@ -70,4 +68,9 @@ export class CrowdSecTransitionDto {
   @IsString()
   @Length(1, 8192)
   bouncerApiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 8192)
+  enrollmentKey?: string;
 }
