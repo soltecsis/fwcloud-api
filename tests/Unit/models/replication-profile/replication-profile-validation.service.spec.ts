@@ -176,6 +176,59 @@ describe('Native replication profile rule options validation', () => {
   }
 });
 
+describe('Native replication profile rule state validation', () => {
+  for (const field of ['provision', 'policyStructure', 'policy_structure']) {
+    it(`accepts enabled, disabled and legacy rules without a state in ${field}`, () => {
+      expect(
+        errorsFor({
+          targetKind: 'firewall',
+          model: {
+            [field]: {
+              rules: [
+                { chain: 'forward', active: true },
+                { chain: 'forward', active: false },
+                { chain: 'forward' },
+              ],
+            },
+          },
+        }),
+      ).to.be.empty;
+    });
+
+    it(`rejects a state that is not a boolean in ${field} instead of enabling the rule`, () => {
+      for (const active of [null, 0, 1, 'false', 'true', {}, []]) {
+        expect(
+          errorsFor({
+            targetKind: 'firewall',
+            model: { [field]: { rules: [{ chain: 'forward' }, { chain: 'forward', active }] } },
+          }),
+          JSON.stringify(active),
+        ).to.deep.eq([
+          {
+            code: 'invalid_rule_active',
+            message: 'Rule active must be a boolean.',
+            path: `model.${field}.rules[1].active`,
+            severity: 'error',
+          },
+        ]);
+      }
+    });
+  }
+
+  it('rejects an invalid state in the structure the editor reopens even when provision is valid', () => {
+    const rules = [{ chain: 'forward', active: false }];
+    expect(
+      pathsFor({
+        targetKind: 'firewall',
+        model: {
+          provision: { rules },
+          policyStructure: { rules: [{ chain: 'forward', active: 'false' }] },
+        },
+      }),
+    ).to.deep.eq(['model.policyStructure.rules[0].active']);
+  });
+});
+
 describe(describeName('Replication Profile Validation Service Unit Tests'), () => {
   it('should accept valid built-in, firewall and cluster profiles', () => {
     expect(

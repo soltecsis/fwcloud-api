@@ -30,6 +30,38 @@ describe(describeName('Policy Replication Types Unit Tests'), () => {
     });
   }
 
+  for (const field of ['provision', 'policyStructure', 'policy_structure']) {
+    it(`should retain explicit enabled and disabled states and missing legacy states in ${field}`, () => {
+      const parsed = getProfileProvisioning(
+        JSON.parse(
+          JSON.stringify({
+            [field]: {
+              rules: [
+                { chain: 'forward', active: true, comment: 'Enabled' },
+                { chain: 'forward', active: false, comment: 'Disabled' },
+                { chain: 'forward', comment: 'Legacy' },
+              ],
+            },
+          }),
+        ),
+      );
+      expect(parsed.rules.map((rule) => [rule.comment, rule.active])).to.deep.eq([
+        ['Enabled', true],
+        ['Disabled', false],
+        ['Legacy', undefined],
+      ]);
+      expect(parsed.rules[2]).not.to.have.property('active');
+    });
+  }
+
+  it('should retain invalid states for validation instead of enabling the rule', () => {
+    const values = [null, 0, 1, 'false', 'true', {}, []];
+    const parsed = getProfileProvisioning({
+      provision: { rules: values.map((active) => ({ active })) },
+    });
+    expect(parsed.rules.map((rule) => rule.active)).to.deep.eq(values);
+  });
+
   it('should retain invalid options for validation instead of replacing them with defaults', () => {
     const values = [null, false, true, '6', -1, 1.5, 0x10000, {}, []];
     const parsed = getProfileProvisioning({

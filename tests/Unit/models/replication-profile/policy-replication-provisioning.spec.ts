@@ -97,6 +97,16 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     return Number(rows[0].total);
   }
 
+  /** The profile applied to the target firewall, as the rule settings tests apply it. */
+  const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
+    service.provisionPolicyFromProfile(
+      { kind: 'firewall', id: targetFirewall.id },
+      provision,
+      fwc.fwcloud.id,
+      mode,
+      applyOptions(values),
+    );
+
   it('should read the parameterized model into the provision vocabulary', () => {
     expect(provision.interfaces).to.have.length(2);
     expect(provision.interfaces[0].addresses).to.have.length(1);
@@ -543,15 +553,6 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
   });
 
   describe('rule validity periods', () => {
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
-
     it('should merge rules with different dates and recognize equivalent instants', async () => {
       expect((await apply()).createdRules).to.have.length(1);
       for (const period of [
@@ -587,15 +588,6 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
   });
 
   describe('native rule options', () => {
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
-
     it('should distinguish options in merge mode and skip only rules with the same behavior', async () => {
       // The original legacy rule has no options field and behaves exactly like explicit zero.
       const legacy = await apply();
@@ -648,16 +640,156 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     }
   });
 
-  describe('position negation', () => {
-    const apply = (mode: 'replace_defaults' | 'merge' | 'dry_run' = 'replace_defaults') =>
-      service.provisionPolicyFromProfile(
-        { kind: 'firewall', id: targetFirewall.id },
-        provision,
-        fwc.fwcloud.id,
-        mode,
-        applyOptions(values),
-      );
+  describe('rule states', () => {
+    const COMMENTS = ['Allow HTTP', 'Allow SSH', 'Allow HTTPS'];
+    const STATES = [true, false, true];
 
+    beforeEach(() => {
+      provision.rules = COMMENTS.map((comment, index) => ({
+        ...provision.rules[0],
+        active: STATES[index],
+        comment,
+      }));
+    });
+
+    const appliedRules = () =>
+      db
+        .getSource()
+        .query(
+          'SELECT comment, active, rule_order FROM policy_r WHERE firewall = ? AND special = 0 ORDER BY rule_order, id',
+          [targetFirewall.id],
+        );
+
+    it('should preview disabled rules in their place and state without writing anything', async () => {
+      const preview = await apply('dry_run');
+
+      expect(preview.errors).to.be.empty;
+      expect(
+        preview.createdRules.map((rule) => [rule.comment, rule.active, rule.ruleOrder]),
+      ).to.deep.eq([
+        [COMMENTS[0], true, 2],
+        [COMMENTS[1], false, 3],
+        [COMMENTS[2], true, 4],
+      ]);
+      expect(await appliedRules()).to.be.empty;
+    });
+
+    it('should create disabled rules disabled and enabled rules enabled, in their order', async () => {
+      const result = await apply();
+
+      expect(result.errors).to.be.empty;
+      expect(result.applied).to.be.true;
+      expect(result.createdRules.map((rule) => rule.active)).to.deep.eq(STATES);
+      const rows = await appliedRules();
+      expect(rows.map((row) => [row.comment, row.active])).to.deep.eq([
+        [COMMENTS[0], 1],
+        [COMMENTS[1], 0],
+        [COMMENTS[2], 1],
+      ]);
+      expect(rows.map((row) => row.rule_order)).to.deep.eq(
+        result.createdRules.map((rule) => rule.ruleOrder),
+      );
+    });
+
+    it('should create the objects a disabled rule uses without enabling it', async () => {
+      provision.rules = [{ ...provision.rules[0], active: false, comment: COMMENTS[1] }];
+
+      const result = await apply();
+
+      expect(result.errors).to.be.empty;
+      expect(await countIpObjs('type = 7 AND address = ?', ['192.168.50.0'])).to.be.eq(1);
+      const [rule] = await appliedRules();
+      expect(rule.active).to.eq(0);
+      // One source network plus one service, as for an enabled rule.
+      const ruleObjects = await db
+        .getSource()
+        .query('SELECT ipobj FROM policy_r__ipobj WHERE rule = ?', [
+          result.createdRules[0].targetRuleId,
+        ]);
+      expect(ruleObjects).to.have.length(2);
+    });
+
+    it('should keep legacy rules without a state enabled, as FWCloud creates them', async () => {
+      provision = getProfileProvisioning(PARAMETERIZED_MODEL);
+      expect(provision.rules[0]).not.to.have.property('active');
+
+      const result = await apply();
+
+      expect(result.errors).to.be.empty;
+      expect(result.createdRules.map((rule) => rule.active)).to.deep.eq([true]);
+      expect((await appliedRules()).map((row) => row.active)).to.deep.eq([1]);
+    });
+
+    it('should tell enabled and disabled rules apart in merge mode, warning about each copy', async () => {
+      provision.rules = [{ ...provision.rules[1] }];
+      expect((await apply()).errors).to.be.empty;
+
+      // An enabled copy next to the disabled rule is announced by the preview and the application.
+      provision.rules[0].active = true;
+      const warning =
+        'Rule 1: an equivalent rule already exists on the target, but disabled; this rule is added enabled.';
+      const preview = await apply('dry_run');
+      expect(preview.warnings).to.include(warning);
+      expect(preview.createdRules.map((rule) => rule.active)).to.deep.eq([true]);
+      const enabled = await apply('merge');
+      expect(enabled.conflicts).to.be.empty;
+      expect(enabled.warnings).to.include(warning);
+      expect(enabled.createdRules.map((rule) => rule.active)).to.deep.eq([true]);
+
+      for (const active of [true, false]) {
+        provision.rules[0].active = active;
+        const duplicate = await apply('merge');
+        expect(duplicate.createdRules).to.be.empty;
+        expect(duplicate.conflicts.map((conflict) => conflict.type)).to.include('duplicated_rule');
+        expect(duplicate.warnings.join(' ')).not.to.include('this rule is added');
+      }
+      delete provision.rules[0].active;
+      const legacy = await apply('merge');
+      expect(legacy.createdRules, 'a legacy rule matches the enabled copy').to.be.empty;
+      expect((await appliedRules()).map((row) => row.active)).to.deep.eq([0, 1]);
+    });
+
+    it('should warn when a disabled rule is added next to its enabled equivalent', async () => {
+      provision.rules = [{ ...provision.rules[0] }];
+      expect((await apply()).errors).to.be.empty;
+
+      provision.rules[0].active = false;
+      const disabled = await apply('merge');
+
+      expect(disabled.conflicts).to.be.empty;
+      expect(disabled.warnings).to.include(
+        'Rule 1: an equivalent rule already exists on the target, but enabled; this rule is added disabled.',
+      );
+      expect((await appliedRules()).map((row) => row.active)).to.deep.eq([1, 0]);
+    });
+
+    for (const mode of ['replace_defaults', 'merge', 'dry_run'] as const) {
+      it(`should reject a state that is not a boolean before writing any policy data in ${mode}`, async () => {
+        const before = await db
+          .getSource()
+          .query('SELECT * FROM policy_r WHERE firewall = ?', [targetFirewall.id]);
+        for (const active of [null, 0, 1, 'false', 'true', {}, []]) {
+          provision.rules[1] = { ...provision.rules[1], active: active as boolean };
+          const result = await apply(mode);
+          expect(result.applied).to.be.false;
+          expect(result.errors).to.deep.eq(['Rule 2: active must be a boolean.']);
+          expect(result.createdRules).to.be.empty;
+        }
+        expect(
+          await db
+            .getSource()
+            .query('SELECT * FROM policy_r WHERE firewall = ?', [targetFirewall.id]),
+        ).to.deep.eq(before);
+        expect(
+          await db
+            .getSource()
+            .query('SELECT id FROM interface WHERE firewall = ?', [targetFirewall.id]),
+        ).to.be.empty;
+      });
+    }
+  });
+
+  describe('position negation', () => {
     it('should preserve negated positions independently of the other rule positions', async () => {
       provision.rules[0].negate = '25 9 22 7 7';
       provision.rules[0].destination = [{ kind: 'address', value: '203.0.113.10' }];
@@ -844,6 +976,32 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
         { comment: COMMENTS[0], fw_apply_to: targetFirewall.id },
         { comment: COMMENTS[1], fw_apply_to: backup.id },
         { comment: COMMENTS[2], fw_apply_to: null },
+      ]);
+    });
+
+    it('should keep disabled rules disabled on the node mapped to their role', async () => {
+      provision.rules[1].active = false;
+      provision.rules[2].active = false;
+
+      const preview = await applyToCluster(
+        { master: targetFirewall.id, backup: backup.id },
+        'dry_run',
+      );
+      expect(preview.createdRules.map((rule) => rule.active)).to.deep.eq([true, false, false]);
+      const result = await applyToCluster({ master: targetFirewall.id, backup: backup.id });
+
+      expect(result.errors).to.be.empty;
+      expect(
+        await db
+          .getSource()
+          .query(
+            'SELECT comment, fw_apply_to, active FROM policy_r WHERE firewall = ? AND comment IN (?) ORDER BY rule_order',
+            [targetFirewall.id, COMMENTS],
+          ),
+      ).to.deep.equal([
+        { comment: COMMENTS[0], fw_apply_to: targetFirewall.id, active: 1 },
+        { comment: COMMENTS[1], fw_apply_to: backup.id, active: 0 },
+        { comment: COMMENTS[2], fw_apply_to: null, active: 0 },
       ]);
     });
 
@@ -1173,7 +1331,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
       );
     }
 
-    const apply = (
+    const applyProvision = (
       applied: PolicyReplicationProvision = provision,
       options: Record<string, unknown> = {},
       mode: 'replace_defaults' | 'dry_run' = 'replace_defaults',
@@ -1189,7 +1347,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should show the address of each created interface without repairing the tree', async () => {
       await createFirewallTree();
 
-      const result = await apply();
+      const result = await applyProvision();
 
       expect(result.applied).to.be.true;
       expect(await shownAddresses()).to.deep.eq({
@@ -1212,7 +1370,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should show every address of an interface that declares several', async () => {
       await createFirewallTree();
 
-      await apply(
+      await applyProvision(
         getProfileProvisioning({
           provision: {
             interfaces: [
@@ -1241,7 +1399,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
       });
       await createFirewallTree();
 
-      await apply(provision, { interfaceNameMapping: { lan: 'eth1' } });
+      await applyProvision(provision, { interfaceNameMapping: { lan: 'eth1' } });
 
       expect(await shownAddresses()).to.deep.eq({
         WAN: ['WAN-ip (198.51.100.10)'],
@@ -1252,8 +1410,8 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should not show an address twice when the profile is applied again', async () => {
       await createFirewallTree();
 
-      await apply();
-      await apply();
+      await applyProvision();
+      await applyProvision();
 
       expect(await shownAddresses()).to.deep.eq({
         WAN: ['WAN-ip (198.51.100.10)'],
@@ -1264,8 +1422,8 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     it('should not show addresses that a dry run or a rejected apply did not create', async () => {
       await createFirewallTree();
 
-      await apply(provision, {}, 'dry_run');
-      const rejected = await apply(provision, { interfaceNameMapping: { lan: 'eth9' } });
+      await applyProvision(provision, {}, 'dry_run');
+      const rejected = await applyProvision(provision, { interfaceNameMapping: { lan: 'eth9' } });
 
       expect(rejected.applied).to.be.false;
       expect(await shownAddresses()).to.deep.eq({});

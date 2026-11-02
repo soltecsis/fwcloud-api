@@ -53,6 +53,25 @@ function template(protocol = 'openvpn'): any {
 }
 
 describe('VPN policy references converted to IP objects', () => {
+  it('keeps the state of each converted rule, disabled ones included', () => {
+    const model = template();
+    model.provision.rules[0].active = false;
+    model.provision.rules[1].active = true;
+    const converted = convertProfileVpnReferencesToIp(
+      model,
+      getProfileProvisioning(model),
+      undefined,
+    );
+    assert.deepEqual(converted.errors, []);
+    assert.deepEqual(
+      converted.provision!.rules.map((rule) => [rule.source[0].kind, rule.active]),
+      [
+        ['address', false],
+        ['address', true],
+      ],
+    );
+  });
+
   for (const protocol of ['openvpn', 'wireguard', 'ipsec']) {
     it(`converts ${protocol} clients in src/dst/NAT through the existing IP object representation`, () => {
       const model = template(protocol);
