@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- CrowdSec integration for firewalls and clusters, including installation, removal, status, Console enrollment, collections, decisions, alerts, Bouncers, and managed system tree nodes.
+- CrowdSec Local API and Machine deployment modes, including central Local API candidates, Machine registration, validation, activation, reauthentication, role transitions, and topology persistence.
+- CrowdSec support for externally managed Local APIs, with direct TCP connectivity checks, manual Machine validation guidance, optional local remediation, and loopback URL protection.
+- Cluster orchestration for CrowdSec Machine and Local API installations, role transitions, collection changes, credential replication, recovery reporting, and rollback of failed operations.
+- CrowdSec Firewall Bouncer compatibility resources for IPTables and NFTables, secure Bouncer key handling, and Bouncer reconciliation after firewall policy deployment.
+- CrowdSec blocking statistics configuration, persistence, named firewall counters, history and address queries, pagination, and system tree access.
+- CrowdSec collection acquisition contracts, parser selection, agent communication, log-path management, and validation error mapping.
+- CrowdSec service management through the Systemctl API.
+
+### Changed
+- Runtime and development dependencies were updated to resolve known security vulnerabilities.
+
+### Fixed
+- Suricata activation on cluster nodes now accepts interfaces defined on the cluster master.
+
 
 ## [2.5.6] - 2026-08-19
 ### Added
