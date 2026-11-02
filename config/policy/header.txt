@@ -223,12 +223,56 @@ status() {
   fi 
 }
 
+policy_check_dns() {
+  # iptables resolves DNS objects while loading each rule, so an unresolvable hostname would only
+  # fail halfway through the policy load. "-C" parses and resolves the address exactly as the rule
+  # will, without modifying the ruleset: exit 0/1 means the address was accepted (rule present or
+  # absent), any other exit code means iptables rejected it.
+  test -z "$1" && return 0
+  FWC_DNS_CHECK_OUTPUT=`"$1" -C INPUT -s "$2" -j ACCEPT 2>&1`
+  case "$?" in
+    0|1) return 0 ;;
+  esac
+
+  echo "ERROR: $3 cannot be resolved on this firewall."
+  echo "$FWC_DNS_CHECK_OUTPUT"
+  echo "Use a hostname that resolves on the firewall. The installed policy has not been changed."
+  return 1
+}
+
+policy_dns_resolution() {
+  # The policy is loaded with DROP default policies, so without these temporary rules the firewall
+  # could not send its own DNS queries (directly or through a local resolver on loopback) while
+  # iptables resolves the DNS objects. Only used if the policy has DNS objects.
+  # $1: "allow" inserts the rules at the top of the chains, "revoke" removes them.
+  # $2: optional iptables command, both IPv4 and IPv6 commands by default.
+  test "$POLICY_DNS_OBJECTS" = "1" || return 0
+  for FWC_DNS_CMD in ${2:-$IPTABLES $IP6TABLES}; do
+    while read -r FWC_DNS_CHAIN FWC_DNS_MATCH; do
+      while $FWC_DNS_CMD -D $FWC_DNS_CHAIN $FWC_DNS_MATCH -m comment --comment "FWCloud DNS resolution" -j ACCEPT 2>/dev/null; do :; done
+      if [ "$1" = "allow" ]; then
+        $FWC_DNS_CMD -I $FWC_DNS_CHAIN 1 $FWC_DNS_MATCH -m comment --comment "FWCloud DNS resolution" -j ACCEPT
+      fi
+    done <<EOF
+INPUT -i lo
+OUTPUT -o lo
+OUTPUT -p udp --dport 53
+OUTPUT -p tcp --dport 53
+INPUT -m conntrack --ctstate ESTABLISHED,RELATED
+EOF
+  done
+  return 0
+}
+
 policy_apply() {
   load_nat_modules
   policy_empty
+  policy_dns_resolution allow
   if ! policy_load || ! options_load; then
+    policy_dns_resolution revoke
     echo "ERROR: Policy load failed"
     iptables_default_filter_policy ACCEPT
     return 1
   fi
+  policy_dns_resolution revoke
 }
