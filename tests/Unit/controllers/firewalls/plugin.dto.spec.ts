@@ -5,6 +5,7 @@ import db from '../../../../src/database/database-manager';
 import { FirewallController } from '../../../../src/controllers/firewalls/firewall.controller';
 import { PluginDto } from '../../../../src/controllers/firewalls/dtos/plugin.dto';
 import {
+  Firewall,
   FirewallInstallCommunication,
   FirewallInstallProtocol,
   PluginsFlags,
@@ -71,8 +72,9 @@ describe(`${FirewallController.name} Suricata plugin parameters`, () => {
     return dto;
   }
 
-  function stubInterfaceCount(count: number): void {
+  function stubInterfaceCount(count: number) {
     const queryBuilder = {
+      leftJoin: sinon.stub().returnsThis(),
       where: sinon.stub().returnsThis(),
       andWhere: sinon.stub().returnsThis(),
       getCount: sinon.stub().resolves(count),
@@ -86,15 +88,42 @@ describe(`${FirewallController.name} Suricata plugin parameters`, () => {
         getRepository: sinon.stub().returns(repository),
       },
     } as any);
+
+    return queryBuilder;
   }
 
-  it('should accept an existing FWCloud interface and an alphanumeric OINKCODE', async () => {
-    stubInterfaceCount(1);
+  it('should accept an interface assigned to the firewall and an alphanumeric OINKCODE', async () => {
+    const queryBuilder = stubInterfaceCount(1);
 
     await (controller as any).validateSuricataPluginParams(buildDto(['ens18', 'ABC123']));
+
+    sinon.assert.calledWith(queryBuilder.leftJoin, 'interface.firewall', 'interfaceFirewall');
+    sinon.assert.calledWith(
+      queryBuilder.leftJoin,
+      Firewall,
+      'targetFirewall',
+      'targetFirewall.id = :firewallId',
+      { firewallId: 10 },
+    );
   });
 
-  it('should reject Suricata activation when the interface does not belong to the firewall', async () => {
+  it('should accept an interface shared by the firewall cluster master', async () => {
+    const queryBuilder = stubInterfaceCount(1);
+
+    await (controller as any).validateSuricataPluginParams(buildDto(['ens18', 'ABC123']));
+
+    sinon.assert.calledWith(
+      queryBuilder.andWhere,
+      sinon.match(
+        (condition: string) =>
+          condition.includes('interfaceFirewall.cluster = targetFirewall.cluster') &&
+          condition.includes('interfaceFirewall.fwmaster = 1'),
+      ),
+      { firewallId: 10 },
+    );
+  });
+
+  it('should reject Suricata activation when the interface is not available to the firewall cluster', async () => {
     stubInterfaceCount(0);
 
     await expect(

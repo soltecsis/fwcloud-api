@@ -10,7 +10,9 @@ case "$ACTION" in
     POLICY_LOAD_START_TIME_MS=`policy_load_timestamp_ms`
     greeting_msg
     policy_apply
-    routing_apply
+    if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then
+      routing_apply
+    fi
     if [ $DOCKER_COMPATIBILITY ]; then
       check_docker_iptables_disabled
     fi
