@@ -99,9 +99,7 @@ export type CrowdSecConsoleEnrollment = {
 export type CrowdSecFirewallBackend = 'iptables' | 'nftables';
 
 export type CrowdSecCollectionAcquisitionState =
-  | 'ready'
-  | 'automatic_configuration_unavailable'
-  | 'manual_review_required';
+  'ready' | 'automatic_configuration_unavailable' | 'manual_review_required';
 
 export type CrowdSecCollectionAcquisition = {
   collection: string;
