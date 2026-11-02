@@ -175,6 +175,7 @@ const models: TsoaRoute.Models = {
             "apikey": {"dataType":"string"},
             "plugin": {"ref":"PluginsFlags","required":true},
             "enable": {"dataType":"boolean","required":true},
+            "pluginParams": {"dataType":"array","array":{"dataType":"string"}},
         },
         "additionalProperties": false,
     },
