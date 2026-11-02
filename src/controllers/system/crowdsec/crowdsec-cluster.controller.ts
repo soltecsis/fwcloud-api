@@ -23,6 +23,7 @@
 import { Request as ExpressRequest } from 'express';
 import * as uuid from 'uuid';
 import { AgentCommunication } from '../../../communications/agent.communication';
+import { CrowdSecLapiConnectivityCheck } from '../../../communications/communication';
 import { Firewall, FireWallOptMask } from '../../../models/firewall/Firewall';
 import { Cluster } from '../../../models/firewall/Cluster';
 import {
@@ -104,6 +105,7 @@ interface CrowdSecClusterCollectionsResponse {
 
 interface CrowdSecClusterOperationResponse {
   completed: boolean;
+  external_lapi?: boolean;
   finalization_incomplete?: boolean;
   connectivity_confirmation_required?: boolean;
   connectivity_confirmation_reason?: string;
@@ -170,6 +172,15 @@ interface CrowdSecClusterCollectionAcquisitionResponse {
   candidate_label_types: string[];
   log_paths: string[];
   message: string;
+}
+
+interface CrowdSecClusterLapiConnectivityNodeResponse extends CrowdSecLapiConnectivityCheck {
+  firewall_id: number;
+  name: string;
+}
+
+interface CrowdSecClusterLapiConnectivityResponse {
+  nodes: CrowdSecClusterLapiConnectivityNodeResponse[];
 }
 
 type CrowdSecClusterDynamicResponse = Record<string, unknown>;
@@ -265,6 +276,12 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterMachineInstallDto)
+  /**
+   * Installs against a FWCloud-managed central LAPI when `centralFirewallId`
+   * is provided. Omitting it selects an external LAPI; every Machine then
+   * requires manual validation, and local remediation requires the encrypted
+   * `bouncerApiKey` request field.
+   */
   @OperationId('Install CrowdSec machines in cluster')
   @Post('machines/install')
   @SuccessResponse('200', 'Cluster machines installed')
@@ -575,7 +592,39 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterLapiConnectivityDto)
-  public async checkLapiConnectivity(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Check external CrowdSec LAPI connectivity for cluster nodes')
+  @Post('lapi/connectivity')
+  @SuccessResponse('200', 'Cluster CrowdSec LAPI connectivity checked')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterLapiConnectivityResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          lapi_url: 'https://lapi.example.net:8080',
+          reachable: true,
+          message: 'CrowdSec Local API is reachable',
+        },
+        {
+          firewall_id: 22,
+          name: 'cluster-node-2',
+          reachable: false,
+          error_code: 'FWCLOUD_AGENT_UNREACHABLE',
+          message: 'FWCloud Agent is unavailable',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async checkLapiConnectivity(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterLapiConnectivityDto,
+  ): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     const results = [];

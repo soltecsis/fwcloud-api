@@ -23,7 +23,10 @@
 import { Request as ExpressRequest } from 'express';
 import * as uuid from 'uuid';
 import { AgentCommunication } from '../../../communications/agent.communication';
-import { CrowdSecFirewallBackend } from '../../../communications/communication';
+import {
+  CrowdSecFirewallBackend,
+  CrowdSecLapiConnectivityCheck,
+} from '../../../communications/communication';
 import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { Controller } from '../../../fonaments/http/controller';
@@ -125,12 +128,15 @@ interface CrowdSecTransitionResponse {
 
 interface CrowdSecMachineInstallationResponse {
   machine: Record<string, unknown>;
+  external_lapi?: boolean;
   validation?: Record<string, unknown>;
   activation?: Record<string, unknown>;
   connectivity_confirmation_required?: boolean;
   connectivity_confirmation_reason?: string;
   pending_connectivity?: boolean;
 }
+
+type CrowdSecLapiConnectivityResponse = CrowdSecLapiConnectivityCheck;
 
 interface CrowdSecUninstallResponse {
   steps: Array<Record<string, unknown>>;
@@ -1159,7 +1165,26 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecLapiConnectivityDto)
-  public async checkLapiConnectivity(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Check external CrowdSec LAPI connectivity')
+  @Post('lapi/connectivity')
+  @SuccessResponse('200', 'CrowdSec LAPI connectivity checked')
+  @Example<CrowdSecApiEnvelopeResponse<CrowdSecLapiConnectivityResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      lapi_url: 'https://lapi.example.net:8080',
+      reachable: true,
+      message: 'CrowdSec Local API is reachable',
+    },
+  })
+  @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async checkLapiConnectivity(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() firewall?: number,
+    @Body() body?: CrowdSecLapiConnectivityDto,
+  ): Promise<ResponseBuilder> {
     (await CrowdSecPolicy.manage(this._firewall, req.session.user)).authorize();
 
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
@@ -1170,6 +1195,12 @@ export class CrowdSecController extends Controller {
   }
 
   @Validate(CrowdSecMachineInstallDto)
+  /**
+   * Installs against a FWCloud-managed central LAPI when `centralFirewallId`
+   * is provided. Omitting it selects an external LAPI; the Machine is then
+   * registered for manual validation, and local remediation requires the
+   * encrypted `bouncerApiKey` request field.
+   */
   @OperationId('Install CrowdSec machine')
   @Post('machines/install')
   @SuccessResponse('200', 'Machine installation completed')

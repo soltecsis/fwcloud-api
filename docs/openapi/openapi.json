@@ -226,6 +226,18 @@
         "type": "object",
         "additionalProperties": false
       },
+      "CrowdSecLapiConnectivityDto": {
+        "properties": {
+          "lapiUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lapiUrl"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "CrowdSecMachineInstallDto": {
         "properties": {
           "centralFirewallId": {
@@ -250,7 +262,6 @@
           }
         },
         "required": [
-          "centralFirewallId",
           "machineName",
           "lapiUrl",
           "localRemediation"
@@ -289,6 +300,9 @@
           "bouncerApiKey": {
             "type": "string",
             "description": "PGP-encrypted CrowdSec Firewall Bouncer API key."
+          },
+          "enrollmentKey": {
+            "type": "string"
           }
         },
         "required": [
@@ -427,6 +441,10 @@
           "continueWithoutLapiConnectivity": {
             "type": "boolean"
           },
+          "bouncerApiKey": {
+            "type": "string",
+            "description": "PGP-encrypted CrowdSec Firewall Bouncer API key for an external Local API."
+          },
           "nodeIds": {
             "items": {
               "type": "number",
@@ -436,9 +454,27 @@
           }
         },
         "required": [
-          "centralFirewallId",
           "lapiUrl",
           "localRemediation"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "CrowdSecClusterLapiConnectivityDto": {
+        "properties": {
+          "lapiUrl": {
+            "type": "string"
+          },
+          "nodeIds": {
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lapiUrl"
         ],
         "type": "object",
         "additionalProperties": false
@@ -4041,7 +4077,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4259,6 +4295,81 @@
         ]
       }
     },
+    "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/lapi/connectivity": {
+      "post": {
+        "operationId": "Check external CrowdSec LAPI connectivity",
+        "responses": {
+          "200": {
+            "description": "CrowdSec LAPI connectivity checked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "lapi_url": "https://lapi.example.net:8080",
+                        "reachable": true,
+                        "message": "CrowdSec Local API is reachable"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecLapiConnectivityDto"
+              }
+            }
+          }
+        }
+      }
+    },
     "/fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec/machines/install": {
       "post": {
         "operationId": "Install CrowdSec machine",
@@ -4334,7 +4445,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4416,7 +4527,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4508,7 +4619,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4591,7 +4702,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4673,7 +4784,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4747,7 +4858,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4963,7 +5074,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5038,7 +5149,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5238,7 +5349,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5312,7 +5423,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5449,7 +5560,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5524,7 +5635,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5611,11 +5722,99 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CrowdSecClusterMachineInstallDto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec/lapi/connectivity": {
+      "post": {
+        "operationId": "Check external CrowdSec LAPI connectivity for cluster nodes",
+        "responses": {
+          "200": {
+            "description": "Cluster CrowdSec LAPI connectivity checked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "nodes": [
+                          {
+                            "firewall_id": 21,
+                            "name": "cluster-node-1",
+                            "lapi_url": "https://lapi.example.net:8080",
+                            "reachable": true,
+                            "message": "CrowdSec Local API is reachable"
+                          },
+                          {
+                            "firewall_id": 22,
+                            "name": "cluster-node-2",
+                            "reachable": false,
+                            "error_code": "FWCLOUD_AGENT_UNREACHABLE",
+                            "message": "FWCloud Agent is unavailable"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "CrowdSec endpoint error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrowdSecClusterApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "crowdsec"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrowdSecClusterLapiConnectivityDto"
               }
             }
           }
@@ -5692,7 +5891,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5773,7 +5972,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5854,7 +6053,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5935,7 +6134,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -6888,7 +7087,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -6969,7 +7168,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {

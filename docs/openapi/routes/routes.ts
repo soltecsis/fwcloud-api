@@ -148,10 +148,18 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CrowdSecLapiConnectivityDto": {
+        "dataType": "refObject",
+        "properties": {
+            "lapiUrl": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CrowdSecMachineInstallDto": {
         "dataType": "refObject",
         "properties": {
-            "centralFirewallId": {"dataType":"double","required":true},
+            "centralFirewallId": {"dataType":"double"},
             "machineName": {"dataType":"string","required":true},
             "lapiUrl": {"dataType":"string","required":true},
             "localRemediation": {"dataType":"boolean","required":true},
@@ -176,6 +184,7 @@ const models: TsoaRoute.Models = {
             "machineName": {"dataType":"string"},
             "lapiUrl": {"dataType":"string"},
             "bouncerApiKey": {"dataType":"string"},
+            "enrollmentKey": {"dataType":"string"},
         },
         "additionalProperties": false,
     },
@@ -241,10 +250,20 @@ const models: TsoaRoute.Models = {
     "CrowdSecClusterMachineInstallDto": {
         "dataType": "refObject",
         "properties": {
-            "centralFirewallId": {"dataType":"double","required":true},
+            "centralFirewallId": {"dataType":"double"},
             "lapiUrl": {"dataType":"string","required":true},
             "localRemediation": {"dataType":"boolean","required":true},
             "continueWithoutLapiConnectivity": {"dataType":"boolean"},
+            "bouncerApiKey": {"dataType":"string"},
+            "nodeIds": {"dataType":"array","array":{"dataType":"double"}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CrowdSecClusterLapiConnectivityDto": {
+        "dataType": "refObject",
+        "properties": {
+            "lapiUrl": {"dataType":"string","required":true},
             "nodeIds": {"dataType":"array","array":{"dataType":"double"}},
         },
         "additionalProperties": false,
@@ -1786,6 +1805,39 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecController_checkLapiConnectivity: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","ref":"CrowdSecLapiConnectivityDto"},
+        };
+        app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/lapi/connectivity',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.checkLapiConnectivity)),
+
+            async function CrowdSecController_checkLapiConnectivity(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecController_checkLapiConnectivity, request, response });
+
+                const controller = new CrowdSecController();
+
+              await templateService.apiHandler({
+                methodName: 'checkLapiConnectivity',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsCrowdSecController_installMachine: Record<string, TsoaRoute.ParameterSchema> = {
                 req: {"in":"request","name":"req","required":true,"dataType":"object"},
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
@@ -2366,6 +2418,39 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'installMachine',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_checkLapiConnectivity: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","ref":"CrowdSecClusterLapiConnectivityDto"},
+        };
+        app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/lapi/connectivity',
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.checkLapiConnectivity)),
+
+            async function CrowdSecClusterController_checkLapiConnectivity(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_checkLapiConnectivity, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'checkLapiConnectivity',
                 controller,
                 response,
                 next,
