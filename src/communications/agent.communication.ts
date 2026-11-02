@@ -33,6 +33,7 @@ import {
   CrowdSecFirewallBackend,
   CrowdSecFirewallBouncerStatisticsSamples,
   CrowdSecFirewallBouncerStatisticsSamplingConfig,
+  CrowdSecLapiConnectivityCheck,
   CrowdSecMachineActivation,
   CrowdSecMachineCredentials,
   CrowdSecMachineInstall,
@@ -244,6 +245,7 @@ class CrowdSecCollectionAcquisitionPathConflictException extends HttpException {
 export function crowdSecAgentErrorToHttpException(
   code: unknown,
   conflict?: CrowdSecCollectionAcquisitionPathConflict,
+  commandFailureMessage?: unknown,
 ): HttpException {
   if (code === 'CROWDSEC_COLLECTION_ACQUISITION_PATH_CONFLICT' && conflict) {
     return new CrowdSecCollectionAcquisitionPathConflictException(
@@ -252,11 +254,27 @@ export function crowdSecAgentErrorToHttpException(
     );
   }
 
+  if (
+    code === 'CROWDSEC_COMMAND_FAILED' &&
+    isCrowdSecPackageCommandFailureMessage(commandFailureMessage)
+  ) {
+    return new HttpException(commandFailureMessage, 502);
+  }
+
   const response = typeof code === 'string' ? CROWDSEC_AGENT_ERROR_RESPONSES[code] : undefined;
 
   return response
     ? new HttpException(response.message, response.status)
     : new HttpException('CrowdSec agent request failed', 502);
+}
+
+function isCrowdSecPackageCommandFailureMessage(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('CrowdSec package installation failed') &&
+    value.length <= 256 &&
+    !/[\r\n]/.test(value)
+  );
 }
 
 export function sanitizeCrowdSecProgressMessage(message: string): string {
@@ -1492,6 +1510,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
+  async checkCrowdSecLapiConnectivity(lapiUrl: string): Promise<CrowdSecLapiConnectivityCheck> {
+    try {
+      return (await this.runCrowdSecOperation(this.url + '/api/v1/crowdsec/lapi/connectivity', {
+        lapi_url: lapiUrl,
+      })) as CrowdSecLapiConnectivityCheck;
+    } catch (error) {
+      this.handleCrowdSecRequestException(error);
+    }
+  }
+
   async getCrowdSecLapiReplicationReadiness(): Promise<Record<string, unknown>> {
     try {
       return await this.runCrowdSecGetOperation('/api/v1/crowdsec/lapi/replication/readiness');
@@ -1584,6 +1612,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           mode: 'machine',
           machine_name: installation.machineName,
           lapi_url: installation.lapiUrl,
+          ...(installation.localRemediation === undefined
+            ? {}
+            : { local_remediation: installation.localRemediation }),
+          ...(installation.backend === undefined ? {} : { backend: installation.backend }),
+          ...(installation.bouncerApiKey === undefined
+            ? {}
+            : { bouncer_api_key: installation.bouncerApiKey }),
           ...(installation.continueWithoutLapiConnectivity === true
             ? { continue_without_lapi_connectivity: true }
             : {}),
@@ -1875,6 +1910,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         exception = crowdSecAgentErrorToHttpException(
           code,
           crowdSecCollectionAcquisitionPathConflict(responseData),
+          responseData?.message,
         );
       } else if (error.code === 'ECONNABORTED') {
         exception = new HttpException('CrowdSec agent request timed out', 504);

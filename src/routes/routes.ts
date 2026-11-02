@@ -459,6 +459,9 @@ export class Routes extends RouteCollection {
                     .post('/lapi/central/configure', CrowdSecController, 'configureCentralLapi')
                     .name('fwclouds.firewalls.system.crowdsec.lapi.central.configure');
                   router
+                    .post('/lapi/connectivity', CrowdSecController, 'checkLapiConnectivity')
+                    .name('fwclouds.firewalls.system.crowdsec.lapi.connectivity');
+                  router
                     .post('/machines/:machine/validate', CrowdSecController, 'validateMachine')
                     .name('fwclouds.firewalls.system.crowdsec.machines.validate');
                   router
@@ -879,6 +882,9 @@ export class Routes extends RouteCollection {
             router
               .get('/blocking-statistics', CrowdSecClusterController, 'blockingStatistics')
               .name('fwclouds.clusters.system.crowdsec.blockingStatistics.index');
+            router
+              .post('/lapi/connectivity', CrowdSecClusterController, 'checkLapiConnectivity')
+              .name('fwclouds.clusters.system.crowdsec.lapi.connectivity');
             router
               .post('/machines/install', CrowdSecClusterController, 'installMachine')
               .name('fwclouds.clusters.system.crowdsec.machines.install');

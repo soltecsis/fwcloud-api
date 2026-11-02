@@ -244,6 +244,30 @@ describe(AgentCommunication.name, () => {
       expect(error.message).to.equal('CrowdSec agent request failed');
     });
 
+    it('should preserve the safe CrowdSec package installation diagnostic', () => {
+      const error = crowdSecAgentErrorToHttpException(
+        'CROWDSEC_COMMAND_FAILED',
+        undefined,
+        'CrowdSec package installation failed during automatic CAPI registration: HTTP 403 Forbidden',
+      );
+
+      expect(error.status).to.equal(502);
+      expect(error.message).to.equal(
+        'CrowdSec package installation failed during automatic CAPI registration: HTTP 403 Forbidden',
+      );
+    });
+
+    it('should not expose arbitrary CrowdSec command failure details', () => {
+      const error = crowdSecAgentErrorToHttpException(
+        'CROWDSEC_COMMAND_FAILED',
+        undefined,
+        'api_key: secret-value',
+      );
+
+      expect(error.status).to.equal(502);
+      expect(error.message).to.equal('CrowdSec agent command failed');
+    });
+
     it('should map collection and Console agent errors to safe HTTP responses', () => {
       const collectionError = crowdSecAgentErrorToHttpException('CROWDSEC_COLLECTION_TAINTED');
       const consoleError = crowdSecAgentErrorToHttpException('CROWDSEC_CONSOLE_INVALID_ENROLLMENT');
