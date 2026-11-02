@@ -6,14 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- CrowdSec integration for firewalls and clusters, including installation, removal, status, Console enrollment, collections, decisions, alerts, Bouncers, and managed system tree nodes.
-- CrowdSec Local API and Machine deployment modes, including central Local API candidates, Machine registration, validation, activation, reauthentication, role transitions, and topology persistence.
-- CrowdSec support for externally managed Local APIs, with direct TCP connectivity checks, manual Machine validation guidance, optional local remediation, and loopback URL protection.
-- Cluster orchestration for CrowdSec Machine and Local API installations, role transitions, collection changes, credential replication, recovery reporting, and rollback of failed operations.
-- CrowdSec Firewall Bouncer compatibility resources for IPTables and NFTables, secure Bouncer key handling, and Bouncer reconciliation after firewall policy deployment.
-- CrowdSec blocking statistics configuration, persistence, named firewall counters, history and address queries, pagination, and system tree access.
-- CrowdSec collection acquisition contracts, parser selection, agent communication, log-path management, and validation error mapping.
-- CrowdSec service management through the Systemctl API.
+- CrowdSec REST API for firewalls and clusters, covering installation, status, Console enrollment, collections, decisions, alerts, Machines, Bouncers, and system-tree access.
+- CrowdSec Local API and Machine deployment modes, including cluster orchestration and manually configured external Local APIs.
+- CrowdSec Firewall Bouncer compatibility, blocking statistics, collection acquisition log-path management, and Systemctl service actions.
 
 ### Changed
 - Runtime and development dependencies were updated to resolve known security vulnerabilities.
