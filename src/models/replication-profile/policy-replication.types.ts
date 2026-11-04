@@ -30,6 +30,10 @@ import {
   type ProfileHAProxySettings,
 } from './replication-profile-haproxy';
 import type { PolicyRuleValidityPeriod } from '../policy/policy-rule-validity';
+import {
+  readProfileCatchAllRules,
+  type ProfileCatchAllRule,
+} from './replication-profile-catch-all';
 import type { ResolvedProfileObjectReference } from './replication-profile-object-reference';
 import {
   asReplicationProfileNonEmptyString,
@@ -316,6 +320,12 @@ export interface PolicyReplicationProvisionSystem {
 export interface PolicyReplicationProvision {
   interfaces: PolicyReplicationProvisionInterface[];
   rules: PolicyReplicationProvisionRule[];
+  /**
+   * Settings for the destination's own catch-all rules, by policy. A policy without an entry, as in
+   * templates saved before catch-all rules were captured, keeps the destination's catch-all as is.
+   * Malformed entries are kept for getProfileCatchAllRuleErrors() to reject before any write.
+   */
+  catchAllRules: ProfileCatchAllRule[];
   routing: PolicyReplicationProvisionRouting;
   system: PolicyReplicationProvisionSystem;
 }
@@ -381,6 +391,7 @@ export function getProfileProvisioning(model: unknown): PolicyReplicationProvisi
   if (
     provision.interfaces.length === 0 &&
     provision.rules.length === 0 &&
+    provision.catchAllRules.length === 0 &&
     countProvisionExtras(provision) === 0 &&
     !getProfileStructure(asReplicationProfileRecord(model))
   ) {
@@ -415,6 +426,7 @@ function hasProvisionCollections(
     !!record &&
     (Array.isArray(record.interfaces) ||
       Array.isArray(record.rules) ||
+      Array.isArray(record.catchAllRules) ||
       !!asReplicationProfileRecord(record.routing) ||
       !!asReplicationProfileRecord(record.system))
   );
@@ -463,6 +475,7 @@ function parseProvision(provisionRaw: Record<string, unknown>): PolicyReplicatio
   return {
     interfaces: Array.from(interfacesByRole.values()),
     rules,
+    catchAllRules: readProfileCatchAllRules(provisionRaw.catchAllRules),
     routing,
     system,
   };

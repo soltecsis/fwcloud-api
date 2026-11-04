@@ -56,6 +56,7 @@ import {
 import { getPolicyRuleValidityErrors } from '../policy/policy-rule-validity';
 import { profileHAProxyErrors } from './replication-profile-haproxy';
 import { profileKeepalivedErrors } from './replication-profile-keepalived';
+import { getProfileCatchAllRuleErrors } from './replication-profile-catch-all';
 
 const Joi = require('joi');
 const sharedSchema = require('../../middleware/joi_schemas/shared');
@@ -268,6 +269,7 @@ class ReplicationProfileDefinitionValidator {
     this.validateRuleValidityPeriods(model, errors);
     this.validateRuleStates(model, errors);
     this.validateStructureRuleSettings(model, errors);
+    this.validateCatchAllRules(model, errors);
     if (model.vpnTemplate !== undefined) {
       for (const issue of validateProfileVpnTemplate(model.vpnTemplate)) {
         this.addError(
@@ -1195,6 +1197,31 @@ class ReplicationProfileDefinitionValidator {
           }
         },
       );
+    }
+  }
+
+  /** Catch-all rules of every saved representation, including the editor's copy of the policy. */
+  private validateCatchAllRules(
+    model: ValidationRecord,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    for (const field of SAVED_STRUCTURE_FIELDS) {
+      const rules = asReplicationProfileRecord(model[field])?.catchAllRules;
+      if (rules === undefined) continue;
+      const path = `model.${field}.catchAllRules`;
+      if (!Array.isArray(rules)) {
+        this.addError(errors, 'invalid_catch_all_rules', 'catchAllRules must be an array.', path);
+        continue;
+      }
+      for (const error of getProfileCatchAllRuleErrors(rules)) {
+        const fieldPath = error.field ? `.${error.field}` : '';
+        this.addError(
+          errors,
+          'invalid_catch_all_rule',
+          error.message,
+          `${path}[${error.index}]${fieldPath}`,
+        );
+      }
     }
   }
 
