@@ -1728,6 +1728,7 @@ export class CrowdSecController extends Controller {
       },
       authorityChanged: true,
       backend,
+      managedBouncerName: CrowdSecLapiSharedService.managedBouncerNameForFirewall(this._firewall),
       machineConnectivityPending,
     };
     let prepared = false;
@@ -2069,7 +2070,11 @@ export class CrowdSecController extends Controller {
     const { communication, backend } = await this.getCrowdSecInstallContext();
     channel.emit('message', new ProgressPayload('start', false, 'Installing CrowdSec'));
 
-    const crowdsec = await communication.installCrowdSec(channel, backend);
+    const crowdsec = await communication.installCrowdSec(
+      channel,
+      backend,
+      CrowdSecLapiSharedService.managedBouncerNameForFirewall(this._firewall),
+    );
     this._firewall = await this.getFirewallRepository().setCrowdSecCompatibility(
       this._firewall,
       true,

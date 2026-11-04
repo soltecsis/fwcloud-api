@@ -1880,6 +1880,7 @@ export class CrowdSecClusterController extends Controller {
           },
           authorityChanged: true,
           backend,
+          managedBouncerName: CrowdSecLapiSharedService.managedBouncerNameForCluster(this._cluster),
           machineConnectivityPending,
         };
 

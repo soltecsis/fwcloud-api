@@ -1448,12 +1448,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   async installCrowdSec(
     eventEmitter?: EventEmitter,
     backend?: CrowdSecFirewallBackend,
+    managedBouncerName?: string,
   ): Promise<Record<string, unknown>> {
     try {
       const pathUrl: string = this.url + '/api/v1/crowdsec/install';
       const response = await this.runCrowdSecOperation(
         pathUrl,
-        backend === undefined ? {} : { backend },
+        {
+          ...(backend === undefined ? {} : { backend }),
+          ...(managedBouncerName === undefined ? {} : { managed_bouncer_name: managedBouncerName }),
+        },
         eventEmitter,
       );
 
@@ -1463,10 +1467,17 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async installCrowdSecBouncer(eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+  async installCrowdSecBouncer(
+    eventEmitter?: EventEmitter,
+    managedBouncerName?: string,
+  ): Promise<Record<string, unknown>> {
     try {
       const pathUrl: string = this.url + '/api/v1/crowdsec/bouncer/install';
-      const response = await this.runCrowdSecOperation(pathUrl, {}, eventEmitter);
+      const response = await this.runCrowdSecOperation(
+        pathUrl,
+        managedBouncerName === undefined ? {} : { managed_bouncer_name: managedBouncerName },
+        eventEmitter,
+      );
 
       return response;
     } catch (error) {
@@ -1768,6 +1779,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           target: this.crowdSecTransitionTarget(transition.target),
           authority_changed: transition.authorityChanged,
           ...(transition.backend === undefined ? {} : { backend: transition.backend }),
+          ...(transition.managedBouncerName === undefined
+            ? {}
+            : { managed_bouncer_name: transition.managedBouncerName }),
           ...(transition.machineConnectivityPending ? { machine_connectivity_pending: true } : {}),
         },
         eventEmitter,

@@ -215,6 +215,7 @@ export type CrowdSecTransitionPrepare = {
   target: CrowdSecTransitionTarget;
   authorityChanged: boolean;
   backend?: CrowdSecFirewallBackend;
+  managedBouncerName?: string;
   machineConnectivityPending?: boolean;
 };
 
@@ -337,8 +338,12 @@ export abstract class Communication<ConnectionData> {
   abstract installCrowdSec(
     eventEmitter?: EventEmitter,
     backend?: CrowdSecFirewallBackend,
+    managedBouncerName?: string,
   ): Promise<Record<string, unknown>>;
-  abstract installCrowdSecBouncer(eventEmitter?: EventEmitter): Promise<Record<string, unknown>>;
+  abstract installCrowdSecBouncer(
+    eventEmitter?: EventEmitter,
+    managedBouncerName?: string,
+  ): Promise<Record<string, unknown>>;
   abstract uninstallCrowdSec(
     confirm: boolean,
     eventEmitter?: EventEmitter,
