@@ -536,6 +536,41 @@ describe(AgentCommunication.name, () => {
       });
     });
 
+    it('should normalize CrowdSec Bouncer connection metadata without exposing extra fields', async () => {
+      const getStub = sinon.stub(axios, 'get').resolves({
+        status: 200,
+        data: {
+          bouncers: [
+            {
+              name: 'remote-bouncer',
+              type: 'api-key',
+              ip_address: '192.0.2.10',
+              os: 'linux',
+              revoked: false,
+              last_pull: '2026-11-04T10:00:00Z',
+              api_key: 'must-not-leak',
+            },
+          ],
+        },
+      });
+
+      const bouncers = await agent.getCrowdSecBouncers();
+
+      expect(getStub.firstCall.args[0]).to.equal('http://host:0/api/v1/crowdsec/bouncers');
+      expect(bouncers).to.deep.equal({
+        bouncers: [
+          {
+            name: 'remote-bouncer',
+            type: 'api-key',
+            ip_address: '192.0.2.10',
+            os: 'linux',
+            revoked: false,
+            last_pull: '2026-11-04T10:00:00Z',
+          },
+        ],
+      });
+    });
+
     it('should activate a remote Machine with a dedicated progress websocket', async () => {
       const postStub = sinon.stub(axios, 'post').resolves({ status: 200, data: {} });
       sinon.stub(agent as any, 'createCrowdSecWebSocket').resolves('crowdsec-ws-id');
