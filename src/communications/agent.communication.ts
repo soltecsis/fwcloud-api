@@ -25,11 +25,13 @@ import {
   CCDHash,
   Communication,
   CrowdSecAlertsQuery,
+  CrowdSecBouncer,
   CrowdSecCollectionAcquisition,
   CrowdSecCollectionAcquisitionParserSelection,
   CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
+  CrowdSecBouncers,
   CrowdSecFirewallBackend,
   CrowdSecFirewallBouncerStatisticsSamples,
   CrowdSecFirewallBouncerStatisticsSamplingConfig,
@@ -1350,9 +1352,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getCrowdSecBouncers(): Promise<Record<string, unknown>> {
+  async getCrowdSecBouncers(): Promise<CrowdSecBouncers> {
     try {
-      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/bouncers');
+      return this.crowdSecBouncersResponse(
+        await this.runCrowdSecGetOperation('/api/v1/crowdsec/bouncers'),
+      );
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }
@@ -1852,6 +1856,37 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     throw new Error('Unexpected CrowdSec operation response');
+  }
+
+  private crowdSecBouncersResponse(response: Record<string, unknown>): CrowdSecBouncers {
+    if (!Array.isArray(response.bouncers)) {
+      throw new Error('Unexpected CrowdSec Bouncers response');
+    }
+
+    return {
+      bouncers: response.bouncers.map((value): CrowdSecBouncer => {
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+          throw new Error('Unexpected CrowdSec Bouncer response');
+        }
+        const bouncer = value as Record<string, unknown>;
+        if (typeof bouncer.name !== 'string' || typeof bouncer.revoked !== 'boolean') {
+          throw new Error('Unexpected CrowdSec Bouncer response');
+        }
+
+        return {
+          name: bouncer.name,
+          type: this.optionalCrowdSecBouncerString(bouncer.type),
+          ip_address: this.optionalCrowdSecBouncerString(bouncer.ip_address),
+          os: this.optionalCrowdSecBouncerString(bouncer.os),
+          revoked: bouncer.revoked,
+          last_pull: this.optionalCrowdSecBouncerString(bouncer.last_pull),
+        };
+      }),
+    };
+  }
+
+  private optionalCrowdSecBouncerString(value: unknown): string | null {
+    return typeof value === 'string' ? value : null;
   }
 
   private crowdSecFirewallBouncerStatisticsSamplesResponse(

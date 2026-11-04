@@ -177,6 +177,19 @@ export type CrowdSecMachineCredentials = {
   password: string;
 };
 
+export type CrowdSecBouncer = {
+  name: string;
+  type: string | null;
+  ip_address: string | null;
+  os: string | null;
+  revoked: boolean;
+  last_pull: string | null;
+};
+
+export type CrowdSecBouncers = {
+  bouncers: CrowdSecBouncer[];
+};
+
 export type CrowdSecLapiMachine = {
   name: string;
   state: 'pending' | 'validated' | 'unknown';
@@ -367,7 +380,7 @@ export abstract class Communication<ConnectionData> {
   abstract deleteCrowdSecDecision(id: string): Promise<Record<string, unknown>>;
   abstract flushCrowdSecDecisions(confirm: boolean): Promise<Record<string, unknown>>;
   abstract getCrowdSecAlerts(query?: CrowdSecAlertsQuery): Promise<Record<string, unknown>>;
-  abstract getCrowdSecBouncers(): Promise<Record<string, unknown>>;
+  abstract getCrowdSecBouncers(): Promise<CrowdSecBouncers>;
   abstract getCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
   abstract takeCrowdSecFirewallBouncerStatistics(): Promise<CrowdSecFirewallBouncerStatisticsSamples>;
   abstract getCrowdSecFirewallBouncerStatisticsSampling(): Promise<CrowdSecFirewallBouncerStatisticsSamplingConfig>;
