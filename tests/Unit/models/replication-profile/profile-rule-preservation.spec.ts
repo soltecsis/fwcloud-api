@@ -248,8 +248,9 @@ describe('Template rules sharing default-rule comments survive application', () 
           createdIds.every((id) => rows.has(id)),
           'reported template rules must still exist after cleanup',
         );
-        assert.deepEqual(result.removedDefaultRules, [2, 3, 4]);
-        assert.deepEqual([...rows.keys()], [1, 5, 100, 101]);
+        // The catch-all rule stays: the template only replaces the rules above it.
+        assert.deepEqual(result.removedDefaultRules, [2, 3]);
+        assert.deepEqual([...rows.keys()], [1, 4, 5, 100, 101]);
         assert.deepEqual(
           createdIds.map((id) => [
             rows.get(id).type,
@@ -286,7 +287,7 @@ describe('Template rules sharing default-rule comments survive application', () 
   it('previews exactly the original default ids and never changes the target', async () => {
     const before = JSON.stringify([...rows.values()]);
     const result = await apply(true, 'dry_run');
-    assert.deepEqual(result.removedDefaultRules, [2, 3, 4]);
+    assert.deepEqual(result.removedDefaultRules, [2, 3]);
     assert.equal(result.createdRules.length, 2);
     assert.ok(result.createdRules.every((rule) => rule.targetRuleId === null));
     assert.equal(JSON.stringify([...rows.values()]), before);
