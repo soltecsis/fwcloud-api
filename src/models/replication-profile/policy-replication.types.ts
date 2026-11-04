@@ -30,6 +30,12 @@ import {
   type ProfileHAProxySettings,
 } from './replication-profile-haproxy';
 import type { PolicyRuleValidityPeriod } from '../policy/policy-rule-validity';
+import {
+  readProfileCatchAllRules,
+  type ProfileCatchAllAction,
+  type ProfileCatchAllChain,
+  type ProfileCatchAllRule,
+} from './replication-profile-catch-all';
 import type { ResolvedProfileObjectReference } from './replication-profile-object-reference';
 import {
   asReplicationProfileNonEmptyString,
@@ -316,6 +322,12 @@ export interface PolicyReplicationProvisionSystem {
 export interface PolicyReplicationProvision {
   interfaces: PolicyReplicationProvisionInterface[];
   rules: PolicyReplicationProvisionRule[];
+  /**
+   * Settings for the destination's own catch-all rules, by policy. A policy without an entry, as in
+   * templates saved before catch-all rules were captured, keeps the destination's catch-all as is.
+   * Malformed entries are kept for getProfileCatchAllRuleErrors() to reject before any write.
+   */
+  catchAllRules: ProfileCatchAllRule[];
   routing: PolicyReplicationProvisionRouting;
   system: PolicyReplicationProvisionSystem;
 }
@@ -381,6 +393,7 @@ export function getProfileProvisioning(model: unknown): PolicyReplicationProvisi
   if (
     provision.interfaces.length === 0 &&
     provision.rules.length === 0 &&
+    provision.catchAllRules.length === 0 &&
     countProvisionExtras(provision) === 0 &&
     !getProfileStructure(asReplicationProfileRecord(model))
   ) {
@@ -415,6 +428,7 @@ function hasProvisionCollections(
     !!record &&
     (Array.isArray(record.interfaces) ||
       Array.isArray(record.rules) ||
+      Array.isArray(record.catchAllRules) ||
       !!asReplicationProfileRecord(record.routing) ||
       !!asReplicationProfileRecord(record.system))
   );
@@ -463,6 +477,7 @@ function parseProvision(provisionRaw: Record<string, unknown>): PolicyReplicatio
   return {
     interfaces: Array.from(interfacesByRole.values()),
     rules,
+    catchAllRules: readProfileCatchAllRules(provisionRaw.catchAllRules),
     routing,
     system,
   };
@@ -995,7 +1010,8 @@ export type PolicyReplicationConflictType =
   | 'duplicated_ipobj_reference'
   | 'incompatible_rule_order'
   | 'unsupported_vpn_reference'
-  | 'broken_ipobj_reference';
+  | 'broken_ipobj_reference'
+  | 'different_catch_all_rule';
 
 export interface PolicyReplicationConflict {
   type: PolicyReplicationConflictType;
@@ -1043,6 +1059,28 @@ export interface PolicyReplicationVpnConversion {
   error?: string;
 }
 
+/** Settings of a catch-all rule, as the destination has them or as the template sets them. */
+export interface PolicyReplicationCatchAllSettings {
+  /** The policy_r.action code of a destination action catch-all rules cannot have. */
+  action: ProfileCatchAllAction | number;
+  active: boolean;
+  options: number;
+  comment: string | null;
+}
+
+/** What applying a template does (or would do, in a preview) to one destination catch-all rule. */
+export interface PolicyReplicationCatchAllRuleChange {
+  chain: ProfileCatchAllChain;
+  ipVersion: 4 | 6;
+  policyTypeId: number;
+  /** The destination's catch-all rule; null while a preview plans one for a policy without it. */
+  targetRuleId: number | null;
+  /** Its settings before the template: null when the destination had no catch-all rule there. */
+  previous: PolicyReplicationCatchAllSettings | null;
+  next: PolicyReplicationCatchAllSettings;
+  changed: boolean;
+}
+
 export interface PolicyReplicationResult {
   vpnConversions?: PolicyReplicationVpnConversion[];
   mode: PolicyReplicationMode;
@@ -1053,6 +1091,11 @@ export interface PolicyReplicationResult {
   resolvedReferences: PolicyReplicationResolvedReference[];
   /** Target default rule ids removed (or that would be removed) by replace_defaults. */
   removedDefaultRules: number[];
+  /**
+   * Destination catch-all rules set (or that would be, in a preview) from the template's
+   * catchAllRules. Absent when the template declares none.
+   */
+  catchAllRules?: PolicyReplicationCatchAllRuleChange[];
   /** Source rule ids not replicated because of broken or unsupported references. */
   skippedRules: number[];
   conflicts: PolicyReplicationConflict[];

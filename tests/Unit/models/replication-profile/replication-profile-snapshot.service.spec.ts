@@ -1094,6 +1094,13 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         });
         // Without the stateful option: the fixture already created the special rules.
         await PolicyRule.insertDefaultPolicy(source.firewall.id, lo.id, 0);
+        // Keep one catch-all rule per policy, as FWCloud does: the fixture's.
+        await db
+          .getSource()
+          .query(
+            'DELETE R FROM policy_r R JOIN policy_r F ON F.firewall = R.firewall AND F.type = R.type AND F.special = 2 AND F.id < R.id WHERE R.firewall = ? AND R.special = 2',
+            [source.firewall.id],
+          );
       }
 
       function snapshot() {
@@ -1723,6 +1730,141 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         });
       }
     }
+  });
+
+  describe('catch-all rules', () => {
+    const type = (policy: string) => PolicyTypesMap.get(policy)!;
+    const CATCH_ALL = 'Catch-all rule.';
+
+    /** Changes the catch-all rule the fixture created for a policy; returns its id. */
+    async function setCatchAll(policy: string, values: Record<string, unknown>): Promise<number> {
+      const [{ id }] = await db
+        .getSource()
+        .query('SELECT id FROM policy_r WHERE firewall = ? AND type = ? AND special = 2', [
+          source.firewall.id,
+          type(policy),
+        ]);
+      const fields = Object.keys(values);
+      if (!fields.length) return id;
+      await db
+        .getSource()
+        .query(
+          `UPDATE policy_r SET ${fields.map((field) => `${field} = ?`).join(', ')} WHERE id = ?`,
+          [...fields.map((field) => values[field]), id],
+        );
+      return id;
+    }
+
+    function capture(kind: 'firewall' | 'cluster' = 'firewall', id = source.firewall.id) {
+      return service.createProfileFromSource(
+        { source: { kind, id }, name: `Catch-all rules of a ${kind}` },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+    }
+
+    it('should capture the catch-all rule of every filter policy, customized or not, for each family on its own', async () => {
+      await setCatchAll('IPv4:OUTPUT', { action: 2 });
+      await setCatchAll('IPv4:FORWARD', { action: 3, options: PolicyRuleOptMask.LOG });
+      await setCatchAll('IPv6:INPUT', { action: 1 });
+      await setCatchAll('IPv6:OUTPUT', { active: 0 });
+
+      const { profile, warnings } = await capture();
+
+      expect(warnings).to.be.empty;
+      const model = loadReplicationProfileModel(profile) as Record<string, any>;
+      const expected = [
+        { chain: 'input', ipVersion: 4, action: 'deny', active: true, options: 0 },
+        { chain: 'output', ipVersion: 4, action: 'deny', active: true, options: 2 },
+        { chain: 'forward', ipVersion: 4, action: 'reject', active: true, options: 4 },
+        { chain: 'input', ipVersion: 6, action: 'accept', active: true, options: 0 },
+        { chain: 'output', ipVersion: 6, action: 'accept', active: false, options: 2 },
+        { chain: 'forward', ipVersion: 6, action: 'deny', active: true, options: 0 },
+      ].map((rule) => ({ ...rule, comment: CATCH_ALL }));
+      expect(model.provision.catchAllRules).to.deep.eq(expected);
+      expect(model.policyStructure.catchAllRules).to.deep.eq(expected);
+      // Final actions are not rules of their own: the untouched defaults are still left out.
+      expect(model.provision.rules).to.deep.eq([]);
+      // The saved, exported and reparsed template keeps every final action.
+      for (const reloaded of [model, portableProfileModel(model)]) {
+        expect(
+          getProfileProvisioning(JSON.parse(JSON.stringify(reloaded))).catchAllRules,
+        ).to.deep.eq(expected);
+      }
+    });
+
+    it('should capture the catch-all rules of a cluster from its master', async () => {
+      const manager = db.getSource().manager;
+      const cluster = await manager
+        .getRepository(Cluster)
+        .save({ name: StringHelper.randomize(10), fwCloudId: fwc.fwcloud.id });
+      await manager
+        .getRepository(Firewall)
+        .update(source.firewall.id, { clusterId: cluster.id, fwmaster: 1 });
+      const backup = await makeReplicationTargetFirewall(fwc);
+      await manager
+        .getRepository(Firewall)
+        .update(backup.firewall.id, { clusterId: cluster.id, fwmaster: 0 });
+      // A backup node's own policy rows are not the cluster's policy.
+      await db
+        .getSource()
+        .query('UPDATE policy_r SET action = 3 WHERE firewall = ? AND special = 2', [
+          backup.firewall.id,
+        ]);
+      await setCatchAll('IPv4:OUTPUT', { action: 2 });
+
+      const { profile } = await capture('cluster', cluster.id);
+
+      const rules = getProfileProvisioning(loadReplicationProfileModel(profile)).catchAllRules;
+      expect(rules.map((rule) => [rule.chain, rule.ipVersion, rule.action])).to.deep.eq([
+        ['input', 4, 'deny'],
+        ['output', 4, 'deny'],
+        ['forward', 4, 'deny'],
+        ['input', 6, 'deny'],
+        ['output', 6, 'accept'],
+        ['forward', 6, 'deny'],
+      ]);
+    });
+
+    it('should fail without persisting and name every catch-all rule it cannot represent', async () => {
+      const accounting = await setCatchAll('IPv4:OUTPUT', { action: 4 });
+      const objects = await setCatchAll('IPv4:INPUT', {});
+      await attachIpObj(
+        objects,
+        source.wanAddress.id,
+        getProvisionRulePositions(4, 'input').source,
+      );
+      const node = await setCatchAll('IPv6:FORWARD', { fw_apply_to: source.firewall.id });
+      const validity = await setCatchAll('IPv6:INPUT', {
+        time_start: new Date('2026-10-01T00:00:00Z'),
+      });
+      const extra = await PolicyRule.insertPolicy_r({
+        firewall: source.firewall.id,
+        type: type('IPv6:OUTPUT'),
+        rule_order: 9,
+        action: 2,
+        active: 1,
+        options: 0,
+        special: 2,
+        comment: CATCH_ALL,
+      });
+      const [{ id: first }] = await db
+        .getSource()
+        .query(
+          'SELECT MIN(id) AS id FROM policy_r WHERE firewall = ? AND type = ? AND special = 2',
+          [source.firewall.id, type('IPv6:OUTPUT')],
+        );
+
+      const error = await expectCaptureFailure({ kind: 'firewall', id: source.firewall.id }, []);
+
+      expect(error.message.split('\n')).to.have.members([
+        'Policy capture failed:',
+        `Catch-all INPUT IPv4 rule 4 ("${CATCH_ALL}") [id ${objects}] cannot be captured: it references interfaces or objects.`,
+        `Catch-all OUTPUT IPv4 rule 2 ("${CATCH_ALL}") [id ${accounting}] cannot be captured: its action 4 is not one of ACCEPT, DENY or REJECT.`,
+        `Catch-all INPUT IPv6 rule 4 ("${CATCH_ALL}") [id ${validity}] cannot be captured: it is negated or limited to a validity period.`,
+        `Catch-all OUTPUT IPv6 rule 2 ("${CATCH_ALL}") [id ${first}] cannot be captured: OUTPUT IPv6 has 2 catch-all rules (IDs ${first}, ${extra}).`,
+        `Catch-all FORWARD IPv6 rule 2 ("${CATCH_ALL}") [id ${node}] cannot be captured: it only applies to one cluster node.`,
+      ]);
+    });
   });
 
   describe('disabled policy rules', () => {

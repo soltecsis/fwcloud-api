@@ -25,7 +25,7 @@ import { profileSystemRuleErrors } from './replication-profile-system-rule';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { Service } from '../../fonaments/services/service';
-import { DefaultPolicyRuleComments } from '../policy/PolicyRule';
+import { DefaultPolicyRuleComments, SpecialPolicyRules } from '../policy/PolicyRule';
 import { PolicyRuleValidityPeriod, policyRuleDateKey } from '../policy/policy-rule-validity';
 import { PolicyTypesMap } from '../policy/PolicyType';
 import { getProvisionRulePositions, VPN_RELATION_TABLES } from './policy-replication.service';
@@ -38,6 +38,10 @@ import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
 import { getProvisionRuleNegationError } from './replication-profile-rule-negation';
 import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
+import {
+  getProfileCatchAllAction,
+  type ProfileCatchAllRule,
+} from './replication-profile-catch-all';
 import { captureProfileObjectReferences } from './replication-profile-object-reference.service';
 import { validateProfileObjectSnapshot } from './replication-profile-object-snapshot';
 import {
@@ -101,6 +105,7 @@ type CapturedPolicy = (typeof CAPTURED_POLICIES)[number];
 // policy_r.action codes expressible in the profile vocabulary.
 const RULE_ACTION_ACCEPT = 1;
 const RULE_ACTION_DENY = 2;
+const SPECIAL_CATCHALL: number = SpecialPolicyRules.CATCHALL;
 
 // Predefined service group the default "useful ICMP" INPUT rule allows.
 const DEFAULT_ICMP_SERVICE_GROUP = 5;
@@ -620,7 +625,7 @@ export class ReplicationProfileSnapshotService extends Service {
     }
     // Capture each assigned IP before rules so they can reference that exact address,
     // rather than the interface's entire address set or an In/Out restriction.
-    const { rules, objectRuleLabels } = await this.capturePolicyRules(
+    const { rules, catchAllRules, objectRuleLabels } = await this.capturePolicyRules(
       resolved.firewall.id,
       resolved.nodeRoleById,
       roleByInterfaceId,
@@ -645,6 +650,7 @@ export class ReplicationProfileSnapshotService extends Service {
     const policyStructure = {
       interfaces: profileInterfaces,
       rules,
+      ...(catchAllRules.length ? { catchAllRules } : {}),
       ...(routing ? { routing } : {}),
       ...(system ? { system } : {}),
     };
@@ -841,7 +847,9 @@ export class ReplicationProfileSnapshotService extends Service {
   /**
    * Captures every filter and NAT policy of the source, in both IP families, enabled and disabled
    * rules alike and in their order. Policies holding only their untouched default rules are left
-   * out; rules the vocabulary cannot express cause an explicit validation failure.
+   * out; rules the vocabulary cannot express cause an explicit validation failure. The catch-all
+   * rule of every filter policy is captured apart, customized or not, as the final action the
+   * destination's own catch-all rule takes.
    */
   private async capturePolicyRules(
     firewallId: number,
@@ -850,7 +858,11 @@ export class ReplicationProfileSnapshotService extends Service {
     loopbackInterfaceIds: Set<number>,
     values: SnapshotValueCollector,
     vpnObjects: Map<string, SnapshotProvisionObject>,
-  ): Promise<{ rules: SnapshotProvisionRule[]; objectRuleLabels: Map<string, Set<string>> }> {
+  ): Promise<{
+    rules: SnapshotProvisionRule[];
+    catchAllRules: ProfileCatchAllRule[];
+    objectRuleLabels: Map<string, Set<string>>;
+  }> {
     const typeIds = CAPTURED_POLICIES.map((policy) => policy.typeId);
     const rules = await dbQuery<SnapshotRuleRow>(
       `SELECT id, type, rule_order, action, active, special, comment, negate, options, time_start, time_end, fw_apply_to FROM policy_r
@@ -858,11 +870,12 @@ export class ReplicationProfileSnapshotService extends Service {
       [firewallId, ...typeIds],
     );
     const nonSpecialRules = rules.filter((rule) => rule.special === 0);
+    const catchAllRows = rules.filter((rule) => rule.special === SPECIAL_CATCHALL);
     const rulesByType = new Map<number, SnapshotRuleRow[]>();
     for (const rule of nonSpecialRules) {
       addToList(rulesByType, Number(rule.type), rule);
     }
-    const ruleIds = nonSpecialRules.map((rule) => rule.id);
+    const ruleIds = [...nonSpecialRules, ...catchAllRows].map((rule) => rule.id);
     const [interfaceRefs, ipObjRefs, vpnRefs] = await Promise.all([
       this.loadRuleInterfaceRefs(ruleIds),
       this.loadRuleIpObjRefs(ruleIds),
@@ -894,6 +907,7 @@ export class ReplicationProfileSnapshotService extends Service {
     const captured: SnapshotProvisionRule[] = [];
     const objectRuleLabels = new Map<string, Set<string>>();
     const errors: string[] = [];
+    const catchAllRules = this.captureCatchAllRules(catchAllRows, refsOf, errors);
 
     for (const policy of customizedPolicies) {
       for (const rule of rulesByType.get(policy.typeId)!) {
@@ -942,7 +956,56 @@ export class ReplicationProfileSnapshotService extends Service {
     }
 
     assertPolicyCaptureComplete(errors);
-    return { rules: captured, objectRuleLabels };
+    return { rules: captured, catchAllRules, objectRuleLabels };
+  }
+
+  /**
+   * The catch-all rule of each filter policy, in policy order: its action, state, options and
+   * comment. Whatever else one holds would be lost, so it fails the capture, as a policy with more
+   * than one catch-all rule does: neither has a single final action to reproduce.
+   */
+  private captureCatchAllRules(
+    rows: SnapshotRuleRow[],
+    refsOf: (ruleId: number) => SnapshotRuleRefs,
+    errors: string[],
+  ): ProfileCatchAllRule[] {
+    return CAPTURED_POLICIES.flatMap((policy) => {
+      const policyRows = rows.filter((row) => Number(row.type) === policy.typeId);
+      if (!policyRows.length) return [];
+
+      const [rule] = policyRows;
+      const action = getProfileCatchAllAction(rule.action);
+      const { interfaces, ipObjs, vpns } = refsOf(rule.id);
+      let reason: string | null = null;
+      if (policyRows.length > 1) {
+        reason = `${policy.label} has ${policyRows.length} catch-all rules (IDs ${policyRows.map((row) => row.id).join(', ')}).`;
+      } else if (!action) {
+        reason = `its action ${rule.action} is not one of ACCEPT, DENY or REJECT.`;
+      } else if (rule.fw_apply_to !== null) {
+        reason = 'it only applies to one cluster node.';
+      } else if (rule.negate || rule.time_start || rule.time_end) {
+        reason = 'it is negated or limited to a validity period.';
+      } else if (interfaces.length || ipObjs.length || vpns.length) {
+        reason = 'it references interfaces or objects.';
+      }
+      if (reason) {
+        errors.push(
+          `Catch-all ${this.ruleLabel(rule, policy.label)} cannot be captured: ${reason}`,
+        );
+        return [];
+      }
+
+      return [
+        {
+          chain: policy.chain as ProfileCatchAllRule['chain'],
+          ipVersion: policy.ipVersion as ProfileCatchAllRule['ipVersion'],
+          action: action!,
+          active: !!rule.active,
+          options: rule.options,
+          ...(rule.comment ? { comment: rule.comment } : {}),
+        },
+      ];
+    });
   }
 
   /**
