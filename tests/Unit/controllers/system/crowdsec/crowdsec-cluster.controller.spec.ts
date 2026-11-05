@@ -350,6 +350,121 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should install the first Cluster master as LAPI before installing every reachable slave', async () => {
+    firstNode.fwmaster = 1;
+    secondNode.fwmaster = 1;
+    const lapiUrl = 'http://192.0.2.11:8080';
+    const installMaster = sinon.stub(firstCommunication, 'installCrowdSec').resolves({});
+    const configureMaster = sinon
+      .stub(firstCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+    sinon.stub(secondCommunication, 'checkCrowdSecLapiConnectivity').resolves({
+      lapi_url: lapiUrl,
+      reachable: true,
+      message: 'CrowdSec Local API is reachable',
+    });
+    const installSlave = sinon.stub(secondCommunication, 'installCrowdSecMachine').resolves({});
+    sinon.stub(secondCommunication, 'activateCrowdSecMachine').resolves({});
+    const saveLapiInstallation = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(firstNode.id));
+
+    const response = await controller.installLapiMaster(request({ lapiUrl }));
+
+    expect(installMaster.calledOnce).to.be.true;
+    expect(configureMaster.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(
+      installSlave.calledOnce &&
+        installSlave.calledWithMatch({ machineName: 'cluster-slave', lapiUrl }),
+    ).to.be.true;
+    expect(installMaster.calledBefore(installSlave)).to.be.true;
+    expect(saveLapiInstallation.calledOnce && saveLapiInstallation.calledWithExactly(firstNode.id))
+      .to.be.true;
+    expect(
+      saveMachineInstallationStub.calledOnce &&
+        saveMachineInstallationStub.calledWithMatch({
+          firewallId: secondNode.id,
+          centralFirewallId: firstNode.id,
+          localRemediation: true,
+        }),
+    ).to.be.true;
+    expect(response.toJSON().data).to.include({ completed: true });
+  });
+
+  it('should preserve the LAPI master without installing Machines when a slave fails TCP', async () => {
+    firstNode.fwmaster = 1;
+    const lapiUrl = 'http://192.0.2.11:8080';
+    const installMaster = sinon.stub(firstCommunication, 'installCrowdSec').resolves({});
+    sinon
+      .stub(firstCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+    sinon.stub(secondCommunication, 'checkCrowdSecLapiConnectivity').resolves({
+      lapi_url: lapiUrl,
+      reachable: false,
+      error_code: 'CROWDSEC_LAPI_CONNECTION_REFUSED',
+      message: 'CrowdSec Local API connection was refused',
+    });
+    const installSlave = sinon.stub(secondCommunication, 'installCrowdSecMachine');
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(firstNode.id));
+
+    const response = await controller.installLapiMaster(request({ lapiUrl }));
+
+    expect(installMaster.calledOnce).to.be.true;
+    expect(installSlave.called).to.be.false;
+    expect(response.toJSON().data).to.deep.include({
+      completed: false,
+      connectivity_verified: false,
+    });
+    expect((response.toJSON().data as any).nodes).to.deep.equal([
+      {
+        firewall_id: secondNode.id,
+        name: secondNode.name,
+        lapi_url: lapiUrl,
+        reachable: false,
+        error_code: 'CROWDSEC_LAPI_CONNECTION_REFUSED',
+        message: 'CrowdSec Local API connection was refused',
+      },
+    ]);
+  });
+
+  it('should roll back the LAPI master and completed Machines when a slave installation fails', async () => {
+    firstNode.fwmaster = 1;
+    const lapiUrl = 'http://192.0.2.11:8080';
+    sinon.stub(firstCommunication, 'installCrowdSec').resolves({});
+    sinon
+      .stub(firstCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+    sinon.stub(secondCommunication, 'checkCrowdSecLapiConnectivity').resolves({
+      lapi_url: lapiUrl,
+      reachable: true,
+      message: 'CrowdSec Local API is reachable',
+    });
+    sinon
+      .stub(secondCommunication, 'installCrowdSecMachine')
+      .rejects(new Error('Node unavailable'));
+    const uninstallSlave = sinon.stub(secondCommunication, 'uninstallCrowdSec').resolves({});
+    const uninstallMaster = sinon.stub(firstCommunication, 'uninstallCrowdSec').resolves({});
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(firstNode.id));
+    sinon.stub(CrowdSecInstallationRepository.prototype, 'removeByFirewallId').resolves();
+
+    const response = await controller.installLapiMaster(request({ lapiUrl }));
+
+    expect(uninstallSlave.calledOnceWithExactly(true, sinon.match.any)).to.be.true;
+    expect(uninstallMaster.calledOnceWithExactly(true, sinon.match.any)).to.be.true;
+    expect(response.toJSON().data).to.deep.include({ completed: false, rolled_back: true });
+    expect((response.toJSON().data as any).nodes).to.deep.include({
+      firewall_id: secondNode.id,
+      name: secondNode.name,
+      machine_name: 'cluster-slave',
+      status: 'failed',
+      error: 'Node unavailable',
+    });
+  });
+
   it('should require confirmation before changing cluster nodes without LAPI connectivity', async () => {
     const firstInstall = sinon.stub(firstCommunication, 'installCrowdSecMachine').resolves({
       installation_state: 'connectivity_confirmation_required',

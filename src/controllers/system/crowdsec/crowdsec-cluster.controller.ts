@@ -2740,9 +2740,11 @@ export class CrowdSecClusterController extends Controller {
         rolledBack = false;
       }
       if (result) {
-        result.status = rolledBack ? 'rolled_back' : 'rollback_failed';
         if (!rolledBack) {
+          result.status = 'rollback_failed';
           result.error = 'CrowdSec Machine rollback failed and requires manual recovery';
+        } else if (result.status !== 'failed') {
+          result.status = 'rolled_back';
         }
       }
     }
