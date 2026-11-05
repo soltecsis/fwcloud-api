@@ -44,6 +44,7 @@ import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.
 import { CrowdSecClusterLapiConnectivityDto } from './dto/cluster-lapi-connectivity.dto';
 import { CrowdSecClusterLapiTopologyInstallDto } from './dto/cluster-lapi-topology-install.dto';
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
+import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import {
   CrowdSecClusterCollectionAcquisitionNodeQueryDto,
@@ -116,6 +117,14 @@ type ClusterLapiConnectivityNodeResult = {
   reachable: boolean;
   error_code?: string;
   message?: string;
+};
+
+type ClusterTopologyMachineAttempt = {
+  node: Firewall;
+  communication: AgentCommunication;
+  machineName: string;
+  centralMachineRegistered: boolean;
+  centralBouncerRegistered: boolean;
 };
 
 type ClusterCollectionOperation = 'install' | 'remove' | 'update';
@@ -501,29 +510,178 @@ export class CrowdSecClusterController extends Controller {
     );
     const nodes = await this.checkLapiConnectivityForNodes(slaves, lapiUrl);
     const connectivityVerified = nodes.every((node) => node.reachable);
+    if (!connectivityVerified) {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'end',
+          true,
+          'CrowdSec LAPI master is ready, but one or more cluster slaves cannot reach it',
+        ),
+      );
+      return ResponseBuilder.buildResponse()
+        .status(200)
+        .body({
+          completed: false,
+          connectivity_verified: false,
+          lapi_master: { firewall_id: master.id, name: master.name, lapi_url: lapiUrl },
+          nodes,
+        });
+    }
+
+    return this.installTopologyMachines(masterNode, slaves, lapiUrl, channel);
+  }
+
+  private async installTopologyMachines(
+    masterNode: CentralLapiNode,
+    slaves: Firewall[],
+    lapiUrl: string,
+    channel: Channel,
+  ): Promise<ResponseBuilder> {
+    const { firewall: master } = masterNode;
+    const lapiService = this.lapiService();
+    const progress = (message: string) =>
+      channel.emit('message', new ProgressPayload('info', false, message));
+    const results: ClusterMachineNodeResult[] = [];
+    const attempts: ClusterTopologyMachineAttempt[] = [];
     channel.emit(
       'message',
-      new ProgressPayload(
-        'end',
-        !connectivityVerified,
-        connectivityVerified
-          ? 'CrowdSec LAPI master is ready for cluster Machine installation'
-          : 'CrowdSec LAPI master is ready, but one or more cluster slaves cannot reach it',
-      ),
+      new ProgressPayload('info', false, 'Installing CrowdSec Machine slaves in cluster'),
     );
+    try {
+      for (const slave of slaves) {
+        const machineName = CrowdSecLapiSharedService.machineNameForFirewall(slave);
+        const communication = await CrowdSecLapiSharedService.agentCommunication(slave, false);
+        const attempt: ClusterTopologyMachineAttempt = {
+          node: slave,
+          communication,
+          machineName,
+          centralMachineRegistered: false,
+          centralBouncerRegistered: false,
+        };
+        attempts.push(attempt);
+        channel.emit(
+          'message',
+          new ProgressPayload('info', false, `Installing CrowdSec Machine on node '${slave.name}'`),
+        );
+        await lapiService.assertCanBecomeMachine(slave, true);
+        const backend =
+          (await Firewall.getCrowdSecFirewallBouncerBackend(slave.fwCloudId, slave.id)) ??
+          'iptables';
+        const machine = await communication.installCrowdSecMachine(
+          { machineName, lapiUrl },
+          channel,
+        );
+        if (CrowdSecLapiSharedService.machineInstallationState(machine) !== undefined) {
+          throw new HttpException(
+            'CrowdSec Machine could not connect to the Cluster LAPI master',
+            502,
+          );
+        }
+        await lapiService.replicateMachineCredentials(
+          [masterNode],
+          communication,
+          machineName,
+          progress,
+        );
+        attempt.centralMachineRegistered = true;
+        const bouncerApiKey = CrowdSecLapiSharedService.generateBouncerApiKey();
+        await lapiService.replicateBouncer([masterNode], machineName, bouncerApiKey, progress);
+        attempt.centralBouncerRegistered = true;
+        await communication.activateCrowdSecMachine(
+          { machineName, localRemediation: true, backend, bouncerApiKey },
+          channel,
+        );
+        await this.persistMachineNode({
+          node: slave,
+          centralFirewallId: master.id,
+          lapiUrl,
+          machineName,
+          localRemediation: true,
+        });
+        results.push({
+          firewall_id: slave.id,
+          name: slave.name,
+          machine_name: machineName,
+          status: 'completed',
+        });
+      }
+    } catch (error) {
+      const failedAttempt = attempts[attempts.length - 1];
+      if (
+        failedAttempt &&
+        !results.some((result) => result.firewall_id === failedAttempt.node.id)
+      ) {
+        results.push({
+          firewall_id: failedAttempt.node.id,
+          name: failedAttempt.node.name,
+          machine_name: failedAttempt.machineName,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'CrowdSec Machine installation failed',
+        });
+      }
+      await this.rollbackLapiTopology(masterNode, attempts, results, channel);
+      channel.emit(
+        'message',
+        new ProgressPayload('end', true, 'CrowdSec Cluster topology installation was rolled back'),
+      );
+      return ResponseBuilder.buildResponse()
+        .status(200)
+        .body({
+          completed: false,
+          rolled_back: true,
+          lapi_master: { firewall_id: master.id, name: master.name, lapi_url: lapiUrl },
+          nodes: results,
+        });
+    }
 
+    channel.emit(
+      'message',
+      new ProgressPayload('end', false, 'CrowdSec Cluster topology installation finished'),
+    );
     return ResponseBuilder.buildResponse()
       .status(200)
       .body({
-        completed: false,
-        connectivity_verified: connectivityVerified,
-        lapi_master: {
-          firewall_id: master.id,
-          name: master.name,
-          lapi_url: lapiUrl,
-        },
-        nodes,
+        completed: true,
+        lapi_master: { firewall_id: master.id, name: master.name, lapi_url: lapiUrl },
+        nodes: results,
       });
+  }
+
+  @Validate(CrowdSecUninstallDto)
+  public async cancelLapiMasterTopology(req: Request): Promise<ResponseBuilder> {
+    if (!req.body.confirm) {
+      throw new HttpException('CrowdSec topology cancellation confirmation is required', 422);
+    }
+    const { master, slaves } = await this.getTopologyNodes(req);
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const masterInstallation = await installationRepository.findByFirewallId(master.id);
+    if (masterInstallation?.mode !== CrowdSecInstallationMode.Lapi) {
+      throw new HttpException('CrowdSec Cluster LAPI master was not found', 409);
+    }
+    for (const slave of slaves) {
+      if (await installationRepository.findByFirewallId(slave.id)) {
+        throw new HttpException(
+          'CrowdSec Cluster topology cancellation requires unconfigured slave nodes',
+          409,
+        );
+      }
+    }
+
+    const channel = await Channel.fromRequest(req);
+    channel.emit(
+      'message',
+      new ProgressPayload('start', false, 'Cancelling CrowdSec Cluster topology installation'),
+    );
+    const communication = await CrowdSecLapiSharedService.agentCommunication(master, true);
+    await communication.uninstallCrowdSec(true, channel);
+    await installationRepository.removeByFirewallId(master.id);
+    await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(master, false);
+    channel.emit(
+      'message',
+      new ProgressPayload('end', false, 'CrowdSec Cluster LAPI master was removed'),
+    );
+    return ResponseBuilder.buildResponse().status(200).body({ completed: true });
   }
 
   @Validate(CrowdSecClusterLapiConnectivityDto)
@@ -2550,6 +2708,61 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('CrowdSec Cluster topology requires at least one slave node', 409);
     }
     return { master, slaves };
+  }
+
+  private async rollbackLapiTopology(
+    masterNode: CentralLapiNode,
+    attempts: ClusterTopologyMachineAttempt[],
+    results: ClusterMachineNodeResult[],
+    channel: Channel,
+  ): Promise<void> {
+    const lapiService = this.lapiService();
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    for (const attempt of [...attempts].reverse()) {
+      const result = results.find((candidate) => candidate.firewall_id === attempt.node.id);
+      let rolledBack = true;
+      if (attempt.centralBouncerRegistered) {
+        const cleanup = await lapiService.cleanupBouncer([masterNode], attempt.machineName);
+        rolledBack = cleanup.completed && rolledBack;
+      }
+      if (attempt.centralMachineRegistered) {
+        const cleanup = await lapiService.cleanupMachine([masterNode], attempt.machineName);
+        rolledBack = cleanup.completed && rolledBack;
+      }
+      try {
+        await attempt.communication.uninstallCrowdSec(true, channel);
+        await installationRepository.removeByFirewallId(attempt.node.id);
+        await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+          attempt.node,
+          false,
+        );
+      } catch {
+        rolledBack = false;
+      }
+      if (result) {
+        result.status = rolledBack ? 'rolled_back' : 'rollback_failed';
+        if (!rolledBack) {
+          result.error = 'CrowdSec Machine rollback failed and requires manual recovery';
+        }
+      }
+    }
+    try {
+      await masterNode.communication.uninstallCrowdSec(true, channel);
+      await installationRepository.removeByFirewallId(masterNode.firewall.id);
+      await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(
+        masterNode.firewall,
+        false,
+      );
+    } catch {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec Cluster LAPI master rollback failed and requires manual recovery',
+        ),
+      );
+    }
   }
 
   private async runSequentialNodeOperations(
