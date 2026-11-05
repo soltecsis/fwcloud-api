@@ -42,6 +42,7 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.dto';
 import { CrowdSecClusterLapiConnectivityDto } from './dto/cluster-lapi-connectivity.dto';
+import { CrowdSecClusterLapiTopologyInstallDto } from './dto/cluster-lapi-topology-install.dto';
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
 import {
@@ -107,6 +108,14 @@ type ClusterMachineNodeResult = {
   central_machine_cleanup_required?: boolean;
   source_machine_removed?: boolean;
   source_bouncer_cleanup_required?: boolean;
+};
+
+type ClusterLapiConnectivityNodeResult = {
+  firewall_id: number;
+  name: string;
+  reachable: boolean;
+  error_code?: string;
+  message?: string;
 };
 
 type ClusterCollectionOperation = 'install' | 'remove' | 'update';
@@ -436,12 +445,101 @@ export class CrowdSecClusterController extends Controller {
       });
   }
 
+  @Validate(CrowdSecClusterLapiTopologyInstallDto)
+  public async installLapiMaster(req: Request): Promise<ResponseBuilder> {
+    const { master, slaves } = await this.getTopologyNodes(req);
+    const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
+    const channel = await Channel.fromRequest(req);
+    const lapiService = this.lapiService();
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const existingMasterInstallation = await installationRepository.findByFirewallId(master.id);
+
+    if (existingMasterInstallation?.mode === CrowdSecInstallationMode.Machine) {
+      throw new HttpException('CrowdSec LAPI master cannot be installed over a Machine', 409);
+    }
+    for (const slave of slaves) {
+      if (await installationRepository.findByFirewallId(slave.id)) {
+        throw new HttpException('CrowdSec Cluster topology requires unconfigured slave nodes', 409);
+      }
+    }
+
+    channel.emit(
+      'message',
+      new ProgressPayload('start', false, 'Installing CrowdSec LAPI master in cluster'),
+    );
+    const communication = await CrowdSecLapiSharedService.agentCommunication(master, true);
+    if (existingMasterInstallation === null) {
+      channel.emit(
+        'message',
+        new ProgressPayload('info', false, `Installing CrowdSec LAPI on node '${master.name}'`),
+      );
+      const backend =
+        (await Firewall.getCrowdSecFirewallBouncerBackend(master.fwCloudId, master.id)) ??
+        'iptables';
+      await communication.installCrowdSec(
+        channel,
+        backend,
+        CrowdSecLapiSharedService.managedBouncerNameForCluster(this._cluster),
+      );
+      await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(master, true);
+      await installationRepository.saveLapiInstallation(master.id);
+    }
+
+    const masterNode: CentralLapiNode = { firewall: master, communication };
+    const progress = (message: string) =>
+      channel.emit('message', new ProgressPayload('info', false, message));
+    await lapiService.preflight(
+      [masterNode],
+      CrowdSecLapiSharedService.listenerUriForLapiUrl(lapiUrl),
+      progress,
+    );
+    await lapiService.enable([masterNode]);
+
+    channel.emit(
+      'message',
+      new ProgressPayload('info', false, 'Checking CrowdSec LAPI connectivity from cluster slaves'),
+    );
+    const nodes = await this.checkLapiConnectivityForNodes(slaves, lapiUrl);
+    const connectivityVerified = nodes.every((node) => node.reachable);
+    channel.emit(
+      'message',
+      new ProgressPayload(
+        'end',
+        !connectivityVerified,
+        connectivityVerified
+          ? 'CrowdSec LAPI master is ready for cluster Machine installation'
+          : 'CrowdSec LAPI master is ready, but one or more cluster slaves cannot reach it',
+      ),
+    );
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({
+        completed: false,
+        connectivity_verified: connectivityVerified,
+        lapi_master: {
+          firewall_id: master.id,
+          name: master.name,
+          lapi_url: lapiUrl,
+        },
+        nodes,
+      });
+  }
+
   @Validate(CrowdSecClusterLapiConnectivityDto)
   public async checkLapiConnectivity(req: Request): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
-    const results = [];
+    const results = await this.checkLapiConnectivityForNodes(nodes, lapiUrl);
 
+    return ResponseBuilder.buildResponse().status(200).body({ nodes: results });
+  }
+
+  private async checkLapiConnectivityForNodes(
+    nodes: Firewall[],
+    lapiUrl: string,
+  ): Promise<ClusterLapiConnectivityNodeResult[]> {
+    const results: ClusterLapiConnectivityNodeResult[] = [];
     for (const node of nodes) {
       try {
         const connectivity = await (
@@ -462,8 +560,7 @@ export class CrowdSecClusterController extends Controller {
         });
       }
     }
-
-    return ResponseBuilder.buildResponse().status(200).body({ nodes: results });
+    return results;
   }
 
   @Validate(CrowdSecClusterTransitionDto)
@@ -2440,6 +2537,19 @@ export class CrowdSecClusterController extends Controller {
       );
     }
     return { centralFirewall, centralLapiNodes };
+  }
+
+  private async getTopologyNodes(req: Request): Promise<{ master: Firewall; slaves: Firewall[] }> {
+    const nodes = await this.getAuthorizedNodes(req, false);
+    const master = nodes.find((node) => node.fwmaster === 1);
+    if (!master) {
+      throw new HttpException('CrowdSec Cluster topology requires a master node', 409);
+    }
+    const slaves = nodes.filter((node) => node.id !== master.id);
+    if (slaves.length === 0) {
+      throw new HttpException('CrowdSec Cluster topology requires at least one slave node', 409);
+    }
+    return { master, slaves };
   }
 
   private async runSequentialNodeOperations(
