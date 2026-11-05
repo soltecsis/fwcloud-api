@@ -30,6 +30,7 @@ import {
   FirewallInstallCommunication,
   FirewallInstallProtocol,
 } from '../../../models/firewall/Firewall';
+import { Cluster } from '../../../models/firewall/Cluster';
 import { CrowdSecInstallationMode } from '../../../models/system/crowdsec/crowdsec-installation.model';
 import { CrowdSecInstallationRepository } from '../../../models/system/crowdsec/crowdsec.repository';
 
@@ -366,11 +367,23 @@ export class CrowdSecLapiSharedService {
   }
 
   static machineNameForFirewall(firewall: Firewall): string {
-    const name = firewall.name
+    return this.managedBouncerName(firewall.name, 'node');
+  }
+
+  static managedBouncerNameForFirewall(firewall: Firewall): string {
+    return this.managedBouncerName(firewall.name, `firewall-${firewall.id}`);
+  }
+
+  static managedBouncerNameForCluster(cluster: Cluster): string {
+    return this.managedBouncerName(cluster.name, `cluster-${cluster.id}`);
+  }
+
+  private static managedBouncerName(name: string | undefined, fallback: string): string {
+    const normalized = (name ?? '')
       .replace(/[^A-Za-z0-9_.-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
-    return (name || 'node').slice(0, 128);
+    return (normalized || fallback).slice(0, 128);
   }
 
   static machineInstallationState(machine: Record<string, unknown>): string | undefined {

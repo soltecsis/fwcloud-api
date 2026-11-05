@@ -25,11 +25,13 @@ import {
   CCDHash,
   Communication,
   CrowdSecAlertsQuery,
+  CrowdSecBouncer,
   CrowdSecCollectionAcquisition,
   CrowdSecCollectionAcquisitionParserSelection,
   CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
+  CrowdSecBouncers,
   CrowdSecFirewallBackend,
   CrowdSecFirewallBouncerStatisticsSamples,
   CrowdSecFirewallBouncerStatisticsSamplingConfig,
@@ -1350,9 +1352,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getCrowdSecBouncers(): Promise<Record<string, unknown>> {
+  async getCrowdSecBouncers(): Promise<CrowdSecBouncers> {
     try {
-      return await this.runCrowdSecGetOperation('/api/v1/crowdsec/bouncers');
+      return this.crowdSecBouncersResponse(
+        await this.runCrowdSecGetOperation('/api/v1/crowdsec/bouncers'),
+      );
     } catch (error) {
       this.handleCrowdSecRequestException(error);
     }
@@ -1448,12 +1452,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   async installCrowdSec(
     eventEmitter?: EventEmitter,
     backend?: CrowdSecFirewallBackend,
+    managedBouncerName?: string,
   ): Promise<Record<string, unknown>> {
     try {
       const pathUrl: string = this.url + '/api/v1/crowdsec/install';
       const response = await this.runCrowdSecOperation(
         pathUrl,
-        backend === undefined ? {} : { backend },
+        {
+          ...(backend === undefined ? {} : { backend }),
+          ...(managedBouncerName === undefined ? {} : { managed_bouncer_name: managedBouncerName }),
+        },
         eventEmitter,
       );
 
@@ -1463,10 +1471,17 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async installCrowdSecBouncer(eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+  async installCrowdSecBouncer(
+    eventEmitter?: EventEmitter,
+    managedBouncerName?: string,
+  ): Promise<Record<string, unknown>> {
     try {
       const pathUrl: string = this.url + '/api/v1/crowdsec/bouncer/install';
-      const response = await this.runCrowdSecOperation(pathUrl, {}, eventEmitter);
+      const response = await this.runCrowdSecOperation(
+        pathUrl,
+        managedBouncerName === undefined ? {} : { managed_bouncer_name: managedBouncerName },
+        eventEmitter,
+      );
 
       return response;
     } catch (error) {
@@ -1768,6 +1783,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           target: this.crowdSecTransitionTarget(transition.target),
           authority_changed: transition.authorityChanged,
           ...(transition.backend === undefined ? {} : { backend: transition.backend }),
+          ...(transition.managedBouncerName === undefined
+            ? {}
+            : { managed_bouncer_name: transition.managedBouncerName }),
           ...(transition.machineConnectivityPending ? { machine_connectivity_pending: true } : {}),
         },
         eventEmitter,
@@ -1838,6 +1856,37 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     throw new Error('Unexpected CrowdSec operation response');
+  }
+
+  private crowdSecBouncersResponse(response: Record<string, unknown>): CrowdSecBouncers {
+    if (!Array.isArray(response.bouncers)) {
+      throw new Error('Unexpected CrowdSec Bouncers response');
+    }
+
+    return {
+      bouncers: response.bouncers.map((value): CrowdSecBouncer => {
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+          throw new Error('Unexpected CrowdSec Bouncer response');
+        }
+        const bouncer = value as Record<string, unknown>;
+        if (typeof bouncer.name !== 'string' || typeof bouncer.revoked !== 'boolean') {
+          throw new Error('Unexpected CrowdSec Bouncer response');
+        }
+
+        return {
+          name: bouncer.name,
+          type: this.optionalCrowdSecBouncerString(bouncer.type),
+          ip_address: this.optionalCrowdSecBouncerString(bouncer.ip_address),
+          os: this.optionalCrowdSecBouncerString(bouncer.os),
+          revoked: bouncer.revoked,
+          last_pull: this.optionalCrowdSecBouncerString(bouncer.last_pull),
+        };
+      }),
+    };
+  }
+
+  private optionalCrowdSecBouncerString(value: unknown): string | null {
+    return typeof value === 'string' ? value : null;
   }
 
   private crowdSecFirewallBouncerStatisticsSamplesResponse(

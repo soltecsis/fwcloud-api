@@ -37,6 +37,7 @@ import {
   CrowdSecCollectionAcquisitionUpdate,
   CrowdSecConsoleEnrollment,
   CrowdSecDecisionsQuery,
+  CrowdSecBouncers,
   CrowdSecFirewallBackend,
   CrowdSecFirewallBouncerStatisticsSamples,
   CrowdSecFirewallBouncerStatisticsSamplingConfig,
@@ -754,11 +755,15 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
   installCrowdSec(
     _eventEmitter?: EventEmitter,
     _backend?: CrowdSecFirewallBackend,
+    _managedBouncerName?: string,
   ): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
 
-  installCrowdSecBouncer(_eventEmitter?: EventEmitter): Promise<Record<string, unknown>> {
+  installCrowdSecBouncer(
+    _eventEmitter?: EventEmitter,
+    _managedBouncerName?: string,
+  ): Promise<Record<string, unknown>> {
     throw new Error('Method not implemented.');
   }
 
@@ -825,7 +830,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     throw new Error('Method not implemented.');
   }
 
-  getCrowdSecBouncers(): Promise<Record<string, unknown>> {
+  getCrowdSecBouncers(): Promise<CrowdSecBouncers> {
     throw new Error('Method not implemented.');
   }
 
