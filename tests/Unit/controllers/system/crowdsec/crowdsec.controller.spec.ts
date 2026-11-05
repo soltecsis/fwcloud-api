@@ -2874,7 +2874,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(channelStub.calledOnce).to.be.true;
-    expect(crowdsecStub.calledOnceWithExactly(channel, 'nftables')).to.be.true;
+    expect(crowdsecStub.calledOnceWithExactly(channel, 'nftables', fwcProduct.firewall.name)).to.be
+      .true;
     expect(bouncerStub.called).to.be.false;
     expect(enrollStub.called).to.be.false;
     expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
@@ -3003,7 +3004,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
 
     await controller.install({ session: { user: null } } as unknown as Request);
 
-    expect(crowdsecStub.calledOnceWithExactly(channel, undefined)).to.be.true;
+    expect(crowdsecStub.calledOnceWithExactly(channel, undefined, fwcProduct.firewall.name)).to.be
+      .true;
   });
 
   it('should reject CrowdSec installation before reading the backend or contacting the agent', async () => {
