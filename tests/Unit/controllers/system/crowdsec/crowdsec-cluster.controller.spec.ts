@@ -433,6 +433,38 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     ]);
   });
 
+  it('should enroll only Cluster LAPI nodes in CrowdSec Console', async () => {
+    const enrollment = { status: { state: 'pending_approval' } };
+    findByFirewallIdStub.withArgs(firstNode.id).resolves(lapiInstallation(firstNode.id));
+    findByFirewallIdStub.withArgs(secondNode.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        firewallId: secondNode.id,
+        mode: CrowdSecInstallationMode.Machine,
+      }),
+    );
+    const enrollMaster = sinon
+      .stub(firstCommunication, 'enrollCrowdSecConsole')
+      .resolves(enrollment);
+    const enrollSlave = sinon.stub(secondCommunication, 'enrollCrowdSecConsole');
+    const setConsoleEnrollmentConfirmed = sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'setConsoleEnrollmentConfirmed')
+      .resolves(new CrowdSecInstallation());
+    sinon.stub(PgpHelper.prototype, 'decrypt').resolves('enrollment-key');
+
+    const response = await controller.enrollConsole(request({ enrollmentKey: 'encrypted-key' }));
+
+    expect(
+      enrollMaster.calledOnce &&
+        enrollMaster.calledWithMatch({ enrollmentKey: 'enrollment-key', name: 'cluster-master' }),
+    ).to.be.true;
+    expect(enrollSlave.called).to.be.false;
+    expect(setConsoleEnrollmentConfirmed.calledOnceWithExactly(firstNode.id, false)).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      ...enrollment,
+      nodes: [{ firewall_id: firstNode.id, name: 'cluster-master', ...enrollment }],
+    });
+  });
+
   it('should retain the LAPI master when a slave installation fails for retry or cancellation', async () => {
     firstNode.fwmaster = 1;
     const lapiUrl = 'http://192.0.2.11:8080';

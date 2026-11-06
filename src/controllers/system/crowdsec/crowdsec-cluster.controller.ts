@@ -43,6 +43,7 @@ import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { CrowdSecClusterMachineInstallDto } from './dto/cluster-machine-install.dto';
 import { CrowdSecClusterLapiConnectivityDto } from './dto/cluster-lapi-connectivity.dto';
 import { CrowdSecClusterLapiTopologyInstallDto } from './dto/cluster-lapi-topology-install.dto';
+import { CrowdSecConsoleEnrollDto } from './dto/console-enroll.dto';
 import { CrowdSecClusterTransitionDto } from './dto/cluster-transition.dto';
 import { CrowdSecUninstallDto } from './dto/uninstall.dto';
 import { CrowdSecCollectionDto } from './dto/collection.dto';
@@ -758,6 +759,39 @@ export class CrowdSecClusterController extends Controller {
     const results = await this.checkLapiConnectivityForNodes(nodes, lapiUrl);
 
     return ResponseBuilder.buildResponse().status(200).body({ nodes: results });
+  }
+
+  @Validate(CrowdSecConsoleEnrollDto)
+  public async enrollConsole(req: Request): Promise<ResponseBuilder> {
+    const nodes = await this.getAuthorizedNodes(req, false);
+    const enrollmentKey = await this.enrollmentKey(req, req.body.enrollmentKey);
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const results: Array<Record<string, unknown>> = [];
+    let response: Record<string, unknown> | undefined;
+
+    for (const node of nodes) {
+      const installation = await installationRepository.findByFirewallId(node.id);
+      if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
+        continue;
+      }
+      response = await (
+        await CrowdSecLapiSharedService.agentCommunication(node, true)
+      ).enrollCrowdSecConsole({
+        enrollmentKey,
+        name: this.consoleInstanceName(node),
+        tags: req.body.tags,
+      });
+      await installationRepository.setConsoleEnrollmentConfirmed(node.id, false);
+      results.push({ firewall_id: node.id, name: node.name, ...response });
+    }
+
+    if (results.length === 0) {
+      throw new HttpException('CrowdSec Console enrollment requires a LAPI installation', 409);
+    }
+
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({ ...response, nodes: results });
   }
 
   private async checkLapiConnectivityForNodes(
