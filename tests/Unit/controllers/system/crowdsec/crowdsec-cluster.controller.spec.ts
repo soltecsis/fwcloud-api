@@ -35,6 +35,7 @@ import {
 import { Cluster } from '../../../../../src/models/firewall/Cluster';
 import { CrowdSecInstallationRepository } from '../../../../../src/models/system/crowdsec/crowdsec.repository';
 import { FirewallRepository } from '../../../../../src/models/firewall/firewall.repository';
+import { Interface } from '../../../../../src/models/interface/Interface';
 import { CrowdSecPolicy } from '../../../../../src/policies/crowdsec.policy';
 import { CrowdSecClusterTransitionDto } from '../../../../../src/controllers/system/crowdsec/dto/cluster-transition.dto';
 import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
@@ -106,6 +107,16 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           : null,
       );
     sinon.stub(CrowdSecInstallationRepository.prototype, 'hasMachineDependents').resolves(false);
+    sinon.stub(db.getSource().manager.getRepository(Interface), 'find').resolves([
+      Object.assign(new Interface(), {
+        firewallId: firstNode.id,
+        ipObjs: [{ address: '192.0.2.11' }],
+      }),
+      Object.assign(new Interface(), {
+        firewallId: secondNode.id,
+        ipObjs: [{ address: '192.0.2.12' }],
+      }),
+    ]);
     restoreInstallationStub = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'restoreInstallation')
       .resolves(new CrowdSecInstallation());
@@ -433,6 +444,17 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     ]);
   });
 
+  it('should reject a topology LAPI URL outside the current Cluster', async () => {
+    firstNode.fwmaster = 1;
+    const installMaster = sinon.stub(firstCommunication, 'installCrowdSec');
+
+    await expect(
+      controller.installLapiMaster(request({ lapiUrl: 'http://192.0.2.99:8080' })),
+    ).to.be.rejectedWith('CrowdSec Cluster LAPI URL must use an address from the current cluster');
+
+    expect(installMaster.called).to.be.false;
+  });
+
   it('should enroll only Cluster LAPI nodes in CrowdSec Console', async () => {
     const enrollment = { status: { state: 'pending_approval' } };
     findByFirewallIdStub.withArgs(firstNode.id).resolves(lapiInstallation(firstNode.id));
@@ -495,6 +517,53 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       status: 'failed',
       error: 'Node unavailable',
     });
+  });
+
+  it('should report an incompatible slave as the failed topology node', async () => {
+    firstNode.fwmaster = 1;
+    const lapiUrl = 'http://192.0.2.11:8080';
+    sinon.stub(firstCommunication, 'installCrowdSec').resolves({});
+    sinon.stub(firstCommunication, 'configureCrowdSecCentralLapi').resolves({});
+    sinon.stub(secondCommunication, 'checkCrowdSecLapiConnectivity').resolves({
+      lapi_url: lapiUrl,
+      reachable: true,
+      message: 'CrowdSec Local API is reachable',
+    });
+    findByFirewallIdStub.withArgs(secondNode.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        firewallId: secondNode.id,
+        mode: CrowdSecInstallationMode.Lapi,
+      }),
+    );
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(firstNode.id));
+
+    const response = await controller.installLapiMaster(request({ lapiUrl }));
+
+    expect((response.toJSON().data as any).nodes).to.deep.include({
+      firewall_id: secondNode.id,
+      name: secondNode.name,
+      machine_name: 'cluster-slave',
+      status: 'failed',
+      error: 'CrowdSec Cluster topology contains an incompatible slave node',
+    });
+  });
+
+  it('should clean an unpersisted failed slave when cancelling the topology', async () => {
+    firstNode.fwmaster = 1;
+    findByFirewallIdStub.withArgs(firstNode.id).resolves(lapiInstallation(firstNode.id));
+    const removeMachine = sinon.stub(firstCommunication, 'removeCrowdSecLapiMachine').resolves({});
+    const removeBouncer = sinon.stub(firstCommunication, 'removeCrowdSecBouncer').resolves({});
+    const uninstallSlave = sinon.stub(secondCommunication, 'uninstallCrowdSec').resolves({});
+    sinon.stub(firstCommunication, 'uninstallCrowdSec').resolves({});
+    sinon.stub(CrowdSecInstallationRepository.prototype, 'removeByFirewallId').resolves();
+
+    await controller.cancelLapiMasterTopology(request({ confirm: true }));
+
+    expect(removeMachine.calledOnceWithExactly('cluster-slave')).to.be.true;
+    expect(removeBouncer.calledOnceWithExactly('cluster-slave')).to.be.true;
+    expect(uninstallSlave.calledOnce).to.be.true;
   });
 
   it('should require confirmation before changing cluster nodes without LAPI connectivity', async () => {

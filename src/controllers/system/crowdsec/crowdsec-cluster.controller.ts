@@ -22,9 +22,11 @@
 
 import { Request } from 'express';
 import * as uuid from 'uuid';
+import { In } from 'typeorm';
 import { AgentCommunication } from '../../../communications/agent.communication';
 import { Firewall, FireWallOptMask } from '../../../models/firewall/Firewall';
 import { Cluster } from '../../../models/firewall/Cluster';
+import { Interface } from '../../../models/interface/Interface';
 import {
   CrowdSecInstallation,
   CrowdSecInstallationMode,
@@ -459,6 +461,7 @@ export class CrowdSecClusterController extends Controller {
   public async installLapiMaster(req: Request): Promise<ResponseBuilder> {
     const { master, slaves } = await this.getTopologyNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
+    await this.assertTopologyLapiUrlBelongsToCluster(lapiUrl, [master, ...slaves]);
     const enrollmentKey =
       req.body.enrollmentKey === undefined
         ? undefined
@@ -546,6 +549,7 @@ export class CrowdSecClusterController extends Controller {
     const results: ClusterMachineNodeResult[] = [];
     const attempts: ClusterTopologyMachineAttempt[] = [];
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    let currentSlave: { node: Firewall; machineName: string } | undefined;
     channel.emit(
       'message',
       new ProgressPayload('info', false, 'Installing CrowdSec Machine slaves in cluster'),
@@ -553,6 +557,7 @@ export class CrowdSecClusterController extends Controller {
     try {
       for (const slave of slaves) {
         const machineName = CrowdSecLapiSharedService.machineNameForFirewall(slave);
+        currentSlave = { node: slave, machineName };
         const existingInstallation = await installationRepository.findByFirewallId(slave.id);
         if (existingInstallation) {
           if (
@@ -633,15 +638,11 @@ export class CrowdSecClusterController extends Controller {
         });
       }
     } catch (error) {
-      const failedAttempt = attempts[attempts.length - 1];
-      if (
-        failedAttempt &&
-        !results.some((result) => result.firewall_id === failedAttempt.node.id)
-      ) {
+      if (currentSlave && !results.some((result) => result.firewall_id === currentSlave.node.id)) {
         results.push({
-          firewall_id: failedAttempt.node.id,
-          name: failedAttempt.node.name,
-          machine_name: failedAttempt.machineName,
+          firewall_id: currentSlave.node.id,
+          name: currentSlave.node.name,
+          machine_name: currentSlave.machineName,
           status: 'failed',
           error: error instanceof Error ? error.message : 'CrowdSec Machine installation failed',
         });
@@ -721,6 +722,13 @@ export class CrowdSecClusterController extends Controller {
     for (const slave of slaves) {
       const installation = await installationRepository.findByFirewallId(slave.id);
       if (!installation) {
+        const machineName = CrowdSecLapiSharedService.machineNameForFirewall(slave);
+        await lapiService.cleanupBouncer([masterNode], machineName);
+        await lapiService.cleanupMachine([masterNode], machineName);
+        await (
+          await CrowdSecLapiSharedService.agentCommunication(slave, false)
+        ).uninstallCrowdSec(true, channel);
+        await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(slave, false);
         continue;
       }
       if (
@@ -2839,6 +2847,32 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('CrowdSec Cluster topology requires at least one slave node', 409);
     }
     return { master, slaves };
+  }
+
+  private async assertTopologyLapiUrlBelongsToCluster(
+    lapiUrl: string,
+    nodes: Firewall[],
+  ): Promise<void> {
+    const host = new URL(lapiUrl).hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    const interfaces = await db
+      .getSource()
+      .manager.getRepository(Interface)
+      .find({
+        where: { firewallId: In(nodes.map((node) => node.id)) },
+        relations: ['ipObjs'],
+      });
+    const belongsToCluster = interfaces.some((networkInterface) =>
+      networkInterface.ipObjs.some(
+        (ipObj) => ipObj.address.replace(/^\[|\]$/g, '').toLowerCase() === host,
+      ),
+    );
+
+    if (!belongsToCluster) {
+      throw new HttpException(
+        'CrowdSec Cluster LAPI URL must use an address from the current cluster',
+        422,
+      );
+    }
   }
 
   private async rollbackLapiTopology(
