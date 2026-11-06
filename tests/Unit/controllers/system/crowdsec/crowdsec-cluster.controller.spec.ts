@@ -363,7 +363,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
       reachable: true,
       message: 'CrowdSec Local API is reachable',
     });
-    const installSlave = sinon.stub(secondCommunication, 'installCrowdSecMachine').resolves({});
+    const installSlave = sinon.stub(secondCommunication, 'installCrowdSecMachine').resolves({
+      installation_state: 'pending_validation',
+    });
     sinon.stub(secondCommunication, 'activateCrowdSecMachine').resolves({});
     const saveLapiInstallation = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
@@ -378,6 +380,8 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
         installSlave.calledWithMatch({ machineName: 'cluster-slave', lapiUrl }),
     ).to.be.true;
     expect(installMaster.calledBefore(installSlave)).to.be.true;
+    expect(replicateMachineStub.calledOnceWithExactly('cluster-slave', 'machine-password')).to.be
+      .true;
     expect(saveLapiInstallation.calledOnce && saveLapiInstallation.calledWithExactly(firstNode.id))
       .to.be.true;
     expect(
@@ -429,7 +433,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     ]);
   });
 
-  it('should roll back the LAPI master and completed Machines when a slave installation fails', async () => {
+  it('should retain the LAPI master when a slave installation fails for retry or cancellation', async () => {
     firstNode.fwmaster = 1;
     const lapiUrl = 'http://192.0.2.11:8080';
     sinon.stub(firstCommunication, 'installCrowdSec').resolves({});
@@ -444,18 +448,14 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     sinon
       .stub(secondCommunication, 'installCrowdSecMachine')
       .rejects(new Error('Node unavailable'));
-    const uninstallSlave = sinon.stub(secondCommunication, 'uninstallCrowdSec').resolves({});
-    const uninstallMaster = sinon.stub(firstCommunication, 'uninstallCrowdSec').resolves({});
-    sinon
+    const saveLapiInstallation = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
       .resolves(lapiInstallation(firstNode.id));
-    sinon.stub(CrowdSecInstallationRepository.prototype, 'removeByFirewallId').resolves();
 
     const response = await controller.installLapiMaster(request({ lapiUrl }));
 
-    expect(uninstallSlave.calledOnceWithExactly(true, sinon.match.any)).to.be.true;
-    expect(uninstallMaster.calledOnceWithExactly(true, sinon.match.any)).to.be.true;
-    expect(response.toJSON().data).to.deep.include({ completed: false, rolled_back: true });
+    expect(saveLapiInstallation.calledOnceWithExactly(firstNode.id)).to.be.true;
+    expect(response.toJSON().data).to.deep.include({ completed: false });
     expect((response.toJSON().data as any).nodes).to.deep.include({
       firewall_id: secondNode.id,
       name: secondNode.name,

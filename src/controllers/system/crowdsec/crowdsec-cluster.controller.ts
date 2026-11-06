@@ -458,6 +458,10 @@ export class CrowdSecClusterController extends Controller {
   public async installLapiMaster(req: Request): Promise<ResponseBuilder> {
     const { master, slaves } = await this.getTopologyNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
+    const enrollmentKey =
+      req.body.enrollmentKey === undefined
+        ? undefined
+        : await this.enrollmentKey(req, req.body.enrollmentKey);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
@@ -465,11 +469,6 @@ export class CrowdSecClusterController extends Controller {
 
     if (existingMasterInstallation?.mode === CrowdSecInstallationMode.Machine) {
       throw new HttpException('CrowdSec LAPI master cannot be installed over a Machine', 409);
-    }
-    for (const slave of slaves) {
-      if (await installationRepository.findByFirewallId(slave.id)) {
-        throw new HttpException('CrowdSec Cluster topology requires unconfigured slave nodes', 409);
-      }
     }
 
     channel.emit(
@@ -529,7 +528,7 @@ export class CrowdSecClusterController extends Controller {
         });
     }
 
-    return this.installTopologyMachines(masterNode, slaves, lapiUrl, channel);
+    return this.installTopologyMachines(masterNode, slaves, lapiUrl, channel, enrollmentKey);
   }
 
   private async installTopologyMachines(
@@ -537,6 +536,7 @@ export class CrowdSecClusterController extends Controller {
     slaves: Firewall[],
     lapiUrl: string,
     channel: Channel,
+    enrollmentKey?: string,
   ): Promise<ResponseBuilder> {
     const { firewall: master } = masterNode;
     const lapiService = this.lapiService();
@@ -544,6 +544,7 @@ export class CrowdSecClusterController extends Controller {
       channel.emit('message', new ProgressPayload('info', false, message));
     const results: ClusterMachineNodeResult[] = [];
     const attempts: ClusterTopologyMachineAttempt[] = [];
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
     channel.emit(
       'message',
       new ProgressPayload('info', false, 'Installing CrowdSec Machine slaves in cluster'),
@@ -551,6 +552,26 @@ export class CrowdSecClusterController extends Controller {
     try {
       for (const slave of slaves) {
         const machineName = CrowdSecLapiSharedService.machineNameForFirewall(slave);
+        const existingInstallation = await installationRepository.findByFirewallId(slave.id);
+        if (existingInstallation) {
+          if (
+            existingInstallation.mode === CrowdSecInstallationMode.Machine &&
+            existingInstallation.centralFirewallId === master.id &&
+            existingInstallation.localRemediation
+          ) {
+            results.push({
+              firewall_id: slave.id,
+              name: slave.name,
+              machine_name: existingInstallation.machineName ?? machineName,
+              status: 'completed',
+            });
+            continue;
+          }
+          throw new HttpException(
+            'CrowdSec Cluster topology contains an incompatible slave node',
+            409,
+          );
+        }
         const communication = await CrowdSecLapiSharedService.agentCommunication(slave, false);
         const attempt: ClusterTopologyMachineAttempt = {
           node: slave,
@@ -572,7 +593,11 @@ export class CrowdSecClusterController extends Controller {
           { machineName, lapiUrl },
           channel,
         );
-        if (CrowdSecLapiSharedService.machineInstallationState(machine) !== undefined) {
+        const installationState = CrowdSecLapiSharedService.machineInstallationState(machine);
+        if (
+          installationState === 'connectivity_confirmation_required' ||
+          installationState === 'pending_connectivity'
+        ) {
           throw new HttpException(
             'CrowdSec Machine could not connect to the Cluster LAPI master',
             502,
@@ -620,19 +645,44 @@ export class CrowdSecClusterController extends Controller {
           error: error instanceof Error ? error.message : 'CrowdSec Machine installation failed',
         });
       }
-      await this.rollbackLapiTopology(masterNode, attempts, results, channel);
       channel.emit(
         'message',
-        new ProgressPayload('end', true, 'CrowdSec Cluster topology installation was rolled back'),
+        new ProgressPayload(
+          'end',
+          true,
+          'CrowdSec Cluster topology installation requires retry or cancellation',
+        ),
       );
       return ResponseBuilder.buildResponse()
         .status(200)
         .body({
           completed: false,
-          rolled_back: true,
           lapi_master: { firewall_id: master.id, name: master.name, lapi_url: lapiUrl },
           nodes: results,
         });
+    }
+
+    if (enrollmentKey !== undefined) {
+      channel.emit('message', new ProgressPayload('info', false, 'Enrolling CrowdSec Console'));
+      try {
+        await masterNode.communication.enrollCrowdSecConsole({
+          enrollmentKey,
+          name: this.consoleInstanceName(master),
+        });
+        channel.emit(
+          'message',
+          new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
+        );
+      } catch {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec Cluster topology installation completed successfully, but Console enrollment failed. You can retry enrollment from the Status panel',
+          ),
+        );
+      }
     }
 
     channel.emit(
@@ -659,21 +709,38 @@ export class CrowdSecClusterController extends Controller {
     if (masterInstallation?.mode !== CrowdSecInstallationMode.Lapi) {
       throw new HttpException('CrowdSec Cluster LAPI master was not found', 409);
     }
-    for (const slave of slaves) {
-      if (await installationRepository.findByFirewallId(slave.id)) {
-        throw new HttpException(
-          'CrowdSec Cluster topology cancellation requires unconfigured slave nodes',
-          409,
-        );
-      }
-    }
-
     const channel = await Channel.fromRequest(req);
     channel.emit(
       'message',
       new ProgressPayload('start', false, 'Cancelling CrowdSec Cluster topology installation'),
     );
     const communication = await CrowdSecLapiSharedService.agentCommunication(master, true);
+    const masterNode: CentralLapiNode = { firewall: master, communication };
+    const lapiService = this.lapiService();
+    for (const slave of slaves) {
+      const installation = await installationRepository.findByFirewallId(slave.id);
+      if (!installation) {
+        continue;
+      }
+      if (
+        installation.mode !== CrowdSecInstallationMode.Machine ||
+        installation.centralFirewallId !== master.id
+      ) {
+        throw new HttpException(
+          'CrowdSec Cluster topology cancellation found an incompatible slave node',
+          409,
+        );
+      }
+      const machineName =
+        installation.machineName ?? CrowdSecLapiSharedService.machineNameForFirewall(slave);
+      await lapiService.cleanupBouncer([masterNode], machineName);
+      await lapiService.cleanupMachine([masterNode], machineName);
+      await (
+        await CrowdSecLapiSharedService.agentCommunication(slave, false)
+      ).uninstallCrowdSec(true, channel);
+      await installationRepository.removeByFirewallId(slave.id);
+      await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(slave, false);
+    }
     await communication.uninstallCrowdSec(true, channel);
     await installationRepository.removeByFirewallId(master.id);
     await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(master, false);
@@ -2077,6 +2144,36 @@ export class CrowdSecClusterController extends Controller {
       }
       throw new HttpException('Invalid CrowdSec Firewall Bouncer API key', 422);
     }
+  }
+
+  private async enrollmentKey(req: Request, value: unknown): Promise<string> {
+    if (typeof value !== 'string') {
+      throw new HttpException('Invalid CrowdSec enrollment key', 422);
+    }
+    try {
+      const enrollmentKey = (await new PgpHelper(req.session.pgp).decrypt(value)).trim();
+      if (
+        enrollmentKey.length === 0 ||
+        enrollmentKey.length > 512 ||
+        Array.from(enrollmentKey).some((character) => {
+          const code = character.charCodeAt(0);
+          return code < 32 || code === 127;
+        })
+      ) {
+        throw new HttpException('Invalid CrowdSec enrollment key', 422);
+      }
+      return enrollmentKey;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException('Invalid CrowdSec enrollment key', 422);
+    }
+  }
+
+  private consoleInstanceName(firewall: Firewall): string {
+    const name = firewall.name?.trim();
+    return name && !/[^A-Za-z0-9._-]/.test(name) ? name : firewall.fwCloudId + '-' + firewall.id;
   }
 
   private async transitionNodesToLapi(req: Request): Promise<ResponseBuilder> {

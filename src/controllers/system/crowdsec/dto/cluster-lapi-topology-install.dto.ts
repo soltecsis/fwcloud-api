@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsString, Length, Matches } from 'class-validator';
+import { IsOptional, IsString, Length, Matches } from 'class-validator';
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
 
 export class CrowdSecClusterLapiTopologyInstallDto {
@@ -28,4 +28,9 @@ export class CrowdSecClusterLapiTopologyInstallDto {
   @Length(1, 256)
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
   lapiUrl: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 8192)
+  enrollmentKey?: string;
 }
