@@ -109,6 +109,7 @@ export class CrowdSecController extends Controller {
         ...status,
         central_lapi_enabled: centralLapiEnabled,
         central_lapi_has_machines: centralLapiHasMachines,
+        console_enrollment_confirmed: installation?.consoleEnrollmentConfirmed === true,
         machine_reauthentication_required: machineReauthenticationRequired,
         machine_connectivity_pending: installation?.machineConnectivityPending === true,
         installation_mode: installation?.mode ?? null,

@@ -207,6 +207,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       ...status,
       central_lapi_enabled: false,
       central_lapi_has_machines: false,
+      console_enrollment_confirmed: false,
       machine_reauthentication_required: false,
       machine_connectivity_pending: false,
       installation_mode: null,
@@ -235,6 +236,20 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       installation_mode: CrowdSecInstallationMode.Machine,
       machine_connectivity_pending: true,
     });
+  });
+
+  it('should report a manually confirmed CrowdSec Console enrollment', async () => {
+    sinon.stub(communication, 'getCrowdSecStatus').resolves({ crowdsec: { installed: true } });
+    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
+      Object.assign(new CrowdSecInstallation(), {
+        mode: CrowdSecInstallationMode.Lapi,
+        consoleEnrollmentConfirmed: true,
+      }),
+    );
+
+    const response = await controller.status({ session: { user: null } } as unknown as Request);
+
+    expect(response.toJSON().data).to.include({ console_enrollment_confirmed: true });
   });
 
   it('should forward CrowdSec decision filters to the agent', async () => {
