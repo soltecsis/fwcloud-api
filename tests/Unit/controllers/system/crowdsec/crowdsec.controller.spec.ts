@@ -180,6 +180,20 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const status = {
       crowdsec: { installed: true },
       active_decisions: { count: 3, limit: null, truncated: false },
+      ipv4_blacklist_entries: {
+        count: 3,
+        limit: null,
+        truncated: false,
+        state: 'ready',
+        message: '3 entries in CrowdSec IPv4 blacklist IPSet',
+      },
+      ipv6_blacklist_entries: {
+        count: null,
+        limit: null,
+        truncated: false,
+        state: 'not_applicable',
+        message: 'CrowdSec Firewall Bouncer uses NFTables instead of IPSet',
+      },
     };
     const statusStub = sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
 
@@ -193,10 +207,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       ...status,
       central_lapi_enabled: false,
       central_lapi_has_machines: false,
+      console_enrollment_confirmed: false,
       machine_reauthentication_required: false,
       machine_connectivity_pending: false,
-      community_blocklist_enrollment: 'unknown',
-      console_enrollment_confirmed: false,
       installation_mode: null,
       local_remediation: false,
       central_lapi_firewall_id: null,
@@ -225,12 +238,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     });
   });
 
-  it('should report CrowdSec Console enrollment state and persisted confirmation separately', async () => {
-    const status = {
-      crowdsec: { installed: true },
-      community_blocklist_enrollment: 'unknown',
-    };
-    sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
+  it('should report a manually confirmed CrowdSec Console enrollment', async () => {
+    sinon.stub(communication, 'getCrowdSecStatus').resolves({ crowdsec: { installed: true } });
     findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
       Object.assign(new CrowdSecInstallation(), {
         mode: CrowdSecInstallationMode.Lapi,
@@ -238,56 +247,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       }),
     );
 
-    const response = await controller.status({
-      session: { user: null },
-    } as unknown as Request);
+    const response = await controller.status({ session: { user: null } } as unknown as Request);
 
-    expect(response.toJSON().data).to.include({
-      community_blocklist_enrollment: 'unknown',
-      console_enrollment_confirmed: true,
-    });
-  });
-
-  it('should restore CrowdSec Console enrollment confirmation when the agent reports enrollment', async () => {
-    const status = {
-      crowdsec: { installed: true },
-      community_blocklist_enrollment: 'enrolled',
-    };
-    sinon.stub(communication, 'getCrowdSecStatus').resolves(status);
-    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
-      Object.assign(new CrowdSecInstallation(), {
-        mode: CrowdSecInstallationMode.Lapi,
-        consoleEnrollmentConfirmed: false,
-      }),
-    );
-
-    const response = await controller.status({
-      session: { user: null },
-    } as unknown as Request);
-
-    expect(setConsoleEnrollmentConfirmedStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to
-      .be.true;
-    expect(response.toJSON().data).to.include({
-      community_blocklist_enrollment: 'enrolled',
-      console_enrollment_confirmed: true,
-    });
-  });
-
-  it('should not persist CrowdSec Console enrollment already confirmed by the agent', async () => {
-    sinon.stub(communication, 'getCrowdSecStatus').resolves({
-      crowdsec: { installed: true },
-      community_blocklist_enrollment: 'enrolled',
-    });
-    findInstallationStub.withArgs(fwcProduct.firewall.id).resolves(
-      Object.assign(new CrowdSecInstallation(), {
-        mode: CrowdSecInstallationMode.Lapi,
-        consoleEnrollmentConfirmed: true,
-      }),
-    );
-
-    await controller.status({ session: { user: null } } as unknown as Request);
-
-    expect(setConsoleEnrollmentConfirmedStub.called).to.be.false;
+    expect(response.toJSON().data).to.include({ console_enrollment_confirmed: true });
   });
 
   it('should forward CrowdSec decision filters to the agent', async () => {
