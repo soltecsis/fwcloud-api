@@ -886,6 +886,15 @@ export class Routes extends RouteCollection {
               .post('/lapi/connectivity', CrowdSecClusterController, 'checkLapiConnectivity')
               .name('fwclouds.clusters.system.crowdsec.lapi.connectivity');
             router
+              .post('/topology/lapi-master', CrowdSecClusterController, 'installLapiMaster')
+              .name('fwclouds.clusters.system.crowdsec.topology.lapi.master.install');
+            router
+              .post('/topology/cancel', CrowdSecClusterController, 'cancelLapiMasterTopology')
+              .name('fwclouds.clusters.system.crowdsec.topology.cancel');
+            router
+              .post('/console/enroll', CrowdSecClusterController, 'enrollConsole')
+              .name('fwclouds.clusters.system.crowdsec.console.enroll');
+            router
               .post('/machines/install', CrowdSecClusterController, 'installMachine')
               .name('fwclouds.clusters.system.crowdsec.machines.install');
             router

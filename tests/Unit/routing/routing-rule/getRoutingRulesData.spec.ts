@@ -41,8 +41,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
   let fwc: FwCloudProduct;
 
   let routingRules:
-    | RoutingRulesData<RoutingRuleItemForCompiler>[]
-    | RoutingRulesData<ItemForGrid>[];
+    RoutingRulesData<RoutingRuleItemForCompiler>[] | RoutingRulesData<ItemForGrid>[];
   let items: RoutingRuleItemForCompiler[] | ItemForGrid[];
   let manager: EntityManager;
 
