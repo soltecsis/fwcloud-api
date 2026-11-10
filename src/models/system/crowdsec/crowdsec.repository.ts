@@ -65,6 +65,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       machineName: null,
       localRemediation: true,
       machineConnectivityPending: false,
+      centralLapiEnabled: false,
       consoleEnrollmentConfirmed: false,
     });
   }
@@ -76,6 +77,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
       ...installation,
       mode: CrowdSecInstallationMode.Machine,
       machineConnectivityPending: installation.machineConnectivityPending ?? false,
+      centralLapiEnabled: false,
       consoleEnrollmentConfirmed: false,
     });
   }
