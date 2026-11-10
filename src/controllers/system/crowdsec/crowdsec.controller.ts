@@ -1739,6 +1739,28 @@ export class CrowdSecController extends Controller {
         this._firewall,
         true,
       );
+      const localLapiNodes = [{ firewall: this._firewall, communication: remoteCommunication }];
+      try {
+        channel.emit(
+          'message',
+          new ProgressPayload('info', false, 'Enabling remote CrowdSec Local API access'),
+        );
+        await lapiService.configureListeners(localLapiNodes, '0.0.0.0:8080');
+        await lapiService.setCentralLapiEnabled(localLapiNodes, true);
+        channel.emit(
+          'message',
+          new ProgressPayload('success', false, 'Remote CrowdSec Local API access is enabled'),
+        );
+      } catch {
+        channel.emit(
+          'message',
+          new ProgressPayload(
+            'warning',
+            false,
+            'CrowdSec LAPI transition completed successfully, but remote Local API access could not be enabled. You can enable it from the Status panel',
+          ),
+        );
+      }
       if (enrollmentKey !== undefined) {
         channel.emit('message', new ProgressPayload('info', false, 'Enrolling CrowdSec Console'));
         try {
@@ -2069,6 +2091,30 @@ export class CrowdSecController extends Controller {
       true,
     );
     await this.getCrowdSecInstallationRepository().saveLapiInstallation(this._firewall.id);
+
+    const lapiService = this.lapiService();
+    const localLapiNodes = [{ firewall: this._firewall, communication }];
+    try {
+      channel.emit(
+        'message',
+        new ProgressPayload('info', false, 'Enabling remote CrowdSec Local API access'),
+      );
+      await lapiService.configureListeners(localLapiNodes, '0.0.0.0:8080');
+      await lapiService.setCentralLapiEnabled(localLapiNodes, true);
+      channel.emit(
+        'message',
+        new ProgressPayload('success', false, 'Remote CrowdSec Local API access is enabled'),
+      );
+    } catch {
+      channel.emit(
+        'message',
+        new ProgressPayload(
+          'warning',
+          false,
+          'CrowdSec installation completed successfully, but remote Local API access could not be enabled. You can enable it from the Status panel',
+        ),
+      );
+    }
 
     if (enrollmentKey !== undefined) {
       channel.emit('message', new ProgressPayload('info', false, 'Enrolling CrowdSec Console'));

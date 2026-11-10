@@ -2291,6 +2291,38 @@ export class CrowdSecClusterController extends Controller {
           node.id,
         );
         await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(node, true);
+        const localLapiNodes = [{ firewall: node, communication }];
+        try {
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'info',
+              false,
+              "Enabling remote CrowdSec Local API access on node '" + node.name + "'",
+            ),
+          );
+          await lapiService.configureListeners(localLapiNodes, '0.0.0.0:8080');
+          await lapiService.setCentralLapiEnabled(localLapiNodes, true);
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'success',
+              false,
+              "Remote CrowdSec Local API access is enabled on node '" + node.name + "'",
+            ),
+          );
+        } catch {
+          channel.emit(
+            'message',
+            new ProgressPayload(
+              'warning',
+              false,
+              "CrowdSec LAPI transition completed on node '" +
+                node.name +
+                "', but remote Local API access could not be enabled. You can enable it from the Status panel",
+            ),
+          );
+        }
         results.push({
           firewall_id: node.id,
           name: node.name,

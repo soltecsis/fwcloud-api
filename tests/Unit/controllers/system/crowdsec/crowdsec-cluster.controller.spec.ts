@@ -759,6 +759,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     const prepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
     sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    const configureStub = sinon
+      .stub(firstCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
     const saveLapiInstallation = sinon
       .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
       .resolves(lapiInstallation(firstNode.id));
@@ -778,8 +781,57 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
 
     expect(prepare.calledOnce).to.be.true;
     expect(saveLapiInstallation.calledOnceWithExactly(firstNode.id)).to.be.true;
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(setCentralLapiEnabledStub.calledOnceWithExactly(firstNode.id, true)).to.be.true;
     expect(removeMachine.calledOnceWithExactly('cluster-master')).to.be.true;
     expect(setCrowdSecCompatibilityStub.calledWith(firstNode, true)).to.be.true;
+    expect(response.toJSON().data).to.deep.equal({
+      completed: true,
+      nodes: [
+        {
+          firewall_id: firstNode.id,
+          name: firstNode.name,
+          machine_name: 'cluster-master',
+          status: 'completed',
+          source_machine_removed: true,
+          source_bouncer_cleanup_required: true,
+        },
+      ],
+    });
+  });
+
+  it('should retain a completed LAPI cluster transition when remote listener configuration fails', async () => {
+    (controller as any)._cluster.firewalls = [firstNode];
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id
+        ? lapiInstallation(centralFirewall.id)
+        : firewallId === firstNode.id
+          ? machineInstallation(firstNode.id, 'cluster-master', true)
+          : null,
+    );
+    sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(firstCommunication, 'finalizeCrowdSecTransition').resolves({});
+    const configureStub = sinon
+      .stub(firstCommunication, 'configureCrowdSecCentralLapi')
+      .rejects(new Error('listener unavailable'));
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(firstNode.id));
+    sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Lapi,
+        localRemediation: true,
+        centralFirewallId: undefined,
+        lapiUrl: undefined,
+      }),
+    );
+
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(setCentralLapiEnabledStub.called).to.be.false;
     expect(response.toJSON().data).to.deep.equal({
       completed: true,
       nodes: [
