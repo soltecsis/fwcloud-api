@@ -2977,6 +2977,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const configureStub = sinon
       .stub(communication, 'configureCrowdSecCentralLapi')
       .rejects(new Error('listener unavailable'));
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves({});
     sinon.stub(Channel, 'fromRequest').resolves(channel);
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
     const messages: ProgressPayload[] = [];
@@ -2984,9 +2985,13 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       messages.push(message.payload as ProgressPayload),
     );
 
-    const response = await controller.install({ session: { user: null } } as unknown as Request);
+    const response = await controller.install({
+      body: { enrollmentKey: 'crowdsec-enrollment-key' },
+      session: { user: null },
+    } as unknown as Request);
 
     expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(configureStub.calledBefore(enrollStub)).to.be.true;
     expect(setCentralLapiEnabledStub.called).to.be.false;
     expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
@@ -2997,6 +3002,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
         false,
         'CrowdSec installation completed successfully, but remote Local API access could not be enabled. You can enable it from the Status panel',
       ),
+      new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
+      new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);
     expect(response.toJSON().data).to.deep.equal({ crowdsec });
