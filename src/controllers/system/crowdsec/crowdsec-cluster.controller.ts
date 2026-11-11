@@ -551,7 +551,14 @@ export class CrowdSecClusterController extends Controller {
         });
     }
 
-    return this.installTopologyMachines(masterNode, slaves, lapiUrl, channel, enrollmentKey);
+    return this.installTopologyMachines(
+      masterNode,
+      slaves,
+      lapiUrl,
+      channel,
+      enrollmentKey,
+      topologyMode !== 'new',
+    );
   }
 
   private async installTopologyMachines(
@@ -560,6 +567,7 @@ export class CrowdSecClusterController extends Controller {
     lapiUrl: string,
     channel: Channel,
     enrollmentKey?: string,
+    convertExistingSlaves: boolean = false,
   ): Promise<ResponseBuilder> {
     const { firewall: master } = masterNode;
     const lapiService = this.lapiService();
@@ -591,6 +599,12 @@ export class CrowdSecClusterController extends Controller {
               status: 'completed',
             });
             continue;
+          }
+          if (!convertExistingSlaves) {
+            throw new HttpException(
+              'CrowdSec Cluster topology contains an incompatible slave node',
+              409,
+            );
           }
           await this.convertTopologySlaveToMachine(
             slave,
@@ -2902,7 +2916,7 @@ export class CrowdSecClusterController extends Controller {
   private clusterTopologyMode(
     nodes: Array<{ node: Firewall; installation: CrowdSecInstallation | null }>,
   ): 'new' | 'topology' | CrowdSecInstallationMode.Lapi | CrowdSecInstallationMode.Machine {
-    if (nodes.every(({ installation }) => installation === null)) {
+    if (nodes[0].installation === null) {
       return 'new';
     }
     if (nodes.every(({ installation }) => installation?.mode === CrowdSecInstallationMode.Lapi)) {
