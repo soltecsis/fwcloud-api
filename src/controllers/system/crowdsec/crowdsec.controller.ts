@@ -523,7 +523,7 @@ export class CrowdSecController extends Controller {
 
     const lapiService = this.lapiService();
     const centralFirewall = await this.getCentralFirewall(installation.centralFirewallId);
-    const centralLapiNodes = await lapiService.getCentralNodes(centralFirewall);
+    const centralLapiNodes = await lapiService.getLapiNodes(centralFirewall);
     await lapiService.preflight(
       centralLapiNodes,
       CrowdSecLapiSharedService.listenerUriForLapiUrl(installation.lapiUrl),
@@ -2241,7 +2241,7 @@ export class CrowdSecController extends Controller {
       return undefined;
     }
 
-    const nodes = await this.lapiService().getCentralNodes(this._firewall);
+    const nodes = await this.lapiService().getLapiNodes(this._firewall);
     return nodes.length > 1 ? nodes : undefined;
   }
 

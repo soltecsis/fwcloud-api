@@ -1585,18 +1585,52 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster remediation transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req, false);
+    const nodes = await this.getAuthorizedNodes(req);
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const installations = new Map(
+      await Promise.all(
+        [...this._cluster.firewalls].map(
+          async (node) =>
+            [node.id, await installationRepository.findByFirewallId(node.id)] as const,
+        ),
+      ),
+    );
+    const hasLapiNodes = [...installations.values()].some(
+      (installation) => installation?.mode === CrowdSecInstallationMode.Lapi,
+    );
+    const hasMachineNodes = [...installations.values()].some(
+      (installation) => installation?.mode === CrowdSecInstallationMode.Machine,
+    );
+    const selectedNodeIds = req.body.nodeIds as number[] | undefined;
+    if (selectedNodeIds !== undefined) {
+      if (selectedNodeIds.length !== 1 || !hasLapiNodes || !hasMachineNodes) {
+        throw new HttpException(
+          'CrowdSec node selection is only supported for mixed LAPI and Machine cluster topologies',
+          422,
+        );
+      }
+      if (
+        nodes[0] === undefined ||
+        installations.get(nodes[0].id)?.mode !== CrowdSecInstallationMode.Machine
+      ) {
+        throw new HttpException(
+          'Selected CrowdSec cluster node is not a Machine installation',
+          422,
+        );
+      }
+    } else if (hasLapiNodes && hasMachineNodes) {
+      throw new HttpException(
+        'CrowdSec mixed LAPI and Machine cluster topology requires a selected Machine node',
+        422,
+      );
+    }
     const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const providedBouncerApiKey = await this.optionalBouncerApiKey(req, req.body.bouncerApiKey);
     if (req.body.localRemediation && providedBouncerApiKey === undefined) {
-      const installations = await Promise.all(
-        nodes.map((node) =>
-          new CrowdSecInstallationRepository(db.getSource().manager).findByFirewallId(node.id),
-        ),
-      );
-      if (installations.some((installation) => installation?.centralFirewallId === null)) {
+      const targetInstallations = nodes.map((node) => installations.get(node.id));
+      if (targetInstallations.some((installation) => installation?.centralFirewallId === null)) {
         throw new HttpException(
           'CrowdSec Firewall Bouncer API key is required for local remediation',
           422,
@@ -1609,7 +1643,13 @@ export class CrowdSecClusterController extends Controller {
 
     channel.emit(
       'message',
-      new ProgressPayload('start', false, 'Changing CrowdSec local remediation in cluster nodes'),
+      new ProgressPayload(
+        'start',
+        false,
+        selectedNodeIds === undefined
+          ? 'Changing CrowdSec local remediation in cluster nodes'
+          : 'Changing CrowdSec local remediation on the selected cluster node',
+      ),
     );
     const completedAllNodes = await this.runSequentialNodeOperations(nodes, async (node) => {
       this.requireInitialNodeState(initialNodeStates, node);
@@ -1619,9 +1659,7 @@ export class CrowdSecClusterController extends Controller {
       let recoveryRequired = false;
       let machineName = '';
       try {
-        const installation = await new CrowdSecInstallationRepository(
-          db.getSource().manager,
-        ).findByFirewallId(node.id);
+        const installation = installations.get(node.id);
         if (
           installation?.mode !== CrowdSecInstallationMode.Machine ||
           installation.machineName === null ||
@@ -1645,7 +1683,7 @@ export class CrowdSecClusterController extends Controller {
         }
         const centralLapiNodes =
           req.body.localRemediation && !externalLapi
-            ? await lapiService.getCentralNodes(
+            ? await lapiService.getLapiNodes(
                 await lapiService.getCentralFirewall(installation.centralFirewallId as number),
               )
             : [];
@@ -1785,7 +1823,9 @@ export class CrowdSecClusterController extends Controller {
         'end',
         !completed,
         completed
-          ? 'CrowdSec local remediation changed on all cluster nodes'
+          ? selectedNodeIds === undefined
+            ? 'CrowdSec local remediation changed on all cluster nodes'
+            : 'CrowdSec local remediation changed on the selected cluster node'
           : 'CrowdSec local remediation changed with node failures',
       ),
     );
@@ -2223,7 +2263,21 @@ export class CrowdSecClusterController extends Controller {
       throw new HttpException('Invalid CrowdSec cluster role transition target', 422);
     }
 
-    const nodes = await this.getAuthorizedNodes(req, false);
+    const allNodes = await this.getAuthorizedNodes(req, false);
+    const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
+    const nodes = (
+      await Promise.all(
+        allNodes.map(async (node) => ({
+          node,
+          installation: await installationRepository.findByFirewallId(node.id),
+        })),
+      )
+    )
+      .filter(({ installation }) => installation?.mode === CrowdSecInstallationMode.Machine)
+      .map(({ node }) => node);
+    if (nodes.length === 0) {
+      throw new HttpException('CrowdSec cluster has no Machine installations to convert', 409);
+    }
     const initialNodeStates = await this.captureInitialNodeStates(nodes);
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
@@ -2242,9 +2296,7 @@ export class CrowdSecClusterController extends Controller {
       let recoveryRequired = false;
       let machineName = '';
       try {
-        const installation = await new CrowdSecInstallationRepository(
-          db.getSource().manager,
-        ).findByFirewallId(node.id);
+        const installation = await installationRepository.findByFirewallId(node.id);
         if (
           installation?.mode !== CrowdSecInstallationMode.Machine ||
           installation.machineName === null ||

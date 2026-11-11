@@ -48,6 +48,7 @@ import {
   CrowdSecInstallationMode,
 } from '../../../../../src/models/system/crowdsec/crowdsec-installation.model';
 import { CrowdSecBlockingStatisticsSharedService } from '../../../../../src/controllers/system/crowdsec/crowdsec-blocking-statistics-shared.service';
+import { CrowdSecLapiSharedService } from '../../../../../src/controllers/system/crowdsec/crowdsec-lapi-shared.service';
 import { PgpHelper } from '../../../../../src/utils/pgp';
 
 describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
@@ -800,6 +801,46 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     });
   });
 
+  it('should leave existing LAPI nodes unchanged when converting a mixed cluster to LAPI', async () => {
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === centralFirewall.id || firewallId === firstNode.id
+        ? lapiInstallation(firewallId)
+        : firewallId === secondNode.id
+          ? machineInstallation(secondNode.id, 'cluster-slave', true)
+          : null,
+    );
+    const firstPrepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    const secondPrepare = sinon.stub(secondCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(secondCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(secondCommunication, 'finalizeCrowdSecTransition').resolves({});
+    sinon
+      .stub(secondCommunication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
+    sinon
+      .stub(CrowdSecInstallationRepository.prototype, 'saveLapiInstallation')
+      .resolves(lapiInstallation(secondNode.id));
+    sinon.stub(centralCommunication, 'removeCrowdSecLapiMachine').resolves({});
+
+    const response = await controller.transitionRole(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Lapi,
+        localRemediation: true,
+        centralFirewallId: undefined,
+        lapiUrl: undefined,
+      }),
+    );
+
+    expect(firstPrepare.called).to.be.false;
+    expect(secondPrepare.calledOnce).to.be.true;
+    expect(response.toJSON().data).to.include({ completed: true });
+    expect((response.toJSON().data as any).nodes).to.have.length(1);
+    expect((response.toJSON().data as any).nodes[0]).to.include({
+      firewall_id: secondNode.id,
+      status: 'completed',
+    });
+  });
+
   it('should retain a completed LAPI cluster transition when remote listener configuration fails', async () => {
     (controller as any)._cluster.firewalls = [firstNode];
     findByFirewallIdStub.callsFake(async (firewallId: number) =>
@@ -962,6 +1003,52 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(response.toJSON().data).to.include({ completed: true });
   });
 
+  it('should change remediation only on the selected Machine in a mixed cluster', async () => {
+    const slaveInstallation = machineInstallation(secondNode.id, 'cluster-slave', true);
+    slaveInstallation.centralFirewallId = firstNode.id;
+    slaveInstallation.lapiUrl = 'http://192.0.2.11:8080';
+    findByFirewallIdStub.callsFake(async (firewallId: number) =>
+      firewallId === firstNode.id
+        ? lapiInstallation(firstNode.id)
+        : firewallId === secondNode.id
+          ? slaveInstallation
+          : firewallId === centralFirewall.id
+            ? lapiInstallation(centralFirewall.id)
+            : null,
+    );
+    findCentralFirewallStub.callsFake(async ({ where }: { where: { id: number } }) =>
+      where.id === firstNode.id ? firstNode : centralFirewall,
+    );
+    const getLapiNodes = sinon
+      .stub(CrowdSecLapiSharedService.prototype, 'getLapiNodes')
+      .resolves([{ firewall: firstNode, communication: firstCommunication }]);
+    const firstPrepare = sinon.stub(firstCommunication, 'prepareCrowdSecTransition').resolves({});
+    const secondPrepare = sinon.stub(secondCommunication, 'prepareCrowdSecTransition').resolves({});
+    sinon.stub(secondCommunication, 'activateCrowdSecTransition').resolves({});
+    sinon.stub(secondCommunication, 'finalizeCrowdSecTransition').resolves({});
+
+    const response = await controller.transitionRemediation(
+      request({
+        confirm: true,
+        mode: CrowdSecInstallationMode.Machine,
+        centralFirewallId: undefined,
+        lapiUrl: undefined,
+        localRemediation: false,
+        nodeIds: [secondNode.id],
+      }),
+    );
+
+    expect(firstPrepare.called).to.be.false;
+    expect(secondPrepare.calledOnce).to.be.true;
+    expect(getLapiNodes.calledOnceWithExactly(firstNode)).to.be.true;
+    expect(response.toJSON().data).to.include({ completed: true });
+    expect((response.toJSON().data as any).nodes).to.have.length(1);
+    expect((response.toJSON().data as any).nodes[0]).to.include({
+      firewall_id: secondNode.id,
+      status: 'completed',
+    });
+  });
+
   it('should validate cluster remediation without a central LAPI target', async () => {
     await expect(
       new Validator(
@@ -1000,7 +1087,7 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
     expect(configureCentralLapiStub.called).to.be.false;
   });
 
-  it('should reject selecting individual nodes for a cluster transition', async () => {
+  it('should reject selecting individual nodes for a uniform cluster remediation transition', async () => {
     await expect(
       controller.transitionRemediation(
         request({
@@ -1012,7 +1099,9 @@ describe(describeName(CrowdSecClusterController.name + ' Unit Tests'), () => {
           nodeIds: [firstNode.id],
         }),
       ),
-    ).to.be.rejectedWith('CrowdSec cluster transitions must include every cluster node');
+    ).to.be.rejectedWith(
+      'CrowdSec node selection is only supported for mixed LAPI and Machine cluster topologies',
+    );
   });
 
   it('should roll back activated nodes after a later cluster transition failure', async () => {

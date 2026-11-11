@@ -698,6 +698,56 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(bouncerRemovalResponse.toJSON().data).to.include({ removed: true });
   });
 
+  it('should handle Machine and Bouncer removals on the only LAPI node of a mixed cluster', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    findInstallationStub
+      .withArgs(secondFirewall.id)
+      .resolves(
+        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Machine }),
+      );
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    sinon.stub(communication, 'getCrowdSecLapiMachines').resolves({ machines: [] });
+    const localMachineRemoveStub = sinon
+      .stub(communication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const localBouncerRemoveStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves({});
+    const secondMachineRemoveStub = sinon.stub(secondCommunication, 'removeCrowdSecLapiMachine');
+    const secondBouncerRemoveStub = sinon.stub(secondCommunication, 'removeCrowdSecBouncer');
+
+    await controller.removeMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+    await controller.removeBouncer({
+      params: { bouncer: 'remote-bouncer' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(localMachineRemoveStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(localBouncerRemoveStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
+    expect(secondMachineRemoveStub.called).to.be.false;
+    expect(secondBouncerRemoveStub.called).to.be.false;
+  });
+
   it('should report partial Machine validation and compensate failed Bouncer replication', async () => {
     const secondCommunication = new AgentCommunication({
       protocol: 'https',
