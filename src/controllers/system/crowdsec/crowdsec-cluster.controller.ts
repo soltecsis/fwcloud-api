@@ -469,18 +469,23 @@ export class CrowdSecClusterController extends Controller {
     const channel = await Channel.fromRequest(req);
     const lapiService = this.lapiService();
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
-    const existingMasterInstallation = await installationRepository.findByFirewallId(master.id);
-
-    if (existingMasterInstallation?.mode === CrowdSecInstallationMode.Machine) {
-      throw new HttpException('CrowdSec LAPI master cannot be installed over a Machine', 409);
-    }
+    const existingInstallations = await Promise.all(
+      [master, ...slaves].map(async (node) => ({
+        node,
+        installation: await installationRepository.findByFirewallId(node.id),
+      })),
+    );
+    const topologyMode = this.clusterTopologyMode(existingInstallations);
+    const existingMasterInstallation = existingInstallations.find(
+      ({ node }) => node.id === master.id,
+    )?.installation;
 
     channel.emit(
       'message',
       new ProgressPayload('start', false, 'Installing CrowdSec LAPI master in cluster'),
     );
     const communication = await CrowdSecLapiSharedService.agentCommunication(master, true);
-    if (existingMasterInstallation === null) {
+    if (topologyMode === 'new') {
       channel.emit(
         'message',
         new ProgressPayload('info', false, `Installing CrowdSec LAPI on node '${master.name}'`),
@@ -495,6 +500,13 @@ export class CrowdSecClusterController extends Controller {
       );
       await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(master, true);
       await installationRepository.saveLapiInstallation(master.id);
+    } else if (topologyMode === CrowdSecInstallationMode.Machine) {
+      await this.convertTopologyMasterToLapi(
+        master,
+        existingInstallations.find(({ node }) => node.id === master.id)
+          ?.installation as CrowdSecInstallation,
+        channel,
+      );
     }
 
     const masterNode: CentralLapiNode = { firewall: master, communication };
@@ -506,6 +518,13 @@ export class CrowdSecClusterController extends Controller {
       progress,
     );
     await lapiService.enable([masterNode]);
+    if (topologyMode === CrowdSecInstallationMode.Machine && existingMasterInstallation) {
+      await this.cleanupTopologySourceMachine(
+        existingMasterInstallation,
+        CrowdSecLapiSharedService.machineNameForFirewall(master),
+        masterNode,
+      );
+    }
 
     channel.emit(
       'message',
@@ -573,10 +592,20 @@ export class CrowdSecClusterController extends Controller {
             });
             continue;
           }
-          throw new HttpException(
-            'CrowdSec Cluster topology contains an incompatible slave node',
-            409,
+          await this.convertTopologySlaveToMachine(
+            slave,
+            existingInstallation,
+            masterNode,
+            lapiUrl,
+            channel,
           );
+          results.push({
+            firewall_id: slave.id,
+            name: slave.name,
+            machine_name: existingInstallation.machineName ?? machineName,
+            status: 'completed',
+          });
+          continue;
         }
         const communication = await CrowdSecLapiSharedService.agentCommunication(slave, false);
         const attempt: ClusterTopologyMachineAttempt = {
@@ -2869,6 +2898,195 @@ export class CrowdSecClusterController extends Controller {
       localRemediation,
       ...(machineConnectivityPending ? { machineConnectivityPending: true } : {}),
     });
+  }
+
+  private clusterTopologyMode(
+    nodes: Array<{ node: Firewall; installation: CrowdSecInstallation | null }>,
+  ): 'new' | 'topology' | CrowdSecInstallationMode.Lapi | CrowdSecInstallationMode.Machine {
+    if (nodes.every(({ installation }) => installation === null)) {
+      return 'new';
+    }
+    if (nodes.every(({ installation }) => installation?.mode === CrowdSecInstallationMode.Lapi)) {
+      return CrowdSecInstallationMode.Lapi;
+    }
+    if (
+      nodes.every(({ installation }) => installation?.mode === CrowdSecInstallationMode.Machine)
+    ) {
+      return CrowdSecInstallationMode.Machine;
+    }
+    if (
+      nodes[0].installation?.mode === CrowdSecInstallationMode.Lapi &&
+      nodes
+        .slice(1)
+        .every(
+          ({ installation }) =>
+            installation?.mode === CrowdSecInstallationMode.Lapi ||
+            installation?.mode === CrowdSecInstallationMode.Machine,
+        )
+    ) {
+      return 'topology';
+    }
+    throw new HttpException(
+      'CrowdSec Cluster LAPI topology conversion requires every node to use the same installation mode',
+      409,
+    );
+  }
+
+  private async convertTopologyMasterToLapi(
+    master: Firewall,
+    installation: CrowdSecInstallation,
+    channel: Channel,
+  ): Promise<void> {
+    if (
+      installation.mode !== CrowdSecInstallationMode.Machine ||
+      installation.machineName === null ||
+      installation.lapiUrl === null
+    ) {
+      throw new HttpException('CrowdSec Machine installation was not found', 409);
+    }
+    const communication = await CrowdSecLapiSharedService.agentCommunication(master, false);
+    const backend =
+      (await Firewall.getCrowdSecFirewallBouncerBackend(master.fwCloudId, master.id)) ?? 'iptables';
+    const transitionId = uuid.v4();
+    channel.emit(
+      'message',
+      new ProgressPayload(
+        'info',
+        false,
+        `Converting CrowdSec master '${master.name}' to a Local API`,
+      ),
+    );
+    await communication.prepareCrowdSecTransition(
+      {
+        transitionId,
+        confirm: true,
+        expected: {
+          mode: 'machine',
+          localRemediation: installation.localRemediation,
+          machineName: installation.machineName,
+          lapiUrl: installation.lapiUrl,
+        },
+        target: { mode: 'lapi', localRemediation: true },
+        authorityChanged: true,
+        backend,
+        managedBouncerName: CrowdSecLapiSharedService.managedBouncerNameForCluster(this._cluster),
+        machineConnectivityPending: installation.machineConnectivityPending === true,
+      },
+      channel,
+    );
+    try {
+      await communication.activateCrowdSecTransition({ transitionId }, channel);
+      await new CrowdSecInstallationRepository(db.getSource().manager).saveLapiInstallation(
+        master.id,
+      );
+      await new FirewallRepository(db.getSource().manager).setCrowdSecCompatibility(master, true);
+      await communication.finalizeCrowdSecTransition(transitionId);
+    } catch (error) {
+      try {
+        await communication.recoverCrowdSecTransition(transitionId);
+      } catch {
+        // The agent retains recovery data if the previous Machine configuration cannot be restored.
+      }
+      throw error;
+    }
+  }
+
+  private async convertTopologySlaveToMachine(
+    slave: Firewall,
+    installation: CrowdSecInstallation,
+    masterNode: CentralLapiNode,
+    lapiUrl: string,
+    channel: Channel,
+  ): Promise<void> {
+    const machineName = CrowdSecLapiSharedService.machineNameForFirewall(slave);
+    const communication = await CrowdSecLapiSharedService.agentCommunication(slave, false);
+    const backend =
+      (await Firewall.getCrowdSecFirewallBouncerBackend(slave.fwCloudId, slave.id)) ?? 'iptables';
+    const transitionId = uuid.v4();
+    const expected =
+      installation.mode === CrowdSecInstallationMode.Lapi
+        ? { mode: 'lapi' as const, localRemediation: true }
+        : {
+            mode: 'machine' as const,
+            localRemediation: installation.localRemediation,
+            machineName: installation.machineName ?? machineName,
+            lapiUrl: installation.lapiUrl ?? lapiUrl,
+          };
+    channel.emit(
+      'message',
+      new ProgressPayload('info', false, `Configuring CrowdSec Machine on node '${slave.name}'`),
+    );
+    await communication.prepareCrowdSecTransition(
+      {
+        transitionId,
+        confirm: true,
+        expected,
+        target: {
+          mode: 'machine',
+          localRemediation: true,
+          machineName,
+          lapiUrl,
+        },
+        authorityChanged: true,
+        backend,
+        managedBouncerName: CrowdSecLapiSharedService.managedBouncerNameForCluster(this._cluster),
+      },
+      channel,
+    );
+    try {
+      const progress = (message: string) =>
+        channel.emit('message', new ProgressPayload('info', false, message));
+      await this.lapiService().replicateMachineCredentials(
+        [masterNode],
+        communication,
+        machineName,
+        progress,
+      );
+      const bouncerApiKey = CrowdSecLapiSharedService.generateBouncerApiKey();
+      await this.lapiService().replicateBouncer([masterNode], machineName, bouncerApiKey, progress);
+      await communication.activateCrowdSecTransition({ transitionId, bouncerApiKey }, channel);
+      await this.persistMachineNode({
+        node: slave,
+        centralFirewallId: masterNode.firewall.id,
+        lapiUrl,
+        machineName,
+        localRemediation: true,
+      });
+      await communication.finalizeCrowdSecTransition(transitionId);
+      await this.cleanupTopologySourceMachine(installation, machineName, masterNode);
+    } catch (error) {
+      try {
+        await communication.recoverCrowdSecTransition(transitionId);
+      } catch {
+        // The agent retains recovery data if the previous configuration cannot be restored.
+      }
+      throw error;
+    }
+  }
+
+  private async cleanupTopologySourceMachine(
+    installation: CrowdSecInstallation,
+    machineName: string,
+    masterNode: CentralLapiNode,
+  ): Promise<void> {
+    if (
+      installation.mode !== CrowdSecInstallationMode.Machine ||
+      installation.centralFirewallId === null ||
+      installation.centralFirewallId === masterNode.firewall.id
+    ) {
+      return;
+    }
+    try {
+      const sourceFirewall = await this.lapiService().getCentralFirewall(
+        installation.centralFirewallId,
+      );
+      const sourceNodes = await this.lapiService().getLapiNodes(sourceFirewall);
+      const sourceMachineName = installation.machineName ?? machineName;
+      await this.lapiService().cleanupBouncer(sourceNodes, sourceMachineName);
+      await this.lapiService().cleanupMachine(sourceNodes, sourceMachineName);
+    } catch {
+      // The new Machine is active against the cluster master; source cleanup can be retried separately.
+    }
   }
 
   private async persistMachineNode({
