@@ -23,6 +23,8 @@
 import { Repository } from '../../database/repository';
 import { Firewall, FireWallOptMask } from './Firewall';
 import { EntityManager, In } from 'typeorm';
+import db from '../../database/database-manager';
+import { PolicyRule } from '../policy/PolicyRule';
 
 export class FirewallRepository extends Repository<Firewall> {
   constructor(manager?: EntityManager) {
@@ -79,8 +81,11 @@ export class FirewallRepository extends Repository<Firewall> {
       })
       .execute();
 
-    return await this.findOneOrFail({
+    const updatedFirewall = await this.findOneOrFail({
       where: { id: firewall.id, fwCloudId: firewall.fwCloudId },
     });
+    await PolicyRule.checkSpecialRules(db.getQuery(), updatedFirewall.id, updatedFirewall.options);
+
+    return updatedFirewall;
   }
 }
