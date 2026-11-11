@@ -1710,12 +1710,11 @@ export class CrowdSecClusterController extends Controller {
             422,
           );
         }
-        const centralLapiNodes =
-          req.body.localRemediation && !externalLapi
-            ? await lapiService.getLapiNodes(
-                await lapiService.getCentralFirewall(installation.centralFirewallId as number),
-              )
-            : [];
+        const centralLapiNodes = !externalLapi
+          ? await lapiService.getLapiNodes(
+              await lapiService.getCentralFirewall(installation.centralFirewallId as number),
+            )
+          : [];
         const communication = await CrowdSecLapiSharedService.agentCommunication(node, false);
         const backend = req.body.localRemediation
           ? ((await Firewall.getCrowdSecFirewallBouncerBackend(node.fwCloudId, node.id)) ??
