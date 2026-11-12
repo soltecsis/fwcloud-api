@@ -88,6 +88,22 @@ export class CrowdSecLapiSharedService {
   }
 
   async getCentralNodes(centralFirewall: Firewall): Promise<CentralLapiNode[]> {
+    const firewalls = await this.centralClusterFirewalls(centralFirewall);
+    const nodes = await this.lapiNodes(firewalls);
+    if (nodes.length !== firewalls.length) {
+      throw new HttpException(
+        'Every central CrowdSec cluster node requires a LAPI CrowdSec installation',
+        409,
+      );
+    }
+    return nodes;
+  }
+
+  async getLapiNodes(centralFirewall: Firewall): Promise<CentralLapiNode[]> {
+    return this.lapiNodes(await this.centralClusterFirewalls(centralFirewall));
+  }
+
+  private async centralClusterFirewalls(centralFirewall: Firewall): Promise<Firewall[]> {
     const firewalls =
       centralFirewall.clusterId === null || centralFirewall.clusterId === undefined
         ? [centralFirewall]
@@ -97,20 +113,19 @@ export class CrowdSecLapiSharedService {
     if (firewalls.length === 0) {
       throw new HttpException('Central CrowdSec LAPI cluster has no firewall nodes', 409);
     }
+    return firewalls;
+  }
 
+  private async lapiNodes(firewalls: Firewall[]): Promise<CentralLapiNode[]> {
     const nodes: CentralLapiNode[] = [];
     for (const firewall of [...firewalls].sort((first, second) => first.id - second.id)) {
       const installation = await this.installationRepository.findByFirewallId(firewall.id);
-      if (installation?.mode !== CrowdSecInstallationMode.Lapi) {
-        throw new HttpException(
-          'Every central CrowdSec cluster node requires a LAPI CrowdSec installation',
-          409,
-        );
+      if (installation?.mode === CrowdSecInstallationMode.Lapi) {
+        nodes.push({
+          firewall,
+          communication: await CrowdSecLapiSharedService.agentCommunication(firewall, true),
+        });
       }
-      nodes.push({
-        firewall,
-        communication: await CrowdSecLapiSharedService.agentCommunication(firewall, true),
-      });
     }
     return nodes;
   }

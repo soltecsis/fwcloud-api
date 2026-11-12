@@ -21,6 +21,7 @@
 */
 
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -42,6 +43,12 @@ export class CrowdSecClusterTransitionDto {
 
   @IsBoolean()
   localRemediation: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  nodeIds?: number[];
 
   @IsOptional()
   @IsInt()

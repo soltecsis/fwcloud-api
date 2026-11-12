@@ -698,6 +698,56 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(bouncerRemovalResponse.toJSON().data).to.include({ removed: true });
   });
 
+  it('should handle Machine and Bouncer removals on the only LAPI node of a mixed cluster', async () => {
+    const secondCommunication = new AgentCommunication({
+      protocol: 'https',
+      host: '192.0.2.21',
+      port: 33033,
+      apikey: 'second-central-api-key',
+    });
+    const localFirewall = (controller as any)._firewall as Firewall;
+    localFirewall.clusterId = 1;
+    const secondFirewall = Object.assign(new Firewall(), fwcProduct.firewall, {
+      id: fwcProduct.firewall.id + 1,
+      clusterId: 1,
+      install_communication: FirewallInstallCommunication.Agent,
+      install_protocol: FirewallInstallProtocol.HTTPS,
+      getCommunication: async () => secondCommunication,
+    });
+    findInstallationStub
+      .withArgs(fwcProduct.firewall.id)
+      .resolves(Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Lapi }));
+    findInstallationStub
+      .withArgs(secondFirewall.id)
+      .resolves(
+        Object.assign(new CrowdSecInstallation(), { mode: CrowdSecInstallationMode.Machine }),
+      );
+    sinon
+      .stub(db.getSource().manager.getRepository(Firewall), 'find')
+      .resolves([localFirewall, secondFirewall]);
+    sinon.stub(communication, 'getCrowdSecLapiMachines').resolves({ machines: [] });
+    const localMachineRemoveStub = sinon
+      .stub(communication, 'removeCrowdSecLapiMachine')
+      .resolves({});
+    const localBouncerRemoveStub = sinon.stub(communication, 'removeCrowdSecBouncer').resolves({});
+    const secondMachineRemoveStub = sinon.stub(secondCommunication, 'removeCrowdSecLapiMachine');
+    const secondBouncerRemoveStub = sinon.stub(secondCommunication, 'removeCrowdSecBouncer');
+
+    await controller.removeMachine({
+      params: { machine: 'fwcloud-machine-01' },
+      session: { user: null },
+    } as unknown as Request);
+    await controller.removeBouncer({
+      params: { bouncer: 'remote-bouncer' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(localMachineRemoveStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
+    expect(localBouncerRemoveStub.calledOnceWithExactly('remote-bouncer')).to.be.true;
+    expect(secondMachineRemoveStub.called).to.be.false;
+    expect(secondBouncerRemoveStub.called).to.be.false;
+  });
+
   it('should report partial Machine validation and compensate failed Bouncer replication', async () => {
     const secondCommunication = new AgentCommunication({
       protocol: 'https',
@@ -1894,6 +1944,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const activateStub = sinon.stub(communication, 'activateCrowdSecTransition').resolves({
       phase: 'active_pending_finalize',
     });
+    const configureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
     sinon.stub(communication, 'finalizeCrowdSecTransition').resolves({ phase: 'completed' });
     sinon.stub(Channel, 'fromRequest').resolves(channel);
 
@@ -1909,6 +1962,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(removeMachineStub.calledOnceWithExactly('fwcloud-machine-01')).to.be.true;
     expect(activateStub.calledBefore(removeMachineStub)).to.be.true;
     expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(setCentralLapiEnabledStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to.be
+      .true;
     expect(response.toJSON()).to.include({ status: 200 });
     expect(response.toJSON().data).to.include({
       source_machine_removed: true,
@@ -2834,6 +2890,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
     const bouncerStub = sinon.stub(communication, 'installCrowdSecBouncer');
     const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole');
+    const configureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('nftables');
     const channelStub = sinon.stub(Channel, 'fromRequest').resolves(channel);
     const messages: ProgressPayload[] = [];
@@ -2850,9 +2909,14 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
       .true;
     expect(bouncerStub.called).to.be.false;
     expect(enrollStub.called).to.be.false;
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(setCentralLapiEnabledStub.calledOnceWithExactly(fwcProduct.firewall.id, true)).to.be
+      .true;
     expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Enabling remote CrowdSec Local API access'),
+      new ProgressPayload('success', false, 'Remote CrowdSec Local API access is enabled'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);
     const firewall = await db
@@ -2893,6 +2957,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const listener = new EventEmitter();
     const channel = new Channel('crowdsec-install', listener);
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
+    const configureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
     const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves({});
     sinon.stub(Channel, 'fromRequest').resolves(channel);
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
@@ -2907,6 +2974,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     } as unknown as Request);
 
     expect(crowdsecStub.calledBefore(enrollStub)).to.be.true;
+    expect(configureStub.calledBefore(enrollStub)).to.be.true;
     expect(
       enrollStub.calledOnceWithExactly({
         enrollmentKey: 'crowdsec-enrollment-key',
@@ -2915,6 +2983,8 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     ).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Enabling remote CrowdSec Local API access'),
+      new ProgressPayload('success', false, 'Remote CrowdSec Local API access is enabled'),
       new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
       new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
@@ -2927,6 +2997,9 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     const listener = new EventEmitter();
     const channel = new Channel('crowdsec-install', listener);
     sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
+    sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .resolves({ listen_uri: '0.0.0.0:8080' });
     sinon.stub(communication, 'enrollCrowdSecConsole').rejects(new Error('Console unavailable'));
     sinon.stub(Channel, 'fromRequest').resolves(channel);
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
@@ -2943,12 +3016,54 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
     expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
     expect(messages).to.deep.equal([
       new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Enabling remote CrowdSec Local API access'),
+      new ProgressPayload('success', false, 'Remote CrowdSec Local API access is enabled'),
       new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
       new ProgressPayload(
         'warning',
         false,
         'CrowdSec installation completed successfully, but Console enrollment failed. You can retry enrollment from the Status panel',
       ),
+      new ProgressPayload('end', false, 'CrowdSec installation finished'),
+    ]);
+    expect(response.toJSON().data).to.deep.equal({ crowdsec });
+  });
+
+  it('should retain a successful LAPI installation when remote listener configuration fails', async () => {
+    const crowdsec = { steps: [] };
+    const listener = new EventEmitter();
+    const channel = new Channel('crowdsec-install', listener);
+    sinon.stub(communication, 'installCrowdSec').resolves(crowdsec);
+    const configureStub = sinon
+      .stub(communication, 'configureCrowdSecCentralLapi')
+      .rejects(new Error('listener unavailable'));
+    const enrollStub = sinon.stub(communication, 'enrollCrowdSecConsole').resolves({});
+    sinon.stub(Channel, 'fromRequest').resolves(channel);
+    sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves('iptables');
+    const messages: ProgressPayload[] = [];
+    listener.on(channel.id, (message: SocketMessage) =>
+      messages.push(message.payload as ProgressPayload),
+    );
+
+    const response = await controller.install({
+      body: { enrollmentKey: 'crowdsec-enrollment-key' },
+      session: { user: null },
+    } as unknown as Request);
+
+    expect(configureStub.calledOnceWithExactly('0.0.0.0:8080')).to.be.true;
+    expect(configureStub.calledBefore(enrollStub)).to.be.true;
+    expect(setCentralLapiEnabledStub.called).to.be.false;
+    expect(saveLapiInstallationStub.calledOnceWithExactly(fwcProduct.firewall.id)).to.be.true;
+    expect(messages).to.deep.equal([
+      new ProgressPayload('start', false, 'Installing CrowdSec'),
+      new ProgressPayload('info', false, 'Enabling remote CrowdSec Local API access'),
+      new ProgressPayload(
+        'warning',
+        false,
+        'CrowdSec installation completed successfully, but remote Local API access could not be enabled. You can enable it from the Status panel',
+      ),
+      new ProgressPayload('info', false, 'Enrolling CrowdSec Console'),
+      new ProgressPayload('success', false, 'CrowdSec Console enrollment request completed'),
       new ProgressPayload('end', false, 'CrowdSec installation finished'),
     ]);
     expect(response.toJSON().data).to.deep.equal({ crowdsec });
@@ -2971,6 +3086,7 @@ describe(describeName(CrowdSecController.name + ' Unit Tests'), () => {
   it('should preserve the agent default backend when the compiler has no CrowdSec backend', async () => {
     const channel = new Channel('crowdsec-install', new EventEmitter());
     const crowdsecStub = sinon.stub(communication, 'installCrowdSec').resolves({ steps: [] });
+    sinon.stub(communication, 'configureCrowdSecCentralLapi').resolves({});
     sinon.stub(Channel, 'fromRequest').resolves(channel);
     sinon.stub(Firewall, 'getCrowdSecFirewallBouncerBackend').resolves(null);
 
