@@ -184,6 +184,10 @@ describe(describeName('Backup E2E tests'), () => {
     });
 
     describe('BackupController@restore', async () => {
+      afterEach(async () => {
+        await testSuite.resetDatabaseData({ rebuildSchema: true });
+      });
+
       let backup: Backup;
 
       beforeEach(async () => {

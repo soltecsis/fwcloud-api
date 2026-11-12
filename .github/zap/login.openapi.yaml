@@ -1,0 +1,54 @@
+openapi: 3.0.0
+info:
+  title: FWCloud login-only DAST scope
+  version: '1.0'
+servers:
+  - url: http://127.0.0.1:3131
+paths:
+  /user/login:
+    post:
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer, username, password, authCode, publicKey]
+              properties:
+                customer:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 32
+                  pattern: '^[a-zA-Z0-9]+$'
+                  default: zapuser
+                password:
+                  type: string
+                  minLength: 6
+                  maxLength: 64
+                  default: zapinvalid
+                authCode:
+                  type: string
+                  nullable: true
+                  default: ''
+                publicKey:
+                  type: string
+                  default: lab-client
+            example:
+              customer: 1
+              username: zapuser
+              password: zapinvalid
+              authCode: null
+              publicKey: lab-client
+      responses:
+        '200':
+          description: Successful authentication
+        '400':
+          description: Invalid input
+        '401':
+          description: Invalid credentials

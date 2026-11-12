@@ -1,0 +1,7 @@
+{
+  "reporterEnabled": "spec, mocha-junit-reporter, ./scripts/mocha-stats-reporter.cjs",
+  "mochaJunitReporterReporterOptions": {
+    "mochaFile": "reports/tests/junit.xml",
+    "includePending": true
+  }
+}

@@ -15,11 +15,18 @@
     "watch": "npm run build -- -w",
     "fwcloud": "node --no-warnings dist/src/cli/cli.js",
     "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
+    "test:ci": "NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors --forbid-only --fail-zero --reporter mocha-multi-reporters --reporter-options configFile=.github/mocha-reporters.json \"dist/tests/**/*spec.js\"",
+    "test:coverage:ci": "c8 --config .github/c8.json npm run test:ci",
+    "test:security": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --forbid-only --fail-zero \"dist/tests/e2e/security/**/*.spec.js\" dist/tests/Unit/gates/is-logged-in.spec.js",
+    "ci:reports": "node scripts/ci-reports.cjs",
+    "test:ci-tools": "node --test scripts/*.test.cjs && python3 .github/zap/auth-hook.test.py",
     "format": "prettier --check \"{src,app,lib,tests}/**/*.ts\"",
-    "format:check": "npm run format",
-    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\"",
+    "format:check": "npm run format && npm run format:ci",
+    "format:ci": "prettier --check \"scripts/**/*.cjs\" \".github/zap/**/*.cjs\"",
+    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\" \"scripts/**/*.cjs\" \".github/zap/**/*.cjs\"",
     "lint": "eslint src app lib tests --ext .ts --ignore-pattern '**/*.js' --ignore-pattern '**/*.cjs' --ignore-pattern '**/*.mjs' --no-error-on-unmatched-pattern",
-    "lint:check": "npm run lint",
+    "lint:check": "npm run lint && npm run lint:ci",
+    "lint:ci": "eslint --config scripts/eslint.config.cjs \"scripts/**/*.cjs\" \".github/zap/**/*.cjs\"",
     "lint:fix": "npm run lint -- --fix",
     "openapi:tsoa:spec": "node scripts/openapi/generate-ts-openapi.cjs",
     "openapi:tsoa:routes": "rm -rf docs/openapi/routes && tsoa routes --configuration tsoa.json",
@@ -41,14 +48,14 @@
     "child-process-promise": "2.2.1",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
-    "compression": "1.8.1",
+    "compression": "1.8.2",
     "convict": "6.2.5",
     "convict-format-with-moment": "6.2.0",
     "cors": "2.8.6",
     "cron": "4.4.0",
     "dotenv": "17.4.2",
     "easy-tree": "0.0.3",
-    "express": "5.2.1",
+    "express": "5.3.0",
     "express-session": "1.19.0",
     "form-data": "4.0.6",
     "fs-extra": "11.4.0",
@@ -98,6 +105,7 @@
     "@typescript-eslint/eslint-plugin": "8.66.0",
     "@typescript-eslint/parser": "8.66.0",
     "busboy": "1.6.0",
+    "c8": "12.0.0",
     "chai": "6.2.2",
     "chai-as-promised": "8.0.2",
     "chai-json-schema-ajv": "5.2.4",
@@ -107,8 +115,11 @@
     "eslint-plugin-prettier": "5.5.6",
     "globals": "17.9.0",
     "husky": "9.1.7",
+    "js-yaml": "4.3.2",
     "lint-staged": "16.4.0",
     "mocha": "11.3.0",
+    "mocha-junit-reporter": "2.2.1",
+    "mocha-multi-reporters": "1.5.2",
     "nodemon": "3.1.14",
     "prettier": "3.9.6",
     "sinon": "22.1.0",
@@ -119,11 +130,21 @@
     "@sinonjs/fake-timers": "15.4.0",
     "glob": "13.0.6",
     "cross-spawn": "7.0.6",
-    "serialize-javascript": "7.1.0",
+    "serialize-javascript": "7.1.4",
     "ts-deepmerge": "8.0.0",
     "ws": "8.21.3",
     "typeorm": {
       "uuid": "14.0.2"
+    },
+    "nodemon": {
+      "chokidar": "5.0.0"
+    },
+    "tsoa@7.0.0-alpha.0": {
+      "@tsoa/runtime@7.0.0-alpha.0": {
+        "express": {
+          "body-parser": "2.4.0"
+        }
+      }
     }
   },
   "allowScripts": {

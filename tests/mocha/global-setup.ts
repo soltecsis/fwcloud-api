@@ -28,6 +28,7 @@ import { DatabaseService } from '../../src/database/database.service';
 import * as fse from 'fs-extra';
 import * as path from 'path';
 import StringHelper from '../../src/utils/string.helper';
+import { DatabaseReset } from '../utils/database-reset';
 
 chai.should();
 chai.use(ChaiAsPromised);
@@ -39,6 +40,8 @@ export const playgroundPath: string = path.join(process.cwd(), 'tests', 'playgro
 
 export class TestSuite {
   public app: Application;
+  private databaseReset = new DatabaseReset();
+  private resetCount = 0;
 
   public async runApplication(): Promise<Application> {
     if (this.app) {
@@ -49,21 +52,27 @@ export class TestSuite {
     return this.app;
   }
 
-  public async resetDatabaseData(): Promise<void> {
-    if (this.app === null) {
+  public async resetDatabaseData(options: { rebuildSchema?: boolean } = {}): Promise<void> {
+    if (!this.app) {
       await this.runApplication();
     }
 
     if (this.app) {
-      const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(
+      const dbService: DatabaseService = await this.app.getService<DatabaseService>(
         DatabaseService.name,
       );
 
-      await dbService.resetMigrations();
-      await dbService.runMigrations();
-      //await dbService.removeData();
-      await dbService.feedDefaultData();
+      await this.databaseReset.reset(dbService, options.rebuildSchema);
+      if (++this.resetCount % 50 === 0) this.reportDatabaseResetTimings();
     }
+  }
+
+  public reportDatabaseResetTimings(): void {
+    const timings = this.databaseReset.getTimings();
+    if (process.env.CI === 'true') {
+      fse.outputJsonSync('reports/tests/database-reset.json', timings, { spaces: 2 });
+    }
+    console.log('[test database reset] %s', JSON.stringify(timings));
   }
 
   public async closeApplication(): Promise<void> {
@@ -97,13 +106,7 @@ function _getCallerFile(): string {
 
 before(async () => {
   await testSuite.runApplication();
-
-  const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(
-    DatabaseService.name,
-  );
-  await dbService.emptyDatabase();
-
-  await testSuite.resetDatabaseData();
+  await testSuite.resetDatabaseData({ rebuildSchema: true });
 });
 
 async function emptyPlayground(): Promise<void> {
@@ -130,5 +133,9 @@ beforeEach(async () => {
 });
 
 after(async () => {
-  await testSuite.closeApplication();
+  try {
+    await testSuite.closeApplication();
+  } finally {
+    testSuite.reportDatabaseResetTimings();
+  }
 });
