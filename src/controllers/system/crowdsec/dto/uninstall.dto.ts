@@ -23,6 +23,7 @@
 import { Equals, IsBoolean } from 'class-validator';
 
 export class CrowdSecUninstallDto {
+  /** Must be true to confirm the uninstall or topology cancellation. */
   @IsBoolean()
   @Equals(true, { message: 'Uninstall confirmation is required' })
   confirm: boolean;

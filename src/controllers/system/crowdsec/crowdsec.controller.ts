@@ -83,6 +83,7 @@ import {
   Request,
   Response,
   Route,
+  Security,
   SuccessResponse,
   Tags,
 } from 'tsoa';
@@ -212,6 +213,7 @@ type CrowdSecDynamicResponse = Record<string, unknown>;
 
 @Route('fwclouds/{fwcloud}/firewalls/{firewall}/system/crowdsec')
 @Tags('crowdsec')
+@Security('sessionCookie')
 export class CrowdSecController extends Controller {
   protected _firewall: Firewall;
 
@@ -252,8 +254,12 @@ export class CrowdSecController extends Controller {
       local_remediation: false,
       central_lapi_enabled: true,
       central_lapi_has_machines: false,
+      machine_reauthentication_required: false,
       machine_connectivity_pending: false,
       console_enrollment_confirmed: true,
+      central_lapi_firewall_id: null,
+      central_lapi_url: null,
+      machine_name: null,
     },
   })
   @Response<CrowdSecApiErrorResponse>('default', 'CrowdSec endpoint error')
@@ -357,6 +363,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecCollectionAcquisitionUpdateDto)
   @OperationId('Update CrowdSec collection acquisition')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Put('collections/acquisition')
   @SuccessResponse('200', 'Collection acquisition updated')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
@@ -397,6 +404,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
   @OperationId('Select CrowdSec collection acquisition parser')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Put('collections/acquisition/parser')
   @SuccessResponse('200', 'Collection acquisition parser selected')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionAcquisitionResponse>>({
@@ -601,6 +609,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecBlockingStatisticsSamplingDto)
   @OperationId('Update CrowdSec blocking statistics sampling configuration')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Put('blocking-statistics/sampling')
   @SuccessResponse('200', 'Blocking statistics sampling configuration updated')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecBlockingStatisticsSamplingResponse>>({
@@ -861,6 +870,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecCentralLapiConfigureDto)
   @OperationId('Configure central CrowdSec LAPI')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('lapi/central/configure')
   @SuccessResponse('200', 'Central LAPI configured')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -915,6 +925,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Validate CrowdSec machine')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('machines/{machine}/validate')
   @SuccessResponse('200', 'Machine validated')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -971,6 +982,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Remove CrowdSec machine')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Delete('machines/{machine}')
   @SuccessResponse('200', 'Machine removed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -1010,6 +1022,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Reauthenticate CrowdSec machine')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('machines/reauthenticate')
   @SuccessResponse('200', 'Machine reauthenticated')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -1155,6 +1168,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecLapiConnectivityDto)
   @OperationId('Check external CrowdSec LAPI connectivity')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('lapi/connectivity')
   @SuccessResponse('200', 'CrowdSec LAPI connectivity checked')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecLapiConnectivityResponse>>({
@@ -1191,6 +1205,7 @@ export class CrowdSecController extends Controller {
    * encrypted `bouncerApiKey` request field.
    */
   @OperationId('Install CrowdSec machine')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('machines/install')
   @SuccessResponse('200', 'Machine installation completed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecMachineInstallationResponse>>({
@@ -1512,6 +1527,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecTransitionDto)
   @OperationId('Change CrowdSec machine LAPI address')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/address')
   @SuccessResponse('200', 'Machine address transitioned')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
@@ -1668,6 +1684,7 @@ export class CrowdSecController extends Controller {
   }
   @Validate(CrowdSecTransitionDto)
   @OperationId('Move CrowdSec machine to central LAPI')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/central')
   @SuccessResponse('200', 'Machine central LAPI transitioned')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
@@ -1956,6 +1973,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecTransitionDto)
   @OperationId('Change CrowdSec machine remediation')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/remediation')
   @SuccessResponse('200', 'Machine remediation transitioned')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
@@ -2155,6 +2173,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecTransitionDto)
   @OperationId('Change CrowdSec installation role')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/role')
   @SuccessResponse('200', 'CrowdSec role transitioned')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecTransitionResponse>>({
@@ -2558,6 +2577,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecBouncerDto)
   @OperationId('Register CrowdSec bouncer')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('bouncers/register')
   @SuccessResponse('200', 'Bouncer registered')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecBouncerRegistrationResponse>>({
@@ -2620,6 +2640,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Remove CrowdSec bouncer')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Delete('bouncers/{bouncer}')
   @SuccessResponse('200', 'Bouncer removed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -2654,6 +2675,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Delete CrowdSec decision')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Delete('decisions/{decision}')
   @SuccessResponse('200', 'Decision deleted')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -2679,6 +2701,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecDecisionsFlushDto)
   @OperationId('Flush CrowdSec decisions')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('decisions/flush')
   @SuccessResponse('200', 'Decisions flushed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -2704,6 +2727,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecConsoleEnrollDto)
   @OperationId('Enroll CrowdSec Console')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('console/enroll')
   @SuccessResponse('200', 'Console enrollment requested')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecConsoleStatusResponse>>({
@@ -2743,6 +2767,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Confirm CrowdSec Console enrollment')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('console/enrollment/confirm')
   @SuccessResponse('200', 'Console enrollment confirmed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecConfirmationResponse>>({
@@ -2776,6 +2801,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Clear CrowdSec Console enrollment confirmation')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('console/enrollment/clear')
   @SuccessResponse('200', 'Console enrollment confirmation cleared')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecConfirmationResponse>>({
@@ -2812,6 +2838,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecCollectionDto)
   @OperationId('Install CrowdSec collection')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('collections/install')
   @SuccessResponse('200', 'Collection installed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionMutationResponse>>({
@@ -2838,6 +2865,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecCollectionDto)
   @OperationId('Remove CrowdSec collection')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('collections/remove')
   @SuccessResponse('200', 'Collection removed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionMutationResponse>>({
@@ -2864,6 +2892,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Update CrowdSec collections')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('collections/update')
   @SuccessResponse('200', 'Collections updated')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecCollectionMutationResponse>>({
@@ -2889,6 +2918,7 @@ export class CrowdSecController extends Controller {
 
   @Validate()
   @OperationId('Install CrowdSec')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('install')
   @SuccessResponse('200', 'CrowdSec installed')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecDynamicResponse>>({
@@ -2980,6 +3010,7 @@ export class CrowdSecController extends Controller {
 
   @Validate(CrowdSecUninstallDto)
   @OperationId('Uninstall CrowdSec')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('uninstall')
   @SuccessResponse('200', 'CrowdSec uninstalled')
   @Example<CrowdSecApiEnvelopeResponse<CrowdSecUninstallResponse>>({

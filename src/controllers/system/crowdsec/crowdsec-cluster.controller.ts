@@ -81,6 +81,7 @@ import {
   Request,
   Response,
   Route,
+  Security,
   SuccessResponse,
   Tags,
 } from 'tsoa';
@@ -188,6 +189,30 @@ interface CrowdSecClusterLapiConnectivityResponse {
   nodes: CrowdSecClusterLapiConnectivityNodeResponse[];
 }
 
+interface CrowdSecClusterLapiTopologyResponse {
+  completed: boolean;
+  connectivity_verified?: boolean;
+  lapi_master: { firewall_id: number; name: string; lapi_url: string };
+  nodes: Array<ClusterLapiConnectivityNodeResult | ClusterMachineNodeResult>;
+}
+
+interface CrowdSecClusterTopologyCancellationResponse {
+  completed: true;
+}
+
+interface CrowdSecClusterConsoleEnrollmentResponse {
+  state?: 'connected' | 'not_configured' | 'pending_approval' | 'rate_limited' | 'error';
+  enrollment_state?: 'enrolled' | 'unknown';
+  message?: string;
+  nodes: Array<{
+    firewall_id: number;
+    name: string;
+    state?: 'connected' | 'not_configured' | 'pending_approval' | 'rate_limited' | 'error';
+    enrollment_state?: 'enrolled' | 'unknown';
+    message?: string;
+  }>;
+}
+
 type CrowdSecClusterDynamicResponse = Record<string, unknown>;
 
 type ClusterCrowdSecInstallationSnapshot = Pick<
@@ -268,6 +293,7 @@ type ClusterCollectionNode = {
 
 @Route('fwclouds/{fwcloud}/clusters/{cluster}/system/crowdsec')
 @Tags('crowdsec')
+@Security('sessionCookie')
 export class CrowdSecClusterController extends Controller {
   private _cluster: Cluster;
 
@@ -304,6 +330,7 @@ export class CrowdSecClusterController extends Controller {
    * `bouncerApiKey` request field.
    */
   @OperationId('Install CrowdSec machines in cluster')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('machines/install')
   @SuccessResponse('200', 'Cluster machines installed')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
@@ -317,7 +344,7 @@ export class CrowdSecClusterController extends Controller {
         {
           firewall_id: 21,
           name: 'cluster-node-1',
-          machine_name: 'fwcloud-cluster-node-1',
+          machine_name: 'cluster-node-1',
           status: 'completed',
         },
       ],
@@ -613,7 +640,40 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecClusterLapiTopologyInstallDto)
-  public async installLapiMaster(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Install CrowdSec cluster LAPI master topology')
+  @Security({ sessionCookie: [], confirmToken: [] })
+  @Post('topology/lapi-master')
+  @SuccessResponse('200', 'Cluster LAPI master topology installation completed or requires retry')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterLapiTopologyResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      completed: false,
+      connectivity_verified: false,
+      lapi_master: {
+        firewall_id: 12,
+        name: 'cluster-lapi-master',
+        lapi_url: 'https://192.0.2.10:8080',
+      },
+      nodes: [
+        {
+          firewall_id: 21,
+          name: 'cluster-node-1',
+          reachable: false,
+          error_code: 'FWCLOUD_AGENT_UNREACHABLE',
+          message: 'FWCloud Agent is unavailable',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async installLapiMaster(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecClusterLapiTopologyInstallDto,
+  ): Promise<ResponseBuilder> {
     const { master, slaves } = await this.getTopologyNodes(req);
     const lapiUrl = CrowdSecLapiSharedService.externalLapiUrl(req.body.lapiUrl);
     await this.assertTopologyLapiUrlBelongsToCluster(lapiUrl, [master, ...slaves]);
@@ -899,7 +959,28 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecUninstallDto)
-  public async cancelLapiMasterTopology(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Cancel CrowdSec cluster LAPI master topology')
+  @Security({ sessionCookie: [], confirmToken: [] })
+  @Post('topology/cancel')
+  @SuccessResponse('200', 'Cluster LAPI master topology cancelled')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterTopologyCancellationResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: { completed: true },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('409', 'Cluster topology is missing or incompatible')
+  @Response<CrowdSecClusterApiErrorResponse>(
+    '422',
+    'Topology cancellation confirmation is required',
+  )
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async cancelLapiMasterTopology(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecUninstallDto,
+  ): Promise<ResponseBuilder> {
     if (!req.body.confirm) {
       throw new HttpException('CrowdSec topology cancellation confirmation is required', 422);
     }
@@ -960,6 +1041,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecClusterLapiConnectivityDto)
   @OperationId('Check external CrowdSec LAPI connectivity for cluster nodes')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('lapi/connectivity')
   @SuccessResponse('200', 'Cluster CrowdSec LAPI connectivity checked')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterLapiConnectivityResponse>>({
@@ -1000,7 +1082,37 @@ export class CrowdSecClusterController extends Controller {
   }
 
   @Validate(CrowdSecConsoleEnrollDto)
-  public async enrollConsole(req: ExpressRequest): Promise<ResponseBuilder> {
+  @OperationId('Enroll CrowdSec Console from cluster LAPI nodes')
+  @Security({ sessionCookie: [], confirmToken: [] })
+  @Post('console/enroll')
+  @SuccessResponse('200', 'Console enrollment requested')
+  @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterConsoleEnrollmentResponse>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      state: 'pending_approval',
+      enrollment_state: 'unknown',
+      message: 'Enrollment request submitted. Approval in CrowdSec Console is still required.',
+      nodes: [
+        {
+          firewall_id: 12,
+          name: 'cluster-lapi-master',
+          state: 'pending_approval',
+          enrollment_state: 'unknown',
+          message: 'Enrollment request submitted. Approval in CrowdSec Console is still required.',
+        },
+      ],
+    },
+  })
+  @Response<CrowdSecClusterApiErrorResponse>('409', 'Cluster has no CrowdSec LAPI installation')
+  @Response<CrowdSecClusterApiErrorResponse>('default', 'CrowdSec endpoint error')
+  public async enrollConsole(
+    @Request() req: ExpressRequest,
+    @Path() fwcloud?: number,
+    @Path() cluster?: number,
+    @Body() body?: CrowdSecConsoleEnrollDto,
+  ): Promise<ResponseBuilder> {
     const nodes = await this.getAuthorizedNodes(req, false);
     const enrollmentKey = await this.enrollmentKey(req, req.body.enrollmentKey);
     const installationRepository = new CrowdSecInstallationRepository(db.getSource().manager);
@@ -1062,6 +1174,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecClusterTransitionDto)
   @OperationId('Change CrowdSec role in cluster')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/role')
   @SuccessResponse('200', 'Cluster role transitioned')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
@@ -1074,7 +1187,7 @@ export class CrowdSecClusterController extends Controller {
         {
           firewall_id: 21,
           name: 'cluster-node-1',
-          machine_name: 'fwcloud-cluster-node-1',
+          machine_name: 'cluster-node-1',
           status: 'completed',
         },
       ],
@@ -1278,6 +1391,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecClusterTransitionDto)
   @OperationId('Move cluster CrowdSec machines to central LAPI')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/lapi')
   @SuccessResponse('200', 'Cluster central LAPI transitioned')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
@@ -1290,7 +1404,7 @@ export class CrowdSecClusterController extends Controller {
         {
           firewall_id: 21,
           name: 'cluster-node-1',
-          machine_name: 'fwcloud-cluster-node-1',
+          machine_name: 'cluster-node-1',
           status: 'completed',
         },
       ],
@@ -1624,6 +1738,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecClusterTransitionDto)
   @OperationId('Change cluster CrowdSec machine LAPI address')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/address')
   @SuccessResponse('200', 'Cluster address transitioned')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
@@ -1636,7 +1751,7 @@ export class CrowdSecClusterController extends Controller {
         {
           firewall_id: 21,
           name: 'cluster-node-1',
-          machine_name: 'fwcloud-cluster-node-1',
+          machine_name: 'cluster-node-1',
           status: 'completed',
         },
       ],
@@ -1879,6 +1994,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecClusterTransitionDto)
   @OperationId('Change cluster CrowdSec remediation')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('transitions/remediation')
   @SuccessResponse('200', 'Cluster remediation transitioned')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterOperationResponse>>({
@@ -1891,7 +2007,7 @@ export class CrowdSecClusterController extends Controller {
         {
           firewall_id: 21,
           name: 'cluster-node-1',
-          machine_name: 'fwcloud-cluster-node-1',
+          machine_name: 'cluster-node-1',
           status: 'completed',
         },
       ],
@@ -2252,6 +2368,7 @@ export class CrowdSecClusterController extends Controller {
   @Validate(CrowdSecCollectionAcquisitionUpdateDto)
   @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
   @OperationId('Update cluster CrowdSec collection acquisition')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Put('collections/acquisition')
   @SuccessResponse('200', 'Cluster collection acquisition updated')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionAcquisitionResponse>>({
@@ -2295,6 +2412,7 @@ export class CrowdSecClusterController extends Controller {
   @Validate(CrowdSecCollectionAcquisitionParserSelectionDto)
   @ValidateQuery(CrowdSecClusterCollectionAcquisitionNodeQueryDto)
   @OperationId('Select cluster CrowdSec collection acquisition parser')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Put('collections/acquisition/parser')
   @SuccessResponse('200', 'Cluster collection acquisition parser selected')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionAcquisitionResponse>>({
@@ -2370,6 +2488,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecBlockingStatisticsSamplingDto)
   @OperationId('Update cluster CrowdSec blocking statistics sampling configuration')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Put('blocking-statistics/sampling')
   @SuccessResponse('200', 'Cluster blocking statistics sampling configuration updated')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterBlockingStatisticsSamplingResponse>>({
@@ -2557,6 +2676,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecCollectionDto)
   @OperationId('Install CrowdSec collection in cluster')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('collections/install')
   @SuccessResponse('200', 'Cluster collection installed')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionOperationResponse>>({
@@ -2581,6 +2701,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate(CrowdSecCollectionDto)
   @OperationId('Remove CrowdSec collection in cluster')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('collections/remove')
   @SuccessResponse('200', 'Cluster collection removed')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionOperationResponse>>({
@@ -2605,6 +2726,7 @@ export class CrowdSecClusterController extends Controller {
 
   @Validate()
   @OperationId('Update CrowdSec collections in cluster')
+  @Security({ sessionCookie: [], confirmToken: [] })
   @Post('collections/update')
   @SuccessResponse('200', 'Cluster collections updated')
   @Example<CrowdSecClusterApiEnvelopeResponse<CrowdSecClusterCollectionOperationResponse>>({

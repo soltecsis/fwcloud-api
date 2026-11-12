@@ -24,11 +24,16 @@ import { IsOptional, IsString, Length, Matches } from 'class-validator';
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
 
 export class CrowdSecClusterLapiTopologyInstallDto {
+  /**
+   * Local API URL for the master node. Its host must be an address assigned to
+   * an interface of this cluster, for example https://192.0.2.10:8080.
+   */
   @IsString()
   @Length(1, 256)
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
   lapiUrl: string;
 
+  /** Optional PGP-encrypted CrowdSec Console enrollment key. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)

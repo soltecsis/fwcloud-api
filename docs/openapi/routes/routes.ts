@@ -260,6 +260,15 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CrowdSecClusterLapiTopologyInstallDto": {
+        "dataType": "refObject",
+        "properties": {
+            "lapiUrl": {"dataType":"string","required":true},
+            "enrollmentKey": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CrowdSecClusterLapiConnectivityDto": {
         "dataType": "refObject",
         "properties": {
@@ -275,6 +284,7 @@ const models: TsoaRoute.Models = {
             "confirm": {"dataType":"boolean","required":true},
             "mode": {"ref":"CrowdSecInstallationMode","required":true},
             "localRemediation": {"dataType":"boolean","required":true},
+            "nodeIds": {"dataType":"array","array":{"dataType":"double"}},
             "centralFirewallId": {"dataType":"double"},
             "lapiUrl": {"dataType":"string"},
             "bouncerApiKey": {"dataType":"string"},
@@ -1134,6 +1144,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/status',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.status)),
 
@@ -1167,6 +1178,7 @@ export function RegisterRoutes(app: Router) {
                 installedQuery: {"in":"query","name":"installed","dataType":"union","subSchemas":[{"dataType":"enum","enums":["true"]},{"dataType":"enum","enums":["false"]}]},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.collections)),
 
@@ -1200,6 +1212,7 @@ export function RegisterRoutes(app: Router) {
                 nameQuery: {"in":"query","name":"name","required":true,"dataType":"string"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.collectionAcquisition)),
 
@@ -1233,6 +1246,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","required":true,"ref":"CrowdSecCollectionAcquisitionUpdateDto"},
         };
         app.put('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.updateCollectionAcquisition)),
 
@@ -1266,6 +1280,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","required":true,"ref":"CrowdSecCollectionAcquisitionParserSelectionDto"},
         };
         app.put('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/acquisition/parser',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.selectCollectionAcquisitionParser)),
 
@@ -1298,6 +1313,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/console/status',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.consoleStatus)),
 
@@ -1336,6 +1352,7 @@ export function RegisterRoutes(app: Router) {
                 scenario: {"in":"query","name":"scenario","dataType":"string"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/decisions',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.decisions)),
 
@@ -1377,6 +1394,7 @@ export function RegisterRoutes(app: Router) {
                 range: {"in":"query","name":"range","dataType":"string"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/alerts',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.alerts)),
 
@@ -1409,6 +1427,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/bouncers',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.bouncers)),
 
@@ -1441,6 +1460,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/sampling',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatisticsSampling)),
 
@@ -1474,6 +1494,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","required":true,"ref":"CrowdSecBlockingStatisticsSamplingDto"},
         };
         app.put('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/sampling',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.updateBlockingStatisticsSampling)),
 
@@ -1510,6 +1531,7 @@ export function RegisterRoutes(app: Router) {
                 limit: {"in":"query","name":"limit","dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatistics)),
 
@@ -1547,6 +1569,7 @@ export function RegisterRoutes(app: Router) {
                 limit: {"in":"query","name":"limit","dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/addresses',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatisticsAddresses)),
 
@@ -1584,6 +1607,7 @@ export function RegisterRoutes(app: Router) {
                 search: {"in":"query","name":"search","dataType":"string"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/blocking-statistics/addresses/options',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.blockingStatisticsAddressOptions)),
 
@@ -1616,6 +1640,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.machines)),
 
@@ -1648,6 +1673,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/lapi/central/candidates',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.centralLapiCandidates)),
 
@@ -1681,6 +1707,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecCentralLapiConfigureDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/lapi/central/configure',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.configureCentralLapi)),
 
@@ -1714,6 +1741,7 @@ export function RegisterRoutes(app: Router) {
                 machinePath: {"in":"path","name":"machine","required":true,"dataType":"string"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/:machine/validate',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.validateMachine)),
 
@@ -1747,6 +1775,7 @@ export function RegisterRoutes(app: Router) {
                 machinePath: {"in":"path","name":"machine","required":true,"dataType":"string"},
         };
         app.delete('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/:machine',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.removeMachine)),
 
@@ -1779,6 +1808,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/reauthenticate',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.reauthenticateMachine)),
 
@@ -1812,6 +1842,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecLapiConnectivityDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/lapi/connectivity',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.checkLapiConnectivity)),
 
@@ -1845,6 +1876,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecMachineInstallDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/machines/install',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.installMachine)),
 
@@ -1878,6 +1910,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/transitions/address',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.transitionMachineAddress)),
 
@@ -1911,6 +1944,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/transitions/central',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.transitionMachineCentralLapi)),
 
@@ -1944,6 +1978,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/transitions/remediation',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.transitionMachineRemediation)),
 
@@ -1977,6 +2012,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/transitions/role',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.transitionCrowdSecRole)),
 
@@ -2010,6 +2046,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecBouncerDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/bouncers/register',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.registerBouncer)),
 
@@ -2043,6 +2080,7 @@ export function RegisterRoutes(app: Router) {
                 bouncerPath: {"in":"path","name":"bouncer","required":true,"dataType":"string"},
         };
         app.delete('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/bouncers/:bouncer',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.removeBouncer)),
 
@@ -2076,6 +2114,7 @@ export function RegisterRoutes(app: Router) {
                 decisionPath: {"in":"path","name":"decision","required":true,"dataType":"string"},
         };
         app.delete('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/decisions/:decision',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.deleteDecision)),
 
@@ -2109,6 +2148,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecDecisionsFlushDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/decisions/flush',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.flushDecisions)),
 
@@ -2142,6 +2182,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecConsoleEnrollDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/console/enroll',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.enrollConsole)),
 
@@ -2174,6 +2215,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/console/enrollment/confirm',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.confirmConsoleEnrollment)),
 
@@ -2206,6 +2248,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/console/enrollment/clear',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.clearConsoleEnrollment)),
 
@@ -2239,6 +2282,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecCollectionDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/install',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.installCollection)),
 
@@ -2272,6 +2316,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecCollectionDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/remove',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.removeCollection)),
 
@@ -2304,6 +2349,7 @@ export function RegisterRoutes(app: Router) {
                 firewall: {"in":"path","name":"firewall","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/collections/update',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.updateCollections)),
 
@@ -2337,6 +2383,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"Partial_CrowdSecConsoleEnrollDto_"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/install',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.install)),
 
@@ -2370,6 +2417,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecUninstallDto"},
         };
         app.post('/fwclouds/:fwcloud/firewalls/:firewall/system/crowdsec/uninstall',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecController.prototype.uninstall)),
 
@@ -2403,6 +2451,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecClusterMachineInstallDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/machines/install',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.installMachine)),
 
@@ -2429,6 +2478,74 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_installLapiMaster: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","ref":"CrowdSecClusterLapiTopologyInstallDto"},
+        };
+        app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/topology/lapi-master',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.installLapiMaster)),
+
+            async function CrowdSecClusterController_installLapiMaster(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_installLapiMaster, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'installLapiMaster',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_cancelLapiMasterTopology: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","ref":"CrowdSecUninstallDto"},
+        };
+        app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/topology/cancel',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.cancelLapiMasterTopology)),
+
+            async function CrowdSecClusterController_cancelLapiMasterTopology(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_cancelLapiMasterTopology, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'cancelLapiMasterTopology',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsCrowdSecClusterController_checkLapiConnectivity: Record<string, TsoaRoute.ParameterSchema> = {
                 req: {"in":"request","name":"req","required":true,"dataType":"object"},
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
@@ -2436,6 +2553,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecClusterLapiConnectivityDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/lapi/connectivity',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.checkLapiConnectivity)),
 
@@ -2462,6 +2580,40 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCrowdSecClusterController_enrollConsole: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
+                cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","ref":"CrowdSecConsoleEnrollDto"},
+        };
+        app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/console/enroll',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
+            ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.enrollConsole)),
+
+            async function CrowdSecClusterController_enrollConsole(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCrowdSecClusterController_enrollConsole, request, response });
+
+                const controller = new CrowdSecClusterController();
+
+              await templateService.apiHandler({
+                methodName: 'enrollConsole',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 200,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsCrowdSecClusterController_transitionRole: Record<string, TsoaRoute.ParameterSchema> = {
                 req: {"in":"request","name":"req","required":true,"dataType":"object"},
                 fwcloud: {"in":"path","name":"fwcloud","required":true,"dataType":"double"},
@@ -2469,6 +2621,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecClusterTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/transitions/role',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.transitionRole)),
 
@@ -2502,6 +2655,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecClusterTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/transitions/lapi',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.transitionMachineCentralLapi)),
 
@@ -2535,6 +2689,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecClusterTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/transitions/address',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.transitionMachineAddress)),
 
@@ -2568,6 +2723,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecClusterTransitionDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/transitions/remediation',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.transitionRemediation)),
 
@@ -2600,6 +2756,7 @@ export function RegisterRoutes(app: Router) {
                 cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.collections)),
 
@@ -2634,6 +2791,7 @@ export function RegisterRoutes(app: Router) {
                 nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.collectionAcquisition)),
 
@@ -2668,6 +2826,7 @@ export function RegisterRoutes(app: Router) {
                 nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
         };
         app.put('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.updateCollectionAcquisition)),
 
@@ -2702,6 +2861,7 @@ export function RegisterRoutes(app: Router) {
                 nodeId: {"in":"query","name":"node_id","required":true,"dataType":"double"},
         };
         app.put('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/acquisition/parser',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.selectCollectionAcquisitionParser)),
 
@@ -2734,6 +2894,7 @@ export function RegisterRoutes(app: Router) {
                 cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/sampling',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatisticsSampling)),
 
@@ -2767,6 +2928,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","required":true,"ref":"CrowdSecBlockingStatisticsSamplingDto"},
         };
         app.put('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/sampling',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.updateBlockingStatisticsSampling)),
 
@@ -2804,6 +2966,7 @@ export function RegisterRoutes(app: Router) {
                 limit: {"in":"query","name":"limit","dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatistics)),
 
@@ -2842,6 +3005,7 @@ export function RegisterRoutes(app: Router) {
                 limit: {"in":"query","name":"limit","dataType":"double"},
         };
         app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/addresses',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatisticsAddresses)),
 
@@ -2880,6 +3044,7 @@ export function RegisterRoutes(app: Router) {
                 search: {"in":"query","name":"search","dataType":"string"},
         };
         app.get('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/blocking-statistics/addresses/options',
+            authenticateMiddleware([{"sessionCookie":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.blockingStatisticsAddressOptions)),
 
@@ -2913,6 +3078,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecCollectionDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/install',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.installCollection)),
 
@@ -2946,6 +3112,7 @@ export function RegisterRoutes(app: Router) {
                 body: {"in":"body","name":"body","ref":"CrowdSecCollectionDto"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/remove',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.removeCollection)),
 
@@ -2978,6 +3145,7 @@ export function RegisterRoutes(app: Router) {
                 cluster: {"in":"path","name":"cluster","required":true,"dataType":"double"},
         };
         app.post('/fwclouds/:fwcloud/clusters/:cluster/system/crowdsec/collections/update',
+            authenticateMiddleware([{"sessionCookie":[],"confirmToken":[]}]),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController)),
             ...(fetchMiddlewares<RequestHandler>(CrowdSecClusterController.prototype.updateCollections)),
 
