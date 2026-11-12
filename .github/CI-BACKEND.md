@@ -278,9 +278,10 @@ Se incorpora JUnit y un resumen JSON de estadísticas en todas las combinaciones
 La cobertura se mide solo en Node 22 / MySQL 8.0, como referencia inicial de
 medición, sin definir por ello la plataforma de producción.
 
-Dependencias de desarrollo fijadas en `package.json` y `package-lock.json`:
+Reporters y dependencias utilizados:
 
-- `mocha-junit-reporter@2.2.1`: informe XML JUnit con pruebas pendientes.
+- Reporter `xunit` incluido en Mocha: informe XML compatible con JUnit, con pruebas
+  pendientes. Sustituye a `mocha-junit-reporter`, incompatible con Mocha 12.
 - `mocha-multi-reporters@1.5.2`: salida simultánea a consola y archivos.
 - `c8@12.0.0`: cobertura mediante V8.
 
