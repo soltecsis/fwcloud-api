@@ -234,7 +234,7 @@ export class RouteService extends Service {
 
     const firewall: Firewall = (
       await this._repository.findOne({
-        relations: ['routingTable', 'routingTable.firewall'],
+        relations: { routingTable: { firewall: true } },
         where: {
           id: route.id,
         },
@@ -391,16 +391,16 @@ export class RouteService extends Service {
       where: {
         id: ruleId,
       },
-      relations: [
-        'routeToIPObjs',
-        'routeToIPObjGroups',
-        'routeToOpenVPNs',
-        'routeToOpenVPNPrefixes',
-        'routeToIPSecs',
-        'routeToIPSecPrefixes',
-        'routeToWireGuards',
-        'routeToWireGuardPrefixes',
-      ],
+      relations: {
+        routeToIPObjs: true,
+        routeToIPObjGroups: true,
+        routeToOpenVPNs: true,
+        routeToOpenVPNPrefixes: true,
+        routeToIPSecs: true,
+        routeToIPSecPrefixes: true,
+        routeToWireGuards: true,
+        routeToWireGuardPrefixes: true,
+      },
     });
 
     const items: { order: number }[] = [].concat(
@@ -429,17 +429,17 @@ export class RouteService extends Service {
       where: {
         id: In(ids),
       },
-      relations: [
-        'routingTable',
-        'routeToIPObjs',
-        'routeToIPObjGroups',
-        'routeToOpenVPNs',
-        'routeToOpenVPNPrefixes',
-        'routeToIPSecs',
-        'routeToIPSecPrefixes',
-        'routeToWireGuards',
-        'routeToWireGuardPrefixes',
-      ],
+      relations: {
+        routingTable: true,
+        routeToIPObjs: true,
+        routeToIPObjGroups: true,
+        routeToOpenVPNs: true,
+        routeToOpenVPNPrefixes: true,
+        routeToIPSecs: true,
+        routeToIPSecPrefixes: true,
+        routeToWireGuards: true,
+        routeToWireGuardPrefixes: true,
+      },
     });
 
     const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(
@@ -518,16 +518,16 @@ export class RouteService extends Service {
         where: {
           id: fromId,
         },
-        relations: [
-          'routeToIPObjs',
-          'routeToIPObjGroups',
-          'routeToOpenVPNs',
-          'routeToOpenVPNPrefixes',
-          'routeToWireGuards',
-          'routeToWireGuardPrefixes',
-          'routeToIPSecs',
-          'routeToIPSecPrefixes',
-        ],
+        relations: {
+          routeToIPObjs: true,
+          routeToIPObjGroups: true,
+          routeToOpenVPNs: true,
+          routeToOpenVPNPrefixes: true,
+          routeToWireGuards: true,
+          routeToWireGuardPrefixes: true,
+          routeToIPSecs: true,
+          routeToIPSecPrefixes: true,
+        },
       });
     const toRule: Route = await db
       .getSource()
@@ -536,16 +536,16 @@ export class RouteService extends Service {
         where: {
           id: toId,
         },
-        relations: [
-          'routeToIPObjs',
-          'routeToIPObjGroups',
-          'routeToOpenVPNs',
-          'routeToOpenVPNPrefixes',
-          'routeToWireGuards',
-          'routeToWireGuardPrefixes',
-          'routeToIPSecs',
-          'routeToIPSecPrefixes',
-        ],
+        relations: {
+          routeToIPObjs: true,
+          routeToIPObjGroups: true,
+          routeToOpenVPNs: true,
+          routeToOpenVPNPrefixes: true,
+          routeToWireGuards: true,
+          routeToWireGuardPrefixes: true,
+          routeToIPSecs: true,
+          routeToIPSecPrefixes: true,
+        },
       });
 
     let lastPosition: number = 0;
@@ -694,7 +694,7 @@ export class RouteService extends Service {
         where: {
           id: fromId,
         },
-        relations: ['routeToIPObjs'],
+        relations: { routeToIPObjs: true },
       });
     const toRule: Route = await db
       .getSource()
@@ -820,7 +820,7 @@ export class RouteService extends Service {
             9, // DNS
           ]),
         },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     for (let i = 0; i < ipObjs.length; i++) {
@@ -862,19 +862,16 @@ export class RouteService extends Service {
         where: {
           id: In(data.ipObjGroupIds.map((item) => item.id)),
         },
-        relations: [
-          'fwCloud',
-          'openVPNPrefixes',
-          'openVPNs',
-          'wireGuardPrefixes',
-          'wireGuards',
-          'ipSecPrefixes',
-          'ipSecs',
-          'ipObjToIPObjGroups',
-          'ipObjToIPObjGroups.ipObj',
-          'ipSecs',
-          'ipSecPrefixes',
-        ],
+        relations: {
+          fwCloud: true,
+          openVPNPrefixes: true,
+          openVPNs: true,
+          wireGuardPrefixes: true,
+          wireGuards: true,
+          ipSecPrefixes: true,
+          ipSecs: true,
+          ipObjToIPObjGroups: { ipObj: true },
+        },
       });
 
     for (let i = 0; i < ipObjGroups.length; i++) {

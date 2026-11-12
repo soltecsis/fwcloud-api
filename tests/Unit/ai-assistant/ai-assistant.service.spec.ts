@@ -77,7 +77,7 @@ describe(AIAssistantService.name, () => {
       expect(result).to.deep.equal([]);
       expect(
         aiAssistantRepositoryStub.find.calledOnceWithExactly({
-          relations: ['model', 'model.ai'],
+          relations: { model: { ai: true } },
         }),
       ).to.be.true;
     });
@@ -114,7 +114,7 @@ describe(AIAssistantService.name, () => {
 
       expect(
         aiAssistantRepositoryStub.find.calledOnceWithExactly({
-          relations: ['model', 'model.ai'],
+          relations: { model: { ai: true } },
         }),
       ).to.be.true;
       expect(decryptStub.calledOnceWithExactly('mockApiKey')).to.be.true;
@@ -129,7 +129,7 @@ describe(AIAssistantService.name, () => {
       );
       expect(
         aiAssistantRepositoryStub.find.calledOnceWithExactly({
-          relations: ['model', 'model.ai'],
+          relations: { model: { ai: true } },
         }),
       ).to.be.true;
     });

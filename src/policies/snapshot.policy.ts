@@ -29,7 +29,7 @@ export class SnapshotPolicy extends Policy {
   static async read(snapshot: Snapshot, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {
@@ -49,7 +49,7 @@ export class SnapshotPolicy extends Policy {
   static async create(fwcloud: FwCloud, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {
@@ -66,7 +66,7 @@ export class SnapshotPolicy extends Policy {
   static async update(snapshot: Snapshot, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {
@@ -86,7 +86,7 @@ export class SnapshotPolicy extends Policy {
   static async restore(snapshot: Snapshot, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {
@@ -106,7 +106,7 @@ export class SnapshotPolicy extends Policy {
   static async destroy(snapshot: Snapshot, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {

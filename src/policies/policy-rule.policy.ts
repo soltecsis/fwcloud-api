@@ -10,14 +10,14 @@ export class PolicyRulePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     if (user.role === 1) {
@@ -36,14 +36,14 @@ export class PolicyRulePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     if (user.role === 1) {

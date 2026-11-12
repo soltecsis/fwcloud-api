@@ -33,14 +33,14 @@ export class WireGuardPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     wireGuard = await db
       .getSource()
       .manager.getRepository(WireGuard)
       .findOneOrFail({
         where: { id: wireGuard.id },
-        relations: ['firewall'],
+        relations: { firewall: true },
       });
 
     if (user.role === 1) {
@@ -53,7 +53,7 @@ export class WireGuardPolicy extends Policy {
         .manager.getRepository(Firewall)
         .findOneOrFail({
           where: { id: wireGuard.firewall.id },
-          relations: ['fwCloud'],
+          relations: { fwCloud: true },
         });
 
       const match = user.fwClouds.filter((fwcloud) => {
@@ -72,14 +72,14 @@ export class WireGuardPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     wireGuard = await db
       .getSource()
       .manager.getRepository(WireGuard)
       .findOneOrFail({
         where: { id: wireGuard.id },
-        relations: ['firewall'],
+        relations: { firewall: true },
       });
 
     if (user.role === 1) {
@@ -92,7 +92,7 @@ export class WireGuardPolicy extends Policy {
         .manager.getRepository(Firewall)
         .findOneOrFail({
           where: { id: wireGuard.firewall.id },
-          relations: ['fwCloud'],
+          relations: { fwCloud: true },
         });
 
       const match = user.fwClouds.filter((fwcloud) => {
@@ -111,7 +111,7 @@ export class WireGuardPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
 
     return user.role === 1

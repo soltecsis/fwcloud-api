@@ -131,7 +131,7 @@ describe(describeName('Security: administrator and manager function permissions'
       );
       const persisted = await User.findOneOrFail({
         where: { id: target.user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
       expect(persisted.fwClouds.some((item) => item.id === otherCloud.id)).to.eq(
         action === 'revoke',

@@ -35,7 +35,7 @@ export class RoutingGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     if (user.role === 1) {
       return Authorization.grant();
@@ -55,7 +55,7 @@ export class RoutingGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     if (user.role === 1) {
       return Authorization.grant();
@@ -119,7 +119,7 @@ export class RoutingGroupPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: userId },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
   }
 
@@ -129,7 +129,7 @@ export class RoutingGroupPolicy extends Policy {
       .manager.getRepository(RoutingTable)
       .findOne({
         where: { id: routingTableId },
-        relations: ['firewall', 'firewall.fwCloud'],
+        relations: { firewall: { fwCloud: true } },
       });
   }
 
@@ -139,7 +139,7 @@ export class RoutingGroupPolicy extends Policy {
       .manager.getRepository(RoutingGroup)
       .findOne({
         where: { id: groupId },
-        relations: ['firewall', 'firewall.fwCloud'],
+        relations: { firewall: { fwCloud: true } },
       });
   }
 }

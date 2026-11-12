@@ -33,14 +33,14 @@ export class DhcpPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     if (user.role === 1) {
@@ -71,14 +71,14 @@ export class DhcpPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     if (user.role === 1) {
@@ -142,7 +142,7 @@ export class DhcpPolicy extends Policy {
       .manager.getRepository(DHCPRule)
       .findOneOrFail({
         where: { id: dhcpId },
-        relations: ['group', 'firewall', 'firewall.fwCloud'],
+        relations: { group: true, firewall: { fwCloud: true } },
       });
   }
 
@@ -152,7 +152,7 @@ export class DhcpPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: userId },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
   }
 }

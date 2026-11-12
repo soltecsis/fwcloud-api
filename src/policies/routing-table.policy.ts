@@ -33,14 +33,14 @@ export class RoutingTablePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     if (user.role === 1) {
@@ -60,14 +60,14 @@ export class RoutingTablePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     if (user.role === 1) {
@@ -87,14 +87,14 @@ export class RoutingTablePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     table = await db
       .getSource()
       .manager.getRepository(RoutingTable)
       .findOneOrFail({
         where: { id: table.id },
-        relations: ['firewall', 'firewall.fwCloud'],
+        relations: { firewall: { fwCloud: true } },
       });
 
     if (user.role === 1) {
@@ -114,14 +114,14 @@ export class RoutingTablePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     table = await db
       .getSource()
       .manager.getRepository(RoutingTable)
       .findOneOrFail({
         where: { id: table.id },
-        relations: ['firewall', 'firewall.fwCloud'],
+        relations: { firewall: { fwCloud: true } },
       });
 
     if (user.role === 1) {
@@ -141,14 +141,14 @@ export class RoutingTablePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     table = await db
       .getSource()
       .manager.getRepository(RoutingTable)
       .findOneOrFail({
         where: { id: table.id },
-        relations: ['firewall', 'firewall.fwCloud'],
+        relations: { firewall: { fwCloud: true } },
       });
 
     if (user.role === 1) {

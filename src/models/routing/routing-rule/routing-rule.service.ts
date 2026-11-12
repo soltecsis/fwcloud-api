@@ -200,7 +200,7 @@ export class RoutingRuleService extends Service {
       where: {
         id: data.routingTableId,
       },
-      relations: ['firewall'],
+      relations: { firewall: true },
     });
     const firewall: Firewall = routingTable.firewall;
 
@@ -261,18 +261,18 @@ export class RoutingRuleService extends Service {
       where: {
         id: In(ids),
       },
-      relations: [
-        'routingTable',
-        'routingRuleToMarks',
-        'routingRuleToIPObjs',
-        'routingRuleToIPObjGroups',
-        'routingRuleToOpenVPNs',
-        'routingRuleToOpenVPNPrefixes',
-        'routingRuleToWireGuards',
-        'routingRuleToWireGuardPrefixes',
-        'routingRuleToIPSecs',
-        'routingRuleToIPSecPrefixes',
-      ],
+      relations: {
+        routingTable: true,
+        routingRuleToMarks: true,
+        routingRuleToIPObjs: true,
+        routingRuleToIPObjGroups: true,
+        routingRuleToOpenVPNs: true,
+        routingRuleToOpenVPNPrefixes: true,
+        routingRuleToWireGuards: true,
+        routingRuleToWireGuardPrefixes: true,
+        routingRuleToIPSecs: true,
+        routingRuleToIPSecPrefixes: true,
+      },
     });
 
     const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(
@@ -315,7 +315,7 @@ export class RoutingRuleService extends Service {
     const firewall: Firewall = (
       await this._repository.findOne({
         where: { id: rule.id },
-        relations: ['routingTable', 'routingTable.firewall'],
+        relations: { routingTable: { firewall: true } },
       })
     ).routingTable.firewall;
     if (!skipFromRestriction) {
@@ -448,15 +448,15 @@ export class RoutingRuleService extends Service {
   protected async reorderFrom(ruleId: number): Promise<void> {
     const rule: RoutingRule = await this._repository.findOneOrFail({
       where: { id: ruleId },
-      relations: [
-        'routingRuleToMarks',
-        'routingRuleToIPObjs',
-        'routingRuleToIPObjGroups',
-        'routingRuleToOpenVPNs',
-        'routingRuleToOpenVPNPrefixes',
-        'routingRuleToWireGuards',
-        'routingRuleToWireGuardPrefixes',
-      ],
+      relations: {
+        routingRuleToMarks: true,
+        routingRuleToIPObjs: true,
+        routingRuleToIPObjGroups: true,
+        routingRuleToOpenVPNs: true,
+        routingRuleToOpenVPNPrefixes: true,
+        routingRuleToWireGuards: true,
+        routingRuleToWireGuardPrefixes: true,
+      },
     });
 
     const items: { order: number }[] = [].concat(
@@ -491,7 +491,7 @@ export class RoutingRuleService extends Service {
       const group: RoutingGroup = (
         await this._repository.findOneOrFail({
           where: { id: ids[0] },
-          relations: ['routingGroup'],
+          relations: { routingGroup: true },
         })
       ).routingGroup;
       if (
@@ -532,7 +532,7 @@ export class RoutingRuleService extends Service {
       where: {
         id: destRule,
       },
-      relations: ['routingGroup'],
+      relations: { routingGroup: true },
     });
 
     const sourceRules: RoutingRule[] = await this._repository.findBy({
@@ -572,34 +572,34 @@ export class RoutingRuleService extends Service {
       .manager.getRepository(RoutingRule)
       .findOneOrFail({
         where: { id: fromId },
-        relations: [
-          'routingRuleToMarks',
-          'routingRuleToIPObjs',
-          'routingRuleToIPObjGroups',
-          'routingRuleToOpenVPNs',
-          'routingRuleToOpenVPNPrefixes',
-          'routingRuleToWireGuards',
-          'routingRuleToWireGuardPrefixes',
-          'routingRuleToIPSecs',
-          'routingRuleToIPSecPrefixes',
-        ],
+        relations: {
+          routingRuleToMarks: true,
+          routingRuleToIPObjs: true,
+          routingRuleToIPObjGroups: true,
+          routingRuleToOpenVPNs: true,
+          routingRuleToOpenVPNPrefixes: true,
+          routingRuleToWireGuards: true,
+          routingRuleToWireGuardPrefixes: true,
+          routingRuleToIPSecs: true,
+          routingRuleToIPSecPrefixes: true,
+        },
       });
     const toRule: RoutingRule = await db
       .getSource()
       .manager.getRepository(RoutingRule)
       .findOneOrFail({
         where: { id: toId },
-        relations: [
-          'routingRuleToMarks',
-          'routingRuleToIPObjs',
-          'routingRuleToIPObjGroups',
-          'routingRuleToOpenVPNs',
-          'routingRuleToOpenVPNPrefixes',
-          'routingRuleToWireGuards',
-          'routingRuleToWireGuardPrefixes',
-          'routingRuleToIPSecs',
-          'routingRuleToIPSecPrefixes',
-        ],
+        relations: {
+          routingRuleToMarks: true,
+          routingRuleToIPObjs: true,
+          routingRuleToIPObjGroups: true,
+          routingRuleToOpenVPNs: true,
+          routingRuleToOpenVPNPrefixes: true,
+          routingRuleToWireGuards: true,
+          routingRuleToWireGuardPrefixes: true,
+          routingRuleToIPSecs: true,
+          routingRuleToIPSecPrefixes: true,
+        },
       });
 
     let lastPosition: number = 0;
@@ -870,7 +870,7 @@ export class RoutingRuleService extends Service {
             9, // DNS
           ]),
         },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     for (let i = 0; i < ipObjs.length; i++) {
@@ -904,17 +904,17 @@ export class RoutingRuleService extends Service {
   protected async validateFromRestriction(ruleId: number, data: IUpdateRoutingRule): Promise<void> {
     const rule = await this._repository.findOneOrFail({
       where: { id: ruleId },
-      relations: [
-        'routingRuleToMarks',
-        'routingRuleToIPObjs',
-        'routingRuleToIPObjGroups',
-        'routingRuleToOpenVPNs',
-        'routingRuleToOpenVPNPrefixes',
-        'routingRuleToWireGuards',
-        'routingRuleToWireGuardPrefixes',
-        'routingRuleToIPSecs',
-        'routingRuleToIPSecPrefixes',
-      ],
+      relations: {
+        routingRuleToMarks: true,
+        routingRuleToIPObjs: true,
+        routingRuleToIPObjGroups: true,
+        routingRuleToOpenVPNs: true,
+        routingRuleToOpenVPNPrefixes: true,
+        routingRuleToWireGuards: true,
+        routingRuleToWireGuardPrefixes: true,
+        routingRuleToIPSecs: true,
+        routingRuleToIPSecPrefixes: true,
+      },
     });
 
     const errors: ErrorBag = {};
@@ -1007,7 +1007,7 @@ export class RoutingRuleService extends Service {
         where: {
           id: In(data.ipObjGroupIds.map((item) => item.id)),
         },
-        relations: ['fwCloud', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj'],
+        relations: { fwCloud: true, ipObjToIPObjGroups: { ipObj: true } },
       });
 
     for (let i = 0; i < ipObjGroups.length; i++) {

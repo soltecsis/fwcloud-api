@@ -70,7 +70,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       order: {
         rule_order: 'ASC',
       },
-      relations: ['firewall', 'group'],
+      relations: { firewall: true, group: true },
     });
 
     let affectedKeepaliveds: KeepalivedRule[] = await this.findManyInPath({

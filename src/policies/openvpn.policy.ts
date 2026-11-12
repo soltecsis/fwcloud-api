@@ -33,14 +33,14 @@ export class OpenVPNPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     openvpn = await db
       .getSource()
       .manager.getRepository(OpenVPN)
       .findOneOrFail({
         where: { id: openvpn.id },
-        relations: ['firewall'],
+        relations: { firewall: true },
       });
 
     if (user.role === 1) {
@@ -53,7 +53,7 @@ export class OpenVPNPolicy extends Policy {
         .manager.getRepository(Firewall)
         .findOneOrFail({
           where: { id: openvpn.firewall.id },
-          relations: ['fwCloud'],
+          relations: { fwCloud: true },
         });
 
       const match = user.fwClouds.filter((fwcloud) => {
@@ -72,14 +72,14 @@ export class OpenVPNPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     openvpn = await db
       .getSource()
       .manager.getRepository(OpenVPN)
       .findOneOrFail({
         where: { id: openvpn.id },
-        relations: ['firewall'],
+        relations: { firewall: true },
       });
 
     if (user.role === 1) {
@@ -92,7 +92,7 @@ export class OpenVPNPolicy extends Policy {
         .manager.getRepository(Firewall)
         .findOneOrFail({
           where: { id: openvpn.firewall.id },
-          relations: ['fwCloud'],
+          relations: { fwCloud: true },
         });
 
       const match = user.fwClouds.filter((fwcloud) => {

@@ -34,7 +34,7 @@ export class DHCPGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     return this.checkAuthorization(user, firewall);
   }
@@ -46,7 +46,7 @@ export class DHCPGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: group.firewallId },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     return this.checkAuthorization(user, firewall);
   }
@@ -58,7 +58,7 @@ export class DHCPGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     return this.checkAuthorization(user, firewall);
   }
@@ -70,7 +70,7 @@ export class DHCPGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: group.firewallId },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     return this.checkAuthorization(user, firewall);
   }
@@ -82,7 +82,7 @@ export class DHCPGroupPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: group.firewallId },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
     return this.checkAuthorization(user, firewall);
   }
@@ -108,7 +108,7 @@ export class DHCPGroupPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
   }
 }

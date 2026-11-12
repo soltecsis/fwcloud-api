@@ -47,8 +47,9 @@ describe(describeName('Policy Compiler VyOS'), () => {
   it('should use the VyOS header and footer templates when compiling scripts', async () => {
     const policyConfig = config.get('policy');
     const readFileStub = sinon.stub(fs, 'readFileSync');
-    readFileStub.withArgs(policyConfig.vyos_header_file, 'utf8').returns('');
-    readFileStub.withArgs(policyConfig.vyos_footer_file, 'utf8').returns('');
+    const utf8Encoding = sinon.match.same('utf8');
+    readFileStub.withArgs(policyConfig.vyos_header_file, utf8Encoding).returns('');
+    readFileStub.withArgs(policyConfig.vyos_footer_file, utf8Encoding).returns('');
 
     const fakeStream = new Writable({
       write(_chunk, _encoding, callback) {
@@ -72,8 +73,8 @@ describe(describeName('Policy Compiler VyOS'), () => {
     await compilation;
 
     expect(fakeStream.writableFinished).to.be.true;
-    expect(readFileStub.calledWith(policyConfig.vyos_header_file, 'utf8')).to.be.true;
-    expect(readFileStub.calledWith(policyConfig.vyos_footer_file, 'utf8')).to.be.true;
+    expect(readFileStub.calledWith(policyConfig.vyos_header_file, utf8Encoding)).to.be.true;
+    expect(readFileStub.calledWith(policyConfig.vyos_footer_file, utf8Encoding)).to.be.true;
     const wrotePolicyCompilerLine = writeSpy
       .getCalls()
       .some((call) => /POLICY_COMPILER/.test(call.args[0] ?? ''));

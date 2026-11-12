@@ -10,7 +10,7 @@ export class CaPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
 
     if (user.role === 1) {

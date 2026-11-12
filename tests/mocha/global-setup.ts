@@ -72,7 +72,6 @@ export class TestSuite {
     if (process.env.CI === 'true') {
       fse.outputJsonSync('reports/tests/database-reset.json', timings, { spaces: 2 });
     }
-    console.log('[test database reset] %s', JSON.stringify(timings));
   }
 
   public async closeApplication(): Promise<void> {

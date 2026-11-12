@@ -43,7 +43,7 @@ export class OpenVPNStatusSamplingService extends Service {
       .manager.getRepository(OpenVPN)
       .findOne({
         where: { id: openVPNId },
-        relations: ['openVPNOptions', 'firewall'],
+        relations: { openVPNOptions: true, firewall: true },
       });
   }
 
@@ -68,7 +68,7 @@ export class OpenVPNStatusSamplingService extends Service {
     const openVPNRepository = db.getSource().manager.getRepository(OpenVPN);
     openVPN = await openVPNRepository.findOneOrFail({
       where: { id: openVPN.id },
-      relations: ['openVPNOptions', 'firewall'],
+      relations: { openVPNOptions: true, firewall: true },
     });
 
     if (!openVPN.firewall) {
@@ -84,7 +84,7 @@ export class OpenVPNStatusSamplingService extends Service {
         statusSamplingEnabled: 1,
         parentId: null,
       },
-      relations: ['openVPNOptions'],
+      relations: { openVPNOptions: true },
     });
 
     await communication.syncOpenVPNStatusSampling({
@@ -93,7 +93,7 @@ export class OpenVPNStatusSamplingService extends Service {
 
     return openVPNRepository.findOne({
       where: { id: openVPN.id },
-      relations: ['openVPNOptions', 'firewall'],
+      relations: { openVPNOptions: true, firewall: true },
     });
   }
 
@@ -107,7 +107,7 @@ export class OpenVPNStatusSamplingService extends Service {
       const openVPNRepository = manager.getRepository(OpenVPN);
       const openVPN: OpenVPN = await openVPNRepository.findOneOrFail({
         where: { id: normalizedData.openVPNId },
-        relations: ['openVPNOptions', 'firewall'],
+        relations: { openVPNOptions: true, firewall: true },
       });
 
       if (normalizedData.enabled) {
@@ -140,7 +140,7 @@ export class OpenVPNStatusSamplingService extends Service {
 
       return openVPNRepository.findOne({
         where: { id: openVPN.id },
-        relations: ['openVPNOptions', 'firewall'],
+        relations: { openVPNOptions: true, firewall: true },
       });
     });
   }

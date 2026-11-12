@@ -13,7 +13,7 @@ export class HAProxyPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: firewall.id },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     return this.checksAutorization(user, firewall);
@@ -26,7 +26,7 @@ export class HAProxyPolicy extends Policy {
       .manager.getRepository(Firewall)
       .findOneOrFail({
         where: { id: rule.firewallId },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     return this.checksAutorization(user, rule.firewall);
@@ -53,7 +53,7 @@ export class HAProxyPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
   }
 }

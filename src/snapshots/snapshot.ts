@@ -379,7 +379,7 @@ export class Snapshot implements Responsable {
 
     const oldFwCloud: FwCloud = await FwCloud.findOne({
       where: { id: this.fwCloud.id },
-      relations: ['users'],
+      relations: { users: true },
     });
 
     fwCloud.users = oldFwCloud.users;
@@ -472,7 +472,7 @@ export class Snapshot implements Responsable {
     return new Promise<void>(async (resolve, reject) => {
       const fwcloud: FwCloud = await FwCloud.findOneOrFail({
         where: { id: this._restoredFwCloud.id },
-        relations: ['clusters', 'firewalls'],
+        relations: { clusters: true, firewalls: true },
       });
 
       await this._firewallRepository.markAsUncompiled(fwcloud.firewalls);
