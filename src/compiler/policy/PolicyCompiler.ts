@@ -330,6 +330,7 @@ export class PolicyCompiler {
         if (!rulesData) return resolve(result);
 
         const firewallOptionsCache = new Map<number, number>();
+        const crowdSecIptablesBlockingChains = new Set<string>();
         const firewallRepository = (() => {
           try {
             return db.getSource().manager.getRepository(Firewall);
@@ -352,7 +353,8 @@ export class PolicyCompiler {
           // Obtain rule type, it may change during the compilation process
           const ruleType = rulesData[i].type;
 
-          if (compileFor == 'IPTables') compiler = new IPTablesCompiler(rulesData[i]);
+          if (compileFor == 'IPTables')
+            compiler = new IPTablesCompiler(rulesData[i], crowdSecIptablesBlockingChains);
           else if (compileFor == 'NFTables') compiler = new NFTablesCompiler(rulesData[i]);
           else compiler = new VyOSCompiler(rulesData[i]);
 
@@ -385,7 +387,7 @@ export class PolicyCompiler {
             if (!firewallOptionsCache.has(targetFirewallId)) {
               if (firewallRepository) {
                 const firewallRecord = await firewallRepository.findOne({
-                  select: ['id', 'options'],
+                  select: { id: true, options: true },
                   where: { id: targetFirewallId },
                 });
                 firewallOptionsCache.set(targetFirewallId, firewallRecord?.options ?? 0);

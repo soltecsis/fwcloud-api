@@ -255,6 +255,35 @@ describe(describeName(OpenVPNStatusSamplingService.name + ' Unit Tests'), () => 
       });
     });
 
+    it('should exclude client configurations from server sampling synchronization', async () => {
+      const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
+      sinon.stub(Firewall.prototype, 'getCommunication').resolves({
+        syncOpenVPNStatusSampling,
+      } as any);
+
+      const client = fwcProduct.openvpnClients.get('OpenVPN-Cli-1');
+      await setStatusOption('/run/openvpn/client.status', client.id);
+      await service.save({ openVPNId: client.id, enabled: true });
+
+      await setStatusOption('/run/openvpn/server.status');
+      const server = await service.save({
+        openVPNId: fwcProduct.openvpnServer.id,
+        enabled: true,
+      });
+
+      await service.syncAgent(server);
+
+      expect(syncOpenVPNStatusSampling.calledOnce).to.eq(true);
+      expect(syncOpenVPNStatusSampling.firstCall.args[0].statusFiles).to.deep.eq([
+        {
+          path: '/run/openvpn/server.status',
+          samplingInterval: 30,
+          requestMaxLines: 1000,
+          cacheMaxSize: 10485760,
+        },
+      ]);
+    });
+
     it('should send persisted OpenVPN server sampling parameters', async () => {
       const syncOpenVPNStatusSampling = sinon.stub().resolves(undefined);
       sinon.stub(Firewall.prototype, 'getCommunication').resolves({

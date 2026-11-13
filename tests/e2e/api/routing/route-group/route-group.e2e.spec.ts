@@ -465,7 +465,30 @@ describe(describeName('Route Group E2E Tests'), () => {
                 id: group.id,
               }),
             ).to.be.null;
+            const remainingRoute = await manager.getRepository(Route).findOneByOrFail({
+              id: route.id,
+            });
+            expect(remainingRoute.routeGroupId).to.be.null;
           });
+      });
+
+      it('admin user should remove an empty route group without removing routes', async () => {
+        await manager.getRepository(Route).update(route.id, { routeGroupId: null });
+
+        await request(app.express)
+          .delete(
+            _URL().getURL('fwclouds.firewalls.routing.routeGroups.delete', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routeGroup: group.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200);
+
+        expect(await manager.getRepository(RouteGroup).findOneBy({ id: group.id })).to.be.null;
+        const remainingRoute = await manager.getRepository(Route).findOneByOrFail({ id: route.id });
+        expect(remainingRoute.routeGroupId).to.be.null;
       });
 
       it('admin user should remove a route group', async () => {

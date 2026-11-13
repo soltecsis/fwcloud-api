@@ -165,7 +165,7 @@ export class CrowdSecClusterController extends Controller {
       .manager.getRepository(Cluster)
       .findOne({
         where: { id: clusterId, fwCloudId: fwcloudId },
-        relations: ['firewalls'],
+        relations: { firewalls: true },
       });
     if (!cluster) {
       throw new HttpException('Cluster was not found', 404);
@@ -3174,7 +3174,7 @@ export class CrowdSecClusterController extends Controller {
       .manager.getRepository(Interface)
       .find({
         where: { firewallId: In(nodes.map((node) => node.id)) },
-        relations: ['ipObjs'],
+        relations: { ipObjs: true },
       });
     const belongsToCluster = interfaces.some((networkInterface) =>
       networkInterface.ipObjs.some(

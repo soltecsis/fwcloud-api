@@ -24,8 +24,8 @@ import { PolicyTypesMap } from '../../../models/policy/PolicyType';
 import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class IPTablesCompiler extends PolicyCompilerTools {
-  constructor(ruleData: any) {
-    super();
+  constructor(ruleData: any, crowdSecIptablesBlockingChains?: Set<string>) {
+    super(crowdSecIptablesBlockingChains);
 
     this._compiler = 'IPTables';
     this._ruleData = ruleData;

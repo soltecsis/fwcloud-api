@@ -80,7 +80,7 @@ export class FwCloudExportService extends Service {
 
     user = await User.findOne({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
     user.fwClouds.push(fwCloud);
     await user.save();

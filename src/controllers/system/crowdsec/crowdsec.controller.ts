@@ -353,7 +353,7 @@ export class CrowdSecController extends Controller {
         .manager.getRepository(Cluster)
         .findOne({
           where: { id: this._firewall.clusterId, fwCloudId: this._firewall.fwCloudId },
-          relations: ['firewalls'],
+          relations: { firewalls: true },
         });
       if (cluster) {
         excludedFirewallIds.splice(

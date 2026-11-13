@@ -1,0 +1,6 @@
+{
+  "reporterEnabled": "spec, xunit, ./scripts/mocha-stats-reporter.cjs",
+  "xunitReporterOptions": {
+    "output": "reports/tests/junit.xml"
+  }
+}

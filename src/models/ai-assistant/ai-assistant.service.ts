@@ -70,7 +70,7 @@ export class AIAssistantService extends Service {
   public async getAiCredentials() {
     try {
       const credentials = await this._aiAssistantRepository.find({
-        relations: ['model', 'model.ai'],
+        relations: { model: { ai: true } },
       });
 
       if (!credentials || credentials.length === 0) {
@@ -109,7 +109,7 @@ export class AIAssistantService extends Service {
       // Find the model associated with the AI.
       const model = await this._aiModelRepository.findOne({
         where: { name: modelName, aiId: ai.id }, // Direct relationship with aiId.
-        relations: ['ai'], // Include the relationship with AI.
+        relations: { ai: true }, // Include the relationship with AI.
       });
       if (!model) {
         throw new Error(`Model with name '${modelName}' for AI '${aiName}' not found.`);

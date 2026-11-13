@@ -108,7 +108,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
     firewall = await manager.getRepository(Firewall).findOneOrFail({
       where: { id: fwcProduct.firewall.id },
-      relations: ['fwCloud'],
+      relations: { fwCloud: true },
     });
 
     adminUser.fwClouds = [fwcProduct.fwcloud];
