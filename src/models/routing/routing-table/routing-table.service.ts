@@ -151,7 +151,7 @@ export class RoutingTableService extends Service {
       .manager.getRepository(Firewall)
       .findOne({
         where: { id: routingTable.firewallId },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     const node: { id: number } = (await Tree.getNodeUnderFirewall(
@@ -197,7 +197,7 @@ export class RoutingTableService extends Service {
       .manager.getRepository(RoutingTable)
       .findOne({
         where: { id: table.id },
-        relations: ['routingRules', 'routes', 'firewall'],
+        relations: { routingRules: true, routes: true, firewall: true },
       });
 
     if (tableWithRules.routingRules.length > 0) {

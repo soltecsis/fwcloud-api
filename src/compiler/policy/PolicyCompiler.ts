@@ -387,7 +387,7 @@ export class PolicyCompiler {
             if (!firewallOptionsCache.has(targetFirewallId)) {
               if (firewallRepository) {
                 const firewallRecord = await firewallRepository.findOne({
-                  select: ['id', 'options'],
+                  select: { id: true, options: true },
                   where: { id: targetFirewallId },
                 });
                 firewallOptionsCache.set(targetFirewallId, firewallRecord?.options ?? 0);

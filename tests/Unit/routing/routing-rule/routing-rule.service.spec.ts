@@ -1,4 +1,4 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, IsNull } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 import { ValidationException } from '../../../../src/fonaments/exceptions/validation-exception';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
@@ -184,7 +184,7 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule.id,
           },
-          relations: ['firewallApplyTo'],
+          relations: { firewallApplyTo: true },
         });
 
         expect(rule.firewallApplyTo.id).to.eq(firewall.id);
@@ -204,7 +204,7 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule.id,
           },
-          relations: ['firewallApplyTo'],
+          relations: { firewallApplyTo: true },
         });
 
         expect(rule.firewallApplyToId).to.eq(null);
@@ -284,7 +284,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjs'],
+              relations: { routingRuleToIPObjs: true },
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj1.id, ipobj2.id]);
@@ -293,7 +293,7 @@ describe(RoutingRuleService.name, () => {
       it('should attach standard ipobj', async () => {
         const standards: IPObj[] = await manager.getRepository(IPObj).find({
           where: {
-            fwCloudId: null,
+            fwCloudId: IsNull(),
           },
         });
 
@@ -309,7 +309,7 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule.id,
           },
-          relations: ['routingRuleToIPObjs'],
+          relations: { routingRuleToIPObjs: true },
         });
 
         expect(rule.routingRuleToIPObjs).to.have.length(standards.length);
@@ -393,7 +393,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjGroups'],
+              relations: { routingRuleToIPObjGroups: true },
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group1.id, group2.id]);
@@ -462,7 +462,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNs'],
+              relations: { routingRuleToOpenVPNs: true },
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN1.id, openVPN2.id]);
@@ -539,7 +539,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNPrefixes'],
+              relations: { routingRuleToOpenVPNPrefixes: true },
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id]);
@@ -585,7 +585,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToMarks'],
+              relations: { routingRuleToMarks: true },
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([mark1.id, mark2.id]);
@@ -696,7 +696,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['firewallApplyTo'],
+              relations: { firewallApplyTo: true },
             })
           ).firewallApplyTo.id,
         ).to.eq(firewall.id);
@@ -729,7 +729,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['firewallApplyTo'],
+              relations: { firewallApplyTo: true },
             })
           ).firewallApplyToId,
         ).to.eq(null);
@@ -751,7 +751,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['firewallApplyTo'],
+              relations: { firewallApplyTo: true },
             })
           ).firewallApplyToId,
         ).to.eq(null);
@@ -819,7 +819,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjs'],
+              relations: { routingRuleToIPObjs: true },
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj1.id, ipobj2.id]);
@@ -843,7 +843,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjs'],
+              relations: { routingRuleToIPObjs: true },
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj2.id]);
@@ -867,7 +867,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjs'],
+              relations: { routingRuleToIPObjs: true },
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([]);
@@ -964,7 +964,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjGroups'],
+              relations: { routingRuleToIPObjGroups: true },
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group1.id, group2.id]);
@@ -988,7 +988,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjGroups'],
+              relations: { routingRuleToIPObjGroups: true },
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group2.id]);
@@ -1012,7 +1012,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToIPObjGroups'],
+              relations: { routingRuleToIPObjGroups: true },
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([]);
@@ -1120,7 +1120,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNs'],
+              relations: { routingRuleToOpenVPNs: true },
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN1.id, openVPN2.id]);
@@ -1144,7 +1144,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNs'],
+              relations: { routingRuleToOpenVPNs: true },
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN2.id]);
@@ -1168,7 +1168,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNs'],
+              relations: { routingRuleToOpenVPNs: true },
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([]);
@@ -1244,7 +1244,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNPrefixes'],
+              relations: { routingRuleToOpenVPNPrefixes: true },
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id]);
@@ -1268,7 +1268,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNPrefixes'],
+              relations: { routingRuleToOpenVPNPrefixes: true },
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix2.id]);
@@ -1292,7 +1292,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToOpenVPNPrefixes'],
+              relations: { routingRuleToOpenVPNPrefixes: true },
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([]);
@@ -1337,7 +1337,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToMarks'],
+              relations: { routingRuleToMarks: true },
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([mark1.id, mark2.id]);
@@ -1361,7 +1361,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToMarks'],
+              relations: { routingRuleToMarks: true },
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([mark2.id]);
@@ -1385,7 +1385,7 @@ describe(RoutingRuleService.name, () => {
               where: {
                 id: rule.id,
               },
-              relations: ['routingRuleToMarks'],
+              relations: { routingRuleToMarks: true },
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([]);
@@ -1587,13 +1587,13 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule1.id,
           },
-          relations: ['routingRuleToIPObjs'],
+          relations: { routingRuleToIPObjs: true },
         });
         const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
           where: {
             id: rule2.id,
           },
-          relations: ['routingRuleToIPObjs'],
+          relations: { routingRuleToIPObjs: true },
         });
 
         expect(refreshedRule1.routingRuleToIPObjs).length(0);
@@ -1622,13 +1622,13 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule1.id,
           },
-          relations: ['routingRuleToIPObjGroups'],
+          relations: { routingRuleToIPObjGroups: true },
         });
         const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
           where: {
             id: rule2.id,
           },
-          relations: ['routingRuleToIPObjGroups'],
+          relations: { routingRuleToIPObjGroups: true },
         });
 
         expect(refreshedRule1.routingRuleToIPObjGroups).length(0);
@@ -1657,13 +1657,13 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule1.id,
           },
-          relations: ['routingRuleToOpenVPNs'],
+          relations: { routingRuleToOpenVPNs: true },
         });
         const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
           where: {
             id: rule2.id,
           },
-          relations: ['routingRuleToOpenVPNs'],
+          relations: { routingRuleToOpenVPNs: true },
         });
 
         expect(refreshedRule1.routingRuleToOpenVPNs).length(0);
@@ -1692,13 +1692,13 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule1.id,
           },
-          relations: ['routingRuleToOpenVPNPrefixes'],
+          relations: { routingRuleToOpenVPNPrefixes: true },
         });
         const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
           where: {
             id: rule2.id,
           },
-          relations: ['routingRuleToOpenVPNPrefixes'],
+          relations: { routingRuleToOpenVPNPrefixes: true },
         });
 
         expect(refreshedRule1.routingRuleToOpenVPNPrefixes).length(0);
@@ -1718,13 +1718,13 @@ describe(RoutingRuleService.name, () => {
           where: {
             id: rule1.id,
           },
-          relations: ['routingRuleToMarks'],
+          relations: { routingRuleToMarks: true },
         });
         const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
           where: {
             id: rule2.id,
           },
-          relations: ['routingRuleToMarks'],
+          relations: { routingRuleToMarks: true },
         });
 
         expect(refreshedRule1.routingRuleToMarks).length(1);

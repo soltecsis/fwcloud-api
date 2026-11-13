@@ -21,7 +21,7 @@ export class AuthService extends Service {
     return tfData;
   }
 
-  public static async UpdateTfaSecret(tempSecret: string) {
+  public static async UpdateTfaSecret(tempSecret: string, userId: number) {
     await db
       .getSource()
       .getRepository(Tfa)
@@ -29,6 +29,7 @@ export class AuthService extends Service {
       .update()
       .set({ secret: tempSecret })
       .where('tempSecret = :tempSecret', { tempSecret: tempSecret })
+      .andWhere('user = :userId', { userId })
       .execute();
   }
 

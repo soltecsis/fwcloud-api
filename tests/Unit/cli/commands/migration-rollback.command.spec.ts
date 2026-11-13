@@ -29,7 +29,7 @@ import { runCLICommandIsolated } from '../../../utils/utils';
 
 describe(describeName('MigrationRollbackCommand tests'), () => {
   after(async () => {
-    await testSuite.resetDatabaseData();
+    await testSuite.resetDatabaseData({ rebuildSchema: true });
   });
 
   it('should rollback multiple migrations', async () => {

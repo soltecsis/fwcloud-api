@@ -24,7 +24,7 @@ import { MigrationExecutor, DataSource } from 'typeorm';
 
 export class FwCloudMigrationExecutor extends MigrationExecutor {
   async undoAllMigrations(connection: DataSource): Promise<void> {
-    const queryRunner = this.queryRunner || this.connection.createQueryRunner('master');
+    const queryRunner = this.queryRunner || this.dataSource.createQueryRunner('master');
 
     try {
       // create migrations table if its not created yet
@@ -34,7 +34,7 @@ export class FwCloudMigrationExecutor extends MigrationExecutor {
       const executedMigrations = await this.loadExecutedMigrations(queryRunner);
 
       if (executedMigrations.length <= 0) {
-        this.connection.logger.logSchemaBuild(
+        this.dataSource.logger.logSchemaBuild(
           `No migrations was found in the database. Nothing to reset!`,
         );
         return;

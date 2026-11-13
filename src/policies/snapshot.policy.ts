@@ -24,89 +24,42 @@ import { Policy, Authorization } from '../fonaments/authorization/policy';
 import { Snapshot } from '../snapshots/snapshot';
 import { User } from '../models/user/User';
 import { FwCloud } from '../models/fwcloud/FwCloud';
+import { authorizeCloudMembership } from './policy-authorization';
 
 export class SnapshotPolicy extends Policy {
   static async read(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail({
-      where: { id: user.id },
-      relations: ['fwClouds'],
-    });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    if (snapshot.fwCloud) {
-      const match = user.fwClouds.filter((fwcloud) => {
-        return fwcloud.id === snapshot.fwCloud.id;
-      });
-
-      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-    }
-    return Authorization.revoke();
+    return this.authorizeSnapshot(snapshot, user);
   }
 
   static async create(fwcloud: FwCloud, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {
       return Authorization.grant();
     }
 
-    const match = user.fwClouds.filter((_fwcloud) => {
-      return _fwcloud.id === fwcloud.id;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeCloudMembership(user, fwcloud.id);
   }
 
   static async update(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail({
-      where: { id: user.id },
-      relations: ['fwClouds'],
-    });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    if (snapshot.fwCloud) {
-      const match = user.fwClouds.filter((fwcloud) => {
-        return fwcloud.id === snapshot.fwCloud.id;
-      });
-
-      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-    }
-    return Authorization.revoke();
+    return this.authorizeSnapshot(snapshot, user);
   }
 
   static async restore(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail({
-      where: { id: user.id },
-      relations: ['fwClouds'],
-    });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    if (snapshot.fwCloud) {
-      const match = user.fwClouds.filter((fwcloud) => {
-        return fwcloud.id === snapshot.fwCloud.id;
-      });
-
-      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-    }
-    return Authorization.revoke();
+    return this.authorizeSnapshot(snapshot, user);
   }
 
   static async destroy(snapshot: Snapshot, user: User): Promise<Authorization> {
+    return this.authorizeSnapshot(snapshot, user);
+  }
+
+  private static async authorizeSnapshot(snapshot: Snapshot, user: User): Promise<Authorization> {
     user = await User.findOneOrFail({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
 
     if (user.role === 1) {
@@ -114,11 +67,7 @@ export class SnapshotPolicy extends Policy {
     }
 
     if (snapshot.fwCloud) {
-      const match = user.fwClouds.filter((fwcloud) => {
-        return fwcloud.id === snapshot.fwCloud.id;
-      });
-
-      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+      return authorizeCloudMembership(user, snapshot.fwCloud.id);
     }
     return Authorization.revoke();
   }
