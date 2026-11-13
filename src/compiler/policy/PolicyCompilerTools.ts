@@ -47,7 +47,7 @@ POLICY_TYPE[65] = 'PREROUTING'; // IPv6
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
 export function crowdSecBlockingIptablesChain(family: string, chain: string): string {
-  return `FWC_CROWDSEC_IP${family === 'ip6' ? 'v6' : 'v4'}_${chain}.ACC`;
+  return `FWC_CROWDSEC${family === 'ip6' ? '6' : '4'}_${chain === 'FORWARD' ? 'FWD' : 'IN'}.ACC`;
 }
 
 export function crowdSecBlockingNftCounter(family: string, chain: string): string {

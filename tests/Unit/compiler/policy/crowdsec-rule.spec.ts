@@ -140,7 +140,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
 
     const blockingAction = ruleData.action === 2;
     const iptablesCommand = `$IP${IPv === 'IPv4' ? '' : '6'}TABLES`;
-    const iptablesBlockingChain = `FWC_CROWDSEC_IP${IPv === 'IPv4' ? 'v4' : 'v6'}_${chain}.ACC`;
+    const iptablesBlockingChain = `FWC_CROWDSEC${IPv === 'IPv4' ? '4' : '6'}_${chain === 'FORWARD' ? 'FWD' : 'IN'}.ACC`;
     const cs =
       compiler === 'IPTables'
         ? blockingAction
@@ -217,7 +217,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
       const duplicateRule = { ...compiledRule, id: compiledRule.id + 1 };
       const result = await PolicyCompiler.compile(compiler, [compiledRule, duplicateRule]);
       const output = result.map((compiled) => compiled.cs).join('');
-      const iptablesBlockingChain = 'FWC_CROWDSEC_IPv4_INPUT.ACC';
+      const iptablesBlockingChain = 'FWC_CROWDSEC4_IN.ACC';
 
       expect(output.split(`$IPTABLES -N ${iptablesBlockingChain}\n`)).to.have.length(2);
       expect(output.split(`$IPTABLES -A ${iptablesBlockingChain} -j DROP\n`)).to.have.length(2);
