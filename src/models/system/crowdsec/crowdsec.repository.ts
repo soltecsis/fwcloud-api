@@ -100,7 +100,7 @@ export class CrowdSecInstallationRepository extends Repository<CrowdSecInstallat
   public async findByFirewallId(firewallId: number): Promise<CrowdSecInstallation | null> {
     return this.findOne({
       where: { firewallId },
-      relations: ['firewall', 'centralFirewall'],
+      relations: { firewall: true, centralFirewall: true },
     });
   }
 

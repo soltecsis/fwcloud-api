@@ -34,7 +34,7 @@ export class CrowdSecPolicy extends Policy {
     user = await db
       .getSource()
       .manager.getRepository(User)
-      .findOneOrFail({ where: { id: user.id }, relations: ['fwClouds'] });
+      .findOneOrFail({ where: { id: user.id }, relations: { fwClouds: true } });
 
     return user.fwClouds.some((fwcloud) => fwcloud.id === firewall.fwCloudId)
       ? Authorization.grant()
