@@ -99,28 +99,6 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
       expect(output).to.contain('$NFT add counter ip6 filter fwcloud_crowdsec_v6_forward');
     });
 
-    it('should create dedicated named IPTables and IP6Tables blocking chains', async () => {
-      const writes: string[] = [];
-      const script = new PolicyScript({}, 1, 1);
-      (script as any).stream = {
-        write: (content: string) => writes.push(content),
-      };
-
-      sinon.stub(Firewall, 'getFirewallOptions').resolves(FireWallOptMask.CROWDSEC_COMPAT);
-
-      await (script as any).dumpCrowdSecIptablesBlockingChains();
-
-      const output = writes.join('');
-      expect(output).to.contain('$IPTABLES -N FWC_CROWDSEC_V4_INPUT');
-      expect(output).to.contain(
-        '$IPTABLES -A FWC_CROWDSEC_V4_INPUT -m set --match-set crowdsec-blacklists src -j DROP',
-      );
-      expect(output).to.contain('$IP6TABLES -N FWC_CROWDSEC_V6_FORWARD');
-      expect(output).to.contain(
-        '$IP6TABLES -A FWC_CROWDSEC_V6_FORWARD -m set --match-set crowdsec6-blacklists src -j DROP',
-      );
-    });
-
     it('should not create blacklist sets without CrowdSec compatibility', async () => {
       const writes: string[] = [];
       const script = new PolicyScript({}, 1, 1);
@@ -161,11 +139,13 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
     }
 
     const blockingAction = ruleData.action === 2;
+    const iptablesCommand = `$IP${IPv === 'IPv4' ? '' : '6'}TABLES`;
+    const iptablesBlockingChain = `FWC_CROWDSEC_IP${IPv === 'IPv4' ? 'v4' : 'v6'}_${chain}.ACC`;
     const cs =
       compiler === 'IPTables'
         ? blockingAction
-          ? `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -j FWC_CROWDSEC_${IPv === 'IPv4' ? 'V4' : 'V6'}_${chain}\n`
-          : `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
+          ? `${iptablesCommand} -N ${iptablesBlockingChain}\n${iptablesCommand} -A ${iptablesBlockingChain} -j DROP\n${iptablesCommand} -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ${iptablesBlockingChain}\n`
+          : `${iptablesCommand} -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
         : blockingAction
           ? `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip${IPv === 'IPv4' ? '' : '6'} saddr @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter name fwcloud_crowdsec_${IPv === 'IPv4' ? 'v4' : 'v6'}_${chain.toLowerCase()} drop comment \\"CrowdSec firewall bouncer support\\"\n`
           : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip${IPv === 'IPv4' ? '' : '6'} saddr @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
@@ -213,6 +193,39 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
       ruleData.fw_apply_to = null;
 
       await runTest();
+    });
+
+    it('should create a shared IPTables blocking chain only once per compilation', async () => {
+      IPv = 'IPv4';
+      compiler = 'IPTables';
+      chain = 'INPUT';
+      ruleData.action = 2;
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+      ruleData.fw_apply_to = null;
+
+      const rule = await PolicyRule.insertPolicy_r(ruleData);
+      const rulesData: any = await PolicyRule.getPolicyData(
+        'compiler',
+        dbCon,
+        fwcProduct.fwcloud.id,
+        ruleData.firewall,
+        ruleData.type,
+        [rule],
+        null,
+      );
+      const [compiledRule] = rulesData;
+      const duplicateRule = { ...compiledRule, id: compiledRule.id + 1 };
+      const result = await PolicyCompiler.compile(compiler, [compiledRule, duplicateRule]);
+      const output = result.map((compiled) => compiled.cs).join('');
+      const iptablesBlockingChain = 'FWC_CROWDSEC_IPv4_INPUT.ACC';
+
+      expect(output.split(`$IPTABLES -N ${iptablesBlockingChain}\n`)).to.have.length(2);
+      expect(output.split(`$IPTABLES -A ${iptablesBlockingChain} -j DROP\n`)).to.have.length(2);
+      expect(
+        output.split(
+          `$IPTABLES -A INPUT -m comment --comment '${comment}' -m set --match-set crowdsec-blacklists src -j ${iptablesBlockingChain}\n`,
+        ),
+      ).to.have.length(3);
     });
 
     it('should compile an NFTables blocking rule through its named counter', async () => {

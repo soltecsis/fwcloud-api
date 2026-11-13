@@ -47,7 +47,7 @@ POLICY_TYPE[65] = 'PREROUTING'; // IPv6
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
 export function crowdSecBlockingIptablesChain(family: string, chain: string): string {
-  return `FWC_CROWDSEC_${family === 'ip6' ? 'V6' : 'V4'}_${chain}`;
+  return `FWC_CROWDSEC_IP${family === 'ip6' ? 'v6' : 'v4'}_${chain}.ACC`;
 }
 
 export function crowdSecBlockingNftCounter(family: string, chain: string): string {
@@ -105,6 +105,11 @@ export abstract class PolicyCompilerTools {
   private _action = '';
   protected _comment: string;
   private _compiledPositions: CompiledPosition[];
+  private _crowdSecIptablesBlockingChains: Set<string>;
+
+  constructor(crowdSecIptablesBlockingChains?: Set<string>) {
+    this._crowdSecIptablesBlockingChains = crowdSecIptablesBlockingChains || new Set<string>();
+  }
 
   private validPolicyType(): boolean {
     return (
@@ -192,10 +197,15 @@ export abstract class PolicyCompilerTools {
         const chain = POLICY_TYPE[this._policyType];
 
         if (this._ruleData.action === RuleActionsMap.get('DROP')) {
-          this._csEnd =
-            this._compiler === 'IPTables'
-              ? `-j ${crowdSecBlockingIptablesChain(this._family, chain)}\n`
-              : `${sourceAddress} @${setName} counter name ${crowdSecBlockingNftCounter(this._family, chain)} drop\n`;
+          if (this._compiler === 'IPTables') {
+            const blockingChain = crowdSecBlockingIptablesChain(this._family, chain);
+            if (!this._crowdSecIptablesBlockingChains.has(blockingChain)) {
+              this._crowdSecIptablesBlockingChains.add(blockingChain);
+              this._cs = `${this._cmd} -N ${blockingChain}\n${this._cmd} -A ${blockingChain} -j DROP\n${this._cs}`;
+            }
+            this._csEnd = `-m set --match-set ${setName} src -j ${blockingChain}\n`;
+          } else
+            this._csEnd = `${sourceAddress} @${setName} counter name ${crowdSecBlockingNftCounter(this._family, chain)} drop\n`;
         } else {
           this._csEnd = `${this._compiler == 'IPTables' ? `-m set --match-set ${setName} src -j` : `${sourceAddress} @${setName}`} ${this._action}\n`;
         }

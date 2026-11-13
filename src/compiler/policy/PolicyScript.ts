@@ -29,11 +29,7 @@
 import { Firewall, FireWallOptMask, PolicyCompilationMode } from '../../models/firewall/Firewall';
 import { ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
-import {
-  crowdSecBlockingIptablesChain,
-  crowdSecBlockingNftCounter,
-  RuleCompilationResult,
-} from './PolicyCompilerTools';
+import { crowdSecBlockingNftCounter, RuleCompilationResult } from './PolicyCompilerTools';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { RoutingCompiled, RoutingCompiler } from '../routing/RoutingCompiler';
@@ -788,7 +784,6 @@ export class PolicyScript {
                 // IPTables compiler.
                 this.stream.write('\n# Default IPTables chains policy.\n');
                 this.stream.write('iptables_default_filter_policy DROP\n');
-                await this.dumpCrowdSecIptablesBlockingChains();
               }
 
               if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
@@ -1005,28 +1000,6 @@ export class PolicyScript {
             '\n',
     );
     return;
-  }
-
-  private async dumpCrowdSecIptablesBlockingChains(): Promise<void> {
-    const firewallOptions = await Firewall.getFirewallOptions(this.fwcloud, this.firewall);
-    if ((firewallOptions & FireWallOptMask.CROWDSEC_COMPAT) === 0) return;
-
-    const commands: string[] = [];
-    for (const [command, family] of [
-      ['$IPTABLES', 'ip'],
-      ['$IP6TABLES', 'ip6'],
-    ]) {
-      const setName = `crowdsec${family === 'ip6' ? '6' : ''}-blacklists`;
-
-      for (const chain of ['INPUT', 'FORWARD']) {
-        const blockingChain = crowdSecBlockingIptablesChain(family, chain);
-        commands.push(`${command} -N ${blockingChain}`);
-        commands.push(`${command} -A ${blockingChain} -m set --match-set ${setName} src -j DROP`);
-        commands.push(`${command} -A ${blockingChain} -j RETURN`);
-      }
-    }
-
-    this.stream.write(`${commands.join('\n')}\n`);
   }
 
   private dumpMangeTableRules(): Promise<void> {
