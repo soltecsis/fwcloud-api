@@ -79,9 +79,10 @@ describe(KeepalivedRepository.name, () => {
 
   describe('remove', () => {
     it('should remove a single KeepalivedRule entity', async () => {
+      const ruleId = keepalivedRule.id;
       const result = await repository.remove(keepalivedRule);
 
-      expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to.be.null;
+      expect(await repository.findOne({ where: { id: ruleId } })).to.be.null;
     });
 
     it('should remove multiple KeepalivedRule entities', async () => {
@@ -94,10 +95,12 @@ describe(KeepalivedRepository.name, () => {
         }),
       );
 
+      const ruleId = keepalivedRule.id;
+      const rule2Id = keepalivedRule2.id;
       const result = await repository.remove([keepalivedRule, keepalivedRule2]);
 
-      expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to.be.null;
-      expect(await repository.findOne({ where: { id: keepalivedRule2.id } })).to.be.null;
+      expect(await repository.findOne({ where: { id: ruleId } })).to.be.null;
+      expect(await repository.findOne({ where: { id: rule2Id } })).to.be.null;
     });
 
     it('should refresh orders after remove', async () => {

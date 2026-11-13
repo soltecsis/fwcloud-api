@@ -90,7 +90,7 @@ export class RouteGroupService extends Service {
   async update(id: number, data: IUpdateRouteGroup): Promise<RouteGroup> {
     let group: RouteGroup = await this._repository.findOneOrFail({
       where: { id },
-      relations: ['firewall', 'routes'],
+      relations: { firewall: true, routes: true },
     });
 
     this._repository.merge(group, data);
@@ -112,14 +112,17 @@ export class RouteGroupService extends Service {
 
   async remove(path: IFindOneRouteGroupPath): Promise<RouteGroup> {
     const group: RouteGroup = await this.findOneInPath(path);
-    db.getSource()
-      .manager.getRepository(Route)
-      .update(
-        group.routes.map((route) => route.id),
-        {
-          routeGroupId: null,
-        },
-      );
+    if (group.routes.length > 0) {
+      await db
+        .getSource()
+        .manager.getRepository(Route)
+        .update(
+          group.routes.map((route) => route.id),
+          {
+            routeGroupId: null,
+          },
+        );
+    }
     await this._repository.remove(group);
     return group;
   }

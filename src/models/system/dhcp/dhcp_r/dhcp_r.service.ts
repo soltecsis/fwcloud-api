@@ -217,17 +217,16 @@ export class DHCPRuleService extends Service {
       where: {
         id: In(ids),
       },
-      relations: [
-        'group',
-        'firewall',
-        'firewall.fwCloud',
-        'firewallApplyTo',
-        'network',
-        'range',
-        'router',
-        'interface',
-        'dhcpRuleToIPObjs',
-      ],
+      relations: {
+        group: true,
+        firewall: { fwCloud: true },
+        firewallApplyTo: true,
+        network: true,
+        range: true,
+        router: true,
+        interface: true,
+        dhcpRuleToIPObjs: true,
+      },
     });
 
     const lastRule: DHCPRule = await this._repository.getLastDHCPRuleInFirewall(
@@ -252,7 +251,7 @@ export class DHCPRuleService extends Service {
   async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
     const destinationRule: DHCPRule = await this._repository.findOneOrFail({
       where: { id: destRule },
-      relations: ['group'],
+      relations: { group: true },
     });
 
     const sourceRules: DHCPRule[] = await this._repository.findBy({
@@ -278,11 +277,11 @@ export class DHCPRuleService extends Service {
   ): Promise<[DHCPRule, DHCPRule]> {
     const fromRule: DHCPRule = await this._repository.findOneOrFail({
       where: { id: fromId },
-      relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs'],
+      relations: { firewall: { fwCloud: true }, dhcpRuleToIPObjs: true },
     });
     const toRule: DHCPRule = await this._repository.findOneOrFail({
       where: { id: toId },
-      relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs'],
+      relations: { firewall: { fwCloud: true }, dhcpRuleToIPObjs: true },
     });
 
     let lastPosition = 0;
@@ -311,15 +310,15 @@ export class DHCPRuleService extends Service {
   async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
     let dhcpRule: DHCPRule | undefined = await this._repository.findOne({
       where: { id: id },
-      relations: [
-        'group',
-        'firewall',
-        'firewallApplyTo',
-        'network',
-        'range',
-        'router',
-        'interface',
-      ],
+      relations: {
+        group: true,
+        firewall: true,
+        firewallApplyTo: true,
+        network: true,
+        range: true,
+        router: true,
+        interface: true,
+      },
     });
 
     if (!dhcpRule) {
@@ -538,7 +537,7 @@ export class DHCPRuleService extends Service {
   async remove(path: IFindOneDHCPRulePath): Promise<DHCPRule> {
     const dhcpRule: DHCPRule = await this._repository.findOne({
       where: { id: path.id },
-      relations: ['group', 'firewall'],
+      relations: { group: true, firewall: true },
     });
 
     dhcpRule.dhcpRuleToIPObjs = [];
@@ -672,7 +671,7 @@ export class DHCPRuleService extends Service {
         where: {
           id: ids[0],
         },
-        relations: ['group', 'firewall'],
+        relations: { group: true, firewall: true },
       });
 
       if (!firstRule) {
@@ -843,7 +842,7 @@ export class DHCPRuleService extends Service {
           id: In(data.ipObjIds.map((item) => item.id)),
           ipObjTypeId: 9, // DNS
         },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     for (let i = 0; i < ipObjs.length; i++) {

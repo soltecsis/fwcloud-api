@@ -108,7 +108,7 @@ export class RoutePolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: userId },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
   }
 
@@ -118,7 +118,7 @@ export class RoutePolicy extends Policy {
       .manager.getRepository(RoutingTable)
       .findOne({
         where: { id: routingTableId },
-        relations: ['firewall', 'firewall.fwCloud'],
+        relations: { firewall: { fwCloud: true } },
       });
   }
 
@@ -128,7 +128,7 @@ export class RoutePolicy extends Policy {
       .manager.getRepository(Route)
       .findOne({
         where: { id: routeId },
-        relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud'],
+        relations: { routingTable: { firewall: { fwCloud: true } } },
       });
   }
 }

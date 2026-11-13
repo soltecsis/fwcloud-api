@@ -33,7 +33,7 @@ export class LogService extends Service {
     this._config = this._app.config.get('log');
 
     if (!FSHelper.directoryExistsSync(this._config.directory)) {
-      FSHelper.mkdirSync(this._config.directory);
+      await FSHelper.mkdirSync(this._config.directory);
     }
 
     this._loggers = {

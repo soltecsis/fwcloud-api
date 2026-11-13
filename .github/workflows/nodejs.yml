@@ -4,21 +4,471 @@ on:
   push:
     branches:
       - main
+      - fixes
+      - ENS
   pull_request:
     branches:
+      - main
       - devel
       - fixes
       - auditlogs
+      - ENS
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: true
+  HUSKY: '0'
+  ANALYSIS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
-  test:
-    if: github.repository_owner == 'soltecsis'
-    name: 'FWCloud-API Test'
+  quality:
+    name: FWCloud-API Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint:check
+      - name: Run Prettier
+        run: npm run format:check
+      - name: Verify CI tooling and policy
+        run: npm run test:ci-tools
+
+  secrets:
+    name: FWCloud-API Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITLEAKS_VERSION: '8.30.1'
+      GITLEAKS_ARCHIVE_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Gitleaks
+        env:
+          GITLEAKS_ARCHIVE: gitleaks_8.30.1_linux_x64.tar.gz
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${GITLEAKS_ARCHIVE}" \
+            --output "$RUNNER_TEMP/$GITLEAKS_ARCHIVE"
+          printf '%s  %s\n' "$GITLEAKS_ARCHIVE_SHA256" "$RUNNER_TEMP/$GITLEAKS_ARCHIVE" \
+            | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$GITLEAKS_ARCHIVE" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+      - name: Determine scan scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          git cat-file -e "$HEAD_SHA^{commit}"
+          if [ "$EVENT_NAME" = pull_request ]; then
+            git cat-file -e "$BASE_SHA^{commit}"
+            MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+            test -n "$MERGE_BASE"
+            LOG_OPTS="$MERGE_BASE..$HEAD_SHA"
+            SCAN_SCOPE="pull-request:$LOG_OPTS"
+          elif [ "$EVENT_NAME" = push ]; then
+            if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+              LOG_OPTS="$HEAD_SHA"
+              SCAN_SCOPE="new-branch-history:$HEAD_SHA"
+            else
+              git cat-file -e "$BEFORE_SHA^{commit}"
+              LOG_OPTS="$BEFORE_SHA..$HEAD_SHA"
+              SCAN_SCOPE="push:$LOG_OPTS"
+            fi
+          elif [ "$EVENT_NAME" = workflow_dispatch ]; then
+            LOG_OPTS="--all"
+            SCAN_SCOPE="full-history"
+          else
+            echo "Unsupported event: $EVENT_NAME" >&2
+            exit 1
+          fi
+          echo "log_opts=$LOG_OPTS" >> "$GITHUB_OUTPUT"
+          echo "scan_scope=$SCAN_SCOPE" >> "$GITHUB_OUTPUT"
+      - name: Scan secrets
+        id: gitleaks
+        env:
+          GITLEAKS_LOG_OPTS: ${{ steps.scope.outputs.log_opts }}
+        run: |
+          mkdir -p reports/secrets
+          set +e
+          "$RUNNER_TEMP/gitleaks" git \
+            --config .gitleaks.toml \
+            --log-opts="$GITLEAKS_LOG_OPTS" \
+            --redact=100 \
+            --report-format json \
+            --report-path reports/secrets/gitleaks.json \
+            --timeout 300 \
+            --no-banner \
+            --no-color \
+            .
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+      - name: Verify and summarize secret scan
+        id: secret_report
+        if: ${{ always() && steps.gitleaks.outcome != 'skipped' }}
+        env:
+          GITLEAKS_EXIT_CODE: ${{ steps.gitleaks.outputs.exit_code }}
+          GITLEAKS_LOG_OPTS: ${{ steps.scope.outputs.log_opts }}
+          GITLEAKS_SCAN_SCOPE: ${{ steps.scope.outputs.scan_scope }}
+        run: node scripts/gitleaks-report.cjs
+      - name: Remove detailed secret report
+        if: ${{ always() && steps.gitleaks.outcome != 'skipped' }}
+        run: rm -f reports/secrets/gitleaks.json
+      - name: Upload redacted secret scan evidence
+        if: ${{ always() && steps.gitleaks.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-secrets-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/secrets/metadata.json
+          retention-days: 90
+          if-no-files-found: error
+
+  sca:
+    name: FWCloud-API SCA and SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TRIVY_CONFIG: /dev/null
+      TRIVY_IGNOREFILE: /dev/null
+      TRIVY_TIMEOUT: 10m
+      TRIVY_DISABLE_TELEMETRY: 'true'
+      TRIVY_SKIP_VERSION_CHECK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Load shared Trivy configuration
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const c = require("./scripts/trivy-config.json");
+            fs.appendFileSync(process.env.GITHUB_ENV, [
+              "TRIVY_VERSION=" + c.version,
+              "TRIVY_ARCHIVE=" + c.archive,
+              "TRIVY_ARCHIVE_SHA256=" + c.archiveSha256,
+              "TRIVY_BINARY=" + process.env.RUNNER_TEMP + "/trivy",
+              "TRIVY_CACHE_DIR=" + process.env.RUNNER_TEMP + "/trivy-cache",
+              "TRIVY_BLOCKING_SEVERITIES=" + c.blockingSeverities.join(","),
+              "TRIVY_FINDINGS_EXIT_CODE=" + c.findingsExitCode,
+              ""
+            ].join("\n"));
+          '
+      - name: Install Trivy
+        id: install_trivy
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${TRIVY_ARCHIVE}" \
+            --output "$RUNNER_TEMP/$TRIVY_ARCHIVE"
+          printf '%s  %s\n' "$TRIVY_ARCHIVE_SHA256" "$RUNNER_TEMP/$TRIVY_ARCHIVE" \
+            | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$TRIVY_ARCHIVE" -C "$RUNNER_TEMP" trivy
+          VERSION=$("$TRIVY_BINARY" --version)
+          test "${VERSION%%$'\n'*}" = "Version: $TRIVY_VERSION"
+          mkdir -p reports/dependencies
+      - name: Verify native Trivy policy
+        run: node --test scripts/trivy-policy.test.cjs
+      - name: Scan dependency vulnerabilities
+        id: trivy
+        run: |
+          : > reports/dependencies/trivy.json
+          set +e
+          "$TRIVY_BINARY" fs . --scanners vuln --pkg-types library \
+            --include-dev-deps --list-all-pkgs --no-progress \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --ignore-unfixed=false \
+            --exit-code 0 --format json --output reports/dependencies/trivy.json \
+            2>&1 | tee reports/dependencies/scan.log
+          CODES=("${PIPESTATUS[@]}")
+          set -e
+          echo "exit_code=${CODES[0]}" >> "$GITHUB_OUTPUT"
+          test "${CODES[1]}" -eq 0
+      - name: Generate CycloneDX SBOM
+        id: sbom
+        run: |
+          : > reports/dependencies/sbom.cdx.json
+          set +e
+          "$TRIVY_BINARY" fs . --include-dev-deps --no-progress \
+            --format cyclonedx --output reports/dependencies/sbom.cdx.json \
+            2>&1 | tee reports/dependencies/sbom.log
+          CODES=("${PIPESTATUS[@]}")
+          set -e
+          echo "exit_code=${CODES[0]}" >> "$GITHUB_OUTPUT"
+          test "${CODES[1]}" -eq 0
+      - name: Record Trivy and database versions
+        if: ${{ always() && steps.trivy.outcome != 'skipped' }}
+        run: '"$TRIVY_BINARY" version --format json > reports/dependencies/trivy-version.json'
+      - name: Enforce Trivy severity policy and report analysis context
+        id: trivy_policy
+        if: ${{ always() }}
+        shell: bash
+        env:
+          INSTALL_RESULT: ${{ steps.install_trivy.outcome }}
+          SCAN_RESULT: ${{ steps.trivy.outcome }}
+          TRIVY_EXIT_CODE: ${{ steps.trivy.outputs.exit_code }}
+          SBOM_RESULT: ${{ steps.sbom.outcome }}
+          TRIVY_SBOM_EXIT_CODE: ${{ steps.sbom.outputs.exit_code }}
+        run: |
+          mkdir -p reports/dependencies
+          GATE_EXIT_CODE=''
+          GATE_RESULT=skipped
+          GATE_WRITE_CODE=0
+          if [ "$INSTALL_RESULT" = success ] && [ "$SCAN_RESULT" != skipped ]; then
+            set +e
+            "$TRIVY_BINARY" convert --format table --scanners vuln \
+              --severity "$TRIVY_BLOCKING_SEVERITIES" --exit-code "$TRIVY_FINDINGS_EXIT_CODE" \
+              reports/dependencies/trivy.json 2>&1 | tee reports/dependencies/blocking.txt
+            CODES=("${PIPESTATUS[@]}")
+            set -e
+            GATE_EXIT_CODE=${CODES[0]}
+            GATE_WRITE_CODE=${CODES[1]}
+            GATE_RESULT=failure
+            if [ "$GATE_EXIT_CODE" -eq 0 ] && [ "$GATE_WRITE_CODE" -eq 0 ]; then
+              GATE_RESULT=success
+            fi
+          fi
+          echo "exit_code=$GATE_EXIT_CODE" >> "$GITHUB_OUTPUT"
+          set +e
+          TRIVY_POLICY_EXIT_CODE="$GATE_EXIT_CODE" node scripts/trivy-report.cjs
+          SUMMARY_CODE=$?
+          set -e
+          SUMMARY_RESULT=failure
+          if [ "$SUMMARY_CODE" -eq 0 ]; then SUMMARY_RESULT=success; fi
+          {
+            printf '## API dependency analysis context\n\nSource: %s@%s\n\n' "$GITHUB_REPOSITORY" "$ANALYSIS_COMMIT"
+            printf 'Run: %s/%s/actions/runs/%s/attempts/%s\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+            printf 'Trivy installation: %s; configured version: %s\n\n' "$INSTALL_RESULT" "${TRIVY_VERSION:-unavailable}"
+            printf 'Scan step: %s; native exit code: %s\n' "$SCAN_RESULT" "${TRIVY_EXIT_CODE:-not run}"
+            printf 'SBOM step: %s; native exit code: %s\n' "$SBOM_RESULT" "${TRIVY_SBOM_EXIT_CODE:-not run}"
+            printf 'Gate step: %s; native exit code: %s\n' "$GATE_RESULT" "${GATE_EXIT_CODE:-not run}"
+            printf 'Evidence validation: %s\n\n' "$SUMMARY_RESULT"
+            printf 'Gate codes: 0 = accepted; %s = blocking findings; other nonzero = operational error.\n' "${TRIVY_FINDINGS_EXIT_CODE:-5}"
+            printf 'Consult blocking.txt, scan.log, sbom.log and metadata.json when available. Missing reports or skipped steps do not constitute a successful scan.\n'
+          } | tee reports/dependencies/context.txt
+          cat reports/dependencies/context.txt >> "$GITHUB_STEP_SUMMARY"
+          test "$GATE_WRITE_CODE" -eq 0
+          test -n "$GATE_EXIT_CODE"
+          if [ "$GATE_EXIT_CODE" -ne 0 ]; then exit "$GATE_EXIT_CODE"; fi
+          exit "$SUMMARY_CODE"
+      - name: Upload dependency security evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-sca-sbom-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/dependencies/metadata.json
+            reports/dependencies/sbom.cdx.json
+            reports/dependencies/trivy.json
+            reports/dependencies/trivy-version.json
+            reports/dependencies/blocking.txt
+            reports/dependencies/context.txt
+            reports/dependencies/scan.log
+            reports/dependencies/sbom.log
+          retention-days: 90
+          if-no-files-found: error
+
+  dast:
+    name: FWCloud-API ZAP and HTTP Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: prod
+      TYPEORM_HOST: 127.0.0.1
+      TYPEORM_PORT: '13306'
+      TYPEORM_DATABASE: fwcloud_zap
+      TYPEORM_USERNAME: fwcdbusr
+      TYPEORM_PASSWORD: fwcdbusr
+      APISRV_IP: 127.0.0.1
+      APISRV_PORT: '3131'
+      APISRV_HTTPS: 'false'
+      SESSION_FORCE_HTTPS: 'false'
+      CORS_ENABLED: 'true'
+      CORS_WHITELIST: https://zap.invalid
+      CONFIRMATION_TOKEN: 'true'
+      MAINTENANCE_MODE: 'false'
+      SSH_COMMUNICATION_ENABLED: 'false'
+      SESSION_KEEPALIVE_MS: '1800000'
+    services:
+      mysql:
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        ports:
+          - 13306:3306
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+          MYSQL_DATABASE: fwcloud_zap
+          MYSQL_USER: fwcdbusr
+          MYSQL_PASSWORD: fwcdbusr
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install and build API
+        run: |
+          npm ci --include=dev
+          npm run build
+      - name: Generate ephemeral runtime secrets
+        run: |
+          node -e '
+            const fs = require("node:fs"), crypto = require("node:crypto");
+            for (const name of ["SESSION_SECRET", "CRYPT_SECRET"]) {
+              const value = crypto.randomBytes(32).toString("hex");
+              console.log("::add-mask::" + value);
+              fs.appendFileSync(process.env.GITHUB_ENV, name + "=" + value + "\n");
+            }
+          '
+      - name: Start temporary API
+        id: api
+        run: |
+          node .github/zap/start.cjs > "$RUNNER_TEMP/zap-api.log" 2>&1 &
+          echo "pid=$!" >> "$GITHUB_OUTPUT"
+      - name: Verify login is reachable with valid-shaped input
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const payload = {customer: 1, username: 'zapuser', password: 'zapinvalid', authCode: null, publicKey: 'lab-client'};
+          (async () => {
+            for (let attempt = 0; attempt < 90; attempt++) {
+              try {
+                const response = await fetch('http://127.0.0.1:3131/user/login', {
+                  method: 'POST', headers: {'Content-Type': 'application/json', Origin: 'https://zap.invalid'},
+                  body: JSON.stringify(payload), signal: AbortSignal.timeout(3000)
+                });
+                const result = await response.json();
+                if (response.status !== 401 || result.fwcErr !== 1001) throw new Error('Login did not reach credential verification.');
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'Login DAST preflight: expected 401/BAD_LOGIN confirmed.\n');
+                return;
+              } catch (error) {
+                if (attempt === 89) throw error;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            }
+          })().catch(() => { console.error('ZAP login preflight failed.'); process.exitCode = 1; });
+          NODE
+      - name: Official ZAP API Scan (login only)
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
+        env:
+          ZAP_AUTH_HEADER: Origin
+          ZAP_AUTH_HEADER_VALUE: https://zap.invalid
+          ZAP_AUTH_HEADER_SITE: 127.0.0.1
+        with:
+          target: .github/zap/login.openapi.yaml
+          format: openapi
+          docker_name: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+          allow_issue_writing: false
+          fail_action: true
+          artifact_name: backend-zap-login-${{ github.run_id }}-${{ github.run_attempt }}
+          cmd_options: '-c .github/zap/rules.tsv -s -T 5 -z "-silent -config scanner.threadPerHost=1"'
+      - name: Create synthetic accounts after public reports are finished
+        run: node .github/zap/fixtures.cjs > "$RUNNER_TEMP/zap-fixture.log" 2>&1
+      - name: Verify real HTTP security controls before authenticated scan
+        id: http_before
+        run: node .github/zap/http-check.cjs before
+      - name: Official packaged ZAP API Scan (authenticated queries)
+        id: authenticated_zap
+        env:
+          ZAP_AUTH_HEADER: Cookie
+          ZAP_AUTH_HEADER_SITE: 127.0.0.1
+        run: |
+          chmod a+w reports/dast
+          set +e
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/zap/wrk:rw" \
+            -e CI -e ANALYSIS_COMMIT -e GITHUB_RUN_ID -e GITHUB_RUN_ATTEMPT \
+            -e ZAP_AUDIT_SESSION_ID \
+            -e ZAP_AUTH_HEADER -e ZAP_AUTH_HEADER_VALUE -e ZAP_AUTH_HEADER_SITE \
+            ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
+            zap-api-scan.py -t reports/dast/authenticated.openapi.json -f openapi \
+            -c .github/zap/rules.tsv --hook /zap/wrk/.github/zap/auth-hook.py \
+            -s -T 5 -z "-silent -config scanner.threadPerHost=1" \
+            > "$RUNNER_TEMP/zap-auth.log" 2>&1
+          STATUS=$?
+          set -e
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          node .github/zap/diagnostics.cjs "$STATUS"
+          test "$STATUS" -eq 0
+      - name: Verify protected content and logout after scan
+        if: ${{ always() && steps.authenticated_zap.outcome != 'skipped' }}
+        id: http_after
+        run: node .github/zap/http-check.cjs after
+      - name: Generate DAST JSON and Markdown summary
+        if: ${{ always() && steps.http_before.outcome != 'skipped' }}
+        env:
+          ZAP_EXIT_CODE: ${{ steps.authenticated_zap.outputs.exit_code }}
+          ZAP_STEP_OUTCOME: ${{ steps.authenticated_zap.outcome }}
+          HTTP_BEFORE_OUTCOME: ${{ steps.http_before.outcome }}
+          HTTP_AFTER_OUTCOME: ${{ steps.http_after.outcome }}
+        run: node .github/zap/report.cjs
+      - name: Publish credential-free HTTP and authenticated ZAP evidence
+        if: ${{ always() && steps.http_before.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-zap-authenticated-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/dast/http-before.json
+            reports/dast/http-after.json
+            reports/dast/authenticated.json
+            reports/dast/authenticated.openapi.json
+            reports/dast/summary.md
+          retention-days: 90
+          if-no-files-found: error
+      - name: Stop temporary API
+        if: ${{ always() && steps.api.outputs.pid != '' }}
+        env:
+          API_PID: ${{ steps.api.outputs.pid }}
+        run: |
+          if kill -0 "$API_PID" 2>/dev/null; then
+            kill "$API_PID"
+          fi
+      - name: Remove ephemeral credentials and private diagnostics
+        if: ${{ always() }}
+        run: |
+          rm -f "$RUNNER_TEMP/zap-fixture.json" "$RUNNER_TEMP/zap-sessions.json" "$RUNNER_TEMP/zap-auth.log" "$RUNNER_TEMP/zap-api.log" "$RUNNER_TEMP/zap-fixture.log"
+          rm -rf "$RUNNER_TEMP/zap-api-sessions" "$RUNNER_TEMP/zap-api-logs"
+
+  test:
+    name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
+    runs-on: ubuntu-latest
+    # timeout-minutes: 120
 
     services:
       mysql:
-        image: mysql:5.7
+        image: ${{ matrix.database == 'mysql' && matrix.image || '' }}
         ports:
           - 8888:3306
         env:
@@ -26,8 +476,13 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
       mysql8:
-        image: mysql:8.0
+        image: ${{ matrix.database == 'mysql8' && matrix.image || '' }}
         ports:
           - 8890:3306
         env:
@@ -35,8 +490,13 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
       mariadb:
-        image: mariadb:10.1
+        image: ${{ matrix.database == 'mariadb' && matrix.image || '' }}
         ports:
           - 8889:3306
         env:
@@ -44,50 +504,223 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
 
     strategy:
+      fail-fast: false
       matrix:
         node-version: ['20', '22', '24']
         database: [mysql, mysql8, mariadb]
         include:
           - database: mysql
             port: 8888
+            image: mysql:5.7
           - database: mysql8
             port: 8890
+            image: mysql:8.0
           - database: mariadb
             port: 8889
+            image: mariadb:10.1
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-
-    - name: Cache node modules
-      uses: actions/cache@v4
-      env:
-        cache-name: cache-node-modules
-      with:
-        path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
+        cache: npm
+        cache-dependency-path: package-lock.json
+    - name: Show runtime versions
+      run: |
+        node --version
+        npm --version
     - name: Disable mysqldump column statistics
       run: echo 'column-statistics=0' | sudo tee -a /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
-      run: npm install
-    - name: Run ESLint
-      if: matrix.node-version == '20' || matrix.node-version == '22'
-      run: npm run lint:check
-    - name: Run Prettier
-      run: npm run format:check
-    - name: Build FWCloud
-      run: npm run build --if-present
-    - name: Run tests
-      run: TYPEORM_PORT=${{ matrix.port }} npm run test -- --forbid-only
+      run: npm ci
+    - name: Verify database connection
       env:
-        CI: true
+        TYPEORM_PORT: ${{ matrix.port }}
+      run: |
+        node <<'NODE'
+        const mysql = require('mysql2/promise');
+        (async () => {
+          const connection = await mysql.createConnection({
+            host: '127.0.0.1',
+            port: Number(process.env.TYPEORM_PORT),
+            user: 'fwcdbusr',
+            password: 'fwcdbusr',
+            database: 'fwcloud',
+            connectTimeout: 10000,
+          });
+          try {
+            await connection.query('SELECT 1');
+          } finally {
+            await connection.end();
+          }
+        })().catch(error => {
+          console.error(error);
+          process.exitCode = 1;
+        });
+        NODE
+    - name: Build FWCloud
+      run: npm run build
+    - name: Run tests
+      id: tests
+      run: |
+        mkdir -p reports/tests
+        if [ "$COVERAGE_EXPECTED" = true ]; then
+          npm run test:coverage:ci
+        else
+          npm run test:ci
+        fi
+      env:
+        TYPEORM_PORT: ${{ matrix.port }}
+        COVERAGE_EXPECTED: ${{ matrix.node-version == '22' && matrix.database == 'mysql8' }}
+    - name: Verify reports and summarize results
+      if: ${{ always() && steps.tests.outcome != 'skipped' }}
+      run: npm run ci:reports
+      env:
+        TEST_OUTCOME: ${{ steps.tests.outcome }}
+        TEST_DATABASE: ${{ matrix.database }}
+        TEST_DATABASE_IMAGE: ${{ matrix.image }}
+        COVERAGE_EXPECTED: ${{ matrix.node-version == '22' && matrix.database == 'mysql8' }}
+    - name: Upload test evidence
+      if: ${{ always() && steps.tests.outcome != 'skipped' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: backend-tests-node${{ matrix.node-version }}-${{ matrix.database }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: |
+          reports/tests/
+          reports/metadata.json
+        retention-days: 90
+        if-no-files-found: error
+    - name: Bind reference coverage to the tested revision
+      if: ${{ success() && matrix.node-version == '22' && matrix.database == 'mysql8' }}
+      run: |
+        node -e '
+          const fs = require("node:fs"), crypto = require("node:crypto");
+          const metadata = JSON.parse(fs.readFileSync("reports/metadata.json", "utf8"));
+          metadata.coverageReportSha256 = crypto.createHash("sha256")
+            .update(fs.readFileSync("reports/coverage/lcov.info")).digest("hex");
+          fs.writeFileSync("reports/coverage/analysis.json", JSON.stringify(metadata, null, 2));
+        '
+    - name: Upload coverage evidence
+      if: ${{ always() && steps.tests.outcome != 'skipped' && matrix.node-version == '22' && matrix.database == 'mysql8' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        # Partial reruns can reuse the successful reference job from an earlier attempt.
+        name: backend-coverage-node22-mysql8-${{ github.run_id }}
+        overwrite: true
+        path: reports/coverage/
+        retention-days: 90
+        if-no-files-found: error
+
+  sonar:
+    name: FWCloud-API SonarQube
+    needs: [quality, test, secrets, sca, dast]
+    # Fork/Dependabot runs do not receive SONAR_TOKEN. Scan after merge on push.
+    if: >-
+      ${{ github.actor != 'dependabot[bot]' &&
+          (github.event_name != 'pull_request' ||
+           (github.event.pull_request.head.repo.full_name == github.repository &&
+            github.event.pull_request.user.login != 'dependabot[bot]')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download reference coverage from this execution
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: backend-coverage-node22-mysql8-${{ github.run_id }}
+          path: coverage-input
+      - name: Verify revision and coverage
+        id: analysis
+        env:
+          ANALYSIS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const { prepare } = require("./scripts/sonar-analysis.cjs");
+            const { metadata, args } = prepare(".", "coverage-input");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "args=" + args + "\n");
+            fs.writeFileSync("reports/sonar/context.json", JSON.stringify(metadata, null, 2));
+          '
+      - name: Official SonarQube scan and Quality Gate
+        id: scan
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          scannerVersion: 8.1.0.6389
+          skipSignatureVerification: false
+          # Temporarily read identifiers from sonar-project.properties.
+          # Actions variable validation/overrides remain disabled:
+          # -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+          # -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+          args: ${{ steps.analysis.outputs.args }}
+      - name: Record aggregate analysis evidence
+        if: ${{ always() && steps.scan.outcome != 'skipped' }}
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const { recordEvidence } = require("./scripts/sonar-analysis.cjs");
+            recordEvidence(JSON.parse(fs.readFileSync("reports/sonar/context.json", "utf8")), process.env.SCAN_OUTCOME);
+          '
+      - name: Upload aggregate SonarQube evidence
+        if: ${{ always() && steps.scan.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-sonarqube-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/sonar/metadata.json
+          retention-days: 90
+          if-no-files-found: error
+
+  backend-ci:
+    name: backend-ci
+    if: ${{ always() }}
+    needs: [quality, test, secrets, sca, dast, sonar]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all checks to succeed
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          SECRETS_RESULT: ${{ needs.secrets.result }}
+          SCA_RESULT: ${{ needs.sca.result }}
+          DAST_RESULT: ${{ needs.dast.result }}
+          SONAR_RESULT: ${{ needs.sonar.result }}
+          SONAR_REQUIRED: >-
+            ${{ github.actor != 'dependabot[bot]' &&
+                (github.event_name != 'pull_request' ||
+                 (github.event.pull_request.head.repo.full_name == github.repository &&
+                  github.event.pull_request.user.login != 'dependabot[bot]')) }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$TEST_RESULT" = success
+          test "$SECRETS_RESULT" = success
+          test "$SCA_RESULT" = success
+          test "$DAST_RESULT" = success
+          if [ "$SONAR_REQUIRED" = true ]; then
+            test "$SONAR_RESULT" = success
+          else
+            test "$SONAR_RESULT" = skipped
+            echo 'SonarQube omitted: this fork/Dependabot run has no analysis token.' >> "$GITHUB_STEP_SUMMARY"
+          fi

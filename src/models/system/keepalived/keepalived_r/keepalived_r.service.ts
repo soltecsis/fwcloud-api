@@ -225,15 +225,14 @@ export class KeepalivedRuleService extends Service {
       where: {
         id: In(ids),
       },
-      relations: [
-        'group',
-        'firewall',
-        'firewall.fwCloud',
-        'firewallApplyTo',
-        'interface',
-        'virtualIps',
-        'masterNode',
-      ],
+      relations: {
+        group: true,
+        firewall: { fwCloud: true },
+        firewallApplyTo: true,
+        interface: true,
+        virtualIps: true,
+        masterNode: true,
+      },
     });
 
     const lastRule: KeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
@@ -309,7 +308,14 @@ export class KeepalivedRuleService extends Service {
       where: {
         id: id,
       },
-      relations: ['group', 'firewall', 'firewallApplyTo', 'interface', 'virtualIps', 'masterNode'],
+      relations: {
+        group: true,
+        firewall: true,
+        firewallApplyTo: true,
+        interface: true,
+        virtualIps: true,
+        masterNode: true,
+      },
     });
 
     if (!keepalivedRule) {
@@ -605,7 +611,7 @@ export class KeepalivedRuleService extends Service {
         where: {
           id: ids[0],
         },
-        relations: ['group', 'firewall'],
+        relations: { group: true, firewall: true },
       });
 
       if (!firstRule) {
@@ -775,7 +781,7 @@ export class KeepalivedRuleService extends Service {
         id: In(data.virtualIpsIds.map((item) => item.id)),
         ipObjTypeId: 5, //ADDRESS
       },
-      relations: ['fwCloud'],
+      relations: { fwCloud: true },
     });
 
     for (let i = 0; i < virtualIps.length; i++) {

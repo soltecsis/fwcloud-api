@@ -69,7 +69,7 @@ describe(describeName('FwCloudService Unit tests'), async () => {
 
       fwCloud = await manager.getRepository(FwCloud).findOne({
         where: { id: fwCloud.id },
-        relations: ['users'],
+        relations: { users: true },
       });
 
       expect(fwCloud.users.filter((user) => user.id === regular.id)).to.have.length(0);

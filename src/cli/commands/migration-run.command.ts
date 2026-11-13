@@ -36,9 +36,7 @@ export class MigrationRunCommand extends Command {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );
-    const dataSource: DataSource = await databaseService.getDataSource({
-      name: 'cli',
-    });
+    const dataSource: DataSource = await databaseService.getDataSource({});
 
     await databaseService.runMigrations(dataSource);
     this.output.success(`Pending migrations applied.`);

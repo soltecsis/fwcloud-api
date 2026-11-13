@@ -103,7 +103,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
       order: {
         rule_order: 'ASC',
       },
-      relations: ['routingTable', 'routingTable.firewall'],
+      relations: { routingTable: { firewall: true } },
     });
 
     let affectedRules: RoutingRule[] = await this.findManyInPath({
@@ -226,7 +226,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
       where: {
         id: In(entityArray.map((item) => item.id)),
       },
-      relations: ['routingTable', 'routingTable.firewall'],
+      relations: { routingTable: { firewall: true } },
     });
 
     for (const entity of entitiesWithFirewall) {
