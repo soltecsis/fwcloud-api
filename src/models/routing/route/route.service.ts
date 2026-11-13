@@ -510,43 +510,30 @@ export class RouteService extends Service {
     return routes;
   }
 
+  private loadRouteWithRelations(id: number): Promise<Route> {
+    return db
+      .getSource()
+      .manager.getRepository(Route)
+      .findOneOrFail({
+        where: {
+          id,
+        },
+        relations: {
+          routeToIPObjs: true,
+          routeToIPObjGroups: true,
+          routeToOpenVPNs: true,
+          routeToOpenVPNPrefixes: true,
+          routeToWireGuards: true,
+          routeToWireGuardPrefixes: true,
+          routeToIPSecs: true,
+          routeToIPSecPrefixes: true,
+        },
+      });
+  }
+
   async moveTo(fromId: number, toId: number, data: IMoveToRoute): Promise<[Route, Route]> {
-    const fromRule: Route = await db
-      .getSource()
-      .manager.getRepository(Route)
-      .findOneOrFail({
-        where: {
-          id: fromId,
-        },
-        relations: {
-          routeToIPObjs: true,
-          routeToIPObjGroups: true,
-          routeToOpenVPNs: true,
-          routeToOpenVPNPrefixes: true,
-          routeToWireGuards: true,
-          routeToWireGuardPrefixes: true,
-          routeToIPSecs: true,
-          routeToIPSecPrefixes: true,
-        },
-      });
-    const toRule: Route = await db
-      .getSource()
-      .manager.getRepository(Route)
-      .findOneOrFail({
-        where: {
-          id: toId,
-        },
-        relations: {
-          routeToIPObjs: true,
-          routeToIPObjGroups: true,
-          routeToOpenVPNs: true,
-          routeToOpenVPNPrefixes: true,
-          routeToWireGuards: true,
-          routeToWireGuardPrefixes: true,
-          routeToIPSecs: true,
-          routeToIPSecPrefixes: true,
-        },
-      });
+    const fromRule = await this.loadRouteWithRelations(fromId);
+    const toRule = await this.loadRouteWithRelations(toId);
 
     let lastPosition: number = 0;
 

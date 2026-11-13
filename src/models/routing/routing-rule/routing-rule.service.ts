@@ -562,45 +562,33 @@ export class RoutingRuleService extends Service {
     return rules;
   }
 
+  private loadRuleWithRelations(id: number): Promise<RoutingRule> {
+    return db
+      .getSource()
+      .manager.getRepository(RoutingRule)
+      .findOneOrFail({
+        where: { id },
+        relations: {
+          routingRuleToMarks: true,
+          routingRuleToIPObjs: true,
+          routingRuleToIPObjGroups: true,
+          routingRuleToOpenVPNs: true,
+          routingRuleToOpenVPNPrefixes: true,
+          routingRuleToWireGuards: true,
+          routingRuleToWireGuardPrefixes: true,
+          routingRuleToIPSecs: true,
+          routingRuleToIPSecPrefixes: true,
+        },
+      });
+  }
+
   async moveFrom(
     fromId: number,
     toId: number,
     data: IMoveFromRoutingRule,
   ): Promise<[RoutingRule, RoutingRule]> {
-    const fromRule: RoutingRule = await db
-      .getSource()
-      .manager.getRepository(RoutingRule)
-      .findOneOrFail({
-        where: { id: fromId },
-        relations: {
-          routingRuleToMarks: true,
-          routingRuleToIPObjs: true,
-          routingRuleToIPObjGroups: true,
-          routingRuleToOpenVPNs: true,
-          routingRuleToOpenVPNPrefixes: true,
-          routingRuleToWireGuards: true,
-          routingRuleToWireGuardPrefixes: true,
-          routingRuleToIPSecs: true,
-          routingRuleToIPSecPrefixes: true,
-        },
-      });
-    const toRule: RoutingRule = await db
-      .getSource()
-      .manager.getRepository(RoutingRule)
-      .findOneOrFail({
-        where: { id: toId },
-        relations: {
-          routingRuleToMarks: true,
-          routingRuleToIPObjs: true,
-          routingRuleToIPObjGroups: true,
-          routingRuleToOpenVPNs: true,
-          routingRuleToOpenVPNPrefixes: true,
-          routingRuleToWireGuards: true,
-          routingRuleToWireGuardPrefixes: true,
-          routingRuleToIPSecs: true,
-          routingRuleToIPSecPrefixes: true,
-        },
-      });
+    const fromRule = await this.loadRuleWithRelations(fromId);
+    const toRule = await this.loadRuleWithRelations(toId);
 
     let lastPosition: number = 0;
 

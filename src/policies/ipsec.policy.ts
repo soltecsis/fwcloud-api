@@ -20,88 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from '../database/database-manager';
 import { Policy, Authorization } from '../fonaments/authorization/policy';
-import { Firewall } from '../models/firewall/Firewall';
 import { User } from '../models/user/User';
 import { IPSec } from '../models/vpn/ipsec/IPSec';
+import { authorizeVPN } from './policy-authorization';
 
 export class IPSecPolicy extends Policy {
   static async installer(ipsec: IPSec, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    ipsec = await db
-      .getSource()
-      .manager.getRepository(IPSec)
-      .findOneOrFail({
-        where: { id: ipsec.id },
-        relations: { firewall: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    if (ipsec.firewall) {
-      const firewall: Firewall = await db
-        .getSource()
-        .manager.getRepository(Firewall)
-        .findOneOrFail({
-          where: { id: ipsec.firewall.id },
-          relations: { fwCloud: true },
-        });
-
-      const match = user.fwClouds.filter((fwcloud) => {
-        return fwcloud.id === firewall.fwCloudId;
-      });
-
-      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-    }
-
-    return Authorization.revoke();
+    return authorizeVPN(IPSec, ipsec.id, user);
   }
 
   static async history(ipsec: IPSec, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    ipsec = await db
-      .getSource()
-      .manager.getRepository(IPSec)
-      .findOneOrFail({
-        where: { id: ipsec.id },
-        relations: { firewall: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    if (ipsec.firewall) {
-      const firewall: Firewall = await db
-        .getSource()
-        .manager.getRepository(Firewall)
-        .findOneOrFail({
-          where: { id: ipsec.firewall.id },
-          relations: { fwCloud: true },
-        });
-
-      const match = user.fwClouds.filter((fwcloud) => {
-        return fwcloud.id === firewall.fwCloudId;
-      });
-
-      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-    }
-
-    return Authorization.revoke();
+    return this.installer(ipsec, user);
   }
 }

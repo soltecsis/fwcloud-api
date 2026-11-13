@@ -3,21 +3,16 @@ import { Authorization } from '../fonaments/authorization/policy';
 import { Firewall } from '../models/firewall/Firewall';
 import { User } from '../models/user/User';
 import { HAProxyGroup } from '../models/system/haproxy/haproxy_g/haproxy_g.model';
-import { FwCloud } from '../models/fwcloud/FwCloud';
 import db from '../database/database-manager';
+import {
+  authorizeCloudMembership,
+  authorizeFirewall,
+  loadPolicyUser,
+} from './policy-authorization';
 
 export class HAProxyGroupPolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await this.getUser(user);
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    return this.checksAutorization(user, firewall);
+    return authorizeFirewall(firewall, user);
   }
 
   static async show(group: HAProxyGroup, user: User): Promise<Authorization> {
@@ -26,11 +21,11 @@ export class HAProxyGroupPolicy extends Policy {
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
-        where: { id: group.firewall.id },
+        where: { id: group.firewallId },
         relations: { fwCloud: true },
       });
 
-    return this.checksAutorization(user, group.firewall);
+    return this.checksAutorization(user, firewall);
   }
 
   protected static async checksAutorization(
@@ -41,20 +36,10 @@ export class HAProxyGroupPolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match: FwCloud[] = user.fwClouds.filter((fwCloud: FwCloud) => {
-      return fwCloud.id === firewall.fwCloud.id;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeCloudMembership(user, firewall.fwCloud.id);
   }
 
   protected static async getUser(user: User): Promise<User> {
-    return db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
+    return loadPolicyUser(user.id);
   }
 }

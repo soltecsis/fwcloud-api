@@ -25,124 +25,35 @@ import { Firewall } from '../models/firewall/Firewall';
 import { User } from '../models/user/User';
 import { RoutingTable } from '../models/routing/routing-table/routing-table.model';
 import db from '../database/database-manager';
+import {
+  authorizeCloudMembership,
+  authorizeFirewall,
+  loadPolicyUser,
+} from './policy-authorization';
 
 export class RoutingTablePolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeFirewall(firewall, user);
   }
 
   static async index(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeFirewall(firewall, user);
   }
 
   static async show(table: RoutingTable, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    table = await db
-      .getSource()
-      .manager.getRepository(RoutingTable)
-      .findOneOrFail({
-        where: { id: table.id },
-        relations: { firewall: { fwCloud: true } },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === table.firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return this.authorizeTable(table, user);
   }
 
   static async update(table: RoutingTable, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    table = await db
-      .getSource()
-      .manager.getRepository(RoutingTable)
-      .findOneOrFail({
-        where: { id: table.id },
-        relations: { firewall: { fwCloud: true } },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === table.firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return this.authorizeTable(table, user);
   }
 
   static async delete(table: RoutingTable, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
+    return this.authorizeTable(table, user);
+  }
+
+  private static async authorizeTable(table: RoutingTable, user: User): Promise<Authorization> {
+    user = await loadPolicyUser(user.id);
     table = await db
       .getSource()
       .manager.getRepository(RoutingTable)
@@ -155,10 +66,6 @@ export class RoutingTablePolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === table.firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeCloudMembership(user, table.firewall.fwCloudId);
   }
 }

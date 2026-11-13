@@ -1,59 +1,14 @@
 import { User } from './../models/user/User';
 import { Firewall } from './../models/firewall/Firewall';
 import { Policy, Authorization } from './../fonaments/authorization/policy';
-import db from '../database/database-manager';
+import { authorizeFirewall } from './policy-authorization';
 
 export class PolicyRulePolicy extends Policy {
   static async read(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeFirewall(firewall, user);
   }
+
   static async download(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match = user.fwClouds.filter((fwcloud) => {
-      return fwcloud.id === firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeFirewall(firewall, user);
   }
 }
