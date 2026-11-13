@@ -37,19 +37,31 @@ test('native c8 retains original TS/legacy JS and uncovered files without depend
   write('src/legacy.js', 'exports.legacy = value => value * 2;\n');
   write('src/uncovered.ts', 'export function uncovered(): number { return 99; }\n');
   write('tests/excluded.ts', 'export const fixture = 1;\n');
-  // Copy the installed dependency's real code/map. Its ../../src/container.ts
-  // points outside node_modules after remapping, into this fixture's src/ tree.
-  const dependency = path.dirname(require.resolve('typeorm/container.js'));
-  for (const name of ['container.js', 'container.js.map']) {
-    write(`node_modules/typeorm/${name}`, fs.readFileSync(path.join(dependency, name)));
-  }
+  // Model a dependency whose source map points outside node_modules into the
+  // fixture's src/ tree, independently of installed dependency internals.
+  const dependencySource = 'exports.getFromContainer = Target => new Target();\n';
+  write(
+    'node_modules/fixture-dependency/container.js',
+    dependencySource + '//# sourceMappingURL=container.js.map\n',
+  );
+  write(
+    'node_modules/fixture-dependency/container.js.map',
+    JSON.stringify({
+      version: 3,
+      file: 'container.js',
+      sources: ['../../src/container.ts'],
+      sourcesContent: [dependencySource],
+      names: [],
+      mappings: 'AAAA',
+    }),
+  );
   write(
     'run.cjs',
     [
       'require("./dist/src/covered.js").covered(2);',
       'require("./dist/src/legacy.js").legacy(3);',
       'require("./dist/tests/excluded.js");',
-      'require("./node_modules/typeorm/container.js").getFromContainer(class Fixture {});',
+      'require("./node_modules/fixture-dependency/container.js").getFromContainer(class Fixture {});',
     ].join('\n'),
   );
   execFileSync(process.execPath, [tsc, '--project', 'tsconfig.json'], { cwd: directory });
