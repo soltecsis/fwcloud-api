@@ -1,4 +1,4 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, IsNull } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 import { ValidationException } from '../../../../src/fonaments/exceptions/validation-exception';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
@@ -293,7 +293,7 @@ describe(RoutingRuleService.name, () => {
       it('should attach standard ipobj', async () => {
         const standards: IPObj[] = await manager.getRepository(IPObj).find({
           where: {
-            fwCloudId: null,
+            fwCloudId: IsNull(),
           },
         });
 

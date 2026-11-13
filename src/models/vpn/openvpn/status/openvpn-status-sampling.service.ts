@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { IsNull } from 'typeorm';
 import { AgentCommunication } from '../../../../communications/agent.communication';
 import { OpenVPNStatusSamplingAgentStatusFile } from '../../../../communications/communication';
 import db from '../../../../database/database-manager';
@@ -82,7 +83,7 @@ export class OpenVPNStatusSamplingService extends Service {
       where: {
         firewallId,
         statusSamplingEnabled: 1,
-        parentId: null,
+        parentId: IsNull(),
       },
       relations: { openVPNOptions: true },
     });

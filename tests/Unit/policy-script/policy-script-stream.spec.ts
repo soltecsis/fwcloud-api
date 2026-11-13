@@ -49,7 +49,7 @@ describe('PolicyScript stream completion', () => {
       channel,
     });
     sandbox.stub(script, 'dumpFirewallOptions').resolves();
-    sandbox.stub(script, 'dumpPolicyTables').callsFake(async () => {
+    sandbox.stub(script, 'dumpCompilation').callsFake(async () => {
       stream.write('  :\n');
       return [];
     });
