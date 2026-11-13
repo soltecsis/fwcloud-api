@@ -1,22 +1,17 @@
 import { Authorization, Policy } from '../fonaments/authorization/policy';
 import { Firewall } from '../models/firewall/Firewall';
-import { FwCloud } from '../models/fwcloud/FwCloud';
 import { User } from '../models/user/User';
 import { HAProxyRule } from '../models/system/haproxy/haproxy_r/haproxy_r.model';
 import db from '../database/database-manager';
+import {
+  authorizeCloudMembership,
+  authorizeFirewall,
+  loadPolicyUser,
+} from './policy-authorization';
 
 export class HAProxyPolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await this.getUser(user);
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    return this.checksAutorization(user, firewall);
+    return authorizeFirewall(firewall, user);
   }
 
   static async show(rule: HAProxyRule, user: User): Promise<Authorization> {
@@ -29,7 +24,7 @@ export class HAProxyPolicy extends Policy {
         relations: { fwCloud: true },
       });
 
-    return this.checksAutorization(user, rule.firewall);
+    return this.checksAutorization(user, firewall);
   }
 
   protected static async checksAutorization(
@@ -40,20 +35,10 @@ export class HAProxyPolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match: FwCloud[] = user.fwClouds.filter((fwCloud: FwCloud) => {
-      return fwCloud.id === firewall.fwCloud.id;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeCloudMembership(user, firewall.fwCloud.id);
   }
 
   protected static async getUser(user: User): Promise<User> {
-    return db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
+    return loadPolicyUser(user.id);
   }
 }

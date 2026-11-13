@@ -23,35 +23,16 @@ import { Policy, Authorization } from '../fonaments/authorization/policy';
 import { User } from '../models/user/User';
 import { DHCPRule } from '../models/system/dhcp/dhcp_r/dhcp_r.model';
 import { Firewall } from '../models/firewall/Firewall';
-import { FwCloud } from '../models/fwcloud/FwCloud';
 import db from '../database/database-manager';
+import {
+  authorizeCloudMembership,
+  authorizeFirewall,
+  loadPolicyUser,
+} from './policy-authorization';
 
 export class DhcpPolicy extends Policy {
   static async index(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match: FwCloud[] = user.fwClouds.filter((FwCloud: FwCloud): boolean => {
-      return FwCloud.id === firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeFirewall(firewall, user);
   }
 
   static async show(dhcp: DHCPRule, user: User): Promise<Authorization> {
@@ -66,41 +47,11 @@ export class DhcpPolicy extends Policy {
   }
 
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: user.id },
-        relations: { fwClouds: true },
-      });
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOneOrFail({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => {
-      return fwcloud.id === firewall.fwCloudId;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeFirewall(firewall, user);
   }
 
   static async copy(dhcp: DHCPRule, user: User): Promise<Authorization> {
-    user = await this.getUser(user.id);
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    dhcp = await this.getDhcpR(dhcp.id);
-
-    return this.checkAuthorization(user, dhcp.firewall.fwCloud.id);
+    return this.show(dhcp, user);
   }
 
   static async move(firewall: Firewall, user: User): Promise<Authorization> {
@@ -108,32 +59,15 @@ export class DhcpPolicy extends Policy {
   }
 
   static async update(dhcp: DHCPRule, user: User): Promise<Authorization> {
-    user = await this.getUser(user.id);
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    dhcp = await this.getDhcpR(dhcp.id);
-
-    return this.checkAuthorization(user, dhcp.firewall.fwCloud.id);
+    return this.show(dhcp, user);
   }
 
   static async delete(dhcp: DHCPRule, user: User): Promise<Authorization> {
-    user = await this.getUser(user.id);
-    if (user.role === 1) {
-      return Authorization.grant();
-    }
-
-    dhcp = await this.getDhcpR(dhcp.id);
-
-    return this.checkAuthorization(user, dhcp.firewall.fwCloud.id);
+    return this.show(dhcp, user);
   }
 
   private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {
-    const match: FwCloud[] = user.fwClouds.filter(
-      (fwcloud: FwCloud): boolean => fwcloud.id === fwCloudId,
-    );
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeCloudMembership(user, fwCloudId);
   }
 
   private static getDhcpR(dhcpId: number): Promise<DHCPRule> {
@@ -147,12 +81,6 @@ export class DhcpPolicy extends Policy {
   }
 
   private static getUser(userId: number): Promise<User> {
-    return db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id: userId },
-        relations: { fwClouds: true },
-      });
+    return loadPolicyUser(userId);
   }
 }

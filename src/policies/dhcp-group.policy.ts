@@ -23,8 +23,8 @@ import { Authorization, Policy } from '../fonaments/authorization/policy';
 import { Firewall } from '../models/firewall/Firewall';
 import { User } from '../models/user/User';
 import { DHCPGroup } from '../models/system/dhcp/dhcp_g/dhcp_g.model';
-import { FwCloud } from '../models/fwcloud/FwCloud';
 import db from '../database/database-manager';
+import { authorizeCloudMembership, loadPolicyUser } from './policy-authorization';
 
 export class DHCPGroupPolicy extends Policy {
   static async index(firewall: Firewall, user: User): Promise<Authorization> {
@@ -52,39 +52,15 @@ export class DHCPGroupPolicy extends Policy {
   }
 
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
-    user = await this.getUser(user.id);
-    firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOne({
-        where: { id: firewall.id },
-        relations: { fwCloud: true },
-      });
-    return this.checkAuthorization(user, firewall);
+    return this.index(firewall, user);
   }
 
   static async update(group: DHCPGroup, user: User): Promise<Authorization> {
-    user = await this.getUser(user.id);
-    const firewall: Firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOne({
-        where: { id: group.firewallId },
-        relations: { fwCloud: true },
-      });
-    return this.checkAuthorization(user, firewall);
+    return this.show(group, user);
   }
 
   static async remove(group: DHCPGroup, user: User): Promise<Authorization> {
-    user = await this.getUser(user.id);
-    const firewall: Firewall = await db
-      .getSource()
-      .manager.getRepository(Firewall)
-      .findOne({
-        where: { id: group.firewallId },
-        relations: { fwCloud: true },
-      });
-    return this.checkAuthorization(user, firewall);
+    return this.show(group, user);
   }
 
   protected static async checkAuthorization(
@@ -95,20 +71,10 @@ export class DHCPGroupPolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => {
-      return fwcloud.id === firewall.fwCloud.id;
-    });
-
-    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    return authorizeCloudMembership(user, firewall.fwCloud.id);
   }
 
   protected static async getUser(id: number): Promise<User> {
-    return db
-      .getSource()
-      .manager.getRepository(User)
-      .findOneOrFail({
-        where: { id },
-        relations: { fwClouds: true },
-      });
+    return loadPolicyUser(id);
   }
 }
