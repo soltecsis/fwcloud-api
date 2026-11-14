@@ -35,32 +35,39 @@ import { CrowdSecInstallationMode } from '../../../../models/system/crowdsec/cro
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
 
 export class CrowdSecClusterTransitionDto {
+  /** Confirms that the installation transition may change CrowdSec configuration. */
   @IsBoolean()
   confirm: boolean;
 
+  /** Target installation mode. */
   @IsEnum(CrowdSecInstallationMode)
   mode: CrowdSecInstallationMode;
 
+  /** Enables the local Firewall Bouncer for target Machine nodes. */
   @IsBoolean()
   localRemediation: boolean;
 
+  /** Restricts a permitted node-level operation to these cluster node IDs. */
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   @Min(1, { each: true })
   nodeIds?: number[];
 
+  /** Managed central Local API firewall identifier; omit for an external Local API. */
   @IsOptional()
   @IsInt()
   @Min(1)
   centralFirewallId?: number;
 
+  /** External Local API URL used when the transition targets Machines. */
   @IsOptional()
   @IsString()
   @Length(1, 256)
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
   lapiUrl?: string;
 
+  /** Required when enabling remediation against an external Local API. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)

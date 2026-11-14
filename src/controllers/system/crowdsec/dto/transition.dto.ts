@@ -35,20 +35,25 @@ import { CrowdSecInstallationMode } from '../../../../models/system/crowdsec/cro
 import { CROWDSEC_LAPI_URL, CROWDSEC_MACHINE_NAME } from './machine-install.dto';
 
 export class CrowdSecTransitionDto {
+  /** Confirms that the installation role transition may change CrowdSec configuration. */
   @IsBoolean()
   confirm: boolean;
 
+  /** Target installation mode. */
   @IsEnum(CrowdSecInstallationMode)
   mode: CrowdSecInstallationMode;
 
+  /** Enables the local Firewall Bouncer when the target is a Machine. */
   @IsBoolean()
   localRemediation: boolean;
 
+  /** Managed central Local API firewall identifier; omit for a manual external Local API. */
   @IsOptional()
   @IsInt()
   @Min(1)
   centralFirewallId?: number;
 
+  /** Required when mode is machine. */
   @ValidateIf(
     (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
   )
@@ -56,6 +61,7 @@ export class CrowdSecTransitionDto {
   @Matches(CROWDSEC_MACHINE_NAME, { message: 'Invalid CrowdSec machine name' })
   machineName?: string;
 
+  /** Required when mode is machine. */
   @ValidateIf(
     (transition: CrowdSecTransitionDto) => transition.mode === CrowdSecInstallationMode.Machine,
   )
@@ -64,11 +70,13 @@ export class CrowdSecTransitionDto {
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
   lapiUrl?: string;
 
+  /** Required when enabling remediation against a manual external Local API. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)
   bouncerApiKey?: string;
 
+  /** Optional PGP-encrypted CrowdSec Console enrollment key when the target is a Local API. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)

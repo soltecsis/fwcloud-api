@@ -35,28 +35,34 @@ import {
 import { CROWDSEC_LAPI_URL } from './machine-install.dto';
 
 export class CrowdSecClusterMachineInstallDto {
+  /** Managed central Local API firewall identifier; omit for an external Local API. */
   @IsOptional()
   @IsInt()
   @Min(1)
   centralFirewallId?: number;
 
+  /** Central Local API URL used by the selected Machine nodes. */
   @IsString()
   @Length(1, 256)
   @Matches(CROWDSEC_LAPI_URL, { message: 'Invalid CrowdSec Local API URL' })
   lapiUrl: string;
 
+  /** Enables the local Firewall Bouncer on the installed Machine nodes. */
   @IsBoolean()
   localRemediation: boolean;
 
+  /** Continue when the initial central Local API TCP check fails. */
   @IsOptional()
   @IsBoolean()
   continueWithoutLapiConnectivity?: boolean;
 
+  /** Required for remediation against an external Local API; omit for a managed candidate. */
   @IsOptional()
   @IsString()
   @Length(1, 8192)
   bouncerApiKey?: string;
 
+  /** Cluster node IDs to install. Omit to install all applicable cluster nodes. */
   @IsOptional()
   @IsArray()
   @ArrayNotEmpty()
