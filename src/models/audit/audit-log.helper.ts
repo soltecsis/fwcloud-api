@@ -24,8 +24,22 @@ import { Request } from 'express';
 import { createHash } from 'crypto';
 import { User } from '../user/User';
 
+export type AuditLogIdentity = {
+  userId: number | null;
+  userName: string | null;
+  sessionId: number | null;
+};
+
 export class AuditLogHelper {
   private static readonly MAX_SIGNED_INT = 2147483647;
+
+  public static getRequestIdentity(request: Request): AuditLogIdentity {
+    return {
+      userId: this.getNumeric(request.session?.user_id),
+      userName: typeof request.session?.username === 'string' ? request.session.username : null,
+      sessionId: this.resolveSessionId(request),
+    };
+  }
 
   public static getSessionUser(request: Request): User | null {
     return (request.session?.user as User) ?? null;

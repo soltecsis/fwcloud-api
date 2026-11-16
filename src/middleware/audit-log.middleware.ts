@@ -28,7 +28,8 @@ import db from '../database/database-manager';
 import { FwCloud } from '../models/fwcloud/FwCloud';
 import { Firewall } from '../models/firewall/Firewall';
 import { Cluster } from '../models/firewall/Cluster';
-import { AuditLogHelper } from '../models/audit/audit-log.helper';
+import { AuditLogHelper, AuditLogIdentity } from '../models/audit/audit-log.helper';
+import { isSensitiveAuditKey, sanitizeAuditData } from '../models/audit/audit-log-sanitizer';
 import {
   AuditEventType,
   classifyAuditEvent,
@@ -38,27 +39,6 @@ import {
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_DESCRIPTION_SECTION_LENGTH = 512;
 const MAX_DESCRIPTION_VALUE_LENGTH = 120;
-
-const SENSITIVE_KEY_PATTERNS = [
-  'password',
-  'passcode',
-  'passwd',
-  'secret',
-  'token',
-  'apikey',
-  'api_key',
-  'accesskey',
-  'access_key',
-  'auth',
-  'credential',
-  'otp',
-  'cookie',
-  'tfa',
-  '2fa',
-  'passphrase',
-  'privatekey',
-  'private_key',
-];
 
 const ACTION_VERB_MAP: Record<string, string> = {
   add: 'Add',
@@ -145,6 +125,78 @@ const HUMANIZE_TOKEN_OVERRIDES: Record<string, string> = {
   websrv: 'Web Server',
   wireguard: 'WireGuard',
 };
+
+const PAST_TENSE_VERBS: Readonly<Record<string, string>> = {
+  'log in': 'logged in',
+  'log out': 'logged out',
+  get: 'retrieved',
+  fetch: 'fetched',
+  run: 'ran',
+  set: 'set',
+  reset: 'reset',
+  put: 'put',
+  cut: 'cut',
+  read: 'read',
+  show: 'showed',
+  list: 'listed',
+  move: 'moved',
+  delete: 'deleted',
+  remove: 'removed',
+  update: 'updated',
+  create: 'created',
+  add: 'added',
+  assign: 'assigned',
+  attach: 'attached',
+  detach: 'detached',
+  enable: 'enabled',
+  disable: 'disabled',
+  install: 'installed',
+  uninstall: 'uninstalled',
+  upload: 'uploaded',
+  download: 'downloaded',
+  export: 'exported',
+  import: 'imported',
+  compile: 'compiled',
+  merge: 'merged',
+  rename: 'renamed',
+  replace: 'replaced',
+  save: 'saved',
+  sync: 'synced',
+  validate: 'validated',
+  verify: 'verified',
+  search: 'searched',
+  register: 'registered',
+  unregister: 'unregistered',
+  publish: 'published',
+  archive: 'archived',
+  restore: 'restored',
+  backup: 'backed up',
+  generate: 'generated',
+  test: 'tested',
+  compare: 'compared',
+  check: 'checked',
+  clone: 'cloned',
+  unlock: 'unlocked',
+  lock: 'locked',
+};
+
+const POLICY_OBJECT_FIELDS: ReadonlyArray<{ keys: string[]; label: string }> = [
+  { keys: ['ipobj'], label: 'object' },
+  { keys: ['ipobj_g', 'ipobjGroup', 'ipobjGroupId'], label: 'object group' },
+  { keys: ['interface'], label: 'interface' },
+  { keys: ['openvpn'], label: 'OpenVPN' },
+  { keys: ['wireguard'], label: 'WireGuard' },
+  { keys: ['ipsec'], label: 'IPSec' },
+  { keys: ['prefix'], label: 'prefix' },
+  { keys: ['mark'], label: 'mark' },
+];
+
+const AUDIT_CONTEXT_FIELDS: ReadonlyArray<{ label: string; keys: string[] }> = [
+  { label: 'device', keys: ['deviceId', 'device_id', 'device'] },
+  { label: 'policy', keys: ['policyId', 'policy_id', 'policy'] },
+  { label: 'scope', keys: ['scope', 'targetScope', 'target_scope'] },
+  { label: 'target', keys: ['target', 'targetId', 'target_id'] },
+];
 
 type AuditRouteMetadata = {
   httpMethod?: string | null;
@@ -269,11 +321,7 @@ export class AuditLogMiddleware extends Middleware {
     }
 
     // Keep only safe identity fields before logout destroys the session.
-    const logoutContext = {
-      userId: AuditLogHelper.getNumeric(req.session?.user_id),
-      userName: typeof req.session?.username === 'string' ? req.session.username : null,
-      sessionId: AuditLogHelper.resolveSessionId(req),
-    };
+    const logoutContext = AuditLogHelper.getRequestIdentity(req);
     const initialAuditLog = isAuthenticationEvent(this.getEventType(req, res))
       ? null
       : await this.persistInitialAuditLog(req, res, start);
@@ -340,7 +388,7 @@ export class AuditLogMiddleware extends Middleware {
     res: Response,
     start: number,
     initialAuditLogId: number | null,
-    logoutContext: Pick<AuditLog, 'userId' | 'userName' | 'sessionId'>,
+    logoutContext: AuditLogIdentity,
   ): Promise<void> {
     try {
       const auditLogWasHandled = !!res?.locals?.__auditLogHandled;
@@ -373,25 +421,13 @@ export class AuditLogMiddleware extends Middleware {
       if (isAuthenticationEvent(auditLog.eventType)) {
         const successful = res.writableFinished && res.statusCode >= 200 && res.statusCode < 300;
         const login = auditLog.eventType === AuditEventType.Login;
-        const userId = login
-          ? AuditLogHelper.getNumeric(req.session?.user_id)
-          : logoutContext.userId;
-        auditLog.outcome = successful && (!login || userId !== null) ? 'success' : 'failure';
-        auditLog.userId = login && auditLog.outcome === 'failure' ? null : userId;
-        auditLog.userName =
-          auditLog.userId === null
-            ? null
-            : login
-              ? typeof req.session?.username === 'string'
-                ? req.session.username
-                : null
-              : logoutContext.userName;
-        auditLog.sessionId =
-          auditLog.userId === null
-            ? null
-            : login
-              ? AuditLogHelper.resolveSessionId(req)
-              : logoutContext.sessionId;
+        const identity = login ? AuditLogHelper.getRequestIdentity(req) : logoutContext;
+        auditLog.outcome =
+          successful && (!login || identity.userId !== null) ? 'success' : 'failure';
+        const anonymous = identity.userId === null || (login && auditLog.outcome === 'failure');
+        auditLog.userId = anonymous ? null : identity.userId;
+        auditLog.userName = anonymous ? null : identity.userName;
+        auditLog.sessionId = anonymous ? null : identity.sessionId;
         const sourceIp = this.getClientIp(req)?.trim();
         auditLog.sourceIp = sourceIp ? sourceIp.substring(0, 45) : null;
         auditLog.fwCloudId = auditLog.firewallId = auditLog.clusterId = null;
@@ -426,9 +462,7 @@ export class AuditLogMiddleware extends Middleware {
     res: Response,
     preserveExistingValues: boolean = false,
   ): Promise<void> {
-    auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
-    auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
-    auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+    Object.assign(auditLog, AuditLogHelper.getRequestIdentity(req));
     const sourceIp = this.getClientIp(req)?.trim() ?? null;
     auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
 
@@ -518,15 +552,16 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private buildCall(req: Request): string {
-    const type = classifyAuditEvent(req.method, this.normalizeRequestPath(req));
-    const base = `${req.method.toUpperCase()} ${isAuthenticationEvent(type) ? this.normalizeRequestPath(req) : this.redactUrl(req.originalUrl)}`;
+    const path = this.normalizeRequestPath(req);
+    const type = classifyAuditEvent(req.method, path);
+    const base = `${req.method.toUpperCase()} ${isAuthenticationEvent(type) ? path : this.redactUrl(req.originalUrl)}`;
     return base.length <= 255 ? base : `${base.substring(0, 252)}...`;
   }
 
   private redactUrl(url: string): string {
     return url.replace(/([?&])([^=&]+)=([^&]*)/g, (match, separator, key) => {
       try {
-        return this.isSensitiveKey(decodeURIComponent(key))
+        return isSensitiveAuditKey(decodeURIComponent(key))
           ? `${separator}${key}=[REDACTED]`
           : match;
       } catch {
@@ -649,18 +684,7 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private resolvePolicyObject(req: Request): { label: string; value: string } | null {
-    const candidates: Array<{ keys: string[]; label: string }> = [
-      { keys: ['ipobj'], label: 'object' },
-      { keys: ['ipobj_g', 'ipobjGroup', 'ipobjGroupId'], label: 'object group' },
-      { keys: ['interface'], label: 'interface' },
-      { keys: ['openvpn'], label: 'OpenVPN' },
-      { keys: ['wireguard'], label: 'WireGuard' },
-      { keys: ['ipsec'], label: 'IPSec' },
-      { keys: ['prefix'], label: 'prefix' },
-      { keys: ['mark'], label: 'mark' },
-    ];
-
-    for (const candidate of candidates) {
+    for (const candidate of POLICY_OBJECT_FIELDS) {
       const value = this.resolveRequestValue(req, candidate.keys);
       if (value) {
         return { label: candidate.label, value };
@@ -676,7 +700,7 @@ export class AuditLogMiddleware extends Middleware {
       return null;
     }
 
-    const sanitized = this.sanitize(raw);
+    const sanitized = sanitizeAuditData(raw);
     const rendered = this.renderDescriptionValue(sanitized, 0);
     if (!rendered || rendered.length === 0) {
       return null;
@@ -703,61 +727,8 @@ export class AuditLogMiddleware extends Middleware {
 
   private toPastTense(verb: string): string {
     const normalized = verb.trim().toLowerCase();
-    const irregular: Record<string, string> = {
-      'log in': 'logged in',
-      'log out': 'logged out',
-      get: 'retrieved',
-      fetch: 'fetched',
-      run: 'ran',
-      set: 'set',
-      reset: 'reset',
-      put: 'put',
-      cut: 'cut',
-      read: 'read',
-      show: 'showed',
-      list: 'listed',
-      move: 'moved',
-      delete: 'deleted',
-      remove: 'removed',
-      update: 'updated',
-      create: 'created',
-      add: 'added',
-      assign: 'assigned',
-      attach: 'attached',
-      detach: 'detached',
-      enable: 'enabled',
-      disable: 'disabled',
-      install: 'installed',
-      uninstall: 'uninstalled',
-      upload: 'uploaded',
-      download: 'downloaded',
-      export: 'exported',
-      import: 'imported',
-      compile: 'compiled',
-      merge: 'merged',
-      rename: 'renamed',
-      replace: 'replaced',
-      save: 'saved',
-      sync: 'synced',
-      validate: 'validated',
-      verify: 'verified',
-      search: 'searched',
-      register: 'registered',
-      unregister: 'unregistered',
-      publish: 'published',
-      archive: 'archived',
-      restore: 'restored',
-      backup: 'backed up',
-      generate: 'generated',
-      test: 'tested',
-      compare: 'compared',
-      check: 'checked',
-      clone: 'cloned',
-      unlock: 'unlocked',
-      lock: 'locked',
-    };
 
-    const mapped = irregular[normalized];
+    const mapped = PAST_TENSE_VERBS[normalized];
     const past = mapped ? mapped : normalized.endsWith('e') ? `${normalized}d` : `${normalized}ed`;
 
     return past.charAt(0).toUpperCase() + past.slice(1);
@@ -1075,10 +1046,10 @@ export class AuditLogMiddleware extends Middleware {
       durationMs,
       ip: this.getClientIp(req),
       headers: this.filterHeaders(req.headers),
-      query: this.sanitize(req.query),
-      params: this.sanitize(req.params),
-      body: this.sanitize(req.body),
-      context: this.sanitize(instrumentation),
+      query: sanitizeAuditData(req.query),
+      params: sanitizeAuditData(req.params),
+      body: sanitizeAuditData(req.body),
+      context: sanitizeAuditData(instrumentation),
     };
 
     const serialized = JSON.stringify(payload);
@@ -1090,66 +1061,10 @@ export class AuditLogMiddleware extends Middleware {
     return serialized;
   }
 
-  private sanitize(input: any, seen: WeakSet<object> = new WeakSet()): any {
-    if (input === null || input === undefined) {
-      return input ?? null;
-    }
-
-    if (typeof input === 'string' || typeof input === 'number' || typeof input === 'boolean') {
-      return input;
-    }
-
-    if (input instanceof Date) {
-      return input.toISOString();
-    }
-
-    if (Buffer.isBuffer(input)) {
-      return `[buffer:${input.length}]`;
-    }
-
-    if (Array.isArray(input)) {
-      return input.map((item) => this.sanitize(item, seen));
-    }
-
-    if (typeof input === 'object') {
-      if (seen.has(input)) {
-        return '[circular]';
-      }
-
-      seen.add(input);
-
-      const output: Record<string, any> = {};
-      for (const key of Object.keys(input)) {
-        const value = input[key];
-        if (this.isSensitiveKey(key)) {
-          output[key] = '[REDACTED]';
-          continue;
-        }
-
-        try {
-          output[key] = this.sanitize(value, seen);
-        } catch (error) {
-          output[key] = `[unserializable:${error?.message ?? 'error'}]`;
-        }
-      }
-
-      return output;
-    }
-
-    return String(input);
-  }
-
   private extractAuditContext(req: Request): Record<string, string | number> {
-    const contextEntries: Array<{ label: string; keys: string[] }> = [
-      { label: 'device', keys: ['deviceId', 'device_id', 'device'] },
-      { label: 'policy', keys: ['policyId', 'policy_id', 'policy'] },
-      { label: 'scope', keys: ['scope', 'targetScope', 'target_scope'] },
-      { label: 'target', keys: ['target', 'targetId', 'target_id'] },
-    ];
-
     const context: Record<string, string | number> = {};
 
-    for (const entry of contextEntries) {
+    for (const entry of AUDIT_CONTEXT_FIELDS) {
       const rawValue = this.findFirstValue(req, entry.keys);
       const normalized = this.normalizeContextValue(rawValue);
       if (normalized !== null) {
@@ -1252,19 +1167,7 @@ export class AuditLogMiddleware extends Middleware {
     const metadata = this.resolveRouteMetadata(req, res);
     const classification = this.classifyOperation(req, metadata);
 
-    if (classification === 'mutation') {
-      return true;
-    }
-
-    if (classification === 'read') {
-      return false;
-    }
-
-    if (method === 'DELETE') {
-      return true;
-    }
-
-    return true;
+    return classification !== 'read';
   }
 
   private normalizeRequestPath(req: Request): string {
@@ -1443,27 +1346,8 @@ export class AuditLogMiddleware extends Middleware {
     return spaced.split(' ').filter((value) => value.length > 0);
   }
 
-  private isSensitiveKey(key: string | null | undefined): boolean {
-    if (!key) {
-      return false;
-    }
-
-    const normalized = key.toLowerCase();
-    return SENSITIVE_KEY_PATTERNS.some(
-      (pattern) => normalized === pattern || normalized.includes(pattern),
-    );
-  }
-
   private filterHeaders(headers: Request['headers']): Record<string, string> {
     const sanitized: Record<string, string> = {};
-    const redacted = new Set([
-      'authorization',
-      'cookie',
-      'set-cookie',
-      'x-auth-token',
-      'x-api-key',
-      'x-access-token',
-    ]);
 
     for (const [key, value] of Object.entries(headers)) {
       if (value === undefined) {
@@ -1471,7 +1355,7 @@ export class AuditLogMiddleware extends Middleware {
       }
 
       const normalizedKey = key.toLowerCase();
-      if (redacted.has(normalizedKey) || this.isSensitiveKey(normalizedKey)) {
+      if (normalizedKey === 'x-api-key' || isSensitiveAuditKey(normalizedKey)) {
         sanitized[key] = '[REDACTED]';
         continue;
       }

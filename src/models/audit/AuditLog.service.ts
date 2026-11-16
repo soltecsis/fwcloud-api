@@ -26,6 +26,11 @@ import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
 import { AuditLog, formatAuditLogDateForDb } from './AuditLog';
 import { AuditLogHelper } from './audit-log.helper';
+import {
+  isSensitiveAuditKey,
+  maskSensitiveAuditText,
+  sanitizeAuditData,
+} from './audit-log-sanitizer';
 import { AuditEventType, AuditOutcome, isAuthenticationEvent } from './audit-event-type';
 import * as fs from 'fs-extra';
 import path from 'path';
@@ -159,27 +164,6 @@ const STARTED_AT_COLUMN = '`auditLog`.`ts`';
 const quoteAuditLogDateForSql = (date: Date): string => `'${formatAuditLogDateForDb(date)}'`;
 const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
 
-const SENSITIVE_KEY_PATTERNS = [
-  'password',
-  'passcode',
-  'passwd',
-  'secret',
-  'token',
-  'apikey',
-  'api_key',
-  'accesskey',
-  'access_key',
-  'auth',
-  'credential',
-  'otp',
-  'cookie',
-  'tfa',
-  '2fa',
-  'passphrase',
-  'privatekey',
-  'private_key',
-];
-
 export class AuditLogService extends Service {
   protected _config: AuditLogArchiveConfig;
   protected _archiveMutex = new Mutex();
@@ -239,43 +223,27 @@ export class AuditLogService extends Service {
       query.andWhere(`${STARTED_AT_COLUMN} <= ${quoteAuditLogDateForSql(options.startedAtTo)}`);
     }
 
-    const applyTextFilter = (field: string, param: string, value: string) => {
-      query.andWhere(`LOWER(${field}) LIKE :${param}`, {
-        [param]: `%${value.toLowerCase()}%`,
-      });
+    const applyTextFilter = (
+      property: 'userName' | 'fwCloudName' | 'firewallName' | 'clusterName' | 'sourceIp',
+    ) => {
+      const value = options[property];
+      if (typeof value === 'string' && value.trim() !== '') {
+        query.andWhere(`LOWER(auditLog.${property}) LIKE :${property}`, {
+          [property]: `%${value.toLowerCase()}%`,
+        });
+      }
     };
 
-    if (typeof options.userName === 'string' && options.userName.trim() !== '') {
-      applyTextFilter('auditLog.userName', 'userName', options.userName);
+    applyTextFilter('userName');
+    for (const entity of ['fwCloud', 'firewall', 'cluster'] as const) {
+      const property = `${entity}Id` as const;
+      const value = options[property];
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        query.andWhere(`auditLog.${property} = :${property}`, { [property]: value });
+      }
+      applyTextFilter(`${entity}Name`);
     }
-
-    if (typeof options.fwCloudId === 'number' && Number.isFinite(options.fwCloudId)) {
-      query.andWhere('auditLog.fwCloudId = :fwCloudId', { fwCloudId: options.fwCloudId });
-    }
-
-    if (typeof options.fwCloudName === 'string' && options.fwCloudName.trim() !== '') {
-      applyTextFilter('auditLog.fwCloudName', 'fwCloudName', options.fwCloudName);
-    }
-
-    if (typeof options.firewallId === 'number' && Number.isFinite(options.firewallId)) {
-      query.andWhere('auditLog.firewallId = :firewallId', { firewallId: options.firewallId });
-    }
-
-    if (typeof options.firewallName === 'string' && options.firewallName.trim() !== '') {
-      applyTextFilter('auditLog.firewallName', 'firewallName', options.firewallName);
-    }
-
-    if (typeof options.clusterId === 'number' && Number.isFinite(options.clusterId)) {
-      query.andWhere('auditLog.clusterId = :clusterId', { clusterId: options.clusterId });
-    }
-
-    if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
-      applyTextFilter('auditLog.clusterName', 'clusterName', options.clusterName);
-    }
-
-    if (typeof options.sourceIp === 'string' && options.sourceIp.trim() !== '') {
-      applyTextFilter('auditLog.sourceIp', 'sourceIp', options.sourceIp);
-    }
+    applyTextFilter('sourceIp');
 
     if (
       options.sessionIdFilter !== null &&
@@ -931,81 +899,20 @@ export class AuditLogService extends Service {
   }
 
   protected sanitize(input: any, seen: WeakSet<object> = new WeakSet()): any {
-    if (input === null || input === undefined) {
-      return input ?? null;
-    }
-
-    if (typeof input === 'string' || typeof input === 'number' || typeof input === 'boolean') {
-      return input;
-    }
-
-    if (input instanceof Date) {
-      return input.toISOString();
-    }
-
-    if (Buffer.isBuffer(input)) {
-      return `[buffer:${input.length}]`;
-    }
-
-    if (Array.isArray(input)) {
-      return input.map((item) => this.sanitize(item, seen));
-    }
-
-    if (typeof input === 'object') {
-      if (seen.has(input)) {
-        return '[circular]';
-      }
-
-      seen.add(input);
-
-      const output: Record<string, any> = {};
-      for (const key of Object.keys(input)) {
-        const value = input[key];
-        if (this.isSensitiveKey(key)) {
-          output[key] = '[REDACTED]';
-          continue;
-        }
-
-        try {
-          output[key] = this.sanitize(value, seen);
-        } catch (error) {
-          output[key] = `[unserializable:${error?.message ?? 'error'}]`;
-        }
-      }
-
-      return output;
-    }
-
-    return String(input);
-  }
-
-  protected isSensitiveKey(key: string | null | undefined): boolean {
-    if (!key) {
-      return false;
-    }
-
-    const normalized = key.toLowerCase();
-    return SENSITIVE_KEY_PATTERNS.some(
-      (pattern) => normalized === pattern || normalized.includes(pattern),
+    return sanitizeAuditData(
+      input,
+      seen,
+      (key) => this.isSensitiveKey(key),
+      (value) => this.sanitize(value, seen),
     );
   }
 
-  protected maskSensitiveText(value: string): string {
-    return SENSITIVE_KEY_PATTERNS.reduce((current, pattern) => {
-      const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const quotedKeyPattern = new RegExp(
-        `("[^"]*${escapedPattern}[^"]*"\\s*:\\s*)("[^"]*"|[^,}\\]]+)`,
-        'gi',
-      );
-      const bareKeyPattern = new RegExp(
-        `([^\\s,}\\]]*${escapedPattern}[^\\s,}\\]]*\\s*[=:]\\s*)("[^"]*"|'[^']*'|[^\\s,}\\]]+)`,
-        'gi',
-      );
+  protected isSensitiveKey(key: string | null | undefined): boolean {
+    return isSensitiveAuditKey(key);
+  }
 
-      return current
-        .replace(quotedKeyPattern, '$1"[REDACTED]"')
-        .replace(bareKeyPattern, '$1[REDACTED]');
-    }, value);
+  protected maskSensitiveText(value: string): string {
+    return maskSensitiveAuditText(value);
   }
 
   protected async enrichEntityNames(auditLog: AuditLog): Promise<void> {

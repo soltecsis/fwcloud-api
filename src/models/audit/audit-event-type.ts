@@ -44,21 +44,22 @@ export function classifyAuditEvent(
   action?: string | null,
   status?: number | null,
 ): AuditEventType {
+  const httpMethod = method.toUpperCase();
   const normalizedPath = path.split('?')[0].replace(/\/+$/, '').toLowerCase();
-  if (method.toUpperCase() === 'POST') {
+  if (httpMethod === 'POST') {
     if (['/user/login', '/login'].includes(normalizedPath)) return AuditEventType.Login;
     if (['/user/logout', '/logout'].includes(normalizedPath)) return AuditEventType.Logout;
   }
 
   const operations = (action || normalizedPath.split('/').pop() || '').toLowerCase();
-  if (/^\/(?:policy\/compile)(?:\/|$)/.test(normalizedPath) || operations === 'compile') {
+  if (/^\/policy\/compile(?:\/|$)/.test(normalizedPath) || operations === 'compile') {
     return AuditEventType.Compilation;
   }
   if (/^\/policy\/install(?:\/|$)/.test(normalizedPath) || operations === 'install') {
     return AuditEventType.Installation;
   }
   if (
-    method.toUpperCase() === 'DELETE' ||
+    httpMethod === 'DELETE' ||
     /^(del|delete|destroy|remove|bulkremove|delfromcluster|deleteconfig|deletesetup)$/.test(
       operations,
     )
@@ -66,7 +67,7 @@ export function classifyAuditEvent(
     return AuditEventType.Deletion;
   }
   if (/^(add|create|store|clone|copy)$/.test(operations)) return AuditEventType.Creation;
-  if (method.toUpperCase() === 'POST' && LEGACY_CREATION_PATHS.has(normalizedPath)) {
+  if (httpMethod === 'POST' && LEGACY_CREATION_PATHS.has(normalizedPath)) {
     return AuditEventType.Creation;
   }
   if (
@@ -76,8 +77,8 @@ export function classifyAuditEvent(
   ) {
     return AuditEventType.Modification;
   }
-  if (['PUT', 'PATCH'].includes(method.toUpperCase())) return AuditEventType.Modification;
-  if (method.toUpperCase() === 'POST' && status === 201) return AuditEventType.Creation;
+  if (httpMethod === 'PUT' || httpMethod === 'PATCH') return AuditEventType.Modification;
+  if (httpMethod === 'POST' && status === 201) return AuditEventType.Creation;
   return AuditEventType.Other;
 }
 
