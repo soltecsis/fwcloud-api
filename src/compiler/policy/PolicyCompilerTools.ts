@@ -561,23 +561,23 @@ export abstract class PolicyCompilerTools {
           // ICMP
           const iptablesOpt =
             ipv === 4 ? '-p icmp -m icmp --icmp-type' : '-p icmpv6 -m ipv6-icmp --icmpv6-type';
+          const icmpType = svc[i].icmp_type ?? -1;
+          const icmpCode = svc[i].icmp_code ?? -1;
 
-          if (svc[i].icmp_type === -1 && svc[i].icmp_code === -1)
+          if (icmpType === -1 && icmpCode === -1)
             // Any ICMP
             cmpPos.items.push(
               `${this._compiler == 'IPTables' ? `${iptablesOpt} any` : `${this._family} protocol icmp`}`,
             );
-          else if (svc[i].icmp_type !== -1 && svc[i].icmp_code === -1)
+          else if (icmpType !== -1 && icmpCode === -1)
             cmpPos.items.push(
-              this._compiler == 'IPTables'
-                ? `${iptablesOpt} ${svc[i].icmp_type}`
-                : `icmp type ${svc[i].icmp_type}`,
+              this._compiler == 'IPTables' ? `${iptablesOpt} ${icmpType}` : `icmp type ${icmpType}`,
             );
-          else if (svc[i].icmp_type !== -1 && svc[i].icmp_code !== -1)
+          else if (icmpType !== -1 && icmpCode !== -1)
             cmpPos.items.push(
               this._compiler == 'IPTables'
-                ? `${iptablesOpt} ${svc[i].icmp_type}/${svc[i].icmp_code}`
-                : `icmp type ${svc[i].icmp_type} icmp code ${svc[i].icmp_code}`,
+                ? `${iptablesOpt} ${icmpType}/${icmpCode}`
+                : `icmp type ${icmpType} icmp code ${icmpCode}`,
             );
           break;
         }
