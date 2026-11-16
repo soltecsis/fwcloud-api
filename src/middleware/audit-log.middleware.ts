@@ -29,6 +29,11 @@ import { FwCloud } from '../models/fwcloud/FwCloud';
 import { Firewall } from '../models/firewall/Firewall';
 import { Cluster } from '../models/firewall/Cluster';
 import { AuditLogHelper } from '../models/audit/audit-log.helper';
+import {
+  AuditEventType,
+  classifyAuditEvent,
+  isAuthenticationEvent,
+} from '../models/audit/audit-event-type';
 
 const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_DESCRIPTION_SECTION_LENGTH = 512;
@@ -47,6 +52,12 @@ const SENSITIVE_KEY_PATTERNS = [
   'auth',
   'credential',
   'otp',
+  'cookie',
+  'tfa',
+  '2fa',
+  'passphrase',
+  'privatekey',
+  'private_key',
 ];
 
 const ACTION_VERB_MAP: Record<string, string> = {
@@ -154,6 +165,7 @@ export class AuditLogMiddleware extends Middleware {
     'ccdsync',
     'clone',
     'copy',
+    'compile',
     'create',
     'deactivate',
     'del',
@@ -217,8 +229,6 @@ export class AuditLogMiddleware extends Middleware {
     'info',
     'inspect',
     'list',
-    'login',
-    'logout',
     'logs',
     'monitor',
     'options',
@@ -258,7 +268,15 @@ export class AuditLogMiddleware extends Middleware {
       res.locals.__auditLogStartedAt = start;
     }
 
-    const initialAuditLog = await this.persistInitialAuditLog(req, res, start);
+    // Keep only safe identity fields before logout destroys the session.
+    const logoutContext = {
+      userId: AuditLogHelper.getNumeric(req.session?.user_id),
+      userName: typeof req.session?.username === 'string' ? req.session.username : null,
+      sessionId: AuditLogHelper.resolveSessionId(req),
+    };
+    const initialAuditLog = isAuthenticationEvent(this.getEventType(req, res))
+      ? null
+      : await this.persistInitialAuditLog(req, res, start);
     const initialAuditLogId = initialAuditLog?.id ?? null;
 
     if (res.locals && initialAuditLogId !== null) {
@@ -271,7 +289,7 @@ export class AuditLogMiddleware extends Middleware {
       }
       handled = true;
 
-      this.completeAuditLog(req, res, start, initialAuditLogId).catch((error) => {
+      this.completeAuditLog(req, res, start, initialAuditLogId, logoutContext).catch((error) => {
         logger().error(`Failed to complete audit log: ${error?.message ?? error}`);
       });
     };
@@ -299,6 +317,8 @@ export class AuditLogMiddleware extends Middleware {
 
       auditLog.call = this.buildCall(req);
       auditLog.status = null;
+      auditLog.eventType = this.getEventType(req, res);
+      auditLog.outcome = null;
       auditLog.durationMs = null;
       auditLog.data = this.buildPayload(req, res, null, instrumentationContext);
 
@@ -320,6 +340,7 @@ export class AuditLogMiddleware extends Middleware {
     res: Response,
     start: number,
     initialAuditLogId: number | null,
+    logoutContext: Pick<AuditLog, 'userId' | 'userName' | 'sessionId'>,
   ): Promise<void> {
     try {
       const auditLogWasHandled = !!res?.locals?.__auditLogHandled;
@@ -332,7 +353,6 @@ export class AuditLogMiddleware extends Middleware {
         return;
       }
 
-      const instrumentationContext = this.extractAuditContext(req);
       const durationMs = Math.max(0, Date.now() - start);
       const startedAt = new Date(start);
       let auditLog =
@@ -347,12 +367,52 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.startedAt = startedAt;
       auditLog.call = this.buildCall(req);
       auditLog.status = AuditLogHelper.normalizeHttpStatus(res.statusCode);
+      auditLog.eventType = this.getEventType(req, res);
+      auditLog.outcome = null;
       auditLog.durationMs = durationMs;
-      auditLog.data = this.buildPayload(req, res, durationMs, instrumentationContext);
-
-      await this.populateRequestContext(auditLog, req, res, true);
-
-      auditLog.description = this.buildDescription(req, res);
+      if (isAuthenticationEvent(auditLog.eventType)) {
+        const successful = res.writableFinished && res.statusCode >= 200 && res.statusCode < 300;
+        const login = auditLog.eventType === AuditEventType.Login;
+        const userId = login
+          ? AuditLogHelper.getNumeric(req.session?.user_id)
+          : logoutContext.userId;
+        auditLog.outcome = successful && (!login || userId !== null) ? 'success' : 'failure';
+        auditLog.userId = login && auditLog.outcome === 'failure' ? null : userId;
+        auditLog.userName =
+          auditLog.userId === null
+            ? null
+            : login
+              ? typeof req.session?.username === 'string'
+                ? req.session.username
+                : null
+              : logoutContext.userName;
+        auditLog.sessionId =
+          auditLog.userId === null
+            ? null
+            : login
+              ? AuditLogHelper.resolveSessionId(req)
+              : logoutContext.sessionId;
+        const sourceIp = this.getClientIp(req)?.trim();
+        auditLog.sourceIp = sourceIp ? sourceIp.substring(0, 45) : null;
+        auditLog.fwCloudId = auditLog.firewallId = auditLog.clusterId = null;
+        auditLog.fwCloudName = auditLog.firewallName = auditLog.clusterName = null;
+        auditLog.description = `${login ? 'Login' : 'Logout'} ${auditLog.outcome === 'success' ? 'succeeded' : 'failed'}.`;
+        // An allowlist avoids credentials in arbitrary body fields, query strings, headers,
+        // instrumentation, and response data. Never resolve an attempted username in the DB.
+        auditLog.data = JSON.stringify({
+          method: req.method,
+          url: this.normalizeRequestPath(req),
+          statusCode: auditLog.status,
+          durationMs,
+          ip: auditLog.sourceIp,
+          eventType: auditLog.eventType,
+          outcome: auditLog.outcome,
+        });
+      } else {
+        auditLog.data = this.buildPayload(req, res, durationMs, this.extractAuditContext(req));
+        await this.populateRequestContext(auditLog, req, res, true);
+        auditLog.description = this.buildDescription(req, res);
+      }
 
       await repository.save(auditLog);
     } catch (error) {
@@ -458,8 +518,21 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private buildCall(req: Request): string {
-    const base = `${req.method.toUpperCase()} ${req.originalUrl}`;
+    const type = classifyAuditEvent(req.method, this.normalizeRequestPath(req));
+    const base = `${req.method.toUpperCase()} ${isAuthenticationEvent(type) ? this.normalizeRequestPath(req) : this.redactUrl(req.originalUrl)}`;
     return base.length <= 255 ? base : `${base.substring(0, 252)}...`;
+  }
+
+  private redactUrl(url: string): string {
+    return url.replace(/([?&])([^=&]+)=([^&]*)/g, (match, separator, key) => {
+      try {
+        return this.isSensitiveKey(decodeURIComponent(key))
+          ? `${separator}${key}=[REDACTED]`
+          : match;
+      } catch {
+        return `${separator}${key}=[REDACTED]`;
+      }
+    });
   }
 
   private buildDescription(req: Request, res: Response): string {
@@ -997,7 +1070,7 @@ export class AuditLogMiddleware extends Middleware {
   ): string {
     const payload = {
       method: req.method,
-      url: req.originalUrl,
+      url: this.redactUrl(req.originalUrl),
       statusCode: durationMs === null ? null : res.statusCode,
       durationMs,
       ip: this.getClientIp(req),
@@ -1157,6 +1230,10 @@ export class AuditLogMiddleware extends Middleware {
       return false;
     }
 
+    if (isAuthenticationEvent(this.getEventType(req, res))) {
+      return true;
+    }
+
     const method = typeof req.method === 'string' ? req.method.toUpperCase() : 'GET';
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
       return false;
@@ -1202,7 +1279,17 @@ export class AuditLogMiddleware extends Middleware {
             : '';
 
     const withoutQuery = raw.split('?')[0];
-    return withoutQuery.toLowerCase();
+    return withoutQuery.replace(/\/+$/, '').toLowerCase();
+  }
+
+  private getEventType(req: Request, res: Response): AuditEventType {
+    const metadata = this.resolveRouteMetadata(req, res);
+    return classifyAuditEvent(
+      req.method,
+      this.normalizeRequestPath(req),
+      metadata?.action,
+      res.statusCode,
+    );
   }
 
   private getPathSegments(path: string): string[] {
@@ -1384,7 +1471,7 @@ export class AuditLogMiddleware extends Middleware {
       }
 
       const normalizedKey = key.toLowerCase();
-      if (redacted.has(normalizedKey)) {
+      if (redacted.has(normalizedKey) || this.isSensitiveKey(normalizedKey)) {
         sanitized[key] = '[REDACTED]';
         continue;
       }

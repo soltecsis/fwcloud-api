@@ -26,6 +26,7 @@ import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
 import { AuditLog, formatAuditLogDateForDb } from './AuditLog';
 import { AuditLogHelper } from './audit-log.helper';
+import { AuditEventType, AuditOutcome, isAuthenticationEvent } from './audit-event-type';
 import * as fs from 'fs-extra';
 import path from 'path';
 import { EventEmitter } from 'events';
@@ -80,6 +81,7 @@ export type ListAuditLogsOptions = {
   clusterName?: string;
   sourceIp?: string;
   cursor?: ListAuditLogsCursor;
+  eventTypes?: AuditEventType[];
 };
 
 export type AuditLogAccessOptions = Pick<
@@ -90,6 +92,8 @@ export type AuditLogAccessOptions = Pick<
 };
 
 export type AuditLogSummary = {
+  eventType: AuditEventType | null;
+  outcome: AuditOutcome | null;
   id: number;
   startedAt: Date;
   userId: number | null;
@@ -109,6 +113,8 @@ export type AuditLogSummary = {
 };
 
 type AuditLogSummaryRow = {
+  eventType: AuditEventType | null;
+  outcome: AuditOutcome | null;
   id: number | string;
   startedAt: Date | string | null;
   userId: number | string | null;
@@ -128,6 +134,7 @@ type AuditLogSummaryRow = {
 };
 
 export type AuditLogMutationInput = {
+  eventType?: AuditEventType;
   call: string;
   description: string;
   status?: number | null;
@@ -165,6 +172,12 @@ const SENSITIVE_KEY_PATTERNS = [
   'auth',
   'credential',
   'otp',
+  'cookie',
+  'tfa',
+  '2fa',
+  'passphrase',
+  'privatekey',
+  'private_key',
 ];
 
 export class AuditLogService extends Service {
@@ -212,6 +225,10 @@ export class AuditLogService extends Service {
 
     if (!this.applyAccessRestrictions(query, options)) {
       return { auditLogs: [], total: 0 };
+    }
+
+    if (options.eventTypes?.length) {
+      query.andWhere('auditLog.eventType IN (:...eventTypes)', { eventTypes: options.eventTypes });
     }
 
     if (options.startedAtFrom instanceof Date) {
@@ -352,7 +369,9 @@ export class AuditLogService extends Service {
     const userName = user.username ?? user.name ?? null;
 
     const entriesToUpdate = entries.filter(
-      (entry) => entry.userId !== userId || entry.userName !== userName,
+      (entry) =>
+        !isAuthenticationEvent((entry as T & { eventType?: AuditEventType }).eventType) &&
+        (entry.userId !== userId || entry.userName !== userName),
     );
 
     if (!entriesToUpdate.length) {
@@ -402,6 +421,14 @@ export class AuditLogService extends Service {
       return false;
     }
 
+    // Session ownership alone must never grant access to another user's authentication events,
+    // including anonymous failures from a session later used to log in successfully.
+    query.andWhere(
+      '(auditLog.eventType IS NULL OR auditLog.eventType NOT IN (:...authEventTypes)' +
+        (options.userId != null ? ' OR auditLog.userId = :authUserId)' : ')'),
+      { authEventTypes: [AuditEventType.Login, AuditEventType.Logout], authUserId: options.userId },
+    );
+
     query.andWhere(
       new Brackets((qb) => {
         accessRestrictions.forEach((restriction, index) => {
@@ -433,6 +460,8 @@ export class AuditLogService extends Service {
       .addSelect('auditLog.clusterName', 'clusterName')
       .addSelect('auditLog.call', 'call')
       .addSelect('auditLog.status', 'status')
+      .addSelect('auditLog.eventType', 'eventType')
+      .addSelect('auditLog.outcome', 'outcome')
       .addSelect('auditLog.durationMs', 'durationMs')
       .addSelect('auditLog.description', 'description');
   }
@@ -453,6 +482,8 @@ export class AuditLogService extends Service {
       clusterName: auditLog.clusterName,
       call: auditLog.call,
       status: AuditLogHelper.normalizeHttpStatus(auditLog.status),
+      eventType: auditLog.eventType ?? null,
+      outcome: auditLog.outcome ?? null,
       durationMs: this.normalizeDurationMs(auditLog.durationMs),
       description: auditLog.description,
     };
@@ -762,6 +793,8 @@ export class AuditLogService extends Service {
   protected async createMutationEntry(input: AuditLogMutationInput): Promise<AuditLog> {
     const auditLog = new AuditLog();
 
+    auditLog.eventType = input.eventType ?? AuditEventType.Other;
+    auditLog.outcome = null;
     auditLog.call = this.normalizeCall(input.call);
     auditLog.status = AuditLogHelper.normalizeHttpStatus(input.status);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);

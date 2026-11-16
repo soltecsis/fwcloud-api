@@ -22,6 +22,7 @@
 
 import Model from '../Model';
 import { Column, Entity, PrimaryGeneratedColumn, ValueTransformer } from 'typeorm';
+import { AuditEventType, AuditOutcome } from './audit-event-type';
 
 const tableName = 'audit_logs';
 
@@ -71,6 +72,12 @@ const auditLogUtcDateTransformer: ValueTransformer = {
 export class AuditLog extends Model {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ type: 'varchar', length: 32, name: 'event_type', nullable: true })
+  eventType: AuditEventType | null;
+
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  outcome: AuditOutcome | null;
 
   @Column({
     type: 'datetime',

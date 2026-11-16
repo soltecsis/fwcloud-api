@@ -36,6 +36,7 @@ import { AuditLogPolicy } from '../../policies/auditlog.policy';
 import { User } from '../../models/user/User';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { AuditLog } from '../../models/audit/AuditLog';
+import { AuditEventType, parseAuditEventTypes } from '../../models/audit/audit-event-type';
 
 export class AuditLogController extends Controller {
   private static readonly DEFAULT_LIMIT = 50;
@@ -175,6 +176,10 @@ export class AuditLogController extends Controller {
       options.sourceIp = sourceIp;
     }
 
+    if (request.query.event_type !== undefined) {
+      options.eventTypes = parseAuditEventTypes(request.query.event_type) as AuditEventType[];
+    }
+
     const cursor = this.parseCursor(request.query.cursor);
     if (cursor) {
       options.cursor = cursor;
@@ -268,6 +273,8 @@ export class AuditLogController extends Controller {
       cluster: this.formatEntityRef(entry.clusterId, entry.clusterName),
       call: entry.call,
       status: entry.status,
+      eventType: entry.eventType ?? null,
+      outcome: entry.outcome ?? null,
       description: entry.description,
     };
   }
