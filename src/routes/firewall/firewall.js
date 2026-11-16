@@ -156,9 +156,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 			query: req.query,
 			body: req.body
 		});
-		auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
-		auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
-		auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+		Object.assign(auditLog, AuditLogHelper.getRequestIdentity(req));
 		const sourceIp = resolveSourceIp(req);
 		auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
 		auditLog.fwCloudId = AuditLogHelper.getNumeric(fwcloudId);

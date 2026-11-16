@@ -32,6 +32,9 @@ export type AuditLogIdentity = {
 
 export class AuditLogHelper {
   private static readonly MAX_SIGNED_INT = 2147483647;
+  private static readonly MAX_SOURCE_IP_LENGTH = 45;
+  private static readonly MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
+  public static readonly TRUNCATED_DATA_SUFFIX = '...[truncated]';
 
   public static getRequestIdentity(request: Request): AuditLogIdentity {
     return {
@@ -46,7 +49,7 @@ export class AuditLogHelper {
   }
 
   public static isAdmin(user: User | null): boolean {
-    return (user?.role ?? 0) === 1;
+    return user?.role === 1;
   }
 
   public static resolveSessionId(request: Request): number | null {
@@ -54,23 +57,14 @@ export class AuditLogHelper {
       return null;
     }
 
-    const rawSessionId = request.sessionID;
-    const numeric = this.getNumeric(rawSessionId);
-
+    const numeric = this.getNumeric(request.sessionID);
     if (numeric !== null) {
       return numeric;
     }
 
     try {
-      const hash = createHash('sha1').update(rawSessionId).digest('hex');
-      const firstBytes = hash.slice(0, 8);
-      const hashedValue = Number.parseInt(firstBytes, 16);
-
-      if (Number.isNaN(hashedValue)) {
-        return null;
-      }
-
-      return hashedValue % AuditLogHelper.MAX_SIGNED_INT;
+      const hash = createHash('sha1').update(request.sessionID).digest('hex');
+      return Number.parseInt(hash.slice(0, 8), 16) % AuditLogHelper.MAX_SIGNED_INT;
     } catch {
       return null;
     }
@@ -91,6 +85,32 @@ export class AuditLogHelper {
     }
 
     return null;
+  }
+
+  public static getPositiveNumeric(value: unknown): number | null {
+    const numeric = this.getNumeric(value);
+    return numeric !== null && numeric > 0 ? numeric : null;
+  }
+
+  public static getTrimmedString(value: unknown): string | null {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  public static normalizeSourceIp(value: unknown): string | null {
+    return this.getTrimmedString(value)?.substring(0, AuditLogHelper.MAX_SOURCE_IP_LENGTH) ?? null;
+  }
+
+  public static truncateData(serialized: string): string {
+    return serialized.length > AuditLogHelper.MAX_DATA_LENGTH
+      ? `${serialized.substring(0, AuditLogHelper.MAX_DATA_LENGTH)}${AuditLogHelper.TRUNCATED_DATA_SUFFIX}`
+      : serialized;
+  }
+
+  public static asRecord(value: unknown): Record<string, unknown> | null {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
   }
 
   public static normalizeHttpStatus(value: unknown): number | null {

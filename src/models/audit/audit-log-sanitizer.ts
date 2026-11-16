@@ -31,7 +31,7 @@ export function sanitizeAuditData(
   isSensitiveKey: (key: string) => boolean = isSensitiveAuditKey,
   sanitizeChild?: (value: any) => any,
 ): any {
-  if (input === null || input === undefined) return input ?? null;
+  if (input == null) return null;
   if (typeof input === 'string' || typeof input === 'number' || typeof input === 'boolean') {
     return input;
   }

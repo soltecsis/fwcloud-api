@@ -36,7 +36,6 @@ import {
   isAuthenticationEvent,
 } from '../models/audit/audit-event-type';
 
-const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
 const MAX_DESCRIPTION_SECTION_LENGTH = 512;
 const MAX_DESCRIPTION_VALUE_LENGTH = 120;
 
@@ -403,14 +402,10 @@ export class AuditLogMiddleware extends Middleware {
 
       const durationMs = Math.max(0, Date.now() - start);
       const startedAt = new Date(start);
-      let auditLog =
-        initialAuditLogId !== null
+      const auditLog =
+        (initialAuditLogId !== null
           ? await repository.findOne({ where: { id: initialAuditLogId } })
-          : null;
-
-      if (!auditLog) {
-        auditLog = new AuditLog();
-      }
+          : null) ?? new AuditLog();
 
       auditLog.startedAt = startedAt;
       auditLog.call = this.buildCall(req);
@@ -428,8 +423,7 @@ export class AuditLogMiddleware extends Middleware {
         auditLog.userId = anonymous ? null : identity.userId;
         auditLog.userName = anonymous ? null : identity.userName;
         auditLog.sessionId = anonymous ? null : identity.sessionId;
-        const sourceIp = this.getClientIp(req)?.trim();
-        auditLog.sourceIp = sourceIp ? sourceIp.substring(0, 45) : null;
+        auditLog.sourceIp = AuditLogHelper.normalizeSourceIp(this.getClientIp(req));
         auditLog.fwCloudId = auditLog.firewallId = auditLog.clusterId = null;
         auditLog.fwCloudName = auditLog.firewallName = auditLog.clusterName = null;
         auditLog.description = `${login ? 'Login' : 'Logout'} ${auditLog.outcome === 'success' ? 'succeeded' : 'failed'}.`;
@@ -463,8 +457,7 @@ export class AuditLogMiddleware extends Middleware {
     preserveExistingValues: boolean = false,
   ): Promise<void> {
     Object.assign(auditLog, AuditLogHelper.getRequestIdentity(req));
-    const sourceIp = this.getClientIp(req)?.trim() ?? null;
-    auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
+    auditLog.sourceIp = AuditLogHelper.normalizeSourceIp(this.getClientIp(req));
 
     const fwCloudId = this.extractIdentifier(req, [
       'fwcloud',
@@ -485,47 +478,27 @@ export class AuditLogMiddleware extends Middleware {
     auditLog.clusterId = this.keepValue(clusterId, auditLog.clusterId, preserveExistingValues);
 
     const firewall =
-      auditLog.firewallId !== null && auditLog.firewallId !== undefined
+      auditLog.firewallId != null
         ? await Firewall.findOne({ where: { id: auditLog.firewallId } })
         : null;
 
-    const firewallClusterIdCandidate =
-      firewall && firewall.clusterId !== undefined
-        ? AuditLogHelper.getNumeric(firewall.clusterId)
-        : null;
-    const localClusterId = AuditLogHelper.getNumeric(res?.locals?.__auditLogClusterId);
-
     const resolvedClusterId =
       auditLog.clusterId ??
-      (firewallClusterIdCandidate !== null && firewallClusterIdCandidate > 0
-        ? firewallClusterIdCandidate
-        : null) ??
-      (localClusterId !== null && localClusterId > 0 ? localClusterId : null);
+      AuditLogHelper.getPositiveNumeric(firewall?.clusterId) ??
+      AuditLogHelper.getPositiveNumeric(res?.locals?.__auditLogClusterId);
 
-    if (resolvedClusterId !== null && resolvedClusterId !== undefined) {
+    if (resolvedClusterId != null) {
       auditLog.clusterId = resolvedClusterId;
     }
 
-    const firewallFwCloudIdCandidate =
-      firewall && firewall.fwCloudId !== undefined
-        ? AuditLogHelper.getNumeric(firewall.fwCloudId)
-        : null;
-
-    if (
-      (auditLog.fwCloudId === null || auditLog.fwCloudId === undefined) &&
-      firewallFwCloudIdCandidate !== null &&
-      firewallFwCloudIdCandidate > 0
-    ) {
-      auditLog.fwCloudId = firewallFwCloudIdCandidate;
+    const firewallFwCloudId = AuditLogHelper.getPositiveNumeric(firewall?.fwCloudId);
+    if (auditLog.fwCloudId == null && firewallFwCloudId !== null) {
+      auditLog.fwCloudId = firewallFwCloudId;
     }
 
     const [fwCloud, cluster] = await Promise.all([
-      auditLog.fwCloudId
-        ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } })
-        : Promise.resolve(null),
-      auditLog.clusterId
-        ? Cluster.findOne({ where: { id: auditLog.clusterId } })
-        : Promise.resolve(null),
+      auditLog.fwCloudId ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } }) : null,
+      auditLog.clusterId ? Cluster.findOne({ where: { id: auditLog.clusterId } }) : null,
     ]);
 
     auditLog.fwCloudName =
@@ -543,8 +516,7 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private getAuditLogLocalString(res: Response, key: string): string | null {
-    const value = res?.locals?.[key];
-    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+    return AuditLogHelper.getTrimmedString(res?.locals?.[key]);
   }
 
   private keepValue<T>(value: T | null, current: T | null, keepCurrent: boolean): T | null {
@@ -1052,13 +1024,7 @@ export class AuditLogMiddleware extends Middleware {
       context: sanitizeAuditData(instrumentation),
     };
 
-    const serialized = JSON.stringify(payload);
-
-    if (serialized.length > MAX_DATA_LENGTH) {
-      return `${serialized.substring(0, MAX_DATA_LENGTH)}...[truncated]`;
-    }
-
-    return serialized;
+    return AuditLogHelper.truncateData(JSON.stringify(payload));
   }
 
   private extractAuditContext(req: Request): Record<string, string | number> {
@@ -1123,21 +1089,7 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private normalizeContextValue(value: any): string | number | null {
-    if (value === null || value === undefined) {
-      return null;
-    }
-
-    const numeric = AuditLogHelper.getNumeric(value);
-    if (numeric !== null) {
-      return numeric;
-    }
-
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      return trimmed.length > 0 ? trimmed : null;
-    }
-
-    return null;
+    return AuditLogHelper.getNumeric(value) ?? AuditLogHelper.getTrimmedString(value);
   }
 
   private shouldPersistAuditLog(req: Request, res: Response): boolean {

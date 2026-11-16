@@ -87,11 +87,9 @@ export function isAuthenticationEvent(type: AuditEventType | null | undefined): 
 }
 
 export function parseAuditEventTypes(value: unknown): unknown {
-  if (typeof value === 'string') return value.split(',').map((part) => part.trim());
-  if (Array.isArray(value)) {
-    return value.flatMap((item) =>
-      typeof item === 'string' ? item.split(',').map((part) => part.trim()) : [item],
-    );
-  }
-  return value;
+  if (typeof value !== 'string' && !Array.isArray(value)) return value;
+  const items: unknown[] = Array.isArray(value) ? value : [value];
+  return items.flatMap((item) =>
+    typeof item === 'string' ? item.split(',').map((part) => part.trim()) : [item],
+  );
 }
