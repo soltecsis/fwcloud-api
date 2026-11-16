@@ -31,7 +31,7 @@ const pad = (value: number, size: number = 2): string => value.toString().padSta
 export const formatAuditLogDateForDb = (date: Date): string =>
   `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.${pad(date.getUTCMilliseconds(), 3)}`;
 
-const parseAuditLogDateFromDb = (value: Date | string | null | undefined): Date | null => {
+export const parseAuditLogDateFromDb = (value: Date | string | null | undefined): Date | null => {
   if (value == null) {
     return null;
   }

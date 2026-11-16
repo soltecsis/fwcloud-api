@@ -24,7 +24,7 @@ import { Brackets, SelectQueryBuilder } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
-import { AuditLog, formatAuditLogDateForDb } from './AuditLog';
+import { AuditLog, formatAuditLogDateForDb, parseAuditLogDateFromDb } from './AuditLog';
 import { AuditLogHelper } from './audit-log.helper';
 import {
   isSensitiveAuditKey,
@@ -458,28 +458,11 @@ export class AuditLogService extends Service {
   }
 
   private normalizeSummaryDate(value: unknown): Date {
-    if (value instanceof Date) {
-      return new Date(
-        Date.UTC(
-          value.getFullYear(),
-          value.getMonth(),
-          value.getDate(),
-          value.getHours(),
-          value.getMinutes(),
-          value.getSeconds(),
-          value.getMilliseconds(),
-        ),
-      );
-    }
-
-    if (typeof value === 'string' && value.trim() !== '') {
-      const normalized = value.trim().replace(' ', 'T');
-      const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
-      const date = new Date(hasTimezone ? normalized : `${normalized}Z`);
-      return Number.isNaN(date.getTime()) ? new Date(0) : date;
-    }
-
-    return new Date(0);
+    return (
+      (value instanceof Date || typeof value === 'string'
+        ? parseAuditLogDateFromDb(value)
+        : null) ?? new Date(0)
+    );
   }
 
   public getCustomizedConfig(): AuditLogArchiverUpdateableConfig {
