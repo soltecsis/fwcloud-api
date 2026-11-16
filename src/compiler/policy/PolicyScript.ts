@@ -752,9 +752,20 @@ export class PolicyScript {
               this.policyCompiler === 'VyOS' && policyConfig.vyos_header_file
                 ? policyConfig.vyos_header_file
                 : policyConfig.header_file;
-            this.stream.write(fs.readFileSync(headerFilePath, 'utf8'));
-
             const isVyOS = this.policyCompiler === 'VyOS';
+            const header = fs.readFileSync(headerFilePath, 'utf8');
+            const compilationDate = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+            const lifecycleHeader = [
+              `FWCLOUD_COMPILATION_DATE="${compilationDate}"`,
+              'FWCLOUD_INSTALLATION_DATE=""',
+            ].join('\n');
+            this.stream.write(
+              isVyOS
+                ? header
+                : header.includes('__FWCLOUD_COMPILATION_DATE__')
+                  ? header.replace('__FWCLOUD_COMPILATION_DATE__', compilationDate)
+                  : `${header}\n${lifecycleHeader}\n`,
+            );
 
             if (!isVyOS) {
               this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
