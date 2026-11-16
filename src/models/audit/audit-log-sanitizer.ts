@@ -64,20 +64,23 @@ export function sanitizeAuditData(
   return String(input);
 }
 
-export function maskSensitiveAuditText(value: string): string {
-  return AUDIT_SENSITIVE_KEY_PATTERNS.reduce<string>((current, pattern) => {
-    const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const quotedKeyPattern = new RegExp(
-      `("[^"]*${escapedPattern}[^"]*"\\s*:\\s*)("[^"]*"|[^,}\\]]+)`,
-      'gi',
-    );
-    const bareKeyPattern = new RegExp(
-      `([^\\s,}\\]]*${escapedPattern}[^\\s,}\\]]*\\s*[=:]\\s*)("[^"]*"|'[^']*'|[^\\s,}\\]]+)`,
-      'gi',
-    );
+const SENSITIVE_TEXT_PATTERNS = AUDIT_SENSITIVE_KEY_PATTERNS.map((pattern) => {
+  const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const quotedKeyPattern = new RegExp(
+    `("[^"]*${escapedPattern}[^"]*"\\s*:\\s*)("[^"]*"|[^,}\\]]+)`,
+    'gi',
+  );
+  const bareKeyPattern = new RegExp(
+    `([^\\s,}\\]]*${escapedPattern}[^\\s,}\\]]*\\s*[=:]\\s*)("[^"]*"|'[^']*'|[^\\s,}\\]]+)`,
+    'gi',
+  );
+  return { quotedKeyPattern, bareKeyPattern };
+});
 
-    return current
-      .replace(quotedKeyPattern, '$1"[REDACTED]"')
-      .replace(bareKeyPattern, '$1[REDACTED]');
-  }, value);
+export function maskSensitiveAuditText(value: string): string {
+  return SENSITIVE_TEXT_PATTERNS.reduce(
+    (current, { quotedKeyPattern, bareKeyPattern }) =>
+      current.replace(quotedKeyPattern, '$1"[REDACTED]"').replace(bareKeyPattern, '$1[REDACTED]'),
+    value,
+  );
 }

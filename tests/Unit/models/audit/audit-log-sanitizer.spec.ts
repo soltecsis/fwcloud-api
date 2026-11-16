@@ -80,6 +80,15 @@ describe('Audit log sanitization compatibility', () => {
     }
   });
 
+  it('redacts repeated and alternating payloads consistently', () => {
+    const input = 'password=secret name=visible token=hidden ...[truncated]';
+    const expected = 'password=[REDACTED] name=visible token=[REDACTED] ...[truncated]';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      expect(maskSensitiveAuditText(input)).to.equal(expected);
+      expect(maskSensitiveAuditText('token=another')).to.equal('token=[REDACTED]');
+    }
+  });
+
   it('masks malformed and truncated payloads without losing visible text or truncation markers', () => {
     expect(
       maskSensitiveAuditText('password=secret name=visible token=hidden ...[truncated]'),
