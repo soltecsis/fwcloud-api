@@ -448,7 +448,10 @@ export class Backup implements Responsable {
           return reject(new RestoreBackupException('Database can not be wiped'));
 
         //console.time("db import");
-        child_process.execSync(this.buildCmd('mysql', databaseService));
+        // Capture stderr instead of inheriting it: client warnings (e.g. MariaDB's
+        // ssl-verify-server-cert notice when the password comes from MYSQL_PWD) stay off the
+        // console, and a failing import still throws with that stderr in the error message.
+        child_process.execSync(this.buildCmd('mysql', databaseService), { stdio: 'pipe' });
         //console.timeEnd("db import");
         if (!this._firewallRepository || !this._openvpnRepository) {
           await this.init();
