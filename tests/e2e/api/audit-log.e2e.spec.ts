@@ -337,6 +337,224 @@ describe(describeName('AuditLog API E2E suite'), () => {
       });
   });
 
+  describe('sorting', () => {
+    let entries: Record<string, AuditLog>;
+
+    beforeEach(async () => {
+      await repository.clear();
+      entries = {};
+      const fixtures: Array<[string, Partial<AuditLog>]> = [
+        ['long', { startedAt: new Date('2024-01-01T00:00:00.100Z'), durationMs: 4000 }],
+        ['quick', { startedAt: new Date('2024-01-01T00:00:01.100Z'), durationMs: 0 }],
+        ['tieFirst', { startedAt: new Date('2024-01-01T00:00:02.100Z'), durationMs: 1000 }],
+        ['tieSecond', { startedAt: new Date('2024-01-01T00:00:02.100Z'), durationMs: 1000 }],
+        ['missing', { startedAt: new Date('2024-01-01T00:00:03.100Z'), durationMs: null }],
+        [
+          'negative',
+          {
+            startedAt: new Date('2024-01-01T00:00:04.100Z'),
+            durationMs: -1,
+            userId: adminUser.id,
+            sessionId: null,
+          },
+        ],
+        [
+          'incomplete',
+          {
+            startedAt: new Date('2024-01-01T00:00:05.100Z'),
+            durationMs: null,
+            data: JSON.stringify({ durationMs: 'unknown' }),
+            userId: adminUser.id,
+            sessionId: null,
+          },
+        ],
+      ];
+      for (const [name, fixture] of fixtures) {
+        entries[name] = await persistAuditLog({
+          userId: regularUser.id,
+          userName: regularUser.username,
+          sessionId: regularSessionNumeric,
+          eventType: AuditEventType.Modification,
+          fwCloudId: 101,
+          fwCloudName: 'Sorting Cloud',
+          firewallId: 201,
+          firewallName: 'Sorting Firewall',
+          clusterId: 301,
+          clusterName: 'Sorting Cluster',
+          sourceIp: '198.51.100.50',
+          ...fixture,
+        });
+      }
+    });
+
+    const modes = [
+      {
+        sort_by: 'start',
+        sort_order: 'asc',
+        names: ['long', 'quick', 'tieFirst', 'tieSecond', 'missing', 'negative', 'incomplete'],
+      },
+      {
+        sort_by: 'start',
+        sort_order: 'desc',
+        names: ['incomplete', 'negative', 'missing', 'tieSecond', 'tieFirst', 'quick', 'long'],
+      },
+      {
+        sort_by: 'end',
+        sort_order: 'asc',
+        names: ['quick', 'tieFirst', 'tieSecond', 'long', 'missing', 'negative', 'incomplete'],
+      },
+      {
+        sort_by: 'end',
+        sort_order: 'desc',
+        names: ['long', 'tieSecond', 'tieFirst', 'quick', 'incomplete', 'negative', 'missing'],
+      },
+    ];
+
+    for (const { names, ...sorting } of modes) {
+      it(`sorts by ${sorting.sort_by} ${sorting.sort_order} before offset pagination`, async () => {
+        const expected = names.map((name) => entries[name].id);
+        const received: number[] = [];
+        for (let page = 1; page <= 4; page++) {
+          const response = await listAuditLogs(adminSessionToken, {
+            ...sorting,
+            page,
+            pageSize: 2,
+          }).expect(200);
+          const payload = response.body.data;
+          expect(payload.total).to.equal(expected.length);
+          expect(payload.auditLogs.map((entry) => entry.id)).to.deep.equal(
+            expected.slice((page - 1) * 2, page * 2),
+          );
+          received.push(...payload.auditLogs.map((entry) => entry.id));
+          if (sorting.sort_by === 'end') {
+            for (const entry of payload.auditLogs) {
+              if (
+                [entries.missing.id, entries.negative.id, entries.incomplete.id].includes(entry.id)
+              ) {
+                expect(entry.finishedAt).to.be.null;
+              }
+            }
+          }
+        }
+        expect(received).to.deep.equal(expected);
+      });
+
+      it(`paginates by cursor without gaps or duplicates for ${sorting.sort_by} ${sorting.sort_order}`, async () => {
+        let cursor: string | undefined;
+        const received: number[] = [];
+        for (const [index, name] of names.entries()) {
+          const response = await listAuditLogs(adminSessionToken, {
+            ...sorting,
+            limit: 1,
+            ...(cursor ? { cursor } : {}),
+          }).expect(200);
+          const payload = response.body.data;
+          expect(payload.total).to.equal(names.length - index);
+          expect(payload.auditLogs.map((entry) => entry.id)).to.deep.equal([entries[name].id]);
+          const [entry] = payload.auditLogs;
+          received.push(entry.id);
+          const timestamp = sorting.sort_by === 'start' ? entry.startedAt : entry.finishedAt;
+          cursor = `${timestamp}:${entry.id}`;
+        }
+        const lastPage = await listAuditLogs(adminSessionToken, {
+          ...sorting,
+          limit: 1,
+          cursor,
+        }).expect(200);
+        expect(lastPage.body.data.total).to.equal(0);
+        expect(lastPage.body.data.auditLogs).to.deep.equal([]);
+        expect(received).to.deep.equal(names.map((name) => entries[name].id));
+      });
+    }
+
+    it('keeps start descending as the default, including deterministic timestamp ties', async () => {
+      const response = await listAuditLogs(adminSessionToken, { limit: 0 }).expect(200);
+      expect(response.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+        modes[1].names.map((name) => entries[name].id),
+      );
+    });
+
+    it('defaults each omitted sorting parameter independently', async () => {
+      const byEnd = await listAuditLogs(adminSessionToken, { sort_by: 'end' }).expect(200);
+      expect(byEnd.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+        modes[3].names.map((name) => entries[name].id),
+      );
+      const ascending = await listAuditLogs(adminSessionToken, { sort_order: 'asc' }).expect(200);
+      expect(ascending.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+        modes[0].names.map((name) => entries[name].id),
+      );
+    });
+
+    it('combines end sorting with all existing filters and accurate pagination counts', async () => {
+      const filters = {
+        sort_by: 'end',
+        sort_order: 'asc',
+        event_type: 'modification',
+        started_at_from: '2024-01-01T00:00:00Z',
+        started_at_to: '2024-01-01T00:00:02.500Z',
+        user_name: regularUser.username,
+        session_id: String(regularSessionNumeric),
+        fwcloud_id: 101,
+        fwcloud_name: 'sorting',
+        firewall_id: 201,
+        firewall_name: 'sorting',
+        cluster_id: 301,
+        cluster_name: 'sorting',
+        source_ip: '198.51.100.50',
+        limit: 2,
+      };
+      const first = await listAuditLogs(adminSessionToken, filters).expect(200);
+      const second = await listAuditLogs(adminSessionToken, { ...filters, page: 2 }).expect(200);
+      expect(first.body.data.total).to.equal(4);
+      expect(second.body.data.total).to.equal(4);
+      expect(first.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.quick.id,
+        entries.tieFirst.id,
+      ]);
+      expect(second.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.tieSecond.id,
+        entries.long.id,
+      ]);
+      const pivot = first.body.data.auditLogs[1];
+      const next = await listAuditLogs(adminSessionToken, {
+        ...filters,
+        cursor: `${pivot.finishedAt}:${pivot.id}`,
+      }).expect(200);
+      expect(next.body.data.total).to.equal(2);
+      expect(next.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.tieSecond.id,
+        entries.long.id,
+      ]);
+    });
+
+    it('preserves regular-user access restrictions when sorting by end time', async () => {
+      const response = await listAuditLogs(regularSessionToken, {
+        sort_by: 'end',
+        sort_order: 'desc',
+      }).expect(200);
+      expect(response.body.data.total).to.equal(5);
+      expect(response.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+        ['long', 'tieSecond', 'tieFirst', 'quick', 'missing'].map((name) => entries[name].id),
+      );
+    });
+
+    for (const query of [
+      { sort_by: 'timestamp' },
+      { sort_by: 'START' },
+      { sort_by: '' },
+      { sort_by: ['start', 'end'] },
+      { sort_by: 'end; DROP TABLE audit_logs' },
+      { sort_order: 'ascending' },
+      { sort_order: 'DESC' },
+      { sort_order: '' },
+      { sort_order: ['asc', 'desc'] },
+    ]) {
+      it(`rejects unsupported sorting parameters ${JSON.stringify(query)}`, async () => {
+        await listAuditLogs(adminSessionToken, query).expect(422);
+      });
+    }
+  });
+
   describe('event categories', () => {
     beforeEach(async () => {
       await repository.update(userOwnedLog.id, { eventType: AuditEventType.Creation });

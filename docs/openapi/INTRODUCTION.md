@@ -38,6 +38,25 @@ A request is composed of:
 - **JSON BODY**: operation parameters (especially on legacy endpoints).
 - **HEADERS**: `Content-Type`, `Origin`, session cookie, and confirmation token when applicable.
 
+## Audit log sorting and pagination
+
+`GET /auditlogs` and `PUT /auditlogs` accept these optional query parameters:
+
+| Parameter | Accepted values | Default | Meaning |
+| --- | --- | --- | --- |
+| `sort_by` | `start`, `end` | `start` | Order by the operation start time or its calculated end time. |
+| `sort_order` | `asc`, `desc` | `desc` | Earliest first or latest first. |
+
+Unsupported sorting values are rejected. For example, `/auditlogs?sort_by=end&sort_order=asc` returns the earliest finished operations first. Omitting both parameters preserves the existing order: most recently started operations first.
+
+Sorting uses database timestamps across the complete filtered dataset before `page`/`pageSize` or `limit` pagination. Audit log IDs break timestamp ties in the selected direction. All existing access restrictions and filters continue to apply.
+
+An operation's end time is its start time plus its known, nonnegative `duration_ms` value. Records without a known end time are placed after records with known end times in both directions, with IDs ordered in the selected direction. A zero duration is valid; a missing or invalid duration does not establish a completion time. The duration backfill migration copies valid historical `durationMs` or `duration_ms` payload values into the structured column, so list queries do not need to parse serialized audit data.
+
+Start-time sorting can use the existing timestamp index. End-time sorting calculates the end time for matching records and requires a database sort; it does not have a dedicated end-time index.
+
+For cursor pagination, pass `cursor=<timestamp>:<id>` using the last returned record's `startedAt` when sorting by `start`, or `finishedAt` when sorting by `end`. For a record without a known end time, use `cursor=null:<id>`. URL-encode cursor values and retain the same sorting parameters and filters for subsequent requests. The existing start-time cursor format remains supported. With a cursor, `total` retains its existing meaning: the number of matching records remaining after the cursor, before the page limit.
+
 
 ## Security and best practices
 

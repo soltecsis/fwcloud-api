@@ -3,6 +3,7 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsEnum,
+  IsIn,
   IsISO8601,
   IsInt,
   IsOptional,
@@ -11,10 +12,19 @@ import {
   Min,
 } from 'class-validator';
 import { AuditEventType, parseAuditEventTypes } from '../../../models/audit/audit-event-type';
+import type { AuditLogSortBy, AuditLogSortOrder } from '../../../models/audit/AuditLog.service';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 export class AuditLogListQueryDto {
+  @IsOptional()
+  @IsIn(['start', 'end'])
+  sort_by?: AuditLogSortBy;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sort_order?: AuditLogSortOrder;
+
   @IsOptional()
   @Transform(({ value }) => parseAuditEventTypes(value))
   @IsArray()

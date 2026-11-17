@@ -26,7 +26,10 @@ import sinon from 'sinon';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
-import { AuditLogService } from '../../../../src/models/audit/AuditLog.service';
+import {
+  AuditLogService,
+  ListAuditLogsOptions,
+} from '../../../../src/models/audit/AuditLog.service';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
 import { User } from '../../../../src/models/user/User';
 import db from '../../../../src/database/database-manager';
@@ -216,48 +219,141 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(summary?.durationMs).to.equal(1234);
     });
 
-    it('injects cursor guard clauses when paginating', async () => {
-      const captured: unknown[] = [];
-      const getCountStub = sinon.stub().resolves(0);
-      const getRawManyStub = sinon.stub().resolves([]);
+    describe('sorting queries', () => {
+      const stubListQuery = () => {
+        const query = {
+          clone: sinon.stub().returnsThis(),
+          select: sinon.stub().returnsThis(),
+          addSelect: sinon.stub().returnsThis(),
+          orderBy: sinon.stub().returnsThis(),
+          addOrderBy: sinon.stub().returnsThis(),
+          andWhere: sinon.stub().returnsThis(),
+          limit: sinon.stub().returnsThis(),
+          offset: sinon.stub().returnsThis(),
+          getCount: sinon.stub().resolves(0),
+          getRawMany: sinon.stub().resolves([]),
+        };
+        sinon
+          .stub(service['auditLogRepository'], 'createQueryBuilder')
+          .returns(query as unknown as SelectQueryBuilder<AuditLog>);
+        return query;
+      };
 
-      const fakeQueryBuilder = {
-        clone: sinon.stub().returnsThis(),
-        select: sinon.stub().returnsThis(),
-        addSelect: sinon.stub().returnsThis(),
-        orderBy: sinon.stub().returnsThis(),
-        addOrderBy: sinon.stub().returnsThis(),
-        andWhere: sinon.stub().callsFake((condition: unknown) => {
-          captured.push(condition);
-          return fakeQueryBuilder;
-        }),
-        limit: sinon.stub().returnsThis(),
-        offset: sinon.stub().returnsThis(),
-        getCount: getCountStub,
-        getRawMany: getRawManyStub,
-      } as unknown as SelectQueryBuilder<AuditLog>;
+      for (const sortBy of ['start', 'end'] as const) {
+        for (const sortOrder of ['asc', 'desc'] as const) {
+          it(`uses the selected database sort and cursor comparison for ${sortBy} ${sortOrder}`, async () => {
+            const query = stubListQuery();
+            const timestamp = new Date('2024-01-10T12:00:00.123Z');
+            await service.listAuditLogs({
+              isAdmin: true,
+              sortBy,
+              sortOrder,
+              cursor:
+                sortBy === 'start'
+                  ? { startedAt: timestamp, id: 321 }
+                  : { finishedAt: timestamp, id: 321 },
+              take: 10,
+              skip: 2,
+            });
 
-      sinon
-        .stub(service['auditLogRepository'], 'createQueryBuilder')
-        .callsFake(() => fakeQueryBuilder);
+            const direction = sortOrder.toUpperCase();
+            const comparison = sortOrder === 'asc' ? '>' : '<';
+            const guard = query.andWhere.firstCall.args[0] as string;
+            expect(guard).to.contain(`auditLog.id ${comparison} :cursorId`);
+            expect(guard).to.contain(`${comparison} '2024-01-10 12:00:00.123'`);
+            expect(query.andWhere.firstCall.args[1]).to.deep.equal({ cursorId: 321 });
+            expect(query.addOrderBy.lastCall.args).to.deep.equal(['`auditLog`.`id`', direction]);
+            if (sortBy === 'start') {
+              expect(query.orderBy.firstCall.args).to.deep.equal(['`auditLog`.`ts`', direction]);
+              expect(guard).not.to.contain('IS NULL');
+            } else {
+              expect(query.orderBy.firstCall.args[0]).to.contain('TIMESTAMPADD(MICROSECOND');
+              expect(query.orderBy.firstCall.args[0]).to.contain('duration_ms` >= 0');
+              expect(query.orderBy.firstCall.args[0]).to.match(/IS NULL$/);
+              expect(query.orderBy.firstCall.args[1]).to.equal('ASC');
+              expect(query.addOrderBy.firstCall.args[1]).to.equal(direction);
+              expect(guard).to.contain('OR (CASE');
+              expect(guard).to.contain('IS NULL');
+            }
+            sinon.assert.callOrder(
+              query.orderBy,
+              query.getCount,
+              query.limit,
+              query.offset,
+              query.getRawMany,
+            );
+            expect(query.getCount.calledOnce).to.be.true;
+            expect(query.getRawMany.calledOnce).to.be.true;
+          });
+        }
+      }
 
-      await service.listAuditLogs({
-        isAdmin: true,
-        cursor: {
-          startedAt: new Date('2024-01-10T12:00:00Z'),
-          id: 321,
-        },
+      for (const sortOrder of ['asc', 'desc'] as const) {
+        it(`continues within unknown end timestamps in ${sortOrder} order`, async () => {
+          const query = stubListQuery();
+          await service.listAuditLogs({
+            isAdmin: true,
+            sortBy: 'end',
+            sortOrder,
+            cursor: { finishedAt: null, id: 321 },
+          });
+          const comparison = sortOrder === 'asc' ? '>' : '<';
+          const guard = query.andWhere.firstCall.args[0] as string;
+          expect(guard).to.contain(`IS NULL AND auditLog.id ${comparison} :cursorId`);
+          expect(guard).not.to.contain(' OR ');
+          expect(query.andWhere.firstCall.args[1]).to.deep.equal({ cursorId: 321 });
+        });
+      }
+
+      it('preserves the default descending start cursor and ignores untrusted runtime sorting values', async () => {
+        const query = stubListQuery();
+        await service.listAuditLogs({
+          isAdmin: true,
+          sortBy: 'end; DROP TABLE audit_logs',
+          sortOrder: 'ASC; DROP TABLE audit_logs',
+          cursor: { startedAt: new Date('2024-01-10T12:00:00Z'), id: 321 },
+        } as unknown as ListAuditLogsOptions);
+        expect(query.orderBy.firstCall.args).to.deep.equal(['`auditLog`.`ts`', 'DESC']);
+        expect(query.addOrderBy.firstCall.args).to.deep.equal(['`auditLog`.`id`', 'DESC']);
+        expect(query.andWhere.firstCall.args[0]).to.contain('auditLog.id < :cursorId');
+        expect(query.andWhere.firstCall.args[0]).not.to.contain('DROP TABLE');
       });
+    });
 
-      const guardClause = captured.find(
-        (entry) => typeof entry === 'string' && entry.includes('auditLog.id < :cursorId'),
-      ) as string | undefined;
-      expect(guardClause).to.not.be.undefined;
-
-      expect(guardClause).to.contain('`auditLog`.`ts`');
-      expect(guardClause).to.contain('auditLog.id < :cursorId');
-      expect(getCountStub.calledOnce).to.be.true;
-      expect(getRawManyStub.calledOnce).to.be.true;
+    it('calculates end ordering with millisecond precision and uses IDs for equal completion times', async () => {
+      const long = await createAuditLog({
+        startedAt: new Date('2024-01-01T00:00:00.001Z'),
+        durationMs: 2,
+      });
+      const quick = await createAuditLog({
+        startedAt: new Date('2024-01-01T00:00:00.002Z'),
+        durationMs: 0,
+      });
+      const tied = await createAuditLog({
+        startedAt: new Date('2024-01-01T00:00:00.001Z'),
+        durationMs: 1,
+      });
+      const ascending = await service.listAuditLogs({
+        isAdmin: true,
+        sortBy: 'end',
+        sortOrder: 'asc',
+      });
+      expect(ascending.total).to.equal(3);
+      expect(ascending.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        quick.id,
+        tied.id,
+        long.id,
+      ]);
+      const descending = await service.listAuditLogs({
+        isAdmin: true,
+        sortBy: 'end',
+        sortOrder: 'desc',
+      });
+      expect(descending.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        long.id,
+        tied.id,
+        quick.id,
+      ]);
     });
 
     it('filters administrative requests by an explicit session identifier', async () => {
@@ -278,6 +374,83 @@ describe(describeName('AuditLogService unit suite'), () => {
       expect(total).to.equal(1);
       expect(auditLogs).to.have.length(1);
       expect(auditLogs[0].id).to.equal(expected.id);
+    });
+  });
+
+  describe('duration parsing', () => {
+    it('reads valid root duration values in current and historical serialized payloads', () => {
+      const examples: Array<[string, number]> = [
+        ['{"durationMs":0}', 0],
+        ['{"durationMs":"1250"}', 1250],
+        ['{"duration_ms":"42.9"}', 42],
+        ['{"durationMs":null,"duration_ms":25}', 25],
+        ['{"durationMs":2147483647}', 2147483647],
+      ];
+      for (const [payload, expected] of examples) {
+        expect(service['extractDurationMsFromSerializedData'](payload)).to.equal(expected);
+      }
+    });
+
+    it('leaves incomplete, nested, negative, boolean and oversized serialized durations unknown', () => {
+      const examples = [
+        null,
+        undefined,
+        '',
+        '{"durationMs":123',
+        '{"durationMs":123}...[truncated]',
+        '{"nested":{"durationMs":123}}',
+        '[{"durationMs":123}]',
+        '{"durationMs":-1}',
+        '{"duration_ms":-0.5}',
+        '{"durationMs":true}',
+        '{"durationMs":false}',
+        '{"durationMs":2147483648}',
+        '{"durationMs":"2147483648"}',
+        '{"durationMs":"unknown"}',
+        '{"durationMs":""}',
+        '{}',
+        'null',
+      ];
+      for (const payload of examples) {
+        expect(service['extractDurationMsFromSerializedData'](payload), String(payload)).to.be.null;
+      }
+    });
+
+    it('normalizes valid milliseconds without converting invalid values into completion times', () => {
+      for (const value of [0, '0', 42, '42', 42n, 42.9, '42.9', ' 42.9 ', '4.2e1', '0x2a']) {
+        expect(service['normalizeDurationMs'](value)).to.equal(Math.trunc(Number(value)));
+      }
+      for (const value of [
+        null,
+        undefined,
+        '',
+        ' ',
+        false,
+        true,
+        [],
+        {},
+        -1,
+        -1n,
+        -0.5,
+        NaN,
+        Infinity,
+        2147483648,
+        2147483648n,
+      ]) {
+        expect(service['normalizeDurationMs'](value)).to.be.null;
+      }
+    });
+
+    it('returns unknown duration in both summary and detail for invalid stored durations', async () => {
+      const entry = await createAuditLog({
+        durationMs: -1,
+        data: JSON.stringify({ durationMs: 123 }),
+      });
+      const summary = await service.listAuditLogs({ isAdmin: true, sortBy: 'end' });
+      expect(summary.auditLogs[0].id).to.equal(entry.id);
+      expect(summary.auditLogs[0].durationMs).to.be.null;
+      const detail = await service.getAuditLog(entry.id, { isAdmin: true });
+      expect(detail.durationMs).to.be.null;
     });
   });
 

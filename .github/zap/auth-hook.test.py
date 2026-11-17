@@ -33,7 +33,7 @@ class EvidenceTests(unittest.TestCase):
         with open(self.root + '/authenticated.openapi.json', 'w') as destination:
             json.dump({'paths': paths or {'/auditlogs': {'get': {'operationId': 'audit-list'}}}}, destination)
         history = [message()] if messages is None else messages
-        zap = SimpleNamespace(ascan=Mock(), replacer=Mock(), alertFilter=Mock(),
+        zap = SimpleNamespace(ascan=Mock(), replacer=Mock(), alertFilter=Mock(), alert=Mock(),
                               pscan=SimpleNamespace(records_to_scan='0'),
                               core=SimpleNamespace(version='2.17.0',
                                   messages=lambda start=0, count=500, **kwargs: history[start:start + count],
@@ -76,6 +76,35 @@ class EvidenceTests(unittest.TestCase):
             self.assertIsNone(re.search(values['evidence'], '1704114088'))
             self.assertIsNone(re.search(values['parameter'], 'Set-Cookie'))
             self.assertIsNotNone(re.search(values['evidence'], '1704114087'))
+
+    def test_gate_count_only_downgrades_known_audit_session_id(self):
+        zap = self.laboratory(paths={
+            '/auditlogs': {'get': {'operationId': 'audit-list'}},
+            '/auditlogs/12': {'get': {'operationId': 'audit'}},
+            '/fwcloud/all/get': {'get': {'operationId': 'cloud-list'}}})
+        match = {'pluginId': '10096', 'risk': 'Low', 'method': 'GET', 'param': '',
+                 'evidence': '1704114087', 'url': hook.BASE + '/auditlogs?sort_by=end'}
+        alerts = [dict(match, id='1'), dict(match, id='2', url=hook.BASE + '/auditlogs/12'),
+                  dict(match, id='3', evidence='1704114088'),
+                  dict(match, id='4', url=hook.BASE + '/fwcloud/all/get'),
+                  dict(match, id='5', url=hook.BASE + '/auditlogs/999'),
+                  dict(match, id='6', method='POST'), dict(match, id='7', param='Set-Cookie'),
+                  dict(match, id='8', pluginId='10037'), dict(match, id='9', risk='Informational')]
+        zap.alert.alerts.side_effect = lambda start=0, count=500: alerts[start:start + count]
+        hook.zap_get_alerts(zap, hook.BASE, [], {})
+        zap.alert.update_alerts_risk.assert_called_once_with('1,2', 0)
+
+    def test_gate_count_pages_alerts_and_skips_update_without_matches(self):
+        zap = self.laboratory()
+        other = {'pluginId': '10037', 'risk': 'Low', 'method': 'GET', 'param': '',
+                 'evidence': 'Express', 'url': hook.BASE + '/auditlogs'}
+        alerts = [dict(other, id=str(index)) for index in range(500)]
+        zap.alert.alerts.side_effect = lambda start=0, count=500: alerts[start:start + count]
+        hook.zap_get_alerts(zap, hook.BASE, [], {})
+        zap.alert.update_alerts_risk.assert_not_called()
+        alerts.append(dict(other, id='500', pluginId='10096', evidence='1704114087'))
+        hook.zap_get_alerts(zap, hook.BASE, [], {})
+        zap.alert.update_alerts_risk.assert_called_once_with('500', 0)
 
     def test_import_counts_reached_queries_and_uses_verified_revision(self):
         zap = self.laboratory()
