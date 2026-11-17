@@ -120,6 +120,7 @@ const getOpenVPN2FACheckScriptPath = (): string => {
 };
 
 const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+const backupPathOutputMarker = '__FWCLOUD_BACKUP_PATH__=';
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
@@ -174,11 +175,19 @@ fi
 backup_path="$(dirname "$installed_script_path")/fwcloud-$(date +%Y%m%d%H%M%S).sh"
 [ ! -e "$backup_path" ] || exit 1
 mv "$installed_script_path" "$backup_path"
-printf '%s\\n' "$backup_path"
+printf '${backupPathOutputMarker}%s\\n' "$backup_path"
 `.trim();
-      backupPath = (
+      const backupOutput = (
         await sshTools.runCommand(this.connectionData, `${sudo} sh -c ${shellQuote(backupCommand)}`)
       ).trim();
+      const backupPathLine = backupOutput
+        .split(/\r?\n/)
+        .find((line) => line.includes(backupPathOutputMarker));
+      backupPath = backupPathLine
+        ? backupPathLine.slice(
+            backupPathLine.indexOf(backupPathOutputMarker) + backupPathOutputMarker.length,
+          )
+        : '';
       if (backupPath) {
         installedScriptPath = path.posix.join(path.posix.dirname(backupPath), scriptName);
         eventEmitter.emit(
