@@ -154,9 +154,9 @@ export type AuditLogMutationInput = {
 };
 
 const MAX_CALL_LENGTH = 255;
+const MAX_DURATION_MS = 2147483647;
 const STARTED_AT_COLUMN = '`auditLog`.`ts`';
 const quoteAuditLogDateForSql = (date: Date): string => `'${formatAuditLogDateForDb(date)}'`;
-const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
 
 export class AuditLogService extends Service {
   protected _config: AuditLogArchiveConfig;
@@ -291,8 +291,11 @@ export class AuditLogService extends Service {
     }
 
     const auditLog = await query.getOne();
-    if (auditLog && auditLog.durationMs == null) {
-      auditLog.durationMs = this.extractDurationMsFromSerializedData(auditLog.data);
+    if (auditLog) {
+      auditLog.durationMs =
+        auditLog.durationMs == null
+          ? this.extractDurationMsFromSerializedData(auditLog.data)
+          : this.normalizeDurationMs(auditLog.durationMs);
     }
 
     return auditLog;
@@ -786,8 +789,11 @@ export class AuditLogService extends Service {
   }
 
   protected extractDurationMsFromSerializedData(data: string | null | undefined): number | null {
-    const match = typeof data === 'string' ? DURATION_MS_PATTERN.exec(data) : null;
-    return match ? this.normalizeDurationMs(match[1]) : null;
+    try {
+      return this.extractDurationMsFromData(JSON.parse(data));
+    } catch {
+      return null;
+    }
   }
 
   protected extractStartedAtFromData(data: unknown): Date | null {
@@ -796,21 +802,18 @@ export class AuditLogService extends Service {
   }
 
   protected normalizeDurationMs(value: unknown): number | null {
-    let numeric = Number.NaN;
-
-    if (typeof value === 'number') {
-      numeric = value;
-    } else if (typeof value === 'string' && value.trim() !== '') {
-      numeric = Number(value);
-    } else if (typeof value === 'bigint') {
-      numeric = Number(value);
-    }
-
-    if (!Number.isFinite(numeric)) {
+    if (
+      typeof value !== 'number' &&
+      typeof value !== 'bigint' &&
+      !(typeof value === 'string' && value.trim() !== '')
+    ) {
       return null;
     }
 
-    return Math.max(0, Math.trunc(numeric));
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric >= 0 && numeric <= MAX_DURATION_MS
+      ? Math.trunc(numeric)
+      : null;
   }
 
   protected normalizeAuditDate(value: unknown): Date | null {

@@ -281,6 +281,71 @@ describe(describeName('AuditLogService unit suite'), () => {
     });
   });
 
+  describe('duration parsing', () => {
+    it('reads valid root duration values in current and historical serialized payloads', () => {
+      const examples: Array<[string, number]> = [
+        ['{"durationMs":0}', 0],
+        ['{"durationMs":"1250"}', 1250],
+        ['{"duration_ms":"42.9"}', 42],
+        ['{"durationMs":null,"duration_ms":25}', 25],
+        ['{"durationMs":2147483647}', 2147483647],
+      ];
+      for (const [payload, expected] of examples) {
+        expect(service['extractDurationMsFromSerializedData'](payload)).to.equal(expected);
+      }
+    });
+
+    it('leaves incomplete, nested, negative, boolean and oversized serialized durations unknown', () => {
+      const examples = [
+        null,
+        undefined,
+        '',
+        '{"durationMs":123',
+        '{"durationMs":123}...[truncated]',
+        '{"nested":{"durationMs":123}}',
+        '[{"durationMs":123}]',
+        '{"durationMs":-1}',
+        '{"duration_ms":-0.5}',
+        '{"durationMs":true}',
+        '{"durationMs":false}',
+        '{"durationMs":2147483648}',
+        '{"durationMs":"2147483648"}',
+        '{"durationMs":"unknown"}',
+        '{"durationMs":""}',
+        '{}',
+        'null',
+      ];
+      for (const payload of examples) {
+        expect(service['extractDurationMsFromSerializedData'](payload), String(payload)).to.be.null;
+      }
+    });
+
+    it('normalizes valid milliseconds without converting invalid values into completion times', () => {
+      for (const value of [0, '0', 42, '42', 42n, 42.9, '42.9', ' 42.9 ', '4.2e1', '0x2a']) {
+        expect(service['normalizeDurationMs'](value)).to.equal(Math.trunc(Number(value)));
+      }
+      for (const value of [
+        null,
+        undefined,
+        '',
+        ' ',
+        false,
+        true,
+        [],
+        {},
+        -1,
+        -1n,
+        -0.5,
+        NaN,
+        Infinity,
+        2147483648,
+        2147483648n,
+      ]) {
+        expect(service['normalizeDurationMs'](value)).to.be.null;
+      }
+    });
+  });
+
   describe('summary timestamps', () => {
     it('preserves UTC database timestamps and explicit offsets', () => {
       const examples: Array<[Date | string, string]> = [

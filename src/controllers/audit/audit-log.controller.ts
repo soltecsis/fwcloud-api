@@ -293,7 +293,7 @@ export class AuditLogController extends Controller {
   private formatFinishedAt(
     entry: Pick<AuditLogSummary, 'startedAt' | 'durationMs'>,
   ): string | null {
-    if (!(entry.startedAt instanceof Date) || entry.durationMs === null) {
+    if (!(entry.startedAt instanceof Date) || entry.durationMs === null || entry.durationMs < 0) {
       return null;
     }
 
