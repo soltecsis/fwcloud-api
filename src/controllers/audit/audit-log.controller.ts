@@ -30,6 +30,7 @@ import {
   AuditLogService,
   ListAuditLogsOptions,
   ListAuditLogsCursor,
+  AuditLogSortBy,
 } from '../../models/audit/AuditLog.service';
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
 import { AuditLogListQueryDto } from './dtos/audit-log-query.dto';
@@ -121,6 +122,8 @@ export class AuditLogController extends Controller {
 
   protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {
     const options: ListAuditLogsOptions = this.buildAccessOptions(request, currentUser);
+    options.sortBy = request.query.sort_by === 'end' ? 'end' : 'start';
+    options.sortOrder = request.query.sort_order === 'asc' ? 'asc' : 'desc';
 
     const requestedLimit =
       this.parseNonNegativeInteger(request.query.limit) ??
@@ -164,7 +167,7 @@ export class AuditLogController extends Controller {
       options.eventTypes = parseAuditEventTypes(request.query.event_type) as AuditEventType[];
     }
 
-    const cursor = this.parseCursor(request.query.cursor);
+    const cursor = this.parseCursor(request.query.cursor, options.sortBy);
     if (cursor) {
       options.cursor = cursor;
     }
@@ -217,7 +220,7 @@ export class AuditLogController extends Controller {
     return AuditLogHelper.getTrimmedString(value) ?? undefined;
   }
 
-  private parseCursor(value: unknown): ListAuditLogsCursor | undefined {
+  private parseCursor(value: unknown, sortBy: AuditLogSortBy): ListAuditLogsCursor | undefined {
     const cursor = this.parseString(value);
     if (!cursor) {
       return undefined;
@@ -228,14 +231,23 @@ export class AuditLogController extends Controller {
       return undefined;
     }
 
-    const startedAt = new Date(cursor.slice(0, separatorIndex));
-    const id = Number.parseInt(cursor.slice(separatorIndex + 1), 10);
+    const timestamp = cursor.slice(0, separatorIndex);
+    const id = this.parsePositiveInteger(cursor.slice(separatorIndex + 1));
 
-    if (Number.isNaN(startedAt.getTime()) || Number.isNaN(id) || id <= 0) {
+    if (id === undefined) {
       return undefined;
     }
 
-    return { startedAt, id };
+    if (sortBy === 'end' && timestamp === 'null') {
+      return { finishedAt: null, id };
+    }
+
+    const sortTime = this.parseIsoDate(timestamp);
+    if (!sortTime) {
+      return undefined;
+    }
+
+    return sortBy === 'end' ? { finishedAt: sortTime, id } : { startedAt: sortTime, id };
   }
 
   private formatSummary(entry: AuditLogSummary): Record<string, unknown> {
