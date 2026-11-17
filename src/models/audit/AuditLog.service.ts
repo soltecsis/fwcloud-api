@@ -20,12 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Brackets, SelectQueryBuilder } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
-import { AuditLog, formatAuditLogDateForDb } from './AuditLog';
+import { AuditLog, formatAuditLogDateForDb, parseAuditLogDateFromDb } from './AuditLog';
 import { AuditLogHelper } from './audit-log.helper';
+import { maskSensitiveAuditText, sanitizeAuditData } from './audit-log-sanitizer';
+import { AuditEventType, AuditOutcome, isAuthenticationEvent } from './audit-event-type';
 import * as fs from 'fs-extra';
 import path from 'path';
 import { EventEmitter } from 'events';
@@ -80,6 +82,7 @@ export type ListAuditLogsOptions = {
   clusterName?: string;
   sourceIp?: string;
   cursor?: ListAuditLogsCursor;
+  eventTypes?: AuditEventType[];
 };
 
 export type AuditLogAccessOptions = Pick<
@@ -90,6 +93,8 @@ export type AuditLogAccessOptions = Pick<
 };
 
 export type AuditLogSummary = {
+  eventType: AuditEventType | null;
+  outcome: AuditOutcome | null;
   id: number;
   startedAt: Date;
   userId: number | null;
@@ -109,6 +114,8 @@ export type AuditLogSummary = {
 };
 
 type AuditLogSummaryRow = {
+  eventType: AuditEventType | null;
+  outcome: AuditOutcome | null;
   id: number | string;
   startedAt: Date | string | null;
   userId: number | string | null;
@@ -128,6 +135,7 @@ type AuditLogSummaryRow = {
 };
 
 export type AuditLogMutationInput = {
+  eventType?: AuditEventType;
   call: string;
   description: string;
   status?: number | null;
@@ -146,28 +154,9 @@ export type AuditLogMutationInput = {
 };
 
 const MAX_CALL_LENGTH = 255;
-const MAX_DATA_LENGTH = 64 * 1024; // 64KB to avoid oversized entries
-const MAX_SOURCE_IP_LENGTH = 45;
 const STARTED_AT_COLUMN = '`auditLog`.`ts`';
 const quoteAuditLogDateForSql = (date: Date): string => `'${formatAuditLogDateForDb(date)}'`;
 const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
-
-const SENSITIVE_KEY_PATTERNS = [
-  'password',
-  'passcode',
-  'passwd',
-  'secret',
-  'token',
-  'apikey',
-  'api_key',
-  'accesskey',
-  'access_key',
-  'auth',
-  'credential',
-  'enrollmentkey',
-  'enrollment_key',
-  'otp',
-];
 
 export class AuditLogService extends Service {
   protected _config: AuditLogArchiveConfig;
@@ -216,6 +205,10 @@ export class AuditLogService extends Service {
       return { auditLogs: [], total: 0 };
     }
 
+    if (options.eventTypes?.length) {
+      query.andWhere('auditLog.eventType IN (:...eventTypes)', { eventTypes: options.eventTypes });
+    }
+
     if (options.startedAtFrom instanceof Date) {
       query.andWhere(`${STARTED_AT_COLUMN} >= ${quoteAuditLogDateForSql(options.startedAtFrom)}`);
     }
@@ -224,49 +217,29 @@ export class AuditLogService extends Service {
       query.andWhere(`${STARTED_AT_COLUMN} <= ${quoteAuditLogDateForSql(options.startedAtTo)}`);
     }
 
-    const applyTextFilter = (field: string, param: string, value: string) => {
-      query.andWhere(`LOWER(${field}) LIKE :${param}`, {
-        [param]: `%${value.toLowerCase()}%`,
-      });
+    const applyTextFilter = (
+      property: 'userName' | 'fwCloudName' | 'firewallName' | 'clusterName' | 'sourceIp',
+    ) => {
+      const value = options[property];
+      if (typeof value === 'string' && value.trim() !== '') {
+        query.andWhere(`LOWER(auditLog.${property}) LIKE :${property}`, {
+          [property]: `%${value.toLowerCase()}%`,
+        });
+      }
     };
 
-    if (typeof options.userName === 'string' && options.userName.trim() !== '') {
-      applyTextFilter('auditLog.userName', 'userName', options.userName);
+    applyTextFilter('userName');
+    for (const entity of ['fwCloud', 'firewall', 'cluster'] as const) {
+      const property = `${entity}Id` as const;
+      const value = options[property];
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        query.andWhere(`auditLog.${property} = :${property}`, { [property]: value });
+      }
+      applyTextFilter(`${entity}Name`);
     }
+    applyTextFilter('sourceIp');
 
-    if (typeof options.fwCloudId === 'number' && Number.isFinite(options.fwCloudId)) {
-      query.andWhere('auditLog.fwCloudId = :fwCloudId', { fwCloudId: options.fwCloudId });
-    }
-
-    if (typeof options.fwCloudName === 'string' && options.fwCloudName.trim() !== '') {
-      applyTextFilter('auditLog.fwCloudName', 'fwCloudName', options.fwCloudName);
-    }
-
-    if (typeof options.firewallId === 'number' && Number.isFinite(options.firewallId)) {
-      query.andWhere('auditLog.firewallId = :firewallId', { firewallId: options.firewallId });
-    }
-
-    if (typeof options.firewallName === 'string' && options.firewallName.trim() !== '') {
-      applyTextFilter('auditLog.firewallName', 'firewallName', options.firewallName);
-    }
-
-    if (typeof options.clusterId === 'number' && Number.isFinite(options.clusterId)) {
-      query.andWhere('auditLog.clusterId = :clusterId', { clusterId: options.clusterId });
-    }
-
-    if (typeof options.clusterName === 'string' && options.clusterName.trim() !== '') {
-      applyTextFilter('auditLog.clusterName', 'clusterName', options.clusterName);
-    }
-
-    if (typeof options.sourceIp === 'string' && options.sourceIp.trim() !== '') {
-      applyTextFilter('auditLog.sourceIp', 'sourceIp', options.sourceIp);
-    }
-
-    if (
-      options.sessionIdFilter !== null &&
-      options.sessionIdFilter !== undefined &&
-      Number.isFinite(options.sessionIdFilter)
-    ) {
+    if (Number.isFinite(options.sessionIdFilter)) {
       query.andWhere('auditLog.sessionId = :filterSessionId', {
         filterSessionId: options.sessionIdFilter,
       });
@@ -318,7 +291,7 @@ export class AuditLogService extends Service {
     }
 
     const auditLog = await query.getOne();
-    if (auditLog && (auditLog.durationMs === null || auditLog.durationMs === undefined)) {
+    if (auditLog && auditLog.durationMs == null) {
       auditLog.durationMs = this.extractDurationMsFromSerializedData(auditLog.data);
     }
 
@@ -332,12 +305,11 @@ export class AuditLogService extends Service {
     }
 
     try {
-      return this.sanitize(JSON.parse(raw));
+      return sanitizeAuditData(JSON.parse(raw));
     } catch {
-      const truncated = raw.endsWith('...[truncated]');
       return {
-        raw: this.maskSensitiveText(raw),
-        truncated,
+        raw: maskSensitiveAuditText(raw),
+        truncated: raw.endsWith(AuditLogHelper.TRUNCATED_DATA_SUFFIX),
       };
     }
   }
@@ -354,7 +326,9 @@ export class AuditLogService extends Service {
     const userName = user.username ?? user.name ?? null;
 
     const entriesToUpdate = entries.filter(
-      (entry) => entry.userId !== userId || entry.userName !== userName,
+      (entry) =>
+        !isAuthenticationEvent((entry as T & { eventType?: AuditEventType }).eventType) &&
+        (entry.userId !== userId || entry.userName !== userName),
     );
 
     if (!entriesToUpdate.length) {
@@ -384,37 +358,30 @@ export class AuditLogService extends Service {
       return true;
     }
 
-    const accessRestrictions: Array<{ clause: string; params: Record<string, unknown> }> = [];
-
-    if (options.sessionId !== null && options.sessionId !== undefined) {
-      accessRestrictions.push({
-        clause: 'auditLog.sessionId = :currentSessionId',
-        params: { currentSessionId: options.sessionId },
-      });
+    const accessClauses: string[] = [];
+    if (options.sessionId != null) {
+      accessClauses.push('auditLog.sessionId = :currentSessionId');
+    }
+    if (options.userId != null) {
+      accessClauses.push('auditLog.userId = :currentUserId');
     }
 
-    if (options.userId !== null && options.userId !== undefined) {
-      accessRestrictions.push({
-        clause: 'auditLog.userId = :currentUserId',
-        params: { currentUserId: options.userId },
-      });
-    }
-
-    if (!accessRestrictions.length) {
+    if (!accessClauses.length) {
       return false;
     }
 
+    // Session ownership alone must never grant access to another user's authentication events,
+    // including anonymous failures from a session later used to log in successfully.
     query.andWhere(
-      new Brackets((qb) => {
-        accessRestrictions.forEach((restriction, index) => {
-          if (index === 0) {
-            qb.where(restriction.clause, restriction.params);
-          } else {
-            qb.orWhere(restriction.clause, restriction.params);
-          }
-        });
-      }),
+      '(auditLog.eventType IS NULL OR auditLog.eventType NOT IN (:...authEventTypes)' +
+        (options.userId != null ? ' OR auditLog.userId = :authUserId)' : ')'),
+      { authEventTypes: [AuditEventType.Login, AuditEventType.Logout], authUserId: options.userId },
     );
+
+    query.andWhere(`(${accessClauses.join(' OR ')})`, {
+      currentSessionId: options.sessionId,
+      currentUserId: options.userId,
+    });
 
     return true;
   }
@@ -435,6 +402,8 @@ export class AuditLogService extends Service {
       .addSelect('auditLog.clusterName', 'clusterName')
       .addSelect('auditLog.call', 'call')
       .addSelect('auditLog.status', 'status')
+      .addSelect('auditLog.eventType', 'eventType')
+      .addSelect('auditLog.outcome', 'outcome')
       .addSelect('auditLog.durationMs', 'durationMs')
       .addSelect('auditLog.description', 'description');
   }
@@ -455,34 +424,19 @@ export class AuditLogService extends Service {
       clusterName: auditLog.clusterName,
       call: auditLog.call,
       status: AuditLogHelper.normalizeHttpStatus(auditLog.status),
+      eventType: auditLog.eventType ?? null,
+      outcome: auditLog.outcome ?? null,
       durationMs: this.normalizeDurationMs(auditLog.durationMs),
       description: auditLog.description,
     };
   }
 
   private normalizeSummaryDate(value: unknown): Date {
-    if (value instanceof Date) {
-      return new Date(
-        Date.UTC(
-          value.getFullYear(),
-          value.getMonth(),
-          value.getDate(),
-          value.getHours(),
-          value.getMinutes(),
-          value.getSeconds(),
-          value.getMilliseconds(),
-        ),
-      );
-    }
-
-    if (typeof value === 'string' && value.trim() !== '') {
-      const normalized = value.trim().replace(' ', 'T');
-      const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
-      const date = new Date(hasTimezone ? normalized : `${normalized}Z`);
-      return Number.isNaN(date.getTime()) ? new Date(0) : date;
-    }
-
-    return new Date(0);
+    return (
+      (value instanceof Date || typeof value === 'string'
+        ? parseAuditLogDateFromDb(value)
+        : null) ?? new Date(0)
+    );
   }
 
   public getCustomizedConfig(): AuditLogArchiverUpdateableConfig {
@@ -764,6 +718,8 @@ export class AuditLogService extends Service {
   protected async createMutationEntry(input: AuditLogMutationInput): Promise<AuditLog> {
     const auditLog = new AuditLog();
 
+    auditLog.eventType = input.eventType ?? AuditEventType.Other;
+    auditLog.outcome = null;
     auditLog.call = this.normalizeCall(input.call);
     auditLog.status = AuditLogHelper.normalizeHttpStatus(input.status);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);
@@ -775,20 +731,17 @@ export class AuditLogService extends Service {
       new Date();
 
     auditLog.userId = AuditLogHelper.getNumeric(input.userId);
-    auditLog.userName = this.normalizeLabel(input.userName);
+    auditLog.userName = AuditLogHelper.getTrimmedString(input.userName);
     auditLog.sessionId = AuditLogHelper.getNumeric(input.sessionId);
-
-    const sourceIp = this.normalizeLabel(input.sourceIp);
-    auditLog.sourceIp =
-      sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, MAX_SOURCE_IP_LENGTH) : null;
+    auditLog.sourceIp = AuditLogHelper.normalizeSourceIp(input.sourceIp);
 
     auditLog.fwCloudId = AuditLogHelper.getNumeric(input.fwCloudId);
     auditLog.firewallId = AuditLogHelper.getNumeric(input.firewallId);
     auditLog.clusterId = AuditLogHelper.getNumeric(input.clusterId);
 
-    auditLog.fwCloudName = this.normalizeLabel(input.fwCloudName);
-    auditLog.firewallName = this.normalizeLabel(input.firewallName);
-    auditLog.clusterName = this.normalizeLabel(input.clusterName);
+    auditLog.fwCloudName = AuditLogHelper.getTrimmedString(input.fwCloudName);
+    auditLog.firewallName = AuditLogHelper.getTrimmedString(input.firewallName);
+    auditLog.clusterName = AuditLogHelper.getTrimmedString(input.clusterName);
 
     await this.enrichEntityNames(auditLog);
 
@@ -796,8 +749,7 @@ export class AuditLogService extends Service {
   }
 
   protected normalizeCall(call: string): string {
-    const normalized = typeof call === 'string' ? call.trim() : '';
-    const fallback = normalized.length > 0 ? normalized : 'SYSTEM';
+    const fallback = AuditLogHelper.getTrimmedString(call) ?? 'SYSTEM';
     return fallback.length <= MAX_CALL_LENGTH
       ? fallback
       : `${fallback.substring(0, MAX_CALL_LENGTH - 3)}...`;
@@ -823,36 +775,14 @@ export class AuditLogService extends Service {
       .trim();
   }
 
-  protected normalizeLabel(value: unknown): string | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const normalized = value.trim();
-    return normalized.length > 0 ? normalized : null;
-  }
-
   protected serializeData(data: unknown): string {
-    const serialized = JSON.stringify(this.sanitize(data));
-
-    if (!serialized) {
-      return '{}';
-    }
-
-    if (serialized.length > MAX_DATA_LENGTH) {
-      return `${serialized.substring(0, MAX_DATA_LENGTH)}...[truncated]`;
-    }
-
-    return serialized;
+    const serialized = JSON.stringify(sanitizeAuditData(data));
+    return serialized ? AuditLogHelper.truncateData(serialized) : '{}';
   }
 
   protected extractDurationMsFromData(data: unknown): number | null {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      return null;
-    }
-
-    const record = data as Record<string, unknown>;
-    return this.normalizeDurationMs(record.durationMs ?? record.duration_ms);
+    const record = AuditLogHelper.asRecord(data);
+    return this.normalizeDurationMs(record?.durationMs ?? record?.duration_ms);
   }
 
   protected extractDurationMsFromSerializedData(data: string | null | undefined): number | null {
@@ -861,12 +791,8 @@ export class AuditLogService extends Service {
   }
 
   protected extractStartedAtFromData(data: unknown): Date | null {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      return null;
-    }
-
-    const record = data as Record<string, unknown>;
-    return this.normalizeAuditDate(record.startedAt ?? record.started_at ?? record.ts);
+    const record = AuditLogHelper.asRecord(data);
+    return this.normalizeAuditDate(record?.startedAt ?? record?.started_at ?? record?.ts);
   }
 
   protected normalizeDurationMs(value: unknown): number | null {
@@ -899,123 +825,18 @@ export class AuditLogService extends Service {
     return date && !Number.isNaN(date.getTime()) ? date : null;
   }
 
-  protected sanitize(input: any, seen: WeakSet<object> = new WeakSet()): any {
-    if (input === null || input === undefined) {
-      return input ?? null;
-    }
-
-    if (typeof input === 'string' || typeof input === 'number' || typeof input === 'boolean') {
-      return input;
-    }
-
-    if (input instanceof Date) {
-      return input.toISOString();
-    }
-
-    if (Buffer.isBuffer(input)) {
-      return `[buffer:${input.length}]`;
-    }
-
-    if (Array.isArray(input)) {
-      return input.map((item) => this.sanitize(item, seen));
-    }
-
-    if (typeof input === 'object') {
-      if (seen.has(input)) {
-        return '[circular]';
-      }
-
-      seen.add(input);
-
-      const output: Record<string, any> = {};
-      for (const key of Object.keys(input)) {
-        const value = input[key];
-        if (this.isSensitiveKey(key)) {
-          output[key] = '[REDACTED]';
-          continue;
-        }
-
-        try {
-          output[key] = this.sanitize(value, seen);
-        } catch (error) {
-          output[key] = `[unserializable:${error?.message ?? 'error'}]`;
-        }
-      }
-
-      return output;
-    }
-
-    return String(input);
-  }
-
-  protected isSensitiveKey(key: string | null | undefined): boolean {
-    if (!key) {
-      return false;
-    }
-
-    const normalized = key.toLowerCase();
-    return SENSITIVE_KEY_PATTERNS.some(
-      (pattern) => normalized === pattern || normalized.includes(pattern),
-    );
-  }
-
-  protected maskSensitiveText(value: string): string {
-    return SENSITIVE_KEY_PATTERNS.reduce((current, pattern) => {
-      const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const quotedKeyPattern = new RegExp(
-        `("[^"]*${escapedPattern}[^"]*"\\s*:\\s*)("[^"]*"|[^,}\\]]+)`,
-        'gi',
-      );
-      const bareKeyPattern = new RegExp(
-        `([^\\s,}\\]]*${escapedPattern}[^\\s,}\\]]*\\s*[=:]\\s*)("[^"]*"|'[^']*'|[^\\s,}\\]]+)`,
-        'gi',
-      );
-
-      return current
-        .replace(quotedKeyPattern, '$1"[REDACTED]"')
-        .replace(bareKeyPattern, '$1[REDACTED]');
-    }, value);
-  }
-
   protected async enrichEntityNames(auditLog: AuditLog): Promise<void> {
     const firewall =
-      auditLog.firewallId !== null && auditLog.firewallId !== undefined
+      auditLog.firewallId != null
         ? await Firewall.findOne({ where: { id: auditLog.firewallId } })
         : null;
 
-    const firewallClusterIdCandidate =
-      firewall && firewall.clusterId !== undefined
-        ? AuditLogHelper.getNumeric(firewall.clusterId)
-        : null;
-
-    if (
-      (auditLog.clusterId === null || auditLog.clusterId === undefined) &&
-      firewallClusterIdCandidate !== null &&
-      firewallClusterIdCandidate > 0
-    ) {
-      auditLog.clusterId = firewallClusterIdCandidate;
-    }
-
-    const firewallFwCloudIdCandidate =
-      firewall && firewall.fwCloudId !== undefined
-        ? AuditLogHelper.getNumeric(firewall.fwCloudId)
-        : null;
-
-    if (
-      (auditLog.fwCloudId === null || auditLog.fwCloudId === undefined) &&
-      firewallFwCloudIdCandidate !== null &&
-      firewallFwCloudIdCandidate > 0
-    ) {
-      auditLog.fwCloudId = firewallFwCloudIdCandidate;
-    }
+    auditLog.clusterId ??= AuditLogHelper.getPositiveNumeric(firewall?.clusterId);
+    auditLog.fwCloudId ??= AuditLogHelper.getPositiveNumeric(firewall?.fwCloudId);
 
     const [fwCloud, cluster] = await Promise.all([
-      auditLog.fwCloudId
-        ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } })
-        : Promise.resolve(null),
-      auditLog.clusterId
-        ? Cluster.findOne({ where: { id: auditLog.clusterId } })
-        : Promise.resolve(null),
+      auditLog.fwCloudId ? FwCloud.findOne({ where: { id: auditLog.fwCloudId } }) : null,
+      auditLog.clusterId ? Cluster.findOne({ where: { id: auditLog.clusterId } }) : null,
     ]);
 
     auditLog.fwCloudName = auditLog.fwCloudName ?? fwCloud?.name ?? null;

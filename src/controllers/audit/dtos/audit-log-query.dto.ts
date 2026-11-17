@@ -1,9 +1,27 @@
 import { Transform } from 'class-transformer';
-import { IsISO8601, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsEnum,
+  IsISO8601,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { AuditEventType, parseAuditEventTypes } from '../../../models/audit/audit-event-type';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 export class AuditLogListQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => parseAuditEventTypes(value))
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsEnum(AuditEventType, { each: true })
+  event_type?: AuditEventType[];
+
   @IsOptional()
   @IsISO8601({ strict: true })
   @Transform(trim)
