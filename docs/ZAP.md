@@ -97,6 +97,11 @@ estados y el fallo de 2FA al reutilizar una cookie autenticada.
   informativas las coincidencias del identificador numérico de sesión de auditoría
   verificado en MySQL: filtro oficial por regla, valor exacto, GET, cuerpo y las
   dos URLs sintéticas de auditoría. No hay una rebaja global de timestamps.
+  ZAP aplica el filtro global en diferido cuando el mensaje aún no tiene nodo en el
+  árbol, así que el conteo del packaged scan podía leer el riesgo Low original.
+  En Actions se vio WARN=1 aunque el informe final mostraba 10096 con riesgo 0. Por eso
+  el hook `zap_get_alerts` aplica el mismo criterio con `alert/action/updateAlertsRisk`
+  justo antes del conteo.
 - El archivo de reglas activa la política predeterminada del packaged scan;
   los PASS indican reglas sin alertas, no cobertura completa de sus vectores.
 - `backend-ci` exige el éxito del job completo, incluidos controles antes/después.
