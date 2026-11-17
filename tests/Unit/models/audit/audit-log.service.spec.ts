@@ -281,6 +281,28 @@ describe(describeName('AuditLogService unit suite'), () => {
     });
   });
 
+  describe('summary timestamps', () => {
+    it('preserves UTC database timestamps and explicit offsets', () => {
+      const examples: Array<[Date | string, string]> = [
+        [new Date(2024, 5, 1, 12, 34, 56, 123), '2024-06-01T12:34:56.123Z'],
+        ['2024-06-01 12:34:56.123', '2024-06-01T12:34:56.123Z'],
+        ['2024-06-01T12:34:56.123+02:00', '2024-06-01T10:34:56.123Z'],
+      ];
+      for (const [value, expected] of examples) {
+        expect(service['normalizeSummaryDate'](value).toISOString()).to.equal(expected);
+      }
+    });
+
+    it('preserves the existing fallbacks for missing and invalid raw timestamps', () => {
+      for (const value of [null, undefined, '', '  ', 'invalid', 123, {}]) {
+        expect(service['normalizeSummaryDate'](value).getTime()).to.equal(0);
+      }
+      expect(Number.isNaN(service['normalizeSummaryDate'](new Date('invalid')).getTime())).to.equal(
+        true,
+      );
+    });
+  });
+
   describe('getAuditLog', () => {
     it('returns full detail for an allowed entry and sanitizes parsed data', async () => {
       const expected = await createAuditLog({

@@ -28,6 +28,7 @@ import { describeName, expect, testSuite } from '../../mocha/global-setup';
 import { Application } from '../../../src/Application';
 import { _URL } from '../../../src/fonaments/http/router/router.service';
 import { AuditLog } from '../../../src/models/audit/AuditLog';
+import { AuditEventType } from '../../../src/models/audit/audit-event-type';
 import { AuditLogHelper } from '../../../src/models/audit/audit-log.helper';
 import { User } from '../../../src/models/user/User';
 import db from '../../../src/database/database-manager';
@@ -334,5 +335,122 @@ describe(describeName('AuditLog API E2E suite'), () => {
         expect(payload.total).to.equal(1);
         expect(payload.auditLogs.map((entry: AuditLog) => entry.id)).to.deep.equal([foreignLog.id]);
       });
+  });
+
+  describe('event categories', () => {
+    beforeEach(async () => {
+      await repository.update(userOwnedLog.id, { eventType: AuditEventType.Creation });
+      await repository.update(sessionOwnedLog.id, { eventType: AuditEventType.Modification });
+      await repository.update(adminOwnedLog.id, { eventType: AuditEventType.Installation });
+    });
+
+    for (const eventType of Object.values(AuditEventType)) {
+      it(`filters ${eventType} in the database`, async () => {
+        await repository.update(userOwnedLog.id, { eventType });
+        const response = await listAuditLogs(adminSessionToken, { event_type: eventType }).expect(
+          200,
+        );
+        expect(response.body.data.auditLogs).not.to.have.length(0);
+        expect(
+          response.body.data.auditLogs.every((entry) => entry.eventType === eventType),
+        ).to.equal(true);
+      });
+    }
+
+    it('combines multiple categories with pagination and accurate counts', async () => {
+      const filters = { event_type: 'creation,modification', limit: 1 };
+      const first = await listAuditLogs(adminSessionToken, filters).expect(200);
+      const second = await listAuditLogs(adminSessionToken, { ...filters, page: 2 }).expect(200);
+      expect(first.body.data.total).to.equal(2);
+      expect(second.body.data.total).to.equal(2);
+      expect(first.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        sessionOwnedLog.id,
+      ]);
+      expect(second.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([userOwnedLog.id]);
+      const cursor = `${first.body.data.auditLogs[0].startedAt}:${sessionOwnedLog.id}`;
+      const next = await listAuditLogs(adminSessionToken, { ...filters, cursor }).expect(200);
+      expect(next.body.data.total).to.equal(1);
+      expect(next.body.data.auditLogs[0].id).to.equal(userOwnedLog.id);
+    });
+
+    it('combines repeated categories with existing date, user, session, cloud, firewall, cluster and IP filters', async () => {
+      await repository.update(userOwnedLog.id, {
+        sessionId: regularSessionNumeric,
+        firewallId: 201,
+        clusterId: 301,
+      });
+      const response = await listAuditLogs(adminSessionToken, {
+        event_type: ['creation', 'modification'],
+        started_at_from: '2024-01-02T00:00:00Z',
+        started_at_to: '2024-01-03T00:00:00Z',
+        user_name: regularUser.username,
+        session_id: String(regularSessionNumeric),
+        fwcloud_id: 101,
+        fwcloud_name: 'User',
+        firewall_id: 201,
+        firewall_name: 'User',
+        cluster_id: 301,
+        cluster_name: 'User',
+        source_ip: '198.51.100.10',
+      }).expect(200);
+      expect(response.body.data.total).to.equal(1);
+      expect(response.body.data.auditLogs[0].id).to.equal(userOwnedLog.id);
+    });
+
+    it('preserves historical entries with a null category without guessing from their call', async () => {
+      const response = await listAuditLogs(adminSessionToken).expect(200);
+      const historical = response.body.data.auditLogs.find((entry) => entry.id === foreignLog.id);
+      expect(historical.eventType).to.be.null;
+      expect(historical.outcome).to.be.null;
+      const detail = await getAuditLog(adminSessionToken, foreignLog.id).expect(200);
+      expect(detail.body.data.auditLog.eventType).to.be.null;
+      const filtered = await listAuditLogs(adminSessionToken, { event_type: 'other' }).expect(200);
+      expect(filtered.body.data.auditLogs.some((entry) => entry.id === foreignLog.id)).to.equal(
+        false,
+      );
+    });
+
+    for (const value of ['invalid', 'login,invalid', '', 'login,']) {
+      it(`rejects invalid category ${JSON.stringify(value)}`, async () => {
+        await listAuditLogs(adminSessionToken, { event_type: value }).expect(422);
+      });
+    }
+
+    it('restricts anonymous and unrelated authentication entries even if they share the current session', async () => {
+      const anonymous = await persistAuditLog({
+        eventType: AuditEventType.Login,
+        outcome: 'failure',
+        sessionId: regularSessionNumeric,
+      });
+      const unrelated = await persistAuditLog({
+        eventType: AuditEventType.Login,
+        outcome: 'success',
+        userId: adminUser.id,
+        sessionId: regularSessionNumeric,
+      });
+      const own = await persistAuditLog({
+        eventType: AuditEventType.Logout,
+        outcome: 'success',
+        userId: regularUser.id,
+        userName: regularUser.username,
+      });
+      const response = await listAuditLogs(regularSessionToken, {
+        event_type: 'login,logout',
+      }).expect(200);
+      expect(response.body.data.total).to.equal(1);
+      expect(response.body.data.auditLogs[0].id).to.equal(own.id);
+      expect(response.body.data.auditLogs[0].outcome).to.equal('success');
+      for (const hidden of [anonymous, unrelated]) {
+        await getAuditLog(regularSessionToken, hidden.id).expect(404);
+        await getAuditLog(adminSessionToken, hidden.id).expect(200);
+      }
+      await request(app.express).get(`/auditlogs/${anonymous.id}`).expect(401);
+      const adminResponse = await listAuditLogs(adminSessionToken, { event_type: 'login' }).expect(
+        200,
+      );
+      expect(adminResponse.body.data.total).to.equal(2);
+      const unchanged = await repository.findOneByOrFail({ id: anonymous.id });
+      expect(unchanged.userId).to.be.null;
+    });
   });
 });

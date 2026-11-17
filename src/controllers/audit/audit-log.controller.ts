@@ -25,6 +25,7 @@ import { Validate, ValidateQuery } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import {
+  AuditLogAccessOptions,
   AuditLogSummary,
   AuditLogService,
   ListAuditLogsOptions,
@@ -36,6 +37,23 @@ import { AuditLogPolicy } from '../../policies/auditlog.policy';
 import { User } from '../../models/user/User';
 import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
 import { AuditLog } from '../../models/audit/AuditLog';
+import { AuditEventType, parseAuditEventTypes } from '../../models/audit/audit-event-type';
+
+const TEXT_FILTER_OPTIONS = [
+  ['user_name', 'userName'],
+  ['fwcloud_name', 'fwCloudName'],
+  ['firewall_name', 'firewallName'],
+  ['cluster_name', 'clusterName'],
+  ['source_ip', 'sourceIp'],
+] as const;
+
+const ENTITY_ID_FILTER_OPTIONS = [
+  ['fwcloud_id', 'fwCloudId'],
+  ['firewall_id', 'firewallId'],
+  ['cluster_id', 'clusterId'],
+] as const;
+
+const REQUEST_DETAIL_KEYS = ['method', 'url', 'ip', 'headers', 'query', 'params', 'body'] as const;
 
 export class AuditLogController extends Controller {
   private static readonly DEFAULT_LIMIT = 50;
@@ -56,10 +74,11 @@ export class AuditLogController extends Controller {
     const options = this.buildOptions(request, currentUser);
 
     const results = await this._auditLogService.listAuditLogs(options);
-    const auditLogs =
-      options.isAdmin || !currentUser
-        ? results.auditLogs
-        : await this._auditLogService.syncEntriesWithUser(results.auditLogs, currentUser);
+    const auditLogs = await this.syncWithCurrentUser(
+      results.auditLogs,
+      currentUser,
+      options.isAdmin,
+    );
 
     const auditLogsResponse = auditLogs.map((entry) => this.formatSummary(entry));
 
@@ -79,46 +98,42 @@ export class AuditLogController extends Controller {
       throw new NotFoundException('Audit log not found');
     }
 
-    const scopedFwCloudId = this.parsePositiveInteger(request.params.fwcloud);
-    const auditLog = await this._auditLogService.getAuditLog(id, {
-      isAdmin: AuditLogHelper.isAdmin(currentUser),
-      sessionId: AuditLogHelper.resolveSessionId(request),
-      userId: currentUser?.id ?? null,
-      fwCloudId: scopedFwCloudId,
-    });
+    const accessOptions = {
+      ...this.buildAccessOptions(request, currentUser),
+      fwCloudId: this.parsePositiveInteger(request.params.fwcloud),
+    };
+    const auditLog = await this._auditLogService.getAuditLog(id, accessOptions);
 
     if (!auditLog) {
       throw new NotFoundException('Audit log not found');
     }
 
-    const syncedAuditLogs =
-      AuditLogHelper.isAdmin(currentUser) || !currentUser
-        ? [auditLog]
-        : await this._auditLogService.syncEntriesWithUser([auditLog], currentUser);
+    const [syncedAuditLog] = await this.syncWithCurrentUser(
+      [auditLog],
+      currentUser,
+      accessOptions.isAdmin,
+    );
 
     return ResponseBuilder.buildResponse()
       .status(200)
-      .body({ auditLog: this.formatDetail(syncedAuditLogs[0]) });
+      .body({ auditLog: this.formatDetail(syncedAuditLog) });
   }
 
   protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {
-    const options: ListAuditLogsOptions = {
-      isAdmin: AuditLogHelper.isAdmin(currentUser),
-      sessionId: AuditLogHelper.resolveSessionId(request),
-      userId: currentUser?.id ?? null,
-    };
+    const options: ListAuditLogsOptions = this.buildAccessOptions(request, currentUser);
 
     const requestedLimit =
       this.parseNonNegativeInteger(request.query.limit) ??
       this.parseNonNegativeInteger(request.query.pageSize);
 
-    if (requestedLimit === undefined) {
-      options.take = Math.min(AuditLogController.DEFAULT_LIMIT, AuditLogController.MAX_LIMIT);
-    } else if (requestedLimit === 0) {
-      options.take = undefined;
-    } else {
-      options.take = Math.min(requestedLimit, AuditLogController.MAX_LIMIT);
-    }
+    // A limit of 0 disables paging.
+    options.take =
+      requestedLimit === 0
+        ? undefined
+        : Math.min(
+            requestedLimit ?? AuditLogController.DEFAULT_LIMIT,
+            AuditLogController.MAX_LIMIT,
+          );
 
     const startedAtFrom = this.parseIsoDate(request.query.started_at_from);
     if (startedAtFrom) {
@@ -130,9 +145,9 @@ export class AuditLogController extends Controller {
       options.startedAtTo = startedAtTo;
     }
 
-    const userName = this.parseString(request.query.user_name);
-    if (userName) {
-      options.userName = userName;
+    for (const [queryKey, optionKey] of TEXT_FILTER_OPTIONS) {
+      const value = this.parseString(request.query[queryKey]);
+      if (value) options[optionKey] = value;
     }
 
     const sessionFilter = this.parseNonNegativeInteger(request.query.session_id);
@@ -140,39 +155,13 @@ export class AuditLogController extends Controller {
       options.sessionIdFilter = sessionFilter;
     }
 
-    const fwCloudName = this.parseString(request.query.fwcloud_name);
-    if (fwCloudName) {
-      options.fwCloudName = fwCloudName;
+    for (const [queryKey, optionKey] of ENTITY_ID_FILTER_OPTIONS) {
+      const value = this.parsePositiveInteger(request.query[queryKey]);
+      if (value !== undefined) options[optionKey] = value;
     }
 
-    const fwCloudId = this.parsePositiveInteger(request.query.fwcloud_id);
-    if (fwCloudId !== undefined) {
-      options.fwCloudId = fwCloudId;
-    }
-
-    const firewallName = this.parseString(request.query.firewall_name);
-    if (firewallName) {
-      options.firewallName = firewallName;
-    }
-
-    const firewallId = this.parsePositiveInteger(request.query.firewall_id);
-    if (firewallId !== undefined) {
-      options.firewallId = firewallId;
-    }
-
-    const clusterName = this.parseString(request.query.cluster_name);
-    if (clusterName) {
-      options.clusterName = clusterName;
-    }
-
-    const clusterId = this.parsePositiveInteger(request.query.cluster_id);
-    if (clusterId !== undefined) {
-      options.clusterId = clusterId;
-    }
-
-    const sourceIp = this.parseString(request.query.source_ip);
-    if (sourceIp) {
-      options.sourceIp = sourceIp;
+    if (request.query.event_type !== undefined) {
+      options.eventTypes = parseAuditEventTypes(request.query.event_type) as AuditEventType[];
     }
 
     const cursor = this.parseCursor(request.query.cursor);
@@ -181,11 +170,29 @@ export class AuditLogController extends Controller {
     }
 
     const page = this.parsePositiveInteger(request.query.page) ?? 1;
-    if (page > 1 && typeof options.take === 'number' && options.take > 0) {
+    if (page > 1 && options.take) {
       options.skip = (page - 1) * options.take;
     }
 
     return options;
+  }
+
+  private buildAccessOptions(request: Request, currentUser: User | null): AuditLogAccessOptions {
+    return {
+      isAdmin: AuditLogHelper.isAdmin(currentUser),
+      sessionId: AuditLogHelper.resolveSessionId(request),
+      userId: currentUser?.id ?? null,
+    };
+  }
+
+  private async syncWithCurrentUser<T extends AuditLogSummary>(
+    entries: T[],
+    currentUser: User | null,
+    isAdmin: boolean,
+  ): Promise<T[]> {
+    return isAdmin || !currentUser
+      ? entries
+      : this._auditLogService.syncEntriesWithUser(entries, currentUser);
   }
 
   private parseNonNegativeInteger(value: unknown): number | undefined {
@@ -194,8 +201,7 @@ export class AuditLogController extends Controller {
   }
 
   private parsePositiveInteger(value: unknown): number | undefined {
-    const parsed = AuditLogHelper.getNumeric(value);
-    return parsed !== null && parsed > 0 ? parsed : undefined;
+    return AuditLogHelper.getPositiveNumeric(value) ?? undefined;
   }
 
   private parseIsoDate(value: unknown): Date | undefined {
@@ -208,43 +214,28 @@ export class AuditLogController extends Controller {
   }
 
   private parseString(value: unknown): string | undefined {
-    if (typeof value !== 'string') {
-      return undefined;
-    }
-
-    const trimmed = value.trim();
-    return trimmed === '' ? undefined : trimmed;
+    return AuditLogHelper.getTrimmedString(value) ?? undefined;
   }
 
   private parseCursor(value: unknown): ListAuditLogsCursor | undefined {
-    if (typeof value !== 'string') {
+    const cursor = this.parseString(value);
+    if (!cursor) {
       return undefined;
     }
 
-    const trimmed = value.trim();
-    if (trimmed === '') {
+    const separatorIndex = cursor.lastIndexOf(':');
+    if (separatorIndex <= 0 || separatorIndex === cursor.length - 1) {
       return undefined;
     }
 
-    try {
-      const separatorIndex = trimmed.lastIndexOf(':');
-      if (separatorIndex <= 0 || separatorIndex === trimmed.length - 1) {
-        return undefined;
-      }
+    const startedAt = new Date(cursor.slice(0, separatorIndex));
+    const id = Number.parseInt(cursor.slice(separatorIndex + 1), 10);
 
-      const startedAtPart = trimmed.slice(0, separatorIndex);
-      const idPart = trimmed.slice(separatorIndex + 1);
-      const startedAt = new Date(startedAtPart);
-      const id = Number.parseInt(idPart, 10);
-
-      if (Number.isNaN(startedAt.getTime()) || Number.isNaN(id) || id <= 0) {
-        return undefined;
-      }
-
-      return { startedAt, id };
-    } catch {
+    if (Number.isNaN(startedAt.getTime()) || Number.isNaN(id) || id <= 0) {
       return undefined;
     }
+
+    return { startedAt, id };
   }
 
   private formatSummary(entry: AuditLogSummary): Record<string, unknown> {
@@ -268,13 +259,15 @@ export class AuditLogController extends Controller {
       cluster: this.formatEntityRef(entry.clusterId, entry.clusterName),
       call: entry.call,
       status: entry.status,
+      eventType: entry.eventType ?? null,
+      outcome: entry.outcome ?? null,
       description: entry.description,
     };
   }
 
   private formatDetail(entry: AuditLog): Record<string, unknown> {
     const data = this._auditLogService.parseAuditLogData(entry.data);
-    const payload = this.asPayloadRecord(data);
+    const payload = AuditLogHelper.asRecord(data);
     const detail: Record<string, unknown> = {
       ...this.formatSummary(entry),
       data,
@@ -290,7 +283,7 @@ export class AuditLogController extends Controller {
       detail['response'] = responseDetails;
     }
 
-    if (payload && payload.context !== undefined) {
+    if (payload?.context !== undefined) {
       detail['context'] = payload.context;
     }
 
@@ -314,33 +307,17 @@ export class AuditLogController extends Controller {
     return id !== null || name !== null ? { id, name } : null;
   }
 
-  private asPayloadRecord(data: unknown): Record<string, unknown> | null {
-    return data !== null && typeof data === 'object' && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : null;
-  }
-
   private extractRequestDetails(
     payload: Record<string, unknown> | null,
   ): Record<string, unknown> | null {
-    if (!payload) {
+    if (
+      !payload ||
+      !REQUEST_DETAIL_KEYS.some((key) => Object.prototype.hasOwnProperty.call(payload, key))
+    ) {
       return null;
     }
 
-    const requestKeys = ['method', 'url', 'ip', 'headers', 'query', 'params', 'body'];
-    if (!requestKeys.some((key) => Object.prototype.hasOwnProperty.call(payload, key))) {
-      return null;
-    }
-
-    return {
-      method: payload.method ?? null,
-      url: payload.url ?? null,
-      ip: payload.ip ?? null,
-      headers: payload.headers ?? null,
-      query: payload.query ?? null,
-      params: payload.params ?? null,
-      body: payload.body ?? null,
-    };
+    return Object.fromEntries(REQUEST_DETAIL_KEYS.map((key) => [key, payload[key] ?? null]));
   }
 
   private extractResponseDetails(

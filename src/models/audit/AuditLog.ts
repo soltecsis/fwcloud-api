@@ -22,6 +22,7 @@
 
 import Model from '../Model';
 import { Column, Entity, PrimaryGeneratedColumn, ValueTransformer } from 'typeorm';
+import { AuditEventType, AuditOutcome } from './audit-event-type';
 
 const tableName = 'audit_logs';
 
@@ -30,7 +31,7 @@ const pad = (value: number, size: number = 2): string => value.toString().padSta
 export const formatAuditLogDateForDb = (date: Date): string =>
   `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.${pad(date.getUTCMilliseconds(), 3)}`;
 
-const parseAuditLogDateFromDb = (value: Date | string | null | undefined): Date | null => {
+export const parseAuditLogDateFromDb = (value: Date | string | null | undefined): Date | null => {
   if (value == null) {
     return null;
   }
@@ -71,6 +72,12 @@ const auditLogUtcDateTransformer: ValueTransformer = {
 export class AuditLog extends Model {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ type: 'varchar', length: 32, name: 'event_type', nullable: true })
+  eventType: AuditEventType | null;
+
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  outcome: AuditOutcome | null;
 
   @Column({
     type: 'datetime',
