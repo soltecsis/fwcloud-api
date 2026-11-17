@@ -108,7 +108,7 @@ export default class sshTools {
     let stdout_log = '';
     let stderr_log = '';
     let sudo_pass_sent = cmd.trim().substr(0, 5) === 'sudo ' ? false : true;
-    const regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
+    const regex = /\[sudo(?:: authenticate)?\]\s+(?:password(?:\s+for\s+[^:]+)?|contraseña):\s*/i;
 
     return new Promise((resolve, reject) => {
       conn

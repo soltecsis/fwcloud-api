@@ -138,36 +138,99 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     scriptPath: string,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<string> {
+    let backupPath = '';
+    let installedScriptPath = '';
+    let shDebug = '';
+    let sudo = '';
+
     try {
       if (!app().config.get('firewall_communication.ssh_enable')) {
         throw fwcError.SSH_COMMUNICATION_DISABLE;
       }
+      const scriptName = config.get('policy').script_name;
+      const uploadedScriptPath = `./${scriptName}`;
+      const standardScriptPath = `/etc/fwcloud/${scriptName}`;
+      const edgeOSScriptPath = `/config/scripts/post-config.d/${scriptName}`;
       eventEmitter.emit(
         'message',
         new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`),
       );
-      await sshTools.uploadFile(this.connectionData, scriptPath, config.get('policy').script_name);
+      await sshTools.uploadFile(this.connectionData, scriptPath, scriptName);
 
       // Enable sh debug if it is selected in firewalls/cluster options.
-      const sh_debug = this.connectionData.options & FireWallOptMask.DEBUG ? '-x' : '';
+      shDebug = this.connectionData.options & FireWallOptMask.DEBUG ? '-x' : '';
 
-      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+      sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+
+      eventEmitter.emit('message', new ProgressNoticePayload('Checking previous firewall script.'));
+      const backupCommand = `
+if [ -f ${shellQuote(standardScriptPath)} ]; then
+  installed_script_path=${shellQuote(standardScriptPath)}
+elif [ -f ${shellQuote(edgeOSScriptPath)} ]; then
+  installed_script_path=${shellQuote(edgeOSScriptPath)}
+else
+  exit 0
+fi
+backup_path="$(dirname "$installed_script_path")/fwcloud-$(date +%Y%m%d%H%M%S).sh"
+[ ! -e "$backup_path" ] || exit 1
+mv "$installed_script_path" "$backup_path"
+printf '%s\\n' "$backup_path"
+`.trim();
+      backupPath = (
+        await sshTools.runCommand(this.connectionData, `${sudo} sh -c ${shellQuote(backupCommand)}`)
+      ).trim();
+      if (backupPath) {
+        installedScriptPath = path.posix.join(path.posix.dirname(backupPath), scriptName);
+        eventEmitter.emit(
+          'message',
+          new ProgressNoticePayload('Previous firewall script backed up.'),
+        );
+      }
 
       eventEmitter.emit('message', new ProgressNoticePayload('Installing firewall script.'));
       await sshTools.runCommand(
         this.connectionData,
-        `${sudo} sh ${sh_debug} ./${config.get('policy').script_name} install`,
+        `${sudo} sh ${shDebug} ${shellQuote(uploadedScriptPath)} install`,
       );
 
       eventEmitter.emit('message', new ProgressNoticePayload('Loading firewall policy.'));
-      const cmd = `${sudo} sh ${sh_debug} -c 'if [ -d /etc/fwcloud ]; then
-                sh ${sh_debug} /etc/fwcloud/${config.get('policy').script_name} start;
-                else sh ${sh_debug} /config/scripts/post-config.d/${config.get('policy').script_name} start;
-            fi'`;
+      const cmd = `${sudo} sh ${shDebug} -c ${shellQuote(`if [ -f ${shellQuote(standardScriptPath)} ]; then
+  sh ${shDebug} ${shellQuote(standardScriptPath)} start
+else
+  sh ${shDebug} ${shellQuote(edgeOSScriptPath)} start
+fi`)}`;
       await sshTools.runCommand(this.connectionData, cmd, eventEmitter);
 
       return 'DONE';
     } catch (error) {
+      if (backupPath) {
+        try {
+          eventEmitter.emit(
+            'message',
+            new ProgressNoticePayload('Restoring previous firewall script.'),
+          );
+          const restoreCommand = [
+            `rm -f ${shellQuote(`./${config.get('policy').script_name}`)} ${shellQuote(installedScriptPath)}`,
+            `mv ${shellQuote(backupPath)} ${shellQuote(installedScriptPath)}`,
+          ].join('\n');
+          await sshTools.runCommand(
+            this.connectionData,
+            `${sudo} sh -c ${shellQuote(restoreCommand)}`,
+          );
+          await sshTools.runCommand(
+            this.connectionData,
+            `${sudo} sh ${shDebug} ${shellQuote(installedScriptPath)} start`,
+            eventEmitter,
+          );
+        } catch (recoveryError) {
+          throw Object.assign(
+            new Error(
+              `Firewall policy installation failed and the previous policy could not be restored: ${recoveryError.message}`,
+            ),
+            { cause: recoveryError },
+          );
+        }
+      }
       this.handleRequestException(error, eventEmitter);
     }
   }
