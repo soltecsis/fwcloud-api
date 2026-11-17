@@ -11,6 +11,9 @@
 ##                                         ##
 #############################################
 
+FWCLOUD_COMPILATION_DATE="__FWCLOUD_COMPILATION_DATE__"
+FWCLOUD_INSTALLATION_DATE=""
+
 LSMOD=`which lsmod 2>/dev/null`
 MODPROBE=`which modprobe 2>/dev/null`
 IPTABLES=`which iptables 2>/dev/null`

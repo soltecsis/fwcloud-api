@@ -51,6 +51,8 @@ case "$ACTION" in
     ;;
 
   install)
+    INSTALLATION_DATE=`LC_ALL=C date -u +%Y-%m-%dT%H:%M:%SZ`
+    sed -i "s/^FWCLOUD_INSTALLATION_DATE=.*/FWCLOUD_INSTALLATION_DATE=\"$INSTALLATION_DATE\"/" "$0" || exit 1
     chmod 700 "$0"
 
     if [ -f "/etc/issue" ]; then
