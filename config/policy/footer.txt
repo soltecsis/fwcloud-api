@@ -2,8 +2,7 @@
 # Verify that we have all the needed commands.
 check_cmds
 
-ACTION="$1"
-test -z "$ACTION" && ACTION="start"
+ACTION="${1:-start}"
 
 case "$ACTION" in
   start)
@@ -13,7 +12,7 @@ case "$ACTION" in
     if [ "$BOOT_STATE" != "initializing" ] && [ "$BOOT_STATE" != "starting" ]; then
       routing_apply
     fi
-    if [ $DOCKER_COMPATIBILITY ]; then
+    if [ "${DOCKER_COMPATIBILITY:-}" ]; then
       check_docker_iptables_disabled
     fi
     policy_load_elapsed_msg
