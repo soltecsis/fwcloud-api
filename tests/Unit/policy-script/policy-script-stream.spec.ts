@@ -23,7 +23,9 @@ describe('PolicyScript stream completion', () => {
       [
         '#!/bin/sh',
         'FWCLOUD_COMPILATION_DATE="__FWCLOUD_COMPILATION_DATE__"',
+        'FWCLOUD_COMPILATION_DATE_UTC="__FWCLOUD_COMPILATION_DATE_UTC__"',
         'FWCLOUD_INSTALLATION_DATE=""',
+        'FWCLOUD_INSTALLATION_DATE_UTC=""',
         '',
       ].join('\n'),
     );
@@ -102,8 +104,10 @@ describe('PolicyScript stream completion', () => {
     flush();
     assert.deepEqual(await result, []);
     assert.equal(stream.writableFinished, true);
-    assert.match(content, /FWCLOUD_COMPILATION_DATE="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"/);
+    assert.match(content, /FWCLOUD_COMPILATION_DATE="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"/);
+    assert.match(content, /FWCLOUD_COMPILATION_DATE_UTC="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"/);
     assert.ok(content.includes('FWCLOUD_INSTALLATION_DATE=""'));
+    assert.ok(content.includes('FWCLOUD_INSTALLATION_DATE_UTC=""'));
     assert.ok(content.endsWith('# end of script\n'));
     sinon.assert.callOrder(status, date);
     assert.equal(messages.includes('end'), true);
@@ -128,15 +132,23 @@ describe('PolicyScript stream completion', () => {
 
   it('records the installation date before replacing the installed script', () => {
     const footer = fs.readFileSync(path.resolve(process.cwd(), 'config/policy/footer.txt'), 'utf8');
-    const recording = 'INSTALLATION_DATE=`LC_ALL=C date -u +%Y-%m-%dT%H:%M:%SZ`';
+    const recording = "INSTALLATION_DATE=`LC_ALL=C date '+%Y-%m-%d %H:%M:%S'`";
+    const utcRecording = 'INSTALLATION_DATE_UTC=`LC_ALL=C date -u +%Y-%m-%dT%H:%M:%SZ`';
 
     assert.ok(footer.includes(recording));
+    assert.ok(footer.includes(utcRecording));
     assert.ok(
       footer.includes(
         'sed -i "s/^FWCLOUD_INSTALLATION_DATE=.*/FWCLOUD_INSTALLATION_DATE=\\"$INSTALLATION_DATE\\"/" "$0" || exit 1',
       ),
     );
+    assert.ok(
+      footer.includes(
+        'sed -i "s/^FWCLOUD_INSTALLATION_DATE_UTC=.*/FWCLOUD_INSTALLATION_DATE_UTC=\\"$INSTALLATION_DATE_UTC\\"/" "$0" || exit 1',
+      ),
+    );
     assert.ok(footer.indexOf(recording) < footer.indexOf('chmod 700 "$0"'));
+    assert.ok(footer.indexOf(utcRecording) < footer.indexOf('chmod 700 "$0"'));
   });
 
   it('enables strict mode only in the standard policy header', () => {

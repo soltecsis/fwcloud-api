@@ -54,6 +54,15 @@ import { typeMap } from '../../config/policy/dangerousRules';
 const config = require('../../config/config');
 const fwcError = require('../../utils/error_table');
 
+const formatLocalDate = (date: Date): string =>
+  `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
+    .getDate()
+    .toString()
+    .padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
@@ -754,16 +763,22 @@ export class PolicyScript {
                 : policyConfig.header_file;
             const isVyOS = this.policyCompiler === 'VyOS';
             const header = fs.readFileSync(headerFilePath, 'utf8');
-            const compilationDate = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+            const compilationDate = new Date();
+            const compilationDateLocal = formatLocalDate(compilationDate);
+            const compilationDateUtc = compilationDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
             const lifecycleHeader = [
-              `FWCLOUD_COMPILATION_DATE="${compilationDate}"`,
+              `FWCLOUD_COMPILATION_DATE="${compilationDateLocal}"`,
+              `FWCLOUD_COMPILATION_DATE_UTC="${compilationDateUtc}"`,
               'FWCLOUD_INSTALLATION_DATE=""',
+              'FWCLOUD_INSTALLATION_DATE_UTC=""',
             ].join('\n');
             this.stream.write(
               isVyOS
                 ? header
                 : header.includes('__FWCLOUD_COMPILATION_DATE__')
-                  ? header.replace('__FWCLOUD_COMPILATION_DATE__', compilationDate)
+                  ? header
+                      .replace('__FWCLOUD_COMPILATION_DATE_UTC__', compilationDateUtc)
+                      .replace('__FWCLOUD_COMPILATION_DATE__', compilationDateLocal)
                   : `${header}\n${lifecycleHeader}\n`,
             );
 
