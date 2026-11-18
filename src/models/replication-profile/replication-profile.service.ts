@@ -6,6 +6,7 @@ import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import { ReplicationProfile } from './replication-profile.model';
 import {
   type ReplicationProfileCatalogOrigin,
+  asReplicationProfileRecord,
   getReplicationProfileModelTargetKinds,
   isReplicationProfileOwnerId,
   isReplicationProfileStringValue,
@@ -670,8 +671,20 @@ export class ReplicationProfileService extends Service {
       if (!payload && !previous)
         throw new HttpException('No previous template version exists.', 409);
       const latestModel = loadReplicationProfileModel(latest);
-      const model = payload ? payload.model : loadReplicationProfileModel(previous!);
       const metadata = payload ?? previous!;
+      const targetKind = metadata.targetKind ?? latest.targetKind;
+      let model = payload ? payload.model : loadReplicationProfileModel(previous!);
+      const edited = asReplicationProfileRecord(model);
+      // Older editors omit fields they do not manage. Keep the captured masks on same-kind edits.
+      if (
+        payload &&
+        edited &&
+        edited.firewallSettings === undefined &&
+        latestModel.firewallSettings !== undefined &&
+        targetKind === latest.targetKind
+      ) {
+        model = { ...edited, firewallSettings: latestModel.firewallSettings };
+      }
       // A restored version takes the current name: the name belongs to the template.
       const name = payload ? payload.name : latest.name;
       assertReplicationProfileName(name);
@@ -684,7 +697,7 @@ export class ReplicationProfileService extends Service {
         ).has(nameKey)
       )
         throw replicationProfileNameTakenException();
-      this.assertDefinitionIsValid({ targetKind: metadata.targetKind ?? latest.targetKind, model });
+      this.assertDefinitionIsValid({ targetKind, model });
       const formerLatest = { ...latest };
       // Advance the internal revision before reusing its value on the previous row.
       // Applied object bindings still refer to their original numeric revision.

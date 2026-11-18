@@ -67,6 +67,10 @@ const interfaceAddressMetadataSchema = Joi.object({
   diff_serv: Joi.number().port().allow(null).optional(),
   options: Joi.number().integer().allow(null).optional(),
 });
+const firewallMaskSchemas = new Map([
+  ['options', sharedSchema.u16bits.required().strict()],
+  ['plugins', sharedSchema.u32bits.required().strict()],
+]);
 
 type ValidationSeverity = 'error' | 'warning';
 type ValidationRecord = Record<string, unknown>;
@@ -285,11 +289,60 @@ class ReplicationProfileDefinitionValidator {
     if (rootTargetKind) {
       const nodeRoles =
         rootTargetKind === 'cluster' ? this.validateClusterTopology(model, errors) : null;
+      this.validateFirewallSettings(model.firewallSettings, nodeRoles, errors);
       this.validateRuleNodeRoles(model, nodeRoles, errors);
       this.validateRuleNodeRoles(model, nodeRoles, errors, 'keepalived');
     }
 
     return errors;
+  }
+
+  private validateFirewallSettings(
+    value: unknown,
+    nodeRoles: Set<string> | null,
+    errors: ReplicationProfileValidationError[],
+  ): void {
+    if (value === undefined) return;
+    const path = 'model.firewallSettings';
+    const invalid = (field: string, message: string) =>
+      this.addError(errors, 'invalid_firewall_settings', message, field);
+    const validateMasks = (
+      value: unknown,
+      field: string,
+      allowNodes = false,
+    ): ValidationRecord | null => {
+      const masks = asReplicationProfileRecord(value);
+      if (!masks) {
+        invalid(field, 'Firewall settings must be an object.');
+        return null;
+      }
+      for (const [key, mask] of Object.entries(masks)) {
+        if (allowNodes && key === 'nodes') continue;
+        const schema = firewallMaskSchemas.get(key);
+        if (!schema) {
+          invalid(`${field}.${key}`, 'Unsupported firewall settings field.');
+        } else if (schema.validate(mask).error) {
+          invalid(`${field}.${key}`, 'Expected a non-negative firewall bitmask.');
+        }
+      }
+      return masks;
+    };
+    const nodes = validateMasks(value, path, true)?.nodes;
+    if (nodes === undefined) return;
+    const nodeSettings = asReplicationProfileRecord(nodes);
+    if (!nodeRoles || !nodeSettings) {
+      invalid(
+        `${path}.nodes`,
+        'Node settings must be an object keyed by declared cluster node roles.',
+      );
+      return;
+    }
+    for (const [role, masks] of Object.entries(nodeSettings)) {
+      const field = `${path}.nodes.${role}`;
+      if (!nodeRoles.has(role))
+        invalid(field, 'Firewall settings refer to an undeclared cluster node role.');
+      validateMasks(masks, field);
+    }
   }
 
   /**

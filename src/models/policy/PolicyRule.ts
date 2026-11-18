@@ -922,16 +922,17 @@ export class PolicyRule extends Model {
   }
 
   //Add new policy_r from user
-  public static insertPolicy_r(policy_rData): Promise<number> {
+  public static insertPolicy_r(policy_rData, dbCon?): Promise<number> {
     return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
+      const insert = (error, connection) => {
         if (error) return reject(error);
-
         connection.query('INSERT INTO ' + tableName + ' SET ?', policy_rData, (error, result) => {
           if (error) return reject(error);
           resolve(result.insertId);
         });
-      });
+      };
+      if (dbCon) insert(null, dbCon);
+      else db.get(insert);
     });
   }
 
@@ -1595,78 +1596,69 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static createSpecialRule(
+  public static async createSpecialRule(
     dbCon: any,
     firewall: number,
     specialRule: SpecialPolicyRules,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      const policy_rData = {
-        id: null,
-        idgroup: null,
-        firewall: firewall,
-        rule_order: 1,
-        action: 1, // ACCEPT
-        time_start: null,
-        time_end: null,
-        active: 1,
-        options: 0,
-        comment: '',
-        type: 1,
-        special: specialRule,
-        style: null,
-        run_before: null,
-      };
+    const policy_rData = {
+      id: null,
+      idgroup: null,
+      firewall,
+      rule_order: 1,
+      action: 1, // ACCEPT
+      time_start: null,
+      time_end: null,
+      active: 1,
+      options: 0,
+      comment: '',
+      type: 1,
+      special: specialRule,
+      style: null,
+      run_before: null,
+    };
 
-      let policyType: number[] = [];
+    let policyType: number[];
 
-      try {
-        switch (specialRule) {
-          case SpecialPolicyRules.STATEFUL:
-            policy_rData.comment = 'Stateful firewall rule.';
-            policyType = [
-              PolicyTypesMap.get('IPv4:INPUT'),
-              PolicyTypesMap.get('IPv4:OUTPUT'),
-              PolicyTypesMap.get('IPv4:FORWARD'),
-              PolicyTypesMap.get('IPv6:INPUT'),
-              PolicyTypesMap.get('IPv6:OUTPUT'),
-              PolicyTypesMap.get('IPv6:FORWARD'),
-            ];
-            break;
+    switch (specialRule) {
+      case SpecialPolicyRules.STATEFUL:
+        policy_rData.comment = 'Stateful firewall rule.';
+        policyType = [
+          PolicyTypesMap.get('IPv4:INPUT'),
+          PolicyTypesMap.get('IPv4:OUTPUT'),
+          PolicyTypesMap.get('IPv4:FORWARD'),
+          PolicyTypesMap.get('IPv6:INPUT'),
+          PolicyTypesMap.get('IPv6:OUTPUT'),
+          PolicyTypesMap.get('IPv6:FORWARD'),
+        ];
+        break;
 
-          case SpecialPolicyRules.DOCKER:
-            /* Do nothing, because the only solution for integrate Docker with FWCloud is disable the option
-                    that allows Docker to create IPTables rules. */
-            break;
+      case SpecialPolicyRules.CROWDSEC:
+        policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
+        policy_rData.action = 2;
+        policyType = [
+          PolicyTypesMap.get('IPv4:INPUT'),
+          PolicyTypesMap.get('IPv4:FORWARD'),
+          PolicyTypesMap.get('IPv6:INPUT'),
+          PolicyTypesMap.get('IPv6:FORWARD'),
+        ];
+        break;
 
-          case SpecialPolicyRules.CROWDSEC:
-            policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
-            policy_rData.action = 2;
-            policyType = [
-              PolicyTypesMap.get('IPv4:INPUT'),
-              PolicyTypesMap.get('IPv4:FORWARD'),
-              PolicyTypesMap.get('IPv6:INPUT'),
-              PolicyTypesMap.get('IPv6:FORWARD'),
-            ];
-            break;
+      case SpecialPolicyRules.FAIL2BAN:
+        policy_rData.comment = 'Fail2Ban compatibility.';
+        policy_rData.run_before = '';
+        policyType = [PolicyTypesMap.get('IPv4:INPUT')];
+        break;
 
-          case SpecialPolicyRules.FAIL2BAN:
-            policy_rData.comment = 'Fail2Ban compatibility.';
-            policy_rData.run_before = '';
-            policyType = [PolicyTypesMap.get('IPv4:INPUT')];
-            break;
-        }
+      default:
+        // Docker compatibility is configured by disabling Docker's own IPTables rules.
+        return;
+    }
 
-        for (policy_rData.type of policyType) {
-          await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-          await this.insertPolicy_r(policy_rData);
-        }
-      } catch (error) {
-        return reject(error);
-      }
-
-      resolve();
-    });
+    for (policy_rData.type of policyType) {
+      await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+      await this.insertPolicy_r(policy_rData, dbCon);
+    }
   }
 
   public static deleteSpecialRule(
@@ -1685,55 +1677,39 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static checkSpecialRule(
+  public static async checkSpecialRule(
     dbCon: any,
     firewall: number,
     options: number,
     specialRule: SpecialPolicyRules,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Special rule is enabled in the options flags.
-        if (options & SpecialRuleToFireWallOptMask.get(specialRule)) {
-          // Special rule already exists, then nothing to do.
-          if (await this.existsSpecialRule(dbCon, firewall, specialRule)) return resolve();
-
-          // If special rule is enabled and it doesn't exists, then create it.
-          await this.createSpecialRule(dbCon, firewall, specialRule);
-        } else {
-          // Special rule is not enabled, then make sure that it doesn't exists.
-          await this.deleteSpecialRule(dbCon, firewall, specialRule);
-        }
-      } catch (error) {
-        return reject(error);
-      }
-      resolve();
-    });
+    if (!(options & SpecialRuleToFireWallOptMask.get(specialRule))) {
+      await this.deleteSpecialRule(dbCon, firewall, specialRule);
+    } else if (!(await this.existsSpecialRule(dbCon, firewall, specialRule))) {
+      await this.createSpecialRule(dbCon, firewall, specialRule);
+    }
   }
 
-  public static checkSpecialRules(dbCon: any, firewall: number, options: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,
-        // then nothing must be done.
-        if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall))) return resolve();
+  public static async checkSpecialRules(
+    dbCon: any,
+    firewall: number,
+    options: number,
+  ): Promise<void> {
+    if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall))) return;
 
-        // All the firewalls must have the catch all rules.
-        await this.checkCatchAllRules(dbCon, firewall);
+    await this.checkCatchAllRules(dbCon, firewall);
+    await this.checkFirewallOptionRules(dbCon, firewall, options);
+  }
 
-        // If this a stateful firewall verify that the stateful special rules exists.
-        // Or remove them if this is not a stateful firewall.
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.STATEFUL);
-
-        // Compatibility rules with other software solutions.
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.DOCKER);
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.CROWDSEC);
-        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.FAIL2BAN);
-      } catch (error) {
-        return reject(error);
-      }
-
-      resolve();
-    });
+  /** Reconcile the generated rules of a standalone firewall or cluster master. */
+  public static async checkFirewallOptionRules(
+    dbCon: any,
+    firewall: number,
+    options: number,
+  ): Promise<void> {
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.STATEFUL);
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.DOCKER);
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.CROWDSEC);
+    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.FAIL2BAN);
   }
 }

@@ -36,6 +36,7 @@ import {
   validateReplicationProfilePayload,
   type ReplicationProfileValidationError,
 } from './replication-profile-validation.service';
+import type { ReplicationProfileFirewallSettings } from './replication-profile-firewall-settings';
 
 /**
  * Replication profile models are stored as JSON templates, not in the
@@ -48,7 +49,9 @@ import {
  * Every read, write and removal of a template goes through this module.
  */
 
-export type ReplicationProfileModel = Record<string, unknown>;
+export type ReplicationProfileModel = Record<string, unknown> & {
+  firewallSettings?: ReplicationProfileFirewallSettings;
+};
 /** Retained versions of a template: the current one and the one it replaced. */
 export const REPLICATION_PROFILE_VERSION_SLOTS = ['latest', 'previous'] as const;
 export type ReplicationProfileVersionSlot = (typeof REPLICATION_PROFILE_VERSION_SLOTS)[number];

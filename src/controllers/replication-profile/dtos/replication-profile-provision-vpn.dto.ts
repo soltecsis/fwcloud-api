@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsObject, IsOptional, ValidateNested } from 'class-validator';
-import { ReplicationProfileApplyTargetDto } from './replication-profile-apply.dto';
+import { IsRoleIdMap, ReplicationProfileApplyTargetDto } from './replication-profile-apply.dto';
 import type { ProfileObjectReplacement } from '../../../models/replication-profile/replication-profile-object-reference';
 
 /**
@@ -13,6 +13,11 @@ export class ReplicationProfileProvisionVpnDto {
   @ValidateNested()
   @Type(() => ReplicationProfileApplyTargetDto)
   target: ReplicationProfileApplyTargetDto;
+
+  /** Destination members selected for the cluster's node-specific settings. */
+  @IsOptional()
+  @IsRoleIdMap()
+  nodeRoleMapping?: Record<string, number>;
 
   /**
    * Values for the profile's declared parameters, keyed by parameter name. Only the VPN-related

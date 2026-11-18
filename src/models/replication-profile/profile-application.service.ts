@@ -57,6 +57,10 @@ import { normalizeProfileVpnRuleParameters } from './replication-profile-vpn-par
 import { convertProfileVpnReferencesToIp } from './profile-vpn-ip-conversion';
 import { convertProfileProvisionTarget } from './profile-topology-conversion';
 import {
+  applyFirewallSettings,
+  planFirewallSettings,
+} from './profile-firewall-settings-application';
+import {
   ProfileVpnCaTemplate,
   ProfileVpnCertificateTemplate,
   provisionVpnTemplatePki,
@@ -214,6 +218,7 @@ export class ProfileApplicationService extends Service {
     let profile: ReplicationProfile | null = null;
     let target: TargetInfo | null = null;
     const vpnRollback = new ProfileVpnRollback();
+    let rollbackSettings: ((errors: string[]) => Promise<void>) | undefined;
 
     try {
       await this.authorizeApplication(actor, request.fwCloudId);
@@ -223,9 +228,25 @@ export class ProfileApplicationService extends Service {
       target = await this.validateTarget(request);
 
       const model = normalizeProfileVpnRuleParameters(usable.model);
+      const { replication, fwCloudId } = request;
+      const { mode } = replication;
+      const dryRun = mode === 'dry_run';
+      let settingsPlan = await planFirewallSettings(model, replication, fwCloudId);
+      const finish = async (result: PolicyReplicationResult): Promise<PolicyReplicationResult> => {
+        if (settingsPlan) {
+          result.firewallSettings = settingsPlan.settings;
+          result.warnings.push(...settingsPlan.warnings);
+        }
+        await this.auditAttempt(actor, request, profile, target, startedAt, result);
+        return result;
+      };
+      if (settingsPlan?.errors.length) {
+        return finish(this.emptyPolicyReplicationResult(settingsPlan.errors, mode));
+      }
+
       const topology = convertProfileProvisionTarget(
         getProfileProvisioning(model),
-        request.replication.target.kind,
+        replication.target.kind,
       );
       let provision = topology.provision;
       const parameters = getProfileParameters(model);
@@ -234,13 +255,11 @@ export class ProfileApplicationService extends Service {
         request.interfaceAddressOverrides,
         parameters,
         request.parameters,
-        request.fwCloudId,
+        fwCloudId,
       );
 
       if (addressErrors.length > 0) {
-        const result = this.emptyPolicyReplicationResult(addressErrors, request.replication.mode);
-        await this.auditAttempt(actor, request, profile, target, startedAt, result);
-        return result;
+        return finish(this.emptyPolicyReplicationResult(addressErrors, mode));
       }
 
       const conversion = request.convertVpnReferencesToIp
@@ -251,30 +270,33 @@ export class ProfileApplicationService extends Service {
         if (request.vpnConnectionIds)
           conversion.errors.push('VPN-to-IP conversion cannot use existing VPN configuration ids.');
         if (conversion.errors.length) {
-          const result = {
-            ...this.emptyPolicyReplicationResult(conversion.errors, request.replication.mode),
+          return finish({
+            ...this.emptyPolicyReplicationResult(conversion.errors, mode),
             vpnConversions: conversion.vpnConversions,
-          };
-          await this.auditAttempt(actor, request, profile, target, startedAt, result);
-          return result;
+          });
         }
       }
 
       const objects = await this.resolveObjectReferences(model, provision, request);
-      let result: PolicyReplicationResult;
-
       if (objects.errors.length > 0) {
-        result = {
-          ...this.emptyPolicyReplicationResult(objects.errors, request.replication.mode),
+        return finish({
+          ...this.emptyPolicyReplicationResult(objects.errors, mode),
           objectReferences: objects.objectReferences,
           missingObjects: objects.missingObjects,
           ...(conversion ? { vpnConversions: conversion.vpnConversions } : {}),
-        };
-        await this.auditAttempt(actor, request, profile, target, startedAt, result);
-
-        return result;
+        });
       }
 
+      if (!provision) await this.validateSourceFirewall(request);
+      if (settingsPlan && !dryRun) {
+        settingsPlan = await applyFirewallSettings(model, replication, fwCloudId);
+        rollbackSettings = settingsPlan?.rollback;
+        if (settingsPlan?.errors.length) {
+          return finish(this.emptyPolicyReplicationResult(settingsPlan.errors, mode));
+        }
+      }
+
+      let result: PolicyReplicationResult;
       if (provision) {
         // The template's CAs/certificates have no keys of their own; a real firewall generates its
         // own when the profile is applied. A dry run must not create them (or anything else) for
@@ -283,23 +305,23 @@ export class ProfileApplicationService extends Service {
           ? { vpnConfigIds: undefined, errors: [] }
           : await this.provisionVpnResources(request, model, target, vpnRollback, provision);
 
-        if (resourced.errors.length > 0 && request.replication.mode !== 'dry_run') {
+        if (resourced.errors.length > 0 && !dryRun) {
           // No VPN, no policy: rules that depend on it must not be written without it.
-          result = this.emptyPolicyReplicationResult(resourced.errors, request.replication.mode);
+          result = this.emptyPolicyReplicationResult(resourced.errors, mode);
         } else {
           // Declarative profile: create interfaces/policy on the target; no source firewall needed.
           result = await this._policyReplicationService.provisionPolicyFromProfile(
-            request.replication.target,
+            replication.target,
             provision,
-            request.fwCloudId,
-            request.replication.mode,
+            fwCloudId,
+            mode,
             {
               parameters,
               parameterValues: request.parameters,
               profileCode: profile.code,
               profileVersion: profile.version,
               interfaceNameMapping: request.interfaceNameMapping,
-              nodeRoleMapping: request.replication.nodeRoleMapping,
+              nodeRoleMapping: replication.nodeRoleMapping,
               vpnConfigIds: resourced.vpnConfigIds,
               externalObjects: objects.bindings,
             },
@@ -307,10 +329,9 @@ export class ProfileApplicationService extends Service {
           result.errors.push(...resourced.errors);
         }
       } else {
-        await this.validateSourceFirewall(request);
         result = await this._policyReplicationService.replicatePolicyFromProfile({
-          ...request.replication,
-          sourceProfile: { ...request.replication.sourceProfile!, profile },
+          ...replication,
+          sourceProfile: { ...replication.sourceProfile!, profile },
         });
       }
 
@@ -333,15 +354,15 @@ export class ProfileApplicationService extends Service {
         );
       }
 
-      if (result.errors.length || (request.replication.mode !== 'dry_run' && !result.applied)) {
+      if (result.errors.length || (!dryRun && !result.applied)) {
         await vpnRollback.rollback(result.errors);
+        await rollbackSettings?.(result.errors);
         result.applied = false;
       }
-      await this.auditAttempt(actor, request, profile, target, startedAt, result);
 
-      return result;
+      return finish(result);
     } catch (error) {
-      const failure = await this.rollbackVpnFailure(vpnRollback, error);
+      const failure = await this.rollbackApplicationFailure(vpnRollback, error, rollbackSettings);
       await this.auditAttempt(actor, request, profile, target, startedAt, null, failure);
 
       throw failure;
@@ -373,7 +394,28 @@ export class ProfileApplicationService extends Service {
       profile = usable.profile;
       target = await this.validateTarget(request);
 
+      const finish = async (
+        result: ProfileVpnProvisionResult,
+      ): Promise<ProfileVpnProvisionResult> => {
+        await this.auditAttempt(
+          actor,
+          request,
+          profile,
+          target,
+          startedAt,
+          this.emptyPolicyReplicationResult(result.errors),
+        );
+        return result;
+      };
       const model = normalizeProfileVpnRuleParameters(usable.model);
+      const settingsPlan = await planFirewallSettings(
+        model,
+        request.replication,
+        request.fwCloudId,
+      );
+      if (settingsPlan?.errors.length) {
+        return await finish({ connectionIds: {}, errors: settingsPlan.errors });
+      }
       // The VPN is created for an application of the profile, which could not use it without them.
       const objects = await this.resolveObjectReferences(
         model,
@@ -382,20 +424,11 @@ export class ProfileApplicationService extends Service {
       );
 
       if (objects.errors.length > 0) {
-        await this.auditAttempt(
-          actor,
-          request,
-          profile,
-          target,
-          startedAt,
-          this.emptyPolicyReplicationResult(objects.errors),
-        );
-
-        return {
+        return await finish({
           connectionIds: {},
           errors: objects.errors,
           missingObjects: objects.missingObjects,
-        };
+        });
       }
 
       const { vpnConfigIds, errors } = await this.provisionVpnResources(
@@ -414,18 +447,9 @@ export class ProfileApplicationService extends Service {
         connectionIds[connectionId] = config.id;
       });
 
-      await this.auditAttempt(
-        actor,
-        request,
-        profile,
-        target,
-        startedAt,
-        this.emptyPolicyReplicationResult(errors),
-      );
-
-      return { connectionIds, errors };
+      return await finish({ connectionIds, errors });
     } catch (error) {
-      const failure = await this.rollbackVpnFailure(vpnRollback, error);
+      const failure = await this.rollbackApplicationFailure(vpnRollback, error);
       await this.auditAttempt(actor, request, profile, target, startedAt, null, failure);
 
       throw failure;
@@ -481,9 +505,14 @@ export class ProfileApplicationService extends Service {
     (await ReplicationProfilePolicy.apply(actor.user, fwCloud)).authorize();
   }
 
-  private async rollbackVpnFailure(rollback: ProfileVpnRollback, error: unknown): Promise<unknown> {
+  private async rollbackApplicationFailure(
+    rollback: ProfileVpnRollback,
+    error: unknown,
+    rollbackSettings?: (errors: string[]) => Promise<void>,
+  ): Promise<unknown> {
     const cleanupErrors: string[] = [];
     await rollback.rollback(cleanupErrors);
+    await rollbackSettings?.(cleanupErrors);
     return cleanupErrors.length
       ? new HttpException(
           `${this.errorMessageOf(error)} | ${cleanupErrors.join(' | ')}`,

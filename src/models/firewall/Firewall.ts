@@ -108,6 +108,29 @@ export enum PluginsFlags {
   irqbalance = 'irqbalance',
 }
 
+/** Persisted firewall and cluster plugin flags. */
+export const FirewallPluginMask: Record<PluginsFlags, number> = {
+  [PluginsFlags.openvpn]: 0x00000001,
+  [PluginsFlags.geoip]: 0x00000002,
+  [PluginsFlags.crowdsec]: 0x00000004,
+  [PluginsFlags.ntopng]: 0x00000008,
+  [PluginsFlags.suricata]: 0x00000010,
+  [PluginsFlags.keepalived]: 0x00000020,
+  [PluginsFlags.zeek]: 0x00000040,
+  [PluginsFlags.elasticsearch]: 0x00000080,
+  [PluginsFlags.filebeat]: 0x00000100,
+  [PluginsFlags.websafety]: 0x00000200,
+  [PluginsFlags.kibana]: 0x00000400,
+  [PluginsFlags.logstash]: 0x00000800,
+  [PluginsFlags.dnssafety]: 0x00001000,
+  [PluginsFlags.isc_bind9]: 0x00002000,
+  [PluginsFlags.isc_dhcp]: 0x00004000,
+  [PluginsFlags.haproxy]: 0x00008000,
+  [PluginsFlags.wireguard]: 0x00010000,
+  [PluginsFlags.ipsec]: 0x00020000,
+  [PluginsFlags.irqbalance]: 0x00040000,
+};
+
 // Special rules codes.
 export enum FireWallOptMask {
   STATEFUL = 0x0001,
@@ -1539,23 +1562,22 @@ export class Firewall extends Model {
     });
   }
 
-  public static getFirewallCompiler(
+  public static readonly COMPILER_OPTIONS_MASK = 0xf000;
+
+  public static async getFirewallCompiler(
     fwcloud: number,
     firewall: number,
   ): Promise<AvailablePolicyCompilers> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
-        const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xf000;
+    const compiler = this.getCompilerFromOptions(await this.getFirewallOptions(fwcloud, firewall));
+    if (!compiler) throw fwcError.NOT_FOUND;
+    return compiler;
+  }
 
-        if (compilerNumber == 0x0000) resolve('IPTables');
-        else if (compilerNumber == 0x1000) resolve('NFTables');
-        else if (compilerNumber == 0x2000) resolve('VyOS');
-        else reject(fwcError.NOT_FOUND);
-      } catch (error) {
-        reject(error);
-      }
-    });
+  public static getCompilerFromOptions(options: number): AvailablePolicyCompilers | undefined {
+    const compilerNumber = options & this.COMPILER_OPTIONS_MASK;
+    if (compilerNumber === 0x0000) return 'IPTables';
+    if (compilerNumber === 0x1000) return 'NFTables';
+    if (compilerNumber === 0x2000) return 'VyOS';
   }
 
   public static async getPolicyCompilationMode(

@@ -21,6 +21,7 @@
 */
 
 import type { ReplicationProfile } from './replication-profile.model';
+import type { ReplicationProfileFirewallSettings } from './replication-profile-firewall-settings';
 import {
   readProfileKeepalivedSettings,
   type ProfileKeepalivedSettings,
@@ -1082,6 +1083,8 @@ export interface PolicyReplicationCatchAllRuleChange {
 }
 
 export interface PolicyReplicationResult {
+  /** The global settings requested for this target, including during a dry run. */
+  firewallSettings?: ReplicationProfileFirewallSettings;
   vpnConversions?: PolicyReplicationVpnConversion[];
   mode: PolicyReplicationMode;
   /** True only when changes were committed to the database. */
