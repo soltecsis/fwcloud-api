@@ -54,6 +54,32 @@ type AgentCommunicationData = {
   apikey: string;
 };
 
+type AgentProgressMessage = {
+  fwcloud_agent_progress: true;
+  type: 'error' | 'info';
+  message: string;
+};
+
+export function parseAgentProgressMessage(message: string): ProgressPayload {
+  let progressMessage: AgentProgressMessage;
+  try {
+    progressMessage = JSON.parse(message);
+  } catch {
+    return new ProgressPayload('ssh_cmd_output', false, message);
+  }
+
+  if (
+    progressMessage?.fwcloud_agent_progress === true &&
+    typeof progressMessage.message === 'string'
+  ) {
+    return progressMessage.type === 'error'
+      ? new ProgressErrorPayload(progressMessage.message)
+      : new ProgressInfoPayload(progressMessage.message);
+  }
+
+  return new ProgressPayload('ssh_cmd_output', false, message);
+}
+
 export class AgentCommunication extends Communication<AgentCommunicationData> {
   protected readonly url: string;
   protected readonly ws_url: string;
@@ -104,7 +130,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       eventEmitter.emit(
         'message',
-        new ProgressNoticePayload(`Uploading firewall policy (${this.connectionData.host})`),
+        new ProgressInfoPayload(`Uploading firewall policy (${this.connectionData.host})`),
       );
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
@@ -581,7 +607,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           waiting_for_websocket_id = false;
           resolve(message);
         } else {
-          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
+          eventEmitter.emit('message', parseAgentProgressMessage(message));
         }
       });
 

@@ -20,7 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AgentCommunication } from '../../../src/communications/agent.communication';
+import {
+  AgentCommunication,
+  parseAgentProgressMessage,
+} from '../../../src/communications/agent.communication';
 import axios from 'axios';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
@@ -74,6 +77,37 @@ describe(AgentCommunication.name, () => {
         { filename: 'crt1', hash: 'hash1' },
         { filename: 'crt2', hash: 'hash2' },
       ]);
+    });
+  });
+
+  describe('agent policy recovery progress', () => {
+    it('maps agent rollback errors and informational progress to typed payloads', () => {
+      const failure = parseAgentProgressMessage(
+        JSON.stringify({
+          fwcloud_agent_progress: true,
+          type: 'error',
+          message: 'ERROR: Policy start failed. Restoring previous policy.',
+        }),
+      );
+      const restored = parseAgentProgressMessage(
+        JSON.stringify({
+          fwcloud_agent_progress: true,
+          type: 'info',
+          message: 'Previous policy restored. Loading policy.',
+        }),
+      );
+
+      expect(failure.type).to.equal('error');
+      expect(failure.message).to.equal('ERROR: Policy start failed. Restoring previous policy.');
+      expect(restored.type).to.equal('info');
+      expect(restored.message).to.equal('Previous policy restored. Loading policy.');
+    });
+
+    it('keeps unstructured agent output as command output', () => {
+      const payload = parseAgentProgressMessage('Policy load completed in 0.306s');
+
+      expect(payload.type).to.equal('ssh_cmd_output');
+      expect(payload.message).to.equal('Policy load completed in 0.306s');
     });
   });
 

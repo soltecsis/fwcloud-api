@@ -21,6 +21,7 @@
 */
 
 import axios from 'axios';
+import { EventEmitter } from 'events';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect, testSuite } from '../../mocha/global-setup';
@@ -146,6 +147,7 @@ describe(SSHCommunication.name, () => {
   describe('Firewall policy installation', () => {
     const standardScriptPath = '/etc/fwcloud/fwcloud.sh';
     const backupPath = '/etc/fwcloud/fwcloud-20261116123045.sh';
+    const backupPathOutputMarker = '__FWCLOUD_BACKUP_PATH__=';
     let uploadFile: sinon.SinonStub;
     let runCommand: sinon.SinonStub;
 
@@ -156,7 +158,7 @@ describe(SSHCommunication.name, () => {
     });
 
     it('backs up an installed script before installing and loading the new policy', async () => {
-      runCommand.onCall(0).resolves(`${backupPath}\n`);
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
       runCommand.onCall(1).resolves('');
       runCommand.onCall(2).resolves('');
 
@@ -166,6 +168,7 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.callCount).to.equal(3);
       expect(runCommand.getCall(0).args[1]).to.contain(standardScriptPath);
       expect(runCommand.getCall(0).args[1]).to.contain('date +%Y%m%d%H%M%S');
+      expect(runCommand.getCall(0).args[1]).to.contain(backupPathOutputMarker);
       expect(runCommand.getCall(1).args[1]).to.contain("'./fwcloud.sh' install");
       expect(runCommand.getCall(2).args[1]).to.contain(standardScriptPath);
       expect(runCommand.getCall(2).args[1]).to.contain('start');
@@ -185,7 +188,7 @@ describe(SSHCommunication.name, () => {
 
     it('restores the exact backup when installing the new policy fails', async () => {
       const installationError = new Error('installation failed');
-      runCommand.onCall(0).resolves(`${backupPath}\n`);
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
       runCommand.onCall(1).rejects(installationError);
       runCommand.onCall(2).resolves('');
       runCommand.onCall(3).resolves('');
@@ -203,7 +206,7 @@ describe(SSHCommunication.name, () => {
 
     it('restores the exact backup when loading the new policy fails', async () => {
       const loadingError = new Error('loading failed');
-      runCommand.onCall(0).resolves(`${backupPath}\n`);
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
       runCommand.onCall(1).resolves('');
       runCommand.onCall(2).rejects(loadingError);
       runCommand.onCall(3).resolves('');
@@ -216,6 +219,50 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(3).args[1]).to.contain(backupPath);
       expect(runCommand.getCall(3).args[1]).to.contain(standardScriptPath);
       expect(runCommand.getCall(4).args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+
+    it('reports the loading failure before rollback progress', async () => {
+      const loadingError = new Error('loading failed');
+      const eventEmitter = new EventEmitter();
+      const messages: Array<{ type: string; message: string }> = [];
+      eventEmitter.on('message', (message) => messages.push(message));
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).rejects(loadingError);
+      runCommand.onCall(3).resolves('');
+      runCommand.onCall(4).resolves('');
+
+      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh', eventEmitter)).to.be.rejectedWith(
+        loadingError,
+      );
+
+      const failureIndex = messages.findIndex(
+        (message) =>
+          message.message ===
+          'Firewall policy policy loading failed. Restoring previous firewall script.',
+      );
+      const restoreIndex = messages.findIndex(
+        (message) => message.message === 'Restoring previous firewall script.',
+      );
+      expect(messages[failureIndex].type).to.equal('error');
+      expect(messages[restoreIndex].type).to.equal('info');
+      expect(failureIndex).to.be.lessThan(restoreIndex);
+    });
+
+    it('ignores pseudo-terminal password masking when restoring an installed script', async () => {
+      const installationError = new Error('installation failed');
+      const passwordMasking = '********\b \b\b \b\r\n';
+      runCommand.onCall(0).resolves(`${passwordMasking}${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).rejects(installationError);
+      runCommand.onCall(2).resolves('');
+      runCommand.onCall(3).resolves('');
+
+      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(
+        installationError,
+      );
+
+      expect(runCommand.getCall(2).args[1]).to.contain(backupPath);
+      expect(runCommand.getCall(2).args[1]).to.not.contain(passwordMasking);
     });
   });
 

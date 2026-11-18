@@ -54,6 +54,15 @@ import { typeMap } from '../../config/policy/dangerousRules';
 const config = require('../../config/config');
 const fwcError = require('../../utils/error_table');
 
+const formatLocalDate = (date: Date): string =>
+  `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
+    .getDate()
+    .toString()
+    .padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
   private policyCompiler: AvailablePolicyCompilers;
@@ -754,16 +763,22 @@ export class PolicyScript {
                 : policyConfig.header_file;
             const isVyOS = this.policyCompiler === 'VyOS';
             const header = fs.readFileSync(headerFilePath, 'utf8');
-            const compilationDate = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+            const compilationDate = new Date();
+            const compilationDateLocal = formatLocalDate(compilationDate);
+            const compilationDateUtc = compilationDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
             const lifecycleHeader = [
-              `FWCLOUD_COMPILATION_DATE="${compilationDate}"`,
+              `FWCLOUD_COMPILATION_DATE="${compilationDateLocal}"`,
+              `FWCLOUD_COMPILATION_DATE_UTC="${compilationDateUtc}"`,
               'FWCLOUD_INSTALLATION_DATE=""',
+              'FWCLOUD_INSTALLATION_DATE_UTC=""',
             ].join('\n');
             this.stream.write(
               isVyOS
                 ? header
                 : header.includes('__FWCLOUD_COMPILATION_DATE__')
-                  ? header.replace('__FWCLOUD_COMPILATION_DATE__', compilationDate)
+                  ? header
+                      .replace('__FWCLOUD_COMPILATION_DATE_UTC__', compilationDateUtc)
+                      .replace('__FWCLOUD_COMPILATION_DATE__', compilationDateLocal)
                   : `${header}\n${lifecycleHeader}\n`,
             );
 
@@ -792,10 +807,6 @@ export class PolicyScript {
                 );
                 this.stream.write('iptables_default_filter_policy ACCEPT\n');
                 await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
-              } else {
-                // IPTables compiler.
-                this.stream.write('\n# Default IPTables chains policy.\n');
-                this.stream.write('iptables_default_filter_policy DROP\n');
               }
 
               if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
@@ -901,6 +912,11 @@ export class PolicyScript {
               dangerous = dangerous.concat(
                 await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT')),
               );
+
+              if (this.policyCompiler == 'IPTables') {
+                this.stream.write('\n# Default IPTables chains policy.\n');
+                this.stream.write('iptables_default_filter_policy DROP\n');
+              }
 
               this.stream.write('\n}\n\n');
 
