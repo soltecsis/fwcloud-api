@@ -982,12 +982,7 @@ export class PolicyRule extends Model {
           newRule = await this.insertPolicy_r(policy_rData);
           await this.clonePolicyIpobj(dbCon, rowData.newfirewall, rowData.id, newRule);
           await this.clonePolicyInterface(dbCon, rowData.firewall, rowData.id, newRule);
-          await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
-          await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
-          await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rowData.id, newRule);
-          await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
-          await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rowData.id, newRule);
-          await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await this.duplicateVpnPositions(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -1076,6 +1071,16 @@ export class PolicyRule extends Model {
         }
       });
     });
+  }
+
+  // Duplicate the OpenVPN, WireGuard and IPSec objects and prefixes of a rule into another rule.
+  public static async duplicateVpnPositions(dbCon: any, rule: number, newRule: number) {
+    await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRule);
+    await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRule);
+    await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rule, newRule);
+    await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRule);
+    await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rule, newRule);
+    await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRule);
   }
 
   //Update policy_r from user
