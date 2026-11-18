@@ -807,10 +807,6 @@ export class PolicyScript {
                 );
                 this.stream.write('iptables_default_filter_policy ACCEPT\n');
                 await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
-              } else {
-                // IPTables compiler.
-                this.stream.write('\n# Default IPTables chains policy.\n');
-                this.stream.write('iptables_default_filter_policy DROP\n');
               }
 
               if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
@@ -916,6 +912,11 @@ export class PolicyScript {
               dangerous = dangerous.concat(
                 await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT')),
               );
+
+              if (this.policyCompiler == 'IPTables') {
+                this.stream.write('\n# Default IPTables chains policy.\n');
+                this.stream.write('iptables_default_filter_policy DROP\n');
+              }
 
               this.stream.write('\n}\n\n');
 

@@ -237,9 +237,9 @@ status() {
 policy_apply() {
   load_nat_modules
   policy_empty
-  if ! policy_load || ! options_load; then
-    echo "ERROR: Policy load failed"
+  if [ "$POLICY_COMPILER" = "IPTables" ]; then
     iptables_default_filter_policy ACCEPT
-    return 1
   fi
+  policy_load
+  options_load
 }
