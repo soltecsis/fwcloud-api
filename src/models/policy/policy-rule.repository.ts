@@ -20,15 +20,101 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityManager, In } from 'typeorm';
+import { EntityManager, In, IsNull, MoreThanOrEqual } from 'typeorm';
 import { PolicyRule, SpecialPolicyRules } from './PolicyRule';
 import { PolicyGroup } from './PolicyGroup';
+import { PolicyRuleToIPObj } from './PolicyRuleToIPObj';
+import { PolicyRuleToInterface } from './PolicyRuleToInterface';
+import Query from '../../database/Query';
 import { Repository } from '../../database/repository';
 import { isArray } from 'class-validator';
+const fwcError = require('../../utils/error_table');
 
 export class PolicyRuleRepository extends Repository<PolicyRule> {
   constructor(manager?: EntityManager) {
     super(PolicyRule, manager);
+  }
+
+  public async copyRules(
+    firewallId: number,
+    ruleIds: number[],
+    destinationId: number,
+    pasteOffset: number,
+  ): Promise<void> {
+    if (!ruleIds.length) return;
+
+    await this.manager.transaction(async (manager) => {
+      // Serialize copies even when their selections and destination rules are different.
+      await manager.query('SELECT id FROM firewall WHERE id = ? FOR UPDATE', [firewallId]);
+
+      const repository = manager.getRepository(PolicyRule);
+      const selectedRules = await repository.find({
+        where: { firewallId, id: In([...ruleIds, destinationId]) },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const rulesById = new Map(selectedRules.map((rule) => [rule.id, rule]));
+      const destination = rulesById.get(destinationId);
+      const sources = ruleIds.map((id) => rulesById.get(id));
+      if (!destination || sources.some((source) => !source)) throw fwcError.NOT_FOUND;
+
+      const pasteBelow = pasteOffset === 1;
+      const catchAll: number = SpecialPolicyRules.CATCHALL;
+      if (
+        (pasteBelow && destination.special === catchAll) ||
+        sources.some(
+          (source) =>
+            source.special === catchAll || source.policyTypeId !== destination.policyTypeId,
+        )
+      ) {
+        throw fwcError.NOT_ALLOWED;
+      }
+
+      sources.sort((a, b) => a.rule_order - b.rule_order || a.id - b.id);
+      const policy = { firewallId, policyTypeId: destination.policyTypeId ?? IsNull() };
+      const destinationOrder = { ...policy, rule_order: destination.rule_order };
+      const rulesAtDestinationOrder = await repository.find({
+        select: { id: true },
+        where: destinationOrder,
+        lock: { mode: 'pessimistic_write' },
+      });
+      const startsAfterDestinationOrder =
+        pasteBelow || rulesAtDestinationOrder.some((rule) => rule.id < destinationId);
+      let nextOrder = destination.rule_order + Number(startsAfterDestinationOrder);
+      const suffix = { ...policy, rule_order: MoreThanOrEqual(nextOrder) };
+
+      // When the insertion splits a tied position, move its suffix to a new order as well.
+      const firstShiftedId = destinationId + Number(pasteBelow);
+      const splitsOrder =
+        startsAfterDestinationOrder &&
+        rulesAtDestinationOrder.some((rule) => rule.id >= firstShiftedId);
+      const shift = sources.length + Number(splitsOrder);
+      await repository.increment(suffix, 'rule_order', shift);
+      if (splitsOrder) {
+        await repository.increment(
+          { ...destinationOrder, id: MoreThanOrEqual(firstShiftedId) },
+          'rule_order',
+          shift,
+        );
+      }
+
+      const dbCon = new Query(manager.queryRunner);
+      for (const source of sources) {
+        const { identifiers } = await repository.insert({
+          ...source,
+          id: undefined,
+          policyGroupId: destination.policyGroupId,
+          rule_order: nextOrder++,
+          created_at: undefined,
+          updated_at: undefined,
+          created_by: undefined,
+          updated_by: undefined,
+        });
+        const copyId = identifiers[0].id;
+        await PolicyRuleToIPObj.duplicatePolicy_r__ipobj(dbCon, source.id, copyId);
+        await PolicyRuleToInterface.duplicatePolicy_r__interface(dbCon, source.id, copyId);
+        await PolicyRule.duplicateVpnPositions(dbCon, source.id, copyId);
+      }
+    });
   }
 
   /**

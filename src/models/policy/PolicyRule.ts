@@ -578,7 +578,7 @@ export class PolicyRule extends Model {
                 WHERE P.firewall=${firewall} AND P.type=${type}
                 ${rules ? ` AND P.id IN (${rules.join(',')})` : ''}
                 ${idgroup ? ` AND P.idgroup=${idgroup}` : ''} 
-                ORDER BY P.rule_order`;
+                ORDER BY P.rule_order, P.id`;
 
       dbCon.query(sql, async (error, rulesData) => {
         if (error) return reject(error);

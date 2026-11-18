@@ -24,20 +24,12 @@
 var express = require('express');
 var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
-import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
-import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { In } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 import db from '../../database/database-manager';
-import { PolicyRuleToWireGuard } from '../../models/policy/PolicyRuleToWireGuard';
-import { PolicyRuleToWireGuardPrefix } from '../../models/policy/PolicyRuleToWireguardPrefix';
-import { PolicyRuleToIPSec } from '../../models/policy/PolicyRuleToIPSec';
-import { PolicyRuleToIPSecPrefix } from '../../models/policy/PolicyRuleToIPSecPrefix';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -250,9 +242,9 @@ router.put('/copy',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		let pasteOnRuleId = req.body.pasteOnRuleId;
-		for (let rule of req.body.rulesIds)
-			pasteOnRuleId = await ruleCopy(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+		const { firewall, rulesIds, pasteOnRuleId, pasteOffset } = req.body;
+		const repository = new PolicyRuleRepository(db.getSource().manager);
+		await repository.copyRules(firewall, rulesIds, pasteOnRuleId, pasteOffset);
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error copying rule: ' + JSON.stringify(error));
@@ -316,69 +308,6 @@ async (req, res) => {
 		res.status(400).json(error);
 	}
 });
-
-function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			// Get rule data of rule over which we are running the copy action (up or down of this rule).
-			const pasteOnRule = await PolicyRule.getPolicy_r(dbCon, firewall, pasteOnRuleId);
-			const copyRule = await PolicyRule.getPolicy_r(dbCon, firewall, rule);
-			let new_order, newRuleId;
-
-			// We can not copy the Catch-All special rule.
-			if (copyRule.special===2) throw(fwcError.NOT_ALLOWED);
-			// It is not possible to copy rules under the Catch-All special rule.
-			if (pasteOnRule.special===2 && pasteOffset===1) throw(fwcError.NOT_ALLOWED);
-
-			if (pasteOffset===1)
-				new_order = await PolicyRule.makeAfterRuleOrderGap(firewall, copyRule.type, pasteOnRuleId);
-			else
-				new_order = await PolicyRule.makeBeforeRuleOrderGap(firewall, copyRule.type, pasteOnRuleId);
-
-			//Create New objet with data policy_r
-			var policy_rData = {
-				id: null,
-				idgroup: pasteOnRule.idgroup,
-				firewall: copyRule.firewall,
-				rule_order: new_order,
-				action: copyRule.action,
-				time_start: copyRule.time_start,
-				time_end: copyRule.time_end,
-				active: copyRule.active,
-				options: copyRule.options,
-				comment: copyRule.comment,
-				type: copyRule.type,
-				style: copyRule.style,
-				fw_apply_to: copyRule.fw_apply_to,
-				negate: copyRule.negate,
-				mark: copyRule.mark,
-				run_before: copyRule.run_before,
-				run_after: copyRule.run_after,
-				special: copyRule.special
-			};
-			newRuleId = await PolicyRule.insertPolicy_r(policy_rData);
-
-			//DUPLICATE RULE POSITONS O (OBJECTS)
-			await PolicyRuleToIPObj.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITONS I (INTERFACES)
-			await PolicyRuleToInterface.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
-			await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
-			await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITONS FOR WireGuard OBJECTS
-			await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITONS FOR WIREGUARD PREFIXES
-			await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITIONS FOR IPSec OBJECTS
-			await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rule, newRuleId);
-			//DUPLICATE RULE POSITIONS FOR IPSec PREFIXES
-			await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
-
-			resolve(newRuleId);
-		} catch(error) { return reject(error) }
-	});
-}
 
 async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 	return new Promise(async (resolve, reject) => {
