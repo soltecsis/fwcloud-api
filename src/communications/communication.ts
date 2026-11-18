@@ -90,6 +90,20 @@ export type PluginInstallOptions = {
   pluginParams?: string[];
 };
 
+export type PolicyScriptHistoryEntry = {
+  path: string;
+  compilation_date: string | null;
+  installation_date: string | null;
+};
+
+export type PolicyScriptContent = {
+  content: string;
+};
+
+export type PolicyScriptComparison = {
+  diff: string;
+};
+
 type ErrorWithCode = {
   code: string;
 } & Error;
@@ -164,6 +178,18 @@ export abstract class Communication<ConnectionData> {
   ): Promise<void>;
   abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
+  async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
+    throw new Error('Method not implemented');
+  }
+  async getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent> {
+    throw new Error('Method not implemented');
+  }
+  async compareFirewallPolicyScripts(
+    file1: string,
+    file2: string,
+  ): Promise<PolicyScriptComparison> {
+    throw new Error('Method not implemented');
+  }
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;
