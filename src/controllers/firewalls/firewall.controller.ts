@@ -46,6 +46,13 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { Interface } from '../../models/interface/Interface';
 import { PingDto } from './dtos/ping.dto';
 import { InfoDto } from './dtos/info.dto';
+import {
+  PolicyScriptComparisonDto,
+  PolicyScriptComparisonRequestDto,
+  PolicyScriptContentDto,
+  PolicyScriptContentRequestDto,
+  PolicyScriptHistoryEntryDto,
+} from './dtos/policy-script-history.dto';
 import { Communication, FwcAgentInfo } from '../../communications/communication';
 import { SSHCommunication } from '../../communications/ssh.communication';
 import { AgentCommunication } from '../../communications/agent.communication';
@@ -205,6 +212,113 @@ export class FirewallController extends Controller {
     channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
     return ResponseBuilder.buildResponse().status(201).body(firewall);
+  }
+
+  @Validate()
+  @OperationId('Get firewall policy script history.')
+  @Get('{firewall}/policyScripts/history')
+  @SuccessResponse('200', 'Policy script history retrieved')
+  @Example<FirewallApiEnvelopeResponse<PolicyScriptHistoryEntryDto[]>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: [
+      {
+        path: '/etc/fwcloud/fwcloud.sh',
+        compilation_date: '2026-11-18 09:30:00',
+        installation_date: '2026-11-18 09:31:00',
+      },
+      {
+        path: '/etc/fwcloud/fwcloud-20261118090000.sh',
+        compilation_date: null,
+        installation_date: null,
+      },
+    ],
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Unable to retrieve policy script history',
+  })
+  async getPolicyScriptHistory(
+    @Request() request: ExpressRequest,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+  ): Promise<ResponseBuilder> {
+    const firewall = await this.getPolicyScriptFirewall(fwcloud, firewallId);
+    (await FirewallPolicy.history(firewall, request.session.user)).authorize();
+
+    const history = await (await firewall.getCommunication()).getFirewallPolicyScriptHistory();
+
+    return ResponseBuilder.buildResponse().status(200).body(history);
+  }
+
+  @Validate(PolicyScriptContentRequestDto)
+  @OperationId('Get firewall policy script content.')
+  @Post('{firewall}/policyScripts/content')
+  @SuccessResponse('200', 'Policy script content retrieved')
+  @Example<FirewallApiEnvelopeResponse<PolicyScriptContentDto>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      content: '#!/bin/sh\n',
+    },
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Unable to retrieve policy script content',
+  })
+  async getPolicyScriptContent(
+    @Request() request: ExpressRequest,
+    @Body() requestBody: PolicyScriptContentRequestDto,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+  ): Promise<ResponseBuilder> {
+    const input = this.getBody(request, requestBody);
+    const firewall = await this.getPolicyScriptFirewall(fwcloud, firewallId);
+    (await FirewallPolicy.history(firewall, request.session.user)).authorize();
+
+    const content = await (
+      await firewall.getCommunication()
+    ).getFirewallPolicyScriptContent(input.file);
+
+    return ResponseBuilder.buildResponse().status(200).body(content);
+  }
+
+  @Validate(PolicyScriptComparisonRequestDto)
+  @OperationId('Compare firewall policy scripts.')
+  @Post('{firewall}/policyScripts/diff')
+  @SuccessResponse('200', 'Policy scripts compared')
+  @Example<FirewallApiEnvelopeResponse<PolicyScriptComparisonDto>>({
+    status: 200,
+    response: 'OK',
+    message: '',
+    data: {
+      diff: '2c2\n< FWCLOUD_INSTALLATION_DATE="2026-11-18 09:31:00"\n---\n> FWCLOUD_INSTALLATION_DATE="2026-11-17 09:31:00"\n',
+    },
+  })
+  @Response<FirewallApiErrorEnvelopeResponse>('default', 'Unexpected error', {
+    status: 400,
+    response: 'Bad Request',
+    message: 'Unable to compare policy scripts',
+  })
+  async comparePolicyScripts(
+    @Request() request: ExpressRequest,
+    @Body() requestBody: PolicyScriptComparisonRequestDto,
+    @Path() fwcloud: number,
+    @Path('firewall') firewallId: number,
+  ): Promise<ResponseBuilder> {
+    const input = this.getBody(request, requestBody);
+    const firewall = await this.getPolicyScriptFirewall(fwcloud, firewallId);
+    (await FirewallPolicy.history(firewall, request.session.user)).authorize();
+
+    const comparison = await (
+      await firewall.getCommunication()
+    ).compareFirewallPolicyScripts(input.file1, input.file2);
+
+    return ResponseBuilder.buildResponse().status(200).body(comparison);
   }
 
   @Validate()
@@ -566,6 +680,18 @@ export class FirewallController extends Controller {
 
       throw error;
     }
+  }
+
+  private async getPolicyScriptFirewall(fwcloudId: number, firewallId: number): Promise<Firewall> {
+    return db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOneOrFail({
+        where: {
+          id: firewallId,
+          fwCloudId,
+        },
+      });
   }
 
   private async getOpenVPNServerIdsInScope(
