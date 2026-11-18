@@ -30,7 +30,6 @@ import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 import db from '../../database/database-manager';
-const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 
@@ -257,14 +256,14 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		let pasteOnRuleId = req.body.pasteOnRuleId;
+		const pasteOnRuleId = req.body.pasteOnRuleId;
 
 		// The rule over which we move cat rules can not be part of the moved rules.
 		for (let rule of req.body.rulesIds)
 			if (rule === pasteOnRuleId) throw(fwcError.other('Paste on rule can not be part of the set of pasted rules.'));
 
 		for (let rule of req.body.rulesIds)
-			await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+			await ruleMove(req.dbCon, req.body.firewall, rule, pasteOnRuleId, req.body.pasteOffset);
 
 		res.status(204).end();
 	} catch(error) {
