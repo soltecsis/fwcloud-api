@@ -417,6 +417,7 @@ export class ReplicationProfileController extends Controller {
         replication: {
           target: { kind: body.target.kind as ReplicationProfileTargetKind, id: body.target.id },
           mode: 'replace_defaults',
+          nodeRoleMapping: body.nodeRoleMapping,
         },
         parameters: body.parameters,
         objectReplacements: body.objectReplacements,

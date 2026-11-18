@@ -9,7 +9,11 @@ import {
 import { createUser } from '../../../utils/utils';
 import StringHelper from '../../../../src/utils/string.helper';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
-import { Firewall, FireWallOptMask } from '../../../../src/models/firewall/Firewall';
+import {
+  Firewall,
+  FirewallPluginMask,
+  FireWallOptMask,
+} from '../../../../src/models/firewall/Firewall';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import {
@@ -357,6 +361,54 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
   });
 
   describe('firewall snapshots', () => {
+    it('preserves the global forwarding, stateful, logging and plugin settings in the saved JSON', async () => {
+      const options =
+        FireWallOptMask.STATEFUL |
+        FireWallOptMask.IPv4_FORWARDING |
+        FireWallOptMask.IPv6_FORWARDING |
+        FireWallOptMask.LOG_ALL |
+        FireWallOptMask.DEBUG;
+      const plugins = FirewallPluginMask.openvpn | FirewallPluginMask.geoip;
+      const credentials = ['source-install-user', 'source-install-password', 'source-agent-key'];
+      await db.getSource().query(
+        `UPDATE firewall SET options = ?, plugins = ?, install_user = ?, install_pass = ?,
+         install_apikey = ? WHERE id = ?`,
+        [options, plugins, ...credentials, source.firewall.id],
+      );
+
+      const { profile } = await service.createProfileFromSource(
+        { source: { kind: 'firewall', id: source.firewall.id }, name: 'Firewall settings' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      const model = loadReplicationProfileModel(profile);
+      expect(model.firewallSettings).to.deep.eq({ options, plugins });
+      expect(portableProfileModel(model).firewallSettings).to.deep.eq({ options, plugins });
+      const serializedModel = JSON.stringify(model);
+      for (const credential of credentials) {
+        expect(serializedModel).not.to.include(credential);
+      }
+    });
+
+    it('captures a firewall with all options and plugin flags explicitly disabled', async () => {
+      await db
+        .getSource()
+        .query('UPDATE firewall SET options = 0, plugins = 0 WHERE id = ?', [source.firewall.id]);
+
+      const { profile } = await service.createProfileFromSource(
+        {
+          source: { kind: 'firewall', id: source.firewall.id },
+          name: 'Disabled firewall settings',
+        },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(loadReplicationProfileModel(profile).firewallSettings).to.deep.eq({
+        options: 0,
+        plugins: 0,
+      });
+    });
+
     it('preserves disabled manual Keepalived configuration without inventing interface dependencies', async () => {
       const keepalived = await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
       const cfg_text = '# Source VRRP\nvrrp_instance VI_1 {\n  virtual_router_id 51\n}\n';
@@ -2292,6 +2344,37 @@ describe(describeName('ReplicationProfileSnapshotService Unit Tests'), () => {
         fwCloudId: fwc.fwcloud.id,
         clusterId: cluster.id,
         fwmaster: 0,
+      });
+    });
+
+    it('preserves the cluster plugin mask and the settings of each node role', async () => {
+      const master = {
+        options: FireWallOptMask.STATEFUL | FireWallOptMask.IPv4_FORWARDING,
+        plugins: FirewallPluginMask.openvpn,
+      };
+      const backup = { options: FireWallOptMask.IPv6_FORWARDING, plugins: 0 };
+      const plugins = FirewallPluginMask.keepalived;
+      const sourceDb = db.getSource();
+      await sourceDb.query('UPDATE cluster SET plugins = ? WHERE id = ?', [plugins, cluster.id]);
+      await sourceDb.query('UPDATE firewall SET options = ?, plugins = ? WHERE id = ?', [
+        master.options,
+        master.plugins,
+        source.firewall.id,
+      ]);
+      await sourceDb.query(
+        'UPDATE firewall SET options = ?, plugins = ? WHERE cluster = ? AND fwmaster = 0',
+        [backup.options, backup.plugins, cluster.id],
+      );
+
+      const { profile } = await service.createProfileFromSource(
+        { source: { kind: 'cluster', id: cluster.id }, name: 'Cluster settings' },
+        { fwCloudId: fwc.fwcloud.id, userId: ownerId },
+      );
+
+      expect(loadReplicationProfileModel(profile).firewallSettings).to.deep.eq({
+        options: master.options,
+        plugins,
+        nodes: { master, backup },
       });
     });
 

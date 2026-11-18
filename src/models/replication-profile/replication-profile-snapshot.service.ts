@@ -36,6 +36,10 @@ import type {
 } from './policy-replication.types';
 import { addToList, dbQuery, sqlPlaceholders } from './replication-sql.helpers';
 import { ReplicationProfile } from './replication-profile.model';
+import type {
+  ReplicationProfileFirewallMasks,
+  ReplicationProfileFirewallSettings,
+} from './replication-profile-firewall-settings';
 import { getProvisionRuleNegationError } from './replication-profile-rule-negation';
 import { captureVpnSnapshot } from './replication-profile-vpn-snapshot';
 import {
@@ -189,14 +193,14 @@ interface SnapshotFirewallRow {
   id: number;
   name: string;
   cluster: number | null;
-  fwcloud: number;
   fwmaster: number;
+  options: number;
+  plugins: number;
 }
 
 interface SnapshotClusterRow {
-  id: number;
   name: string;
-  fwcloud: number;
+  plugins: number;
 }
 
 interface SnapshotInterfaceRow {
@@ -573,7 +577,7 @@ export class ReplicationProfileSnapshotService extends Service {
   }
 
   /**
-   * Captures the interfaces, policies, services and VPNs of the source into a
+   * Captures the global settings, interfaces, policies, services and VPNs of the source into a
    * profile model, without persisting anything.
    */
   public async buildSourceSnapshot(
@@ -663,6 +667,7 @@ export class ReplicationProfileSnapshotService extends Service {
         target_kinds: ['firewall', 'cluster'],
         supportedRoles: roles,
       },
+      firewallSettings: resolved.firewallSettings,
       policyStructure,
       provision: policyStructure,
       ...(vpnTemplate ? { vpnTemplate } : {}),
@@ -675,7 +680,12 @@ export class ReplicationProfileSnapshotService extends Service {
     };
 
     if (roles.length > 0) {
-      model.roleAssignments = { interfaceRoles: roles };
+      model.roleAssignments = {
+        interfaceRoles: roles,
+        ...(resolved.topologyNodes
+          ? { nodeRoles: resolved.topologyNodes.map((node) => node.role) }
+          : {}),
+      };
     }
 
     if (resolved.topologyNodes) {
@@ -689,12 +699,6 @@ export class ReplicationProfileSnapshotService extends Service {
           usedNodeRoles.has(node.role) ? { ...node, required: true } : node,
         ),
       };
-
-      if (roles.length > 0) {
-        (model.roleAssignments as Record<string, unknown>).nodeRoles = resolved.topologyNodes.map(
-          (node) => node.role,
-        );
-      }
     }
 
     const objectReferences = values.getObjectReferences(model);
@@ -746,24 +750,26 @@ export class ReplicationProfileSnapshotService extends Service {
     fwCloudId: number,
   ): Promise<{
     firewall: SnapshotFirewallRow;
+    firewallSettings: ReplicationProfileFirewallSettings;
     sourceName: string;
     topologyNodes: SnapshotTopologyNode[] | null;
     /** Topology role of each cluster node (policy_r.fw_apply_to); empty for a firewall. */
     nodeRoleById: Map<number, string>;
   }> {
     if (source.kind === 'cluster') {
-      const clusters = await dbQuery<SnapshotClusterRow>(
-        'SELECT id, name, fwcloud FROM cluster WHERE id = ? AND fwcloud = ?',
+      const [cluster] = await dbQuery<SnapshotClusterRow>(
+        'SELECT name, plugins FROM cluster WHERE id = ? AND fwcloud = ?',
         [source.id, fwCloudId],
       );
 
-      if (clusters.length === 0) {
+      if (!cluster) {
         throw new NotFoundException('Source cluster not found');
       }
 
       const members = await dbQuery<SnapshotFirewallRow>(
-        'SELECT id, name, cluster, fwcloud, fwmaster FROM firewall WHERE cluster = ? ORDER BY fwmaster DESC, id',
-        [source.id],
+        `SELECT id, name, cluster, fwmaster, options, plugins FROM firewall
+         WHERE cluster = ? AND fwcloud = ? ORDER BY fwmaster DESC, id`,
+        [source.id, fwCloudId],
       );
       const master = members.find((member) => member.fwmaster === 1);
 
@@ -771,52 +777,60 @@ export class ReplicationProfileSnapshotService extends Service {
         throw new HttpException(`Master firewall of source cluster ${source.id} not found.`, 422);
       }
 
-      const topologyNodes = this.buildTopologyNodes(members);
+      const { topologyNodes, nodeRoleById, settingsByRole } = this.buildClusterTopology(members);
 
       return {
         firewall: master,
-        sourceName: clusters[0].name,
+        firewallSettings: {
+          // The cluster stores its own plugin mask and gets its shared options from the master.
+          options: master.options,
+          plugins: cluster.plugins,
+          nodes: settingsByRole,
+        },
+        sourceName: cluster.name,
         topologyNodes,
-        nodeRoleById: new Map(
-          members.map((member, index): [number, string] => [member.id, topologyNodes[index].role]),
-        ),
+        nodeRoleById,
       };
     }
 
-    const firewalls = await dbQuery<SnapshotFirewallRow>(
-      'SELECT id, name, cluster, fwcloud, fwmaster FROM firewall WHERE id = ? AND fwcloud = ?',
+    const [firewall] = await dbQuery<SnapshotFirewallRow>(
+      'SELECT id, name, cluster, fwmaster, options, plugins FROM firewall WHERE id = ? AND fwcloud = ?',
       [source.id, fwCloudId],
     );
 
-    if (firewalls.length === 0) {
+    if (!firewall) {
       throw new NotFoundException('Source firewall not found');
     }
 
     return {
-      firewall: firewalls[0],
-      sourceName: firewalls[0].name,
+      firewall,
+      firewallSettings: { options: firewall.options, plugins: firewall.plugins },
+      sourceName: firewall.name,
       topologyNodes: null,
       nodeRoleById: new Map(),
     };
   }
 
   /** Master first (required), remaining members become backup roles. */
-  private buildTopologyNodes(members: SnapshotFirewallRow[]): SnapshotTopologyNode[] {
+  private buildClusterTopology(members: SnapshotFirewallRow[]) {
+    const topologyNodes: SnapshotTopologyNode[] = [];
+    const nodeRoleById = new Map<number, string>();
+    const settingsByRole: Record<string, ReplicationProfileFirewallMasks> = {};
     let backupIndex = 0;
 
-    return members.map((member) => {
-      if (member.fwmaster === 1) {
-        return { role: 'master', name: member.name, required: true, master: true };
+    for (const { id, name, fwmaster, options, plugins } of members) {
+      const master = fwmaster === 1;
+      let role = 'master';
+      if (!master) {
+        backupIndex++;
+        role = backupIndex === 1 ? 'backup' : `backup${backupIndex}`;
       }
+      topologyNodes.push({ role, name, required: master, ...(master ? { master: true } : {}) });
+      nodeRoleById.set(id, role);
+      settingsByRole[role] = { options, plugins };
+    }
 
-      backupIndex++;
-
-      return {
-        role: backupIndex === 1 ? 'backup' : `backup${backupIndex}`,
-        name: member.name,
-        required: false,
-      };
-    });
+    return { topologyNodes, nodeRoleById, settingsByRole };
   }
 
   /**
