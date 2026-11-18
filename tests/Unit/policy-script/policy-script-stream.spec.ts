@@ -163,4 +163,22 @@ describe('PolicyScript stream completion', () => {
     assert.match(vyosHeader, /^#!\/bin\/vbash\n/);
     assert.doesNotMatch(vyosHeader, /set -eu/);
   });
+
+  it('keeps standard iptables open until direct policy loading succeeds', () => {
+    const header = fs.readFileSync(path.resolve(process.cwd(), 'config/policy/header.txt'), 'utf8');
+    const policyScript = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/compiler/policy/PolicyScript.ts'),
+      'utf8',
+    );
+
+    assert.match(
+      header,
+      /policy_empty\n {2}if \[ "\$POLICY_COMPILER" = "IPTables" \]; then\n {4}iptables_default_filter_policy ACCEPT\n {2}fi\n {2}policy_load\n {2}options_load/,
+    );
+    assert.doesNotMatch(header, /if ! policy_load \|\| ! options_load/);
+    assert.ok(
+      policyScript.indexOf("await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'))") <
+        policyScript.indexOf("this.stream.write('iptables_default_filter_policy DROP\\n')"),
+    );
+  });
 });

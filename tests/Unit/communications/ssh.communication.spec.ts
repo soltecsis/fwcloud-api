@@ -21,6 +21,7 @@
 */
 
 import axios from 'axios';
+import { EventEmitter } from 'events';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect, testSuite } from '../../mocha/global-setup';
@@ -218,6 +219,34 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(3).args[1]).to.contain(backupPath);
       expect(runCommand.getCall(3).args[1]).to.contain(standardScriptPath);
       expect(runCommand.getCall(4).args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+
+    it('reports the loading failure before rollback progress', async () => {
+      const loadingError = new Error('loading failed');
+      const eventEmitter = new EventEmitter();
+      const messages: Array<{ type: string; message: string }> = [];
+      eventEmitter.on('message', (message) => messages.push(message));
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).rejects(loadingError);
+      runCommand.onCall(3).resolves('');
+      runCommand.onCall(4).resolves('');
+
+      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh', eventEmitter)).to.be.rejectedWith(
+        loadingError,
+      );
+
+      const failureIndex = messages.findIndex(
+        (message) =>
+          message.message ===
+          'Firewall policy policy loading failed. Restoring previous firewall script.',
+      );
+      const restoreIndex = messages.findIndex(
+        (message) => message.message === 'Restoring previous firewall script.',
+      );
+      expect(messages[failureIndex].type).to.equal('error');
+      expect(messages[restoreIndex].type).to.equal('info');
+      expect(failureIndex).to.be.lessThan(restoreIndex);
     });
 
     it('ignores pseudo-terminal password masking when restoring an installed script', async () => {
