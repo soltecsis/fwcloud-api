@@ -11,10 +11,16 @@ let adminUser: User;
 let adminUserSessionId: string;
 
 describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
+  let originalSetting: boolean;
   beforeEach(async () => {
     app = testSuite.app;
+    originalSetting = app.config.get('confirmation_token');
     adminUser = await createUser({ role: 1 });
     adminUserSessionId = generateSession(adminUser);
+  });
+
+  afterEach(() => {
+    app.config.set('confirmation_token', originalSetting);
   });
 
   it('should return a confirmation token if the confirmation token setting is set to true', async () => {

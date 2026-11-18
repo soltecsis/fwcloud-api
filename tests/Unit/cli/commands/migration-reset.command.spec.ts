@@ -35,7 +35,7 @@ describe(describeName('MigrationResetCommand tests'), () => {
   });
 
   after(async () => {
-    await testSuite.resetDatabaseData();
+    await testSuite.resetDatabaseData({ rebuildSchema: true });
   });
 
   it('should reset the database', async () => {

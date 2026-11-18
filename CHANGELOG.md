@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+### Added
+- Audit log events are classified by category (`compilation`, `installation`, `creation`, `modification`, `deletion`, `login`, `logout` and `other`), and the audit log list can be filtered by one or more categories with the `event_type` query parameter. Unsupported or empty values return HTTP 422.
+- Login and logout requests are now recorded as authentication events with a `success` or `failure` outcome, excluding credentials, request bodies and session cookies. Failed logins are stored without user or session references.
+- Audit logs can be sorted by start or end time, in ascending or descending order, with the `sort_by` (`start`, `end`) and `sort_order` (`asc`, `desc`) query parameters, including cursor pagination. Events without a known end time are listed last.
+- Requests answered with a confirmation token challenge are now identified in audit logs and can be excluded from the list with `exclude_confirmation_token_requests=true`.
+- Audit log list and detail responses include the nullable `eventType`, `outcome` and `confirmationTokenChallenge` fields. Historical records keep these values as null.
+
+### Changed
+- A new database migration adds the audit log category, outcome and confirmation token challenge columns, and backfills missing durations of historical records from their stored payloads.
+
+### Fixed
+- Negative, non-numeric or out-of-range audit log durations are now ignored instead of being reported as zero.
+
+
 ## [2.5.7] - 2026-08-26
 ### Fixed
 - Allow Suricata activation on cluster nodes when the selected network interface is defined on the cluster master.

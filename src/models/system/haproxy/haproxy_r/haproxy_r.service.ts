@@ -228,16 +228,15 @@ export class HAProxyRuleService extends Service {
       where: {
         id: In(ids),
       },
-      relations: [
-        'group',
-        'firewall',
-        'firewall.fwCloud',
-        'firewallApplyTo',
-        'frontendIp',
-        'frontendPort',
-        'backendIps',
-        'backendPort',
-      ],
+      relations: {
+        group: true,
+        firewall: { fwCloud: true },
+        firewallApplyTo: true,
+        frontendIp: true,
+        frontendPort: true,
+        backendIps: true,
+        backendPort: true,
+      },
     });
 
     const lastRule = await this._repository.getLastHAProxyRuleInFirewall(haproxy_rs[0].firewall.id);
@@ -262,7 +261,7 @@ export class HAProxyRuleService extends Service {
       where: {
         id: destRule,
       },
-      relations: ['group'],
+      relations: { group: true },
     });
 
     const sourceRules: HAProxyRule[] = await this._repository.findBy({
@@ -291,14 +290,14 @@ export class HAProxyRuleService extends Service {
       where: {
         id: fromId,
       },
-      relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
+      relations: { firewall: { fwCloud: true }, backendIps: true },
     });
 
     const toRule: HAProxyRule = await this._repository.findOneOrFail({
       where: {
         id: toId,
       },
-      relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
+      relations: { firewall: { fwCloud: true }, backendIps: true },
     });
 
     let lastPosition = 0;
@@ -327,15 +326,15 @@ export class HAProxyRuleService extends Service {
       where: {
         id,
       },
-      relations: [
-        'group',
-        'frontendIp',
-        'frontendPort',
-        'backendIps',
-        'backendPort',
-        'firewall',
-        'firewallApplyTo',
-      ],
+      relations: {
+        group: true,
+        frontendIp: true,
+        frontendPort: true,
+        backendIps: true,
+        backendPort: true,
+        firewall: true,
+        firewallApplyTo: true,
+      },
     });
     if (!haProxyRule) {
       throw new Error('HAProxy rule not found');
@@ -449,7 +448,7 @@ export class HAProxyRuleService extends Service {
       where: {
         id: path.id,
       },
-      relations: ['group', 'firewall'],
+      relations: { group: true, firewall: true },
     });
 
     haProxyRule.backendIps = [];
@@ -580,7 +579,7 @@ export class HAProxyRuleService extends Service {
         where: {
           id: ids[0],
         },
-        relations: ['group', 'firewall'],
+        relations: { group: true, firewall: true },
       });
 
       if (!firstRule) {
@@ -752,7 +751,7 @@ export class HAProxyRuleService extends Service {
           id: In(data.backendIpsIds.map((item) => item.id)),
           ipObjTypeId: 5,
         },
-        relations: ['fwCloud'],
+        relations: { fwCloud: true },
       });
 
     for (let i = 0; i < ipObjs.length; i++) {

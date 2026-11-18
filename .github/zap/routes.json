@@ -1,0 +1,31 @@
+{
+  "cloud-list": { "method": "GET", "route": "/fwcloud/all/get" },
+  "cloud": { "method": "PUT", "route": "/fwcloud/get" },
+  "firewall": { "method": "PUT", "route": "/firewall/get" },
+  "address": { "method": "PUT", "route": "/ipobj/get" },
+  "policy": { "method": "PUT", "route": "/policy/rule/get" },
+  "table-list": {
+    "method": "GET",
+    "route": "/fwclouds/{cloud}/firewalls/{firewall}/routingTables"
+  },
+  "table": {
+    "method": "GET",
+    "route": "/fwclouds/{cloud}/firewalls/{firewall}/routingTables/{table}"
+  },
+  "route": {
+    "method": "GET",
+    "route": "/fwclouds/{cloud}/firewalls/{firewall}/routingTables/{table}/routes/{route}"
+  },
+  "audit-list": { "method": "GET", "route": "/auditlogs" },
+  "audit": { "method": "GET", "route": "/auditlogs/{audit}" },
+  "login": { "method": "POST", "route": "/user/login" },
+  "logout": { "method": "POST", "route": "/user/logout" },
+  "keepalive": { "method": "PUT", "route": "/ping" },
+  "config": { "method": "GET", "route": "/config" },
+  "backups": { "method": "GET", "route": "/backups" },
+  "user-detail": { "method": "PUT", "route": "/user/get" },
+  "table-update": {
+    "method": "PUT",
+    "route": "/fwclouds/{cloud}/firewalls/{firewall}/routingTables/{table}"
+  }
+}

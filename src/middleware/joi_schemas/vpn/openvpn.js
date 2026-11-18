@@ -113,7 +113,7 @@ schema.validate = req => {
 				then: 
 				Joi.string()
 				.valid('askpass', 'auth-gen-token', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
-					'auth', 'bcast-buffers','block-outside-dns', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'data-ciphers', 'data-ciphers-fallback', 'client-cert-not-required', 'client-config-dir',
+					'auth', 'bcast-buffers','block-outside-dns', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'data-ciphers', 'data-ciphers-fallback', 'ncp-ciphers', 'client-cert-not-required', 'client-config-dir',
 					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'config', 'connect-freq',
 					'connect-retry', 'crl-verify', 'cryptoapicert', 'daemon', 'dev-node', 'dev-type', 'dev', 'dh', 'dhcp-option', 'dhcp-release',
 					'dhcp-renew', 'disable-occ', 'disable', 'down-pre', 'down', 'duplicate-cn', 'echo', 'engine', 'explicit-exit-notify', 'fast-io',
@@ -177,6 +177,7 @@ schema.validate = req => {
 				.conditional('name', { is: 'cipher', then: Joi.string().valid(...validCiphers)})
 				.conditional('name', { is: 'data-ciphers', then: Joi.string().regex(cipherRegex)})
 				.conditional('name', { is: 'data-ciphers-fallback', then: Joi.string().valid(...validCiphers)})
+				.conditional('name', { is: 'ncp-ciphers', then: Joi.string().regex(cipherRegex) })
 				.conditional('name', { is: 'config', then: sharedSch.linux_path })
 				.conditional('name', { is: 'ifconfig-pool-persist', then: sharedSch.linux_path })
 				.conditional('name', { is: 'client-config-dir', then: sharedSch.linux_path })

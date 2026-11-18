@@ -32,12 +32,7 @@ describe(describeName('IdManager Unit tests'), () => {
   let manager: EntityManager;
 
   before(async () => {
-    const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(
-      DatabaseService.name,
-    );
-    await dbService.emptyDatabase();
-
-    await testSuite.resetDatabaseData();
+    await testSuite.resetDatabaseData({ rebuildSchema: true });
   });
 
   beforeEach(async () => {

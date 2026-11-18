@@ -419,7 +419,7 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 					await policyGroupRepository.deleteIfEmpty(policyGroup);
 				}
 			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
-				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: ['policyRules'] });
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: { policyRules: true } });
 				if (policyGroup.policyRules && policyGroup.policyRules.length < 1) {
 					await policyGroupRepository.delete({ id: policyGroup.id });
 				}

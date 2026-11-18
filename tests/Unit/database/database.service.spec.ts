@@ -67,6 +67,10 @@ describe(describeName('Database Service tests'), () => {
   });
 
   describe('rollbackMigrations()', () => {
+    after(async () => {
+      await testSuite.resetDatabaseData({ rebuildSchema: true });
+    });
+
     it('should rollback multiple migrations', async () => {
       const migrations: Migration[] = await databaseService.getExecutedMigrations();
 

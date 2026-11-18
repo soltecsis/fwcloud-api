@@ -48,7 +48,7 @@ export class FwCloudPolicy extends Policy {
 
     user = await User.findOne({
       where: { id: user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
     return user.fwClouds.findIndex((item) => item.id === fwCloud.id) >= 0
       ? Authorization.grant()

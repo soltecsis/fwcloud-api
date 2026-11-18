@@ -1,4 +1,4 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, IsNull } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 import { ValidationException } from '../../../../src/fonaments/exceptions/validation-exception';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
@@ -88,7 +88,7 @@ describe(RouteService.name, () => {
     it('should throw exception when gateway is not provided and interface is missing', async () => {
       const standards: IPObj[] = await manager.getRepository(IPObj).find({
         where: {
-          fwCloudId: null,
+          fwCloudId: IsNull(),
         },
       });
 
@@ -103,7 +103,7 @@ describe(RouteService.name, () => {
     it('should create route without gateway when interface and destinations are provided', async () => {
       const standards: IPObj[] = await manager.getRepository(IPObj).find({
         where: {
-          fwCloudId: null,
+          fwCloudId: IsNull(),
         },
       });
 
@@ -117,7 +117,7 @@ describe(RouteService.name, () => {
         where: {
           id: route.id,
         },
-        relations: ['routeToIPObjs'],
+        relations: { routeToIPObjs: true },
       });
 
       expect(route.gatewayId).to.be.null;
@@ -163,7 +163,7 @@ describe(RouteService.name, () => {
       it('should attach standard ipobj', async () => {
         const standards: IPObj[] = await manager.getRepository(IPObj).find({
           where: {
-            fwCloudId: null,
+            fwCloudId: IsNull(),
           },
         });
 
@@ -180,7 +180,7 @@ describe(RouteService.name, () => {
           where: {
             id: route.id,
           },
-          relations: ['routeToIPObjs'],
+          relations: { routeToIPObjs: true },
         });
 
         expect(route.routeToIPObjs).to.have.length(standards.length);
@@ -198,7 +198,7 @@ describe(RouteService.name, () => {
           where: {
             id: route.id,
           },
-          relations: ['firewallApplyTo'],
+          relations: { firewallApplyTo: true },
         });
         expect(route.firewallApplyTo.id).to.eq(firewall.id);
       });
@@ -213,7 +213,7 @@ describe(RouteService.name, () => {
           where: {
             id: route.id,
           },
-          relations: ['firewallApplyTo'],
+          relations: { firewallApplyTo: true },
         });
         expect(route.firewallApplyToId).to.eq(null);
       });
@@ -316,7 +316,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['firewallApplyTo'],
+              relations: { firewallApplyTo: true },
             })
           ).firewallApplyTo.id,
         ).to.eq(firewall.id);
@@ -337,7 +337,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['firewallApplyTo'],
+              relations: { firewallApplyTo: true },
             })
           ).firewallApplyToId,
         ).to.eq(null);
@@ -352,7 +352,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['firewallApplyTo'],
+              relations: { firewallApplyTo: true },
             })
           ).firewallApplyToId,
         ).to.eq(null);
@@ -414,7 +414,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToIPObjs'],
+              relations: { routeToIPObjs: true },
             })
           ).routeToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj1.id, ipobj2.id]);
@@ -438,7 +438,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToIPObjs'],
+              relations: { routeToIPObjs: true },
             })
           ).routeToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj2.id]);
@@ -462,7 +462,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToIPObjs'],
+              relations: { routeToIPObjs: true },
             })
           ).routeToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([]);
@@ -575,7 +575,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToIPObjGroups'],
+              relations: { routeToIPObjGroups: true },
             })
           ).routeToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group1.id, group2.id]);
@@ -599,7 +599,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToIPObjGroups'],
+              relations: { routeToIPObjGroups: true },
             })
           ).routeToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group2.id]);
@@ -623,7 +623,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToIPObjGroups'],
+              relations: { routeToIPObjGroups: true },
             })
           ).routeToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([]);
@@ -731,7 +731,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToOpenVPNs'],
+              relations: { routeToOpenVPNs: true },
             })
           ).routeToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN1.id, openVPN2.id]);
@@ -755,7 +755,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToOpenVPNs'],
+              relations: { routeToOpenVPNs: true },
             })
           ).routeToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN2.id]);
@@ -779,7 +779,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToOpenVPNs'],
+              relations: { routeToOpenVPNs: true },
             })
           ).routeToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([]);
@@ -856,7 +856,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToOpenVPNPrefixes'],
+              relations: { routeToOpenVPNPrefixes: true },
             })
           ).routeToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id]);
@@ -880,7 +880,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToOpenVPNPrefixes'],
+              relations: { routeToOpenVPNPrefixes: true },
             })
           ).routeToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix2.id]);
@@ -904,7 +904,7 @@ describe(RouteService.name, () => {
               where: {
                 id: route.id,
               },
-              relations: ['routeToOpenVPNPrefixes'],
+              relations: { routeToOpenVPNPrefixes: true },
             })
           ).routeToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([]);
@@ -1024,13 +1024,13 @@ describe(RouteService.name, () => {
           where: {
             id: route1.id,
           },
-          relations: ['routeToIPObjs'],
+          relations: { routeToIPObjs: true },
         });
         const refreshedroute2: Route = await manager.getRepository(Route).findOne({
           where: {
             id: route2.id,
           },
-          relations: ['routeToIPObjs'],
+          relations: { routeToIPObjs: true },
         });
 
         expect(refreshedRoute1.routeToIPObjs).length(0);
@@ -1059,13 +1059,13 @@ describe(RouteService.name, () => {
           where: {
             id: route1.id,
           },
-          relations: ['routeToIPObjGroups'],
+          relations: { routeToIPObjGroups: true },
         });
         const refreshedroute2: Route = await manager.getRepository(Route).findOne({
           where: {
             id: route2.id,
           },
-          relations: ['routeToIPObjGroups'],
+          relations: { routeToIPObjGroups: true },
         });
 
         expect(refreshedroute1.routeToIPObjGroups).length(0);
@@ -1094,13 +1094,13 @@ describe(RouteService.name, () => {
           where: {
             id: route1.id,
           },
-          relations: ['routeToOpenVPNs'],
+          relations: { routeToOpenVPNs: true },
         });
         const refreshedroute2: Route = await manager.getRepository(Route).findOne({
           where: {
             id: route2.id,
           },
-          relations: ['routeToOpenVPNs'],
+          relations: { routeToOpenVPNs: true },
         });
 
         expect(refreshedroute1.routeToOpenVPNs).length(0);
@@ -1129,13 +1129,13 @@ describe(RouteService.name, () => {
           where: {
             id: route1.id,
           },
-          relations: ['routeToOpenVPNPrefixes'],
+          relations: { routeToOpenVPNPrefixes: true },
         });
         const refreshedroute2: Route = await manager.getRepository(Route).findOne({
           where: {
             id: route2.id,
           },
-          relations: ['routeToOpenVPNPrefixes'],
+          relations: { routeToOpenVPNPrefixes: true },
         });
 
         expect(refreshedroute1.routeToOpenVPNPrefixes).length(0);
@@ -1186,7 +1186,7 @@ describe(RouteService.name, () => {
         where: {
           id: route1.id,
         },
-        relations: ['routeToIPObjs'],
+        relations: { routeToIPObjs: true },
       });
       const refreshedroute2: Route = await manager
         .getRepository(Route)

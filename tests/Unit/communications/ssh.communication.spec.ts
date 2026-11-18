@@ -143,6 +143,82 @@ describe(SSHCommunication.name, () => {
     });
   });
 
+  describe('Firewall policy installation', () => {
+    const standardScriptPath = '/etc/fwcloud/fwcloud.sh';
+    const backupPath = '/etc/fwcloud/fwcloud-20261116123045.sh';
+    let uploadFile: sinon.SinonStub;
+    let runCommand: sinon.SinonStub;
+
+    beforeEach(() => {
+      testSuite.app.config.set('firewall_communication.ssh_enable', true);
+      uploadFile = sinon.stub(sshTools, 'uploadFile').resolves();
+      runCommand = sinon.stub(sshTools, 'runCommand');
+    });
+
+    it('backs up an installed script before installing and loading the new policy', async () => {
+      runCommand.onCall(0).resolves(`${backupPath}\n`);
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).resolves('');
+
+      expect(await ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.equal('DONE');
+
+      expect(uploadFile.firstCall.args.slice(1)).to.deep.equal(['/tmp/fwcloud.sh', 'fwcloud.sh']);
+      expect(runCommand.callCount).to.equal(3);
+      expect(runCommand.getCall(0).args[1]).to.contain(standardScriptPath);
+      expect(runCommand.getCall(0).args[1]).to.contain('date +%Y%m%d%H%M%S');
+      expect(runCommand.getCall(1).args[1]).to.contain("'./fwcloud.sh' install");
+      expect(runCommand.getCall(2).args[1]).to.contain(standardScriptPath);
+      expect(runCommand.getCall(2).args[1]).to.contain('start');
+    });
+
+    it('does not attempt recovery on a first installation', async () => {
+      runCommand.onCall(0).resolves('');
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).resolves('');
+
+      expect(await ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.equal('DONE');
+
+      expect(runCommand.callCount).to.equal(3);
+      expect(runCommand.getCall(2).args[1]).to.contain(standardScriptPath);
+      expect(runCommand.getCall(2).args[1]).to.contain('start');
+    });
+
+    it('restores the exact backup when installing the new policy fails', async () => {
+      const installationError = new Error('installation failed');
+      runCommand.onCall(0).resolves(`${backupPath}\n`);
+      runCommand.onCall(1).rejects(installationError);
+      runCommand.onCall(2).resolves('');
+      runCommand.onCall(3).resolves('');
+
+      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(
+        installationError,
+      );
+
+      expect(runCommand.callCount).to.equal(4);
+      expect(runCommand.getCall(2).args[1]).to.contain('rm -f');
+      expect(runCommand.getCall(2).args[1]).to.contain(backupPath);
+      expect(runCommand.getCall(2).args[1]).to.contain(standardScriptPath);
+      expect(runCommand.getCall(3).args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+
+    it('restores the exact backup when loading the new policy fails', async () => {
+      const loadingError = new Error('loading failed');
+      runCommand.onCall(0).resolves(`${backupPath}\n`);
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).rejects(loadingError);
+      runCommand.onCall(3).resolves('');
+      runCommand.onCall(4).resolves('');
+
+      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(loadingError);
+
+      expect(runCommand.callCount).to.equal(5);
+      expect(runCommand.getCall(3).args[1]).to.contain('mv');
+      expect(runCommand.getCall(3).args[1]).to.contain(backupPath);
+      expect(runCommand.getCall(3).args[1]).to.contain(standardScriptPath);
+      expect(runCommand.getCall(4).args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+  });
+
   describe('OpenVPN client config directory', () => {
     let stub: sinon.SinonStub;
 
