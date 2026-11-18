@@ -121,13 +121,16 @@ export class AuditLogController extends Controller {
   }
 
   protected buildOptions(request: Request, currentUser: User | null): ListAuditLogsOptions {
+    const query = request.query;
     const options: ListAuditLogsOptions = this.buildAccessOptions(request, currentUser);
-    options.sortBy = request.query.sort_by === 'end' ? 'end' : 'start';
-    options.sortOrder = request.query.sort_order === 'asc' ? 'asc' : 'desc';
+    options.sortBy = query.sort_by === 'end' ? 'end' : 'start';
+    options.sortOrder = query.sort_order === 'asc' ? 'asc' : 'desc';
+    const excludeConfirmationTokenRequests: unknown = query.exclude_confirmation_token_requests;
+    options.excludeConfirmationTokenRequests =
+      excludeConfirmationTokenRequests === true || excludeConfirmationTokenRequests === 'true';
 
     const requestedLimit =
-      this.parseNonNegativeInteger(request.query.limit) ??
-      this.parseNonNegativeInteger(request.query.pageSize);
+      this.parseNonNegativeInteger(query.limit) ?? this.parseNonNegativeInteger(query.pageSize);
 
     // A limit of 0 disables paging.
     options.take =
@@ -138,41 +141,41 @@ export class AuditLogController extends Controller {
             AuditLogController.MAX_LIMIT,
           );
 
-    const startedAtFrom = this.parseIsoDate(request.query.started_at_from);
+    const startedAtFrom = this.parseIsoDate(query.started_at_from);
     if (startedAtFrom) {
       options.startedAtFrom = startedAtFrom;
     }
 
-    const startedAtTo = this.parseIsoDate(request.query.started_at_to);
+    const startedAtTo = this.parseIsoDate(query.started_at_to);
     if (startedAtTo) {
       options.startedAtTo = startedAtTo;
     }
 
     for (const [queryKey, optionKey] of TEXT_FILTER_OPTIONS) {
-      const value = this.parseString(request.query[queryKey]);
+      const value = this.parseString(query[queryKey]);
       if (value) options[optionKey] = value;
     }
 
-    const sessionFilter = this.parseNonNegativeInteger(request.query.session_id);
+    const sessionFilter = this.parseNonNegativeInteger(query.session_id);
     if (sessionFilter !== undefined) {
       options.sessionIdFilter = sessionFilter;
     }
 
     for (const [queryKey, optionKey] of ENTITY_ID_FILTER_OPTIONS) {
-      const value = this.parsePositiveInteger(request.query[queryKey]);
+      const value = this.parsePositiveInteger(query[queryKey]);
       if (value !== undefined) options[optionKey] = value;
     }
 
-    if (request.query.event_type !== undefined) {
-      options.eventTypes = parseAuditEventTypes(request.query.event_type) as AuditEventType[];
+    if (query.event_type !== undefined) {
+      options.eventTypes = parseAuditEventTypes(query.event_type) as AuditEventType[];
     }
 
-    const cursor = this.parseCursor(request.query.cursor, options.sortBy);
+    const cursor = this.parseCursor(query.cursor, options.sortBy);
     if (cursor) {
       options.cursor = cursor;
     }
 
-    const page = this.parsePositiveInteger(request.query.page) ?? 1;
+    const page = this.parsePositiveInteger(query.page) ?? 1;
     if (page > 1 && options.take) {
       options.skip = (page - 1) * options.take;
     }
@@ -271,6 +274,7 @@ export class AuditLogController extends Controller {
       cluster: this.formatEntityRef(entry.clusterId, entry.clusterName),
       call: entry.call,
       status: entry.status,
+      confirmationTokenChallenge: entry.confirmationTokenChallenge ?? null,
       eventType: entry.eventType ?? null,
       outcome: entry.outcome ?? null,
       description: entry.description,

@@ -90,6 +90,88 @@ describe(describeName('AuditLogService unit suite'), () => {
   });
 
   describe('listAuditLogs', () => {
+    it('excludes only explicitly marked challenges while retaining other errors and historical entries', async () => {
+      const challenge = await createAuditLog({ status: 403, confirmationTokenChallenge: true });
+      const retained = await Promise.all(
+        [
+          { status: 403, confirmationTokenChallenge: false },
+          { status: 403, confirmationTokenChallenge: null },
+          { status: 401, confirmationTokenChallenge: false },
+          { status: 500, confirmationTokenChallenge: false },
+          { status: 200, confirmationTokenChallenge: false },
+        ].map((entry) => createAuditLog(entry)),
+      );
+
+      const result = await service.listAuditLogs({
+        isAdmin: true,
+        excludeConfirmationTokenRequests: true,
+      });
+
+      expect(result.total).to.equal(retained.length);
+      expect(result.auditLogs.map((entry) => entry.id)).to.have.members(
+        retained.map((entry) => entry.id),
+      );
+      expect(
+        result.auditLogs.find((entry) => entry.id === retained[0].id).confirmationTokenChallenge,
+      ).to.be.false;
+      expect(
+        result.auditLogs.find((entry) => entry.id === retained[1].id).confirmationTokenChallenge,
+      ).to.be.null;
+      expect(await repository.findOneBy({ id: challenge.id })).not.to.be.null;
+      expect(await repository.count()).to.equal(retained.length + 1);
+    });
+
+    for (const excludeConfirmationTokenRequests of [undefined, false]) {
+      it(`includes marked challenges when exclusion is ${String(excludeConfirmationTokenRequests)}`, async () => {
+        const challenge = await createAuditLog({ status: 403, confirmationTokenChallenge: true });
+        const unrelated = await createAuditLog({ status: 403, confirmationTokenChallenge: false });
+
+        const result = await service.listAuditLogs({
+          isAdmin: true,
+          excludeConfirmationTokenRequests,
+        });
+
+        expect(result.total).to.equal(2);
+        expect(result.auditLogs.map((entry) => entry.id)).to.have.members([
+          challenge.id,
+          unrelated.id,
+        ]);
+        expect(
+          result.auditLogs.find((entry) => entry.id === challenge.id).confirmationTokenChallenge,
+        ).to.be.true;
+      });
+    }
+
+    it('combines exclusion with access restrictions and computes totals before pagination', async () => {
+      const first = await createAuditLog({
+        userId: 501,
+        status: 403,
+        confirmationTokenChallenge: false,
+      });
+      await createAuditLog({ userId: 501, status: 403, confirmationTokenChallenge: true });
+      const second = await createAuditLog({
+        userId: 501,
+        status: 401,
+        confirmationTokenChallenge: false,
+      });
+      await createAuditLog({ userId: 999, confirmationTokenChallenge: false });
+      const options: ListAuditLogsOptions = {
+        isAdmin: false,
+        userId: 501,
+        excludeConfirmationTokenRequests: true,
+        take: 1,
+        sortOrder: 'asc',
+      };
+
+      const pageOne = await service.listAuditLogs(options);
+      const pageTwo = await service.listAuditLogs({ ...options, skip: 1 });
+
+      expect(pageOne.total).to.equal(2);
+      expect(pageTwo.total).to.equal(2);
+      expect(pageOne.auditLogs.map((entry) => entry.id)).to.deep.equal([first.id]);
+      expect(pageTwo.auditLogs.map((entry) => entry.id)).to.deep.equal([second.id]);
+    });
+
     it('returns an empty result for non administrative users without identifiers', async () => {
       const result = await service.listAuditLogs({
         isAdmin: false,
@@ -238,6 +320,29 @@ describe(describeName('AuditLogService unit suite'), () => {
           .returns(query as unknown as SelectQueryBuilder<AuditLog>);
         return query;
       };
+
+      it('applies challenge exclusion to the database query before counts and paging', async () => {
+        const query = stubListQuery();
+
+        await service.listAuditLogs({
+          isAdmin: true,
+          excludeConfirmationTokenRequests: true,
+          take: 10,
+          skip: 2,
+        });
+
+        expect(query.andWhere.firstCall.args).to.deep.equal([
+          '(auditLog.confirmationTokenChallenge IS NULL OR auditLog.confirmationTokenChallenge = :confirmationTokenChallenge)',
+          { confirmationTokenChallenge: false },
+        ]);
+        sinon.assert.callOrder(
+          query.andWhere,
+          query.getCount,
+          query.limit,
+          query.offset,
+          query.getRawMany,
+        );
+      });
 
       for (const sortBy of ['start', 'end'] as const) {
         for (const sortOrder of ['asc', 'desc'] as const) {
