@@ -364,6 +364,7 @@ export class AuditLogMiddleware extends Middleware {
 
       auditLog.call = this.buildCall(req);
       auditLog.status = null;
+      auditLog.confirmationTokenChallenge = false;
       auditLog.eventType = this.getEventType(req, res);
       auditLog.outcome = null;
       auditLog.durationMs = null;
@@ -410,6 +411,8 @@ export class AuditLogMiddleware extends Middleware {
       auditLog.startedAt = startedAt;
       auditLog.call = this.buildCall(req);
       auditLog.status = AuditLogHelper.normalizeHttpStatus(res.statusCode);
+      auditLog.confirmationTokenChallenge =
+        res?.locals?.__auditLogConfirmationTokenChallenge === true;
       auditLog.eventType = this.getEventType(req, res);
       auditLog.outcome = null;
       auditLog.durationMs = durationMs;
@@ -1095,6 +1098,10 @@ export class AuditLogMiddleware extends Middleware {
   private shouldPersistAuditLog(req: Request, res: Response): boolean {
     if (res?.locals?.__auditLogHandled) {
       return false;
+    }
+
+    if (res?.locals?.__auditLogConfirmationTokenChallenge === true) {
+      return true;
     }
 
     if (isAuthenticationEvent(this.getEventType(req, res))) {

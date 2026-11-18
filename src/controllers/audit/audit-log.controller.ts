@@ -124,6 +124,10 @@ export class AuditLogController extends Controller {
     const options: ListAuditLogsOptions = this.buildAccessOptions(request, currentUser);
     options.sortBy = request.query.sort_by === 'end' ? 'end' : 'start';
     options.sortOrder = request.query.sort_order === 'asc' ? 'asc' : 'desc';
+    const excludeConfirmationTokenRequests: unknown =
+      request.query.exclude_confirmation_token_requests;
+    options.excludeConfirmationTokenRequests =
+      excludeConfirmationTokenRequests === true || excludeConfirmationTokenRequests === 'true';
 
     const requestedLimit =
       this.parseNonNegativeInteger(request.query.limit) ??
@@ -271,6 +275,7 @@ export class AuditLogController extends Controller {
       cluster: this.formatEntityRef(entry.clusterId, entry.clusterName),
       call: entry.call,
       status: entry.status,
+      confirmationTokenChallenge: entry.confirmationTokenChallenge ?? null,
       eventType: entry.eventType ?? null,
       outcome: entry.outcome ?? null,
       description: entry.description,

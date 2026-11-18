@@ -86,6 +86,7 @@ export type ListAuditLogsOptions = {
   sortOrder?: AuditLogSortOrder;
   cursor?: ListAuditLogsCursor;
   eventTypes?: AuditEventType[];
+  excludeConfirmationTokenRequests?: boolean;
 };
 
 export type AuditLogAccessOptions = Pick<
@@ -96,6 +97,7 @@ export type AuditLogAccessOptions = Pick<
 };
 
 export type AuditLogSummary = {
+  confirmationTokenChallenge: boolean | null;
   eventType: AuditEventType | null;
   outcome: AuditOutcome | null;
   id: number;
@@ -117,6 +119,7 @@ export type AuditLogSummary = {
 };
 
 type AuditLogSummaryRow = {
+  confirmationTokenChallenge: boolean | number | string | null;
   eventType: AuditEventType | null;
   outcome: AuditOutcome | null;
   id: number | string;
@@ -210,6 +213,13 @@ export class AuditLogService extends Service {
 
     if (options.eventTypes?.length) {
       query.andWhere('auditLog.eventType IN (:...eventTypes)', { eventTypes: options.eventTypes });
+    }
+
+    if (options.excludeConfirmationTokenRequests === true) {
+      query.andWhere(
+        '(auditLog.confirmationTokenChallenge IS NULL OR auditLog.confirmationTokenChallenge = :confirmationTokenChallenge)',
+        { confirmationTokenChallenge: false },
+      );
     }
 
     if (options.startedAtFrom instanceof Date) {
@@ -437,6 +447,7 @@ export class AuditLogService extends Service {
       .addSelect('auditLog.clusterName', 'clusterName')
       .addSelect('auditLog.call', 'call')
       .addSelect('auditLog.status', 'status')
+      .addSelect('auditLog.confirmationTokenChallenge', 'confirmationTokenChallenge')
       .addSelect('auditLog.eventType', 'eventType')
       .addSelect('auditLog.outcome', 'outcome')
       .addSelect('auditLog.durationMs', 'durationMs')
@@ -459,6 +470,12 @@ export class AuditLogService extends Service {
       clusterName: auditLog.clusterName,
       call: auditLog.call,
       status: AuditLogHelper.normalizeHttpStatus(auditLog.status),
+      confirmationTokenChallenge:
+        auditLog.confirmationTokenChallenge == null
+          ? null
+          : auditLog.confirmationTokenChallenge === true ||
+            auditLog.confirmationTokenChallenge === 1 ||
+            auditLog.confirmationTokenChallenge === '1',
       eventType: auditLog.eventType ?? null,
       outcome: auditLog.outcome ?? null,
       durationMs: this.normalizeDurationMs(auditLog.durationMs),
@@ -755,6 +772,7 @@ export class AuditLogService extends Service {
 
     auditLog.eventType = input.eventType ?? AuditEventType.Other;
     auditLog.outcome = null;
+    auditLog.confirmationTokenChallenge = false;
     auditLog.call = this.normalizeCall(input.call);
     auditLog.status = AuditLogHelper.normalizeHttpStatus(input.status);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);

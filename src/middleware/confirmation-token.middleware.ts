@@ -48,6 +48,7 @@ export class ConfirmationToken extends Middleware {
         req.session.user,
         req.sessionID,
       );
+      res.locals.__auditLogConfirmationTokenChallenge = true;
       res.status(403).json({ fwc_confirm_token: newToken });
     } catch (error) {
       logger().error('Error during confirmation token middleware: ' + JSON.stringify(error));

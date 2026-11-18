@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsISO8601,
@@ -17,6 +18,14 @@ import type { AuditLogSortBy, AuditLogSortOrder } from '../../../models/audit/Au
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 export class AuditLogListQueryDto {
+  @IsOptional()
+  @Transform(({ obj, key }) => {
+    const value = obj[key];
+    return value === 'true' ? true : value === 'false' ? false : value;
+  })
+  @IsBoolean()
+  exclude_confirmation_token_requests?: boolean;
+
   @IsOptional()
   @IsIn(['start', 'end'])
   sort_by?: AuditLogSortBy;
