@@ -134,11 +134,11 @@
     "nodemon": {
       "chokidar": "5.0.0"
     },
-    "tsoa@7.0.0-alpha.0": {
-      "@tsoa/runtime@7.0.0-alpha.0": {
-        "express": {
-          "body-parser": "2.4.0"
-        }
+    "@tsoa/cli": "7.0.0-alpha.0",
+    "@tsoa/runtime": {
+      ".": "7.0.0-alpha.0",
+      "express": {
+        "body-parser": "2.4.0"
       }
     }
   },
