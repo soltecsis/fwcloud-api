@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from 'typeorm';
+import { getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
@@ -32,7 +32,6 @@ import * as fs from 'fs-extra';
 import path from 'path';
 import { EventEmitter } from 'events';
 import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
-import { getMetadataArgsStorage } from 'typeorm';
 import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 import { Zip } from '../../utils/zip';
 import ObjectHelpers from '../../utils/object-helpers';
@@ -432,26 +431,30 @@ export class AuditLogService extends Service {
   }
 
   private selectSummaryColumns(query: SelectQueryBuilder<AuditLog>): SelectQueryBuilder<AuditLog> {
-    return query
-      .select('auditLog.id', 'id')
-      .addSelect('auditLog.startedAt', 'startedAt')
-      .addSelect('auditLog.userId', 'userId')
-      .addSelect('auditLog.userName', 'userName')
-      .addSelect('auditLog.sessionId', 'sessionId')
-      .addSelect('auditLog.sourceIp', 'sourceIp')
-      .addSelect('auditLog.fwCloudId', 'fwCloudId')
-      .addSelect('auditLog.fwCloudName', 'fwCloudName')
-      .addSelect('auditLog.firewallId', 'firewallId')
-      .addSelect('auditLog.firewallName', 'firewallName')
-      .addSelect('auditLog.clusterId', 'clusterId')
-      .addSelect('auditLog.clusterName', 'clusterName')
-      .addSelect('auditLog.call', 'call')
-      .addSelect('auditLog.status', 'status')
-      .addSelect('auditLog.confirmationTokenChallenge', 'confirmationTokenChallenge')
-      .addSelect('auditLog.eventType', 'eventType')
-      .addSelect('auditLog.outcome', 'outcome')
-      .addSelect('auditLog.durationMs', 'durationMs')
-      .addSelect('auditLog.description', 'description');
+    query.select('auditLog.id', 'id');
+    for (const property of [
+      'startedAt',
+      'userId',
+      'userName',
+      'sessionId',
+      'sourceIp',
+      'fwCloudId',
+      'fwCloudName',
+      'firewallId',
+      'firewallName',
+      'clusterId',
+      'clusterName',
+      'call',
+      'status',
+      'confirmationTokenChallenge',
+      'eventType',
+      'outcome',
+      'durationMs',
+      'description',
+    ] satisfies Array<keyof AuditLogSummary>) {
+      query.addSelect(`auditLog.${property}`, property);
+    }
+    return query;
   }
 
   private toSummary(auditLog: AuditLogSummaryRow): AuditLogSummary {
@@ -676,12 +679,7 @@ export class AuditLogService extends Service {
     customConfig: AuditLogArchiverUpdateableConfig,
   ): Promise<AuditLogArchiverUpdateableConfig> {
     await this.writeCustomizedConfig(customConfig);
-    this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
-
-    return {
-      archive_days: this._config.archive_days,
-      retention_days: this._config.retention_days,
-    };
+    return this.getCustomizedConfig();
   }
 
   protected loadCustomizedConfig(baseConfig: AuditLogArchiveConfig): AuditLogArchiveConfig {

@@ -1100,11 +1100,10 @@ export class AuditLogMiddleware extends Middleware {
       return false;
     }
 
-    if (res?.locals?.__auditLogConfirmationTokenChallenge === true) {
-      return true;
-    }
-
-    if (isAuthenticationEvent(this.getEventType(req, res))) {
+    if (
+      res?.locals?.__auditLogConfirmationTokenChallenge === true ||
+      isAuthenticationEvent(this.getEventType(req, res))
+    ) {
       return true;
     }
 
