@@ -29,6 +29,14 @@ import {
 } from '../system/haproxy/haproxy_r/haproxy_r.service';
 import { profileHAProxyErrors } from './replication-profile-haproxy';
 import { profileKeepalivedErrors } from './replication-profile-keepalived';
+import {
+  getProfileCatchAllAction,
+  getProfileCatchAllActionCode,
+  getProfileCatchAllPolicyTypeId,
+  getProfileCatchAllRuleErrors,
+  profileCatchAllLabel,
+  type ProfileCatchAllRule,
+} from './replication-profile-catch-all';
 import { dbQuery, findTreeNodeId, sqlPlaceholders } from './replication-sql.helpers';
 import { DefaultPolicyRuleComments, PolicyRule, SpecialPolicyRules } from '../policy/PolicyRule';
 import {
@@ -101,6 +109,8 @@ import {
   PolicyReplicationConflict,
   PolicyReplicationGroupPreview,
   PolicyReplicationMode,
+  PolicyReplicationCatchAllRuleChange,
+  PolicyReplicationCatchAllSettings,
   PolicyReplicationProvision,
   PolicyReplicationProvisionInterface,
   PolicyReplicationProvisionObject,
@@ -261,6 +271,9 @@ function getProvisionSettingsErrors(provision: PolicyReplicationProvision): stri
     ...getProvisionInterfaceAddressReferenceErrors(provision).map(
       (error) => `${error.path}: ${error.message}`,
     ),
+    ...getProfileCatchAllRuleErrors(provision.catchAllRules).map(
+      (error) => `catchAllRules[${error.index}]: ${error.message}`,
+    ),
   ];
   const checkNodeRole = (nodeRole: unknown, label: string): void => {
     if (nodeRole !== undefined && !asReplicationProfileNonEmptyString(nodeRole)) {
@@ -288,6 +301,22 @@ function getProvisionSettingsErrors(provision: PolicyReplicationProvision): stri
     checkNodeRole(entry.nodeRole, `Keepalived ${index + 1}`);
   }
   return errors;
+}
+
+/** A destination catch-all rule, as planProvisionCatchAllRules() reads it. */
+interface CatchAllRuleRow {
+  id: number;
+  type: number;
+  action: number;
+  active: number;
+  options: number;
+  comment: string | null;
+}
+
+interface ProvisionCatchAllPlan {
+  rule: ProfileCatchAllRule;
+  policyTypeId: number;
+  existing?: CatchAllRuleRow;
 }
 
 interface ProvisionBinding {
@@ -587,6 +616,11 @@ export class PolicyReplicationService extends Service {
       options.nodeRoleMapping,
       result,
     );
+    const catchAllPlan = await this.planProvisionCatchAllRules(
+      provision.catchAllRules,
+      firewallId,
+      result,
+    );
     if (result.errors.length > 0) {
       return result;
     }
@@ -683,6 +717,7 @@ export class PolicyReplicationService extends Service {
       options.vpnConfigIds,
       ruleNodeIds,
     );
+    await this.provisionCatchAllRules(catchAllPlan, firewallId, result, mode, isDryRun);
 
     if (extraCount > 0) {
       // Routing and system entries are only written once the policy went in cleanly.
@@ -2030,7 +2065,8 @@ export class PolicyReplicationService extends Service {
   /**
    * Identifies existing FWCloud defaults in policies supplied by the profile.
    * Called before insertion so profile rules with default comments are excluded.
-   * The stateful rule is kept so replies to allowed connections remain accepted.
+   * The stateful rule is kept so replies to allowed connections remain accepted, and the catch-all
+   * rule because FWCloud keeps one per policy: provisionCatchAllRules() sets it from the template.
    */
   private async getProvisionDefaultRuleIds(
     provision: PolicyReplicationProvision,
@@ -2058,7 +2094,7 @@ export class PolicyReplicationService extends Service {
     return rules
       .filter(
         (rule) =>
-          rule.special === SPECIAL_CATCHALL || DEFAULT_RULE_COMMENTS.includes(rule.comment ?? ''),
+          rule.special !== SPECIAL_CATCHALL && DEFAULT_RULE_COMMENTS.includes(rule.comment ?? ''),
       )
       .map((rule) => rule.id);
   }
@@ -2101,6 +2137,150 @@ export class PolicyReplicationService extends Service {
         [count, firewallId, policyTypeId, SPECIAL_CATCHALL],
       );
     }
+  }
+
+  /**
+   * Pairs each catch-all rule of the template with the destination's catch-all rule of the same
+   * policy, before anything is written. More than one there leaves no single final action to set.
+   */
+  private async planProvisionCatchAllRules(
+    rules: ProfileCatchAllRule[],
+    firewallId: number,
+    result: PolicyReplicationResult,
+  ): Promise<ProvisionCatchAllPlan[]> {
+    if (rules.length === 0) {
+      return [];
+    }
+
+    const types = rules.map(getProfileCatchAllPolicyTypeId);
+    const rows = await dbQuery<CatchAllRuleRow>(
+      `SELECT id, type, action, active, options, comment FROM policy_r
+       WHERE firewall = ? AND special = ? AND type IN (${sqlPlaceholders(types.length)}) ORDER BY id`,
+      [firewallId, SPECIAL_CATCHALL, ...types],
+    );
+
+    return rules.map((rule, index) => {
+      const existing = rows.filter((row) => row.type === types[index]);
+      if (existing.length > 1) {
+        result.errors.push(
+          `Catch-all rule of ${profileCatchAllLabel(rule)}: the destination has ${existing.length} catch-all rules (IDs ${existing.map((row) => row.id).join(', ')}) and FWCloud keeps one per policy.`,
+        );
+      }
+      return { rule, policyTypeId: types[index], existing: existing[0] };
+    });
+  }
+
+  /**
+   * Gives each destination catch-all rule the template's settings, updating it in place, or adds
+   * it last to a policy that has none. Settings the template leaves out keep the destination's
+   * values. Merge mode changes no existing rule, so it reports a different catch-all instead.
+   */
+  private async provisionCatchAllRules(
+    plan: ProvisionCatchAllPlan[],
+    firewallId: number,
+    result: PolicyReplicationResult,
+    mode: PolicyReplicationMode,
+    isDryRun: boolean,
+  ): Promise<void> {
+    if (plan.length === 0 || result.errors.length > 0) {
+      return;
+    }
+
+    const changes: PolicyReplicationCatchAllRuleChange[] = [];
+    for (const { rule, policyTypeId, existing } of plan) {
+      const label = `Catch-all rule of ${profileCatchAllLabel(rule)}`;
+      const previous: PolicyReplicationCatchAllSettings | null = existing
+        ? {
+            action: getProfileCatchAllAction(existing.action) ?? Number(existing.action),
+            active: !!existing.active,
+            options: Number(existing.options),
+            comment: existing.comment,
+          }
+        : null;
+      // A new catch-all rule starts as PolicyRule.checkCatchAllRules() creates one.
+      const base = previous ?? { active: true, options: 0, comment: 'Catch-all rule.' };
+      const next: PolicyReplicationCatchAllSettings = {
+        action: rule.action,
+        active: rule.active ?? base.active,
+        options: rule.options ?? base.options,
+        comment: rule.comment ?? base.comment,
+      };
+      const differences = previous
+        ? (['action', 'active', 'options', 'comment'] as const)
+            .filter((field) => previous[field] !== next[field])
+            .map(
+              (field) =>
+                `${field} ${this.catchAllValue(previous, field)} -> ${this.catchAllValue(next, field)}`,
+            )
+        : [`added with action ${this.catchAllValue(next, 'action')}`];
+      const changed = differences.length > 0;
+
+      if (mode === 'merge') {
+        if (changed) {
+          result.conflicts.push({
+            type: 'different_catch_all_rule',
+            message: existing
+              ? `${label}: merge mode keeps the destination's catch-all rule; the template sets ${differences.join(', ')}.`
+              : `${label}: the destination has none and merge mode does not add one; the template's action is ${this.catchAllValue(next, 'action')}.`,
+            ...(existing ? { targetRuleId: existing.id } : {}),
+          });
+        }
+        continue;
+      }
+
+      let targetRuleId = existing?.id ?? null;
+      if (!isDryRun && changed) {
+        const values = {
+          action: getProfileCatchAllActionCode(rule.action),
+          active: next.active ? 1 : 0,
+          options: next.options,
+          comment: next.comment,
+        };
+        if (existing) {
+          await dbQuery(
+            'UPDATE policy_r SET action = ?, active = ?, options = ?, comment = ? WHERE id = ?',
+            [values.action, values.active, values.options, values.comment, existing.id],
+          );
+        } else {
+          const [last] = await dbQuery<{ ruleOrder: number | null }>(
+            'SELECT MAX(rule_order) AS ruleOrder FROM policy_r WHERE firewall = ? AND type = ?',
+            [firewallId, policyTypeId],
+          );
+          targetRuleId = await PolicyRule.insertPolicy_r({
+            firewall: firewallId,
+            type: policyTypeId,
+            rule_order: Number(last?.ruleOrder ?? 0) + 1,
+            special: SPECIAL_CATCHALL,
+            ...values,
+          });
+        }
+      }
+
+      if (changed) {
+        result.warnings.push(`${label}: ${differences.join(', ')}.`);
+      }
+      changes.push({
+        chain: rule.chain,
+        ipVersion: rule.ipVersion,
+        policyTypeId,
+        targetRuleId,
+        previous,
+        next,
+        changed,
+      });
+    }
+    if (mode !== 'merge') {
+      result.catchAllRules = changes;
+    }
+  }
+
+  private catchAllValue(
+    settings: PolicyReplicationCatchAllSettings,
+    field: keyof PolicyReplicationCatchAllSettings,
+  ): string {
+    const value = settings[field];
+    if (field !== 'action') return JSON.stringify(value);
+    return typeof value === 'number' ? `code ${value}` : String(value).toUpperCase();
   }
 
   private async loadProfileBindings(

@@ -46,6 +46,25 @@ Imported templates are always custom templates owned by the authenticated user, 
 
 Names must be nonempty, at most 255 characters, and cannot contain dots, path separators, control characters or unsafe filesystem characters. A duplicate code or name in the owner's namespace returns HTTP `409` with portable conflicting metadata in `errors.conflicts`; edit `profile.code` or `profile.name` before retrying. Unsupported formats, unsupported versions and invalid definitions return `422`; malformed JSON returns `400`. Imports exceeding `REPLICATION_PROFILES_IMPORT_MAX_SIZE` (default `2097152` uncompressed bytes, config key `replication_profiles.import_max_size`) return `413`. The size limit applies while reading the request body, including compressed requests.
 
+## Replication profile catch-all rules
+
+FWCloud ends each INPUT, OUTPUT and FORWARD policy of both IP families with one catch-all rule (`policy_r.special = 2`). Its action decides what happens to the traffic no other rule matches. NAT policies have no catch-all rule. A template keeps these rules in `catchAllRules`, next to `rules`, in `provision` and `policyStructure`:
+
+```json
+"catchAllRules": [
+  { "chain": "input", "ipVersion": 4, "action": "deny", "active": true, "options": 0, "comment": "Catch-all rule." },
+  { "chain": "output", "ipVersion": 4, "action": "deny", "active": true, "options": 2, "comment": "Catch-all rule." },
+  { "chain": "forward", "ipVersion": 6, "action": "reject", "active": true, "options": 4 }
+]
+```
+
+- `chain` (`input`, `output` or `forward`), `ipVersion` (`4` or `6`) and `action` are required. `action` is `accept`, `deny` (compiled as DROP) or `reject`, the actions FWCloud allows on a catch-all rule. Each policy can appear only once. Other fields are rejected, because a catch-all rule matches everything that reaches the end of its policy.
+- `active` (boolean), `options` (the native `policy_r.options` bitmask, such as LOG `4` or STATELESS `2`) and `comment` are optional. When one is omitted, the destination keeps its own value.
+- Capturing a firewall or cluster stores the catch-all rule of every filter policy, whether or not it was changed from FWCloud's default. A catch-all rule the template cannot represent makes the capture fail with HTTP `422` and names its policy. This applies to an action other than ACCEPT, DENY or REJECT, a restriction to one cluster node, a negation or validity period, a reference to interfaces or objects, or a second catch-all rule in the same policy.
+- Applying a template in `replace_defaults` mode updates the destination's catch-all rule of each listed policy in place, so no second catch-all rule is created. A policy without a catch-all rule gets one as its last rule. The result's `catchAllRules` lists every one with its `previous` and `next` settings, `targetRuleId`, and whether it `changed`. Each change also appears in `warnings`, for example `Catch-all rule of OUTPUT IPv4: action ACCEPT -> DENY.`. A `dry_run` preview reports the same entries without writing anything; a rule it would create has `targetRuleId: null`. `merge` mode never changes existing rules. For each catch-all rule that differs, it reports a `different_catch_all_rule` conflict.
+- An invalid `catchAllRules` entry is rejected with HTTP `422` when the template is saved, imported or validated. It is also rejected before any write when the template is applied. No action is ever replaced by a default.
+- Applying a template never deletes catch-all rules. This includes templates saved before catch-all rules were captured. When a template has no entry for a policy, the destination keeps its own catch-all rule and action, moved below the provisioned rules. A missing entry is never taken as ACCEPT or DENY.
+
 ## Assisted Profile agent transport
 
 `AgentHttpClient` is the single production transport for Assisted Profile generation. It connects directly to the configured agent's `POST /generate` endpoint and authenticates every request with `X-API-Key`. Agent traffic does not use application intermediaries, and proxy environment variables such as `HTTP_PROXY` and `HTTPS_PROXY` are ignored for this connection.

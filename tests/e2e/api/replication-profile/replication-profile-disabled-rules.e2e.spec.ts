@@ -3,7 +3,6 @@ import request = require('supertest');
 import { Application } from '../../../../src/Application';
 import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import db from '../../../../src/database/database-manager';
-import { Cluster } from '../../../../src/models/firewall/Cluster';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { Interface } from '../../../../src/models/interface/Interface';
@@ -20,15 +19,11 @@ import {
 } from '../../../../src/models/replication-profile/replication-profile-template';
 import { User } from '../../../../src/models/user/User';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
+import {
+  makeReplicationSide,
+  type ReplicationSide,
+} from '../../../utils/replication-profile-fixtures';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
-
-interface Side {
-  /** The firewall, or the cluster, a template is captured from or applied to. */
-  id: number;
-  /** The firewall holding the policy: the cluster master for a cluster. */
-  master: Firewall;
-  backup?: Firewall;
-}
 
 const FORWARD = PolicyTypesMap.get('IPv4:FORWARD');
 const POSITIONS = getProvisionRulePositions(4, 'forward');
@@ -92,39 +87,11 @@ describe(describeName('Replication profile disabled rules E2E Tests'), () => {
     }
   });
 
-  async function makeSide(
-    cloud: FwCloud,
-    kind: 'firewall' | 'cluster',
-    label: string,
-  ): Promise<Side> {
-    const cluster =
-      kind === 'cluster'
-        ? await manager()
-            .getRepository(Cluster)
-            .save({ name: `${code}-${label}-cluster`, fwCloudId: cloud.id })
-        : undefined;
-    const master = await manager()
-      .getRepository(Firewall)
-      .save({
-        name: `${code}-${label}-a`,
-        fwCloudId: cloud.id,
-        ...(cluster ? { clusterId: cluster.id, fwmaster: 1 } : {}),
-      });
-    const backup = cluster
-      ? await manager()
-          .getRepository(Firewall)
-          .save({
-            name: `${code}-${label}-b`,
-            fwCloudId: cloud.id,
-            clusterId: cluster.id,
-            fwmaster: 0,
-          })
-      : undefined;
-    return { id: cluster?.id ?? master.id, master, backup };
-  }
+  const makeSide = (cloud: FwCloud, kind: 'firewall' | 'cluster', label: string) =>
+    makeReplicationSide(cloud.id, kind, `${code}-${label}`);
 
   /** The issue's policy; only the disabled SSH rule uses the custom SSH service. */
-  async function makeSourcePolicy(source: Side): Promise<IPObj> {
+  async function makeSourcePolicy(source: ReplicationSide): Promise<IPObj> {
     const [wan, lan] = await manager()
       .getRepository(Interface)
       .save(

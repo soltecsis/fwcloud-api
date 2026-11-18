@@ -416,7 +416,7 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     return rows.map((row: { special: number }) => Number(row.special));
   }
 
-  it('should replace the default rules of the policies the profile fills, keeping the stateful rule', async () => {
+  it('should replace the default rules of the policies the profile fills, keeping the stateful and catch-all rules', async () => {
     await PolicyRule.insertDefaultPolicy(targetFirewall.id, null, FireWallOptMask.STATEFUL);
 
     const result = await service.provisionPolicyFromProfile(
@@ -428,9 +428,11 @@ describe(describeName('PolicyReplicationService provisioning Unit Tests'), () =>
     );
 
     expect(result.errors).to.be.empty;
-    // The profile rule is IPv4 FORWARD: only that catch-all goes; the stateful rule stays.
-    expect(result.removedDefaultRules).to.have.length(1);
-    expect(await policySpecials(3)).to.deep.eq([1, 0]);
+    // The profile rule is IPv4 FORWARD, whose only defaults are special rules: the stateful rule
+    // and the catch-all rule, which stays last since a template without catch-all rules (as
+    // this legacy one) never decides the final action.
+    expect(result.removedDefaultRules).to.be.empty;
+    expect(await policySpecials(3)).to.deep.eq([1, 0, 2]);
     // Policies the profile does not touch keep their default rules.
     expect(await policySpecials(1)).to.deep.eq([1, 2]);
     expect(await policySpecials(63)).to.deep.eq([1, 2]);

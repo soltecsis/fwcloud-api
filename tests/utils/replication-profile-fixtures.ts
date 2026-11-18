@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import db from '../../src/database/database-manager';
+import { Cluster } from '../../src/models/firewall/Cluster';
 import { Firewall, FireWallOptMask } from '../../src/models/firewall/Firewall';
 import { Interface } from '../../src/models/interface/Interface';
 import { IPObj } from '../../src/models/ipobj/IPObj';
@@ -200,4 +201,37 @@ export async function makeReplicationTargetFirewall(
   await PolicyRule.insertDefaultPolicy(firewall.id, null, FireWallOptMask.STATEFUL);
 
   return { firewall, wanInterface, lanInterface, wanAddress };
+}
+
+/** A firewall, or a cluster of a master and a backup node, that a template is captured from or applied to. */
+export interface ReplicationSide {
+  /** The firewall, or the cluster. */
+  id: number;
+  /** The firewall holding the policy: the cluster master for a cluster. */
+  master: Firewall;
+  backup?: Firewall;
+}
+
+/** Without any policy: `<name>-a` (the master) and, for a cluster, `<name>-cluster` and `<name>-b`. */
+export async function makeReplicationSide(
+  fwCloudId: number,
+  kind: 'firewall' | 'cluster',
+  name: string,
+): Promise<ReplicationSide> {
+  const manager = db.getSource().manager;
+  const cluster =
+    kind === 'cluster'
+      ? await manager.getRepository(Cluster).save({ name: `${name}-cluster`, fwCloudId })
+      : undefined;
+  const master = await manager.getRepository(Firewall).save({
+    name: `${name}-a`,
+    fwCloudId,
+    ...(cluster ? { clusterId: cluster.id, fwmaster: 1 } : {}),
+  });
+  const backup = cluster
+    ? await manager
+        .getRepository(Firewall)
+        .save({ name: `${name}-b`, fwCloudId, clusterId: cluster.id, fwmaster: 0 })
+    : undefined;
+  return { id: cluster?.id ?? master.id, master, backup };
 }

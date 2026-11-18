@@ -4,6 +4,7 @@ import { normalizeRuleNegation } from '../../../../src/models/replication-profil
 
 /** Blocks every parsed provision carries even when the profile does not declare them. */
 const EMPTY_BLOCKS = {
+  catchAllRules: [],
   routing: { tables: [], rules: [] },
   system: { dhcp: [], keepalived: [], haproxy: [] },
 };
