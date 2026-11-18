@@ -81,7 +81,9 @@ schema.validate = req => {
 				schema = schema.append({
 					pasteOnRuleId: sharedSch.id,
 					pasteOffset: Joi.number().integer().valid(-1, 0, 1),
-					rulesIds: Joi.array().items(sharedSch.id)
+					rulesIds: Joi.array().items(sharedSch.id),
+					// Omitted: the group of pasteOnRuleId. null: outside any group.
+					idgroup: sharedSch.id.allow(null).optional()
 				});
 		} else return reject(fwcError.BAD_API_CALL);
 

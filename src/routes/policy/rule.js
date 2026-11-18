@@ -28,7 +28,6 @@ import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { In } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
-import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 import db from '../../database/database-manager';
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -241,9 +240,9 @@ router.put('/copy',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		const { firewall, rulesIds, pasteOnRuleId, pasteOffset } = req.body;
+		const { firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup } = req.body;
 		const repository = new PolicyRuleRepository(db.getSource().manager);
-		await repository.copyRules(firewall, rulesIds, pasteOnRuleId, pasteOffset);
+		await repository.copyRules(firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup);
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error copying rule: ' + JSON.stringify(error));
@@ -256,15 +255,9 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		const pasteOnRuleId = req.body.pasteOnRuleId;
-
-		// The rule over which we move cat rules can not be part of the moved rules.
-		for (let rule of req.body.rulesIds)
-			if (rule === pasteOnRuleId) throw(fwcError.other('Paste on rule can not be part of the set of pasted rules.'));
-
-		for (let rule of req.body.rulesIds)
-			await ruleMove(req.dbCon, req.body.firewall, rule, pasteOnRuleId, req.body.pasteOffset);
-
+		const { firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup } = req.body;
+		const repository = new PolicyRuleRepository(db.getSource().manager);
+		await repository.moveRules(firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup);
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error moving rule: ' + JSON.stringify(error));
@@ -307,57 +300,5 @@ async (req, res) => {
 		res.status(400).json(error);
 	}
 });
-
-async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			// Get rule data of rule over which we are running the move action (up or down of this rule).
-			const pasteOnRule = await PolicyRule.getPolicy_r(dbCon, firewall, pasteOnRuleId);
-			// Get rule data for the rule we are moving.
-			const moveRule = await PolicyRule.getPolicy_r(dbCon, firewall, rule);
-			let new_order;
-
-			// We can not move the Catch-All special rule.
-			if (moveRule.special === 2) throw (fwcError.NOT_ALLOWED);
-			// It is not possible to move rules under the Catch-All special rule.
-			if (pasteOnRule.special === 2 && pasteOffset === 1) throw (fwcError.NOT_ALLOWED);
-
-			if (pasteOffset === 1)
-				new_order = await PolicyRule.makeAfterRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
-			else if (pasteOffset === -1)
-				new_order = await PolicyRule.makeBeforeRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
-			else // Move rule into group.
-				new_order = moveRule.rule_order;
-
-			//Update the moved rule data
-			const policy_rData = {
-				id: rule,
-				idgroup: pasteOnRule.idgroup,
-				rule_order: new_order
-			};
-			await PolicyRule.updatePolicy_r(dbCon, policy_rData);
-
-
-			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
-			const policyGroupRepository = new PolicyGroupRepository(db.getSource().manager);
-			
-			if (pasteOffset != 0 && moveRule.idgroup) {
-				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}});
-				if (policyGroup) {
-					await policyGroupRepository.deleteIfEmpty(policyGroup);
-				}
-			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
-				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: { policyRules: true } });
-				if (policyGroup.policyRules && policyGroup.policyRules.length < 1) {
-					await policyGroupRepository.delete({ id: policyGroup.id });
-				}
-			}
-
-			resolve();
-		} catch (error) { 
-			return reject(error)
-		}
-	});
-}
 
 module.exports = router;
