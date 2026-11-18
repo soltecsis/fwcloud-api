@@ -10,14 +10,14 @@ export class CrtPolicy extends Policy {
       .manager.getRepository(User)
       .findOneOrFail({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
     crt = await db
       .getSource()
       .manager.getRepository(Crt)
       .findOneOrFail({
         where: { id: crt.id },
-        relations: ['ca', 'ca.fwCloud'],
+        relations: { ca: { fwCloud: true } },
       });
     if (user.role === 1) {
       return Authorization.grant();

@@ -86,7 +86,10 @@ router.put('/', async (req, res) => {
 
 		const mark = await db.getSource().manager.getRepository(Mark).findOneOrFail({
 				where: { id: req.body.mark },
-				relations: ['policyRules', 'routingRuleToMarks', 'routingRuleToMarks.routingRule', 'routingRuleToMarks.routingRule.routingTable']
+				relations: {
+          policyRules: true,
+          routingRuleToMarks: { routingRule: { routingTable: true } },
+        }
 		});
 
 		const firewallService = await app().getService(FirewallService.name);

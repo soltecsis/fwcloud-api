@@ -59,7 +59,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
       order: {
         rule_order: 'ASC',
       },
-      relations: ['firewall', 'group'],
+      relations: { firewall: true, group: true },
     });
 
     let affectedHAProxies: HAProxyRule[] = await this.findManyInPath({

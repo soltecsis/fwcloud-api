@@ -31,7 +31,6 @@ import {
   JoinColumn,
   OneToMany,
   UpdateResult,
-  getConnection,
 } from 'typeorm';
 import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';

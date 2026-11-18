@@ -1,6 +1,7 @@
 import { FileLogger, QueryRunner } from 'typeorm';
 import { logger } from '../fonaments/abstract-application';
 import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
+import { inspect } from 'util';
 
 export class DatabaseLogger extends FileLogger {
   constructor(protected _options?: LoggerOptions) {
@@ -15,11 +16,13 @@ export class DatabaseLogger extends FileLogger {
       this._options === true ||
       (Array.isArray(this._options) && this._options.indexOf('error') !== -1)
     ) {
+      const serializedParameters = parameters?.length ? this.stringifyParams(parameters) : '';
+      const formattedParameters =
+        typeof serializedParameters === 'string'
+          ? serializedParameters
+          : inspect(serializedParameters);
       const sql =
-        query +
-        (parameters && parameters.length
-          ? ' -- PARAMETERS: ' + this.stringifyParams(parameters)
-          : '');
+        query + (parameters && parameters.length ? ' -- PARAMETERS: ' + formattedParameters : '');
       this.writeError([`[FAILED QUERY]: ${sql}`, `[QUERY ERROR]: ${error}`]);
     }
   }

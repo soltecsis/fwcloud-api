@@ -21,11 +21,12 @@
 */
 
 import { Middleware } from '../fonaments/http/middleware/Middleware';
-import { json, Request, Response, NextFunction } from 'express';
+import bodyParser from 'body-parser';
+import { Request, Response, NextFunction } from 'express';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 
 export class BodyParser extends Middleware {
-  private readonly parser = json({ limit: '2mb' });
+  private readonly parser = bodyParser.json({ limit: '2mb' });
 
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     const profileImport =
@@ -35,7 +36,9 @@ export class BodyParser extends Middleware {
       this.parser(req, res, next);
       return;
     }
-    const parser = json({ limit: this.app.config.get('replication_profiles').import_max_size });
+    const parser = bodyParser.json({
+      limit: this.app.config.get('replication_profiles').import_max_size,
+    });
     parser(req, res, (error) => {
       if (error?.type === 'entity.too.large')
         return next(

@@ -26,6 +26,7 @@ var router = express.Router();
 const restrictedCheck = require('../../middleware/restricted');
 import { Customer } from '../../models/user/Customer';
 import { User } from '../../models/user/User';
+import { AuthService } from '../../models/user/auth.service';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PgpHelper } from '../../utils/pgp';
 import { app, logger } from '../../fonaments/abstract-application';
@@ -90,6 +91,15 @@ router.post('/login', async (req, res) => {
 		inbound requests or events.
 		*/
 		if (await bcrypt.compare(req.body.customer + req.body.username + req.body.password, data[0].password)) {
+			// A pending setup is not an activated second factor. Validate a verified
+			// secret before storing any authenticated identity in the session.
+			const tfa = await AuthService.GetTfa(data[0].id);
+			if (tfa?.secret) {
+				const token = req.headers['x-tfa'] || req.body.authCode;
+				if (typeof token !== 'string' || !speakeasy.totp.verify({
+					secret: tfa.secret, encoding: 'base32', token
+				})) throw fwcError.BAD_LOGIN;
+			}
 			// Return authorization token.
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
@@ -111,30 +121,14 @@ router.post('/login', async (req, res) => {
 			// Store the fwcloud-ui session public key.
 			req.session.uiPublicKey = req.body.publicKey;
 
-			if (!req.session.tfa) {
-				res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey });
-			} else {
-				if (!req.headers['x-tfa']) {
-					throw fwcError.BAD_LOGIN;
-				} else {
-
-					let isVerified = speakeasy.totp.verify({
-						secret: req.session.tfa,
-						encoding: 'base32',
-						token: req.headers['x-tfa']
-					});
-					if (isVerified) {
-						res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey, "tfa": req.session.tfa });
-					} else {
-						throw fwcError.BAD_LOGIN;
-					}
-				}
-			}
+			res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey });
 		} else {
 			req.session.destroy(err => { });
 			throw fwcError.BAD_LOGIN;
 		}
 	} catch (error) {
+		// Failed authentication must also invalidate a previously authenticated cookie.
+		if (req.session) await new Promise(resolve => req.session.destroy(() => resolve()));
 		logger().error(`Login error${error.message ? `: ${error.message}` : '.'}`);
 		res.status(401).json(error);
 	}

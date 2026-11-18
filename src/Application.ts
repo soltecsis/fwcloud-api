@@ -88,6 +88,7 @@ import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.prov
 import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
+import { SecurityHeaders } from './middleware/SecurityHeaders';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 import { ReplicationProfileServiceProvider } from './models/replication-profile/replication-progile.provider';
 import { PolicyReplicationServiceProvider } from './models/replication-profile/policy-replication.provider';
@@ -202,6 +203,7 @@ export class Application extends HTTPApplication {
   protected beforeMiddlewares(): Array<Middlewareable> {
     return [
       LogRequestMiddleware,
+      SecurityHeaders,
       BodyParser,
       RequestBuilder,
       Compression,

@@ -188,7 +188,7 @@ export class OpenVPNService extends Service {
         .manager.getRepository(Firewall)
         .findOne({
           where: { id: openVPN.firewallId },
-          relations: ['fwCloud'],
+          relations: { fwCloud: true },
         });
       const fwCloudId: number = firewall.fwCloudId;
 

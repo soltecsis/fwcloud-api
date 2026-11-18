@@ -24,9 +24,15 @@ import { Request, Response, NextFunction } from 'express';
 import { ResponseBuilder } from '../fonaments/http/response-builder';
 import { ErrorMiddleware } from '../fonaments/http/middleware/Middleware';
 import { NotFoundException } from '../fonaments/exceptions/not-found-exception';
+import { HttpException } from '../fonaments/exceptions/http/http-exception';
 
 export class ErrorResponse extends ErrorMiddleware {
   public handle(error: Error, req: Request, res: Response, next: NextFunction) {
+    // body-parser rejects malformed JSON before authentication; do not turn it into
+    // a 500 or copy potentially sensitive request fragments into the response/log.
+    if ((error as Error & { type?: string }).type === 'entity.parse.failed') {
+      error = new HttpException('Invalid JSON body', 400);
+    }
     const exceptionName: string = error.constructor ? error.constructor.name : 'Error';
 
     if (error.stack) {

@@ -90,7 +90,7 @@ export class RouteGroupService extends Service {
   async update(id: number, data: IUpdateRouteGroup): Promise<RouteGroup> {
     let group: RouteGroup = await this._repository.findOneOrFail({
       where: { id },
-      relations: ['firewall', 'routes'],
+      relations: { firewall: true, routes: true },
     });
 
     this._repository.merge(group, data);

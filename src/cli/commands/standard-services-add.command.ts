@@ -168,7 +168,7 @@ export class StandardServicesAddCommand extends Command {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );
-    this.dataSource = await databaseService.getDataSource({ name: 'cli' });
+    this.dataSource = await databaseService.getDataSource({});
 
     await this.addStandardServices(this.TCP_services, this.getTCPTreeNodes.bind(this), 2, 'SOT');
     await this.addStandardServices(this.UDP_services, this.getUDPTreeNodes.bind(this), 4, 'SOU');
