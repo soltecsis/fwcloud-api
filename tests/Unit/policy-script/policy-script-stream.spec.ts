@@ -138,4 +138,17 @@ describe('PolicyScript stream completion', () => {
     );
     assert.ok(footer.indexOf(recording) < footer.indexOf('chmod 700 "$0"'));
   });
+
+  it('enables strict mode only in the standard policy header', () => {
+    const header = fs.readFileSync(path.resolve(process.cwd(), 'config/policy/header.txt'), 'utf8');
+    const vyosHeader = fs.readFileSync(
+      path.resolve(process.cwd(), 'config/policy/header_VyOS.txt'),
+      'utf8',
+    );
+
+    assert.match(header, /^#!\/bin\/sh\n\nset -eu\n/);
+    assert.doesNotMatch(header, /pipefail/);
+    assert.match(vyosHeader, /^#!\/bin\/vbash\n/);
+    assert.doesNotMatch(vyosHeader, /set -eu/);
+  });
 });
