@@ -26,7 +26,11 @@ import * as path from 'path';
 import { app } from '../fonaments/abstract-application';
 import { FwCloudError } from '../fonaments/exceptions/error';
 import { FireWallOptMask } from '../models/firewall/Firewall';
-import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
+import {
+  ProgressErrorPayload,
+  ProgressInfoPayload,
+  ProgressNoticePayload,
+} from '../sockets/messages/socket-message';
 import sshTools from '../utils/ssh';
 import {
   CCDHash,
@@ -143,6 +147,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     let installedScriptPath = '';
     let shDebug = '';
     let sudo = '';
+    let failedAction = 'installation';
 
     try {
       if (!app().config.get('firewall_communication.ssh_enable')) {
@@ -154,7 +159,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
       const edgeOSScriptPath = `/config/scripts/post-config.d/${scriptName}`;
       eventEmitter.emit(
         'message',
-        new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`),
+        new ProgressInfoPayload(`Uploading firewall script (${this.connectionData.host})`),
       );
       await sshTools.uploadFile(this.connectionData, scriptPath, scriptName);
 
@@ -163,7 +168,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
-      eventEmitter.emit('message', new ProgressNoticePayload('Checking previous firewall script.'));
+      eventEmitter.emit('message', new ProgressInfoPayload('Checking previous firewall script.'));
       const backupCommand = `
 if [ -f ${shellQuote(standardScriptPath)} ]; then
   installed_script_path=${shellQuote(standardScriptPath)}
@@ -192,17 +197,18 @@ printf '${backupPathOutputMarker}%s\\n' "$backup_path"
         installedScriptPath = path.posix.join(path.posix.dirname(backupPath), scriptName);
         eventEmitter.emit(
           'message',
-          new ProgressNoticePayload('Previous firewall script backed up.'),
+          new ProgressInfoPayload('Previous firewall script backed up.'),
         );
       }
 
-      eventEmitter.emit('message', new ProgressNoticePayload('Installing firewall script.'));
+      eventEmitter.emit('message', new ProgressInfoPayload('Installing firewall script.'));
       await sshTools.runCommand(
         this.connectionData,
         `${sudo} sh ${shDebug} ${shellQuote(uploadedScriptPath)} install`,
       );
 
-      eventEmitter.emit('message', new ProgressNoticePayload('Loading firewall policy.'));
+      eventEmitter.emit('message', new ProgressInfoPayload('Loading firewall policy.'));
+      failedAction = 'policy loading';
       const cmd = `${sudo} sh ${shDebug} -c ${shellQuote(`if [ -f ${shellQuote(standardScriptPath)} ]; then
   sh ${shDebug} ${shellQuote(standardScriptPath)} start
 else
@@ -216,7 +222,13 @@ fi`)}`;
         try {
           eventEmitter.emit(
             'message',
-            new ProgressNoticePayload('Restoring previous firewall script.'),
+            new ProgressErrorPayload(
+              `Firewall policy ${failedAction} failed. Restoring previous firewall script.`,
+            ),
+          );
+          eventEmitter.emit(
+            'message',
+            new ProgressInfoPayload('Restoring previous firewall script.'),
           );
           const restoreCommand = [
             `rm -f ${shellQuote(`./${config.get('policy').script_name}`)} ${shellQuote(installedScriptPath)}`,
