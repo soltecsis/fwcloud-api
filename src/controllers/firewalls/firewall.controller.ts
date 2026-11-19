@@ -230,8 +230,8 @@ export class FirewallController extends Controller {
       },
       {
         path: '/etc/fwcloud/fwcloud-20261118090000.sh',
-        compilation_date: null,
-        installation_date: null,
+        compilation_date: '2026-11-18 08:30:00',
+        installation_date: '2026-11-18 08:31:00',
       },
     ],
   })
@@ -689,7 +689,7 @@ export class FirewallController extends Controller {
       .findOneOrFail({
         where: {
           id: firewallId,
-          fwCloudId,
+          fwCloudId: fwcloudId,
         },
       });
   }

@@ -24,8 +24,8 @@ import { IsNotEmpty, IsString } from 'class-validator';
 
 export class PolicyScriptHistoryEntryDto {
   path: string;
-  compilation_date: string | null;
-  installation_date: string | null;
+  compilation_date: string;
+  installation_date: string;
 }
 
 export class PolicyScriptContentRequestDto {

@@ -275,8 +275,10 @@ fi`)}`;
       const listCommand = `
 print_policy_script() {
   script_path="$1"
-  compilation_date="$(sed -n 's/^FWCLOUD_COMPILATION_DATE="\\(.*\\)"$/\\1/p' "$script_path" | head -n 1)"
-  installation_date="$(sed -n 's/^FWCLOUD_INSTALLATION_DATE="\\(.*\\)"$/\\1/p' "$script_path" | head -n 1)"
+  header="$(head -n 25 "$script_path")"
+  compilation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_COMPILATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
+  installation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_INSTALLATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
+  [ -n "$compilation_date" ] && [ -n "$installation_date" ] || return
   printf '${policyScriptOutputMarker}%s\\t%s\\t%s\\n' "$script_path" "$compilation_date" "$installation_date"
 }
 
@@ -303,11 +305,14 @@ print_policy_script() {
         .split(/\r?\n/)
         .filter((line) => line.startsWith(policyScriptOutputMarker))
         .map((line) => line.slice(policyScriptOutputMarker.length).split('\t'))
-        .filter(([scriptPath]) => scriptPath !== undefined)
+        .filter(
+          ([scriptPath, compilationDate, installationDate]) =>
+            scriptPath !== undefined && compilationDate !== '' && installationDate !== '',
+        )
         .map(([scriptPath, compilationDate, installationDate]) => ({
           path: scriptPath,
-          compilation_date: compilationDate || null,
-          installation_date: installationDate || null,
+          compilation_date: compilationDate,
+          installation_date: installationDate,
         }));
     } catch (error) {
       this.handleRequestException(error);

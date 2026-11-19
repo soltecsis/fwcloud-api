@@ -92,8 +92,8 @@ export type PluginInstallOptions = {
 
 export type PolicyScriptHistoryEntry = {
   path: string;
-  compilation_date: string | null;
-  installation_date: string | null;
+  compilation_date: string;
+  installation_date: string;
 };
 
 export type PolicyScriptContent = {

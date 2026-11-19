@@ -266,6 +266,70 @@ describe(SSHCommunication.name, () => {
     });
   });
 
+  describe('Firewall policy script history', () => {
+    let runCommand: sinon.SinonStub;
+
+    beforeEach(() => {
+      testSuite.app.config.set('firewall_communication.ssh_enable', true);
+      runCommand = sinon.stub(sshTools, 'runCommand');
+    });
+
+    it('lists the active script and valid backups with lifecycle metadata', async () => {
+      runCommand.resolves(
+        '__FWCLOUD_POLICY_SCRIPT__=/etc/fwcloud/fwcloud.sh\t2026-11-18 09:30:00\t2026-11-18 09:31:00\n' +
+          '__FWCLOUD_POLICY_SCRIPT__=/etc/fwcloud/fwcloud-20261118090000.sh\t2026-11-18 08:30:00\t2026-11-18 08:31:00\n' +
+          '__FWCLOUD_POLICY_SCRIPT__=/etc/fwcloud/fwcloud-20261118080000.sh\t\t\n',
+      );
+
+      expect(await ssh.getFirewallPolicyScriptHistory()).to.deep.equal([
+        {
+          path: '/etc/fwcloud/fwcloud.sh',
+          compilation_date: '2026-11-18 09:30:00',
+          installation_date: '2026-11-18 09:31:00',
+        },
+        {
+          path: '/etc/fwcloud/fwcloud-20261118090000.sh',
+          compilation_date: '2026-11-18 08:30:00',
+          installation_date: '2026-11-18 08:31:00',
+        },
+      ]);
+      expect(runCommand.firstCall.args[1]).to.contain('/etc/fwcloud');
+      expect(runCommand.firstCall.args[1]).to.contain('/config/scripts/post-config.d');
+      expect(runCommand.firstCall.args[1]).to.contain('head -n 25');
+      expect(runCommand.firstCall.args[1]).to.contain('FWCLOUD_COMPILATION_DATE');
+    });
+
+    it('reads an active policy script from an allowed directory', async () => {
+      runCommand.resolves('#!/bin/sh\n');
+
+      expect(await ssh.getFirewallPolicyScriptContent('/etc/fwcloud/fwcloud.sh')).to.deep.equal({
+        content: '#!/bin/sh\n',
+      });
+      expect(runCommand.firstCall.args[1]).to.contain('cat');
+      expect(runCommand.firstCall.args[1]).to.contain('/etc/fwcloud/fwcloud.sh');
+    });
+
+    it('returns a diff when selected policy scripts differ', async () => {
+      runCommand.resolves('1c1\n');
+
+      expect(
+        await ssh.compareFirewallPolicyScripts(
+          '/etc/fwcloud/fwcloud.sh',
+          '/etc/fwcloud/fwcloud-20261118090000.sh',
+        ),
+      ).to.deep.equal({ diff: '1c1\n' });
+      expect(runCommand.firstCall.args[1]).to.contain('diff');
+      expect(runCommand.firstCall.args[1]).to.contain('[ "$status" -eq 1 ] && exit 0');
+    });
+
+    it('rejects paths outside policy script directories before running a command', async () => {
+      await expect(ssh.getFirewallPolicyScriptContent('/tmp/fwcloud.sh')).to.be.rejectedWith(
+        'Invalid policy script path',
+      );
+      expect(runCommand.notCalled).to.be.true;
+    });
+  });
+
   describe('OpenVPN client config directory', () => {
     let stub: sinon.SinonStub;
 
