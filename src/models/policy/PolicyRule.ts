@@ -23,6 +23,7 @@
 import Model from '../Model';
 
 import db from '../../database/database-manager';
+import Query from '../../database/Query';
 
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
@@ -915,15 +916,11 @@ export class PolicyRule extends Model {
   }
 
   //Add new policy_r from user
-  public static insertPolicy_r(policy_rData): Promise<number> {
+  public static insertPolicy_r(policy_rData, dbCon = new Query()): Promise<number> {
     return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
+      dbCon.query('INSERT INTO ' + tableName + ' SET ?', policy_rData, (error, result) => {
         if (error) return reject(error);
-
-        connection.query('INSERT INTO ' + tableName + ' SET ?', policy_rData, (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        });
+        resolve(result.insertId);
       });
     });
   }

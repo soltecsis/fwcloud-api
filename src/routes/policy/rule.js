@@ -57,8 +57,10 @@ async (req, res) => {
 	};
 
 	try {
-		await PolicyRule.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
-		res.status(200).json(await PolicyRule.insertPolicy_r(policy_rData));
+		const { pasteOnRuleId, pasteOffset } = req.body;
+		const position = pasteOnRuleId === undefined ? undefined : { ruleId: pasteOnRuleId, offset: pasteOffset };
+		const repository = new PolicyRuleRepository(db.getSource().manager);
+		res.status(200).json(await repository.createRule(policy_rData, position));
 	} catch(error) {
 		logger().error('Error creating a rule: ' + JSON.stringify(error));
 		res.status(400).json(error);

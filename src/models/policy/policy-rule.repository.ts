@@ -20,7 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { And, EntityManager, In, IsNull, LessThan, MoreThan, MoreThanOrEqual, Not } from 'typeorm';
+import {
+  And,
+  EntityManager,
+  In,
+  IsNull,
+  LessThan,
+  LessThanOrEqual,
+  MoreThan,
+  MoreThanOrEqual,
+  Not,
+} from 'typeorm';
 import { PolicyRule, SpecialPolicyRules } from './PolicyRule';
 import { PolicyGroup } from './PolicyGroup';
 import { PolicyRuleToIPObj } from './PolicyRuleToIPObj';
@@ -34,6 +44,49 @@ const fwcError = require('../../utils/error_table');
 export class PolicyRuleRepository extends Repository<PolicyRule> {
   constructor(manager?: EntityManager) {
     super(PolicyRule, manager);
+  }
+
+  /**
+   * Creates a rule at the requested order or, when a reference rule is supplied, at
+   * the ungrouped position immediately before or after that rule.
+   */
+  public async createRule(
+    data: { firewall: number; type: number; rule_order?: number } & Record<string, unknown>,
+    position?: { ruleId: number; offset: -1 | 1 },
+  ): Promise<number> {
+    return this.manager.transaction(async (manager) => {
+      await lockPolicyFirewall(manager, data.firewall);
+      const dbCon = new Query(manager.queryRunner);
+
+      if (!position) {
+        await PolicyRule.reorderAfterRuleOrder(dbCon, data.firewall, data.type, data.rule_order);
+        return PolicyRule.insertPolicy_r(data, dbCon);
+      }
+
+      const reference = await manager.findOne(PolicyRule, {
+        where: { id: position.ruleId, firewallId: data.firewall, policyTypeId: data.type },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!reference) throw fwcError.NOT_FOUND;
+
+      const below = position.offset === 1;
+      const catchAll = { ...policyOf(reference), special: SpecialPolicyRules.CATCHALL };
+      const followsCatchAll = await manager.exists(PolicyRule, {
+        where: [
+          { ...catchAll, rule_order: LessThan(reference.rule_order) },
+          {
+            ...catchAll,
+            rule_order: reference.rule_order,
+            id: below ? LessThanOrEqual(reference.id) : LessThan(reference.id),
+          },
+        ],
+      });
+      if (followsCatchAll) throw fwcError.NOT_ALLOWED;
+
+      await resolvePasteGroup(manager, reference, null, below);
+      const ruleOrder = await openOrderGap(manager, reference, below, 1);
+      return PolicyRule.insertPolicy_r({ ...data, idgroup: null, rule_order: ruleOrder }, dbCon);
+    });
   }
 
   /**
@@ -240,6 +293,11 @@ function policyOf(rule: PolicyRule) {
   return { firewallId: rule.firewallId, policyTypeId: rule.policyTypeId ?? IsNull() };
 }
 
+async function lockPolicyFirewall(manager: EntityManager, firewallId: number): Promise<void> {
+  // Serialize policy ordering changes even when they reference different rules.
+  await manager.query('SELECT id FROM firewall WHERE id = ? FOR UPDATE', [firewallId]);
+}
+
 /**
  * Locks the firewall and the rules of a copy or move, checks that they can be pasted at the
  * destination, and returns the pasted rules in policy order.
@@ -251,8 +309,7 @@ async function lockPaste(
   destinationId: number,
   pasteOffset: number,
 ): Promise<{ destination: PolicyRule; sources: PolicyRule[] }> {
-  // Serialize pastes even when their selections and destination rules are different.
-  await manager.query('SELECT id FROM firewall WHERE id = ? FOR UPDATE', [firewallId]);
+  await lockPolicyFirewall(manager, firewallId);
 
   const selectedRules = await manager.find(PolicyRule, {
     where: { firewallId, id: In([...ruleIds, destinationId]) },
