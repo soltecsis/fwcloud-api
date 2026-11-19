@@ -32,6 +32,7 @@ import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import { RoutingTable } from '../../../../../src/models/routing/routing-table/routing-table.model';
 import { RoutingRule } from '../../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingGroup } from '../../../../../src/models/routing/routing-group/routing-group.model';
 import { RoutingRuleService } from '../../../../../src/models/routing/routing-rule/routing-rule.service';
 import { RoutingRuleController } from '../../../../../src/controllers/routing/routing-rule/routing-rule.controller';
 import { IPObj } from '../../../../../src/models/ipobj/IPObj';
@@ -754,6 +755,51 @@ describe(describeName('Routing Rule E2E Tests'), () => {
     });
 
     describe('@create', () => {
+      it('should create ungrouped rules at the first and last group boundaries', async () => {
+        const group = await manager.getRepository(RoutingGroup).save({
+          name: 'Group',
+          firewallId: firewall.id,
+        });
+        const rules = new RoutingRuleRepository(manager);
+        const ruleData = { routingTableId: table.id, routingGroupId: group.id, rule_order: 1 };
+        const first = await rules.save({ ...ruleData });
+        const last = await rules.save({ ...ruleData });
+        const url = _URL().getURL('fwclouds.firewalls.routing.rules.store', {
+          fwcloud: fwCloud.id,
+          firewall: firewall.id,
+        });
+        const cookie = [attachSession(adminUserSessionId)];
+
+        const above = await request(app.express)
+          .post(url)
+          .set('Cookie', cookie)
+          .send({ routingTableId: table.id, to: last.id, offset: Offset.Above, idgroup: null })
+          .expect(201);
+        const below = await request(app.express)
+          .post(url)
+          .set('Cookie', cookie)
+          .send({ routingTableId: table.id, to: first.id, offset: Offset.Below, idgroup: null })
+          .expect(201);
+        await request(app.express)
+          .post(url)
+          .set('Cookie', cookie)
+          .send({
+            routingTableId: table.id,
+            to: below.body.data.id,
+            offset: Offset.Below,
+            idgroup: null,
+          })
+          .expect(422);
+
+        const reloaded = await rules.getRoutingRules(fwCloud.id, firewall.id);
+        expect(reloaded.map(({ id, routingGroupId }) => [id, routingGroupId])).to.deep.equal([
+          [above.body.data.id, null],
+          [first.id, group.id],
+          [last.id, group.id],
+          [below.body.data.id, null],
+        ]);
+      });
+
       it('guest user should not create a rules', async () => {
         return await request(app.express)
           .post(

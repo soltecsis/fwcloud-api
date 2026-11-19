@@ -28,6 +28,8 @@ import { PolicyGroup } from '../../../../src/models/policy/PolicyGroup';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import fwcError from '../../../../src/utils/error_table';
 
 let policyRuleRepository: PolicyRuleRepository;
 let app: AbstractApplication;
@@ -251,6 +253,100 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
       await policyRule.reload();
 
       expect(policyRule.policyGroupId).to.be.deep.eq(null);
+    });
+  });
+
+  describe('moveRules()', () => {
+    const type = PolicyTypesMap.get('IPv4:FORWARD');
+    let firewall: Firewall;
+
+    beforeEach(async () => {
+      firewall = await manager.save(Firewall, { name: 'firewall' });
+    });
+
+    // Saved one at a time, so that rules sharing a position are ordered by creation.
+    async function createRules(...orders: number[]): Promise<PolicyRule[]> {
+      const rules: PolicyRule[] = [];
+      for (const rule_order of orders) {
+        rules.push(
+          await manager.save(PolicyRule, {
+            rule_order,
+            action: 1,
+            firewallId: firewall.id,
+            policyTypeId: type,
+          }),
+        );
+      }
+      return rules;
+    }
+
+    async function policy(): Promise<PolicyRule[]> {
+      return manager.find(PolicyRule, {
+        where: { firewallId: firewall.id },
+        order: { rule_order: 'ASC', id: 'ASC' },
+      });
+    }
+
+    const ids = (rules: PolicyRule[]) => rules.map((rule) => rule.id);
+    const groupIds = (rules: PolicyRule[]) => rules.map((rule) => rule.policyGroupId);
+
+    it('moves rules next to a destination that shares their position', async () => {
+      const [moved, destination, next] = await createRules(5, 5, 6);
+
+      await policyRuleRepository.moveRules(firewall.id, [moved.id], destination.id, 1);
+      expect(ids(await policy())).to.deep.equal(ids([destination, moved, next]));
+
+      await policyRuleRepository.moveRules(firewall.id, [moved.id], destination.id, -1);
+      expect(ids(await policy())).to.deep.equal(ids([moved, destination, next]));
+    });
+
+    it('moves each selected rule once', async () => {
+      const [a, b, destination] = await createRules(1, 2, 3);
+
+      await policyRuleRepository.moveRules(firewall.id, [b.id, a.id, b.id], destination.id, 1);
+
+      const persisted = await policy();
+      expect(ids(persisted)).to.deep.equal(ids([destination, a, b]));
+      expect(persisted.map((rule) => rule.rule_order)).to.deep.equal([3, 4, 5]);
+    });
+
+    it('rejects destinations among the moved rules and rules of other policies', async () => {
+      const [rule, destination] = await createRules(1, 2);
+      await manager.update(PolicyRule, rule.id, { policyTypeId: PolicyTypesMap.get('IPv4:INPUT') });
+      const before = await policy();
+
+      await expect(
+        policyRuleRepository.moveRules(firewall.id, [rule.id, destination.id], destination.id, 1),
+      ).to.be.rejected.and.eventually.have.property('fwcErr', 999999);
+      await expect(
+        policyRuleRepository.moveRules(firewall.id, [rule.id], destination.id, 1),
+      ).to.be.rejected.and.eventually.deep.equal(fwcError.NOT_ALLOWED);
+      expect(await policy()).to.deep.equal(before);
+    });
+
+    it('keeps positions with offset 0 and removes the groups left empty', async () => {
+      const [rule, destination] = await createRules(1, 2);
+      const group = await manager.save(PolicyGroup, { name: 'group', firewallId: firewall.id });
+      await manager.update(PolicyRule, rule.id, { policyGroupId: group.id });
+
+      await policyRuleRepository.moveRules(firewall.id, [rule.id], destination.id, 0);
+
+      const persisted = await policy();
+      expect(ids(persisted)).to.deep.equal(ids([rule, destination]));
+      expect(groupIds(persisted)).to.deep.equal([null, null]);
+      expect(await manager.findOneBy(PolicyGroup, { id: group.id })).to.equal(null);
+    });
+
+    it('joins the group beyond the insertion point, ignoring the moved rules', async () => {
+      const [destination, moved, next] = await createRules(1, 2, 3);
+      const group = await manager.save(PolicyGroup, { name: 'group', firewallId: firewall.id });
+      await manager.update(PolicyRule, next.id, { policyGroupId: group.id });
+
+      await policyRuleRepository.moveRules(firewall.id, [moved.id], destination.id, 1, group.id);
+
+      const persisted = await policy();
+      expect(ids(persisted)).to.deep.equal(ids([destination, moved, next]));
+      expect(groupIds(persisted)).to.deep.equal([null, group.id, group.id]);
     });
   });
 

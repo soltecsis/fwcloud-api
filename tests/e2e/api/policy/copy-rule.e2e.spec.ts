@@ -13,13 +13,14 @@ import { PolicyRule, SpecialPolicyRules } from '../../../../src/models/policy/Po
 import { PolicyRuleToInterface } from '../../../../src/models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { PolicyGroupRepository } from '../../../../src/repositories/PolicyGroupRepository';
 import fwcError from '../../../../src/utils/error_table';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { useProductionAuthentication } from '../../../utils/production-auth-harness';
 import { assignClouds, securityAccount, securityLogin } from '../../../utils/security-fixtures';
 
-describe(describeName('Policy rule copy'), () => {
+describe(describeName('Policy rule copy and move'), () => {
   const type = PolicyTypesMap.get('IPv4:FORWARD');
   const originalOrder = ['first', 'A', 'B', 'C', 'D', 'last'] as const;
   type RuleName = (typeof originalOrder)[number];
@@ -62,7 +63,7 @@ describe(describeName('Policy rule copy'), () => {
     source: RuleName[],
     destination: RuleName,
     offset: -1 | 0 | 1,
-    operation: 'copy' | 'move' = 'copy',
+    { operation = 'copy', idgroup }: { operation?: 'copy' | 'move'; idgroup?: unknown } = {},
   ): request.Test {
     return request(testSuite.app.express)
       .put(`/policy/rule/${operation}`)
@@ -73,8 +74,21 @@ describe(describeName('Policy rule copy'), () => {
         rulesIds: source.map((name) => rules[name].id),
         pasteOnRuleId: rules[destination].id,
         pasteOffset: offset,
+        // An undefined idgroup is left out of the JSON body.
+        idgroup,
       });
   }
+
+  function move(
+    source: RuleName[],
+    destination: RuleName,
+    offset: -1 | 0 | 1,
+    idgroup?: number | null,
+  ): request.Test {
+    return paste(source, destination, offset, { operation: 'move', idgroup });
+  }
+
+  const groupIds = (persisted: PolicyRule[]) => persisted.map((rule) => rule.policyGroupId);
 
   function reload(): Promise<PolicyRule[]> {
     return manager.find(PolicyRule, {
@@ -197,7 +211,7 @@ describe(describeName('Policy rule copy'), () => {
       'C copy',
       'last',
     ]);
-    expect(persisted.map((rule) => rule.policyGroupId)).to.deep.equal([
+    expect(groupIds(persisted)).to.deep.equal([
       null,
       source.id,
       source.id,
@@ -346,10 +360,224 @@ describe(describeName('Policy rule copy'), () => {
   });
 
   it('still moves rules above and below an existing destination', async () => {
-    await paste(['A', 'B'], 'D', -1, 'move').expect(204);
+    await move(['A', 'B'], 'D', -1).expect(204);
     await expectOrder(['first', 'C', 'A', 'B', 'D', 'last'], false);
 
-    await paste(['last'], 'C', 1, 'move').expect(204);
+    await move(['last'], 'C', 1).expect(204);
     await expectOrder(['first', 'C', 'last', 'A', 'B', 'D'], false);
+  });
+
+  it('moves several rules in policy order above and below the destination', async () => {
+    await move(['A', 'B'], 'D', 1).expect(204);
+    await expectOrder(['first', 'C', 'D', 'A', 'B', 'last'], false);
+
+    await move(['last', 'C'], 'first', -1).expect(204);
+    await expectOrder(['C', 'last', 'first', 'D', 'A', 'B'], false);
+  });
+
+  it('moves rules into the destination group when idgroup is omitted', async () => {
+    const group = await groupRules('destination', ['B', 'C', 'D']);
+
+    await move(['last', 'first'], 'C', 1).expect(204);
+    await move(['A'], 'B', 0).expect(204);
+
+    const persisted = await expectOrder(['A', 'B', 'C', 'first', 'last', 'D'], false);
+    expect(groupIds(persisted)).to.deep.equal(Array(6).fill(group.id));
+  });
+
+  describe('outside rule groups', () => {
+    it('copies rules above a group from its first rule', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+
+      await paste(['last', 'C', 'first'], 'B', -1, { idgroup: null }).expect(204);
+
+      const persisted = await expectOrder([
+        'first',
+        'A',
+        'first copy',
+        'C copy',
+        'last copy',
+        'B',
+        'C',
+        'D',
+        'last',
+      ]);
+      expect(groupIds(persisted)).to.deep.equal([
+        ...Array(5).fill(null),
+        ...Array(3).fill(group.id),
+        null,
+      ]);
+    });
+
+    it('copies rules below a group from its last rule', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+
+      await paste(['C', 'A'], 'D', 1, { idgroup: null }).expect(204);
+
+      const persisted = await expectOrder([
+        'first',
+        'A',
+        'B',
+        'C',
+        'D',
+        'A copy',
+        'C copy',
+        'last',
+      ]);
+      expect(groupIds(persisted)).to.deep.equal([
+        null,
+        null,
+        ...Array(3).fill(group.id),
+        null,
+        null,
+        null,
+      ]);
+    });
+
+    it('copies into the group when idgroup is omitted or names it', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+
+      await paste(['A'], 'B', -1).expect(204);
+      await paste(['A'], 'D', 1, { idgroup: group.id }).expect(204);
+
+      const persisted = await expectOrder([
+        'first',
+        'A',
+        'A copy',
+        'B',
+        'C',
+        'D',
+        'A copy',
+        'last',
+      ]);
+      expect(groupIds(persisted)).to.deep.equal([null, null, ...Array(5).fill(group.id), null]);
+    });
+
+    it('moves rules out of a group to above it', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+
+      await move(['D', 'C'], 'B', -1, null).expect(204);
+
+      const persisted = await expectOrder(['first', 'A', 'C', 'D', 'B', 'last'], false);
+      expect(groupIds(persisted)).to.deep.equal([null, null, null, null, group.id, null]);
+    });
+
+    it('moves rules from inside and outside a group to below it', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+
+      await move(['B', 'first'], 'D', 1, null).expect(204);
+
+      const persisted = await expectOrder(['A', 'C', 'D', 'first', 'B', 'last'], false);
+      expect(groupIds(persisted)).to.deep.equal([null, group.id, group.id, null, null, null]);
+    });
+
+    it('removes a group when all its rules move out of it', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+
+      await move(['D', 'C', 'B'], 'A', -1, null).expect(204);
+
+      const persisted = await expectOrder(['first', 'B', 'C', 'D', 'A', 'last'], false);
+      expect(groupIds(persisted)).to.deep.equal(Array(6).fill(null));
+      expect(await manager.findOneBy(PolicyGroup, { id: group.id })).to.equal(null);
+    });
+
+    it('pastes between adjacent groups', async () => {
+      const upper = await groupRules('upper', ['A', 'B']);
+      const lower = await groupRules('lower', ['C', 'D']);
+
+      await paste(['last'], 'B', 1, { idgroup: lower.id }).expect(204);
+      await paste(['first'], 'B', 1, { idgroup: null }).expect(204);
+      await move(['first'], 'A', -1, upper.id).expect(204);
+
+      const persisted = await expectOrder(
+        ['first', 'A', 'B', 'first copy', 'last copy', 'C', 'D', 'last'],
+        false,
+      );
+      expect(groupIds(persisted)).to.deep.equal([
+        upper.id,
+        upper.id,
+        upper.id,
+        null,
+        lower.id,
+        lower.id,
+        lower.id,
+        null,
+      ]);
+    });
+
+    it('pastes after the last group and keeps Catch-All restrictions', async () => {
+      const group = await groupRules('group', ['C', 'D']);
+      await manager.update(PolicyRule, rules.last.id, { special: SpecialPolicyRules.CATCHALL });
+      const before = await reload();
+
+      await paste(['A'], 'last', 1, { idgroup: null }).expect(400, fwcError.NOT_ALLOWED);
+      await move(['A'], 'last', 1, null).expect(400, fwcError.NOT_ALLOWED);
+      await move(['last'], 'B', -1, null).expect(400, fwcError.NOT_ALLOWED);
+      expect(await reload()).to.deep.equal(before);
+
+      await move(['B', 'A'], 'D', 1, null).expect(204);
+      const persisted = await expectOrder(['first', 'C', 'D', 'A', 'B', 'last'], false);
+      expect(groupIds(persisted)).to.deep.equal([null, group.id, group.id, null, null, null]);
+      expect(persisted[persisted.length - 1].special).to.equal(SpecialPolicyRules.CATCHALL);
+    });
+
+    it('rejects groups that do not border the insertion point', async () => {
+      await groupRules('group', ['B', 'C', 'D']);
+      const unrelated = await groupRules('unrelated', ['first']);
+      const before = await reload();
+
+      // Ungrouped rules inside the group would split it.
+      await paste(['A'], 'C', -1, { idgroup: null }).expect(400, fwcError.NOT_ALLOWED);
+      await move(['A'], 'C', 1, null).expect(400, fwcError.NOT_ALLOWED);
+      await paste(['A'], 'D', 1, { idgroup: unrelated.id }).expect(400, fwcError.NOT_ALLOWED);
+      // Offset 0 keeps the positions, so only the destination group is allowed.
+      await move(['A'], 'B', 0, null).expect(400, fwcError.NOT_ALLOWED);
+      await move(['last'], 'D', 0, unrelated.id).expect(400, fwcError.NOT_ALLOWED);
+
+      expect(await reload()).to.deep.equal(before);
+    });
+
+    it('rejects unknown, foreign, and invalid group identifiers', async () => {
+      await groupRules('group', ['B', 'C', 'D']);
+      const otherFirewall = await manager.save(Firewall, {
+        name: 'other',
+        fwCloudId: firewall.fwCloudId,
+      });
+      const foreign = await manager.save(PolicyGroup, {
+        name: 'foreign',
+        firewallId: otherFirewall.id,
+      });
+      const before = await reload();
+
+      for (const operation of ['copy', 'move'] as const) {
+        for (const idgroup of [foreign.id, foreign.id + 1000]) {
+          await paste(['A'], 'B', -1, { operation, idgroup }).expect(400, fwcError.NOT_FOUND);
+        }
+        for (const idgroup of [0, -1, 1.5, String(foreign.id), true]) {
+          const { body } = await paste(['A'], 'B', -1, { operation, idgroup }).expect(400);
+          expect(body.details[0].path).to.deep.equal(['idgroup']);
+        }
+      }
+
+      expect(await reload()).to.deep.equal(before);
+    });
+
+    it('rolls back the moved rules when the group cleanup fails', async () => {
+      const group = await groupRules('group', ['B', 'C', 'D']);
+      const before = await reload();
+      const deleteIfEmpty = stub(PolicyGroupRepository.prototype, 'deleteIfEmpty').rejects(
+        new Error('Unable to remove the group'),
+      );
+
+      try {
+        await move(['B', 'C', 'D'], 'A', -1, null).expect(400);
+        expect(deleteIfEmpty.calledOnce).to.equal(true);
+      } finally {
+        deleteIfEmpty.restore();
+      }
+
+      expect(await reload()).to.deep.equal(before);
+      expect(await manager.findOneBy(PolicyGroup, { id: group.id })).to.not.equal(null);
+    });
   });
 });

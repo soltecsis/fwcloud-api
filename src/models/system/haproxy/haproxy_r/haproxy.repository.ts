@@ -289,7 +289,10 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
       query.andWhere('haproxy.id IN (:...rules)', { rules });
     }
 
-    const haproxyRules: HAProxyRule[] = await query.orderBy('haproxy.rule_order', 'ASC').getMany();
+    const haproxyRules: HAProxyRule[] = await query
+      .orderBy('haproxy.rule_order', 'ASC')
+      .addOrderBy('haproxy.id', 'ASC')
+      .getMany();
 
     if (forCompilation) {
       haproxyRules.sort((item) => item.rule_type);
