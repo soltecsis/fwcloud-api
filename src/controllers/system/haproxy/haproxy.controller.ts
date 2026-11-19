@@ -113,6 +113,8 @@ export class HAProxyController extends Controller {
       request.inputs.all<HAProxyRuleCreateDto>(),
       this._haproxyGroup ? { group: this._haproxyGroup.id } : null,
     );
+    if (data.idgroup === null) data.firewallId = this._firewall.id;
+
     try {
       const rule: HAProxyRule = await this._haproxyRuleService.store(data);
 

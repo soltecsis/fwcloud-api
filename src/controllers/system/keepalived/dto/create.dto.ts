@@ -21,6 +21,7 @@ import {
   IsString,
   IsPositive,
   IsEnum,
+  IsIn,
   IsArray,
   ValidateNested,
   IsObject,
@@ -37,6 +38,10 @@ export class KeepalivedRuleCreateDto {
   @IsNumber()
   @IsOptional()
   groupId?: number;
+
+  @IsIn([null])
+  @IsOptional()
+  idgroup?: null;
 
   @IsNumber()
   @IsOptional()
