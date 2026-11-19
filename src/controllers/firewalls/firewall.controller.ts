@@ -84,6 +84,7 @@ import {
   Body,
   Example,
   Get,
+  Header,
   OperationId,
   Path,
   Post,
@@ -244,11 +245,18 @@ export class FirewallController extends Controller {
     @Request() request: ExpressRequest,
     @Path() fwcloud: number,
     @Path('firewall') firewallId: number,
+    @Header('X-FWC-SSH-User') sshUser?: string,
+    @Header('X-FWC-SSH-Password') sshPassword?: string,
   ): Promise<ResponseBuilder> {
-    const firewall = await this.getPolicyScriptFirewall(fwcloud, firewallId);
+    const firewall = await this.getPolicyScriptFirewall(
+      parseInt(String(request.params.fwcloud)),
+      parseInt(String(request.params.firewall)),
+    );
     (await FirewallPolicy.history(firewall, request.session.user)).authorize();
 
-    const history = await (await firewall.getCommunication()).getFirewallPolicyScriptHistory();
+    const history = await (
+      await this.getPolicyScriptCommunication(firewall, request)
+    ).getFirewallPolicyScriptHistory();
 
     return ResponseBuilder.buildResponse().status(200).body(history);
   }
@@ -275,13 +283,18 @@ export class FirewallController extends Controller {
     @Body() requestBody: PolicyScriptContentRequestDto,
     @Path() fwcloud: number,
     @Path('firewall') firewallId: number,
+    @Header('X-FWC-SSH-User') sshUser?: string,
+    @Header('X-FWC-SSH-Password') sshPassword?: string,
   ): Promise<ResponseBuilder> {
     const input = this.getBody(request, requestBody);
-    const firewall = await this.getPolicyScriptFirewall(fwcloud, firewallId);
+    const firewall = await this.getPolicyScriptFirewall(
+      parseInt(String(request.params.fwcloud)),
+      parseInt(String(request.params.firewall)),
+    );
     (await FirewallPolicy.history(firewall, request.session.user)).authorize();
 
     const content = await (
-      await firewall.getCommunication()
+      await this.getPolicyScriptCommunication(firewall, request)
     ).getFirewallPolicyScriptContent(input.file);
 
     return ResponseBuilder.buildResponse().status(200).body(content);
@@ -309,13 +322,18 @@ export class FirewallController extends Controller {
     @Body() requestBody: PolicyScriptComparisonRequestDto,
     @Path() fwcloud: number,
     @Path('firewall') firewallId: number,
+    @Header('X-FWC-SSH-User') sshUser?: string,
+    @Header('X-FWC-SSH-Password') sshPassword?: string,
   ): Promise<ResponseBuilder> {
     const input = this.getBody(request, requestBody);
-    const firewall = await this.getPolicyScriptFirewall(fwcloud, firewallId);
+    const firewall = await this.getPolicyScriptFirewall(
+      parseInt(String(request.params.fwcloud)),
+      parseInt(String(request.params.firewall)),
+    );
     (await FirewallPolicy.history(firewall, request.session.user)).authorize();
 
     const comparison = await (
-      await firewall.getCommunication()
+      await this.getPolicyScriptCommunication(firewall, request)
     ).compareFirewallPolicyScripts(input.file1, input.file2);
 
     return ResponseBuilder.buildResponse().status(200).body(comparison);
@@ -680,6 +698,26 @@ export class FirewallController extends Controller {
 
       throw error;
     }
+  }
+
+  private async getPolicyScriptCommunication(
+    firewall: Firewall,
+    request: ExpressRequest,
+  ): Promise<Communication<unknown>> {
+    const userHeader = request.get('X-FWC-SSH-User');
+    const passwordHeader = request.get('X-FWC-SSH-Password');
+    if (!userHeader && !passwordHeader) {
+      return firewall.getCommunication();
+    }
+    if (!userHeader || !passwordHeader) {
+      throw new HttpException('Both SSH credentials are required', 400);
+    }
+
+    const pgp = new PgpHelper(request.session.pgp);
+    return firewall.getCommunication({
+      sshuser: await pgp.decrypt(Buffer.from(userHeader, 'base64').toString('utf8')),
+      sshpassword: await pgp.decrypt(Buffer.from(passwordHeader, 'base64').toString('utf8')),
+    });
   }
 
   private async getPolicyScriptFirewall(fwcloudId: number, firewallId: number): Promise<Firewall> {

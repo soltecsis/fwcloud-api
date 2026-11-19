@@ -2338,6 +2338,22 @@
               "format": "double",
               "type": "number"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-FWC-SSH-User",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-FWC-SSH-Password",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ]
       }
@@ -2413,6 +2429,22 @@
             "schema": {
               "format": "double",
               "type": "number"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-FWC-SSH-User",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-FWC-SSH-Password",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2499,6 +2531,22 @@
             "schema": {
               "format": "double",
               "type": "number"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-FWC-SSH-User",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-FWC-SSH-Password",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
