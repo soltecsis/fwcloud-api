@@ -25,10 +25,17 @@ import { EventEmitter } from 'events';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect, testSuite } from '../../mocha/global-setup';
-import { SSHCommunication } from '../../../src/communications/ssh.communication';
+import {
+  SSHCommunication,
+  validatePolicyScriptDates,
+} from '../../../src/communications/ssh.communication';
 import sshTools from '../../../src/utils/ssh';
 import { Application } from '../../../src/Application';
 import errorTable from '../../../src/utils/error_table';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { spawnSync } from 'child_process';
 
 describe(SSHCommunication.name, () => {
   let ssh: SSHCommunication;
@@ -263,6 +270,101 @@ describe(SSHCommunication.name, () => {
 
       expect(runCommand.getCall(2).args[1]).to.contain(backupPath);
       expect(runCommand.getCall(2).args[1]).to.not.contain(passwordMasking);
+    });
+  });
+
+  describe('Firewall policy script history', () => {
+    let runCommand: sinon.SinonStub;
+
+    beforeEach(() => {
+      testSuite.app.config.set('firewall_communication.ssh_enable', true);
+      runCommand = sinon.stub(sshTools, 'runCommand');
+    });
+
+    it('accepts a regular script and rejects a symbolic link to it', () => {
+      const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'fwcloud-policy-history-'));
+      const script = path.join(directory, 'fwcloud.sh');
+      const link = path.join(directory, 'fwcloud-20261118090000.sh');
+      const directoryLink = path.join(directory, 'directory-link');
+      try {
+        fs.writeFileSync(
+          script,
+          'FWCLOUD_COMPILATION_DATE="2026-11-18 09:00:00"\nFWCLOUD_INSTALLATION_DATE="2026-11-18 09:01:00"\n',
+        );
+        fs.symlinkSync(script, link);
+        fs.symlinkSync(directory, directoryLink);
+        const command = `${validatePolicyScriptDates}\nhas_policy_script_dates "$1"`;
+
+        expect(spawnSync('sh', ['-c', command, 'sh', script]).status).to.equal(0);
+        expect(spawnSync('sh', ['-c', command, 'sh', link]).status).to.equal(1);
+        expect(
+          spawnSync('sh', ['-c', command, 'sh', path.join(directoryLink, 'fwcloud.sh')]).status,
+        ).to.equal(1);
+      } finally {
+        if (fs.existsSync(directoryLink)) fs.unlinkSync(directoryLink);
+        if (fs.existsSync(link)) fs.unlinkSync(link);
+        if (fs.existsSync(script)) fs.unlinkSync(script);
+        fs.rmdirSync(directory);
+      }
+    });
+
+    it('lists the active script and valid backups with lifecycle metadata', async () => {
+      runCommand.resolves(
+        '__FWCLOUD_POLICY_SCRIPT__=/etc/fwcloud/fwcloud.sh\t2026-11-18 09:30:00\t2026-11-18 09:31:00\n' +
+          '__FWCLOUD_POLICY_SCRIPT__=/etc/fwcloud/fwcloud-20261118090000.sh\t2026-11-18 08:30:00\t2026-11-18 08:31:00\n' +
+          '__FWCLOUD_POLICY_SCRIPT__=/etc/fwcloud/fwcloud-20261118080000.sh\t\t\n',
+      );
+
+      expect(await ssh.getFirewallPolicyScriptHistory()).to.deep.equal([
+        {
+          path: '/etc/fwcloud/fwcloud.sh',
+          compilation_date: '2026-11-18 09:30:00',
+          installation_date: '2026-11-18 09:31:00',
+        },
+        {
+          path: '/etc/fwcloud/fwcloud-20261118090000.sh',
+          compilation_date: '2026-11-18 08:30:00',
+          installation_date: '2026-11-18 08:31:00',
+        },
+      ]);
+      expect(runCommand.firstCall.args[1]).to.contain('/etc/fwcloud');
+      expect(runCommand.firstCall.args[1]).to.contain('/config/scripts/post-config.d');
+      expect(runCommand.firstCall.args[1]).to.contain('head -n 25');
+      expect(runCommand.firstCall.args[1]).to.contain('FWCLOUD_COMPILATION_DATE');
+    });
+
+    it('reads an active policy script from an allowed directory', async () => {
+      runCommand.resolves('#!/bin/sh\n');
+
+      expect(await ssh.getFirewallPolicyScriptContent('/etc/fwcloud/fwcloud.sh')).to.deep.equal({
+        content: '#!/bin/sh\n',
+      });
+      expect(runCommand.firstCall.args[1]).to.contain('cat');
+      expect(runCommand.firstCall.args[1]).to.contain('/etc/fwcloud/fwcloud.sh');
+      expect(runCommand.firstCall.args[1]).to.contain('has_policy_script_dates');
+      expect(runCommand.firstCall.args[1]).to.contain('head -n 25');
+    });
+
+    it('returns a diff when selected policy scripts differ', async () => {
+      runCommand.resolves('1c1\n');
+
+      expect(
+        await ssh.compareFirewallPolicyScripts(
+          '/etc/fwcloud/fwcloud.sh',
+          '/etc/fwcloud/fwcloud-20261118090000.sh',
+        ),
+      ).to.deep.equal({ diff: '1c1\n' });
+      expect(runCommand.firstCall.args[1]).to.contain('diff');
+      expect(runCommand.firstCall.args[1]).to.contain('[ "$status" -eq 1 ] && exit 0');
+      expect(runCommand.firstCall.args[1]).to.contain('has_policy_script_dates');
+      expect(runCommand.firstCall.args[1]).to.contain('head -n 25');
+    });
+
+    it('rejects paths outside policy script directories before running a command', async () => {
+      await expect(ssh.getFirewallPolicyScriptContent('/tmp/fwcloud.sh')).to.be.rejectedWith(
+        'Invalid policy script path',
+      );
+      expect(runCommand.notCalled).to.be.true;
     });
   });
 

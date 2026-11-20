@@ -111,6 +111,46 @@ describe(AgentCommunication.name, () => {
     });
   });
 
+  describe('policy script history', () => {
+    it('should retrieve the policy script history from the agent', async () => {
+      const history = [
+        {
+          path: '/etc/fwcloud/fwcloud.sh',
+          compilation_date: '2026-11-18 09:30:00',
+          installation_date: '2026-11-18 09:31:00',
+        },
+      ];
+      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: history });
+
+      expect(await agent.getFirewallPolicyScriptHistory()).to.deep.equal(history);
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/history');
+    });
+
+    it('should retrieve content and compare selected policy scripts through the agent', async () => {
+      const stub = sinon.stub(axios, 'post');
+      stub.onFirstCall().resolves({ status: 200, data: { content: '#!/bin/sh\n' } });
+      stub.onSecondCall().resolves({ status: 200, data: { diff: '1c1\n' } });
+
+      expect(await agent.getFirewallPolicyScriptContent('/etc/fwcloud/fwcloud.sh')).to.deep.equal({
+        content: '#!/bin/sh\n',
+      });
+      expect(
+        await agent.compareFirewallPolicyScripts(
+          '/etc/fwcloud/fwcloud.sh',
+          '/etc/fwcloud/fwcloud-20261118090000.sh',
+        ),
+      ).to.deep.equal({ diff: '1c1\n' });
+
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/content');
+      expect(stub.firstCall.args[1]).to.deep.equal({ file: '/etc/fwcloud/fwcloud.sh' });
+      expect(stub.secondCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/diff');
+      expect(stub.secondCall.args[1]).to.deep.equal({
+        file1: '/etc/fwcloud/fwcloud.sh',
+        file2: '/etc/fwcloud/fwcloud-20261118090000.sh',
+      });
+    });
+  });
+
   describe('OpenVPN client config directory', () => {
     it('should request directory creation with ownership and permissions', async () => {
       const stub = sinon.stub(axios, 'put').resolves({ status: 200 });
