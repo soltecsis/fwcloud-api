@@ -132,6 +132,7 @@ export class RoutingRuleController extends Controller {
 
     const rule: RoutingRule = await this.routingRuleService.create(
       request.inputs.all<ICreateRoutingRule>(),
+      this._firewall.id,
     );
 
     return ResponseBuilder.buildResponse().status(201).body(rule);

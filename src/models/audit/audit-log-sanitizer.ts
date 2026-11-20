@@ -1,5 +1,7 @@
 const AUDIT_SENSITIVE_KEY_PATTERNS = [
   'password',
+  'sshpass',
+  'sshuser',
   'passcode',
   'passwd',
   'secret',

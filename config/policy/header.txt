@@ -1,4 +1,7 @@
 #!/bin/sh
+
+set -eu
+
 #############################################
 ##                                         ##
 ##  FWCloud.net                            ##
@@ -10,6 +13,11 @@
 ##  info@soltecsis.com                     ##
 ##                                         ##
 #############################################
+
+FWCLOUD_COMPILATION_DATE="__FWCLOUD_COMPILATION_DATE__"
+FWCLOUD_COMPILATION_DATE_UTC="__FWCLOUD_COMPILATION_DATE_UTC__"
+FWCLOUD_INSTALLATION_DATE=""
+FWCLOUD_INSTALLATION_DATE_UTC=""
 
 LSMOD=`which lsmod 2>/dev/null`
 MODPROBE=`which modprobe 2>/dev/null`
@@ -26,21 +34,23 @@ BOOT_STATE=$(systemctl is-system-running 2>/dev/null || true)
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
 SYSTEMD_FILE_ROUTING="/etc/systemd/system/fwcloud-routing.service"
 
-if [ -z "$HOSTNAME" ]; then
+if [ -z "${HOSTNAME:-}" ]; then
   HOSTNAME=`hostname`
 fi
 
 log() {
   echo "$1"
-  which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"
+  if [ -n "${LOGGER:-}" ] && which "$LOGGER" >/dev/null 2>&1; then
+    $LOGGER -p info "$1"
+  fi
 }
 
 policy_load_elapsed_msg() {
-  test -z "$POLICY_LOAD_START_TIME_MS" && return
+  test -z "${POLICY_LOAD_START_TIME_MS:-}" && return
   END_TIME_MS=`policy_load_timestamp_ms`
-  ELAPSED_TIME_MS=`expr $END_TIME_MS - $POLICY_LOAD_START_TIME_MS`
-  ELAPSED_TIME_S=`expr $ELAPSED_TIME_MS / 1000`
-  ELAPSED_TIME_REST_MS=`expr $ELAPSED_TIME_MS % 1000`
+  ELAPSED_TIME_MS=$((END_TIME_MS - POLICY_LOAD_START_TIME_MS))
+  ELAPSED_TIME_S=$((ELAPSED_TIME_MS / 1000))
+  ELAPSED_TIME_REST_MS=$((ELAPSED_TIME_MS % 1000))
   printf '\nPolicy load completed in %s.%03ds\n' "$ELAPSED_TIME_S" "$ELAPSED_TIME_REST_MS"
 }
 
@@ -52,7 +62,7 @@ policy_load_timestamp_ms() {
       TIMESTAMP_MS="000"
       ;;
     *)
-      TIMESTAMP_MS=`expr "$TIMESTAMP_NS" : '\(...\)'`
+      TIMESTAMP_MS=$(printf '%.3s' "$TIMESTAMP_NS")
       ;;
   esac
   printf '%s%s\n' "$TIMESTAMP_S" "$TIMESTAMP_MS"
@@ -66,6 +76,7 @@ check_cmds() {
   test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IPTABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'iptables-restore'." && exit 1
   test "$POLICY_COMPILER" = "IPTables" -a "$POLICY_COMPILATION_MODE" = "optimized" -a -z "$IP6TABLES_RESTORE" && echo "ERROR: Optimized IPTables compilation requires command 'ip6tables-restore'." && exit 1
   test "$POLICY_COMPILER" = "NFTables" -a -z "$NFT" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'nft' not found." && exit 1
+  return 0
 }
 
 iptables_default_filter_policy() {
@@ -226,9 +237,9 @@ status() {
 policy_apply() {
   load_nat_modules
   policy_empty
-  if ! policy_load || ! options_load; then
-    echo "ERROR: Policy load failed"
+  if [ "$POLICY_COMPILER" = "IPTables" ]; then
     iptables_default_filter_policy ACCEPT
-    return 1
   fi
+  policy_load
+  options_load
 }

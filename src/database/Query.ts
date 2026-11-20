@@ -25,6 +25,8 @@ import { QueryRunner } from 'typeorm';
 import * as sqlstring from 'sqlstring';
 
 export default class Query {
+  constructor(private readonly transactionRunner?: QueryRunner) {}
+
   public query(query: string, params: Array<any>, callback: (err: any, result: any) => void): void;
   public query(
     query: string,
@@ -33,7 +35,7 @@ export default class Query {
   ): void;
   public query(query: string, callback: (err: any, result: any) => void): void;
   public query(query: string, params: any = [], callback?: (err: any, result: any) => void): void {
-    const queryRunner: QueryRunner = db.getQueryRunner();
+    const queryRunner = this.transactionRunner ?? db.getQueryRunner();
 
     if (typeof params === 'function') {
       callback = params;
@@ -63,13 +65,13 @@ export default class Query {
     queryRunner
       .query(sql, values)
       .then(async (result) => {
-        await queryRunner.release();
+        if (!this.transactionRunner) await queryRunner.release();
         if (callback) {
           callback(null, result);
         }
       })
       .catch(async (err) => {
-        await queryRunner.release();
+        if (!this.transactionRunner) await queryRunner.release();
         if (callback) {
           callback(err, null);
         }

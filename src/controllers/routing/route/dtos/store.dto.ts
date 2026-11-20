@@ -22,6 +22,7 @@
 
 import { Type } from 'class-transformer';
 import {
+  Equals,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -139,4 +140,8 @@ export class RouteControllerStoreDto {
   @IsEnum(Offset)
   @IsOptional()
   offset?: Offset;
+
+  @Equals(null)
+  @IsOptional()
+  idgroup?: null;
 }

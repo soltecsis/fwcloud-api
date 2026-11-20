@@ -62,7 +62,7 @@ describe('Policy authorization regression tests', () => {
   let userLookup: sinon.SinonStub;
 
   const cases: PolicyCase[] = [
-    { policy: FirewallPolicy, actions: ['compile', 'install'], resource: firewall },
+    { policy: FirewallPolicy, actions: ['compile', 'install', 'history'], resource: firewall },
     { policy: FirewallPolicy, actions: ['ping', 'info'], resource: cloud },
     {
       policy: PolicyRulePolicy,

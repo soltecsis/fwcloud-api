@@ -47,6 +47,10 @@ export class FirewallPolicy extends Policy {
     return this.authorizeFirewall(firewall, user);
   }
 
+  static async history(firewall: Firewall, user: User): Promise<Authorization> {
+    return this.authorizeFirewall(firewall, user);
+  }
+
   private static async authorizeFirewall(firewall: Firewall, user: User): Promise<Authorization> {
     user = await loadPolicyUser(user.id);
     if (user.role === 1) {
