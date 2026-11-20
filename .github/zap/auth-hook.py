@@ -12,6 +12,8 @@ RULES = '/zap/wrk/.github/zap/rules.tsv'
 BASE = 'http://127.0.0.1:3131'
 state = None
 targets = {}
+# Verified audit session identifier and the audit URL patterns where it may appear.
+session_timestamp = None
 
 
 def new_report():
@@ -57,8 +59,8 @@ def load_scope():
 
 
 def zap_started(zap, target):
-    global state, targets
-    state, targets = new_report(), {}
+    global state, targets, session_timestamp
+    state, targets, session_timestamp = new_report(), {}, None
     save()  # Clear stale success before any operation which can fail.
     if os.environ.get('CI') != 'true' or not os.environ.get('ZAP_AUTH_HEADER_VALUE'):
         raise RuntimeError('Authenticated scan requires disposable CI credentials')
@@ -76,13 +78,41 @@ def zap_started(zap, target):
     session_id = os.environ.get('ZAP_AUDIT_SESSION_ID', '')
     if not re.fullmatch(r'[0-9]{1,10}', session_id) or int(session_id) > 2147483647:
         raise RuntimeError('Missing verified audit correlation identifier')
-    for (method, path), operation in targets.items():
-        if (operation['operationId'] in ('audit', 'audit-list')
-                and method == 'GET' and re.fullmatch(r'/auditlogs(?:/[0-9]+)?', path)):
-            zap.alertFilter.add_global_alert_filter(
-                '10096', '0', url='^' + re.escape(BASE + path) + r'(?:\?.*)?$', urlisregex=True,
-                parameter=r'^$', parameterisregex=True, enabled=True, methods='GET',
-                evidence='^' + session_id + '$', evidenceisregex=True)
+    urls = ['^' + re.escape(BASE + path) + r'(?:\?.*)?$'
+            for (method, path), operation in targets.items()
+            if (operation['operationId'] in ('audit', 'audit-list')
+                and method == 'GET' and re.fullmatch(r'/auditlogs(?:/[0-9]+)?', path))]
+    session_timestamp = (session_id, urls)
+    for url in urls:
+        zap.alertFilter.add_global_alert_filter(
+            '10096', '0', url=url, urlisregex=True,
+            parameter=r'^$', parameterisregex=True, enabled=True, methods='GET',
+            evidence='^' + session_id + '$', evidenceisregex=True)
+
+
+def is_session_timestamp(alert):
+    """Same criteria as the global 10096 filter: rule, GET, no parameter, exact value, audit URL."""
+    if session_timestamp is None:
+        return False
+    session_id, urls = session_timestamp
+    return (alert.get('pluginId') == '10096' and alert.get('method') == 'GET'
+            and alert.get('param') == '' and alert.get('evidence') == session_id
+            and any(re.fullmatch(url, alert.get('url', '')) for url in urls))
+
+
+def zap_get_alerts(zap, baseurl, ignore_scan_rules, out_of_scope_dict):
+    # ZAP defers global filters while an alert's message has no site node, so the packaged
+    # gate can count the original Low risk. Apply the same scoped rule before it reads alerts.
+    ids, start = [], 0
+    while True:
+        alerts = zap.alert.alerts(start=start, count=500)
+        ids += [alert['id'] for alert in alerts
+                if alert.get('risk') != 'Informational' and is_session_timestamp(alert)]
+        if len(alerts) < 500:
+            break
+        start += len(alerts)
+    if ids:
+        zap.alert.update_alerts_risk(','.join(ids), 0)
 
 
 def known_path(uri):

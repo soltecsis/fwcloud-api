@@ -31,6 +31,8 @@ import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
 import { Firewall } from '../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../src/models/firewall/Cluster';
+import { ConfirmationToken } from '../../../src/middleware/confirmation-token.middleware';
+import { HTTPApplication } from '../../../src/fonaments/http-application';
 
 describe('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -213,6 +215,102 @@ describe('AuditLogMiddleware', () => {
     const payload = JSON.parse(entry.data);
     expect(payload.statusCode).to.equal(500);
     expect(payload.durationMs).to.equal(entry.durationMs);
+  });
+
+  describe('confirmation token challenges', () => {
+    const createConfirmationApp = () => {
+      const app = express();
+      const middleware = new AuditLogMiddleware();
+
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).session = {
+          user: {
+            id: 503,
+            username: 'confirmation-user',
+            confirmation_token: 'valid-confirmation-token',
+            save: sinon.stub().resolves(),
+          },
+        };
+        (req as any).sessionID = 'confirmation-audit-session';
+        next();
+      });
+      app.use((req, res, next) => middleware.handle(req, res, next));
+      new ConfirmationToken().register({
+        express: app,
+        config: { get: () => true },
+      } as unknown as HTTPApplication);
+
+      return app;
+    };
+
+    for (const token of [undefined, 'invalid-confirmation-token']) {
+      it(`persists a challenge for a ${token === undefined ? 'missing' : 'invalid'} token without storing the generated token`, async () => {
+        const app = createConfirmationApp();
+        const call = request(app)
+          .post('/resource/create')
+          .send({ fwc_confirm_token: 'body-token' });
+        if (token !== undefined) call.set('x-fwc-confirm-token', token);
+
+        const response = await call.expect(403);
+        const entries = await waitForAuditLogs();
+
+        expect(entries).to.have.length(1);
+        const [entry] = entries;
+        expect(entry.status).to.equal(403);
+        expect(entry.confirmationTokenChallenge).to.equal(true);
+        expect(entry.durationMs).to.be.a('number');
+        expect(JSON.stringify(entry)).not.to.contain(response.body.fwc_confirm_token);
+        expect(JSON.stringify(entry)).not.to.contain('body-token');
+        if (token !== undefined) expect(JSON.stringify(entry)).not.to.contain(token);
+        expect(JSON.parse(entry.data).body.fwc_confirm_token).to.equal('[REDACTED]');
+      });
+    }
+
+    it('keeps challenges for protected operations normally classified as reads', async () => {
+      const app = createConfirmationApp();
+
+      await request(app).post('/resource/download').expect(403);
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.status).to.equal(403);
+      expect(entry.confirmationTokenChallenge).to.equal(true);
+    });
+
+    for (const status of [200, 401, 403, 500]) {
+      it(`does not classify HTTP ${status} responses with valid tokens as challenges`, async () => {
+        const app = createConfirmationApp();
+        app.post('/resource/create', (_req, res) => {
+          res.status(status).json({ result: 'ordinary response' });
+        });
+
+        await request(app)
+          .post('/resource/create')
+          .set('x-fwc-confirm-token', 'valid-confirmation-token')
+          .expect(status);
+
+        const [entry] = await waitForAuditLogs();
+        expect(entry.status).to.equal(status);
+        expect(entry.confirmationTokenChallenge).to.equal(false);
+        expect(JSON.stringify(entry)).not.to.contain('valid-confirmation-token');
+      });
+    }
+
+    it('does not trust a classification supplied by request data', async () => {
+      const app = createConfirmationApp();
+      app.post('/resource/create', (_req, res) =>
+        res.status(403).json({ error: 'Permission denied' }),
+      );
+
+      await request(app)
+        .post('/resource/create')
+        .set('x-fwc-confirm-token', 'valid-confirmation-token')
+        .send({ confirmationTokenChallenge: true, __auditLogConfirmationTokenChallenge: true })
+        .expect(403);
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.confirmationTokenChallenge).to.equal(false);
+    });
   });
 
   it('builds concise HTTP descriptions without duplicating query or body data', async () => {

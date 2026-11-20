@@ -90,6 +90,20 @@ export type PluginInstallOptions = {
   pluginParams?: string[];
 };
 
+export type PolicyScriptHistoryEntry = {
+  path: string;
+  compilation_date: string;
+  installation_date: string;
+};
+
+export type PolicyScriptContent = {
+  content: string;
+};
+
+export type PolicyScriptComparison = {
+  diff: string;
+};
+
 export type CrowdSecConsoleEnrollment = {
   enrollmentKey: string;
   name?: string;
@@ -336,6 +350,18 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
     crowdSecBackend?: CrowdSecFirewallBackend,
   ): Promise<string>;
+  async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
+    throw new Error('Method not implemented');
+  }
+  async getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent> {
+    throw new Error('Method not implemented');
+  }
+  async compareFirewallPolicyScripts(
+    file1: string,
+    file2: string,
+  ): Promise<PolicyScriptComparison> {
+    throw new Error('Method not implemented');
+  }
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;

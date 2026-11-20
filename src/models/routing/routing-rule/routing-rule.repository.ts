@@ -33,6 +33,7 @@ import { Firewall } from '../../firewall/Firewall';
 import { RoutingRule } from './routing-rule.model';
 import db from '../../../database/database-manager';
 import { Repository } from '../../../database/repository';
+import { getRoutingGroupInsertion } from '../shared';
 export interface IFindManyRoutingRulePath {
   firewallId?: number;
   fwCloudId?: number;
@@ -86,6 +87,35 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
       .orderBy('rule.rule_order', 'DESC')
       .take(1)
       .getOne();
+  }
+
+  async openOrderGapOutsideGroup(
+    firewallId: number,
+    anchorId: number,
+    offset: Offset,
+  ): Promise<number> {
+    const rules = await this.createQueryBuilder('rule')
+      .select(['rule.id', 'rule.routingGroupId', 'rule.rule_order'])
+      .innerJoin('rule.routingTable', 'table')
+      .where('table.firewallId = :firewallId', { firewallId })
+      .orderBy('rule.rule_order')
+      .addOrderBy('rule.id')
+      .setLock('pessimistic_write')
+      .getMany();
+    const { order, shiftIds, shiftBy } = getRoutingGroupInsertion(
+      rules.map((rule) => ({ id: rule.id, groupId: rule.routingGroupId, order: rule.rule_order })),
+      anchorId,
+      offset,
+    );
+    if (shiftIds.length > 0) {
+      await this.createQueryBuilder()
+        .update()
+        .set({ rule_order: () => 'rule_order + :shiftBy' })
+        .setParameter('shiftBy', shiftBy)
+        .whereInIds(shiftIds)
+        .execute();
+    }
+    return order;
   }
 
   /**
@@ -323,6 +353,6 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
 
     if (rules) query = query.andWhere('rule.id IN (:...rules)', { rules: rules });
 
-    return query.orderBy('rule.rule_order').getMany();
+    return query.orderBy('rule.rule_order').addOrderBy('rule.id').getMany();
   }
 }

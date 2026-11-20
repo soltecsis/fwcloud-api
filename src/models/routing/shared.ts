@@ -21,6 +21,8 @@
 */
 
 import { SelectQueryBuilder } from 'typeorm';
+import { ValidationException } from '../../fonaments/exceptions/validation-exception';
+import { Offset } from '../../offset';
 import { IPObj } from '../ipobj/IPObj';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
 import { Mark } from '../ipobj/Mark';
@@ -64,6 +66,31 @@ export type RoutingRuleItemForCompiler = {
   range_end: string;
   mark_code: number;
 };
+
+export function getRoutingGroupInsertion(
+  items: { id: number; groupId: number; order: number }[],
+  anchorId: number,
+  offset: Offset,
+): { order: number; shiftIds: number[]; shiftBy: number } {
+  const anchor = items.find((item) => item.id === anchorId);
+  if (anchor?.groupId == null || (offset !== Offset.Above && offset !== Offset.Below)) {
+    throw new ValidationException('The given data was invalid', {
+      to: ['Creating outside the group requires a grouped rule in this policy and an offset'],
+    });
+  }
+
+  const group = items.filter((item) => item.groupId === anchor.groupId);
+  const index =
+    offset === Offset.Above ? items.indexOf(group[0]) : items.indexOf(group[group.length - 1]) + 1;
+  const previousOrder = items[index - 1]?.order;
+  const nextOrder = items[index]?.order;
+  const order = previousOrder == null ? nextOrder : previousOrder + 1;
+  // A tie across the boundary needs two positions so the new item has a distinct order.
+  const shiftBy = nextOrder <= order ? order + 1 - nextOrder : 0;
+  const shiftIds = shiftBy > 0 ? items.slice(index).map((item) => item.id) : [];
+
+  return { order, shiftIds, shiftBy };
+}
 
 export class RoutingUtils {
   public static async mapEntityData<

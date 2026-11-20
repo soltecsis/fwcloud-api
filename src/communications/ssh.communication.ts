@@ -26,7 +26,11 @@ import * as path from 'path';
 import { app } from '../fonaments/abstract-application';
 import { FwCloudError } from '../fonaments/exceptions/error';
 import { FireWallOptMask } from '../models/firewall/Firewall';
-import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
+import {
+  ProgressErrorPayload,
+  ProgressInfoPayload,
+  ProgressNoticePayload,
+} from '../sockets/messages/socket-message';
 import sshTools from '../utils/ssh';
 import {
   CCDHash,
@@ -53,6 +57,9 @@ import {
   OpenVPNHistoryRecord,
   OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
+  PolicyScriptComparison,
+  PolicyScriptContent,
+  PolicyScriptHistoryEntry,
 } from './communication';
 const config = require('../config/config');
 const fwcError = require('../utils/error_table');
@@ -138,6 +145,24 @@ const getOpenVPN2FACheckScriptPath = (): string => {
 };
 
 const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+const backupPathOutputMarker = '__FWCLOUD_BACKUP_PATH__=';
+const policyScriptOutputMarker = '__FWCLOUD_POLICY_SCRIPT__=';
+const policyScriptBackupName = /^fwcloud-\d{14}\.sh$/;
+export const validatePolicyScriptDates = `
+has_policy_script_dates() {
+  [ ! -L "$1" ] || return 1
+  [ -f "$1" ] || return 1
+  policy_dir="$(dirname "$1")"
+  while [ "$policy_dir" != / ]; do
+    [ ! -L "$policy_dir" ] || return 1
+    policy_dir="$(dirname "$policy_dir")"
+  done
+  header="$(head -n 25 "$1")" || return 1
+  compilation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_COMPILATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
+  installation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_INSTALLATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
+  [ -n "$compilation_date" ] && [ -n "$installation_date" ]
+}
+`.trim();
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
@@ -157,38 +182,245 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     eventEmitter: EventEmitter = new EventEmitter(),
     _crowdSecBackend?: CrowdSecFirewallBackend,
   ): Promise<string> {
+    let backupPath = '';
+    let installedScriptPath = '';
+    let shDebug = '';
+    let sudo = '';
+    let failedAction = 'installation';
+
     try {
       if (!app().config.get('firewall_communication.ssh_enable')) {
         throw fwcError.SSH_COMMUNICATION_DISABLE;
       }
+      const scriptName = config.get('policy').script_name;
+      const uploadedScriptPath = `./${scriptName}`;
+      const standardScriptPath = `/etc/fwcloud/${scriptName}`;
+      const edgeOSScriptPath = `/config/scripts/post-config.d/${scriptName}`;
       eventEmitter.emit(
         'message',
-        new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`),
+        new ProgressInfoPayload(`Uploading firewall script (${this.connectionData.host})`),
       );
-      await sshTools.uploadFile(this.connectionData, scriptPath, config.get('policy').script_name);
+      await sshTools.uploadFile(this.connectionData, scriptPath, scriptName);
 
       // Enable sh debug if it is selected in firewalls/cluster options.
-      const sh_debug = this.connectionData.options & FireWallOptMask.DEBUG ? '-x' : '';
+      shDebug = this.connectionData.options & FireWallOptMask.DEBUG ? '-x' : '';
 
-      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+      sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
-      eventEmitter.emit('message', new ProgressNoticePayload('Installing firewall script.'));
+      eventEmitter.emit('message', new ProgressInfoPayload('Checking previous firewall script.'));
+      const backupCommand = `
+if [ -f ${shellQuote(standardScriptPath)} ]; then
+  installed_script_path=${shellQuote(standardScriptPath)}
+elif [ -f ${shellQuote(edgeOSScriptPath)} ]; then
+  installed_script_path=${shellQuote(edgeOSScriptPath)}
+else
+  exit 0
+fi
+backup_path="$(dirname "$installed_script_path")/fwcloud-$(date +%Y%m%d%H%M%S).sh"
+[ ! -e "$backup_path" ] || exit 1
+mv "$installed_script_path" "$backup_path"
+printf '${backupPathOutputMarker}%s\\n' "$backup_path"
+`.trim();
+      const backupOutput = (
+        await sshTools.runCommand(this.connectionData, `${sudo} sh -c ${shellQuote(backupCommand)}`)
+      ).trim();
+      const backupPathLine = backupOutput
+        .split(/\r?\n/)
+        .find((line) => line.includes(backupPathOutputMarker));
+      backupPath = backupPathLine
+        ? backupPathLine.slice(
+            backupPathLine.indexOf(backupPathOutputMarker) + backupPathOutputMarker.length,
+          )
+        : '';
+      if (backupPath) {
+        installedScriptPath = path.posix.join(path.posix.dirname(backupPath), scriptName);
+        eventEmitter.emit(
+          'message',
+          new ProgressInfoPayload('Previous firewall script backed up.'),
+        );
+      }
+
+      eventEmitter.emit('message', new ProgressInfoPayload('Installing firewall script.'));
       await sshTools.runCommand(
         this.connectionData,
-        `${sudo} sh ${sh_debug} ./${config.get('policy').script_name} install`,
+        `${sudo} sh ${shDebug} ${shellQuote(uploadedScriptPath)} install`,
       );
 
-      eventEmitter.emit('message', new ProgressNoticePayload('Loading firewall policy.'));
-      const cmd = `${sudo} sh ${sh_debug} -c 'if [ -d /etc/fwcloud ]; then
-                sh ${sh_debug} /etc/fwcloud/${config.get('policy').script_name} start;
-                else sh ${sh_debug} /config/scripts/post-config.d/${config.get('policy').script_name} start;
-            fi'`;
+      eventEmitter.emit('message', new ProgressInfoPayload('Loading firewall policy.'));
+      failedAction = 'policy loading';
+      const cmd = `${sudo} sh ${shDebug} -c ${shellQuote(`if [ -f ${shellQuote(standardScriptPath)} ]; then
+  sh ${shDebug} ${shellQuote(standardScriptPath)} start
+else
+  sh ${shDebug} ${shellQuote(edgeOSScriptPath)} start
+fi`)}`;
       await sshTools.runCommand(this.connectionData, cmd, eventEmitter);
 
       return 'DONE';
     } catch (error) {
+      if (backupPath) {
+        try {
+          eventEmitter.emit(
+            'message',
+            new ProgressErrorPayload(
+              `Firewall policy ${failedAction} failed. Restoring previous firewall script.`,
+            ),
+          );
+          eventEmitter.emit(
+            'message',
+            new ProgressInfoPayload('Restoring previous firewall script.'),
+          );
+          const restoreCommand = [
+            `rm -f ${shellQuote(`./${config.get('policy').script_name}`)} ${shellQuote(installedScriptPath)}`,
+            `mv ${shellQuote(backupPath)} ${shellQuote(installedScriptPath)}`,
+          ].join('\n');
+          await sshTools.runCommand(
+            this.connectionData,
+            `${sudo} sh -c ${shellQuote(restoreCommand)}`,
+          );
+          await sshTools.runCommand(
+            this.connectionData,
+            `${sudo} sh ${shDebug} ${shellQuote(installedScriptPath)} start`,
+            eventEmitter,
+          );
+        } catch (recoveryError) {
+          throw Object.assign(
+            new Error(
+              `Firewall policy installation failed and the previous policy could not be restored: ${recoveryError.message}`,
+            ),
+            { cause: recoveryError },
+          );
+        }
+      }
       this.handleRequestException(error, eventEmitter);
     }
+  }
+
+  async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+      const scriptName = config.get('policy').script_name;
+      const installationDirectories = this.getPolicyScriptInstallationDirectories();
+      const timestampPattern =
+        '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]';
+      const listCommand = `
+print_policy_script() {
+  script_path="$1"
+  has_policy_script_dates "$script_path" || return
+  printf '${policyScriptOutputMarker}%s\\t%s\\t%s\\n' "$script_path" "$compilation_date" "$installation_date"
+}
+
+{
+  for installation_dir in ${installationDirectories.map(shellQuote).join(' ')}; do
+    active_script_path="$installation_dir"/${shellQuote(scriptName)}
+    if [ -f "$active_script_path" ]; then
+      print_policy_script "$active_script_path"
+    fi
+
+    for script_path in "$installation_dir"/fwcloud-${timestampPattern}.sh; do
+      [ -f "$script_path" ] || continue
+      print_policy_script "$script_path"
+    done
+  done
+} | LC_ALL=C sort -r
+`.trim();
+      const output = await sshTools.runCommand(
+        this.connectionData,
+        `${sudo} sh -c ${shellQuote(`${validatePolicyScriptDates}\n${listCommand}`)}`,
+      );
+
+      return output
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith(policyScriptOutputMarker))
+        .map((line) => line.slice(policyScriptOutputMarker.length).split('\t'))
+        .filter(
+          ([scriptPath, compilationDate, installationDate]) =>
+            scriptPath !== undefined && compilationDate !== '' && installationDate !== '',
+        )
+        .map(([scriptPath, compilationDate, installationDate]) => ({
+          path: scriptPath,
+          compilation_date: compilationDate,
+          installation_date: installationDate,
+        }));
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+      const scriptPath = this.getValidPolicyScriptPath(file);
+      const content = await sshTools.runCommand(
+        this.connectionData,
+        `${sudo} sh -c ${shellQuote(`${validatePolicyScriptDates}\nhas_policy_script_dates ${shellQuote(scriptPath)} || exit 1\ncat ${shellQuote(scriptPath)}`)}`,
+      );
+
+      return { content };
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async compareFirewallPolicyScripts(
+    file1: string,
+    file2: string,
+  ): Promise<PolicyScriptComparison> {
+    try {
+      if (!app().config.get('firewall_communication.ssh_enable')) {
+        throw fwcError.SSH_COMMUNICATION_DISABLE;
+      }
+
+      const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+      const scriptPath1 = this.getValidPolicyScriptPath(file1);
+      const scriptPath2 = this.getValidPolicyScriptPath(file2);
+      const comparisonCommand = `
+${validatePolicyScriptDates}
+has_policy_script_dates ${shellQuote(scriptPath1)} || exit 1
+has_policy_script_dates ${shellQuote(scriptPath2)} || exit 1
+if diff ${shellQuote(scriptPath1)} ${shellQuote(scriptPath2)}; then
+  exit 0
+else
+  status=$?
+fi
+
+[ "$status" -eq 1 ] && exit 0
+exit "$status"
+`.trim();
+      const diff = await sshTools.runCommand(
+        this.connectionData,
+        `${sudo} sh -c ${shellQuote(comparisonCommand)}`,
+      );
+
+      return { diff };
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  private getPolicyScriptInstallationDirectories(): string[] {
+    return ['/etc/fwcloud', '/config/scripts/post-config.d'];
+  }
+
+  private getValidPolicyScriptPath(file: string): string {
+    const scriptName = config.get('policy').script_name;
+    const directory = path.posix.dirname(file);
+    const filename = path.posix.basename(file);
+    const isExpectedDirectory = this.getPolicyScriptInstallationDirectories().includes(directory);
+    const isActiveScript = filename === scriptName;
+
+    if (!isExpectedDirectory || (!isActiveScript && !policyScriptBackupName.test(filename))) {
+      throw new Error('Invalid policy script path');
+    }
+
+    return file;
   }
 
   async installOpenVPNServerConfigs(

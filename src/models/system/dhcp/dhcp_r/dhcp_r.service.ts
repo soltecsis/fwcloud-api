@@ -26,6 +26,7 @@ import { IPObj } from '../../../ipobj/IPObj';
 import { DHCPGroup } from '../dhcp_g/dhcp_g.model';
 import { Interface } from '../../../interface/Interface';
 import { Offset } from '../../../../offset';
+import { insertUngroupedSystemRule } from '../../insert-ungrouped-rule';
 import { Application } from '../../../../Application';
 import { Service } from '../../../../fonaments/services/service';
 import { IPObjRepository } from '../../../ipobj/IPObj.repository';
@@ -50,6 +51,7 @@ interface IFindOneDHCPRulePath extends IFindManyDHCPRulePath {
 }
 
 export interface ICreateDHCPRule {
+  idgroup?: null;
   active?: boolean;
   group?: number;
   style?: string;
@@ -194,6 +196,17 @@ export class DHCPRuleService extends Service {
         dhcpRuleData.range?.ip_version !== dhcpRuleData.router?.ip_version)
     ) {
       throw new Error('IP version mismatch');
+    }
+
+    if (data.idgroup === null) {
+      return insertUngroupedSystemRule(
+        this._repository,
+        data.firewallId,
+        data.to,
+        data.offset,
+        (rules, rule_order) =>
+          rules.save({ ...dhcpRuleData, group: null, groupId: null, rule_order }),
+      );
     }
 
     const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRuleInFirewall(

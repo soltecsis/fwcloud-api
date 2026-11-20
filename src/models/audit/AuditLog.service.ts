@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from 'typeorm';
+import { getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
@@ -32,7 +32,6 @@ import * as fs from 'fs-extra';
 import path from 'path';
 import { EventEmitter } from 'events';
 import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
-import { getMetadataArgsStorage } from 'typeorm';
 import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 import { Zip } from '../../utils/zip';
 import ObjectHelpers from '../../utils/object-helpers';
@@ -59,10 +58,11 @@ export type AuditLogArchiverUpdateableConfig = {
   retention_days: number;
 };
 
-export type ListAuditLogsCursor = {
-  startedAt: Date;
-  id: number;
-};
+export type AuditLogSortBy = 'start' | 'end';
+export type AuditLogSortOrder = 'asc' | 'desc';
+
+export type ListAuditLogsCursor =
+  { startedAt: Date; id: number } | { finishedAt: Date | null; id: number };
 
 export type ListAuditLogsOptions = {
   isAdmin: boolean;
@@ -81,8 +81,11 @@ export type ListAuditLogsOptions = {
   clusterId?: number;
   clusterName?: string;
   sourceIp?: string;
+  sortBy?: AuditLogSortBy;
+  sortOrder?: AuditLogSortOrder;
   cursor?: ListAuditLogsCursor;
   eventTypes?: AuditEventType[];
+  excludeConfirmationTokenRequests?: boolean;
 };
 
 export type AuditLogAccessOptions = Pick<
@@ -93,6 +96,7 @@ export type AuditLogAccessOptions = Pick<
 };
 
 export type AuditLogSummary = {
+  confirmationTokenChallenge: boolean | null;
   eventType: AuditEventType | null;
   outcome: AuditOutcome | null;
   id: number;
@@ -114,6 +118,7 @@ export type AuditLogSummary = {
 };
 
 type AuditLogSummaryRow = {
+  confirmationTokenChallenge: boolean | number | string | null;
   eventType: AuditEventType | null;
   outcome: AuditOutcome | null;
   id: number | string;
@@ -154,9 +159,12 @@ export type AuditLogMutationInput = {
 };
 
 const MAX_CALL_LENGTH = 255;
+const MAX_DURATION_MS = 2147483647;
 const STARTED_AT_COLUMN = '`auditLog`.`ts`';
+// Missing or invalid durations never imply that an operation has finished.
+const FINISHED_AT_EXPRESSION =
+  'CASE WHEN `auditLog`.`duration_ms` >= 0 THEN TIMESTAMPADD(MICROSECOND, `auditLog`.`duration_ms` * 1000, `auditLog`.`ts`) ELSE NULL END';
 const quoteAuditLogDateForSql = (date: Date): string => `'${formatAuditLogDateForDb(date)}'`;
-const DURATION_MS_PATTERN = /"(?:durationMs|duration_ms)"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/;
 
 export class AuditLogService extends Service {
   protected _config: AuditLogArchiveConfig;
@@ -196,10 +204,7 @@ export class AuditLogService extends Service {
     auditLogs: AuditLogSummary[];
     total: number;
   }> {
-    const query = this.auditLogRepository
-      .createQueryBuilder('auditLog')
-      .orderBy(STARTED_AT_COLUMN, 'DESC')
-      .addOrderBy('`auditLog`.`id`', 'DESC');
+    const query = this.auditLogRepository.createQueryBuilder('auditLog');
 
     if (!this.applyAccessRestrictions(query, options)) {
       return { auditLogs: [], total: 0 };
@@ -207,6 +212,13 @@ export class AuditLogService extends Service {
 
     if (options.eventTypes?.length) {
       query.andWhere('auditLog.eventType IN (:...eventTypes)', { eventTypes: options.eventTypes });
+    }
+
+    if (options.excludeConfirmationTokenRequests === true) {
+      query.andWhere(
+        '(auditLog.confirmationTokenChallenge IS NULL OR auditLog.confirmationTokenChallenge = :confirmationTokenChallenge)',
+        { confirmationTokenChallenge: false },
+      );
     }
 
     if (options.startedAtFrom instanceof Date) {
@@ -245,14 +257,7 @@ export class AuditLogService extends Service {
       });
     }
 
-    if (options.cursor) {
-      const cursor = options.cursor;
-      const cursorStartedAt = quoteAuditLogDateForSql(cursor.startedAt);
-      query.andWhere(
-        `((${STARTED_AT_COLUMN} < ${cursorStartedAt}) OR (${STARTED_AT_COLUMN} = ${cursorStartedAt} AND auditLog.id < :cursorId)) = 1`,
-        { cursorId: cursor.id },
-      );
-    }
+    this.applySorting(query, options);
 
     const total = await query.clone().getCount();
     const listQuery = this.selectSummaryColumns(query.clone());
@@ -291,8 +296,11 @@ export class AuditLogService extends Service {
     }
 
     const auditLog = await query.getOne();
-    if (auditLog && auditLog.durationMs == null) {
-      auditLog.durationMs = this.extractDurationMsFromSerializedData(auditLog.data);
+    if (auditLog) {
+      auditLog.durationMs =
+        auditLog.durationMs == null
+          ? this.extractDurationMsFromSerializedData(auditLog.data)
+          : this.normalizeDurationMs(auditLog.durationMs);
     }
 
     return auditLog;
@@ -386,26 +394,67 @@ export class AuditLogService extends Service {
     return true;
   }
 
+  private applySorting(query: SelectQueryBuilder<AuditLog>, options: ListAuditLogsOptions): void {
+    const sortByEnd = options.sortBy === 'end';
+    const sortColumn = sortByEnd ? FINISHED_AT_EXPRESSION : STARTED_AT_COLUMN;
+    const direction = options.sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const unknownEnd = `(${sortColumn}) IS NULL`;
+
+    if (sortByEnd) {
+      // Keep unknown end times last in either direction.
+      query.orderBy(unknownEnd, 'ASC').addOrderBy(sortColumn, direction);
+    } else {
+      query.orderBy(sortColumn, direction);
+    }
+    query.addOrderBy('`auditLog`.`id`', direction);
+
+    const cursor = options.cursor;
+    if (!cursor) return;
+
+    const cursorTime = 'finishedAt' in cursor ? cursor.finishedAt : cursor.startedAt;
+    const comparison = direction === 'ASC' ? '>' : '<';
+    const compareId = `auditLog.id ${comparison} :cursorId`;
+    let condition: string;
+
+    if (sortByEnd && cursorTime === null) {
+      condition = `${unknownEnd} AND ${compareId}`;
+    } else if (cursorTime instanceof Date) {
+      const cursorTimestamp = quoteAuditLogDateForSql(cursorTime);
+      const afterCursor = `((${sortColumn}) ${comparison} ${cursorTimestamp} OR ((${sortColumn}) = ${cursorTimestamp} AND ${compareId}))`;
+      // Preserve the legacy boolean comparison for descending timestamp scans on MariaDB.
+      condition = sortByEnd ? `(${afterCursor} OR ${unknownEnd})` : `${afterCursor} = 1`;
+    } else {
+      return;
+    }
+
+    query.andWhere(condition, { cursorId: cursor.id });
+  }
+
   private selectSummaryColumns(query: SelectQueryBuilder<AuditLog>): SelectQueryBuilder<AuditLog> {
-    return query
-      .select('auditLog.id', 'id')
-      .addSelect('auditLog.startedAt', 'startedAt')
-      .addSelect('auditLog.userId', 'userId')
-      .addSelect('auditLog.userName', 'userName')
-      .addSelect('auditLog.sessionId', 'sessionId')
-      .addSelect('auditLog.sourceIp', 'sourceIp')
-      .addSelect('auditLog.fwCloudId', 'fwCloudId')
-      .addSelect('auditLog.fwCloudName', 'fwCloudName')
-      .addSelect('auditLog.firewallId', 'firewallId')
-      .addSelect('auditLog.firewallName', 'firewallName')
-      .addSelect('auditLog.clusterId', 'clusterId')
-      .addSelect('auditLog.clusterName', 'clusterName')
-      .addSelect('auditLog.call', 'call')
-      .addSelect('auditLog.status', 'status')
-      .addSelect('auditLog.eventType', 'eventType')
-      .addSelect('auditLog.outcome', 'outcome')
-      .addSelect('auditLog.durationMs', 'durationMs')
-      .addSelect('auditLog.description', 'description');
+    query.select('auditLog.id', 'id');
+    for (const property of [
+      'startedAt',
+      'userId',
+      'userName',
+      'sessionId',
+      'sourceIp',
+      'fwCloudId',
+      'fwCloudName',
+      'firewallId',
+      'firewallName',
+      'clusterId',
+      'clusterName',
+      'call',
+      'status',
+      'confirmationTokenChallenge',
+      'eventType',
+      'outcome',
+      'durationMs',
+      'description',
+    ] satisfies Array<keyof AuditLogSummary>) {
+      query.addSelect(`auditLog.${property}`, property);
+    }
+    return query;
   }
 
   private toSummary(auditLog: AuditLogSummaryRow): AuditLogSummary {
@@ -424,6 +473,12 @@ export class AuditLogService extends Service {
       clusterName: auditLog.clusterName,
       call: auditLog.call,
       status: AuditLogHelper.normalizeHttpStatus(auditLog.status),
+      confirmationTokenChallenge:
+        auditLog.confirmationTokenChallenge == null
+          ? null
+          : auditLog.confirmationTokenChallenge === true ||
+            auditLog.confirmationTokenChallenge === 1 ||
+            auditLog.confirmationTokenChallenge === '1',
       eventType: auditLog.eventType ?? null,
       outcome: auditLog.outcome ?? null,
       durationMs: this.normalizeDurationMs(auditLog.durationMs),
@@ -624,12 +679,7 @@ export class AuditLogService extends Service {
     customConfig: AuditLogArchiverUpdateableConfig,
   ): Promise<AuditLogArchiverUpdateableConfig> {
     await this.writeCustomizedConfig(customConfig);
-    this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
-
-    return {
-      archive_days: this._config.archive_days,
-      retention_days: this._config.retention_days,
-    };
+    return this.getCustomizedConfig();
   }
 
   protected loadCustomizedConfig(baseConfig: AuditLogArchiveConfig): AuditLogArchiveConfig {
@@ -720,6 +770,7 @@ export class AuditLogService extends Service {
 
     auditLog.eventType = input.eventType ?? AuditEventType.Other;
     auditLog.outcome = null;
+    auditLog.confirmationTokenChallenge = false;
     auditLog.call = this.normalizeCall(input.call);
     auditLog.status = AuditLogHelper.normalizeHttpStatus(input.status);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);
@@ -786,8 +837,11 @@ export class AuditLogService extends Service {
   }
 
   protected extractDurationMsFromSerializedData(data: string | null | undefined): number | null {
-    const match = typeof data === 'string' ? DURATION_MS_PATTERN.exec(data) : null;
-    return match ? this.normalizeDurationMs(match[1]) : null;
+    try {
+      return this.extractDurationMsFromData(JSON.parse(data));
+    } catch {
+      return null;
+    }
   }
 
   protected extractStartedAtFromData(data: unknown): Date | null {
@@ -796,21 +850,18 @@ export class AuditLogService extends Service {
   }
 
   protected normalizeDurationMs(value: unknown): number | null {
-    let numeric = Number.NaN;
-
-    if (typeof value === 'number') {
-      numeric = value;
-    } else if (typeof value === 'string' && value.trim() !== '') {
-      numeric = Number(value);
-    } else if (typeof value === 'bigint') {
-      numeric = Number(value);
-    }
-
-    if (!Number.isFinite(numeric)) {
+    if (
+      typeof value !== 'number' &&
+      typeof value !== 'bigint' &&
+      !(typeof value === 'string' && value.trim() !== '')
+    ) {
       return null;
     }
 
-    return Math.max(0, Math.trunc(numeric));
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric >= 0 && numeric <= MAX_DURATION_MS
+      ? Math.trunc(numeric)
+      : null;
   }
 
   protected normalizeAuditDate(value: unknown): Date | null {
