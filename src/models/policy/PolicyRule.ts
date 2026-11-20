@@ -23,6 +23,7 @@
 import Model from '../Model';
 
 import db from '../../database/database-manager';
+import Query from '../../database/Query';
 
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
@@ -578,7 +579,7 @@ export class PolicyRule extends Model {
                 WHERE P.firewall=${firewall} AND P.type=${type}
                 ${rules ? ` AND P.id IN (${rules.join(',')})` : ''}
                 ${idgroup ? ` AND P.idgroup=${idgroup}` : ''} 
-                ORDER BY P.rule_order`;
+                ORDER BY P.rule_order, P.id`;
 
       dbCon.query(sql, async (error, rulesData) => {
         if (error) return reject(error);
@@ -915,15 +916,11 @@ export class PolicyRule extends Model {
   }
 
   //Add new policy_r from user
-  public static insertPolicy_r(policy_rData): Promise<number> {
+  public static insertPolicy_r(policy_rData, dbCon = new Query()): Promise<number> {
     return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
+      dbCon.query('INSERT INTO ' + tableName + ' SET ?', policy_rData, (error, result) => {
         if (error) return reject(error);
-
-        connection.query('INSERT INTO ' + tableName + ' SET ?', policy_rData, (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        });
+        resolve(result.insertId);
       });
     });
   }
@@ -982,12 +979,7 @@ export class PolicyRule extends Model {
           newRule = await this.insertPolicy_r(policy_rData);
           await this.clonePolicyIpobj(dbCon, rowData.newfirewall, rowData.id, newRule);
           await this.clonePolicyInterface(dbCon, rowData.firewall, rowData.id, newRule);
-          await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
-          await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
-          await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rowData.id, newRule);
-          await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
-          await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rowData.id, newRule);
-          await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
+          await this.duplicateVpnPositions(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -1078,6 +1070,16 @@ export class PolicyRule extends Model {
     });
   }
 
+  // Duplicate the OpenVPN, WireGuard and IPSec objects and prefixes of a rule into another rule.
+  public static async duplicateVpnPositions(dbCon: any, rule: number, newRule: number) {
+    await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRule);
+    await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRule);
+    await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rule, newRule);
+    await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRule);
+    await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rule, newRule);
+    await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRule);
+  }
+
   //Update policy_r from user
   public static updatePolicy_r(dbCon, policy_rData): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -1106,95 +1108,6 @@ export class PolicyRule extends Model {
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         resolve();
-      });
-    });
-  }
-
-  public static makeBeforeRuleOrderGap(firewall, type, rule): Promise<void> {
-    return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
-        if (error) return reject(error);
-
-        let sql =
-          'SELECT rule_order FROM ' +
-          tableName +
-          ' WHERE firewall=' +
-          firewall +
-          ' AND type=' +
-          type +
-          ' AND rule_order<(select rule_order from ' +
-          tableName +
-          ' where id=' +
-          rule +
-          ') ORDER BY rule_order DESC LIMIT 1';
-        connection.query(sql, (error, result) => {
-          if (error) return reject(error);
-
-          let free_rule_order;
-          let cond: string;
-          if (result.length === 1) {
-            free_rule_order = result[0].rule_order + 1;
-            cond = '>' + result[0].rule_order;
-          } else {
-            free_rule_order = 1;
-            cond = '>0';
-          }
-
-          sql =
-            'UPDATE ' +
-            tableName +
-            ' SET rule_order=rule_order+1' +
-            ' WHERE firewall=' +
-            firewall +
-            ' AND type=' +
-            type +
-            ' AND rule_order' +
-            cond;
-          connection.query(sql, async (error, result) => {
-            if (error) return reject(error);
-            resolve(free_rule_order);
-          });
-        });
-      });
-    });
-  }
-
-  public static makeAfterRuleOrderGap(firewall, type, rule) {
-    return new Promise((resolve, reject) => {
-      db.get((error, connection) => {
-        if (error) return reject(error);
-
-        let sql =
-          'SELECT rule_order FROM ' +
-          tableName +
-          ' WHERE firewall=' +
-          firewall +
-          ' AND type=' +
-          type +
-          ' AND id=' +
-          rule;
-        connection.query(sql, (error, result) => {
-          if (error) return reject(error);
-
-          if (result.length === 1) {
-            const result_rule_order = result[0].rule_order;
-            const free_rule_order = result[0].rule_order + 1;
-            sql =
-              'UPDATE ' +
-              tableName +
-              ' SET rule_order=rule_order+1' +
-              ' WHERE firewall=' +
-              firewall +
-              ' AND type=' +
-              type +
-              ' AND rule_order>' +
-              result[0].rule_order;
-            connection.query(sql, async (error, result) => {
-              if (error) return reject(error);
-              resolve(free_rule_order);
-            });
-          } else return reject(fwcError.other('Rule not found'));
-        });
       });
     });
   }

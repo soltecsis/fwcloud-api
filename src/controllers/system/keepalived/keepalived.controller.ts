@@ -113,6 +113,8 @@ export class KeepalivedController extends Controller {
       req.inputs.all<KeepalivedRuleCreateDto>(),
       this._keepalivedgroup ? { group: this._keepalivedgroup.id } : null,
     );
+    if (data.idgroup === null) data.firewallId = this._firewall.id;
+
     try {
       const keepalivedRule: KeepalivedRule = await this._keepalivedRuleService.store(data);
 

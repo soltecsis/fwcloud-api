@@ -28,6 +28,7 @@ import { IPObj } from '../../../ipobj/IPObj';
 import { KeepalivedGroup } from '../keepalived_g/keepalived_g.model';
 import { Interface } from '../../../interface/Interface';
 import { Offset } from '../../../../offset';
+import { insertUngroupedSystemRule } from '../../insert-ungrouped-rule';
 import { Application } from '../../../../Application';
 import { Service } from '../../../../fonaments/services/service';
 import { IPObjRepository } from '../../../ipobj/IPObj.repository';
@@ -57,6 +58,7 @@ interface IFindOneKeepalivedRulePath extends IFindManyKeepalivedRulePath {
 }
 
 export interface ICreateKeepalivedRule {
+  idgroup?: null;
   active?: boolean;
   group?: number;
   style?: string;
@@ -166,6 +168,29 @@ export class KeepalivedRuleService extends Service {
         .manager.getRepository(Firewall)
         .findOneOrFail({ where: { id: firewallApplyToId } });
       keepalivedRuleData.firewallApplyToId = firewallApplyToId;
+    }
+
+    if (data.idgroup === null) {
+      const virtualIps = data.virtualIpsIds ?? [];
+      const ipObjs = await Promise.all(
+        virtualIps.map((item) => this._ipobjRepository.findOneByOrFail({ id: item.id })),
+      );
+      if (ipObjs.some((ipObj) => ipObj.ip_version !== ipObjs[0].ip_version)) {
+        throw new Error('IP version mismatch');
+      }
+      keepalivedRuleData.virtualIps = virtualIps.map(({ id, order }) => ({
+        ipObjId: id,
+        order,
+      })) as KeepalivedToIPObj[];
+
+      return insertUngroupedSystemRule(
+        this._repository,
+        data.firewallId,
+        data.to,
+        data.offset,
+        (rules, rule_order) =>
+          rules.save({ ...keepalivedRuleData, group: null, groupId: null, rule_order }),
+      );
     }
 
     const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
