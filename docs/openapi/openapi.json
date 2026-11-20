@@ -161,8 +161,26 @@
         "type": "object",
         "additionalProperties": false
       },
+      "PolicyScriptCredentialsDto": {
+        "properties": {
+          "sshuser": {
+            "type": "string"
+          },
+          "sshpass": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "additionalProperties": false
+      },
       "PolicyScriptContentRequestDto": {
         "properties": {
+          "sshuser": {
+            "type": "string"
+          },
+          "sshpass": {
+            "type": "string"
+          },
           "file": {
             "type": "string"
           }
@@ -175,6 +193,12 @@
       },
       "PolicyScriptComparisonRequestDto": {
         "properties": {
+          "sshuser": {
+            "type": "string"
+          },
+          "sshpass": {
+            "type": "string"
+          },
           "file1": {
             "type": "string"
           },
@@ -2338,24 +2362,61 @@
               "format": "double",
               "type": "number"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-FWC-SSH-User",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-FWC-SSH-Password",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ]
+      },
+      "post": {
+        "operationId": "Get firewall policy script history with credentials.",
+        "responses": {
+          "200": {
+            "description": "Policy script history retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBuilder"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "firewall"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "firewall",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyScriptCredentialsDto"
+              }
+            }
+          }
+        }
       }
     },
     "/fwclouds/{fwcloud}/firewalls/{firewall}/policyScripts/content": {
@@ -2429,22 +2490,6 @@
             "schema": {
               "format": "double",
               "type": "number"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-FWC-SSH-User",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-FWC-SSH-Password",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -2531,22 +2576,6 @@
             "schema": {
               "format": "double",
               "type": "number"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-FWC-SSH-User",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-FWC-SSH-Password",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           }
         ],

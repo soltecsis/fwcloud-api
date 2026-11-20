@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class PolicyScriptHistoryEntryDto {
   path: string;
@@ -28,7 +28,17 @@ export class PolicyScriptHistoryEntryDto {
   installation_date: string;
 }
 
-export class PolicyScriptContentRequestDto {
+export class PolicyScriptCredentialsDto {
+  @IsOptional()
+  @IsString()
+  sshuser?: string;
+
+  @IsOptional()
+  @IsString()
+  sshpass?: string;
+}
+
+export class PolicyScriptContentRequestDto extends PolicyScriptCredentialsDto {
   @IsString()
   @IsNotEmpty()
   file: string;
@@ -38,7 +48,7 @@ export class PolicyScriptContentDto {
   content: string;
 }
 
-export class PolicyScriptComparisonRequestDto {
+export class PolicyScriptComparisonRequestDto extends PolicyScriptCredentialsDto {
   @IsString()
   @IsNotEmpty()
   file1: string;

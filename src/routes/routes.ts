@@ -266,6 +266,9 @@ export class Routes extends RouteCollection {
                   .get('/history', FirewallController, 'getPolicyScriptHistory')
                   .name('fwclouds.firewalls.policyScripts.history');
                 router
+                  .post('/history', FirewallController, 'getPolicyScriptHistoryWithCredentials')
+                  .name('fwclouds.firewalls.policyScripts.history.credentials');
+                router
                   .post('/content', FirewallController, 'getPolicyScriptContent')
                   .name('fwclouds.firewalls.policyScripts.content');
                 router

@@ -130,6 +130,21 @@ const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'
 const backupPathOutputMarker = '__FWCLOUD_BACKUP_PATH__=';
 const policyScriptOutputMarker = '__FWCLOUD_POLICY_SCRIPT__=';
 const policyScriptBackupName = /^fwcloud-\d{14}\.sh$/;
+export const validatePolicyScriptDates = `
+has_policy_script_dates() {
+  [ ! -L "$1" ] || return 1
+  [ -f "$1" ] || return 1
+  policy_dir="$(dirname "$1")"
+  while [ "$policy_dir" != / ]; do
+    [ ! -L "$policy_dir" ] || return 1
+    policy_dir="$(dirname "$policy_dir")"
+  done
+  header="$(head -n 25 "$1")" || return 1
+  compilation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_COMPILATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
+  installation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_INSTALLATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
+  [ -n "$compilation_date" ] && [ -n "$installation_date" ]
+}
+`.trim();
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
   getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
@@ -275,10 +290,7 @@ fi`)}`;
       const listCommand = `
 print_policy_script() {
   script_path="$1"
-  header="$(head -n 25 "$script_path")"
-  compilation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_COMPILATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
-  installation_date="$(printf '%s\\n' "$header" | sed -n 's/^FWCLOUD_INSTALLATION_DATE="\\(.*\\)"$/\\1/p' | head -n 1)"
-  [ -n "$compilation_date" ] && [ -n "$installation_date" ] || return
+  has_policy_script_dates "$script_path" || return
   printf '${policyScriptOutputMarker}%s\\t%s\\t%s\\n' "$script_path" "$compilation_date" "$installation_date"
 }
 
@@ -298,7 +310,7 @@ print_policy_script() {
 `.trim();
       const output = await sshTools.runCommand(
         this.connectionData,
-        `${sudo} sh -c ${shellQuote(listCommand)}`,
+        `${sudo} sh -c ${shellQuote(`${validatePolicyScriptDates}\n${listCommand}`)}`,
       );
 
       return output
@@ -329,7 +341,7 @@ print_policy_script() {
       const scriptPath = this.getValidPolicyScriptPath(file);
       const content = await sshTools.runCommand(
         this.connectionData,
-        `${sudo} sh -c ${shellQuote(`[ -f ${shellQuote(scriptPath)} ] && cat ${shellQuote(scriptPath)}`)}`,
+        `${sudo} sh -c ${shellQuote(`${validatePolicyScriptDates}\nhas_policy_script_dates ${shellQuote(scriptPath)} || exit 1\ncat ${shellQuote(scriptPath)}`)}`,
       );
 
       return { content };
@@ -351,6 +363,9 @@ print_policy_script() {
       const scriptPath1 = this.getValidPolicyScriptPath(file1);
       const scriptPath2 = this.getValidPolicyScriptPath(file2);
       const comparisonCommand = `
+${validatePolicyScriptDates}
+has_policy_script_dates ${shellQuote(scriptPath1)} || exit 1
+has_policy_script_dates ${shellQuote(scriptPath2)} || exit 1
 if diff ${shellQuote(scriptPath1)} ${shellQuote(scriptPath2)}; then
   exit 0
 else
