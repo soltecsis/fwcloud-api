@@ -1096,7 +1096,7 @@ export class AuditLogMiddleware extends Middleware {
   }
 
   private shouldPersistAuditLog(req: Request, res: Response): boolean {
-    if (res?.locals?.__auditLogHandled) {
+    if (res?.locals?.__auditLogHandled || res?.locals?.__auditLogLoginChallenge) {
       return false;
     }
 

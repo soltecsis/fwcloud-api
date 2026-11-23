@@ -30,6 +30,14 @@ declare module 'express-session' {
     user: User;
     keepalive_ts: number;
     uiPublicKey?: string;
+    pendingLogin?: {
+      userId: number;
+      customer: number;
+      username: string;
+      passwordFingerprint: string;
+      uiPublicKey: string;
+      expiresAt: number;
+    };
     remote_addr: string;
     pgp: { public: string; private: string };
     socketId: string;

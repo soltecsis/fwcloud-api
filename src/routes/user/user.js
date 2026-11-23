@@ -22,6 +22,7 @@
 
 
 import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { createHash } from 'node:crypto';
 var router = createOperationRouter();
 const restrictedCheck = require('../../middleware/restricted');
 import { Customer } from '../../models/user/Customer';
@@ -40,6 +41,20 @@ const config = require('../../config/config');
 
 var bcrypt = require('bcryptjs');
 
+const LOGIN_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
+const regenerateSession = (req) => new Promise((resolve, reject) => {
+	req.session.regenerate((error) => error ? reject(error) : resolve());
+});
+
+const passwordFingerprint = (hash) => createHash('sha256').update(hash).digest('hex');
+
+function verifyLoginCode(secret, token) {
+	if (!secret || typeof token !== 'string' || !/^[0-9]{6}$/.test(token) ||
+		!speakeasy.totp.verify({ secret, encoding: 'base32', token })) {
+		throw fwcError.BAD_LOGIN;
+	}
+}
 
 /**
  * @api {POST} /login Log into the API
@@ -47,6 +62,8 @@ var bcrypt = require('bcryptjs');
  *  * @apiGroup USER
  * 
  * @apiDescription Validate the user credentials and initialize data in the session file.
+ * A user with 2FA receives HTTP 401 with `mfaRequired: true` if no code is supplied.
+ * Submit `{ "authCode": "..." }` with the same session cookie to complete login.
  *
  * @apiParam {Number} customer Customert's id to which this user belongs to.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
@@ -74,60 +91,70 @@ var bcrypt = require('bcryptjs');
  * } 
 */
 legacyOperation(router, 'post', '/login', sessionOperation, async (req, res) => {
-	// In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password 
-	// fields are mandatory.
 	try {
-		const data = await User.getUserName(req.body.customer, req.body.username);
-		if (data.length === 0) {
-			req.session.destroy(err => { });
-			throw fwcError.BAD_LOGIN;
-		}
+		let user;
+		let uiPublicKey;
 
-		// Validate credentials.
-		/* WARNING: As recommended in the bcrypt manual:
-		Why is async mode recommended over sync mode?
-		If you are using bcrypt on a simple script, using the sync mode is perfectly fine.
-		However, if you are using bcrypt on a server, the async mode is recommended.
-		This is because the hashing done by bcrypt is CPU intensive, so the sync version
-		will block the event loop and prevent your application from servicing any other
-		inbound requests or events.
-		*/
-		if (await bcrypt.compare(req.body.customer + req.body.username + req.body.password, data[0].password)) {
-			// A pending setup is not an activated second factor. Validate a verified
-			// secret before storing any authenticated identity in the session.
-			const tfa = await AuthService.GetTfa(data[0].id);
-			if (tfa?.secret) {
-				const token = req.headers['x-tfa'] || req.body.authCode;
-				if (typeof token !== 'string' || !speakeasy.totp.verify({
-					secret: tfa.secret, encoding: 'base32', token
-				})) throw fwcError.BAD_LOGIN;
+		if (req.body.customer === undefined) {
+			const pending = req.session.pendingLogin;
+			if (!pending || pending.expiresAt <= Date.now()) throw fwcError.BAD_LOGIN;
+
+			// The challenge session never becomes an authenticated session.
+			await regenerateSession(req);
+			[user] = await User.getUserName(pending.customer, pending.username);
+			if (!user || user.id !== pending.userId ||
+				passwordFingerprint(user.password) !== pending.passwordFingerprint) {
+				throw fwcError.BAD_LOGIN;
 			}
-			// Return authorization token.
-			req.session.customer_id = data[0].customer;
-			req.session.user_id = data[0].id;
-			req.session.username = data[0].username;
-			req.session.admin_role = await User.isLoggedUserAdmin(req);
-			req.session.keepalive_ts = Date.now();
-
-			const xff = req.headers['x-forwarded-for'];
-			const first_ip = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
-			req.session.remote_addr = first_ip || req.socket.remoteAddress || '';
-
-			const pgp = new PgpHelper;
-			await pgp.init(config.get('session').pgp_rsa_bits);
-			req.session.pgp = {
-				public: pgp.publicKey,
-				private: pgp.privateKey
-			};
-
-			// Store the fwcloud-ui session public key.
-			req.session.uiPublicKey = req.body.publicKey;
-
-			res.status(200).json({ "user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey });
+			verifyLoginCode((await AuthService.GetTfa(user.id))?.secret, req.body.authCode);
+			uiPublicKey = pending.uiPublicKey;
 		} else {
-			req.session.destroy(err => { });
-			throw fwcError.BAD_LOGIN;
+			delete req.session.pendingLogin;
+			const { customer, username, password, authCode, publicKey } = req.body;
+			[user] = await User.getUserName(customer, username);
+			if (!user || !(await bcrypt.compare(customer + username + password, user.password))) {
+				throw fwcError.BAD_LOGIN;
+			}
+
+			// A setup that has not been verified is not an active second factor.
+			const tfa = await AuthService.GetTfa(user.id);
+			if (tfa?.secret) {
+				const token = req.headers['x-tfa'] || authCode;
+				if (token === undefined || token === null || token === '') {
+					await regenerateSession(req);
+					req.session.pendingLogin = {
+						userId: user.id,
+						customer: user.customer,
+						username: user.username,
+						passwordFingerprint: passwordFingerprint(user.password),
+						uiPublicKey: publicKey,
+						expiresAt: Date.now() + LOGIN_CHALLENGE_TTL_MS,
+					};
+					await new Promise((resolve, reject) => {
+						req.session.save((error) => error ? reject(error) : resolve());
+					});
+					res.locals.__auditLogLoginChallenge = true;
+					return res.status(401).json({ ...fwcError.BAD_LOGIN, mfaRequired: true });
+				}
+				verifyLoginCode(tfa.secret, token);
+			}
+			uiPublicKey = publicKey;
 		}
+
+		const pgp = new PgpHelper();
+		await pgp.init(config.get('session').pgp_rsa_bits);
+		req.session.customer_id = user.customer;
+		req.session.user_id = user.id;
+		req.session.username = user.username;
+		req.session.admin_role = await User.isLoggedUserAdmin(req);
+		req.session.keepalive_ts = Date.now();
+
+		const xff = req.headers['x-forwarded-for'];
+		const first_ip = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+		req.session.remote_addr = first_ip || req.socket.remoteAddress || '';
+		req.session.pgp = { public: pgp.publicKey, private: pgp.privateKey };
+		req.session.uiPublicKey = uiPublicKey;
+		res.status(200).json({ user: user.id, role: user.role, publicKey: pgp.publicKey });
 	} catch (error) {
 		// Failed authentication must also invalidate a previously authenticated cookie.
 		if (req.session) await new Promise(resolve => req.session.destroy(() => resolve()));
