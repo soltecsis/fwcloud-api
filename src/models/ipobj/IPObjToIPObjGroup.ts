@@ -152,7 +152,8 @@ export class IPObjToIPObjGroup extends Model {
                     INNER JOIN  ipobj I on I.id=G.ipobj
                     inner join ipobj_type T on T.id=I.type
                     left join fwcloud C on C.id=I.fwcloud
-                    WHERE I.id=${ipobj} AND I.type=${type} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
+                     WHERE I.id=${ipobj} AND I.type=${type} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)
+                       AND (GR.fwcloud=${fwcloud} OR GR.fwcloud IS NULL)`;
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -172,7 +173,8 @@ export class IPObjToIPObjGroup extends Model {
                 inner join ipobj_type T on T.id=I.type
                 inner join fwcloud C on C.id=I.fwcloud
                 inner join interface__ipobj II on II.interface=I.interface
-                WHERE II.ipobj=${host} AND I.type=5 AND I.fwcloud=${fwcloud}`;
+                 WHERE II.ipobj=${host} AND I.type=5 AND I.fwcloud=${fwcloud}
+                   AND (GR.fwcloud=${fwcloud} OR GR.fwcloud IS NULL)`;
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
         resolve(rows);

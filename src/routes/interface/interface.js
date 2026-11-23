@@ -21,8 +21,9 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
@@ -68,9 +69,9 @@ router.put('/fw/full/get', (req, res) => {
 });
 
 /* Get  interface by id and  by firewall*/
-router.put('/fw/get', async (req, res) => {
+legacyOperation(router, 'put', '/fw/get', consultationOperation, async (req, res) => {
 	try {
-		const data = await Interface.getInterface(req.body.fwcloud, req.body.id);
+		const data = await Interface.getInterface(req.body.fwcloud, req.body.id, req.body.firewall);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
 		else {
@@ -100,7 +101,7 @@ router.put('/host/all/get', (req, res) => {
 });
 
 /* Get interface by id and HOST*/
-router.put('/host/get', (req, res) => {
+legacyOperation(router, 'put', '/host/get', consultationOperation, (req, res) => {
 	Interface.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
 		if (error) {
 			logger().error('Error getting host interface by id: ' + JSON.stringify(error));
@@ -258,7 +259,7 @@ router.put("/host/del",
 
 
 /* Search where is used interface  */
-router.put('/where', async (req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async (req, res) => {
 	try {
 		const data = await Interface.searchInterfaceUsage(req.body.id, req.body.type, req.body.fwcloud, null);
 		if (data.result > 0)

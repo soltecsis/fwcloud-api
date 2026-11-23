@@ -45,7 +45,9 @@
  * @property express
  * @type express
  */
-var express = require('express');
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+import { IsNull } from 'typeorm';
 
 /**
  * Property  to manage IPOBJ route
@@ -53,7 +55,7 @@ var express = require('express');
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+var router = createOperationRouter();
 
 /**
  * Property Model to manage IPOBJ Data
@@ -412,7 +414,7 @@ router.put('/',
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.put('/get', async(req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async(req, res) => {
 	try {
 		const data = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
@@ -515,9 +517,13 @@ router.put('/del',
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.put('/where', async(req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async(req, res) => {
 	try {
-		const data = await IPObj.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+		const { fwcloud, id, type } = req.body;
+		const object = { id, ipObjTypeId: type };
+		if (!(await IPObj.existsBy([{ ...object, fwCloudId: fwcloud }, { ...object, fwCloudId: IsNull() }])))
+			return res.status(204).end();
+		const data = await IPObj.searchIpobjUsage(req.dbCon, fwcloud, id, type);
 		if (data.result)
 			res.status(200).json(data);
 		else

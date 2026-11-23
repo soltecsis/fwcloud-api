@@ -236,11 +236,10 @@ export class Interface extends Model {
         ' left join ipobj J ON J.id=O.ipobj ' +
         ' left join firewall F on F.id=I.firewall ' +
         ' left join cluster C on C.id=F.cluster ' +
-        ' WHERE I.id = ' +
-        connection.escape(id);
+        ' WHERE I.id = ? AND J.id = ? AND I.interface_type = 11 AND (J.fwcloud IS NULL OR J.fwcloud = ?)';
 
       //logger().debug("INTERFACE SQL: " + sql);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, [id, idhost, fwcloud], (error, row) => {
         if (error) {
           logger().debug('ERROR getinterface: ', error, '\n', sql);
           callback(error, null);
@@ -250,7 +249,7 @@ export class Interface extends Model {
   }
 
   //Get interface by  id and interface
-  public static getInterface(fwcloud, id) {
+  public static getInterface(fwcloud, id, firewall) {
     return new Promise((resolve, reject) => {
       db.get((error, dbCon) => {
         if (error) return reject(error);
@@ -263,8 +262,8 @@ export class Interface extends Model {
 					left join ipobj J ON J.id=O.ipobj
 					left join firewall F on F.id=I.firewall
 					left join cluster C on C.id=F.cluster
-					WHERE I.id=${id}`;
-        dbCon.query(sql, (error, row) => {
+					WHERE I.id=? AND I.interface_type=10 AND F.id=? AND F.fwcloud=?`;
+        dbCon.query(sql, [id, firewall, fwcloud], (error, row) => {
           if (error) return reject(error);
           resolve(row);
         });
@@ -338,18 +337,20 @@ export class Interface extends Model {
   }
 
   //Get data of interface
-  public static getInterface_data(id, type, callback) {
+  public static getInterface_data(id, type, fwcloud, callback) {
     db.get((error, connection) => {
-      if (error) callback(error, null);
-      const sql =
-        'SELECT * FROM ' +
-        tableName +
-        ' WHERE id = ' +
-        connection.escape(id) +
-        ' AND interface_type=' +
-        connection.escape(type);
+      if (error) return callback(error, null);
+      const sql = `SELECT I.id FROM ${tableName} I
+        WHERE I.id = ? AND I.interface_type = ? AND (
+          (I.interface_type = 10 AND EXISTS (
+            SELECT 1 FROM firewall F WHERE F.id = I.firewall AND F.fwcloud = ?
+          )) OR (I.interface_type = 11 AND EXISTS (
+            SELECT 1 FROM interface__ipobj link INNER JOIN ipobj H ON H.id = link.ipobj
+            WHERE link.interface = I.id AND (H.fwcloud = ? OR H.fwcloud IS NULL)
+          ))
+        )`;
 
-      connection.query(sql, (error, row) => {
+      connection.query(sql, [id, type, fwcloud, fwcloud], (error, row) => {
         if (error || row.length === 0) callback(error, null);
         else callback(null, row);
       });
@@ -473,7 +474,7 @@ export class Interface extends Model {
   public static searchInterfaceUsage(id, type, fwcloud, diff_firewall) {
     return new Promise((resolve, reject) => {
       //SEARCH INTERFACE DATA
-      this.getInterface_data(id, type, async (error, data) => {
+      this.getInterface_data(id, type, fwcloud, async (error, data) => {
         if (error) return reject(error);
 
         const search: any = {};
@@ -505,7 +506,7 @@ export class Interface extends Model {
                 diff_firewall,
               ); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
             search.restrictions.IpobjInterfaceInGroup =
-              await PolicyRuleToIPObj.searchIpobjInterfaceInGroup(id, type); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
+              await PolicyRuleToIPObj.searchIpobjInterfaceInGroup(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
             search.restrictions.IpobjInterfaceInOpenvpn = await IPObj.searchIpobjInterfaceInOpenvpn(
               id,
               fwcloud,

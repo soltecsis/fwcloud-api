@@ -21,14 +21,15 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 import { IPObjTypeToPolicyPosition } from '../../models/ipobj/IPObjTypeToPolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_type__policy_positions*/
-router.get('/policy', (req, res) => {
+legacyOperation(router, 'get', '/policy', consultationOperation, (req, res) => {
 	IPObjTypeToPolicyPosition.getIpobj_type__policy_positions((error, data) => {
 		if (error) {
             logger().error('Error getting all ipobj_type__policy_positions: ' + JSON.stringify(error));
