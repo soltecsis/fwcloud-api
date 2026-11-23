@@ -21,15 +21,16 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+var router = createOperationRouter();
 import { PolicyType } from '../../models/policy/PolicyType';
+import { consultationOperation } from '../../authorization/operation-policy';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 
 /* Get all policy_types*/
-router.get('', (req, res) => {
+legacyOperation(router, 'get', '', consultationOperation, (req, res) => {
 	PolicyType.getPolicy_types((error, data) => {
     if (data && data.length > 0)
       res.status(200).json(data);

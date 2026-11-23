@@ -30,8 +30,10 @@
  * 
  */
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+import { IsNull } from 'typeorm';
+var router = createOperationRouter();
 
 import { Firewall } from '../../models/firewall/Firewall';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
@@ -115,7 +117,7 @@ router.put('/', async(req, res) => {
 
 
 /* Get  ipobj_g by id */
-router.put('/get', async(req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async(req, res) => {
 	try {
 		const data = await IPObjGroup.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
@@ -146,9 +148,12 @@ router.put("/del",
 	});
 
 /* Search where is used Group  */
-router.put('/where', async(req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async(req, res) => {
 	try {
-		const data = await IPObjGroup.searchGroupUsage(req.body.id, req.body.fwcloud);
+		const { fwcloud, id } = req.body;
+		if (!(await IPObjGroup.existsBy([{ id, fwCloudId: fwcloud }, { id, fwCloudId: IsNull() }])))
+			return res.status(204).end();
+		const data = await IPObjGroup.searchGroupUsage(id, fwcloud);
 		if (data.result > 0)
 			res.status(200).json(data);
 		else

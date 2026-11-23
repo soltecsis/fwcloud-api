@@ -865,6 +865,32 @@ export class Tree extends Model {
     }
   }
 
+  /** Legacy clouds may lack this tree. Readers must never initialize it by querying. */
+  public static async getCountriesTree(
+    dbCon: Query,
+    fwCloudId: number,
+    readOnly: boolean,
+  ): Promise<TreeNode> {
+    if (readOnly) {
+      const roots = await this.getRootNodesByType(dbCon, fwCloudId, COUNTRY_TREE_ROOT_NODE_TYPE);
+      if (!roots.some((root) => root.name === COUNTRY_TREE_ROOT_NAME)) {
+        return {
+          id: 0,
+          pid: null,
+          node_type: COUNTRY_TREE_ROOT_NODE_TYPE,
+          text: COUNTRY_TREE_ROOT_NAME,
+          id_obj: null,
+          obj_type: null,
+          fwcloud: fwCloudId,
+          children: [],
+        };
+      }
+    } else {
+      await this.ensureCountriesTree(dbCon, fwCloudId);
+    }
+    return this.dumpTree(dbCon, 'COUNTRIES', fwCloudId);
+  }
+
   public static async createServicesTree(dbCon: Query, fwCloudId: number): Promise<any> {
     const ids: any = {};
 

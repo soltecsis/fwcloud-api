@@ -1468,7 +1468,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `SELECT VPN.*, CRT.cn,
+        const sql = `SELECT VPN.id, VPN.openvpn, CRT.cn,
 				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM openvpn AS VPN
@@ -1477,7 +1477,8 @@ export class IPObj extends Model {
 				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
 				INNER JOIN firewall F on F.id=VPN.firewall
 				inner join fwcloud C on C.id=F.fwcloud
-			 	WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
+				WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND F.fwcloud=${fwcloud}
+				  AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -1491,7 +1492,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `SELECT WG.*, CRT.cn,
+        const sql = `SELECT WG.id, WG.wireguard, CRT.cn,
         C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
         F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
         FROM wireguard AS WG
@@ -1500,7 +1501,8 @@ export class IPObj extends Model {
         INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
         INNER JOIN firewall F on F.id=WG.firewall
         inner join fwcloud C on C.id=F.fwcloud
-        WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
+        WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND F.fwcloud=${fwcloud}
+          AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -1535,7 +1537,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `SELECT VPN.*, CRT.cn,
+        const sql = `SELECT VPN.id, VPN.openvpn, CRT.cn,
 				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM openvpn AS VPN
@@ -1544,7 +1546,8 @@ export class IPObj extends Model {
 				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
 				INNER JOIN firewall F on F.id=VPN.firewall
 				inner join fwcloud C on C.id=F.fwcloud
-				WHERE OBJ.interface=${_interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
+				WHERE OBJ.interface=${_interface} AND F.fwcloud=${fwcloud}
+				  AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
 				${diff_firewall ? `AND F.id<>${diff_firewall}` : ''}`;
 
         connection.query(sql, (error, rows) => {
@@ -1583,7 +1586,7 @@ export class IPObj extends Model {
   //check if interface ipobj exists in and OpenVPN configuration
   public static searchAddrHostInOpenvpn(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.*, CRT.cn,
+      const sql = `SELECT VPN.id, VPN.openvpn, CRT.cn,
 			C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 			FROM openvpn AS VPN
@@ -1603,7 +1606,7 @@ export class IPObj extends Model {
 
   public static searchAddrHostInWireguard(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT WG.*, CRT.cn,
+      const sql = `SELECT WG.id, WG.wireguard, CRT.cn,
       C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
       F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
       FROM wireguard AS WG

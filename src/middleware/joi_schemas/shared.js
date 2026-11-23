@@ -27,6 +27,7 @@ var sharedSchema = {};
 module.exports = sharedSchema;
 
 const Joi = require('joi');
+const { UserRole } = require('../../models/user/user-role');
 
 // Options used for the Joi validation function.
 // https://github.com/hapijs/joi/blob/v14.0.0/API.md#validatevalue-schema-options-callback
@@ -89,7 +90,7 @@ sharedSchema.socketio_id = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
 
 sharedSchema.dns_name = Joi.string().regex(/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/);
 
-sharedSchema.role = Joi.number().integer().min(1).max(2);
+sharedSchema.role = Joi.number().integer().valid(UserRole.Administrator, UserRole.Manager, UserRole.Viewer);
 
 sharedSchema.backup_id = Joi.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])_(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]$/);
 

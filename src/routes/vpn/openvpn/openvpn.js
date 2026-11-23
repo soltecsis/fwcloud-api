@@ -38,14 +38,15 @@
  * @property express
  * @type express
  */
-var express = require('express');
+import { createOperationRouter, legacyOperation } from '../../../authorization/legacy-operation';
+import { consultationOperation } from '../../../authorization/operation-policy';
 /**
  * Property  to manage  route
  *
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+var router = createOperationRouter();
 
 
 /**
@@ -894,7 +895,7 @@ router.put('/del',
 router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204).end());
 
 
-router.put('/where', async (req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async (req, res) => {
 	try {
 		const data = await OpenVPN.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn, true);
 		if (data.result > 0)

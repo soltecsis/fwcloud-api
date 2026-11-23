@@ -61,6 +61,7 @@ export class ConfirmationToken extends Middleware {
    * @param req
    */
   protected isConfirmationTokenRequired(req: Request): boolean {
+    if (req.operationPolicy) return req.operationPolicy.requiresConfirmationToken;
     if (
       req.url.split('/').pop() === 'get' ||
       req.url.split('/').pop() === 'restricted' ||

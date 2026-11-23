@@ -86,6 +86,7 @@ var errorTable = {
   "ACC_POLICY_RULE":      {"fwcErr": 7010, "msg": "Policy rule access not allowed"},
   "ACC_IPTABLES_MARK":    {"fwcErr": 7011, "msg": "IPTables mark access not allowed"},
   "ACC_FWCLOUD_LOCK":     {"fwcErr": 7012, "msg": "FWCloud is locked by another user, only read operations are allowed"},
+  "READ_ONLY_USER":       {"fwcErr": 7013, "msg": "Read-only users cannot perform this operation"},
   
   //Limit
   "LIMIT_FWCLOUDS":       {"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},

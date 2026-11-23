@@ -21,11 +21,13 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+var router = createOperationRouter();
 const restrictedCheck = require('../../middleware/restricted');
 import { Customer } from '../../models/user/Customer';
 import { User } from '../../models/user/User';
+import { UserRole } from '../../models/user/user-role';
+import { sessionOperation } from '../../authorization/operation-policy';
 import { AuthService } from '../../models/user/auth.service';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PgpHelper } from '../../utils/pgp';
@@ -71,7 +73,7 @@ var bcrypt = require('bcryptjs');
  *   "msg": "Bad username or password"
  * } 
 */
-router.post('/login', async (req, res) => {
+legacyOperation(router, 'post', '/login', sessionOperation, async (req, res) => {
 	// In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password 
 	// fields are mandatory.
 	try {
@@ -144,8 +146,8 @@ router.post('/login', async (req, res) => {
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 OK
 */
-router.post('/logout',async (req, res) => {
-	await FwCloud.unlockAllLockedFwclouds(req.sessionID);
+legacyOperation(router, 'post', '/logout', sessionOperation, async (req, res) => {
+  if (req.session.user?.role !== UserRole.Viewer) await FwCloud.unlockAllLockedFwclouds(req.sessionID);
 	req.session.destroy(err => {});
 	res.status(204).end();
 	

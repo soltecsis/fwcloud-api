@@ -240,7 +240,8 @@ export class PolicyRuleToIPSec extends Model {
                 inner join ipsec VPN on VPN.ipsec=PRE.ipsec
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
-                where CA.fwcloud=${fwcloud} and VPN.id=${ipsec} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
+                where CA.fwcloud=${fwcloud} and F.fwcloud=${fwcloud}
+                  and VPN.id=${ipsec} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
       dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
 
@@ -270,7 +271,8 @@ export class PolicyRuleToIPSec extends Model {
                 inner join ipsec VPN on VPN.ipsec=PRE.ipsec
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
-                where CA.fwcloud=${fwcloud} and VPN.id=${ipsec} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
+                where CA.fwcloud=${fwcloud} and GR.fwcloud=${fwcloud}
+                  and VPN.id=${ipsec} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
       dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
 

@@ -21,8 +21,9 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
@@ -122,7 +123,7 @@ async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type */
-router.put('/type/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null);
 		res.status(200).json(policy);
@@ -133,7 +134,7 @@ router.put('/type/get', async (req, res) => {
 });
 
 /* Get policy rules by firewall type and rules group */
-router.put('/type/ingroup/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/ingroup/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, req.body.idgroup);
 		res.status(200).json(policy);
@@ -144,7 +145,7 @@ router.put('/type/ingroup/get', async (req, res) => {
 });
 
 /* Get all policy_rs by firewall and type but don't expand group contents */
-router.put('/type/grouped/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/grouped/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null, true);
 		res.status(200).json(policy);
@@ -156,7 +157,7 @@ router.put('/type/grouped/get', async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type and Rule */
-router.put('/get', async (req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, [req.body.rule], null);
 		//If exists policy_r get data
