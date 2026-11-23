@@ -29,6 +29,9 @@ import {
   OpenVPNStatusSamplingAgentConfig,
   OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
+  PolicyScriptComparison,
+  PolicyScriptContent,
+  PolicyScriptHistoryEntry,
   SystemCtlInfo,
 } from './communication';
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
@@ -53,6 +56,32 @@ type AgentCommunicationData = {
   port: number;
   apikey: string;
 };
+
+type AgentProgressMessage = {
+  fwcloud_agent_progress: true;
+  type: 'error' | 'info';
+  message: string;
+};
+
+export function parseAgentProgressMessage(message: string): ProgressPayload {
+  let progressMessage: AgentProgressMessage;
+  try {
+    progressMessage = JSON.parse(message);
+  } catch {
+    return new ProgressPayload('ssh_cmd_output', false, message);
+  }
+
+  if (
+    progressMessage?.fwcloud_agent_progress === true &&
+    typeof progressMessage.message === 'string'
+  ) {
+    return progressMessage.type === 'error'
+      ? new ProgressErrorPayload(progressMessage.message)
+      : new ProgressInfoPayload(progressMessage.message);
+  }
+
+  return new ProgressPayload('ssh_cmd_output', false, message);
+}
 
 export class AgentCommunication extends Communication<AgentCommunicationData> {
   protected readonly url: string;
@@ -104,7 +133,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       eventEmitter.emit(
         'message',
-        new ProgressNoticePayload(`Uploading firewall policy (${this.connectionData.host})`),
+        new ProgressInfoPayload(`Uploading firewall policy (${this.connectionData.host})`),
       );
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
@@ -123,6 +152,65 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       return 'DONE';
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/fwcloud_script/history';
+      const response: AxiosResponse<PolicyScriptHistoryEntry[]> = await axios.get(
+        pathUrl,
+        this.config,
+      );
+
+      if (response.status === 200) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected policy script history response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/fwcloud_script/content';
+      const response: AxiosResponse<PolicyScriptContent> = await axios.post(
+        pathUrl,
+        { file },
+        this.config,
+      );
+
+      if (response.status === 200) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected policy script content response');
+    } catch (error) {
+      this.handleRequestException(error);
+    }
+  }
+
+  async compareFirewallPolicyScripts(
+    file1: string,
+    file2: string,
+  ): Promise<PolicyScriptComparison> {
+    try {
+      const pathUrl: string = this.url + '/api/v1/fwcloud_script/diff';
+      const response: AxiosResponse<PolicyScriptComparison> = await axios.post(
+        pathUrl,
+        { file1, file2 },
+        this.config,
+      );
+
+      if (response.status === 200) {
+        return response.data;
+      }
+
+      throw new Error('Unexpected policy script comparison response');
+    } catch (error) {
+      this.handleRequestException(error);
     }
   }
 
@@ -581,7 +669,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           waiting_for_websocket_id = false;
           resolve(message);
         } else {
-          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, message));
+          eventEmitter.emit('message', parseAgentProgressMessage(message));
         }
       });
 

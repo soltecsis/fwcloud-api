@@ -86,6 +86,18 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',
   },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/policyScripts/content': {
+    audited: false,
+    notes: 'Read-style operation over a mutating HTTP verb.',
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/policyScripts/diff': {
+    audited: false,
+    notes: 'Read-style operation over a mutating HTTP verb.',
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/policyScripts/history': {
+    audited: false,
+    notes: 'Read-style operation over a mutating HTTP verb.',
+  },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/routeGroups': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/routingGroups': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/routingRules': { audited: true },

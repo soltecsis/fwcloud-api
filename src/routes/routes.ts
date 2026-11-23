@@ -273,6 +273,21 @@ export class Routes extends RouteCollection {
               .post('/plugin', FirewallController, 'installPlugin')
               .name('fwcloud.firewalls.communication.installPlugin');
             router.prefix('/:firewall', (router: RouterParser) => {
+              router.prefix('/policyScripts', (router: RouterParser) => {
+                router
+                  .get('/history', FirewallController, 'getPolicyScriptHistory')
+                  .name('fwclouds.firewalls.policyScripts.history');
+                router
+                  .post('/history', FirewallController, 'getPolicyScriptHistoryWithCredentials')
+                  .name('fwclouds.firewalls.policyScripts.history.credentials');
+                router
+                  .post('/content', FirewallController, 'getPolicyScriptContent')
+                  .name('fwclouds.firewalls.policyScripts.content');
+                router
+                  .post('/diff', FirewallController, 'comparePolicyScripts')
+                  .name('fwclouds.firewalls.policyScripts.diff');
+              });
+
               router.prefix('/policyRules', (router: RouterParser) => {
                 router
                   .get('/read', PolicyRuleController, 'read')

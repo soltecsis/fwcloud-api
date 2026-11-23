@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from 'typeorm';
+import { getMetadataArgsStorage, SelectQueryBuilder } from 'typeorm';
 import db from '../../database/database-manager';
 import { Service } from '../../fonaments/services/service';
 import { User } from '../user/User';
@@ -32,7 +32,6 @@ import * as fs from 'fs-extra';
 import path from 'path';
 import { EventEmitter } from 'events';
 import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
-import { getMetadataArgsStorage } from 'typeorm';
 import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 import { Zip } from '../../utils/zip';
 import ObjectHelpers from '../../utils/object-helpers';
@@ -86,6 +85,7 @@ export type ListAuditLogsOptions = {
   sortOrder?: AuditLogSortOrder;
   cursor?: ListAuditLogsCursor;
   eventTypes?: AuditEventType[];
+  excludeConfirmationTokenRequests?: boolean;
 };
 
 export type AuditLogAccessOptions = Pick<
@@ -96,6 +96,7 @@ export type AuditLogAccessOptions = Pick<
 };
 
 export type AuditLogSummary = {
+  confirmationTokenChallenge: boolean | null;
   eventType: AuditEventType | null;
   outcome: AuditOutcome | null;
   id: number;
@@ -117,6 +118,7 @@ export type AuditLogSummary = {
 };
 
 type AuditLogSummaryRow = {
+  confirmationTokenChallenge: boolean | number | string | null;
   eventType: AuditEventType | null;
   outcome: AuditOutcome | null;
   id: number | string;
@@ -210,6 +212,13 @@ export class AuditLogService extends Service {
 
     if (options.eventTypes?.length) {
       query.andWhere('auditLog.eventType IN (:...eventTypes)', { eventTypes: options.eventTypes });
+    }
+
+    if (options.excludeConfirmationTokenRequests === true) {
+      query.andWhere(
+        '(auditLog.confirmationTokenChallenge IS NULL OR auditLog.confirmationTokenChallenge = :confirmationTokenChallenge)',
+        { confirmationTokenChallenge: false },
+      );
     }
 
     if (options.startedAtFrom instanceof Date) {
@@ -422,25 +431,30 @@ export class AuditLogService extends Service {
   }
 
   private selectSummaryColumns(query: SelectQueryBuilder<AuditLog>): SelectQueryBuilder<AuditLog> {
-    return query
-      .select('auditLog.id', 'id')
-      .addSelect('auditLog.startedAt', 'startedAt')
-      .addSelect('auditLog.userId', 'userId')
-      .addSelect('auditLog.userName', 'userName')
-      .addSelect('auditLog.sessionId', 'sessionId')
-      .addSelect('auditLog.sourceIp', 'sourceIp')
-      .addSelect('auditLog.fwCloudId', 'fwCloudId')
-      .addSelect('auditLog.fwCloudName', 'fwCloudName')
-      .addSelect('auditLog.firewallId', 'firewallId')
-      .addSelect('auditLog.firewallName', 'firewallName')
-      .addSelect('auditLog.clusterId', 'clusterId')
-      .addSelect('auditLog.clusterName', 'clusterName')
-      .addSelect('auditLog.call', 'call')
-      .addSelect('auditLog.status', 'status')
-      .addSelect('auditLog.eventType', 'eventType')
-      .addSelect('auditLog.outcome', 'outcome')
-      .addSelect('auditLog.durationMs', 'durationMs')
-      .addSelect('auditLog.description', 'description');
+    query.select('auditLog.id', 'id');
+    for (const property of [
+      'startedAt',
+      'userId',
+      'userName',
+      'sessionId',
+      'sourceIp',
+      'fwCloudId',
+      'fwCloudName',
+      'firewallId',
+      'firewallName',
+      'clusterId',
+      'clusterName',
+      'call',
+      'status',
+      'confirmationTokenChallenge',
+      'eventType',
+      'outcome',
+      'durationMs',
+      'description',
+    ] satisfies Array<keyof AuditLogSummary>) {
+      query.addSelect(`auditLog.${property}`, property);
+    }
+    return query;
   }
 
   private toSummary(auditLog: AuditLogSummaryRow): AuditLogSummary {
@@ -459,6 +473,12 @@ export class AuditLogService extends Service {
       clusterName: auditLog.clusterName,
       call: auditLog.call,
       status: AuditLogHelper.normalizeHttpStatus(auditLog.status),
+      confirmationTokenChallenge:
+        auditLog.confirmationTokenChallenge == null
+          ? null
+          : auditLog.confirmationTokenChallenge === true ||
+            auditLog.confirmationTokenChallenge === 1 ||
+            auditLog.confirmationTokenChallenge === '1',
       eventType: auditLog.eventType ?? null,
       outcome: auditLog.outcome ?? null,
       durationMs: this.normalizeDurationMs(auditLog.durationMs),
@@ -659,12 +679,7 @@ export class AuditLogService extends Service {
     customConfig: AuditLogArchiverUpdateableConfig,
   ): Promise<AuditLogArchiverUpdateableConfig> {
     await this.writeCustomizedConfig(customConfig);
-    this._config = this.loadCustomizedConfig(this._app.config.get('auditLogs.archive'));
-
-    return {
-      archive_days: this._config.archive_days,
-      retention_days: this._config.retention_days,
-    };
+    return this.getCustomizedConfig();
   }
 
   protected loadCustomizedConfig(baseConfig: AuditLogArchiveConfig): AuditLogArchiveConfig {
@@ -755,6 +770,7 @@ export class AuditLogService extends Service {
 
     auditLog.eventType = input.eventType ?? AuditEventType.Other;
     auditLog.outcome = null;
+    auditLog.confirmationTokenChallenge = false;
     auditLog.call = this.normalizeCall(input.call);
     auditLog.status = AuditLogHelper.normalizeHttpStatus(input.status);
     auditLog.description = this.normalizeDescription(input.description, auditLog.call);

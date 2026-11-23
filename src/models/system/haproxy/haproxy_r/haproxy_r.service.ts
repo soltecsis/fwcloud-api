@@ -18,6 +18,7 @@
 import { FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { Offset } from '../../../../offset';
+import { insertUngroupedSystemRule } from '../../insert-ungrouped-rule';
 import { HAProxyRuleRepository } from './haproxy.repository';
 import { HAProxyRule } from './haproxy_r.model';
 import { IPObjRepository } from '../../../ipobj/IPObj.repository';
@@ -47,6 +48,7 @@ interface IFindOneHAProxyRPath extends IFindManyHAProxyRPath {
 }
 
 export interface ICreateHAProxyRule {
+  idgroup?: null;
   active?: boolean;
   group?: number;
   style?: string;
@@ -205,6 +207,17 @@ export class HAProxyRuleService extends Service {
       if (frontendPortProtocol !== backendPortProtocol) {
         throw new Error('Protocol mismatch');
       }
+    }
+
+    if (data.idgroup === null) {
+      return insertUngroupedSystemRule(
+        this._repository,
+        data.firewallId,
+        data.to,
+        data.offset,
+        (rules, rule_order) =>
+          rules.save({ ...haProxyRule, group: null, groupId: null, rule_order }),
+      );
     }
 
     const lastHAProxy: HAProxyRule = await this._repository.getLastHAProxyRuleInFirewall(

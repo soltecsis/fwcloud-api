@@ -337,6 +337,178 @@ describe(describeName('AuditLog API E2E suite'), () => {
       });
   });
 
+  describe('confirmation token challenges', () => {
+    let entries: Record<string, AuditLog>;
+
+    beforeEach(async () => {
+      await repository.clear();
+      entries = {};
+      const fixtures: Array<[string, Partial<AuditLog>]> = [
+        ['challenge', { status: 403, confirmationTokenChallenge: true }],
+        ['forbidden', { status: 403, confirmationTokenChallenge: false }],
+        ['unauthorized', { status: 401, confirmationTokenChallenge: false }],
+        ['historical', { status: 403, confirmationTokenChallenge: null }],
+        ['successful', { status: 200, confirmationTokenChallenge: false }],
+        [
+          'foreign',
+          {
+            status: 403,
+            confirmationTokenChallenge: false,
+            userId: adminUser.id,
+            userName: adminUser.username,
+            sessionId: null,
+          },
+        ],
+      ];
+      for (const [index, [name, fixture]] of fixtures.entries()) {
+        entries[name] = await persistAuditLog({
+          startedAt: new Date(`2024-01-0${6 - index}T12:00:00Z`),
+          durationMs: 10,
+          userId: regularUser.id,
+          userName: regularUser.username,
+          sessionId: regularSessionNumeric,
+          eventType: AuditEventType.Modification,
+          fwCloudId: 101,
+          fwCloudName: 'Confirmation Cloud',
+          firewallId: 201,
+          firewallName: 'Confirmation Firewall',
+          clusterId: 301,
+          clusterName: 'Confirmation Cluster',
+          sourceIp: '198.51.100.50',
+          ...fixture,
+        });
+      }
+    });
+
+    for (const query of [{}, { exclude_confirmation_token_requests: false }]) {
+      it(`includes challenges when the filter is ${Object.keys(query).length ? 'false' : 'omitted'}`, async () => {
+        const response = await listAuditLogs(adminSessionToken, query).expect(200);
+        expect(response.body.data.total).to.equal(6);
+        expect(response.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+          Object.values(entries).map((entry) => entry.id),
+        );
+        expect(response.body.data.auditLogs[0].confirmationTokenChallenge).to.equal(true);
+      });
+    }
+
+    it('excludes only explicitly marked challenges and keeps unrelated errors and historical entries', async () => {
+      const response = await listAuditLogs(adminSessionToken, {
+        exclude_confirmation_token_requests: true,
+      }).expect(200);
+      expect(response.body.data.total).to.equal(5);
+      expect(response.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+        ['forbidden', 'unauthorized', 'historical', 'successful', 'foreign'].map(
+          (name) => entries[name].id,
+        ),
+      );
+      expect(response.body.data.auditLogs.map((entry) => entry.status)).to.deep.equal([
+        403, 401, 403, 200, 403,
+      ]);
+      expect(response.body.data.auditLogs[0].confirmationTokenChallenge).to.equal(false);
+      expect(response.body.data.auditLogs[2].confirmationTokenChallenge).to.equal(null);
+    });
+
+    it('keeps filtered challenges stored and accessible in detail and unfiltered history', async () => {
+      const storedBefore = await repository.find({ order: { id: 'ASC' } });
+      await listAuditLogs(adminSessionToken, {
+        exclude_confirmation_token_requests: true,
+      }).expect(200);
+      expect(await repository.find({ order: { id: 'ASC' } })).to.deep.equal(storedBefore);
+
+      const detail = await getAuditLog(adminSessionToken, entries.challenge.id).expect(200);
+      expect(detail.body.data.auditLog.confirmationTokenChallenge).to.equal(true);
+      expect(detail.body.data.auditLog.status).to.equal(403);
+      const historical = await getAuditLog(adminSessionToken, entries.historical.id).expect(200);
+      expect(historical.body.data.auditLog.confirmationTokenChallenge).to.equal(null);
+
+      const unfiltered = await listAuditLogs(adminSessionToken, {
+        exclude_confirmation_token_requests: false,
+      }).expect(200);
+      expect(
+        unfiltered.body.data.auditLogs.some((entry) => entry.id === entries.challenge.id),
+      ).to.equal(true);
+    });
+
+    it('filters before offset and cursor pagination and returns accurate counts', async () => {
+      const filters = { exclude_confirmation_token_requests: true, limit: 2 };
+      const first = await listAuditLogs(adminSessionToken, filters).expect(200);
+      const second = await listAuditLogs(adminSessionToken, { ...filters, page: 2 }).expect(200);
+      expect(first.body.data.total).to.equal(5);
+      expect(second.body.data.total).to.equal(5);
+      expect(first.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.forbidden.id,
+        entries.unauthorized.id,
+      ]);
+      expect(second.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.historical.id,
+        entries.successful.id,
+      ]);
+
+      const pivot = first.body.data.auditLogs[1];
+      const next = await listAuditLogs(adminSessionToken, {
+        ...filters,
+        cursor: `${pivot.startedAt}:${pivot.id}`,
+      }).expect(200);
+      expect(next.body.data.total).to.equal(3);
+      expect(next.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.historical.id,
+        entries.successful.id,
+      ]);
+    });
+
+    it('combines challenge exclusion with existing filters and end-time sorting', async () => {
+      const filters = {
+        exclude_confirmation_token_requests: true,
+        sort_by: 'end',
+        sort_order: 'desc',
+        event_type: 'modification',
+        started_at_from: '2024-01-02T00:00:00Z',
+        started_at_to: '2024-01-07T00:00:00Z',
+        user_name: regularUser.username,
+        session_id: String(regularSessionNumeric),
+        fwcloud_id: 101,
+        fwcloud_name: 'confirmation',
+        firewall_id: 201,
+        firewall_name: 'confirmation',
+        cluster_id: 301,
+        cluster_name: 'confirmation',
+        source_ip: '198.51.100.50',
+        limit: 2,
+        page: 2,
+      };
+      const response = await listAuditLogs(adminSessionToken, filters).expect(200);
+      expect(response.body.data.total).to.equal(4);
+      expect(response.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal([
+        entries.historical.id,
+        entries.successful.id,
+      ]);
+    });
+
+    it('preserves authorization restrictions while excluding challenges', async () => {
+      const response = await listAuditLogs(regularSessionToken, {
+        exclude_confirmation_token_requests: true,
+      }).expect(200);
+      expect(response.body.data.total).to.equal(4);
+      expect(response.body.data.auditLogs.map((entry) => entry.id)).to.deep.equal(
+        ['forbidden', 'unauthorized', 'historical', 'successful'].map((name) => entries[name].id),
+      );
+      await getAuditLog(regularSessionToken, entries.foreign.id).expect(404);
+      await getAuditLog(regularSessionToken, entries.challenge.id).expect(200);
+      await request(app.express)
+        .put(_URL().getURL('auditlogs.list'))
+        .query({ exclude_confirmation_token_requests: true })
+        .expect(401);
+    });
+
+    for (const value of ['1', '0', 'yes', 'TRUE', '', ['true', 'false']]) {
+      it(`rejects invalid challenge exclusion value ${JSON.stringify(value)}`, async () => {
+        await listAuditLogs(adminSessionToken, {
+          exclude_confirmation_token_requests: value,
+        }).expect(422);
+      });
+    }
+  });
+
   describe('sorting', () => {
     let entries: Record<string, AuditLog>;
 

@@ -6,6 +6,15 @@ import {
 } from '../../../../src/models/audit/audit-log-sanitizer';
 
 describe('Audit log sanitization compatibility', () => {
+  it('redacts SSH credentials sent in request bodies', () => {
+    expect(
+      sanitizeAuditData({ sshuser: 'encrypted-user', sshpass: 'encrypted-password' }),
+    ).to.deep.equal({
+      sshuser: '[REDACTED]',
+      sshpass: '[REDACTED]',
+    });
+  });
+
   it('redacts nested credential fields without changing the source payload', () => {
     const input = {
       name: 'visible',

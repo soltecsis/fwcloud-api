@@ -176,6 +176,9 @@ export class AuditLog extends Model {
   })
   status: number | null;
 
+  @Column({ type: 'boolean', name: 'confirmation_token_challenge', nullable: true })
+  confirmationTokenChallenge: boolean | null;
+
   @Column({
     type: 'int',
     name: 'duration_ms',

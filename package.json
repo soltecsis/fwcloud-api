@@ -102,21 +102,21 @@
     "@types/session-file-store": "1.2.6",
     "@types/sinon": "22.0.2",
     "@types/supertest": "7.2.1",
-    "@typescript-eslint/eslint-plugin": "8.72.2",
-    "@typescript-eslint/parser": "8.72.2",
+    "@typescript-eslint/eslint-plugin": "8.73.0",
+    "@typescript-eslint/parser": "8.73.0",
     "busboy": "1.6.0",
     "c8": "12.0.0",
     "chai": "6.3.0",
     "chai-as-promised": "8.0.2",
     "chai-json-schema-ajv": "5.2.4",
     "cookie-signature": "1.2.2",
-    "eslint": "10.14.0",
+    "eslint": "10.15.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.7",
     "globals": "17.14.0",
     "husky": "9.1.7",
     "js-yaml": "5.5.0",
-    "lint-staged": "17.6.0",
+    "lint-staged": "16.4.0",
     "mocha": "12.0.3",
     "mocha-junit-reporter": "2.2.1",
     "mocha-multi-reporters": "1.5.2",
@@ -129,16 +129,18 @@
   "overrides": {
     "@sinonjs/fake-timers": "15.4.0",
     "cross-spawn": "7.0.6",
+    "glob": "$glob",
+    "minimatch@>=7.0.0 <=11.0.9": "11.0.9",
     "serialize-javascript": "7.1.4",
     "ts-deepmerge": "8.0.0",
     "nodemon": {
       "chokidar": "5.0.0"
     },
-    "tsoa@7.0.0-alpha.0": {
-      "@tsoa/runtime@7.0.0-alpha.0": {
-        "express": {
-          "body-parser": "2.4.0"
-        }
+    "@tsoa/cli": "7.0.0-alpha.0",
+    "@tsoa/runtime": {
+      ".": "7.0.0-alpha.0",
+      "express": {
+        "body-parser": "2.4.0"
       }
     }
   },

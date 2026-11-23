@@ -5,8 +5,28 @@ const MAX_DURATION_MS = 2147483647;
 
 type HistoricalAuditLog = { id: number; data: string };
 
-export class BackfillAuditLogDuration1794916800000 implements MigrationInterface {
+export class AddAuditLogClassificationAndBackfillDurations1794830400000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Historical event types and confirmation challenges cannot be inferred reliably.
+    await queryRunner.query(
+      'ALTER TABLE `audit_logs` ADD COLUMN `event_type` VARCHAR(32) NULL, ADD COLUMN `outcome` VARCHAR(16) NULL, ADD COLUMN `confirmation_token_challenge` TINYINT(1) NULL',
+    );
+    await queryRunner.query(
+      'CREATE INDEX `IDX_audit_logs_event_type_ts` ON `audit_logs` (`event_type`, `ts`, `id`)',
+    );
+
+    await this.backfillDurations(queryRunner);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('DROP INDEX `IDX_audit_logs_event_type_ts` ON `audit_logs`');
+    await queryRunner.query(
+      'ALTER TABLE `audit_logs` DROP COLUMN `confirmation_token_challenge`, DROP COLUMN `outcome`, DROP COLUMN `event_type`',
+    );
+    // Recovered durations cannot be distinguished from values written by the application.
+  }
+
+  private async backfillDurations(queryRunner: QueryRunner): Promise<void> {
     const [{ maxId }] = await queryRunner.query(
       'SELECT COALESCE(MAX(`id`), 0) AS `maxId` FROM `audit_logs`',
     );
@@ -33,10 +53,6 @@ export class BackfillAuditLogDuration1794916800000 implements MigrationInterface
         [...updates.flatMap(({ id, duration }) => [id, duration]), ...updates.map(({ id }) => id)],
       );
     }
-  }
-
-  public async down(_queryRunner: QueryRunner): Promise<void> {
-    // Recovered durations cannot be distinguished from values written by the application.
   }
 
   private extractDuration(data: string): number | null {
