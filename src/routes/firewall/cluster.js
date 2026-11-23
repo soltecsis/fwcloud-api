@@ -46,14 +46,15 @@
  * @property express
  * @type express
  */
-var express = require('express');
 /**
  * Property  to manage  route
  *
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 
 /**
  * Property Model to manage Cluster Data
@@ -370,7 +371,7 @@ router.put('/get', async (req, res) => {
  *    "msg": "Cluster access not allowed"
  * }
  */
-router.put('/cloud/get', async (req, res) => {
+legacyOperation(router, 'put', '/cloud/get', consultationOperation, async (req, res) => {
 	try {
 		const data = await Cluster.getClusterCloud(req);
 		if (data) {

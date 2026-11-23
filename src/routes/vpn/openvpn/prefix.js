@@ -21,8 +21,9 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../../authorization/legacy-operation';
+import { consultationOperation } from '../../../authorization/operation-policy';
+var router = createOperationRouter();
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
@@ -118,7 +119,7 @@ async (req, res) => {
 router.put('/restricted', restrictedCheck.openvpn_prefix, (req, res) => res.status(204).end());
 
 
-router.put('/where', async (req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async (req, res) => {
 	try {
 		const data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix, true);
 		if (data.result)

@@ -24,6 +24,12 @@ import { Middleware } from '../fonaments/http/middleware/Middleware';
 import fwcError from '../utils/error_table';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../fonaments/abstract-application';
+import Joi from 'joi';
+
+// VPN routes normally validate inside their controllers, after the global cloud access checks.
+// For these reads, validate the resource and cloud IDs before either is used by AccessControl.
+const vpnWherePath = /^\/vpn\/(openvpn|wireguard|ipsec)(\/prefix)?\/where\/?$/i;
+const id = Joi.number().integer().positive().required();
 
 export class InputValidation extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -49,6 +55,18 @@ export class InputValidation extends Middleware {
         'Error during input validation check: ' + JSON.stringify(fwcError.BODY_MUST_BE_EMPTY),
       );
       res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
+      return;
+    }
+
+    const vpnWhere = req.method === 'PUT' && vpnWherePath.exec(req.path);
+    if (vpnWhere) {
+      const key = vpnWhere[2] ? 'prefix' : vpnWhere[1].toLowerCase();
+      const { error } = Joi.object({ fwcloud: id, [key]: id })
+        .required()
+        .strict()
+        .validate(req.body);
+      if (error) res.status(400).json(fwcError.other(error.message));
+      else next();
       return;
     }
 

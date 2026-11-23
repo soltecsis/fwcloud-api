@@ -27,11 +27,23 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  EntityManager,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
+import {
+  getOpenVPNServerDevice,
+  validateOpenVPNServerNetwork,
+} from '../vpn/openvpn/openvpn-server-network';
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
@@ -780,84 +792,70 @@ export class IPObj extends Model {
    * #### JSON RESPONSE ERROR:
    *      {result: false}
    * */
-  public static updateIpobj(dbCon, ipobjData): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const sql =
-        'UPDATE ' +
-        tableName +
-        ' SET ' +
-        'fwcloud = ' +
-        ipobjData.fwcloud +
-        ',' +
-        'interface = ' +
-        dbCon.escape(ipobjData.interface) +
-        ',' +
-        'name = ' +
-        dbCon.escape(ipobjData.name) +
-        ',' +
-        'type = ' +
-        dbCon.escape(ipobjData.type) +
-        ',' +
-        'protocol = ' +
-        dbCon.escape(ipobjData.protocol) +
-        ',' +
-        'address = ' +
-        dbCon.escape(ipobjData.address) +
-        ',' +
-        'netmask = ' +
-        dbCon.escape(ipobjData.netmask) +
-        ',' +
-        'diff_serv = ' +
-        dbCon.escape(ipobjData.diff_serv) +
-        ',' +
-        'ip_version = ' +
-        dbCon.escape(ipobjData.ip_version) +
-        ',' +
-        'icmp_code = ' +
-        dbCon.escape(ipobjData.icmp_code) +
-        ',' +
-        'icmp_type = ' +
-        dbCon.escape(ipobjData.icmp_type) +
-        ',' +
-        'tcp_flags_mask = ' +
-        dbCon.escape(ipobjData.tcp_flags_mask) +
-        ',' +
-        'tcp_flags_settings = ' +
-        dbCon.escape(ipobjData.tcp_flags_settings) +
-        ',' +
-        'range_start = ' +
-        dbCon.escape(ipobjData.range_start) +
-        ',' +
-        'range_end = ' +
-        dbCon.escape(ipobjData.range_end) +
-        ',' +
-        'source_port_start = ' +
-        dbCon.escape(ipobjData.source_port_start) +
-        ',' +
-        'source_port_end = ' +
-        dbCon.escape(ipobjData.source_port_end) +
-        ',' +
-        'destination_port_start = ' +
-        dbCon.escape(ipobjData.destination_port_start) +
-        ',' +
-        'destination_port_end = ' +
-        dbCon.escape(ipobjData.destination_port_end) +
-        ',' +
-        'options = ' +
-        dbCon.escape(ipobjData.options) +
-        ',' +
-        'comment = ' +
-        dbCon.escape(ipobjData.comment) +
-        ' ' +
-        ' WHERE id = ' +
-        ipobjData.id +
-        ' AND fwcloud=' +
-        ipobjData.fwcloud;
-      dbCon.query(sql, async (error, result) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
+  public static async updateIpobj(dbCon, ipobjData, manager?: EntityManager): Promise<void> {
+    if (!manager) {
+      return db
+        .getSource()
+        .transaction((transactionManager) =>
+          this.updateIpobj(dbCon, ipobjData, transactionManager),
+        );
+    }
+
+    // OpenVPN configuration writes take this lock before assigning the IP object.
+    const objectKey = [ipobjData.id, ipobjData.fwcloud];
+    const rows = await manager.query(
+      `SELECT id FROM ${tableName} WHERE id=? AND fwcloud=? FOR UPDATE`,
+      objectKey,
+    );
+    if (rows.length === 0) return;
+
+    type DeviceOption = Pick<OpenVPNOption, 'name' | 'arg' | 'scope'>;
+    const references: (DeviceOption & { openvpn: number })[] = await manager.query(
+      `SELECT server_option.openvpn, device.name, device.arg, device.scope
+         FROM openvpn_opt server_option
+         INNER JOIN openvpn vpn ON vpn.id=server_option.openvpn
+         INNER JOIN crt ON crt.id=vpn.crt
+         LEFT JOIN openvpn_opt device
+           ON device.openvpn=vpn.id AND device.name IN ('dev-type', 'dev') AND device.scope<>0
+         WHERE server_option.ipobj=? AND server_option.name='server' AND crt.type=2
+         ORDER BY device.\`order\`, device.id`,
+      [ipobjData.id],
+    );
+    const devicesByServer = new Map<number, DeviceOption[]>();
+    for (const { openvpn, name, arg, scope } of references) {
+      const options = devicesByServer.get(openvpn) ?? [];
+      if (name) options.push({ name, arg, scope });
+      devicesByServer.set(openvpn, options);
+    }
+    for (const options of devicesByServer.values()) {
+      validateOpenVPNServerNetwork(ipobjData, getOpenVPNServerDevice(options));
+    }
+
+    await manager.query(
+      `UPDATE ${tableName} SET
+           interface=${dbCon.escape(ipobjData.interface)},
+           name=${dbCon.escape(ipobjData.name)},
+           type=${dbCon.escape(ipobjData.type)},
+           protocol=${dbCon.escape(ipobjData.protocol)},
+           address=${dbCon.escape(ipobjData.address)},
+           netmask=${dbCon.escape(ipobjData.netmask)},
+           diff_serv=${dbCon.escape(ipobjData.diff_serv)},
+           ip_version=${dbCon.escape(ipobjData.ip_version)},
+           icmp_code=${dbCon.escape(ipobjData.icmp_code)},
+           icmp_type=${dbCon.escape(ipobjData.icmp_type)},
+           tcp_flags_mask=${dbCon.escape(ipobjData.tcp_flags_mask)},
+           tcp_flags_settings=${dbCon.escape(ipobjData.tcp_flags_settings)},
+           range_start=${dbCon.escape(ipobjData.range_start)},
+           range_end=${dbCon.escape(ipobjData.range_end)},
+           source_port_start=${dbCon.escape(ipobjData.source_port_start)},
+           source_port_end=${dbCon.escape(ipobjData.source_port_end)},
+           destination_port_start=${dbCon.escape(ipobjData.destination_port_start)},
+           destination_port_end=${dbCon.escape(ipobjData.destination_port_end)},
+           options=${dbCon.escape(ipobjData.options)},
+           comment=${dbCon.escape(ipobjData.comment)}
+         WHERE id=? AND fwcloud=?`,
+      objectKey,
+    );
   }
 
   /**
@@ -1468,7 +1466,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `SELECT VPN.*, CRT.cn,
+        const sql = `SELECT VPN.id, VPN.openvpn, CRT.cn,
 				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM openvpn AS VPN
@@ -1477,7 +1475,8 @@ export class IPObj extends Model {
 				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
 				INNER JOIN firewall F on F.id=VPN.firewall
 				inner join fwcloud C on C.id=F.fwcloud
-			 	WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
+				WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND F.fwcloud=${fwcloud}
+				  AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -1491,7 +1490,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `SELECT WG.*, CRT.cn,
+        const sql = `SELECT WG.id, WG.wireguard, CRT.cn,
         C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
         F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
         FROM wireguard AS WG
@@ -1500,7 +1499,8 @@ export class IPObj extends Model {
         INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
         INNER JOIN firewall F on F.id=WG.firewall
         inner join fwcloud C on C.id=F.fwcloud
-        WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
+        WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND F.fwcloud=${fwcloud}
+          AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -1535,7 +1535,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `SELECT VPN.*, CRT.cn,
+        const sql = `SELECT VPN.id, VPN.openvpn, CRT.cn,
 				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM openvpn AS VPN
@@ -1544,7 +1544,8 @@ export class IPObj extends Model {
 				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
 				INNER JOIN firewall F on F.id=VPN.firewall
 				inner join fwcloud C on C.id=F.fwcloud
-				WHERE OBJ.interface=${_interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
+				WHERE OBJ.interface=${_interface} AND F.fwcloud=${fwcloud}
+				  AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
 				${diff_firewall ? `AND F.id<>${diff_firewall}` : ''}`;
 
         connection.query(sql, (error, rows) => {
@@ -1583,7 +1584,7 @@ export class IPObj extends Model {
   //check if interface ipobj exists in and OpenVPN configuration
   public static searchAddrHostInOpenvpn(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.*, CRT.cn,
+      const sql = `SELECT VPN.id, VPN.openvpn, CRT.cn,
 			C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 			FROM openvpn AS VPN
@@ -1603,7 +1604,7 @@ export class IPObj extends Model {
 
   public static searchAddrHostInWireguard(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT WG.*, CRT.cn,
+      const sql = `SELECT WG.id, WG.wireguard, CRT.cn,
       C.id cloud_id, C.name cloud_name, WG.firewall firewall_id, F.name firewall_name,
       F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
       FROM wireguard AS WG

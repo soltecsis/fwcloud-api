@@ -44,7 +44,6 @@
  * @property express
  * @type express
  */
-var express = require('express');
 
 /**
  * Property  to manage Fwcloud route
@@ -52,7 +51,9 @@ var express = require('express');
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { cloudLockOperation, consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 
 /**
  * Property Model to manage Fwcloud Data
@@ -114,7 +115,7 @@ import { WebSocketService } from '../../sockets/web-socket.service';
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  */
-router.get('/all/get', async (req, res) => {
+legacyOperation(router, 'get', '/all/get', consultationOperation, async (req, res) => {
 	try {
 		const data = await FwCloud.getFwclouds(req.dbCon, req.session.user_id);
 		if (data && data.length > 0)
@@ -165,7 +166,7 @@ router.get('/all/get', async (req, res) => {
  *    "msg": "FWCloud access not allowed"
  * }
  */
-router.put('/get', (req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, (req, res) => {
 	FwCloud.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (error) return res.status(400).json(error);
 
@@ -286,7 +287,7 @@ router.put('/del',
  *         ]
  *       };
  */
-router.put('/lock', async (req, res) => {
+legacyOperation(router, 'put', '/lock', cloudLockOperation, async (req, res) => {
 	const channel = new EventEmitter();
 	const fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
 
@@ -356,7 +357,7 @@ router.put('/lock', async (req, res) => {
  *         ]
  *       };
  */
-router.put('/unlock', async (req, res) => {
+legacyOperation(router, 'put', '/unlock', cloudLockOperation, async (req, res) => {
 	// Save fwcloud data into object
 	const fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id, lock_session_id: req.sessionID };
 	try {
@@ -406,7 +407,7 @@ router.put('/unlock', async (req, res) => {
  * 		}
  * 	   ]
  */
-router.put('/forcelock', async (req, res) => {
+legacyOperation(router, 'put', '/forcelock', cloudLockOperation, async (req, res) => {
 	// Save fwcloud data into object
 	const fwcloudData = { fwcloud: req.body.fwcloud, id_user: req.session.user_id, lock_session_id: req.sessionID };
 	try {
@@ -416,10 +417,10 @@ router.put('/forcelock', async (req, res) => {
 
 		const data = await FwCloud.updateFwcloudForceLock(fwcloudData);
 		if (data.result) {
-			if (data.previousLockedBy) {
+			if (data.previousLockedBy && data.previousLockedBy !== req.sessionID) {
 				try {
 					const wsService = await app().getService(WebSocketService.name);
-					wsService.emitToRoom(data.previousLockedBy, 'fwcloud:forceUnlock', {});
+					wsService.emitToRoom(data.previousLockedBy, 'fwcloud:forceUnlock', { fwcloud: fwcloudData.fwcloud });
 					logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  FORCE UNLOCKED BY USER: " + fwcloudData.id_user);
 				} catch (error) {
 					logger().error('Error emitting fwcloud:forceUnlock event: ' + JSON.stringify(error));
