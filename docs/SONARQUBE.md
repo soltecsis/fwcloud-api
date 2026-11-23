@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Última actualización: 2026-10-16. El responsable confirma que los últimos cambios
+Estado de la integración oficial (2026-10-16): el responsable confirma que los cambios
 están desplegados en CI y conectan con SonarQube Cloud. La importación del LCOV,
 el resultado del Quality Gate, la protección efectiva del merge y el rerun parcial
 siguen pendientes de verificar y documentar. El registro de entregas, evidencias
@@ -13,11 +13,15 @@ implementado y validado localmente, pendiente de despliegue en Actions. Incluye
 `scripts/ci-context.cjs` para compartir contexto y publicación de evidencia;
 conserva las validaciones de cobertura y la política de reruns descritas aquí.
 
+El análisis previo al merge desde forks personales reutiliza el proyecto oficial
+y un token limitado que permanece en `soltecsis/fwcloud-api`. Su activación y
+validación en GitHub Actions y SonarQube Cloud están pendientes.
+
 ## Integración
 
 El CI `FWCloud-API CI` instala, compila y prueba el SHA de la PR (`head.sha`) o
 del push/dispatch. La celda Node 22 + MySQL 8.0 genera el LCOV existente y añade
-`analysis.json` al artefacto de cobertura: metadata de pruebas, revisión,
+`analysis.json` al artefacto de cobertura: pruebas, revisión, datos de la PR,
 ejecución/intento y SHA-256 de `lcov.info`. No se repiten las pruebas para Sonar.
 
 El job **`FWCloud-API SonarQube`** está dentro de `.github/workflows/nodejs.yml` y
@@ -25,36 +29,34 @@ depende de `quality`, `test`, `secrets`, `sca` y `dast`. Se ejecuta después de 
 estos jobs pasen y `backend-ci` comprueba también su resultado:
 
 ```text
-Push / PR interna → calidad, matriz, secretos, SCA y DAST → SonarQube → backend-ci
-PR externa        → calidad, matriz, secretos, SCA y DAST → sonar omitido → backend-ci
-Merge en ENS      → push a ENS → CI completo, incluido SonarQube
+PR del fork a fixes → CI sin secreto Sonar → LCOV de esa ejecución
+                    → workflow central → SonarQube oficial → gate del SHA de la PR
+Push en fixes / PR interna → CI con SonarQube en el mismo workflow
 ```
 
-Funciona desde `ENS` sin publicar previamente archivos en `main`. Utiliza la
-configuración, helper y fuentes de la misma revisión analizada. No hay
-`workflow_run`, workflow posterior, consultas a la API de GitHub ni checkout de la
-rama predeterminada. Los argumentos de rama/PR se toman del contexto de esta
-ejecución y la cobertura se descarga por nombre exacto estable por `run_id`:
+El job del mismo workflow funciona en `fixes` sin publicar previamente archivos
+en `main`. Usa la configuración y fuentes del mismo checkout. El análisis de
+PR de forks sí usa un `workflow_run` independiente, que debe estar en la rama
+predeterminada. Ambos consumen el artefacto por su nombre estable por `run_id`:
 `backend-coverage-node22-mysql8-<RUN_ID>`. La publicación usa `overwrite: true`:
 si se repite la celda de cobertura, reemplaza el artefacto de esa misma ejecución;
 si solo se repite otro job, se conserva el artefacto ya publicado.
 
 | Evento | SonarQube | Resultado exigido por `backend-ci` |
 | --- | --- | --- |
-| Push a `main`, `fixes`, `ENS`, salvo actor Dependabot | Sí, tras pasar los jobs previos | `success` |
-| PR internas hacia `main`, `devel`, `fixes`, `auditlogs`, `ENS`, salvo autor o actor Dependabot | Sí, tras pasar los jobs previos | `success` |
-| Ejecución manual del CI | Sí, salvo actor Dependabot | `success` |
-| PR desde otro repositorio/fork o ejecución de Dependabot | Omitido: GitHub no entrega el token | `skipped`, con motivo en el resumen |
+| Push a `main` o `fixes` en el repositorio oficial, salvo actor Dependabot | En el mismo workflow | `success` |
+| PR entre ramas del repositorio oficial hacia `main`, `devel`, `fixes` o `auditlogs`, salvo autor o actor Dependabot | En el mismo workflow | `success` |
+| Ejecución manual del CI oficial, salvo actor Dependabot | En el mismo workflow | `success` |
+| PR de un fork a `soltecsis/fwcloud-api:fixes`, salvo autor o actor Dependabot | Solo en el workflow central, tras éxito del CI | `skipped` en el CI de origen |
+| Otras PR entre repositorios, ejecuciones dentro de forks o de Dependabot | Omitido | `skipped`, con motivo en el resumen |
 
 En las PR externas siguen siendo obligatorios todos los controles anteriores.
-El análisis se realiza tras integrar el código y dispararse el push en una rama
-configurada, por ejemplo `ENS`. Esta modalidad no acredita SAST previo al merge
-de una PR externa. Un token ausente en una ejecución elegible falla; no habilita
-la excepción de forks/Dependabot.
+El proyecto oficial sigue analizando también el push posterior al merge en
+`fixes`. Un token ausente en una ejecución elegible falla.
 
 El job no reinstala dependencias ni repite build/pruebas. Rechaza symlinks en los
 árboles analizados, usa `contents: read` y no conserva credenciales en su checkout.
-`SONAR_TOKEN` se entrega únicamente al paso de la acción oficial.
+El valor del token se entrega únicamente al paso de la acción oficial.
 
 El helper valida metadata/hash y archivos de cobertura; **no es un scanner ni un
 driver de SonarQube**. La acción oficial realiza análisis y espera del gate.
@@ -100,25 +102,19 @@ en «Estado actual» y en el registro de CI-BACKEND.md.
 3. Instalar la [GitHub App SonarQube Cloud](https://github.com/marketplace/sonarcloud)
    y autorizar únicamente los repositorios necesarios, inicialmente `fwcloud-api`.
    La instalación en una organización puede necesitar su propietario.
-4. La configuración actual utiliza un **trial de Team** para analizar distintas
-   ramas y PR. Confirmar la continuidad de ese alcance al finalizar el trial.
+4. La organización utiliza el plan **Team** para analizar distintas ramas y PR.
    El Free genérico solo cubre la rama principal y PR hacia ella;
-   no asumir cobertura de `ENS`, `fixes`, `devel` o `auditlogs`. La visibilidad de
-   código/resultados y el procesamiento en Cloud deben encajar con el sistema
-   evaluado. UE es la región elegida para esta integración.
-5. Importar `fwcloud-api`. Configurar **organization key** y **project key** en
-   `sonar-project.properties`. Temporalmente se utilizan:
+   no asumir cobertura de `fixes`, `devel` o `auditlogs` en ese plan. La
+   visibilidad de código/resultados y el procesamiento en Cloud deben encajar con
+   el sistema evaluado. UE es la región elegida para esta integración.
+5. Importar `fwcloud-api`. Los identificadores oficiales se leen de
+   `sonar-project.properties`:
 
    ```properties
-   sonar.organization=soltecsis-aortega
-   sonar.projectKey=soltecsis-aortega_fwcloud-api
+   sonar.organization=soltecsis
+   sonar.projectKey=soltecsis_fwcloud-api
    ```
 
-   Estas claves corresponden al proyecto de la cuenta/fork `soltecsis-aortega`.
-   El CI del repositorio principal puede analizar ese proyecto si el token tiene
-   permisos sobre él. Guardar el secret en otro repositorio no cambia las claves
-   ni vincula automáticamente la App. Si se migra a un proyecto de la organización,
-   actualizar las claves y verificar su vinculación con el repositorio principal.
 6. En **Administration → Analysis Method**, elegir GitHub Actions y desactivar
    **Automatic Analysis**. No combinar ambos métodos para este proyecto. El
    análisis automático no importa LCOV ni analiza ramas independientes.
@@ -126,37 +122,31 @@ en «Estado actual» y en el registro de CI-BACKEND.md.
    el plan lo ofrece. Si se usa token personal, emplear una cuenta con permisos
    mínimos de análisis. Desde **My Account → Access Tokens**, asignar nombre,
    caducidad y responsable de renovación; copiar el valor al generarlo.
-8. En el **repositorio que ejecuta el workflow**, abrir
+8. En el **repositorio oficial**, abrir
    **Settings → Secrets and variables → Actions → Repository secrets**:
 
    | Tipo | Nombre | Valor |
    | --- | --- | --- |
    | Secret | `SONAR_TOKEN` | Token de SonarQube, equivalente funcionalmente a una API key |
 
-   Los secrets del fork no se heredan en el principal. También puede utilizarse
-   un secret de organización con acceso concedido al repositorio que ejecuta el CI.
-   El token debe tener permisos de análisis sobre el proyecto configurado. Según
-   la confirmación del responsable, el CI desplegado ya conecta con SonarQube.
-   `SONAR_ORGANIZATION` y `SONAR_PROJECT_KEY` no son necesarias
-   temporalmente: los overrides están comentados en el job de SonarQube.
-   El scanner lee las claves del archivo de propiedades del checkout analizado.
-   Si se vuelve a usar variables de Actions, añadir su validación y reactivar
-   ambos argumentos comentados.
+   También puede utilizarse un secret de organización limitado al repositorio
+   oficial. No copiar este token a los forks. El workflow oficial lee los
+   identificadores de la configuración versionada, no de variables de Actions.
 
    No se necesita un PAT de GitHub: Actions proporciona `GITHUB_TOKEN`. No usar
    `sonar.token` en archivos, argumentos, artefactos o logs. La URL Cloud está
    fijada en el workflow; no hace falta crear `SONAR_HOST_URL` en GitHub.
-9. Integrar **CI, helper y configuración en `ENS`** y lanzar un push a esa rama.
+9. Integrar **CI, helper y configuración en `fixes`** y lanzar un push a esa rama.
    El job aparecerá dentro de `FWCloud-API CI` tras pasar los jobs previos. No es
    necesario integrar primero en `main`. Para usar **Run workflow** desde la UI,
    GitHub puede exigir que el workflow manual ya esté registrado en la rama
-   predeterminada; el push a `ENS` no tiene ese requisito.
-10. Ejecutar el CI actualizado en las ramas base, primero `main` y `ENS`, para
-    obtener cobertura/análisis inicial. Configurar como ramas de larga duración
-    las bases utilizadas (`main`, `ENS`, `fixes`, `devel`, `auditlogs`) según el
-    plan y las opciones de Branches/Pull Requests del proyecto. Para una base sin
-    trigger de push, lanzar **Run workflow** del CI seleccionando esa rama. En
-    PR el código nuevo se compara con su rama destino.
+   predeterminada; el push a `fixes` no tiene ese requisito.
+10. Ejecutar el CI actualizado en las ramas base para
+     obtener cobertura/análisis inicial. Configurar como ramas de larga duración
+     las bases utilizadas (`main`, `fixes`, `devel`, `auditlogs`) según el
+      plan y las opciones de Branches/Pull Requests del proyecto. Para una base sin
+      trigger de push, lanzar **Run workflow** del CI seleccionando esa rama. En
+      PR el código nuevo se compara con su rama destino.
 11. Asignar el perfil oficial JS/TS y **Sonar way** inicialmente. Registrar perfil,
     gate y definición de código nuevo utilizados y revisar el inventario inicial.
 12. Configurar y validar la protección descrita a continuación.
@@ -174,6 +164,44 @@ conserva la revisión y workflow originales: la primera ejecución con este ajus
 debe iniciarse con el CI actualizado. Las ejecuciones anteriores con nombres
 terminados en `-<ATTEMPT>` siguen necesitando su procedimiento anterior.
 
+## Quality Gate antes del merge desde un fork
+
+1. Vincular el proyecto **existente** `soltecsis_fwcloud-api` a
+   `soltecsis/fwcloud-api` y comprobar que la GitHub App tiene acceso para
+   publicar el check. Mantener **Automatic Analysis** desactivado y `fixes`
+   analizada como rama de larga duración. No crear proyectos adicionales.
+2. En **Administration → Scoped Organization Tokens**, crear un token con
+   caducidad: **Specific projects → `soltecsis_fwcloud-api` → Execute analysis**.
+   Guardarlo solo en `soltecsis/fwcloud-api` como secreto de Actions
+   **`SONAR_PR_ANALYSIS_TOKEN`**. El CI de pushes y PR internas conserva su
+   secreto `SONAR_TOKEN`. No copiar ni compartir el nuevo token con los forks.
+3. Publicar `.github/workflows/sonarqube-fork-pr.yml`, los scripts `sonar-fork-pr.cjs`,
+   `extract-sonar-coverage.py`, `sonar-analysis.cjs`, `ci-context.cjs` y las dos
+   configuraciones Sonar (`sonar-project.properties`, `tsconfig.sonar.json`)
+   en la **rama predeterminada del repositorio oficial** (`main`). Sin este paso,
+   GitHub no dispara el `workflow_run`, aunque exista en `fixes`. El CI productor
+   actualizado (`nodejs.yml`) también debe estar disponible para PR hacia `fixes`.
+   La rama destino de las PR de los desarrolladores no cambia.
+4. Abrir o actualizar una PR desde un fork personal a `soltecsis/fwcloud-api:fixes`.
+   No hace falta habilitar Actions, crear una segunda PR ni configurar secretos
+   o variables en el fork. Usar una ejecución nueva con el productor actualizado:
+   los artefactos anteriores no contienen los campos adicionales de la PR.
+5. Verificar que **FWCloud-API Fork SonarQube** se ejecuta tras un CI correcto,
+   importa LCOV en el proyecto oficial y asocia el Quality Gate y la cobertura
+   con el **SHA actual** de la PR. Probar un fallo de cobertura, añadir pruebas
+   y verificar que el gate pasa en el nuevo SHA sin hacer merge. Si cambia la
+   base durante la preparación, volver a lanzar el CI.
+
+El workflow central resuelve la PR abierta contra `fixes` por la API de GitHub
+y cruza repositorio, rama y SHA con el `workflow_run`. Descarga solo el
+artefacto LCOV de la ejecución identificada, verifica su digest y extrae solo
+`analysis.json` y `lcov.info`. El checkout de la PR contiene `src/`, `tests/` y el
+historial Git. Los scripts y configuraciones vienen de la revisión de confianza
+del workflow; **no se ejecutan tests, scripts, dependencias ni configuración del
+fork** en el job con acceso al secreto. El hash no demuestra por sí solo que el
+fork no haya manipulado los datos de cobertura; la revisión de la PR sigue siendo
+necesaria. Quitar los proyectos y tokens del piloto por fork si se llegaron a usar.
+
 ## Quality Gate y protección de merge
 
 `sonar.qualitygate.wait=true` espera el resultado hasta 300 segundos; gate fallido,
@@ -185,19 +213,22 @@ La configuración efectiva y su comportamiento bloqueante siguen pendientes de
 verificar. En **GitHub → Settings → Rules → Rulesets**, para las ramas protegidas,
 debe exigirse lo siguiente:
 
-1. Exigir PR y el check **`backend-ci`**, que ahora incluye el resultado de Sonar.
-   Para aceptar PR externas no exigir globalmente `SonarCloud Code Analysis`
-   ni el job Sonar como checks separados: se omiten en esas PR por falta de token.
-   La integración de la App puede seguir mostrando resultados en las PR internas.
+1. Mantener **`backend-ci`** obligatorio. En PR externas no incluye el resultado
+   del workflow central. Si se quiere bloquear el merge también por Sonar, validar
+   primero que **`SonarCloud Code Analysis`** se publica en el SHA correcto y
+   configurar el check nativo de la App en el ruleset de `fixes`. No exigir el
+   nombre del job de `workflow_run`: se ejecuta en la rama predeterminada.
+   Antes de hacerlo obligatorio, acordar el tratamiento de Dependabot, que sigue
+   excluido del análisis.
 2. Exigir ramas actualizadas antes del merge. Ahora se prueba el head de la PR,
    no el merge commit sintético: actualizar la rama con la base antes de aceptar.
-3. Validar una PR interna que pase y otra cuyo gate falle. Comprobar la omisión
-   explícita en PR externa y el análisis completo del push tras integrarla.
+3. Validar el gate en PR interna y en PR de un fork a `fixes`. Verificar que el
+   flujo oficial de push sigue analizando tras el merge.
 
 `backend-ci.needs` incluye `sonar` en el mismo DAG, sin dependencia circular.
-Fuera de la excepción explícita de forks/Dependabot, un estado `failure`,
+Fuera de las excepciones de forks, PR externas y Dependabot, un estado `failure`,
 `cancelled` o `skipped` de Sonar falla el gate agregado. La excepción no permite
-ignorar errores en los demás jobs. El push posterior a `ENS` también tiene que
+ignorar errores en los demás jobs. El push posterior a `fixes` también tiene que
 pasar Sonar antes de promover el código hacia despliegue.
 
 **Sonar way** es el gate inicial recomendado; el perfil, gate y definición de
@@ -211,16 +242,18 @@ su tratamiento, aunque el gate de la PR se enfoque en código nuevo.
 
 ## Evidencia y ENS Media
 
-El artefacto `backend-sonarqube-<RUN_ID>-<ATTEMPT>`, con retención solicitada de
-90 días y retención efectiva pendiente de verificar, contiene
-solo `metadata.json`: commit, PR/rama, ejecución, intento de análisis (`runAttempt`)
-e intento productor de cobertura (`coverageRunAttempt`),
+Los artefactos `backend-sonarqube-<RUN_ID>-<ATTEMPT>` y
+`backend-sonarqube-fork-<RUN_ID>-<ATTEMPT>` solicitan 90 días de retención.
+Contienen solo `metadata.json`: proyecto, commit, PR/rama, base, ejecución e
+intento del CI (`runAttempt`), intento productor de cobertura (`coverageRunAttempt`),
 hashes de LCOV/configuración, versiones, resultado del scanner
 y referencia nativa de tarea/dashboard cuando está disponible. Fallos se registran
 como `FAILED_OR_INCOMPLETE`, nunca como gate pasado. No se suben `.scannerwork`,
 logs de scanner, fragmentos de issues, secretos o código mediante este artefacto.
 Los hallazgos detallados se revisan en SonarQube Cloud.
-Este artefacto se genera si llega a intentarse el paso del scanner. Un fallo
+El flujo central registra además la ejecución de Sonar (`sonarRunId` y
+`sonarRunAttempt`) y el ID del artefacto LCOV consumido. El artefacto de evidencia
+se genera si llega a intentarse el paso del scanner. Un fallo
 previo, por ejemplo al descargar o validar cobertura, falla el job sin generar
 ese artefacto de Sonar.
 
@@ -290,8 +323,7 @@ workflow y los helpers/pruebas modificados.
 Los pendientes de aceptación, alineados con el apartado 10.4 de CI-BACKEND.md, son:
 
 - Enlazar commit/PR exactos, ejecución de Actions y análisis de SonarQube desplegados.
-- Vinculación del proyecto con el repositorio y decoración de PR; claves definitivas
-  y continuidad del análisis multirrama tras el trial Team.
+- Vinculación del proyecto oficial con el repositorio y decoración de PR.
 - Ramas base analizadas y TS/JS legacy incluidos sin exclusiones inesperadas.
 - LCOV importado sobre fuentes originales, sin paths sin resolver.
 - Precisión y compatibilidad del analizador con TypeScript 6 y el alcance configurado.
@@ -310,6 +342,7 @@ Los pendientes de aceptación, alineados con el apartado 10.4 de CI-BACKEND.md, 
 - [Alta con GitHub](https://docs.sonarsource.com/sonarqube-cloud/getting-started/github)
 - [Acción oficial](https://github.com/SonarSource/sonarqube-scan-action)
 - [Actions y PR desde forks](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/ci-based-analysis/github-actions-for-sonarcloud)
+- [Scoped Organization Tokens](https://docs.sonarsource.com/sonarqube-cloud/administering-sonarcloud/managing-organization/scoped-organization-tokens)
 - [Cobertura JS/TS](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/test-coverage/javascript-typescript-test-coverage)
 - [Planes](https://docs.sonarsource.com/sonarqube-cloud/administering-sonarcloud/managing-subscription/subscription-plans)
 - [Quality Gates](https://docs.sonarsource.com/sonarqube-cloud/standards/managing-quality-gates/introduction-to-quality-gates)

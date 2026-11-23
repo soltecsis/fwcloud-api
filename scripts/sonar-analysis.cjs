@@ -83,6 +83,11 @@ function prepare(source, coverage, env = process.env) {
   );
   const run = { ...ci, branch: env.GITHUB_HEAD_REF || env.GITHUB_REF_NAME, base: null, pr: null };
   must(branch(run.branch), 'Invalid source branch.');
+  const settings = fs.readFileSync(path.join(source, 'sonar-project.properties'));
+  const projectKey = settings
+    .toString('utf8')
+    .match(/^sonar\.projectKey[ \t]*=[ \t]*([A-Za-z0-9_.:-]+)[ \t]*\r?$/m)?.[1];
+  must(projectKey, 'Missing or invalid sonar.projectKey in sonar-project.properties.');
   const args = [`-Dsonar.scm.revision=${commit}`];
   if (run.event === 'pull_request') {
     must(
@@ -126,9 +131,10 @@ function prepare(source, coverage, env = process.env) {
   return {
     metadata: {
       ...run,
+      projectKey,
       coverageRunAttempt: Number(metadata.runAttempt),
       coverageReportSha256: sha256(lcov),
-      scannerSettingsSha256: sha256(fs.readFileSync(path.join(source, 'sonar-project.properties'))),
+      scannerSettingsSha256: sha256(settings),
     },
     args: args.join(' '),
   };
@@ -164,6 +170,8 @@ function recordEvidence(run, outcome) {
         url.pathname === '/dashboard' &&
         !url.username &&
         !url.password &&
+        !url.hash &&
+        url.searchParams.get('id') === run.projectKey &&
         [...url.searchParams.keys()].every((key) => ['id', 'branch', 'pullRequest'].includes(key))
       )
         result.dashboardUrl = url.href;
@@ -173,7 +181,16 @@ function recordEvidence(run, outcome) {
   }
   writeJson('reports/sonar/metadata.json', result);
   summary(
-    `## SonarQube analysis\n\nRevision: \`${run.commit}\`\n\nCI: ${run.runId}/${run.runAttempt}\n\nCoverage producer attempt: ${run.coverageRunAttempt}\n\nQuality Gate: **${result.qualityGate}**`,
+    [
+      '## SonarQube analysis',
+      `Project: \`${run.projectKey}\``,
+      `Revision: \`${run.commit}\``,
+      run.pr ? `PR #${run.pr}: \`${run.branch}\` → \`${run.base}\`` : `Branch: \`${run.branch}\``,
+      `CI: ${run.runId}/${run.runAttempt}`,
+      `Coverage producer attempt: ${run.coverageRunAttempt}`,
+      `Quality Gate: **${result.qualityGate}**`,
+      ...(result.dashboardUrl ? [`SonarQube Cloud: <${result.dashboardUrl}>`] : []),
+    ].join('\n\n'),
   );
 }
 

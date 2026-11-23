@@ -5,14 +5,12 @@ on:
     branches:
       - main
       - fixes
-      - ENS
   pull_request:
     branches:
       - main
       - devel
       - fixes
       - auditlogs
-      - ENS
   workflow_dispatch:
 
 permissions:
@@ -604,12 +602,19 @@ jobs:
         if-no-files-found: error
     - name: Bind reference coverage to the tested revision
       if: ${{ success() && matrix.node-version == '22' && matrix.database == 'mysql8' }}
+      env:
+        SOURCE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
       run: |
         node -e '
           const fs = require("node:fs"), crypto = require("node:crypto");
           const metadata = JSON.parse(fs.readFileSync("reports/metadata.json", "utf8"));
           metadata.coverageReportSha256 = crypto.createHash("sha256")
             .update(fs.readFileSync("reports/coverage/lcov.info")).digest("hex");
+          metadata.sourceRepository = process.env.SOURCE_REPOSITORY;
+          metadata.pullRequestNumber = process.env.PR_NUMBER || null;
+          metadata.pullRequestBaseRef = process.env.PR_BASE_REF || null;
           fs.writeFileSync("reports/coverage/analysis.json", JSON.stringify(metadata, null, 2));
         '
     - name: Upload coverage evidence
@@ -626,9 +631,10 @@ jobs:
   sonar:
     name: FWCloud-API SonarQube
     needs: [quality, test, secrets, sca, dast]
-    # Fork/Dependabot runs do not receive SONAR_TOKEN. Scan after merge on push.
+    # Cross-repo PRs into fixes use the separate, trusted Sonar workflow.
     if: >-
-      ${{ github.actor != 'dependabot[bot]' &&
+      ${{ github.repository == 'soltecsis/fwcloud-api' &&
+          github.actor != 'dependabot[bot]' &&
           (github.event_name != 'pull_request' ||
            (github.event.pull_request.head.repo.full_name == github.repository &&
             github.event.pull_request.user.login != 'dependabot[bot]')) }}
@@ -668,10 +674,6 @@ jobs:
         with:
           scannerVersion: 8.1.0.6389
           skipSignatureVerification: false
-          # Temporarily read identifiers from sonar-project.properties.
-          # Actions variable validation/overrides remain disabled:
-          # -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-          # -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
           args: ${{ steps.analysis.outputs.args }}
       - name: Record aggregate analysis evidence
         if: ${{ always() && steps.scan.outcome != 'skipped' }}
@@ -708,7 +710,8 @@ jobs:
           DAST_RESULT: ${{ needs.dast.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
           SONAR_REQUIRED: >-
-            ${{ github.actor != 'dependabot[bot]' &&
+            ${{ github.repository == 'soltecsis/fwcloud-api' &&
+                github.actor != 'dependabot[bot]' &&
                 (github.event_name != 'pull_request' ||
                  (github.event.pull_request.head.repo.full_name == github.repository &&
                   github.event.pull_request.user.login != 'dependabot[bot]')) }}
@@ -722,5 +725,5 @@ jobs:
             test "$SONAR_RESULT" = success
           else
             test "$SONAR_RESULT" = skipped
-            echo 'SonarQube omitted: this fork/Dependabot run has no analysis token.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'SonarQube omitted in this run. Eligible fork PRs into the official fixes branch use FWCloud-API Fork SonarQube.' >> "$GITHUB_STEP_SUMMARY"
           fi

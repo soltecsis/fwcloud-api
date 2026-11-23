@@ -9,8 +9,11 @@ const { test } = require('node:test');
 const { verifyCoverage, prepare, recordEvidence } = require('./sonar-analysis.cjs');
 const yaml = require('js-yaml');
 const sha = 'a'.repeat(40);
+const officialRepository = 'soltecsis/fwcloud-api';
+const officialProjectKey = 'soltecsis_fwcloud-api';
+const forkRepository = 'developer/fwcloud-api';
 const reference = {
-  repository: 'org/api',
+  repository: officialRepository,
   commit: sha,
   runId: 10,
   runAttempt: 2,
@@ -35,7 +38,7 @@ function temporary(t) {
   return directory;
 }
 
-function checkout(t, event = 'push') {
+function checkout(t, event = 'push', repository = officialRepository) {
   const directory = temporary(t);
   const source = path.join(directory, 'source'),
     coverage = path.join(directory, 'coverage');
@@ -65,20 +68,20 @@ function checkout(t, event = 'push') {
     encoding: 'utf8',
   }).trim();
   const env = {
-    GITHUB_REPOSITORY: 'org/api',
+    GITHUB_REPOSITORY: repository,
     GITHUB_RUN_ID: '10',
     GITHUB_RUN_ATTEMPT: '2',
     GITHUB_EVENT_NAME: event,
-    GITHUB_REF_NAME: 'ENS',
+    GITHUB_REF_NAME: 'fixes',
     ANALYSIS_COMMIT: commit,
     ...(event === 'pull_request'
-      ? { PR_NUMBER: '7', GITHUB_HEAD_REF: 'feature', GITHUB_BASE_REF: 'ENS' }
+      ? { PR_NUMBER: '7', GITHUB_HEAD_REF: 'feature', GITHUB_BASE_REF: 'fixes' }
       : {}),
   };
   fs.writeFileSync(path.join(coverage, 'lcov.info'), lcov);
   fs.writeFileSync(
     path.join(coverage, 'analysis.json'),
-    JSON.stringify({ ...evidence(), commit, event }),
+    JSON.stringify({ ...evidence(), repository, commit, event }),
   );
   return { source, coverage, env };
 }
@@ -88,6 +91,7 @@ for (const event of ['push', 'pull_request', 'workflow_dispatch']) {
     const { source, coverage, env } = checkout(t, event);
     const { metadata, args } = prepare(source, coverage, env);
     assert.equal(metadata.commit, env.ANALYSIS_COMMIT);
+    assert.equal(metadata.projectKey, officialProjectKey);
     assert.equal(metadata.coverageReportSha256, digest(lcov));
     assert.equal(metadata.coverageRunAttempt, 2);
     assert.equal(
@@ -95,11 +99,12 @@ for (const event of ['push', 'pull_request', 'workflow_dispatch']) {
       lcov.toString(),
     );
     assert.ok(args.includes(`-Dsonar.scm.revision=${metadata.commit}`));
+    assert.ok(!args.includes('sonar.projectKey='));
     if (event === 'pull_request') {
-      assert.ok(args.includes('-Dsonar.pullrequest.base=ENS'));
+      assert.ok(args.includes('-Dsonar.pullrequest.base=fixes'));
       assert.ok(args.includes('-Dsonar.pullrequest.key=7'));
       assert.ok(!args.includes('-Dsonar.branch.name='));
-    } else assert.ok(args.includes('-Dsonar.branch.name=ENS'));
+    } else assert.ok(args.includes('-Dsonar.branch.name=fixes'));
   });
 }
 
@@ -108,7 +113,7 @@ test('rejects stale revision, future producer attempts, missing coverage and arg
   for (const override of [
     { ANALYSIS_COMMIT: sha },
     { GITHUB_RUN_ATTEMPT: '1' },
-    { GITHUB_REF_NAME: 'ENS -Dsonar.host.url=https://other.invalid' },
+    { GITHUB_REF_NAME: 'fixes -Dsonar.host.url=https://other.invalid' },
     { GITHUB_EVENT_NAME: 'pull_request_target' },
   ]) {
     assert.throws(() => prepare(source, coverage, { ...env, ...override }));
@@ -146,13 +151,23 @@ test('accepts earlier producer attempts from the same run and records both attem
   const original = process.cwd(),
     originalSummary = process.env.GITHUB_STEP_SUMMARY;
   process.env.GITHUB_STEP_SUMMARY = path.join(source, 'summary.md');
+  const dashboardUrl = `https://sonarcloud.io/dashboard?id=${officialProjectKey}&branch=fixes`;
+  fs.mkdirSync(path.join(source, '.scannerwork'));
+  fs.writeFileSync(
+    path.join(source, '.scannerwork/report-task.txt'),
+    `ceTaskId=task-123\ndashboardUrl=${dashboardUrl}\n`,
+  );
   process.chdir(source);
   try {
     recordEvidence(metadata, 'success');
     const output = JSON.parse(fs.readFileSync('reports/sonar/metadata.json', 'utf8'));
     assert.equal(output.coverageRunAttempt, 1);
     assert.equal(output.runAttempt, '2');
+    assert.equal(output.dashboardUrl, dashboardUrl);
     const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+    assert.ok(summary.includes(`Project: \`${officialProjectKey}\``));
+    assert.ok(summary.includes('Branch: `fixes`'));
+    assert.ok(summary.includes(`SonarQube Cloud: <${dashboardUrl}>`));
     assert.match(summary, /CI: 10\/2/);
     assert.match(summary, /Coverage producer attempt: 1/);
   } finally {
@@ -256,18 +271,34 @@ test('failure evidence cannot claim a passed Quality Gate', (t) => {
   process.env.GITHUB_STEP_SUMMARY = path.join(directory, 'summary.md');
   fs.mkdirSync(path.join(directory, 'reports/sonar'), { recursive: true });
   fs.mkdirSync(path.join(directory, '.scannerwork'), { recursive: true });
-  fs.writeFileSync(
-    path.join(directory, '.scannerwork/report-task.txt'),
-    'ceTaskId=task-123\ndashboardUrl=https://other.invalid/dashboard?id=private-canary\n',
-  );
   process.chdir(directory);
   try {
-    recordEvidence(reference, 'failure');
-    const result = JSON.parse(fs.readFileSync('reports/sonar/metadata.json', 'utf8'));
-    assert.equal(result.qualityGate, 'FAILED_OR_INCOMPLETE');
-    assert.equal(result.ceTaskId, 'task-123');
-    assert.equal(result.dashboardUrl, undefined);
-    assert.ok(!Object.hasOwn(result, 'token'));
+    for (const url of [
+      `https://other.invalid/dashboard?id=${officialProjectKey}`,
+      'https://sonarcloud.io/dashboard?id=unrelated-project',
+    ]) {
+      fs.writeFileSync('.scannerwork/report-task.txt', `ceTaskId=task-123\ndashboardUrl=${url}\n`);
+      recordEvidence(
+        {
+          ...reference,
+          projectKey: officialProjectKey,
+          coverageRunAttempt: 1,
+          pr: 7,
+          branch: 'feature',
+          base: 'fixes',
+        },
+        'failure',
+      );
+      const result = JSON.parse(fs.readFileSync('reports/sonar/metadata.json', 'utf8'));
+      assert.equal(result.qualityGate, 'FAILED_OR_INCOMPLETE');
+      assert.equal(result.ceTaskId, 'task-123');
+      assert.equal(result.dashboardUrl, undefined);
+      assert.ok(!Object.hasOwn(result, 'token'));
+    }
+    assert.match(
+      fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8'),
+      /PR #7: `feature` → `fixes`/,
+    );
   } finally {
     process.chdir(original);
     if (originalSummary === undefined) delete process.env.GITHUB_STEP_SUMMARY;
@@ -285,9 +316,11 @@ test('same-workflow scan downloads only this execution coverage and exposes the 
   assert.equal(scanner.with.skipSignatureVerification, false);
   assert.equal(scanner.env.SONAR_HOST_URL, 'https://sonarcloud.io');
   assert.match(scanner.uses, /^SonarSource\/sonarqube-scan-action@[a-f0-9]{40}$/);
+  assert.equal(scanner.env.SONAR_TOKEN, '${{ secrets.SONAR_TOKEN }}');
   for (const step of steps) {
     assert.ok(!/npm (ci|install)|npm run/.test(step.run || ''));
-    if (step.env?.SONAR_TOKEN) assert.equal(step.id, 'scan');
+    if (step.id !== 'scan')
+      for (const value of Object.values(step.env || {})) assert.doesNotMatch(value, /secrets\./);
     if (step.uses?.startsWith('actions/checkout'))
       assert.equal(step.with['persist-credentials'], false);
   }
@@ -310,8 +343,10 @@ test('same-workflow scan downloads only this execution coverage and exposes the 
   }
 });
 
-test('backend-ci requires Sonar success except for tokenless fork/Dependabot runs', (t) => {
+test('backend-ci requires in-workflow Sonar only for eligible runs in the official repository', (t) => {
   const ci = yaml.load(fs.readFileSync('.github/workflows/nodejs.yml', 'utf8'));
+  assert.deepEqual(ci.on.push.branches, ['main', 'fixes']);
+  assert.deepEqual(ci.on.pull_request.branches, ['main', 'devel', 'fixes', 'auditlogs']);
   const gate = ci.jobs['backend-ci'].steps[0];
   assert.ok(ci.jobs['backend-ci'].needs.includes('sonar'));
   const expression = ci.jobs.sonar.if.replace(/^\$\{\{\s*|\s*\}\}$/g, '').trim();
@@ -322,19 +357,29 @@ test('backend-ci requires Sonar success except for tokenless fork/Dependabot run
     expression.replace(/\s+/g, ' '),
   );
   const summary = path.join(temporary(t), 'summary.md');
-  for (const [event, repo, actor, author, required] of [
-    ['push', 'org/api', 'developer', 'developer', true],
-    ['workflow_dispatch', 'org/api', 'developer', 'developer', true],
-    ['pull_request', 'org/api', 'developer', 'developer', true],
-    ['pull_request', 'fork/api', 'developer', 'developer', false],
-    ['pull_request', 'org/api', 'dependabot[bot]', 'dependabot[bot]', false],
-    ['pull_request', 'org/api', 'developer', 'dependabot[bot]', false],
+  for (const [event, repository, head, actor, author, required] of [
+    ['push', officialRepository, officialRepository, 'developer', 'developer', true],
+    ['push', forkRepository, forkRepository, 'developer', 'developer', false],
+    ['workflow_dispatch', officialRepository, officialRepository, 'developer', 'developer', true],
+    ['pull_request', officialRepository, officialRepository, 'developer', 'developer', true],
+    ['pull_request', forkRepository, forkRepository, 'developer', 'developer', false],
+    ['pull_request', officialRepository, forkRepository, 'developer', 'developer', false],
+    ['pull_request', forkRepository, 'other/fwcloud-api', 'developer', 'developer', false],
+    [
+      'pull_request',
+      officialRepository,
+      officialRepository,
+      'dependabot[bot]',
+      'dependabot[bot]',
+      false,
+    ],
+    ['pull_request', officialRepository, officialRepository, 'developer', 'dependabot[bot]', false],
   ]) {
     const github = {
       event_name: event,
-      repository: 'org/api',
+      repository,
       actor,
-      event: { pull_request: { head: { repo: { full_name: repo } }, user: { login: author } } },
+      event: { pull_request: { head: { repo: { full_name: head } }, user: { login: author } } },
     };
     assert.equal(vm.runInNewContext(expression, { github }), required);
     for (const status of ['success', 'failure', 'cancelled', 'skipped']) {
@@ -353,7 +398,7 @@ test('backend-ci requires Sonar success except for tokenless fork/Dependabot run
       assert.equal(
         result.status === 0,
         required ? status === 'success' : status === 'skipped',
-        `${event}/${repo}/${actor}/${status}`,
+        `${event}/${repository}/${head}/${actor}/${status}`,
       );
       env.TEST_RESULT = 'failure';
       assert.notEqual(spawnSync('bash', ['-e', '-c', gate.run], { env }).status, 0);

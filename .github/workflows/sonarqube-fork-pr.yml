@@ -1,0 +1,101 @@
+name: FWCloud-API Fork SonarQube
+
+on:
+  workflow_run:
+    workflows: [FWCloud-API CI]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  sonar-fork-pr:
+    name: FWCloud-API Fork SonarQube
+    if: >-
+      ${{ github.repository == 'soltecsis/fwcloud-api' &&
+          github.event.workflow_run.path == '.github/workflows/nodejs.yml' &&
+          github.event.workflow_run.event == 'pull_request' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_repository.fork == true &&
+          github.event.workflow_run.actor.login != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout trusted workflow code and scanner settings
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: trusted
+          persist-credentials: false
+      - name: Resolve the current fork PR and exact coverage artifact
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node trusted/scripts/sonar-fork-pr.cjs resolve
+      - name: Download and verify the coverage archive without extracting it
+        if: steps.resolve.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.resolve.outputs.artifact_id }}
+          ARTIFACT_DIGEST: ${{ steps.resolve.outputs.artifact_digest }}
+        run: |
+          ROOT="$RUNNER_TEMP/fwcloud-fork-sonar"
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ && "$ARTIFACT_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+            --max-filesize 33554432 --max-time 120 \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/soltecsis/fwcloud-api/actions/artifacts/$ARTIFACT_ID/zip" \
+            -o "$ROOT/coverage.zip"
+          printf '%s  %s\n' "$ARTIFACT_DIGEST" "$ROOT/coverage.zip" | sha256sum -c -
+      - name: Read only the two coverage inputs as data
+        if: steps.resolve.outputs.pr != ''
+        run: |
+          ROOT="$RUNNER_TEMP/fwcloud-fork-sonar"
+          python3 trusted/scripts/extract-sonar-coverage.py "$ROOT/coverage.zip" "$ROOT/coverage"
+      - name: Checkout only the tested source trees and git history
+        if: steps.resolve.outputs.pr != ''
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ steps.resolve.outputs.head_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+          sparse-checkout: |
+            /src/
+            /tests/
+          sparse-checkout-cone-mode: false
+      - name: Recheck PR and validate checkout, coverage and trusted settings
+        id: analysis
+        if: steps.resolve.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node trusted/scripts/sonar-fork-pr.cjs prepare
+      - name: Analyze the fork PR in the official project and wait for its Quality Gate
+        id: scan
+        if: steps.resolve.outputs.pr != ''
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_PR_ANALYSIS_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          projectBaseDir: candidate
+          scannerVersion: 8.1.0.6389
+          skipSignatureVerification: false
+          args: ${{ steps.analysis.outputs.args }}
+      - name: Record aggregate analysis evidence
+        if: ${{ always() && steps.scan.outcome != 'skipped' }}
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: node trusted/scripts/sonar-fork-pr.cjs record
+      - name: Upload aggregate SonarQube evidence
+        if: ${{ always() && steps.scan.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-sonarqube-fork-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate/reports/sonar/metadata.json
+          retention-days: 90
+          if-no-files-found: error
