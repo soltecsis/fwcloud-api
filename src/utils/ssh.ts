@@ -24,6 +24,17 @@ const logger = require('../fonaments/abstract-application').logger;
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
 
+function isSudoPasswordPrompt(output: string): boolean {
+  if (/\[sudo(?:: authenticate)?\]\s+(?:password|contraseña):/i.test(output)) return true;
+
+  // A prompt with a username needs at least one non-colon character after "for ".
+  const lastColon = output.lastIndexOf(':');
+  return (
+    lastColon !== -1 &&
+    /\[sudo(?:: authenticate)?\]\s+password\s+for\s[^:]/i.test(output.slice(0, lastColon))
+  );
+}
+
 export default class sshTools {
   public static uploadFile(SSHconn, srcFile, dstFile) {
     const Client = require('ssh2').Client;
@@ -108,7 +119,6 @@ export default class sshTools {
     let stdout_log = '';
     let stderr_log = '';
     let sudo_pass_sent = cmd.trim().substr(0, 5) === 'sudo ' ? false : true;
-    const regex = /\[sudo(?:: authenticate)?\]\s+(?:password(?:\s+for\s+[^:]+)?|contraseña):\s*/i;
 
     return new Promise((resolve, reject) => {
       conn
@@ -129,7 +139,7 @@ export default class sshTools {
                 //console.log('STDOUT: ' + data);
                 const str = '' + data;
 
-                if (!sudo_pass_sent && str.match(regex)) {
+                if (!sudo_pass_sent && isSudoPasswordPrompt(str)) {
                   stream.write(SSHconn.password + '\n');
                   sudo_pass_sent = true;
                 } else {

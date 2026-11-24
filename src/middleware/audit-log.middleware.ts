@@ -29,11 +29,16 @@ import { FwCloud } from '../models/fwcloud/FwCloud';
 import { Firewall } from '../models/firewall/Firewall';
 import { Cluster } from '../models/firewall/Cluster';
 import { AuditLogHelper, AuditLogIdentity } from '../models/audit/audit-log.helper';
-import { isSensitiveAuditKey, sanitizeAuditData } from '../models/audit/audit-log-sanitizer';
+import {
+  isSensitiveAuditKey,
+  redactAuditUrl,
+  sanitizeAuditData,
+} from '../models/audit/audit-log-sanitizer';
 import {
   AuditEventType,
   classifyAuditEvent,
   isAuthenticationEvent,
+  normalizeAuditPath,
 } from '../models/audit/audit-event-type';
 
 const MAX_DESCRIPTION_SECTION_LENGTH = 512;
@@ -529,20 +534,8 @@ export class AuditLogMiddleware extends Middleware {
   private buildCall(req: Request): string {
     const path = this.normalizeRequestPath(req);
     const type = classifyAuditEvent(req.method, path);
-    const base = `${req.method.toUpperCase()} ${isAuthenticationEvent(type) ? path : this.redactUrl(req.originalUrl)}`;
+    const base = `${req.method.toUpperCase()} ${isAuthenticationEvent(type) ? path : redactAuditUrl(req.originalUrl)}`;
     return base.length <= 255 ? base : `${base.substring(0, 252)}...`;
-  }
-
-  private redactUrl(url: string): string {
-    return url.replace(/([?&])([^=&]+)=([^&]*)/g, (match, separator, key) => {
-      try {
-        return isSensitiveAuditKey(decodeURIComponent(key))
-          ? `${separator}${key}=[REDACTED]`
-          : match;
-      } catch {
-        return `${separator}${key}=[REDACTED]`;
-      }
-    });
   }
 
   private buildDescription(req: Request, res: Response): string {
@@ -1016,7 +1009,7 @@ export class AuditLogMiddleware extends Middleware {
   ): string {
     const payload = {
       method: req.method,
-      url: this.redactUrl(req.originalUrl),
+      url: redactAuditUrl(req.originalUrl),
       statusCode: durationMs === null ? null : res.statusCode,
       durationMs,
       ip: this.getClientIp(req),
@@ -1139,8 +1132,7 @@ export class AuditLogMiddleware extends Middleware {
             ? req.url
             : '';
 
-    const withoutQuery = raw.split('?')[0];
-    return withoutQuery.replace(/\/+$/, '').toLowerCase();
+    return normalizeAuditPath(raw);
   }
 
   private getEventType(req: Request, res: Response): AuditEventType {
