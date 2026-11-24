@@ -47,7 +47,7 @@ jobs:
           node --version
           npm --version
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
       - name: Run ESLint
         run: npm run lint:check
       - name: Run Prettier
@@ -71,7 +71,7 @@ jobs:
         env:
           GITLEAKS_ARCHIVE: gitleaks_8.30.1_linux_x64.tar.gz
         run: |
-          curl --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${GITLEAKS_ARCHIVE}" \
             --output "$RUNNER_TEMP/$GITLEAKS_ARCHIVE"
           printf '%s  %s\n' "$GITLEAKS_ARCHIVE_SHA256" "$RUNNER_TEMP/$GITLEAKS_ARCHIVE" \
@@ -184,7 +184,7 @@ jobs:
       - name: Install Trivy
         id: install_trivy
         run: |
-          curl --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
             "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${TRIVY_ARCHIVE}" \
             --output "$RUNNER_TEMP/$TRIVY_ARCHIVE"
           printf '%s  %s\n' "$TRIVY_ARCHIVE_SHA256" "$RUNNER_TEMP/$TRIVY_ARCHIVE" \
@@ -303,7 +303,6 @@ jobs:
       TYPEORM_PORT: '13306'
       TYPEORM_DATABASE: fwcloud_zap
       TYPEORM_USERNAME: fwcdbusr
-      TYPEORM_PASSWORD: fwcdbusr
       APISRV_IP: 127.0.0.1
       APISRV_PORT: '3131'
       APISRV_HTTPS: 'false'
@@ -314,21 +313,6 @@ jobs:
       MAINTENANCE_MODE: 'false'
       SSH_COMMUNICATION_ENABLED: 'false'
       SESSION_KEEPALIVE_MS: '1800000'
-    services:
-      mysql:
-        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
-        ports:
-          - 13306:3306
-        env:
-          MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
-          MYSQL_DATABASE: fwcloud_zap
-          MYSQL_USER: fwcdbusr
-          MYSQL_PASSWORD: fwcdbusr
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -340,8 +324,13 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install and build API
         run: |
-          npm ci --include=dev
+          npm ci --ignore-scripts --include=dev
           npm run build
+      - name: Start the disposable database
+        id: database
+        env:
+          CI_DB_IMAGE: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        run: node scripts/ci-database.cjs
       - name: Generate ephemeral runtime secrets
         run: |
           node -e '
@@ -405,10 +394,17 @@ jobs:
           ZAP_AUTH_HEADER: Cookie
           ZAP_AUTH_HEADER_SITE: 127.0.0.1
         run: |
-          chmod a+w reports/dast
+          scan_dir=$(mktemp -d "$RUNNER_TEMP/fwcloud-zap.XXXXXX")
+          trap 'rm -rf -- "$scan_dir"' EXIT
+          cp -- reports/dast/authenticated.openapi.json "$scan_dir/"
+          chmod 0770 "$scan_dir"
+          runner_gid=$(id -g)
+          sudo chown "1000:$runner_gid" "$scan_dir"
           set +e
           docker run --rm --network host \
-            -v "$GITHUB_WORKSPACE:/zap/wrk:rw" \
+            --user "1000:$runner_gid" \
+            -v "$GITHUB_WORKSPACE:/zap/wrk:ro" \
+            -v "$scan_dir:/zap/wrk/reports/dast:rw" \
             -e CI -e ANALYSIS_COMMIT -e GITHUB_RUN_ID -e GITHUB_RUN_ATTEMPT \
             -e ZAP_AUDIT_SESSION_ID \
             -e ZAP_AUTH_HEADER -e ZAP_AUTH_HEADER_VALUE -e ZAP_AUTH_HEADER_SITE \
@@ -420,8 +416,12 @@ jobs:
           STATUS=$?
           set -e
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          if [[ -f "$scan_dir/authenticated.json" && ! -L "$scan_dir/authenticated.json" ]]; then
+            cp -- "$scan_dir/authenticated.json" reports/dast/authenticated.json
+          fi
           node .github/zap/diagnostics.cjs "$STATUS"
           test "$STATUS" -eq 0
+          test -f reports/dast/authenticated.json
       - name: Verify protected content and logout after scan
         if: ${{ always() && steps.authenticated_zap.outcome != 'skipped' }}
         id: http_after
@@ -460,55 +460,23 @@ jobs:
         run: |
           rm -f "$RUNNER_TEMP/zap-fixture.json" "$RUNNER_TEMP/zap-sessions.json" "$RUNNER_TEMP/zap-auth.log" "$RUNNER_TEMP/zap-api.log" "$RUNNER_TEMP/zap-fixture.log"
           rm -rf "$RUNNER_TEMP/zap-api-sessions" "$RUNNER_TEMP/zap-api-logs"
+      - name: Remove the disposable database
+        if: ${{ always() && steps.database.outcome != 'skipped' }}
+        run: |
+          if docker container inspect fwcloud-ci-db >/dev/null 2>&1; then
+            docker rm --force --volumes fwcloud-ci-db
+          fi
 
   test:
     name: FWCloud-API Test (Node ${{ matrix.node-version }}, ${{ matrix.database }})
     runs-on: ubuntu-latest
     # timeout-minutes: 120
 
-    services:
-      mysql:
-        image: ${{ matrix.database == 'mysql' && matrix.image || '' }}
-        ports:
-          - 8888:3306
-        env:
-          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-          MYSQL_USER: "fwcdbusr"
-          MYSQL_PASSWORD: "fwcdbusr"
-          MYSQL_DATABASE: "fwcloud"
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=12
-      mysql8:
-        image: ${{ matrix.database == 'mysql8' && matrix.image || '' }}
-        ports:
-          - 8890:3306
-        env:
-          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-          MYSQL_USER: "fwcdbusr"
-          MYSQL_PASSWORD: "fwcdbusr"
-          MYSQL_DATABASE: "fwcloud"
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=12
-      mariadb:
-        image: ${{ matrix.database == 'mariadb' && matrix.image || '' }}
-        ports:
-          - 8889:3306
-        env:
-          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-          MYSQL_USER: "fwcdbusr"
-          MYSQL_PASSWORD: "fwcdbusr"
-          MYSQL_DATABASE: "fwcloud"
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=12
+    env:
+      TYPEORM_HOST: 127.0.0.1
+      TYPEORM_PORT: ${{ matrix.port }}
+      TYPEORM_DATABASE: fwcloud
+      TYPEORM_USERNAME: fwcdbusr
 
     strategy:
       fail-fast: false
@@ -544,32 +512,12 @@ jobs:
     - name: Disable mysqldump column statistics
       run: echo 'column-statistics=0' | sudo tee -a /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
-      run: npm ci
-    - name: Verify database connection
+      run: npm ci --ignore-scripts
+    - name: Start the disposable database
+      id: database
       env:
-        TYPEORM_PORT: ${{ matrix.port }}
-      run: |
-        node <<'NODE'
-        const mysql = require('mysql2/promise');
-        (async () => {
-          const connection = await mysql.createConnection({
-            host: '127.0.0.1',
-            port: Number(process.env.TYPEORM_PORT),
-            user: 'fwcdbusr',
-            password: 'fwcdbusr',
-            database: 'fwcloud',
-            connectTimeout: 10000,
-          });
-          try {
-            await connection.query('SELECT 1');
-          } finally {
-            await connection.end();
-          }
-        })().catch(error => {
-          console.error(error);
-          process.exitCode = 1;
-        });
-        NODE
+        CI_DB_IMAGE: ${{ matrix.image }}
+      run: node scripts/ci-database.cjs
     - name: Build FWCloud
       run: npm run build
     - name: Run tests
@@ -582,8 +530,13 @@ jobs:
           npm run test:ci
         fi
       env:
-        TYPEORM_PORT: ${{ matrix.port }}
         COVERAGE_EXPECTED: ${{ matrix.node-version == '22' && matrix.database == 'mysql8' }}
+    - name: Remove the disposable database
+      if: ${{ always() && steps.database.outcome != 'skipped' }}
+      run: |
+        if docker container inspect fwcloud-ci-db >/dev/null 2>&1; then
+          docker rm --force --volumes fwcloud-ci-db
+        fi
     - name: Verify reports and summarize results
       if: ${{ always() && steps.tests.outcome != 'skipped' }}
       run: npm run ci:reports
