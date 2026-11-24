@@ -246,6 +246,7 @@ fi`)}`;
               `Firewall policy ${failedAction} failed. Restoring previous firewall script.`,
             ),
           );
+          await new Promise<void>((resolve) => setTimeout(resolve, 1000));
           eventEmitter.emit(
             'message',
             new ProgressInfoPayload('Restoring previous firewall script.'),

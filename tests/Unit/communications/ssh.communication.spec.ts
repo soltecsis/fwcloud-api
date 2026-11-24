@@ -228,7 +228,8 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(4).args[1]).to.contain(`'${standardScriptPath}' start`);
     });
 
-    it('reports the loading failure before rollback progress', async () => {
+    it('waits one second after reporting a loading failure before rollback', async () => {
+      const clock = sinon.useFakeTimers();
       const loadingError = new Error('loading failed');
       const eventEmitter = new EventEmitter();
       const messages: Array<{ type: string; message: string }> = [];
@@ -239,9 +240,16 @@ describe(SSHCommunication.name, () => {
       runCommand.onCall(3).resolves('');
       runCommand.onCall(4).resolves('');
 
-      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh', eventEmitter)).to.be.rejectedWith(
-        loadingError,
-      );
+      const result = expect(
+        ssh.installFirewallPolicy('/tmp/fwcloud.sh', eventEmitter),
+      ).to.be.rejectedWith(loadingError);
+
+      await clock.tickAsync(999);
+      expect(runCommand.callCount).to.equal(3);
+      expect(messages.some((message) => message.message === 'Restoring previous firewall script.'))
+        .to.be.false;
+      await clock.tickAsync(1);
+      await result;
 
       const failureIndex = messages.findIndex(
         (message) =>
