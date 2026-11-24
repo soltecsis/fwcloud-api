@@ -22,6 +22,7 @@ describe('Audit event classification and query validation', () => {
     ['DELETE', '/objects/4', null, 204, AuditEventType.Deletion],
     ['POST', '/user/login?token=secret', null, 401, AuditEventType.Login],
     ['POST', '/user/logout/', null, 204, AuditEventType.Logout],
+    ['POST', '/UsEr/LoGoUt////?return=%2F', null, 204, AuditEventType.Logout],
     ['POST', '/custom/action', null, 200, AuditEventType.Other],
   ];
   for (const [method, path, action, status, expected] of examples) {
