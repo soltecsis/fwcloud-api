@@ -81,7 +81,7 @@ No se han añadido dependencias ni cambiado las versiones del lockfile en esta f
 
 ### 4.2. Instalación y entorno
 
-- Sustitución de `npm install` por `npm ci`.
+- Instalación reproducible mediante `npm ci --ignore-scripts`.
 - Caché de descargas npm mediante `actions/setup-node`, vinculada a
   `package-lock.json`.
 - `HUSKY=0` para evitar la instalación de hooks locales en CI.
@@ -118,13 +118,11 @@ sus verificaciones se detallan en los apartados correspondientes.
 
 ### 4.4. Bases de datos
 
-- Se añaden health checks a los tres servicios.
-- Antes de compilar se verifica la conexión con el usuario de pruebas y se ejecuta
-  `SELECT 1` sobre la base seleccionada por la matriz.
-- Las credenciales del workflow son datos del servicio de pruebas efímero, no
-  credenciales de producción.
-- Cada combinación arranca únicamente su base de datos. Las imágenes de los otros
-  servicios se resuelven a una cadena vacía, conservando los puertos de la matriz.
+- Cada combinación de la matriz y el job de ZAP arrancan su propio contenedor
+  de base de datos con el puerto publicado en `127.0.0.1`.
+- El runner genera y enmascara una contraseña aleatoria por job. El script
+  verifica la conexión y ejecuta `SELECT 1` con el usuario de pruebas antes de
+  que la aplicación use esa base. El workflow retira el contenedor al finalizar.
 
 ### 4.5. Comando de pruebas
 
