@@ -106,6 +106,7 @@ For optional local analysis, install the official CLI and use the commands in
 
 SonarQube Cloud analyzes TypeScript and legacy JavaScript with the official scan action,
 reusing the Node 22/MySQL 8.0 LCOV artifact in the same CI workflow. `backend-ci` requires
-the Quality Gate on pushes and internal PRs; external fork PRs are scanned after merge.
-See [SonarQube setup](docs/SONARQUBE.md) for registration,
-`SONAR_TOKEN`, project identifiers in `sonar-project.properties`, required checks and ENS evidence.
+the Quality Gate on pushes and internal PRs. A separate workflow in the company
+repository analyzes eligible personal-fork PRs into `fixes` in the official
+SonarQube project before merge; no projects or tokens are needed in the forks.
+See [SonarQube setup](docs/SONARQUBE.md) for rollout and verification.
