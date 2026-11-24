@@ -29,6 +29,25 @@ export type CCDHash = {
   hash: string;
 };
 
+export type PolicyInstallationBackup = {
+  backupName: string;
+  scriptPath: string;
+};
+
+export type PolicyRecoveryStatus = 'restored' | 'failed' | 'unavailable' | 'unknown';
+
+export class PolicyInstallationError extends Error {
+  constructor(
+    message: string,
+    public readonly recoveryStatus: PolicyRecoveryStatus,
+    cause: unknown,
+  ) {
+    super(message);
+    this.name = 'PolicyInstallationError';
+    Object.assign(this, { cause });
+  }
+}
+
 export type OpenVPNHistoryRecord = {
   timestamp: number;
   name: string;
@@ -178,6 +197,19 @@ export abstract class Communication<ConnectionData> {
   ): Promise<void>;
   abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
+  async installCoordinatedFirewallPolicy(
+    sourcePath: string,
+    backupName: string,
+    eventEmitter?: EventEmitter,
+  ): Promise<PolicyInstallationBackup | null> {
+    throw new Error('Method not implemented');
+  }
+  async recoverFirewallPolicy(
+    backup: PolicyInstallationBackup,
+    eventEmitter?: EventEmitter,
+  ): Promise<void> {
+    throw new Error('Method not implemented');
+  }
   async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
     throw new Error('Method not implemented');
   }

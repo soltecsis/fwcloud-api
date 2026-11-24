@@ -193,6 +193,39 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(2).args[1]).to.contain('start');
     });
 
+    it('returns the API-assigned backup for a coordinated installation', async () => {
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).resolves('');
+      const result = await ssh.installCoordinatedFirewallPolicy(
+        '/tmp/fwcloud.sh',
+        'fwcloud-20261116123045.sh',
+      );
+      expect(result).to.deep.equal({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: standardScriptPath,
+      });
+      expect(runCommand.firstCall.args[1]).to.contain('fwcloud-20261116123045.sh');
+    });
+
+    it('recovers the specified backup and loads the restored script once', async () => {
+      runCommand.resolves('');
+      await ssh.recoverFirewallPolicy({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: standardScriptPath,
+      });
+      expect(runCommand.callCount).to.equal(2);
+      expect(runCommand.firstCall.args[1]).to.contain(backupPath);
+      expect(runCommand.secondCall.args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+
+    it('rejects recovery of an invalid backup without executing a command', async () => {
+      await expect(
+        ssh.recoverFirewallPolicy({ backupName: '../fwcloud.sh', scriptPath: standardScriptPath }),
+      ).to.be.rejectedWith('Invalid policy backup');
+      expect(runCommand.called).to.be.false;
+    });
+
     it('restores the exact backup when installing the new policy fails', async () => {
       const installationError = new Error('installation failed');
       runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);

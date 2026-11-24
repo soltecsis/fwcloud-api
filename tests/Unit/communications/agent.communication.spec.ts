@@ -112,6 +112,43 @@ describe(AgentCommunication.name, () => {
   });
 
   describe('policy script history', () => {
+    it('returns the backup reported by a coordinated installation', async () => {
+      sinon.stub(agent as any, 'createWebSocket').resolves('ws-id');
+      sinon.stub(axios, 'post').resolves({
+        data: {
+          backup_name: 'fwcloud-20261116123045.sh',
+          script_path: '/etc/fwcloud/fwcloud.sh',
+        },
+      });
+      const result = await agent.installCoordinatedFirewallPolicy(
+        __filename,
+        'fwcloud-20261116123045.sh',
+      );
+      expect(result).to.deep.equal({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: '/etc/fwcloud/fwcloud.sh',
+      });
+    });
+
+    it('requests recovery of the exact backup from the agent', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({ data: '' });
+      await agent.recoverFirewallPolicy({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: '/etc/fwcloud/fwcloud.sh',
+      });
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/recover');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        backup_name: 'fwcloud-20261116123045.sh',
+        script_path: '/etc/fwcloud/fwcloud.sh',
+      });
+    });
+
+    it('reports that no previous policy was backed up', async () => {
+      sinon.stub(agent as any, 'createWebSocket').resolves('ws-id');
+      sinon.stub(axios, 'post').resolves({ data: { backup_name: null, script_path: null } });
+      expect(await agent.installCoordinatedFirewallPolicy(__filename, 'fwcloud-20261116123045.sh'))
+        .to.be.null;
+    });
     it('should retrieve the policy script history from the agent', async () => {
       const history = [
         {
