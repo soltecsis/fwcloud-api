@@ -222,7 +222,7 @@ else
 fi
 backup_path="$(dirname "$installed_script_path")/${backupName ?? 'fwcloud-$(date +%Y%m%d%H%M%S).sh'}"
 [ ! -e "$backup_path" ] && [ ! -L "$backup_path" ] || exit 1
-mv "$installed_script_path" "$backup_path"
+mv "$installed_script_path" "$backup_path" || exit 1
 printf '${backupPathOutputMarker}%s\\n' "$backup_path"
 `.trim();
       const backupOutput = (
