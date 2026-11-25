@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { expect } from '../../mocha/global-setup';
-import { ClusterPolicyInstallDto } from '../../../src/controllers/firewalls/dtos/cluster-policy-install.dto';
+import { expect } from '../../../mocha/global-setup';
+import { ClusterPolicyInstallDto } from '../../../../src/controllers/firewalls/dtos/cluster-policy-install.dto';
 
 describe('cluster policy installation request', () => {
   it('accepts ordered node credentials', async () => {

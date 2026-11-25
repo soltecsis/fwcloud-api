@@ -197,31 +197,21 @@ export abstract class Communication<ConnectionData> {
   ): Promise<void>;
   abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
   abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
-  async installCoordinatedFirewallPolicy(
+  abstract installCoordinatedFirewallPolicy(
     sourcePath: string,
     backupName: string,
     eventEmitter?: EventEmitter,
-  ): Promise<PolicyInstallationBackup | null> {
-    throw new Error('Method not implemented');
-  }
-  async recoverFirewallPolicy(
+  ): Promise<PolicyInstallationBackup | null>;
+  abstract recoverFirewallPolicy(
     backup: PolicyInstallationBackup,
     eventEmitter?: EventEmitter,
-  ): Promise<void> {
-    throw new Error('Method not implemented');
-  }
-  async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
-    throw new Error('Method not implemented');
-  }
-  async getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent> {
-    throw new Error('Method not implemented');
-  }
-  async compareFirewallPolicyScripts(
+  ): Promise<void>;
+  abstract getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]>;
+  abstract getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent>;
+  abstract compareFirewallPolicyScripts(
     file1: string,
     file2: string,
-  ): Promise<PolicyScriptComparison> {
-    throw new Error('Method not implemented');
-  }
+  ): Promise<PolicyScriptComparison>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;

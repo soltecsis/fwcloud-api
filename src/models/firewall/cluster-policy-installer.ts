@@ -4,8 +4,8 @@ import {
   PolicyInstallationBackup,
   PolicyInstallationError,
   PolicyRecoveryStatus,
-} from './communication';
-import { ProgressErrorPayload, ProgressInfoPayload } from '../sockets/messages/socket-message';
+} from '../../communications/communication';
+import { ProgressErrorPayload, ProgressInfoPayload } from '../../sockets/messages/socket-message';
 
 export type ClusterPolicyNode = {
   firewallId: number;
@@ -75,6 +75,10 @@ export async function installClusterPolicy(
         'message',
         new ProgressErrorPayload(`Firewall policy installation failed on node ${node.firewallId}.`),
       );
+
+      if (installed.some((previous) => previous.backup)) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+      }
 
       for (const previous of installed) {
         if (!previous.backup) {

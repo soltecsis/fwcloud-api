@@ -22,7 +22,7 @@ import { FirewallPolicy } from '../../policies/firewall.policy';
 import {
   ClusterPolicyResult,
   installClusterPolicy,
-} from '../../communications/cluster-policy-installer';
+} from '../../models/firewall/cluster-policy-installer';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { PgpHelper } from '../../utils/pgp';

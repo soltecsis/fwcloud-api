@@ -1,7 +1,11 @@
 import sinon from 'sinon';
-import { expect } from '../../mocha/global-setup';
-import { Communication, PolicyInstallationError } from '../../../src/communications/communication';
-import { installClusterPolicy } from '../../../src/communications/cluster-policy-installer';
+import { EventEmitter } from 'events';
+import { expect } from '../../../mocha/global-setup';
+import {
+  Communication,
+  PolicyInstallationError,
+} from '../../../../src/communications/communication';
+import { installClusterPolicy } from '../../../../src/models/firewall/cluster-policy-installer';
 
 describe('cluster policy installation', () => {
   const backup = { backupName: 'fwcloud-20261123120000.sh', scriptPath: '/etc/fwcloud/fwcloud.sh' };
@@ -87,6 +91,40 @@ describe('cluster policy installation', () => {
       'restored',
       'not_needed',
     ]);
+  });
+
+  it('reports a node failure and waits one second before recovering completed nodes', async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      const first = node(1);
+      const failing = node(2);
+      const events = new EventEmitter();
+      const messages: Array<{ type: string; message: string }> = [];
+      events.on('message', (message) => messages.push(message));
+      failing.install.rejects(new Error('node unavailable'));
+
+      const installation = installClusterPolicy([first, failing], '/tmp/fwcloud.sh', events);
+      await clock.tickAsync(999);
+      expect(
+        messages.some((message) => message.type === 'error' && message.message.includes('node 2')),
+      ).to.be.true;
+      expect(first.recover.called).to.be.false;
+      expect(messages.some((message) => message.message.includes('Restoring previous'))).to.be
+        .false;
+
+      await clock.tickAsync(1);
+      await installation;
+      expect(first.recover.calledOnce).to.be.true;
+      const failureIndex = messages.findIndex(
+        (message) => message.type === 'error' && message.message.includes('node 2'),
+      );
+      const recoveryIndex = messages.findIndex((message) =>
+        message.message.includes('Restoring previous'),
+      );
+      expect(failureIndex).to.be.lessThan(recoveryIndex);
+    } finally {
+      clock.restore();
+    }
   });
 
   it('continues recovery after an error and reports missing backups', async () => {
