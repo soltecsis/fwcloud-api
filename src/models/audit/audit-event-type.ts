@@ -37,6 +37,13 @@ const LEGACY_CREATION_PATHS = new Set([
   '/policy/ipsec',
 ]);
 
+export function normalizeAuditPath(path: string): string {
+  const queryStart = path.indexOf('?');
+  let end = queryStart === -1 ? path.length : queryStart;
+  while (end > 0 && path[end - 1] === '/') end--;
+  return path.slice(0, end).toLowerCase();
+}
+
 // Only route/operation metadata belongs here; never inspect descriptions or request bodies.
 export function classifyAuditEvent(
   method: string,
@@ -45,7 +52,7 @@ export function classifyAuditEvent(
   status?: number | null,
 ): AuditEventType {
   const httpMethod = method.toUpperCase();
-  const normalizedPath = path.split('?')[0].replace(/\/+$/, '').toLowerCase();
+  const normalizedPath = normalizeAuditPath(path);
   if (httpMethod === 'POST') {
     if (['/user/login', '/login'].includes(normalizedPath)) return AuditEventType.Login;
     if (['/user/logout', '/logout'].includes(normalizedPath)) return AuditEventType.Logout;

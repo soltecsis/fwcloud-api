@@ -30,7 +30,6 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import { CaPrefix } from '../../../models/vpn/pki/CaPrefix';
 import { Tree } from '../../../models/tree/Tree';
 import { logger } from '../../../fonaments/abstract-application';
-const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
 
@@ -92,16 +91,17 @@ router.put('/del',
 restrictedCheck.crt,
 async(req, res) => {
 	try {
+		const baseDir = await utilsModel.getCaDataDir(req.body.fwcloud, req.crt.ca);
+
 		// Check that the certificate can be deleted and remove it from the database.
 		await Crt.deleteCRT(req);
 
 		// Delete the files that make the certificate.
-		const base_dir = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca;
-		await utilsModel.deleteFile(base_dir + '/reqs', req.crt.cn + '.req');
-		await utilsModel.deleteFile(base_dir + '/issued', req.crt.cn + '.crt');
-		await utilsModel.deleteFile(base_dir + '/private', req.crt.cn + '.key');
-		const serial = await Ca.delFromIndex(base_dir, req.crt.cn);
-		await utilsModel.deleteFile(base_dir + '/certs_by_serial', serial + '.pem');
+		await utilsModel.deleteFile(baseDir, 'reqs', req.crt.cn + '.req');
+		await utilsModel.deleteFile(baseDir, 'issued', req.crt.cn + '.crt');
+		await utilsModel.deleteFile(baseDir, 'private', req.crt.cn + '.key');
+		const serial = await Ca.delFromIndex(baseDir, req.crt.cn);
+		await utilsModel.deleteFile(baseDir, 'certs_by_serial', serial + '.pem');
 
 		// Delete the certificate node into the tree.
 		await Tree.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));

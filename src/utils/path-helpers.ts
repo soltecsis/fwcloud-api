@@ -32,4 +32,39 @@ export class PathHelper {
   public static directoryName(directoryPath: fs.PathLike): string {
     return directoryPath.toString().split(path.sep).pop();
   }
+
+  public static dataPathSegment(value: string | number): string {
+    const segment = typeof value === 'number' ? String(value) : value;
+    if (
+      typeof segment !== 'string' ||
+      !/^[a-zA-Z0-9_.:-]+$/.test(segment) ||
+      segment === '.' ||
+      segment === '..'
+    ) {
+      throw new Error('Invalid data path segment');
+    }
+
+    return segment;
+  }
+
+  public static async dataDirectory(
+    root: string,
+    ...segments: (string | number)[]
+  ): Promise<string> {
+    const components = segments.map((segment) => PathHelper.dataPathSegment(segment));
+    const absoluteRoot = path.resolve(root);
+    let directory = absoluteRoot;
+
+    for (const component of components) {
+      directory = path.join(directory, component);
+      const stat = await fs.promises.lstat(directory).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') throw error;
+        return undefined;
+      });
+      if (!stat) return path.join(absoluteRoot, ...components);
+      if (!stat.isDirectory()) throw new Error('Invalid data directory');
+    }
+
+    return directory;
+  }
 }

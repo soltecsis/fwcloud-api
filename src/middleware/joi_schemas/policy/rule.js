@@ -57,15 +57,15 @@ schema.validate = req => {
 					special: sharedSch.SpecialPolicyRule.optional(),
 					pasteOnRuleId: sharedSch.id.optional(),
 					pasteOffset: Joi.number().integer().valid(-1, 1).optional()
-				}).and('pasteOnRuleId', 'pasteOffset')
-					.when(Joi.object({ pasteOnRuleId: Joi.exist() }).unknown(), {
-						then: Joi.object({
-							idgroup: Joi.valid(null).required(),
-							rule_order: Joi.forbidden(),
-							type: sharedSch.policy_type.required(),
-							special: Joi.valid(Joi.override, 0).optional()
-						})
-					});
+				}).and('pasteOnRuleId', 'pasteOffset');
+				if (req.body?.pasteOnRuleId !== undefined) {
+					schema = schema.concat(Joi.object({
+						idgroup: Joi.valid(null).required(),
+						rule_order: Joi.forbidden(),
+						type: sharedSch.policy_type.required(),
+						special: Joi.valid(Joi.override, 0).optional()
+					}));
+				}
 			}
 			if (req.method === 'PUT') schema = schema.append({ rule: sharedSch.id });
 		} else if (req.method === 'PUT') {
