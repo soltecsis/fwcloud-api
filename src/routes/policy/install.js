@@ -60,6 +60,7 @@ import { logger } from '../../fonaments/abstract-application';
 var config = require('../../config/config');
 import * as path from 'path';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
+import { PolicyInstallationError } from '../../communications/communication';
 import db from '../../database/database-manager';
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -91,6 +92,10 @@ router.post('/', async (req, res, next) => {
     },500);
 	} catch(error) {
     logger().error(`Installing policy script${error.message ? ': '+error.message : JSON.stringify(error)}`);
+
+    if (error instanceof PolicyInstallationError) {
+      return res.status(400).json({message: error.message, data: {recovery_status: error.recoveryStatus}});
+    }
 
     if (error instanceof HttpException) {
       return next(error);

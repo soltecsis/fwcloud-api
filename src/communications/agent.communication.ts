@@ -153,6 +153,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return 'DONE';
     } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.data?.recovery_status : undefined;
+      if (status === 'restored' || status === 'failed' || status === 'unavailable') {
+        const message = error.response?.data?.message || error.message;
+        throw new PolicyInstallationError(message, status, error);
+      }
       this.handleRequestException(error, eventEmitter);
     }
   }

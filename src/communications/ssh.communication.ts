@@ -291,22 +291,14 @@ fi`)}`;
             eventEmitter,
           );
         } catch (recoveryError) {
-          if (backupName) {
-            throw new PolicyInstallationError(
-              'Firewall policy installation failed and recovery failed',
-              'failed',
-              recoveryError,
-            );
-          }
-          throw Object.assign(
-            new Error(
-              `Firewall policy installation failed and the previous policy could not be restored: ${recoveryError.message}`,
-            ),
-            { cause: recoveryError },
+          throw new PolicyInstallationError(
+            `Firewall policy installation failed and the previous policy could not be restored: ${recoveryError.message}`,
+            'failed',
+            recoveryError,
           );
         }
       }
-      if (backupName) {
+      if (backupName || backupChecked) {
         throw new PolicyInstallationError(
           error.message,
           backupPath ? 'restored' : backupChecked ? 'unavailable' : 'unknown',

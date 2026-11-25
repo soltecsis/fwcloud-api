@@ -81,6 +81,22 @@ describe(AgentCommunication.name, () => {
   });
 
   describe('agent policy recovery progress', () => {
+    it('propagates the recovery status of a failed individual installation', async () => {
+      sinon.stub(agent as any, 'createWebSocket').resolves('ws-id');
+      sinon.stub(axios, 'post').rejects({
+        isAxiosError: true,
+        message: 'Request failed',
+        response: { data: { message: 'Policy failed', recovery_status: 'restored' } },
+      });
+      try {
+        await agent.installFirewallPolicy(__filename);
+        expect.fail('Expected installation to fail');
+      } catch (error) {
+        expect(error.recoveryStatus).to.equal('restored');
+        expect(error.message).to.equal('Policy failed');
+      }
+    });
+
     it('maps agent rollback errors and informational progress to typed payloads', () => {
       const failure = parseAgentProgressMessage(
         JSON.stringify({
