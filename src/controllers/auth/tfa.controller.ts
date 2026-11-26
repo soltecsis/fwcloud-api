@@ -18,6 +18,12 @@ export class TfaController extends Controller {
 
   @Validate(VerifyTfaDto)
   public async verify(req: Request): Promise<ResponseBuilder> {
+    const setup = await AuthService.GetTfa(req.session.user_id);
+    if (!setup || setup.tempSecret !== req.body.tempSecret) {
+      return ResponseBuilder.buildResponse().status(401).body({
+        message: 'Auth Code error',
+      });
+    }
     const isVerified = speakeasy.totp.verify({
       secret: req.body.tempSecret,
       encoding: 'base32',
@@ -26,7 +32,7 @@ export class TfaController extends Controller {
 
     if (isVerified) {
       //User._update_tfa_secret(req);
-      await AuthService.UpdateTfaSecret(req.body.tempSecret);
+      await AuthService.UpdateTfaSecret(req.body.tempSecret, req.session.user_id);
       //res.status(200).json({"secret":req.body.tempSecret})
       return ResponseBuilder.buildResponse().status(200).body({
         status: 'OK',
@@ -40,6 +46,9 @@ export class TfaController extends Controller {
 
   @Validate(SetupTfaDto)
   public async setup(req: Request): Promise<ResponseBuilder> {
+    if (req.body.user !== req.session.user_id) {
+      return ResponseBuilder.buildResponse().status(401);
+    }
     const secret = speakeasy.generateSecret({
       length: 10,
       name: req.body.username,
@@ -51,16 +60,14 @@ export class TfaController extends Controller {
       issuer: 'FWCLOUD - SOLTECSIS',
       encoding: 'base32',
     });
-    QRCode.toDataURL(url, async (err, dataURL) => {
-      const tfa = {
-        secret: '',
-        tempSecret: secret.base32,
-        dataURL,
-        tfaURL: secret.otpauth_url,
-        userId: req.body.user,
-      };
-      await AuthService.UpdateTfa(tfa.secret, tfa.tempSecret, tfa.dataURL, tfa.tfaURL, tfa.userId);
-    });
+    const dataURL = await QRCode.toDataURL(url);
+    await AuthService.UpdateTfa(
+      '',
+      secret.base32,
+      dataURL,
+      secret.otpauth_url,
+      req.session.user_id,
+    );
     return ResponseBuilder.buildResponse().status(200);
   }
 

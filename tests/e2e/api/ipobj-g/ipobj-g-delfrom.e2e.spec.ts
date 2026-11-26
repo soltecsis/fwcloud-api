@@ -130,7 +130,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
 
     firewall = await manager.getRepository(Firewall).findOneOrFail({
       where: { id: fwcProduct.firewall.id },
-      relations: ['policyRules'],
+      relations: { policyRules: true },
     });
 
     adminUser.fwClouds = [fwcProduct.fwcloud];

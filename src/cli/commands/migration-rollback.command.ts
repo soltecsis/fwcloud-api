@@ -36,9 +36,7 @@ export class MigrationRollbackCommand extends Command {
     const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );
-    const dataSource: DataSource = await databaseService.getDataSource({
-      name: 'cli',
-    });
+    const dataSource: DataSource = await databaseService.getDataSource({});
 
     await databaseService.rollbackMigrations(args.steps as number, dataSource);
 

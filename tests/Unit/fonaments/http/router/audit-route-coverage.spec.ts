@@ -49,6 +49,13 @@ const nonMutatingMethods: ReadonlySet<HttpMethod> = new Set<HttpMethod>(['GET', 
 let cachedControllerRoutes: ControllerRouteIndexEntry[] | null = null;
 
 class RouteInspectionRouterService extends RouterService {
+  // RouterService.build() replaces the global URL helper (used by _URL()) with this instance,
+  // which never registers routes, and adds Express param handlers to the shared app. Route
+  // parsing needs neither, so skip it to keep later specs resolving named routes.
+  public async build(): Promise<RouteInspectionRouterService> {
+    return this;
+  }
+
   public inspectControllerRoutes(): Route[] {
     return this.parseRoutes().filter((route) => route.isControllerHandler());
   }

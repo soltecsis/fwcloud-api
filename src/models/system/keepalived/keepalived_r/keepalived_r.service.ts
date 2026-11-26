@@ -28,6 +28,7 @@ import { IPObj } from '../../../ipobj/IPObj';
 import { KeepalivedGroup } from '../keepalived_g/keepalived_g.model';
 import { Interface } from '../../../interface/Interface';
 import { Offset } from '../../../../offset';
+import { insertUngroupedSystemRule } from '../../insert-ungrouped-rule';
 import { Application } from '../../../../Application';
 import { Service } from '../../../../fonaments/services/service';
 import { IPObjRepository } from '../../../ipobj/IPObj.repository';
@@ -57,6 +58,7 @@ interface IFindOneKeepalivedRulePath extends IFindManyKeepalivedRulePath {
 }
 
 export interface ICreateKeepalivedRule {
+  idgroup?: null;
   active?: boolean;
   group?: number;
   style?: string;
@@ -168,6 +170,29 @@ export class KeepalivedRuleService extends Service {
       keepalivedRuleData.firewallApplyToId = firewallApplyToId;
     }
 
+    if (data.idgroup === null) {
+      const virtualIps = data.virtualIpsIds ?? [];
+      const ipObjs = await Promise.all(
+        virtualIps.map((item) => this._ipobjRepository.findOneByOrFail({ id: item.id })),
+      );
+      if (ipObjs.some((ipObj) => ipObj.ip_version !== ipObjs[0].ip_version)) {
+        throw new Error('IP version mismatch');
+      }
+      keepalivedRuleData.virtualIps = virtualIps.map(({ id, order }) => ({
+        ipObjId: id,
+        order,
+      })) as KeepalivedToIPObj[];
+
+      return insertUngroupedSystemRule(
+        this._repository,
+        data.firewallId,
+        data.to,
+        data.offset,
+        (rules, rule_order) =>
+          rules.save({ ...keepalivedRuleData, group: null, groupId: null, rule_order }),
+      );
+    }
+
     const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
       data.firewallId,
     );
@@ -225,15 +250,14 @@ export class KeepalivedRuleService extends Service {
       where: {
         id: In(ids),
       },
-      relations: [
-        'group',
-        'firewall',
-        'firewall.fwCloud',
-        'firewallApplyTo',
-        'interface',
-        'virtualIps',
-        'masterNode',
-      ],
+      relations: {
+        group: true,
+        firewall: { fwCloud: true },
+        firewallApplyTo: true,
+        interface: true,
+        virtualIps: true,
+        masterNode: true,
+      },
     });
 
     const lastRule: KeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
@@ -309,7 +333,14 @@ export class KeepalivedRuleService extends Service {
       where: {
         id: id,
       },
-      relations: ['group', 'firewall', 'firewallApplyTo', 'interface', 'virtualIps', 'masterNode'],
+      relations: {
+        group: true,
+        firewall: true,
+        firewallApplyTo: true,
+        interface: true,
+        virtualIps: true,
+        masterNode: true,
+      },
     });
 
     if (!keepalivedRule) {
@@ -605,7 +636,7 @@ export class KeepalivedRuleService extends Service {
         where: {
           id: ids[0],
         },
-        relations: ['group', 'firewall'],
+        relations: { group: true, firewall: true },
       });
 
       if (!firstRule) {
@@ -775,7 +806,7 @@ export class KeepalivedRuleService extends Service {
         id: In(data.virtualIpsIds.map((item) => item.id)),
         ipObjTypeId: 5, //ADDRESS
       },
-      relations: ['fwCloud'],
+      relations: { fwCloud: true },
     });
 
     for (let i = 0; i < virtualIps.length; i++) {

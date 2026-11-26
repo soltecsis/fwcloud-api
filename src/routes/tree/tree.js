@@ -21,8 +21,10 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+import { UserRole } from '../../models/user/user-role';
+var router = createOperationRouter();
 import { Tree } from '../../models/tree/Tree';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
@@ -76,7 +78,7 @@ var fwc_tree_node = require("../../models/tree/node.js");
  * }
  */
 
-router.put('/firewalls/get', async (req, res) => {
+legacyOperation(router, 'put', '/firewalls/get', consultationOperation, async (req, res) => {
 	try {
 		//console.time('FW');
 		let tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
@@ -141,11 +143,10 @@ router.put('/firewalls/get', async (req, res) => {
  *    "msg": "FWCloud access not allowed"
  * }
  */
-router.put('/objects/get', async (req, res) => {
+legacyOperation(router, 'put', '/objects/get', consultationOperation, async (req, res) => {
 	try {
 		const treeObjects = await Tree.dumpTree(req.dbCon, 'OBJECTS', req.body.fwcloud);
-		await Tree.ensureCountriesTree(req.dbCon, req.body.fwcloud);
-		const treeCountries = await Tree.dumpTree(req.dbCon, 'COUNTRIES', req.body.fwcloud);
+    const treeCountries = await Tree.getCountriesTree(req.dbCon, req.body.fwcloud, req.session.user.role === UserRole.Viewer);
 
 		await Tree.stdFoldersFirst(treeObjects);
 		res.status(200).json([treeObjects, treeCountries]);
@@ -159,7 +160,7 @@ router.put('/objects/get', async (req, res) => {
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.put('/services/get', async (req, res) => {
+legacyOperation(router, 'put', '/services/get', consultationOperation, async (req, res) => {
 	try {
 		const tree = await Tree.dumpTree(req.dbCon, 'SERVICES', req.body.fwcloud);
 		await Tree.stdFoldersFirst(tree);
@@ -172,7 +173,7 @@ router.put('/services/get', async (req, res) => {
 
 
 /* Get nodes for the CA tree */
-router.put('/ca/get', async (req, res) => {
+legacyOperation(router, 'put', '/ca/get', consultationOperation, async (req, res) => {
 	try {
 		const tree = await Tree.dumpTree(req.dbCon, 'CA', req.body.fwcloud);
 		await Ca.getCAStatusNotZero(req,tree);
@@ -185,7 +186,7 @@ router.put('/ca/get', async (req, res) => {
 
 
 // Get objects node information.
-router.put('/node/get', async (req, res) => {
+legacyOperation(router, 'put', '/node/get', consultationOperation, async (req, res) => {
 	try {
 		const data = await Tree.getNodeInfo(req.dbCon,req.body.fwcloud,req.body.node_type,req.body.id_obj);
     if (data && data.length > 0)

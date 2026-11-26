@@ -146,7 +146,7 @@ export class DHCPRule extends Model {
 
       const originalRules = await DHCPRule.find({
         where: { firewall: originalFirewall },
-        relations: ['dhcpRuleToIPObjs'],
+        relations: { dhcpRuleToIPObjs: true },
       });
 
       for (const originalRule of originalRules) {

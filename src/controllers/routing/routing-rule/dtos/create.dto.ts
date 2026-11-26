@@ -22,6 +22,7 @@
 
 import { Type } from 'class-transformer';
 import {
+  Equals,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -141,4 +142,8 @@ export class RoutingRuleControllerCreateDto {
   @IsEnum(Offset)
   @IsOptional()
   offset?: Offset;
+
+  @Equals(null)
+  @IsOptional()
+  idgroup?: null;
 }

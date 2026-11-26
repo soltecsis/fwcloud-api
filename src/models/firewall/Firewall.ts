@@ -50,7 +50,6 @@ import { DatabaseService } from '../../database/database.service';
 import { app } from '../../fonaments/abstract-application';
 import * as path from 'path';
 
-const config = require('../../config/config');
 const firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
 
@@ -1433,9 +1432,7 @@ export class Firewall extends Model {
                 fwcloud: fwcloud,
                 iduser: user,
               }); //DELETE TREE NODES From firewall
-              await utilsModel.deleteFolder(
-                config.get('policy').data_dir + '/' + fwcloud + '/' + firewall,
-              ); // DELETE DATA DIRECTORY FOR THIS FIREWALL
+              await utilsModel.removeFirewallDataDir(fwcloud, firewall);
               await Firewall.deleteFirewallRow(dbCon, fwcloud, firewall);
               resolve();
             } catch (error) {
@@ -1558,18 +1555,12 @@ export class Firewall extends Model {
     });
   }
 
-  public static getPolicyCompilationMode(
+  public static async getPolicyCompilationMode(
     fwcloud: number,
     firewall: number,
   ): Promise<PolicyCompilationMode> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const options = await this.getFirewallOptions(fwcloud, firewall);
-        resolve(this.getPolicyCompilationModeFromOptions(options));
-      } catch (error) {
-        reject(error);
-      }
-    });
+    const options = await this.getFirewallOptions(fwcloud, firewall);
+    return this.getPolicyCompilationModeFromOptions(options);
   }
 
   public static getPolicyCompilationModeFromOptions(options: number): PolicyCompilationMode {

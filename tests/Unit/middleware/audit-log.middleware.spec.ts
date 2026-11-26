@@ -31,6 +31,8 @@ import { createHash } from 'crypto';
 import { testSuite } from '../../mocha/global-setup';
 import { Firewall } from '../../../src/models/firewall/Firewall';
 import { Cluster } from '../../../src/models/firewall/Cluster';
+import { ConfirmationToken } from '../../../src/middleware/confirmation-token.middleware';
+import { HTTPApplication } from '../../../src/fonaments/http-application';
 
 describe('AuditLogMiddleware', () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -213,6 +215,102 @@ describe('AuditLogMiddleware', () => {
     const payload = JSON.parse(entry.data);
     expect(payload.statusCode).to.equal(500);
     expect(payload.durationMs).to.equal(entry.durationMs);
+  });
+
+  describe('confirmation token challenges', () => {
+    const createConfirmationApp = () => {
+      const app = express();
+      const middleware = new AuditLogMiddleware();
+
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).session = {
+          user: {
+            id: 503,
+            username: 'confirmation-user',
+            confirmation_token: 'valid-confirmation-token',
+            save: sinon.stub().resolves(),
+          },
+        };
+        (req as any).sessionID = 'confirmation-audit-session';
+        next();
+      });
+      app.use((req, res, next) => middleware.handle(req, res, next));
+      new ConfirmationToken().register({
+        express: app,
+        config: { get: () => true },
+      } as unknown as HTTPApplication);
+
+      return app;
+    };
+
+    for (const token of [undefined, 'invalid-confirmation-token']) {
+      it(`persists a challenge for a ${token === undefined ? 'missing' : 'invalid'} token without storing the generated token`, async () => {
+        const app = createConfirmationApp();
+        const call = request(app)
+          .post('/resource/create')
+          .send({ fwc_confirm_token: 'body-token' });
+        if (token !== undefined) call.set('x-fwc-confirm-token', token);
+
+        const response = await call.expect(403);
+        const entries = await waitForAuditLogs();
+
+        expect(entries).to.have.length(1);
+        const [entry] = entries;
+        expect(entry.status).to.equal(403);
+        expect(entry.confirmationTokenChallenge).to.equal(true);
+        expect(entry.durationMs).to.be.a('number');
+        expect(JSON.stringify(entry)).not.to.contain(response.body.fwc_confirm_token);
+        expect(JSON.stringify(entry)).not.to.contain('body-token');
+        if (token !== undefined) expect(JSON.stringify(entry)).not.to.contain(token);
+        expect(JSON.parse(entry.data).body.fwc_confirm_token).to.equal('[REDACTED]');
+      });
+    }
+
+    it('keeps challenges for protected operations normally classified as reads', async () => {
+      const app = createConfirmationApp();
+
+      await request(app).post('/resource/download').expect(403);
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.status).to.equal(403);
+      expect(entry.confirmationTokenChallenge).to.equal(true);
+    });
+
+    for (const status of [200, 401, 403, 500]) {
+      it(`does not classify HTTP ${status} responses with valid tokens as challenges`, async () => {
+        const app = createConfirmationApp();
+        app.post('/resource/create', (_req, res) => {
+          res.status(status).json({ result: 'ordinary response' });
+        });
+
+        await request(app)
+          .post('/resource/create')
+          .set('x-fwc-confirm-token', 'valid-confirmation-token')
+          .expect(status);
+
+        const [entry] = await waitForAuditLogs();
+        expect(entry.status).to.equal(status);
+        expect(entry.confirmationTokenChallenge).to.equal(false);
+        expect(JSON.stringify(entry)).not.to.contain('valid-confirmation-token');
+      });
+    }
+
+    it('does not trust a classification supplied by request data', async () => {
+      const app = createConfirmationApp();
+      app.post('/resource/create', (_req, res) =>
+        res.status(403).json({ error: 'Permission denied' }),
+      );
+
+      await request(app)
+        .post('/resource/create')
+        .set('x-fwc-confirm-token', 'valid-confirmation-token')
+        .send({ confirmationTokenChallenge: true, __auditLogConfirmationTokenChallenge: true })
+        .expect(403);
+
+      const [entry] = await waitForAuditLogs();
+      expect(entry.confirmationTokenChallenge).to.equal(false);
+    });
   });
 
   it('builds concise HTTP descriptions without duplicating query or body data', async () => {
@@ -445,6 +543,7 @@ describe('AuditLogMiddleware', () => {
     expect(payload.body.tokens).to.equal('[REDACTED]');
     expect(payload.body.nested.apiKey).to.equal('[REDACTED]');
     expect(payload.body.nested.details.secretValue).to.equal('[REDACTED]');
+    expect(JSON.stringify(entry)).not.to.contain('query-token');
   });
 
   it('keeps raw request bodies out of audit descriptions', async () => {
@@ -515,47 +614,141 @@ describe('AuditLogMiddleware', () => {
       return app;
     };
 
-    it('should not log successful login attempts', async () => {
+    it('logs exactly one successful login without credentials', async () => {
       const app = createAuthApp();
 
-      app.post('/login', (req, res) => {
+      app.post('/user/login', (req, res) => {
         (req as any).session.user_id = 888;
         (req as any).session.username = 'auth-user';
         (req as any).sessionID = 'login-session';
-        res.status(200).json({ ok: true });
+        res.status(200).json({ token: 'response-secret' });
       });
 
-      await request(app).post('/login').send({ username: 'auth-user', password: 'secret' });
+      await request(app)
+        .post('/user/login')
+        .query({ token: 'query-secret' })
+        .set('Cookie', 'session=raw-session-secret')
+        .set('X-TFA', '123456')
+        .send({
+          username: 'auth-user',
+          password: 'password-secret',
+          authCode: '654321',
+          arbitrary: 'hidden-credential',
+        });
 
-      await expectNoAuditLogs();
+      const entries = await waitForAuditLogs();
+      expect(entries).to.have.length(1);
+      const [entry] = entries;
+      expect(entry.eventType).to.equal('login');
+      expect(entry.outcome).to.equal('success');
+      expect(entry.userId).to.equal(888);
+      expect(entry.userName).to.equal('auth-user');
+      expect(entry.status).to.equal(200);
+      expect(entry.sessionId).to.equal(computeHashedSessionId('login-session'));
+      expect(entry.call).to.equal('POST /user/login');
+      const stored = JSON.stringify(entry);
+      for (const secret of [
+        'query-secret',
+        'raw-session-secret',
+        '123456',
+        '654321',
+        'password-secret',
+        'hidden-credential',
+        'response-secret',
+        'login-session',
+      ]) {
+        expect(stored).not.to.contain(secret);
+      }
+      const payload = JSON.parse(entry.data);
+      for (const field of ['body', 'query', 'params', 'headers', 'context', 'response']) {
+        expect(payload).not.to.have.property(field);
+      }
     });
 
-    it('should not log failed login attempts', async () => {
+    it('logs failed login attempts without an authenticated session', async () => {
       const app = createAuthApp();
 
-      app.post('/login', (_req, res) => {
+      app.post('/user/login', (_req, res) => {
         res.status(401).json({ error: 'invalid credentials' });
       });
 
-      await request(app).post('/login').send({ username: 'auth-user', password: 'wrong' });
+      await request(app).post('/user/login').send({ username: 'auth-user', password: 'wrong' });
 
-      await expectNoAuditLogs();
+      const entries = await waitForAuditLogs();
+      expect(entries).to.have.length(1);
+      expect(entries[0].eventType).to.equal('login');
+      expect(entries[0].outcome).to.equal('failure');
+      expect(entries[0].status).to.equal(401);
+      expect(entries[0].userId).to.be.null;
+      expect(entries[0].userName).to.be.null;
+      expect(entries[0].sessionId).to.be.null;
+      expect(JSON.stringify(entries[0])).not.to.contain('auth-user');
+      expect(entries[0].sourceIp).to.be.a('string');
     });
 
-    it('should not log logout events', async () => {
+    it('preserves logout identity after session destruction', async () => {
       const app = createAuthApp((req) => {
         (req as any).session.user_id = 777;
         (req as any).session.username = 'auth-user';
         (req as any).sessionID = 'logout-session';
       });
 
-      app.post('/logout', (_req, res) => {
+      app.post('/user/logout', (req, res) => {
+        delete req.session;
         res.status(204).end();
       });
 
-      await request(app).post('/logout');
+      await request(app).post('/user/logout');
 
+      const entries = await waitForAuditLogs();
+      expect(entries).to.have.length(1);
+      expect(entries[0].eventType).to.equal('logout');
+      expect(entries[0].outcome).to.equal('success');
+      expect(entries[0].status).to.equal(204);
+      expect(entries[0].userId).to.equal(777);
+      expect(entries[0].userName).to.equal('auth-user');
+      expect(entries[0].sessionId).to.equal(computeHashedSessionId('logout-session'));
+    });
+
+    it('does not attribute a failed login to an existing authenticated session', async () => {
+      const app = createAuthApp((req) => {
+        req.session.user_id = 777;
+        req.session.username = 'previous-user';
+        req.sessionID = 'previous-session';
+      });
+      app.post('/user/login', (_req, res) =>
+        res.status(401).json({ error: 'invalid credentials' }),
+      );
+      await request(app)
+        .post('/user/login')
+        .send({ username: 'attempted-user', password: 'wrong' })
+        .expect(401);
+      const [entry] = await waitForAuditLogs();
+      expect(entry.outcome).to.equal('failure');
+      expect(entry.userId).to.be.null;
+      expect(entry.userName).to.be.null;
+      expect(entry.sessionId).to.be.null;
+      expect(JSON.stringify(entry)).not.to.contain('previous-user');
+      expect(JSON.stringify(entry)).not.to.contain('attempted-user');
+    });
+
+    it('preserves the authentication response when audit persistence fails', async () => {
+      const app = createAuthApp();
+      const save = sinon
+        .stub(db.getSource().manager.getRepository(AuditLog), 'save')
+        .rejects(new Error('audit unavailable'));
+      app.post('/user/login', (req, res) => {
+        req.session.user_id = 888;
+        req.session.username = 'auth-user';
+        res.status(200).json({ ok: true });
+      });
+      const response = await request(app)
+        .post('/user/login')
+        .send({ password: 'secret' })
+        .expect(200);
+      expect(response.body).to.deep.equal({ ok: true });
       await expectNoAuditLogs();
+      sinon.assert.calledOnce(save);
     });
   });
 
@@ -665,6 +858,7 @@ describe('AuditLogMiddleware', () => {
       const [entry] = await waitForAuditLogs();
       expect(entry).to.exist;
       expect(entry.call).to.equal('POST /network-objects');
+      expect(entry.eventType).to.equal('creation');
       expect(entry.fwCloudId).to.equal(77);
       expect(entry.userId).to.equal(202);
       expect(entry.status).to.equal(201);

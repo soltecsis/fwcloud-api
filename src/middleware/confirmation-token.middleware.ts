@@ -29,17 +29,11 @@ import { logger } from '../fonaments/abstract-application';
 export class ConfirmationToken extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction) {
     try {
-      if (this.app.config.get('confirmation_token') === false) {
-        next();
-        return;
-      }
-
-      if (this.isConfirmationTokenRequired(req) === false) {
-        next();
-        return;
-      }
-
-      if (this.hasValidConfirmationToken(req) === true) {
+      if (
+        this.app.config.get('confirmation_token') === false ||
+        this.isConfirmationTokenRequired(req) === false ||
+        this.hasValidConfirmationToken(req) === true
+      ) {
         next();
         return;
       }
@@ -48,6 +42,7 @@ export class ConfirmationToken extends Middleware {
         req.session.user,
         req.sessionID,
       );
+      res.locals.__auditLogConfirmationTokenChallenge = true;
       res.status(403).json({ fwc_confirm_token: newToken });
     } catch (error) {
       logger().error('Error during confirmation token middleware: ' + JSON.stringify(error));
@@ -61,7 +56,8 @@ export class ConfirmationToken extends Middleware {
    * @param req
    */
   protected isConfirmationTokenRequired(req: Request): boolean {
-    if (
+    if (req.operationPolicy) return req.operationPolicy.requiresConfirmationToken;
+    return !(
       req.url.split('/').pop() === 'get' ||
       req.url.split('/').pop() === 'restricted' ||
       req.url.split('/').pop() === 'where' ||
@@ -72,11 +68,7 @@ export class ConfirmationToken extends Middleware {
       // doesn't allows confirmation token management.
       (req.method === 'POST' && req.path === '/fwclouds/import') ||
       (req.method === 'POST' && req.path === '/backups/import')
-    ) {
-      return false;
-    }
-
-    return true;
+    );
   }
 
   /**
@@ -85,14 +77,10 @@ export class ConfirmationToken extends Middleware {
    * @param req
    */
   protected hasValidConfirmationToken(req: Request): boolean {
-    if (
-      req.session.user &&
+    return (
+      !!req.session.user &&
       req.session.user.confirmation_token === req.headers['x-fwc-confirm-token']
-    ) {
-      return true;
-    }
-
-    return false;
+    );
   }
 
   /**

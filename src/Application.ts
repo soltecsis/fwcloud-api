@@ -80,6 +80,8 @@ import { DHCPGroupServiceProvider } from './models/system/dhcp/dhcp_g/dhcp_g.pro
 import { KeepalivedGroupServiceProvider } from './models/system/keepalived/keepalived_g/keepalived_g.provider';
 import { KeepalivedRuleServiceProvider } from './models/system/keepalived/keepalived_r/keepalived_r.provider';
 import { LockValidation } from './middleware/LockValidation';
+import { ResolveOperation } from './middleware/ResolveOperation';
+import { ReadOnlyValidation } from './middleware/ReadOnlyValidation';
 import { RestrictedMiddleware } from './middleware/restricted.middleware';
 import { WireGuardPrefixServiceProvider } from './models/vpn/wireguard/wireguard-prefix.provider';
 import { WireGuardServiceProvider } from './models/vpn/wireguard/wireguard.provider';
@@ -88,6 +90,7 @@ import { IPSecPrefixServiceProvider } from './models/vpn/ipsec/ipsec-prefix.prov
 import { AIAssistantProvider } from './models/ai-assistant/ai-assistant.provider';
 import { AuditLogMiddleware } from './middleware/audit-log.middleware';
 import { AuditLogServiceProvider } from './models/audit/AuditLog.provider';
+import { SecurityHeaders } from './middleware/SecurityHeaders';
 import { AuditEventServiceProvider } from './models/audit/AuditEvent.provider';
 
 export class Application extends HTTPApplication {
@@ -192,6 +195,7 @@ export class Application extends HTTPApplication {
   protected beforeMiddlewares(): Array<Middlewareable> {
     return [
       LogRequestMiddleware,
+      SecurityHeaders,
       BodyParser,
       RequestBuilder,
       Compression,
@@ -203,6 +207,8 @@ export class Application extends HTTPApplication {
       AuditLogMiddleware,
       CORS,
       this.config.get('env') !== 'test' ? Authorization : AuthorizationTest,
+      ResolveOperation,
+      ReadOnlyValidation,
       ConfirmationToken,
       InputValidation,
       AccessControl,

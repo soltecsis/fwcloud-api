@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Arguments, PositionalOptionsType } from 'yargs';
+import type { Arguments, Options } from 'yargs';
 import { Application } from './Application';
 import { Output } from './output';
 
@@ -28,7 +28,7 @@ export type Option = {
   name: string;
   alias?: string;
   description: string;
-  type?: 'array' | 'count' | Omit<PositionalOptionsType, any>;
+  type?: Options['type'];
   required?: boolean;
   default?: any;
 };

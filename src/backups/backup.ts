@@ -448,7 +448,10 @@ export class Backup implements Responsable {
           return reject(new RestoreBackupException('Database can not be wiped'));
 
         //console.time("db import");
-        child_process.execSync(this.buildCmd('mysql', databaseService));
+        // Capture stderr instead of inheriting it: client warnings (e.g. MariaDB's
+        // ssl-verify-server-cert notice when the password comes from MYSQL_PWD) stay off the
+        // console, and a failing import still throws with that stderr in the error message.
+        child_process.execSync(this.buildCmd('mysql', databaseService), { stdio: 'pipe' });
         //console.timeEnd("db import");
         if (!this._firewallRepository || !this._openvpnRepository) {
           await this.init();
@@ -538,6 +541,9 @@ export class Backup implements Responsable {
     process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0, 128);
 
     const dir = cmd === 'mysqldump' ? '>' : '<';
+    // MySQL 8+ clients need column statistics disabled to dump MariaDB/older servers, while
+    // MariaDB clients reject the option; `--loose-` makes them warn and continue instead.
+    if (cmd === 'mysqldump') cmd += ' --loose-column-statistics=0';
     // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
     if (app().config.get('db.mysqldump.protocol') === 'tcp') cmd += ' --protocol=TCP';
     // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,

@@ -33,13 +33,17 @@ schema.validate = async req => {
 	let schema;
 
 	if (req.method === 'POST' && req.url === '/user/login') {
-		schema = Joi.object().keys({
+		const credentials = Joi.object().keys({
 			customer: sharedSch.id,
 			username: sharedSch.username,
 			password: sharedSch.password,
-			authCode: sharedSch.authCode,
+			authCode: sharedSch.authCode.optional(),
 			publicKey: Joi.string()
 		});
+		const secondFactor = Joi.object().keys({
+			authCode: Joi.string().pattern(/^[0-9]{6}$/)
+		});
+		schema = Joi.alternatives().try(credentials, secondFactor);
 	} else if (req.method === 'POST' && req.url === '/user/logout') {
 		return;
 	} else if (req.url === '/user' && (req.method === 'POST' || req.method === 'PUT')) {

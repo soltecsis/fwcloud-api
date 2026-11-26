@@ -212,13 +212,12 @@ export class FirewallService extends Service {
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
-        relations: [
-          'routingTables',
-          'routingTables.routingRules',
-          'dhcpRules',
-          'keepalivedRules',
-          'haproxyRules',
-        ],
+        relations: {
+          routingTables: { routingRules: true },
+          dhcpRules: true,
+          keepalivedRules: true,
+          haproxyRules: true,
+        },
         where: { id: firewallId },
       });
     for (const table of firewallEntity.routingTables) {

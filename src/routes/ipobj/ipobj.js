@@ -45,7 +45,9 @@
  * @property express
  * @type express
  */
-var express = require('express');
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+import { IsNull } from 'typeorm';
 
 /**
  * Property  to manage IPOBJ route
@@ -53,7 +55,7 @@ var express = require('express');
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+var router = createOperationRouter();
 
 /**
  * Property Model to manage IPOBJ Data
@@ -81,10 +83,17 @@ import { logger } from '../../fonaments/abstract-application';
 import { WireGuard } from '../../models/vpn/wireguard/WireGuard';
 import { IpUtils } from '../../utils/ip-utils';
 import { IPSec } from '../../models/vpn/ipsec/IPSec';
+import db from '../../database/database-manager';
+import Query from '../../database/Query';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
+async function updateVpnNetworkIpobj(dbCon, manager, fwcloud, id, networkAddress) {
+	const [address, prefix] = networkAddress.split('/');
+	const network = await IPObj.getIpobjInfo(dbCon, fwcloud, id);
+	await IPObj.updateIpobj(dbCon, { ...network, id, address, netmask: '/' + prefix }, manager);
+}
 
 
 //TODO: FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
@@ -313,59 +322,49 @@ router.put('/',
 			if (data && data[0].protocol_number !== null)
 				ipobjData.protocol = data[0].protocol_number;
 
-			await IPObj.updateIpobj(req.dbCon, ipobjData);
-			
-			const wireGuardOptions = await WireGuard.checkIpobjInWireGuardOpt(req.dbCon, ipobjData.id);
-			const ipSecOptions = await IPSec.checkIpobjInIPSecOpt(req.dbCon, ipobjData.id);
-			const hasNetmask = (typeof ipobjData.netmask === 'string' && ipobjData.netmask.length > 0);
-			const ipWithOptionalMask = `${ipobjData.address}${hasNetmask ? ipobjData.netmask : ''}`;
+			// The original edit and any VPN network derived from it must commit together.
+			// READ COMMITTED lets each subnet check see references committed before its row lock.
+			const { wireGuardOptions, ipSecOptions } = await db.getSource().transaction('READ COMMITTED', async manager => {
+				const dbCon = new Query(manager.queryRunner);
+				await IPObj.updateIpobj(dbCon, ipobjData, manager);
 
-			if (wireGuardOptions?.length > 0) {
-				const networkAddress = IpUtils.getNetworkAddress(ipobjData.address + ipobjData.netmask);
-				const [networkIp, networkMask] = networkAddress.split('/');
+				const wireGuardOptions = await WireGuard.checkIpobjInWireGuardOpt(dbCon, ipobjData.id);
+				const ipSecOptions = await IPSec.checkIpobjInIPSecOpt(dbCon, ipobjData.id);
+				const hasNetmask = (typeof ipobjData.netmask === 'string' && ipobjData.netmask.length > 0);
+				const ipWithOptionalMask = `${ipobjData.address}${hasNetmask ? ipobjData.netmask : ''}`;
 
-				await WireGuard.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'Address', ipobjData.address + ipobjData.netmask);
+				if (wireGuardOptions?.length > 0) {
+					const addressWithMask = ipobjData.address + ipobjData.netmask;
+					const networkAddress = IpUtils.getNetworkAddress(addressWithMask);
 
-				const wireGuardConfig = await WireGuard.getCfg(req.dbCon, wireGuardOptions[0].wireguard);
-				const vpnNetworkOption = wireGuardConfig.options.find(option => option.name === "<<vpn_network>>");
+					await WireGuard.updateCfgOptByipobj(dbCon, ipobjData.id, 'Address', addressWithMask);
 
-				const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
-				const updatedIpObjData = {
-					...vpnNetworkIpObj,
-					id: vpnNetworkOption.ipobj,
-					address: networkIp,
-					netmask: '/' + networkMask
-				};
+					const wireGuardConfig = await WireGuard.getCfg(dbCon, wireGuardOptions[0].wireguard);
+					const vpnNetworkOption = wireGuardConfig.options.find(option => option.name === "<<vpn_network>>");
 
-				await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
-				await WireGuard.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
-			} else if (ipSecOptions?.length > 0) {
-				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'left', ipWithOptionalMask);
-				await IPSec.updateCfgOptByipobj(req.dbCon, ipobjData.id, 'leftsourceip', ipobjData.address);
+					await updateVpnNetworkIpobj(dbCon, manager, req.body.fwcloud, vpnNetworkOption.ipobj, networkAddress);
+					await WireGuard.updateCfgOptByipobj(dbCon, vpnNetworkOption.ipobj, '<<vpn_network>>', networkAddress);
+				} else if (ipSecOptions?.length > 0) {
+					await IPSec.updateCfgOptByipobj(dbCon, ipobjData.id, 'left', ipWithOptionalMask);
+					await IPSec.updateCfgOptByipobj(dbCon, ipobjData.id, 'leftsourceip', ipobjData.address);
 
-				if (hasNetmask) {
-					const networkAddress = IpUtils.getNetworkAddress(ipWithOptionalMask);
-					const [networkIp, networkMask] = networkAddress.split('/');
-					const ipSecCfgIds = [...new Set(ipSecOptions.filter(option => option.name === 'left').map(option => option.ipsec))];
+					if (hasNetmask) {
+						const networkAddress = IpUtils.getNetworkAddress(ipWithOptionalMask);
+						const ipSecCfgIds = [...new Set(ipSecOptions.filter(option => option.name === 'left').map(option => option.ipsec))];
 
-					for (const ipSecCfgId of ipSecCfgIds) {
-						const ipSecConfig = await IPSec.getCfg(req.dbCon, ipSecCfgId);
-						const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "leftsubnet" && option.ipobj);
-						if (!vpnNetworkOption) continue;
+						for (const ipSecCfgId of ipSecCfgIds) {
+							const ipSecConfig = await IPSec.getCfg(dbCon, ipSecCfgId);
+							const vpnNetworkOption = ipSecConfig.options.find(option => option.name === "leftsubnet" && option.ipobj);
+							if (!vpnNetworkOption) continue;
 
-						const vpnNetworkIpObj = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, vpnNetworkOption.ipobj);
-						const updatedIpObjData = {
-							...vpnNetworkIpObj,
-							id: vpnNetworkOption.ipobj,
-							address: networkIp,
-							netmask: '/' + networkMask
-						};
-
-						await IPObj.updateIpobj(req.dbCon, updatedIpObjData);
-						await IPSec.updateCfgOptByipobj(req.dbCon, vpnNetworkOption.ipobj, 'leftsubnet', networkAddress);
+							await updateVpnNetworkIpobj(dbCon, manager, req.body.fwcloud, vpnNetworkOption.ipobj, networkAddress);
+							await IPSec.updateCfgOptByipobj(dbCon, vpnNetworkOption.ipobj, 'leftsubnet', networkAddress);
+						}
 					}
 				}
-			}
+
+				return { wireGuardOptions, ipSecOptions };
+			});
 
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
 			if (wireGuardOptions?.length > 0) {	
@@ -415,7 +414,7 @@ router.put('/',
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.put('/get', async(req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async(req, res) => {
 	try {
 		const data = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
@@ -518,9 +517,13 @@ router.put('/del',
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.put('/where', async(req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async(req, res) => {
 	try {
-		const data = await IPObj.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+		const { fwcloud, id, type } = req.body;
+		const object = { id, ipObjTypeId: type };
+		if (!(await IPObj.existsBy([{ ...object, fwCloudId: fwcloud }, { ...object, fwCloudId: IsNull() }])))
+			return res.status(204).end();
+		const data = await IPObj.searchIpobjUsage(req.dbCon, fwcloud, id, type);
 		if (data.result)
 			res.status(200).json(data);
 		else

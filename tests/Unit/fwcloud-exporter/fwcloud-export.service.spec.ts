@@ -87,7 +87,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
     it('should assign the fwcloud to the user', async () => {
       user = await User.findOne({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
 
       const fwcloudAssigned = user.fwClouds.length;
@@ -96,7 +96,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
 
       user = await User.findOne({
         where: { id: user.id },
-        relations: ['fwClouds'],
+        relations: { fwClouds: true },
       });
 
       expect(user.fwClouds.length).to.be.eq(fwcloudAssigned + 1);

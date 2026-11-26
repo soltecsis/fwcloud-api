@@ -70,7 +70,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       order: {
         rule_order: 'ASC',
       },
-      relations: ['firewall', 'group'],
+      relations: { firewall: true, group: true },
     });
 
     let affectedKeepaliveds: KeepalivedRule[] = await this.findManyInPath({
@@ -348,6 +348,9 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       query.andWhere('keepalived_r.id IN (:...rule)').setParameter('rule', rules);
     }
 
-    return query.orderBy('keepalived_r.rule_order', 'ASC').getMany();
+    return query
+      .orderBy('keepalived_r.rule_order', 'ASC')
+      .addOrderBy('keepalived_r.id', 'ASC')
+      .getMany();
   }
 }

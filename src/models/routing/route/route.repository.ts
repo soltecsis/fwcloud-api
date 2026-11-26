@@ -33,6 +33,7 @@ import { RoutingTable } from '../routing-table/routing-table.model';
 import { Route } from './route.model';
 import { Repository } from '../../../database/repository';
 import db from '../../../database/database-manager';
+import { getRoutingGroupInsertion } from '../shared';
 
 interface IFindManyRoutePath {
   fwCloudId?: number;
@@ -85,7 +86,7 @@ export class RouteRepository extends Repository<Route> {
       order: {
         route_order: 'ASC',
       },
-      relations: ['routingTable', 'routingTable.firewall'],
+      relations: { routingTable: { firewall: true } },
     });
 
     let affectedRoutes: Route[] = await this.findManyInPath({
@@ -196,7 +197,7 @@ export class RouteRepository extends Repository<Route> {
       where: {
         id: In(entityArray.map((item) => item.id)),
       },
-      relations: ['routingTable'],
+      relations: { routingTable: true },
     });
 
     for (const entity of entitiesWithRoutingTable) {
@@ -229,6 +230,38 @@ export class RouteRepository extends Repository<Route> {
     )[0];
   }
 
+  async openOrderGapOutsideGroup(
+    routingTableId: number,
+    anchorId: number,
+    offset: Offset,
+  ): Promise<number> {
+    const routes = await this.createQueryBuilder('route')
+      .select(['route.id', 'route.routeGroupId', 'route.route_order'])
+      .where('route.routingTableId = :routingTableId', { routingTableId })
+      .orderBy('route.route_order')
+      .addOrderBy('route.id')
+      .setLock('pessimistic_write')
+      .getMany();
+    const { order, shiftIds, shiftBy } = getRoutingGroupInsertion(
+      routes.map((route) => ({
+        id: route.id,
+        groupId: route.routeGroupId,
+        order: route.route_order,
+      })),
+      anchorId,
+      offset,
+    );
+    if (shiftIds.length > 0) {
+      await this.createQueryBuilder()
+        .update()
+        .set({ route_order: () => 'route_order + :shiftBy' })
+        .setParameter('shiftBy', shiftBy)
+        .whereInIds(shiftIds)
+        .execute();
+    }
+    return order;
+  }
+
   getRoutingTableRoutes(
     fwcloud: number,
     firewall: number,
@@ -249,7 +282,7 @@ export class RouteRepository extends Repository<Route> {
 
     if (routes) query = query.andWhere('route.id IN (:...routes)', { routes: routes });
 
-    return query.orderBy('route.route_order').getMany();
+    return query.orderBy('route.route_order').addOrderBy('route.id').getMany();
   }
 
   /**

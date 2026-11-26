@@ -52,7 +52,21 @@ schema.validate = req => {
 				run_before: sharedSch.script_code.optional(),
 				run_after: sharedSch.script_code.optional()
 			});
-			if (req.method === 'POST') schema = schema.append({ special: sharedSch.SpecialPolicyRule.optional() });
+			if (req.method === 'POST') {
+				schema = schema.append({
+					special: sharedSch.SpecialPolicyRule.optional(),
+					pasteOnRuleId: sharedSch.id.optional(),
+					pasteOffset: Joi.number().integer().valid(-1, 1).optional()
+				}).and('pasteOnRuleId', 'pasteOffset');
+				if (req.body?.pasteOnRuleId !== undefined) {
+					schema = schema.concat(Joi.object({
+						idgroup: Joi.valid(null).required(),
+						rule_order: Joi.forbidden(),
+						type: sharedSch.policy_type.required(),
+						special: Joi.valid(Joi.override, 0).optional()
+					}));
+				}
+			}
 			if (req.method === 'PUT') schema = schema.append({ rule: sharedSch.id });
 		} else if (req.method === 'PUT') {
 			if (req.url === '/policy/rule/type/get' || req.url === '/policy/rule/type/grouped/get')
@@ -81,7 +95,9 @@ schema.validate = req => {
 				schema = schema.append({
 					pasteOnRuleId: sharedSch.id,
 					pasteOffset: Joi.number().integer().valid(-1, 0, 1),
-					rulesIds: Joi.array().items(sharedSch.id)
+					rulesIds: Joi.array().items(sharedSch.id),
+					// Omitted: the group of pasteOnRuleId. null: outside any group.
+					idgroup: sharedSch.id.allow(null).optional()
 				});
 		} else return reject(fwcError.BAD_API_CALL);
 

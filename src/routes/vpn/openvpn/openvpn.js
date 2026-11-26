@@ -38,14 +38,15 @@
  * @property express
  * @type express
  */
-var express = require('express');
+import { createOperationRouter, legacyOperation } from '../../../authorization/legacy-operation';
+import { consultationOperation } from '../../../authorization/operation-policy';
 /**
  * Property  to manage  route
  *
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+var router = createOperationRouter();
 
 
 /**
@@ -75,6 +76,7 @@ import {
 import { logger } from '../../../fonaments/abstract-application';
 import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import db from '../../../database/database-manager';
+import Query from '../../../database/Query';
 const fwcError = require('../../../utils/error_table');
 import * as crypto from "crypto";
 import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
@@ -102,6 +104,15 @@ const queryDb = (dbCon, sql, params = []) => new Promise((resolve, reject) => {
 		resolve(result);
 	});
 });
+
+const saveOpenVPNOptions = async (req, openvpn) => {
+	let order = 1;
+	for (const opt of req.body.options) {
+		opt.openvpn = openvpn;
+		opt.order = order++;
+		await OpenVPN.addCfgOpt(req, opt);
+	}
+};
 
 const getOpenVPN2FATaskId = (firewallId) => `openvpn-2fa-firewall-${firewallId}`;
 
@@ -326,9 +337,10 @@ const disableOpenVPNServer2FA = async (req, firewall, crt, clusterName = null) =
 			req.body.openvpn
 		);
 
+	const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+	await OpenVPN.validateSavedServerNetwork(req.dbCon, fwcloudId, req.body.openvpn);
 	await removeServer2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
 	const openvpnCfg = await OpenVPN.getCfg(req);
-	const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
 	const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
 	if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
 		throw fwcError.other('OpenVPN server install path or file name not found');
@@ -355,7 +367,7 @@ const disableOpenVPNServer2FA = async (req, firewall, crt, clusterName = null) =
 			content: cfgDump.cfg,
 			name: openvpnCfg.install_name
 		}], getOpenVPN2FASilentChannel());
-		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
+		emitOpenVPN2FANodeEnd(channel, targetFirewall);
 	}
 
 	await queryDb(
@@ -428,7 +440,7 @@ const disableOpenVPNClient2FA = async (req, firewall, crt, clusterName = null) =
 			name: getOpenVPN2FAServerUsersFilename(serverCN),
 			content: usersListContent
 		}], getOpenVPN2FASilentChannel());
-		emitOpenVPN2FANodeEnd(channel, targetFirewall, false);
+		emitOpenVPN2FANodeEnd(channel, targetFirewall);
 	}
 
 	await removeClient2FAOpenVPNOptions(req.dbCon, req.body.openvpn);
@@ -664,32 +676,33 @@ router.post('/', async (req, res) => {
 		if (req.crt.type === 1 && req.body.firewall !== req.openvpn.firewall)
 			throw { 'msg': 'Firewall ID for the new client OpenVPN configuration must match server OpenVPN configuration' };
 
-		const newOpenvpn = await OpenVPN.addCfg(req);
+		const { newOpenvpn, nodeId } = await db.getSource().transaction(async (manager) => {
+			const txReq = { body: req.body, dbCon: new Query(manager.queryRunner) };
+			const isServer = req.crt.type === 2;
+			// Keep the network locked through the commit so a concurrent edit cannot invalidate it.
+			const [serverNetwork] = isServer
+				? await OpenVPN.validateServerOptions(txReq.dbCon, req.body.fwcloud, req.body.options, true)
+				: [];
+			const newOpenvpn = await OpenVPN.addCfg(txReq);
+			await saveOpenVPNOptions(txReq, newOpenvpn);
 
-		// Now create all the options for the OpenVPN configuration.
-		var order = 1;
-		for (let opt of req.body.options) {
-			opt.openvpn = newOpenvpn;
-			opt.order = order++;
-			await OpenVPN.addCfgOpt(req, opt);
-		}
+			let nodeId;
+			if (req.tree_node.node_type === 'OPN') {
+				nodeId = await Tree.newNode(txReq.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', newOpenvpn, 312);
+			}
+			if (isServer) {
+				await OpenVPN.createOpenvpnServerInterface(txReq, newOpenvpn, serverNetwork);
+			}
+			return { newOpenvpn, nodeId };
+		});
 
-		// Create the OpenVPN configuration node in the tree.
-		let nodeId;
-		if (req.tree_node.node_type === 'OPN') // This will be an OpenVPN server configuration.
-			nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', newOpenvpn, 312);
-		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
-			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
+		if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
 			// Update the compilation status of all the firewalls that use the VPN Prefixes to which this new OpenVPN
 			// connection will belong.
 			await OpenVPNPrefix.updateOpenvpnClientPrefixesFWStatus(req.dbCon, req.body.fwcloud, newOpenvpn);
 		}
-
-		// If we are creaing an OpenVPN server configuration, then create the VPN virtual network interface with its assigned IP.
-		if (req.crt.type === 2) // 1=Client certificate, 2=Server certificate.
-			await OpenVPN.createOpenvpnServerInterface(req, newOpenvpn);
 
 		res.status(200).json({ insertId: newOpenvpn, TreeinsertId: nodeId });
 	} catch (error) {
@@ -704,19 +717,17 @@ router.post('/', async (req, res) => {
  */
 router.put('/', async (req, res) => {
 	try {
-		await OpenVPN.updateCfg(req);
-
-		const currentOptions = await OpenVPN.getCfg(req).then(data => data.options);
-		// First remove all the current configuration options.
-		await OpenVPN.delCfgOptAll(req);
-
-		// Now create all the new options for the OpenVPN configuration.
-		var order = 1;
-		for (let opt of req.body.options) {
-			opt.openvpn = req.body.openvpn;
-			opt.order = order++;
-			await OpenVPN.addCfgOpt(req, opt);
-		}
+		const currentOptions = await db.getSource().transaction(async (manager) => {
+			const txReq = { body: req.body, dbCon: new Query(manager.queryRunner) };
+			if (req.openvpn.type === 2) {
+				await OpenVPN.validateServerOptions(txReq.dbCon, req.body.fwcloud, req.body.options, true);
+			}
+			await OpenVPN.updateCfg(txReq);
+			const { options } = await OpenVPN.getCfg(txReq);
+			await OpenVPN.delCfgOptAll(txReq);
+			await saveOpenVPNOptions(txReq, req.body.openvpn);
+			return options;
+		});
 
 		await syncOpenVPNStatusSamplingIfStatusFileChanged(
 			req.body.openvpn,
@@ -894,7 +905,7 @@ router.put('/del',
 router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204).end());
 
 
-router.put('/where', async (req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async (req, res) => {
 	try {
 		const data = await OpenVPN.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn, true);
 		if (data.result > 0)
@@ -913,8 +924,8 @@ router.put('/where', async (req, res) => {
  */
 router.put('/install', async (req, res, next) => {
 	try {
-		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon, req.openvpn.crt);
 		const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: req.body.firewall } });
 
@@ -1398,6 +1409,8 @@ router.put('/2fa/server', async (req, res, next) => {
 		if (!enabled) {
 			await disableOpenVPNServer2FA(req, firewall, crt, clusterName);
 		} else {
+			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
+			await OpenVPN.validateSavedServerNetwork(req.dbCon, fwcloudId, req.body.openvpn);
 			const targetFirewalls = await getTargetFirewalls(firewall);
 			const serverUsersFilename = getOpenVPN2FAServerUsersFilename(crt.cn);
 			const channel = await Channel.fromRequest(req);
@@ -1427,7 +1440,6 @@ router.put('/2fa/server', async (req, res, next) => {
 
 			// Apply the generated server.conf right now. If this fails, we don't enable 2FA in database.
 			const openvpnCfg = await OpenVPN.getCfg(req);
-			const fwcloudId = firewall.fwCloudId ?? req.body.fwcloud;
 			const cfgDump = await OpenVPN.dumpCfg(req.dbCon, fwcloudId, req.body.openvpn);
 			if (!openvpnCfg.install_dir || !openvpnCfg.install_name) {
 				throw fwcError.other('OpenVPN server install path or file name not found');

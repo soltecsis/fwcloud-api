@@ -76,7 +76,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       order: {
         rule_order: 'ASC',
       },
-      relations: ['firewall', 'group'],
+      relations: { firewall: true, group: true },
     });
     //TODO: REVISAR ESTA FUNCION
     let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
@@ -355,7 +355,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       query.andWhere('dhcp_r.id IN (:...rule)').setParameter('rule', rules);
     }
 
-    const dhcpRules: DHCPRule[] = await query.getMany();
+    const dhcpRules: DHCPRule[] = await query.addOrderBy('dhcp_r.id', 'ASC').getMany();
 
     if (rule_types && forCompilation) {
       dhcpRules.sort((a, b) => {

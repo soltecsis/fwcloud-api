@@ -21,24 +21,15 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
-import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
-import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { In } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
-import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 import db from '../../database/database-manager';
-import { PolicyRuleToWireGuard } from '../../models/policy/PolicyRuleToWireGuard';
-import { PolicyRuleToWireGuardPrefix } from '../../models/policy/PolicyRuleToWireguardPrefix';
-import { PolicyRuleToIPSec } from '../../models/policy/PolicyRuleToIPSec';
-import { PolicyRuleToIPSecPrefix } from '../../models/policy/PolicyRuleToIPSecPrefix';
-const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 
@@ -67,8 +58,10 @@ async (req, res) => {
 	};
 
 	try {
-		await PolicyRule.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
-		res.status(200).json(await PolicyRule.insertPolicy_r(policy_rData));
+		const { pasteOnRuleId, pasteOffset } = req.body;
+		const position = pasteOnRuleId === undefined ? undefined : { ruleId: pasteOnRuleId, offset: pasteOffset };
+		const repository = new PolicyRuleRepository(db.getSource().manager);
+		res.status(200).json(await repository.createRule(policy_rData, position));
 	} catch(error) {
 		logger().error('Error creating a rule: ' + JSON.stringify(error));
 		res.status(400).json(error);
@@ -122,7 +115,7 @@ async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type */
-router.put('/type/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null);
 		res.status(200).json(policy);
@@ -133,7 +126,7 @@ router.put('/type/get', async (req, res) => {
 });
 
 /* Get policy rules by firewall type and rules group */
-router.put('/type/ingroup/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/ingroup/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, req.body.idgroup);
 		res.status(200).json(policy);
@@ -144,7 +137,7 @@ router.put('/type/ingroup/get', async (req, res) => {
 });
 
 /* Get all policy_rs by firewall and type but don't expand group contents */
-router.put('/type/grouped/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/grouped/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null, true);
 		res.status(200).json(policy);
@@ -156,7 +149,7 @@ router.put('/type/grouped/get', async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type and Rule */
-router.put('/get', async (req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, [req.body.rule], null);
 		//If exists policy_r get data
@@ -250,9 +243,9 @@ router.put('/copy',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		let pasteOnRuleId = req.body.pasteOnRuleId;
-		for (let rule of req.body.rulesIds)
-			pasteOnRuleId = await ruleCopy(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+		const { firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup } = req.body;
+		const repository = new PolicyRuleRepository(db.getSource().manager);
+		await repository.copyRules(firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup);
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error copying rule: ' + JSON.stringify(error));
@@ -265,15 +258,9 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		let pasteOnRuleId = req.body.pasteOnRuleId;
-
-		// The rule over which we move cat rules can not be part of the moved rules.
-		for (let rule of req.body.rulesIds)
-			if (rule === pasteOnRuleId) throw(fwcError.other('Paste on rule can not be part of the set of pasted rules.'));
-
-		for (let rule of req.body.rulesIds)
-			await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
-
+		const { firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup } = req.body;
+		const repository = new PolicyRuleRepository(db.getSource().manager);
+		await repository.moveRules(firewall, rulesIds, pasteOnRuleId, pasteOffset, idgroup);
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error moving rule: ' + JSON.stringify(error));
@@ -419,7 +406,7 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 					await policyGroupRepository.deleteIfEmpty(policyGroup);
 				}
 			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
-				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: ['policyRules'] });
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: { policyRules: true } });
 				if (policyGroup.policyRules && policyGroup.policyRules.length < 1) {
 					await policyGroupRepository.delete({ id: policyGroup.id });
 				}

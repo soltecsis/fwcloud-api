@@ -127,7 +127,7 @@ export class DatabaseService extends Service {
     this._dataSource = null;
     this._id = moment().valueOf();
 
-    this._dataSource = await this.getDataSource({ name: 'default' });
+    this._dataSource = await this.getDataSource({});
 
     return this;
   }

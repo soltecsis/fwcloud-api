@@ -44,7 +44,6 @@
  * @property express
  * @type express
  */
-var express = require('express');
 
 /**
  * Property  to manage Firewall route
@@ -52,7 +51,9 @@ var express = require('express');
  * @property router
  * @type express.Router 
  */
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 
 /**
  * Property Model to manage Firewall Data
@@ -88,6 +89,7 @@ import { KeepalivedRule } from '../../models/system/keepalived/keepalived_r/keep
 import db from '../../database/database-manager';
 import { AuditLog } from '../../models/audit/AuditLog';
 import { AuditLogHelper } from '../../models/audit/audit-log.helper';
+import { AuditEventType } from '../../models/audit/audit-event-type';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
@@ -143,6 +145,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 		}
 
 		auditLog.call = `PUT ${req.originalUrl}`;
+		auditLog.eventType = AuditEventType.Deletion;
 		auditLog.status = AuditLogHelper.normalizeHttpStatus(statusCode);
 		auditLog.durationMs = timing.durationMs;
 		auditLog.data = JSON.stringify({
@@ -154,9 +157,7 @@ const persistFirewallDeleteAuditLog = async (req, res, firewallId, fwcloudId, st
 			query: req.query,
 			body: req.body
 		});
-		auditLog.userId = AuditLogHelper.getNumeric(req.session?.user_id);
-		auditLog.userName = typeof req.session?.username === 'string' ? req.session.username : null;
-		auditLog.sessionId = AuditLogHelper.resolveSessionId(req);
+		Object.assign(auditLog, AuditLogHelper.getRequestIdentity(req));
 		const sourceIp = resolveSourceIp(req);
 		auditLog.sourceIp = sourceIp && sourceIp.length > 0 ? sourceIp.substring(0, 45) : null;
 		auditLog.fwCloudId = AuditLogHelper.getNumeric(fwcloudId);
@@ -560,7 +561,7 @@ router.put('/get', async (req, res) => {
  *  "msg": "Firewall access not allowed"
  * }
  */
-router.put('/cloud/get', async (req, res) => {
+legacyOperation(router, 'put', '/cloud/get', consultationOperation, async (req, res) => {
 	try {
 		let data = await Firewall.getFirewallsInFWCloud(req);
 		if (data && data.length > 0) {

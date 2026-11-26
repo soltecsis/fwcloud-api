@@ -124,7 +124,7 @@ export class KeepalivedRule extends Model {
 
       const originalKeepalivedRules: KeepalivedRule[] = await KeepalivedRule.find({
         where: { firewall: originalFirewall },
-        relations: ['virtualIps'],
+        relations: { virtualIps: true },
       });
 
       for (const originalRule of originalKeepalivedRules) {
